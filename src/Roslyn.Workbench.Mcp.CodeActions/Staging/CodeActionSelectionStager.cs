@@ -169,7 +169,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
         string? equivalenceKey = null,
         IReadOnlyList<int>? actionPath = null)
     {
-        return StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        var request = new ReplayCodeActionRequest
         {
             Location = selection,
             ExpectedSnapshot = expectedSnapshot,
@@ -179,7 +179,9 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
             TitleDoesNotContain = titleDoesNotContain,
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
-        }, context, cancellationToken);
+        };
+
+        return StageReplayCodeActionAsync(request, context, cancellationToken);
     }
 
     private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ApplyActionAsync(
@@ -209,8 +211,11 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _composition.Status.IsAvailable
-            ? null
-            : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        if (_composition.Status.IsAvailable)
+        {
+            return null;
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 }

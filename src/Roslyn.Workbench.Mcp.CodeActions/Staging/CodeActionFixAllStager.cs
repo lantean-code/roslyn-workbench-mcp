@@ -97,14 +97,22 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             application.CandidateSolution,
             cancellationToken);
 
-        return limitRejection ?? CreateSuccess(operation.Action, application.CandidateSolution);
+        if (limitRejection is not null)
+        {
+            return limitRejection;
+        }
+
+        return CreateSuccess(operation.Action, application.CandidateSolution);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _composition.Status.IsAvailable
-            ? null
-            : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        if (_composition.Status.IsAvailable)
+        {
+            return null;
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 
     private ValueTask<CodeActionResolution<WorkspaceMutationCandidate>> ResolveActionAsync(
@@ -123,9 +131,12 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         CodeActionResolutionFailureKind failureKind,
         CodeActionExecutionResult<WorkspaceMutationCandidate> rejection)
     {
-        return failureKind == CodeActionResolutionFailureKind.ProviderUnavailable
-            ? FixAllUnavailable("The originating code-fix provider is no longer available.")
-            : rejection;
+        if (failureKind == CodeActionResolutionFailureKind.ProviderUnavailable)
+        {
+            return FixAllUnavailable("The originating code-fix provider is no longer available.");
+        }
+
+        return rejection;
     }
 
     private ValueTask<CodeActionApplyResult> ApplyScopeAsync(

@@ -7,6 +7,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
 {
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly TimeProvider _timeProvider;
+    private readonly int _maximumDiagnosticContextsPerAction;
     private readonly TimeSpan _referenceLifetime;
 
     public CodeActionInfoFactory(
@@ -16,6 +17,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
     {
         _referenceStore = referenceStore;
         _timeProvider = timeProvider;
+        _maximumDiagnosticContextsPerAction = Math.Max(0, options.Value.MaximumDiagnosticContextsPerAction);
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
 
@@ -32,7 +34,8 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             return false;
         }
 
-        var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
+        var documentPath = document.FilePath ?? document.Name;
+        var normalizedDocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(documentPath);
         var recipe = new CodeActionReplayRecipe
         {
             Kind = action.Kind,
@@ -43,38 +46,55 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             DiagnosticIds = action.DiagnosticIds.ToArray(),
             Diagnostics = action.Diagnostics.ToArray(),
             SnapshotIdentity = context.SnapshotIdentity,
-            DocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
+            DocumentPath = normalizedDocumentPath,
             ProjectId = document.Project.Id.Id.ToString(),
             Start = action.TargetSpan.Start,
             Length = action.TargetSpan.Length,
         };
 
+        var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
         if (!_referenceStore.TryCreate(recipe, expiresAt, out var reference))
         {
             item = null;
             return false;
         }
 
+        var kind = CodeActionKind.CodeFix;
+        if (action.Kind == DiscoveredActionKind.Refactoring)
+        {
+            kind = CodeActionKind.Refactoring;
+        }
+
+        var actionLocation = new CodeActionLocation
+        {
+            Document = location.Document,
+            Span = location.Span,
+            Line = location.Line,
+            Column = location.Column,
+        };
+
+        BoundedCollection<CodeActionDiagnosticContext>? diagnosticContexts = null;
+        if (action.Kind == DiscoveredActionKind.CodeFix)
+        {
+            diagnosticContexts = CreateDiagnosticContexts(
+                action.Diagnostics,
+                _maximumDiagnosticContextsPerAction);
+        }
+
+        IReadOnlyList<CodeActionFixAllScope>? fixAllScopes = null;
+        if (action.FixAllScopes.Count > 0)
+        {
+            fixAllScopes = action.FixAllScopes;
+        }
+
         item = new CodeActionListItem
         {
             ActionId = reference.ActionId,
             Title = action.Title,
-            Kind = action.Kind == DiscoveredActionKind.Refactoring
-                ? CodeActionKind.Refactoring
-                : CodeActionKind.CodeFix,
-            Location = new CodeActionLocation
-            {
-                Document = location.Document,
-                Span = location.Span,
-                Line = location.Line,
-                Column = location.Column,
-            },
-            Diagnostics = action.Kind == DiscoveredActionKind.CodeFix
-                ? CreateDiagnosticContexts(action.Diagnostics)
-                : null,
-            FixAllScopes = action.FixAllScopes.Count == 0
-                ? null
-                : action.FixAllScopes,
+            Kind = kind,
+            Location = actionLocation,
+            Diagnostics = diagnosticContexts,
+            FixAllScopes = fixAllScopes,
         };
 
         return true;
@@ -111,12 +131,19 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         return info;
     }
 
-    private static List<CodeActionDiagnosticContext> CreateDiagnosticContexts(
-        IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics)
+    private static BoundedCollection<CodeActionDiagnosticContext> CreateDiagnosticContexts(
+        IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
+        int maximumDiagnosticContexts)
     {
-        var contexts = new List<CodeActionDiagnosticContext>(diagnostics.Count);
+        var returnedCount = Math.Min(diagnostics.Count, maximumDiagnosticContexts);
+        var contexts = new List<CodeActionDiagnosticContext>(returnedCount);
         foreach (var diagnostic in diagnostics)
         {
+            if (contexts.Count == maximumDiagnosticContexts)
+            {
+                break;
+            }
+
             contexts.Add(new CodeActionDiagnosticContext
             {
                 Id = diagnostic.Id,
@@ -124,6 +151,6 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             });
         }
 
-        return contexts;
+        return BoundedCollection.CreatePrebounded(contexts, diagnostics.Count);
     }
 }

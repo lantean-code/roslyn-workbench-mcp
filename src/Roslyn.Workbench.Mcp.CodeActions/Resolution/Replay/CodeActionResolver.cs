@@ -120,11 +120,12 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             return CodeActionReferenceContextResolution.Unresolved();
         }
 
+        var span = new TextSpan(recipe.Start, recipe.Length);
         var referenceContext = new CodeActionReferenceContext
         {
             Reference = reference,
             Document = documentResolution.Value,
-            Span = new TextSpan(recipe.Start, recipe.Length),
+            Span = span,
         };
 
         return CodeActionReferenceContextResolution.Resolved(referenceContext);

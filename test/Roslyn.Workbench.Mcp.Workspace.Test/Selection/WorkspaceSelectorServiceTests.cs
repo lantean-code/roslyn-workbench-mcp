@@ -351,20 +351,27 @@ public sealed class WorkspaceSelectorServiceTests
         string? alias,
         string loadedPath)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            Alias = alias,
+            LoadedPath = loadedPath,
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = WorkspaceLifecycleState.Ready,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = workspaceId,
-                Alias = alias,
-                LoadedPath = loadedPath,
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = null!,
             InputManifest = null!,
             OperationGate = null!,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction: null),
         };
     }
 }

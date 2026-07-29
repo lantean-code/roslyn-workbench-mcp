@@ -25,5 +25,5 @@ internal sealed record StageFixAllRequest : WorkspaceMutationRequest, ICodeActio
     [DefaultValue(_defaultMaxChanges)]
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
-    internal int EffectiveMaxChanges => Math.Max(0, MaxChanges ?? _defaultMaxChanges);
+    internal int EffectiveMaxChanges => ToolExecutionHelpers.GetMaxResults(MaxChanges, _defaultMaxChanges);
 }

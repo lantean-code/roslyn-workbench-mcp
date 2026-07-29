@@ -2,11 +2,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.References;
 
 internal sealed record CodeActionReplayRecipe
 {
-    public DiscoveredActionKind Kind { get; init; }
+    public required DiscoveredActionKind Kind { get; init; }
 
-    public string ProviderId { get; init; } = string.Empty;
+    public required string ProviderId { get; init; }
 
-    public string Title { get; init; } = string.Empty;
+    public required string Title { get; init; }
 
     public string? EquivalenceKey { get; init; }
 
@@ -18,13 +18,13 @@ internal sealed record CodeActionReplayRecipe
 
     public CodeActionFixAllScope? PreparedFixAllScope { get; init; }
 
-    public WorkspaceSnapshotIdentity SnapshotIdentity { get; init; }
+    public required WorkspaceSnapshotIdentity SnapshotIdentity { get; init; }
 
-    public string DocumentPath { get; init; } = string.Empty;
+    public required string DocumentPath { get; init; }
 
-    public string ProjectId { get; init; } = string.Empty;
+    public required string ProjectId { get; init; }
 
-    public int Start { get; init; }
+    public required int Start { get; init; }
 
-    public int Length { get; init; }
+    public required int Length { get; init; }
 }

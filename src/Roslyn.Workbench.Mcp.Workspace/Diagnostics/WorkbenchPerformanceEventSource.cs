@@ -51,9 +51,12 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     [NonEvent]
     public PerformanceTraceScope StartPhase(string operation, string phase)
     {
-        return IsEnabled()
-            ? new PerformanceTraceScope(this, operation, phase)
-            : default;
+        if (!IsEnabled())
+        {
+            return default;
+        }
+
+        return new PerformanceTraceScope(this, operation, phase);
     }
 
     [Event(1, Level = EventLevel.Informational)]

@@ -2,6 +2,24 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class StageFixAllToolTests
 {
+    [Theory]
+    [InlineData(null, 50)]
+    [InlineData(12, 12)]
+    public void GIVEN_OptionalMaxChanges_WHEN_GettingEffectiveLimit_THEN_ShouldUseRequestedOrPublishedValue(
+        int? maxChanges,
+        int expected)
+    {
+        var request = new StageFixAllRequest
+        {
+            ActionId = Guid.Empty,
+            Scope = new ScopeSelector { Kind = ScopeKind.Solution },
+            ExpectedSnapshot = new SnapshotPrecondition(),
+            MaxChanges = maxChanges,
+        };
+
+        request.EffectiveMaxChanges.Should().Be(expected);
+    }
+
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {

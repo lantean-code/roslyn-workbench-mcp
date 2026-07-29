@@ -17,6 +17,7 @@ public sealed class CodeActionDiagnosticServiceTests
         _builtInAnalyzerIndex
             .SetupGet(item => item.Warnings)
             .Returns([]);
+
         _builtInAnalyzerIndex
             .Setup(item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()))
             .Returns([]);
@@ -302,6 +303,7 @@ public sealed class CodeActionDiagnosticServiceTests
         analyzer
             .SetupGet(item => item.SupportedDiagnostics)
             .Returns([descriptor]);
+
         analyzer
             .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
             .Throws(new InvalidOperationException("Analyzer failure."));

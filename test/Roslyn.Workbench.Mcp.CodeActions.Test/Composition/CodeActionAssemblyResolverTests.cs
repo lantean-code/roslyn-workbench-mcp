@@ -11,6 +11,7 @@ public sealed class CodeActionAssemblyResolverTests
 
         result.Should().ContainSingle(assembly =>
             assembly.GetName().Name == "Microsoft.CodeAnalysis.Features");
+
         result.Should().ContainSingle(assembly =>
             assembly.GetName().Name == "Microsoft.CodeAnalysis.CSharp.Features");
     }

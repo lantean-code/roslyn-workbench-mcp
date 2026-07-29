@@ -178,19 +178,26 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
     private WorkspaceSessionSnapshot CreateSession(IWorkspaceOperationGate gate)
     {
         var workspace = new Mock<ILoadedWorkspace>();
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = WorkspaceLifecycleState.Ready,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = workspace.Object,
             CurrentSolution = _workspace.CurrentSolution,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = gate,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction: null),
         };
     }
 }

@@ -128,13 +128,15 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
 
     private static ICodeActionComposition CreateComposition()
     {
-        return CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
+        var options = new CodeActionCompositionOptions
         {
             AdditionalAssemblies =
             [
                 typeof(CodeActionDiagnosticSourcesIntegrationTests).Assembly,
             ],
-        });
+        };
+
+        return CodeActionCompositionFactory.Create(options);
     }
 
     private static CodeActionDiagnosticService CreateDiagnosticService()
@@ -191,6 +193,7 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
             analyzerReference
                 .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
                 .Returns([analyzer]);
+
             analyzerReference
                 .Setup(item => item.GetGenerators(LanguageNames.CSharp))
                 .Returns([]);

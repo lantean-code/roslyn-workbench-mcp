@@ -6,11 +6,11 @@ internal sealed record WorkspaceTransactionRevision
 
     public required Solution Solution { get; init; }
 
-    public ChangeSummary Changes { get; init; } = new();
+    public required ChangeSummary Changes { get; init; }
 
-    public string Operation { get; init; } = string.Empty;
+    public required string Operation { get; init; }
 
-    public string Summary { get; init; } = string.Empty;
+    public required string Summary { get; init; }
 
-    public MutationPreview Preview { get; init; } = new();
+    public required MutationPreview Preview { get; init; }
 }

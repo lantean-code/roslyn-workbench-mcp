@@ -156,15 +156,19 @@ public sealed class ServerStatusServiceTests
         CodeActionCatalogSnapshot? codeActionSnapshot = null,
         IReadOnlyList<WarningInfo>? startupWarnings = null)
     {
+        var configuration = new StartupConfigurationSnapshot
+        {
+            Options = options,
+            Warnings = startupWarnings ?? [],
+        };
+
+        codeActionSnapshot ??= new CodeActionCatalogSnapshot();
+
         return new ServerStatusService(
             Options.Create(options),
-            new StartupConfigurationSnapshot
-            {
-                Options = options,
-                Warnings = startupWarnings ?? [],
-            },
+            configuration,
             pluginSnapshot,
-            codeActionSnapshot ?? new CodeActionCatalogSnapshot(),
+            codeActionSnapshot,
             _msBuildRegistrationService.Object,
             _codeActionComposition.Object,
             _recoveryStore.Object);

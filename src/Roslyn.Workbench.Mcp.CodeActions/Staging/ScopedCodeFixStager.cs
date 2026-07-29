@@ -437,9 +437,12 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _composition.Status.IsAvailable
-            ? null
-            : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        if (_composition.Status.IsAvailable)
+        {
+            return null;
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 
 }

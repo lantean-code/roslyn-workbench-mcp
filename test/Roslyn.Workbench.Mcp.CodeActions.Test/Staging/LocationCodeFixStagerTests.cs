@@ -337,6 +337,7 @@ public sealed class LocationCodeFixStagerTests
         {
             TargetSpan = new TextSpan(2, 1),
         };
+
         var request = CreateRequest(selector) with
         {
             Title = null,
@@ -575,15 +576,23 @@ public sealed class LocationCodeFixStagerTests
 
     private static Diagnostic CreateDiagnostic(Location location)
     {
-        return Diagnostic.Create(
-            new DiagnosticDescriptor("DiagnosticId", "Title", "Message", "Category", Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, true),
-            location);
+        var descriptor = new DiagnosticDescriptor(
+            "DiagnosticId",
+            "Title",
+            "Message",
+            "Category",
+            Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        return Diagnostic.Create(descriptor, location);
     }
 
     private static async Task<Location> CreateLocationAsync(Document document)
     {
         var syntaxTree = await document.GetSyntaxTreeAsync();
-        return syntaxTree!.GetLocation(new TextSpan(0, 1));
+        var span = new TextSpan(0, 1);
+
+        return syntaxTree!.GetLocation(span);
     }
 
 #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.

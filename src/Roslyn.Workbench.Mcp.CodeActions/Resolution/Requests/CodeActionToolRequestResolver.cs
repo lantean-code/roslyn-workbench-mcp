@@ -86,9 +86,11 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
             return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);
         }
 
-        var span = range is null
-            ? new TextSpan(0, text.Length)
-            : new TextSpan(range.Start, range.Length);
+        var span = new TextSpan(0, text.Length);
+        if (range is not null)
+        {
+            span = new TextSpan(range.Start, range.Length);
+        }
 
         var selection = new CodeActionSourceSelection
         {
@@ -145,14 +147,16 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
             return null;
         }
 
+        var span = new TextSpanSelector
+        {
+            Document = CreateDocumentSelector(resolvedLocation.Document),
+            Start = resolvedLocation.Span.Start,
+            Length = resolvedLocation.Span.Length,
+        };
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = CreateDocumentSelector(resolvedLocation.Document),
-                Start = resolvedLocation.Span.Start,
-                Length = resolvedLocation.Span.Length,
-            },
+            Span = span,
         };
     }
 

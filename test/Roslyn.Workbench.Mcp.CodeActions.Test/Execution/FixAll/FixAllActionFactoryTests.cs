@@ -56,16 +56,10 @@ public sealed class FixAllActionFactoryTests : IDisposable
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync(action);
 
-        var result = scope == FixAllScope.Document
-            ? await _target.CreateDocumentAsync(
-                provider.Object,
-                fixAllProvider.Object,
-                _roslyn.Document,
-                _diagnosticIds,
-                "EquivalenceKey",
-                "SyntheticDiagnosticId",
-                TestContext.Current.CancellationToken)
-            : await _target.CreateSolutionAsync(
+        FixAllActionCreationResult result;
+        if (scope == FixAllScope.Document)
+        {
+            result = await _target.CreateDocumentAsync(
                 provider.Object,
                 fixAllProvider.Object,
                 _roslyn.Document,
@@ -73,6 +67,18 @@ public sealed class FixAllActionFactoryTests : IDisposable
                 "EquivalenceKey",
                 "SyntheticDiagnosticId",
                 TestContext.Current.CancellationToken);
+        }
+        else
+        {
+            result = await _target.CreateSolutionAsync(
+                provider.Object,
+                fixAllProvider.Object,
+                _roslyn.Document,
+                _diagnosticIds,
+                "EquivalenceKey",
+                "SyntheticDiagnosticId",
+                TestContext.Current.CancellationToken);
+        }
 
         result.Action.Should().BeSameAs(action);
         fixAllProvider.Verify(item => item.GetFixAsync(

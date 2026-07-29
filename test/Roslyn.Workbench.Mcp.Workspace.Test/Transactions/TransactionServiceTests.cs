@@ -28,6 +28,7 @@ public sealed class TransactionServiceTests : IDisposable
         _sessionStore
             .Setup(item => item.AllocateWorkspaceTransactionId())
             .Returns(new WorkspaceTransactionId(7));
+
         _sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
         SetupWorkspaceRequiredAcquisitions();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
@@ -325,7 +326,9 @@ public sealed class TransactionServiceTests : IDisposable
                 updated.Transaction != null
                 && updated.Transaction.TransactionId == new WorkspaceTransactionId(7)
                 && updated.Transaction.BaselineSnapshotId == session.CommittedSnapshotId
-                && updated.Transaction.MaxRevisions == 5),
+                && updated.Transaction.MaxRevisions == 5
+                && updated.CurrentSnapshotIdentity.TransactionId == new WorkspaceTransactionId(7)
+                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId),
             "WorkspaceId"), Times.Once);
     }
 
@@ -1059,7 +1062,10 @@ public sealed class TransactionServiceTests : IDisposable
         result.Should().BeSameAs(expected);
         _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
             It.Is<WorkspaceSessionSnapshot>(updated =>
-                updated.Transaction == null && updated.CurrentSolution == transaction.BaselineSolution),
+                updated.Transaction == null
+                && updated.CurrentSolution == transaction.BaselineSolution
+                && updated.CurrentSnapshotIdentity.TransactionId == null
+                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId),
             null), Times.Once);
     }
 
@@ -1211,21 +1217,28 @@ public sealed class TransactionServiceTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 2,
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = transaction is null ? WorkspaceLifecycleState.Ready : WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                WorkspaceEpoch = 2,
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = transaction?.CurrentSolution ?? _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = null!,
             OperationGate = new Mock<IWorkspaceOperationGate>().Object,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction),
         };
     }
 
@@ -1251,6 +1264,10 @@ public sealed class TransactionServiceTests : IDisposable
             {
                 SnapshotId = new WorkspaceSnapshotId(index),
                 Solution = transaction.BaselineSolution,
+                Changes = new ChangeSummary(),
+                Operation = "Operation",
+                Summary = "Summary",
+                Preview = new MutationPreview(),
             })
             .ToArray();
 

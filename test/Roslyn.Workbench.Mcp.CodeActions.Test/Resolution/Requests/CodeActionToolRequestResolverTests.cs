@@ -162,10 +162,18 @@ public sealed class CodeActionToolRequestResolverTests
     [InlineData(false)]
     public void GIVEN_ResolvedLocationLacksRequiredData_WHEN_CreatingLocationSelector_THEN_ShouldReturnNull(bool omitDocument)
     {
+        DocumentReference? document = new() { DocumentId = "DocumentId" };
+        TextSpanRange? span = null;
+        if (omitDocument)
+        {
+            document = null;
+            span = new TextSpanRange { Start = 1, Length = 2 };
+        }
+
         var location = new ResolvedLocation
         {
-            Document = omitDocument ? null : new DocumentReference { DocumentId = "DocumentId" },
-            Span = omitDocument ? new TextSpanRange { Start = 1, Length = 2 } : null,
+            Document = document,
+            Span = span,
         };
 
         var result = _target.CreateLocationSelector(location);

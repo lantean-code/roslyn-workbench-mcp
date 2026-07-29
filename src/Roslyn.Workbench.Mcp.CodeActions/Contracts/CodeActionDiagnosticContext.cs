@@ -8,10 +8,10 @@ internal sealed record CodeActionDiagnosticContext
     /// <summary>
     /// Gets the diagnostic identifier.
     /// </summary>
-    public string Id { get; init; } = string.Empty;
+    public required string Id { get; init; }
 
     /// <summary>
     /// Gets the diagnostic message.
     /// </summary>
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 }

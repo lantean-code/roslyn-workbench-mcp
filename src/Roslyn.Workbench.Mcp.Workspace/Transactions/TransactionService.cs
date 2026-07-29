@@ -92,11 +92,17 @@ internal sealed class TransactionService : ITransactionService
             MaxRevisions = _options.MaxTransactionRevisions,
         };
 
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            session.Workspace,
+            session.CommittedSnapshotId,
+            transaction);
+
         var updatedSession = session with
         {
             Transaction = transaction,
             CurrentSolution = transaction.CurrentSolution,
             State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionStarted),
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, acquisition.Selection.WorkspaceId);
@@ -139,11 +145,17 @@ internal sealed class TransactionService : ITransactionService
         var session = acquisition.Session;
         if (session?.Transaction is null)
         {
+            WorkspaceOperationContext? rejectionContext = null;
+            if (session is not null)
+            {
+                rejectionContext = CreateContext(session);
+            }
+
             return _resultFactory.Rejected<TransactionPreviewOutcome>(
                 WorkspaceErrorCodes.TransactionRequired,
                 "Start a transaction before previewing changes.",
                 RequiredAction.StartTransaction,
-                session is null ? null : CreateContext(session));
+                rejectionContext);
         }
 
         var resolver = _resolverFactory.Create(
@@ -275,10 +287,16 @@ internal sealed class TransactionService : ITransactionService
                 context: context);
         }
 
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            session.Workspace,
+            session.CommittedSnapshotId,
+            updatedTransaction);
+
         var updatedSession = session with
         {
             Transaction = updatedTransaction,
             CurrentSolution = updatedTransaction.CurrentSolution,
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         _sessionStore.ReplaceSession(updatedSession);
@@ -341,19 +359,25 @@ internal sealed class TransactionService : ITransactionService
                 RequiredAction.StartTransaction);
         }
 
-        var rollbackState = session.State == WorkspaceLifecycleState.TransactionConflicted
-            ? TransactionRollbackState.WorkspaceOutOfDate
-            : TransactionRollbackState.Ready;
+        var rollbackState = TransactionRollbackState.Ready;
+        var rollbackTrigger = WorkspaceTrigger.TransactionRolledBack;
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
+        {
+            rollbackState = TransactionRollbackState.WorkspaceOutOfDate;
+            rollbackTrigger = WorkspaceTrigger.ConflictedRollbackCompleted;
+        }
+
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            session.Workspace,
+            session.CommittedSnapshotId,
+            transaction: null);
 
         var updatedSession = session with
         {
             Transaction = null,
             CurrentSolution = transaction.BaselineSolution,
-            State = _workspaceStateTransitions.Fire(
-                session.State,
-                session.State == WorkspaceLifecycleState.TransactionConflicted
-                    ? WorkspaceTrigger.ConflictedRollbackCompleted
-                    : WorkspaceTrigger.TransactionRolledBack),
+            State = _workspaceStateTransitions.Fire(session.State, rollbackTrigger),
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, null);
@@ -388,14 +412,17 @@ internal sealed class TransactionService : ITransactionService
 
     private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
     {
-        return workspaceId is null && alias is null && path is null
-            ? null
-            : new WorkspaceSelector
-            {
-                WorkspaceId = workspaceId,
-                Alias = alias,
-                Path = path,
-            };
+        if (workspaceId is null && alias is null && path is null)
+        {
+            return null;
+        }
+
+        return new WorkspaceSelector
+        {
+            WorkspaceId = workspaceId,
+            Alias = alias,
+            Path = path,
+        };
     }
 
     private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)
@@ -412,7 +439,12 @@ internal sealed class TransactionService : ITransactionService
         WorkspaceSessionAcquisition acquisition,
         WorkspaceOperationError error)
     {
-        var context = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+        WorkspaceOperationContext? context = null;
+        if (acquisition.ContextSession is not null)
+        {
+            context = CreateContext(acquisition.ContextSession);
+        }
+
         return _resultFactory.Rejected<TOutcome>(error, context);
     }
 

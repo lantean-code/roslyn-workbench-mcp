@@ -8,9 +8,16 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
         CancellationToken cancellationToken)
     {
         var changedDocuments = new List<Document>();
-        var documentIds = before.Projects
+        var beforeDocumentIds = before.Projects
             .SelectMany(static project => project.DocumentIds)
-            .Concat(after.Projects.SelectMany(static project => project.DocumentIds))
+            .ToArray();
+
+        var afterDocumentIds = after.Projects
+            .SelectMany(static project => project.DocumentIds)
+            .ToArray();
+
+        var documentIds = beforeDocumentIds
+            .Concat(afterDocumentIds)
             .Distinct()
             .ToArray();
 

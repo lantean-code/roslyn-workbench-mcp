@@ -35,17 +35,23 @@ internal sealed class CodeActionStager : ICodeActionStager
             return runtimeRejection;
         }
 
-        var resolvedAction = _referenceStore.IsPreparedFixAll(request.ActionId)
-            ? await _preparedFixAllResolver.ResolveActionAsync<WorkspaceMutationCandidate>(
-                request.ActionId,
-                request.ExpectedSnapshot,
-                context,
-                cancellationToken)
-            : await _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
+        CodeActionResolution<WorkspaceMutationCandidate> resolvedAction;
+        if (_referenceStore.IsPreparedFixAll(request.ActionId))
+        {
+            resolvedAction = await _preparedFixAllResolver.ResolveActionAsync<WorkspaceMutationCandidate>(
                 request.ActionId,
                 request.ExpectedSnapshot,
                 context,
                 cancellationToken);
+        }
+        else
+        {
+            resolvedAction = await _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
+                request.ActionId,
+                request.ExpectedSnapshot,
+                context,
+                cancellationToken);
+        }
 
         if (resolvedAction.HasRejection)
         {
@@ -89,8 +95,11 @@ internal sealed class CodeActionStager : ICodeActionStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _composition.Status.IsAvailable
-            ? null
-            : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        if (_composition.Status.IsAvailable)
+        {
+            return null;
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 }

@@ -31,6 +31,7 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
 
         _target = new ListCodeActionsTool(
@@ -137,6 +138,7 @@ public sealed class ListCodeActionsToolTests
                 new TextSpan(0, source.Length),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([refactoring]);
+
         _diagnosticService
             .Setup(item => item.CollectDocumentDiagnosticsAsync(
                 roslyn.Document,
@@ -144,6 +146,7 @@ public sealed class ListCodeActionsToolTests
                 It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_firstDiagnosticIds)),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(diagnosticCollection);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
                 codeFixProvider.Object,
@@ -151,6 +154,7 @@ public sealed class ListCodeActionsToolTests
                 diagnosticCollection.Diagnostics,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([codeFix]);
+
         SetupProjection(refactoring, roslyn.Document, refactoringItem);
         SetupProjection(codeFix, roslyn.Document, codeFixItem);
 
@@ -198,6 +202,7 @@ public sealed class ListCodeActionsToolTests
             roslyn.Document,
             span,
             TestContext.Current.CancellationToken), Times.Once);
+
         _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
             It.IsAny<Document>(),
             It.IsAny<TextSpan?>(),
@@ -221,6 +226,7 @@ public sealed class ListCodeActionsToolTests
                 It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_secondDiagnosticIds)),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(new CodeActionDiagnosticCollection([], ["Warning"]));
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
                 provider.Object,
@@ -260,6 +266,7 @@ public sealed class ListCodeActionsToolTests
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([second, first]);
+
         SetupProjection(first, roslyn.Document, firstItem);
 
         var result = await _target.ExecuteAsync(
@@ -293,6 +300,7 @@ public sealed class ListCodeActionsToolTests
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([action]);
+
         _workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns((ResolvedLocation?)null);
@@ -347,9 +355,11 @@ public sealed class ListCodeActionsToolTests
         IReadOnlyList<string>? diagnosticIds = null,
         int? limit = 50)
     {
+        document ??= new DocumentSelector { Path = "Code.cs" };
+
         return new ListCodeActionsRequest
         {
-            Document = document ?? new DocumentSelector { Path = "Code.cs" },
+            Document = document,
             Range = range,
             Kinds = kinds,
             DiagnosticIds = diagnosticIds,

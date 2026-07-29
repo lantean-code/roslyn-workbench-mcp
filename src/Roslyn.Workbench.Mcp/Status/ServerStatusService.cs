@@ -81,7 +81,12 @@ internal sealed class ServerStatusService : IServerStatusService
 
     private ServerConfiguration GetConfiguration()
     {
-        return _configuration ??= new ServerConfiguration
+        if (_configuration is not null)
+        {
+            return _configuration;
+        }
+
+        _configuration = new ServerConfiguration
         {
             DefaultMaxResults = _startupOptions.DefaultMaxResults,
             CodeActionReferenceLifetime = _startupOptions.CodeActionReferenceLifetime,
@@ -89,5 +94,7 @@ internal sealed class ServerStatusService : IServerStatusService
             MaxConcurrentQueries = _startupOptions.MaxConcurrentQueries,
             ToolOutputSchemaMode = _startupOptions.ToolOutputSchemaMode,
         };
+
+        return _configuration;
     }
 }

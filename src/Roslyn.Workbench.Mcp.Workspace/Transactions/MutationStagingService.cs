@@ -89,6 +89,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         _sessionStore.ReplaceSessionAfterStaging(
             stagedMutation.Session,
             stagedMutation.DiscardedSnapshotIds);
+
         await PublishStatusAsync(stagedMutation);
 
         return CreateSuccessResult(operationName, mergedCandidate, stagedMutation, diagnostics, warnings);
@@ -110,10 +111,16 @@ internal sealed class MutationStagingService : IMutationStagingService
         var revision = CreateRevision(operationName, candidate, changes);
         var appendResult = transaction.Append(revision);
         var updatedTransaction = appendResult.Transaction;
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            session.Workspace,
+            session.CommittedSnapshotId,
+            updatedTransaction);
+
         var updatedSession = session with
         {
             Transaction = updatedTransaction,
             CurrentSolution = updatedTransaction.CurrentSolution,
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         return new StagedMutation
@@ -173,6 +180,11 @@ internal sealed class MutationStagingService : IMutationStagingService
         WorkspaceMutationCandidate candidate,
         ChangeSummary stagedChanges)
     {
+        var preview = new MutationPreview
+        {
+            Summary = candidate.Summary,
+        };
+
         return new WorkspaceTransactionRevision
         {
             SnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
@@ -180,10 +192,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             Changes = stagedChanges,
             Operation = operationName,
             Summary = candidate.Summary,
-            Preview = new MutationPreview
-            {
-                Summary = candidate.Summary,
-            },
+            Preview = preview,
         };
     }
 

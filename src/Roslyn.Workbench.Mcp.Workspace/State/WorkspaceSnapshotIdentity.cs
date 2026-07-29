@@ -21,4 +21,24 @@ internal readonly record struct WorkspaceSnapshotIdentity
         SnapshotId = snapshotId;
         TransactionId = transactionId;
     }
+
+    public static WorkspaceSnapshotIdentity Create(
+        WorkspaceIdentity workspace,
+        WorkspaceSnapshotId committedSnapshotId,
+        WorkspaceTransaction? transaction)
+    {
+        var snapshotId = committedSnapshotId;
+        WorkspaceTransactionId? transactionId = null;
+        if (transaction is not null)
+        {
+            snapshotId = transaction.CurrentSnapshotId;
+            transactionId = transaction.TransactionId;
+        }
+
+        return new WorkspaceSnapshotIdentity(
+            workspace.WorkspaceId,
+            workspace.WorkspaceEpoch,
+            snapshotId,
+            transactionId);
+    }
 }

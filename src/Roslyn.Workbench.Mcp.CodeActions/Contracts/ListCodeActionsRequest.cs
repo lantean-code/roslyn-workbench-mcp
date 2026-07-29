@@ -35,5 +35,5 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultLimit)]
     public int? Limit { get; init; } = _defaultLimit;
 
-    internal int EffectiveLimit => Math.Max(0, Limit ?? _defaultLimit);
+    internal int EffectiveLimit => ToolExecutionHelpers.GetMaxResults(Limit, _defaultLimit);
 }

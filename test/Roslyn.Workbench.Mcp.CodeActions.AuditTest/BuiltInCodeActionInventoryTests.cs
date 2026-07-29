@@ -140,6 +140,7 @@ public sealed class BuiltInCodeActionInventoryTests
                 family.ExecutionMode.Should().BeOneOf(
                     CodeActionExecutionMode.Replay,
                     CodeActionExecutionMode.Parameterised);
+
                 family.ToolName.Should().NotBeNullOrWhiteSpace();
             }
 

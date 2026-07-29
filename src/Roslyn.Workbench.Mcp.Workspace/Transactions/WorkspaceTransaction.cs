@@ -56,9 +56,12 @@ internal sealed record WorkspaceTransaction
             _ => (int?)null,
         };
 
-        return revision is null
-            ? null
-            : this with { CurrentRevision = revision.Value };
+        if (revision is null)
+        {
+            return null;
+        }
+
+        return this with { CurrentRevision = revision.Value };
     }
 
     public TransactionInfo ToInfo(bool conflicted)

@@ -116,6 +116,12 @@ internal static class BuiltInCodeActionAuditHarness
 
         if (matching.Length == 0)
         {
+            string? failureMessage = null;
+            if (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix)
+            {
+                failureMessage = BuildCodeFixDiagnosticMessage(diagnosticIds);
+            }
+
             return new BuiltInCodeActionAuditProbe
             {
                 LocationStatus = resolution.Status,
@@ -125,9 +131,7 @@ internal static class BuiltInCodeActionAuditHarness
                 IsVisibleInList = IsVisible(visibilityResult, auditCase),
                 CandidateTitles = candidateTitles,
                 DiagnosticIds = diagnosticIds,
-                FailureMessage = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
-                    ? BuildCodeFixDiagnosticMessage(diagnosticIds)
-                    : null,
+                FailureMessage = failureMessage,
             };
         }
 
@@ -426,17 +430,20 @@ internal static class BuiltInCodeActionAuditHarness
     {
         var span = location.Span
             ?? throw new InvalidOperationException("The audit location must be span-backed.");
+
         var document = span.Document
             ?? throw new InvalidOperationException("The audit location must identify a document.");
+
+        var range = new TextSpanRange
+        {
+            Start = span.Start,
+            Length = span.Length,
+        };
 
         return new ListCodeActionsRequest
         {
             Document = document,
-            Range = new TextSpanRange
-            {
-                Start = span.Start,
-                Length = span.Length,
-            },
+            Range = range,
             Kinds = kind == BuiltInCodeActionAuditKind.CodeFix
                 ? CodeActionKindSelection.CodeFixes
                 : CodeActionKindSelection.Refactorings,
@@ -512,11 +519,11 @@ internal static class BuiltInCodeActionAuditHarness
 
     private sealed record DiscoveredAuditCodeAction
     {
-        public CodeAction Action { get; init; } = null!;
+        public required CodeAction Action { get; init; }
 
-        public string ProviderId { get; init; } = string.Empty;
+        public required string ProviderId { get; init; }
 
-        public string Title { get; init; } = string.Empty;
+        public required string Title { get; init; }
 
         public string? EquivalenceKey { get; init; }
 

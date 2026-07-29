@@ -43,7 +43,16 @@ public sealed class TransactionCommitServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction()
     {
-        var session = CreateSession() with { Transaction = null };
+        var session = CreateSession();
+        session = session with
+        {
+            Transaction = null,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                transaction: null),
+        };
+
         var expected = CreateResult(WorkspaceOperationStatus.Rejected);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
         _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
@@ -104,7 +113,16 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var session = CreateSession();
         var empty = session.Transaction! with { CurrentRevision = 0 };
-        session = session with { Transaction = empty, CurrentSolution = empty.BaselineSolution };
+        session = session with
+        {
+            Transaction = empty,
+            CurrentSolution = empty.BaselineSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                empty),
+        };
+
         var expected = CreateResult(WorkspaceOperationStatus.NoChange);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
         _resultFactory.Setup(item => item.NoChange(
@@ -213,6 +231,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _changeDetector
             .Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx", "/workspace"))
             .Returns(inputManifest);
+
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
         _commitWriter.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(true);
         _resultFactory.Setup(item => item.Succeeded(
@@ -233,7 +252,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 value.Transaction == null
                 && value.CommittedSnapshotId == new WorkspaceSnapshotId(3)
                 && value.CurrentSolution == transaction.CurrentSolution
-                && value.InputManifest == inputManifest),
+                && value.InputManifest == inputManifest
+                && value.CurrentSnapshotIdentity.TransactionId == null
+                && value.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3)),
             null), Times.Once);
 
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
@@ -703,10 +724,11 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var baseline = _workspace.CurrentSolution;
         var current = baseline.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
         var transaction = new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = committedSnapshotId,
             BaselineSolution = baseline,
             Revisions =
             [
@@ -714,27 +736,37 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 {
                     SnapshotId = new WorkspaceSnapshotId(2),
                     Solution = current,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
             ],
             CurrentRevision = 1,
             MaxRevisions = 3,
         };
 
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            LoadedPath = "/workspace/solution.slnx",
+            WorkspaceRoot = "/workspace",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                LoadedPath = "/workspace/solution.slnx",
-                WorkspaceRoot = "/workspace",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = new Mock<ILoadedWorkspace>().Object,
             CurrentSolution = current,
             Transaction = transaction,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = new Mock<IWorkspaceOperationGate>().Object,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction),
         };
     }
 
@@ -816,6 +848,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _changeDetector
             .Setup(item => item.BuildManifest(It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(new WorkspaceInputManifest());
+
         _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
     }
 }

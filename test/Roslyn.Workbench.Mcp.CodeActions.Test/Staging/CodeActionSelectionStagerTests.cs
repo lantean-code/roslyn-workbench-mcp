@@ -491,7 +491,9 @@ public sealed class CodeActionSelectionStagerTests
     private static async Task<Location> CreateLocationAsync(Document document)
     {
         var syntaxTree = await document.GetSyntaxTreeAsync();
-        return syntaxTree!.GetLocation(new TextSpan(0, 1));
+        var span = new TextSpan(0, 1);
+
+        return syntaxTree!.GetLocation(span);
     }
 
 #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.

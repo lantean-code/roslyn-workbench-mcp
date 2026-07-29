@@ -125,9 +125,12 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
             .Returns<Type>(type =>
             {
                 var analyzer = Activator.CreateInstance(type, nonPublic: true) as DiagnosticAnalyzer;
-                return analyzer is null
-                    ? CodeActionAnalyzerActivationResult.ConstructionFailed()
-                    : CodeActionAnalyzerActivationResult.Available(analyzer);
+                if (analyzer is null)
+                {
+                    return CodeActionAnalyzerActivationResult.ConstructionFailed();
+                }
+
+                return CodeActionAnalyzerActivationResult.Available(analyzer);
             });
 
         return activator;

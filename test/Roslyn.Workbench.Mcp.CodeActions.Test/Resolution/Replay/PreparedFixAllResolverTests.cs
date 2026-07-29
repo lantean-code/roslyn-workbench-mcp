@@ -50,6 +50,7 @@ public sealed class PreparedFixAllResolverTests
         var kind = isRefactoring
             ? DiscoveredActionKind.Refactoring
             : DiscoveredActionKind.CodeFix;
+
         SetupResolution(CreateResolution(
             roslyn.Document,
             kind,
@@ -94,6 +95,7 @@ public sealed class PreparedFixAllResolverTests
             DiscoveredActionKind.CodeFix,
             CodeActionFixAllScope.Document,
             [CodeActionFixAllScope.Document]));
+
         _discoveryService
             .Setup(item => item.FindCodeFixProvider("ProviderId"))
             .Returns(new Mock<CodeFixProvider>().Object);
@@ -114,6 +116,7 @@ public sealed class PreparedFixAllResolverTests
         var (provider, fixAllProvider) = SetupProviderAndResolution(
             roslyn.Document,
             CodeActionFixAllScope.Document);
+
         _fixAllActionFactory
             .Setup(item => item.CreateDocumentAsync(
                 provider,
@@ -207,6 +210,7 @@ public sealed class PreparedFixAllResolverTests
             DiscoveredActionKind.CodeFix,
             scope,
             [scope]));
+
         var provider = new Mock<CodeFixProvider>();
         var fixAllProvider = new Mock<FixAllProvider>();
         provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
@@ -246,9 +250,10 @@ public sealed class PreparedFixAllResolverTests
             EquivalenceKey = "EquivalenceKey",
             FixAllScopes = advertisedScopes,
         };
+
         var reference = new CodeActionReference(
             Guid.Empty,
-            new CodeActionReplayRecipe
+            CodeActionExecutionTestFactory.CreateReplayRecipe() with
             {
                 PreparedFixAllScope = preparedScope,
             },

@@ -21,9 +21,14 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         IOptions<CodeActionCompositionOptions> options,
         ICodeActionAnalyzerActivator analyzerActivator)
     {
-        _state = options.Value.IncludeBuiltInAssemblies
-            ? GetProcessState(analyzerActivator)
-            : CreateState([], analyzerActivator, measureActivation: false);
+        if (options.Value.IncludeBuiltInAssemblies)
+        {
+            _state = GetProcessState(analyzerActivator);
+        }
+        else
+        {
+            _state = CreateState([], analyzerActivator, measureActivation: false);
+        }
     }
 
     internal CodeActionBuiltInAnalyzerIndex(
@@ -67,11 +72,7 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         ICodeActionAnalyzerActivator analyzerActivator,
         bool measureActivation)
     {
-        using var phase = measureActivation
-            ? WorkbenchPerformanceEventSource.Log.StartPhase(
-                _operationName,
-                WorkbenchPerformanceEventSource.BuiltInAnalyzerActivationPhase)
-            : default;
+        using var phase = CreateActivationPhase(measureActivation);
 
         var analyzersByDiagnosticId = new Dictionary<string, List<DiagnosticAnalyzer>>(StringComparer.Ordinal);
         var warnings = ImmutableArray.CreateBuilder<CodeActionAnalyzerIndexWarning>();
@@ -121,14 +122,30 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         return new IndexState(immutableIndex, warnings.ToImmutable());
     }
 
+    private static PerformanceTraceScope CreateActivationPhase(bool measureActivation)
+    {
+        if (!measureActivation)
+        {
+            return default;
+        }
+
+        return WorkbenchPerformanceEventSource.Log.StartPhase(
+            _operationName,
+            WorkbenchPerformanceEventSource.BuiltInAnalyzerActivationPhase);
+    }
+
     private static Lazy<IndexState> GetProcessState(ICodeActionAnalyzerActivator analyzerActivator)
     {
         lock (_processStateLock)
         {
-            _processState ??= CreateState(
-                CodeActionAssemblyResolver.ResolveBuiltInAssemblies(),
-                analyzerActivator,
-                measureActivation: true);
+            if (_processState is null)
+            {
+                var assemblies = CodeActionAssemblyResolver.ResolveBuiltInAssemblies();
+                _processState = CreateState(
+                    assemblies,
+                    analyzerActivator,
+                    measureActivation: true);
+            }
 
             return _processState;
         }
@@ -139,9 +156,11 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         ICodeActionAnalyzerActivator analyzerActivator,
         bool measureActivation)
     {
-        return new Lazy<IndexState>(
+        var state = new Lazy<IndexState>(
             () => Build(assemblies, analyzerActivator, measureActivation),
             LazyThreadSafetyMode.ExecutionAndPublication);
+
+        return state;
     }
 
     private static IEnumerable<Type> GetAnalyzerTypes(Assembly assembly)

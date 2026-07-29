@@ -16,6 +16,7 @@ public sealed class CodeActionProviderSelectionTests
         composition
             .SetupGet(item => item.RefactoringProviders)
             .Returns([includedRefactoring.Object, excludedRefactoring.Object]);
+
         composition
             .SetupGet(item => item.CodeFixProviders)
             .Returns([includedCodeFix.Object, excludedCodeFix.Object]);
@@ -50,6 +51,7 @@ public sealed class CodeActionProviderSelectionTests
         composition
             .SetupGet(item => item.RefactoringProviders)
             .Returns([]);
+
         composition
             .SetupGet(item => item.CodeFixProviders)
             .Returns([firstProvider.Object, secondProvider.Object]);

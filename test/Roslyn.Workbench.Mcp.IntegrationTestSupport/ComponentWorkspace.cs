@@ -40,9 +40,11 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         CodeActionDescriptorOverride? descriptorOverride = null)
     {
         options ??= new ComponentWorkspaceOptions();
-        var ownedStateDirectory = options.StateDirectory is null
-            ? TemporaryDirectory.Create("roslyn-workbench-mcp-state")
-            : null;
+        TemporaryDirectory? ownedStateDirectory = null;
+        if (options.StateDirectory is null)
+        {
+            ownedStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state");
+        }
 
         var stateDirectory = options.StateDirectory ?? ownedStateDirectory!.DirectoryPath;
 
@@ -75,12 +77,16 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 services.AddCodeActionServices();
             }
 
-            codeActionComposition ??= options.Boundary == ComponentWorkspaceBoundary.CodeActions
-                ? null
-                : CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
+            if (codeActionComposition is null
+                && options.Boundary != ComponentWorkspaceBoundary.CodeActions)
+            {
+                var compositionOptions = new CodeActionCompositionOptions
                 {
                     IncludeBuiltInAssemblies = false,
-                });
+                };
+
+                codeActionComposition = CodeActionCompositionFactory.Create(compositionOptions);
+            }
 
             if (codeActionComposition is not null)
             {

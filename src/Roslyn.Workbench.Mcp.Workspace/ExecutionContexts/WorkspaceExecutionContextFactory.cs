@@ -49,11 +49,18 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         if (acquisition.HasError)
         {
-            var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+            WorkspaceExecutionContext? failureContext = null;
+            IWorkspaceMutationStager? failureStager = null;
+            if (acquisition.ContextSession is not null)
+            {
+                failureContext = CreateContext(acquisition.ContextSession);
+                failureStager = _mutationStager;
+            }
+
             return WorkspaceMutationExecutionLease.Rejected(
                 CreateSelectionFailure(acquisition.Error),
                 failureContext,
-                failureContext is null ? null : _mutationStager,
+                failureStager,
                 acquisition.Lease);
         }
 
@@ -106,7 +113,12 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         if (acquisition.HasError)
         {
-            var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+            WorkspaceExecutionContext? failureContext = null;
+            if (acquisition.ContextSession is not null)
+            {
+                failureContext = CreateContext(acquisition.ContextSession);
+            }
+
             return WorkspaceExecutionContextLease.Rejected(
                 CreateSelectionFailure(acquisition.Error),
                 failureContext,

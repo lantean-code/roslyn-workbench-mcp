@@ -4,11 +4,13 @@ internal static class BundledComponentWorkspaceFactory
 {
     internal static ComponentWorkspace CreateInspectionWorkspace(int defaultMaxResults = 100)
     {
-        return ComponentWorkspace.Create(new ComponentWorkspaceOptions
+        var options = new ComponentWorkspaceOptions
         {
             Boundary = ComponentWorkspaceBoundary.Plugins,
             DefaultMaxResults = defaultMaxResults,
-        });
+        };
+
+        return ComponentWorkspace.Create(options);
     }
 
     internal static ComponentWorkspace CreateBuiltInCodeActionWorkspace()
@@ -23,14 +25,16 @@ internal static class BundledComponentWorkspaceFactory
 
     internal static ICodeActionComposition CreateTestCodeActionComposition()
     {
-        return CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
+        var options = new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =
             [
                 typeof(TestRefactoringProvider).Assembly,
             ],
-        });
+        };
+
+        return CodeActionCompositionFactory.Create(options);
     }
 
     internal static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
@@ -42,11 +46,13 @@ internal static class BundledComponentWorkspaceFactory
         ICodeActionComposition composition,
         CodeActionDescriptorOverride? descriptorOverride = null)
     {
+        var options = new ComponentWorkspaceOptions
+        {
+            Boundary = ComponentWorkspaceBoundary.CodeActions,
+        };
+
         return ComponentWorkspace.Create(
-            new ComponentWorkspaceOptions
-            {
-                Boundary = ComponentWorkspaceBoundary.CodeActions,
-            },
+            options,
             composition,
             descriptorOverride);
     }

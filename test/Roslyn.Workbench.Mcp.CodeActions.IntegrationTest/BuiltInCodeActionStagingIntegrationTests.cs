@@ -27,7 +27,8 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             && action.ActionId != Guid.Empty
             && action.Location.Span.Length > 0
             && action.Diagnostics != null
-            && action.Diagnostics.Any(diagnostic => diagnostic.Id == "CS0266"));
+            && action.Diagnostics.Items.Any(diagnostic => diagnostic.Id == "CS0266"));
+
         result.Data.Actions.TotalCount.Should().BeGreaterThanOrEqualTo(result.Data.Actions.Items.Count);
     }
 

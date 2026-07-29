@@ -491,9 +491,21 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             WorkspaceRoot = workspaceRoot,
         };
 
+        var committedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId();
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            workspaceIdentity,
+            committedSnapshotId,
+            transaction: null);
+
+        var effectiveOperationGate = operationGate;
+        if (effectiveOperationGate is null)
+        {
+            effectiveOperationGate = new WorkspaceOperationGate(_options.MaxConcurrentQueries);
+        }
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
+            CommittedSnapshotId = committedSnapshotId,
             State = WorkspaceLifecycleState.Ready,
             Workspace = workspaceIdentity,
             LoadedWorkspace = workspace,
@@ -503,7 +515,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             DocumentCount = solution.Projects.Sum(static project => project.Documents.Count()),
             LoadDiagnostics = diagnostics,
             InputManifest = inputManifest,
-            OperationGate = operationGate ?? new WorkspaceOperationGate(_options.MaxConcurrentQueries),
+            OperationGate = effectiveOperationGate,
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
     }
 
@@ -601,13 +614,16 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
     private WorkspaceOperationError? ValidateOpenCapacity(WorkspaceHostSnapshot hostSnapshot)
     {
-        return hostSnapshot.Workspaces.Count >= _options.MaxLoadedWorkspaces
-            ? new WorkspaceOperationError
-            {
-                Code = WorkspaceErrorCodes.WorkspaceCapacityReached,
-                Message = "Close an existing workspace before opening another one.",
-            }
-            : null;
+        if (hostSnapshot.Workspaces.Count < _options.MaxLoadedWorkspaces)
+        {
+            return null;
+        }
+
+        return new WorkspaceOperationError
+        {
+            Code = WorkspaceErrorCodes.WorkspaceCapacityReached,
+            Message = "Close an existing workspace before opening another one.",
+        };
     }
 
     private WorkspaceOperationError? ValidateOpenUniqueness(WorkspaceHostSnapshot hostSnapshot, string normalizedPath, string? alias)
@@ -641,14 +657,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
     private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
     {
-        return workspaceId is null && alias is null && path is null
-            ? null
-            : new WorkspaceSelector
-            {
-                WorkspaceId = workspaceId,
-                Alias = alias,
-                Path = path,
-            };
+        if (workspaceId is null && alias is null && path is null)
+        {
+            return null;
+        }
+
+        return new WorkspaceSelector
+        {
+            WorkspaceId = workspaceId,
+            Alias = alias,
+            Path = path,
+        };
     }
 
     private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)
@@ -665,7 +684,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceSessionAcquisition acquisition,
         WorkspaceOperationError error)
     {
-        var context = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+        WorkspaceOperationContext? context = null;
+        if (acquisition.ContextSession is not null)
+        {
+            context = CreateContext(acquisition.ContextSession);
+        }
+
         return _resultFactory.Rejected<TOutcome>(error, context);
     }
 

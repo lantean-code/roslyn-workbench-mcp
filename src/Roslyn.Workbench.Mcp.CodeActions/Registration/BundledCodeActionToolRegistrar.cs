@@ -572,15 +572,17 @@ internal static class BundledCodeActionToolRegistrar
 
     private static CodeActionToolMetadata CreateMutationMetadata(string name, string title, string description)
     {
+        var behavior = new CodeActionToolBehavior
+        {
+            Destructive = true,
+        };
+
         return new CodeActionToolMetadata
         {
             Name = name,
             Title = title,
             Description = description,
-            Behavior = new CodeActionToolBehavior
-            {
-                Destructive = true,
-            },
+            Behavior = behavior,
         };
     }
 }

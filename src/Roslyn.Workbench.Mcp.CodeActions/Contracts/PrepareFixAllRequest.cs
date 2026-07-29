@@ -37,9 +37,9 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// </summary>
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
-    internal int EffectiveMaxChanges => Math.Max(0, MaxChanges ?? _defaultMaxChanges);
+    internal int EffectiveMaxChanges => ToolExecutionHelpers.GetMaxResults(MaxChanges, _defaultMaxChanges);
 
-    internal int EffectiveAffectedDocumentsLimit => Math.Max(
-        0,
-        AffectedDocumentsLimit ?? _defaultAffectedDocumentsLimit);
+    internal int EffectiveAffectedDocumentsLimit => ToolExecutionHelpers.GetMaxResults(
+        AffectedDocumentsLimit,
+        _defaultAffectedDocumentsLimit);
 }

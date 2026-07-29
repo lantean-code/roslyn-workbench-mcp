@@ -13,6 +13,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Configuration;
 global using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 global using Roslyn.Workbench.Mcp.CodeActions.Conversions;
 global using Roslyn.Workbench.Mcp.CodeActions.Discovery;
+global using Roslyn.Workbench.Mcp.CodeActions.Execution;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.FixAll;

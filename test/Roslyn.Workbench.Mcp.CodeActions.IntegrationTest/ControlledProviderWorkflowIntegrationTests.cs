@@ -107,6 +107,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var originalSource = await File.ReadAllTextAsync(
             fixture.DocumentPath,
             TestContext.Current.CancellationToken);
+
         var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), includeRefactorings: false);
         var originActionId = codeFixes.Data!.Actions.Items
             .Single(static action => action.Title == "Apply test code fix")
@@ -122,11 +123,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var sourceAfterPreparation = await File.ReadAllTextAsync(
             fixture.DocumentPath,
             TestContext.Current.CancellationToken);
+
         var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = prepared.Data!.ActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
         }, TestContext.Current.CancellationToken);
+
         var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
         await coordinator.RollbackTransactionAsync(TestContext.Current.CancellationToken);
         var sourceAfterRollback = await File.ReadAllTextAsync(
@@ -353,17 +356,20 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     {
         var span = location.Span
             ?? throw new InvalidOperationException("The controlled provider location must be span-backed.");
+
         var document = span.Document
             ?? throw new InvalidOperationException("The controlled provider location must identify a document.");
+
+        var range = new TextSpanRange
+        {
+            Start = span.Start,
+            Length = span.Length,
+        };
 
         return new ListCodeActionsRequest
         {
             Document = document,
-            Range = new TextSpanRange
-            {
-                Start = span.Start,
-                Length = span.Length,
-            },
+            Range = range,
             Kinds = kinds,
         };
     }

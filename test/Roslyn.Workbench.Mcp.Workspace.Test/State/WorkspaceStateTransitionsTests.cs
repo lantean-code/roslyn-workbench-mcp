@@ -53,19 +53,26 @@ public sealed class WorkspaceStateTransitionsTests
 
     private static WorkspaceSessionSnapshot CreateSession(WorkspaceLifecycleState state)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = state,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = null!,
             InputManifest = null!,
             OperationGate = null!,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction: null),
         };
     }
 }

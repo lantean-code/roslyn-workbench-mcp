@@ -350,14 +350,21 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             loadDiagnostics = [.. loadDiagnostics, .. inputEvaluationDiagnostics];
         }
 
+        var committedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId();
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            session.Workspace,
+            committedSnapshotId,
+            transaction: null);
+
         var committedSession = session with
         {
-            CommittedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
+            CommittedSnapshotId = committedSnapshotId,
             Transaction = null,
             CurrentSolution = transaction.CurrentSolution,
             InputManifest = inputManifest,
             LoadDiagnostics = loadDiagnostics,
             State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionCommitted),
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         if (inputManifest.IsComplete)
@@ -430,9 +437,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             WorkbenchPerformanceEventSource.TransactionCommitOperation,
             WorkbenchPerformanceEventSource.CommitRecoveryPhase);
 
-        var state = manifest is null
-            ? RecoveryState.RecoveryIncomplete
-            : await _commitWriter.RestoreAsync(manifest);
+        var state = RecoveryState.RecoveryIncomplete;
+        if (manifest is not null)
+        {
+            state = await _commitWriter.RestoreAsync(manifest);
+        }
 
         var recoveryStatePersisted = true;
         if (manifest is not null)
@@ -456,13 +465,27 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 failureMessage);
         }
 
+        var errorCode = "CommitPreparationFailed";
+        if (applicationStarted)
+        {
+            errorCode = "CommitFailed";
+        }
+
+        var errorMessage = CreateCommitFailureMessage(
+            applicationStarted,
+            recoveryStatePersisted,
+            failureMessage);
+
+        var requiredAction = RequiredAction.ResolveRecovery;
+        if (!applicationStarted || state == RecoveryState.Restored)
+        {
+            requiredAction = RequiredAction.Retry;
+        }
+
         return _resultFactory.Faulted<TransactionCommitOutcome>(
-            applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
-            CreateCommitFailureMessage(
-                applicationStarted,
-                recoveryStatePersisted,
-                failureMessage),
-            !applicationStarted || state == RecoveryState.Restored ? RequiredAction.Retry : RequiredAction.ResolveRecovery,
+            errorCode,
+            errorMessage,
+            requiredAction,
             context);
     }
 

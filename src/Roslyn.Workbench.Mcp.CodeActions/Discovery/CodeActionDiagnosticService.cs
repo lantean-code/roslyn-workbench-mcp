@@ -106,7 +106,12 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 
         var sourceText = await document.GetTextAsync(cancellationToken);
         var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, new TextSpan(0, sourceText.Length), syntheticDiagnosticId, cancellationToken);
-        return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
+        if (syntheticDiagnostic is null)
+        {
+            return [];
+        }
+
+        return [syntheticDiagnostic];
     }
 
     public async Task<IReadOnlyList<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
@@ -130,7 +135,12 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         }
 
         var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, span, syntheticDiagnosticId, cancellationToken);
-        return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
+        if (syntheticDiagnostic is null)
+        {
+            return [];
+        }
+
+        return [syntheticDiagnostic];
     }
 
     public async Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
@@ -236,7 +246,8 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             project.AnalyzerOptions,
             (exception, analyzer, _) =>
             {
-                var analyzerTypeName = analyzer.GetType().FullName ?? analyzer.GetType().Name;
+                var analyzerType = analyzer.GetType();
+                var analyzerTypeName = analyzerType.FullName ?? analyzerType.Name;
                 warnings.TryAdd(
                     $"Analyzer '{analyzerTypeName}' failed during diagnostic collection ({exception.GetType().Name}).",
                     0);
@@ -311,11 +322,19 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         var builder = new StringBuilder();
         AppendIdentityPart(builder, project.Id.Id.ToString("N"));
 
-        var document = diagnostic.Location.SourceTree is null
-            ? null
-            : project.GetDocument(diagnostic.Location.SourceTree);
+        Document? document = null;
+        if (diagnostic.Location.SourceTree is not null)
+        {
+            document = project.GetDocument(diagnostic.Location.SourceTree);
+        }
 
-        AppendIdentityPart(builder, document?.Id.Id.ToString("N") ?? string.Empty);
+        string? documentId = null;
+        if (document is not null)
+        {
+            documentId = document.Id.Id.ToString("N");
+        }
+
+        AppendIdentityPart(builder, documentId);
         AppendIdentityPart(builder, diagnostic.Id);
         builder.Append(diagnostic.Location.IsInSource ? diagnostic.Location.SourceSpan.Start : -1);
         builder.Append(':');
@@ -325,14 +344,20 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         foreach (var property in diagnostic.Properties.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {
             AppendIdentityPart(builder, property.Key);
-            AppendIdentityPart(builder, property.Value ?? string.Empty);
+            AppendIdentityPart(builder, property.Value);
         }
 
         return builder.ToString();
     }
 
-    private static void AppendIdentityPart(StringBuilder builder, string value)
+    private static void AppendIdentityPart(StringBuilder builder, string? value)
     {
+        if (value is null)
+        {
+            builder.Append("-1:|");
+            return;
+        }
+
         builder.Append(value.Length);
         builder.Append(':');
         builder.Append(value);

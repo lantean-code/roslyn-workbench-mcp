@@ -322,6 +322,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         {
             State = WorkspaceLifecycleState.TransactionActive,
             Transaction = transaction,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                transaction),
         };
 
         target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
@@ -330,6 +334,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
                 snapshots.SequenceEqual(new[] { session.CurrentSnapshotIdentity }))),
             Times.Once);
+
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
                 It.IsAny<string>(),
@@ -353,6 +358,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             State = WorkspaceLifecycleState.TransactionActive,
             Transaction = transaction,
             CurrentSolution = transaction.CurrentSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                transaction),
         };
 
         target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
@@ -368,11 +377,16 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var transaction = CreateTransaction();
         var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
+        var committedSnapshotId = new WorkspaceSnapshotId(2);
         var replacement = session with
         {
             State = WorkspaceLifecycleState.Ready,
             Transaction = null,
-            CommittedSnapshotId = new WorkspaceSnapshotId(2),
+            CommittedSnapshotId = committedSnapshotId,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                committedSnapshotId,
+                transaction: null),
         };
 
         target.ReplaceSessionAndSetTransactionOwner(replacement, null);
@@ -391,17 +405,23 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var changedSolution = _workspace.CurrentSolution
             .AddProject("Project", "Project", LanguageNames.CSharp)
             .Solution;
+
         var transaction = CreateTransaction(
             currentRevision: 1,
             firstRevisionSolution: changedSolution);
 
         var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
+        var committedSnapshotId = new WorkspaceSnapshotId(2);
         var replacement = session with
         {
             State = WorkspaceLifecycleState.Ready,
             Transaction = null,
-            CommittedSnapshotId = new WorkspaceSnapshotId(2),
+            CommittedSnapshotId = committedSnapshotId,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                committedSnapshotId,
+                transaction: null),
         };
 
         target.ReplaceSessionAndSetTransactionOwner(replacement, null);
@@ -429,6 +449,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         {
             SnapshotId = new WorkspaceSnapshotId(2),
             Solution = changedSolution,
+            Changes = new ChangeSummary(),
+            Operation = "Operation",
+            Summary = "Summary",
+            Preview = new MutationPreview(),
         });
 
         target.ReplaceSessionAfterStaging(
@@ -436,6 +460,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             {
                 Transaction = appendResult.Transaction,
                 CurrentSolution = appendResult.Transaction.CurrentSolution,
+                CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                    session.Workspace,
+                    session.CommittedSnapshotId,
+                    appendResult.Transaction),
             },
             appendResult.DiscardedSnapshotIds);
 
@@ -454,6 +482,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var firstRevisionSolution = _workspace.CurrentSolution
             .AddProject("FirstProject", "FirstProject", LanguageNames.CSharp)
             .Solution;
+
         var secondRevisionSolution = firstRevisionSolution
             .AddProject("SecondProject", "SecondProject", LanguageNames.CSharp)
             .Solution;
@@ -471,6 +500,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         {
             Transaction = movedTransaction,
             CurrentSolution = movedTransaction!.CurrentSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                movedTransaction),
         });
 
         _queryCache.Verify(
@@ -485,6 +518,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var changedSolution = baselineSolution
             .AddProject("Project", "Project", LanguageNames.CSharp)
             .Solution;
+
         var transaction = CreateTransaction(
             currentRevision: 1,
             baselineSolution: baselineSolution,
@@ -497,6 +531,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             State = WorkspaceLifecycleState.Ready,
             Transaction = null,
             CurrentSolution = baselineSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                transaction: null),
         };
 
         target.ReplaceSessionAndSetTransactionOwner(replacement, null);
@@ -516,6 +554,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var replacement = session with
         {
             Transaction = movedTransaction,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                session.Workspace,
+                session.CommittedSnapshotId,
+                movedTransaction),
         };
 
         target.ReplaceSession(replacement);
@@ -523,6 +565,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         _lifecycleObserver.Verify(
             item => item.InvalidateSnapshots(It.IsAny<IReadOnlyList<WorkspaceSnapshotIdentity>>()),
             Times.Never);
+
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
                 It.IsAny<string>(),
@@ -546,13 +589,24 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 {
                     SnapshotId = new WorkspaceSnapshotId(4),
                     Solution = _workspace.CurrentSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
             ],
             CurrentRevision = 2,
         };
 
         target.ReplaceSessionAfterStaging(
-            session with { Transaction = replacementTransaction },
+            session with
+            {
+                Transaction = replacementTransaction,
+                CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                    session.Workspace,
+                    session.CommittedSnapshotId,
+                    replacementTransaction),
+            },
             [new WorkspaceSnapshotId(3)]);
 
         var expectedIdentity = new WorkspaceSnapshotIdentity(
@@ -637,24 +691,31 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         long committedSnapshotId = 1,
         WorkspaceTransaction? transaction = null)
     {
+        var snapshotId = new WorkspaceSnapshotId(committedSnapshotId);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            Alias = alias,
+            WorkspaceEpoch = workspaceEpoch,
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(committedSnapshotId),
+            CommittedSnapshotId = snapshotId,
             State = transaction is null
                 ? WorkspaceLifecycleState.Ready
                 : WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = workspaceId,
-                Alias = alias,
-                WorkspaceEpoch = workspaceEpoch,
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = transaction?.CurrentSolution ?? solution ?? _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = null!,
             OperationGate = null!,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                snapshotId,
+                transaction),
         };
     }
 
@@ -679,11 +740,19 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 {
                     SnapshotId = new WorkspaceSnapshotId(2),
                     Solution = firstRevisionSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
                 new WorkspaceTransactionRevision
                 {
                     SnapshotId = new WorkspaceSnapshotId(3),
                     Solution = secondRevisionSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
             ],
             CurrentRevision = currentRevision,

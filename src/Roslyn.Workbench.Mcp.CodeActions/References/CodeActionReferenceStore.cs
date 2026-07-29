@@ -141,7 +141,7 @@ internal sealed class CodeActionReferenceStore : ICodeActionReferenceStore, IWor
             + recipe.ProviderId.Length
             + recipe.Title.Length
             + (recipe.EquivalenceKey?.Length ?? 0)
-            + (recipe.SnapshotIdentity.WorkspaceId?.Length ?? 0)
+            + recipe.SnapshotIdentity.WorkspaceId.Length
             + recipe.DocumentPath.Length
             + recipe.ProjectId.Length
             + recipe.ActionPath.Count

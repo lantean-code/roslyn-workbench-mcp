@@ -94,7 +94,7 @@ public sealed class DescribeCodeActionToolTests
         action = action with { Descriptor = descriptor };
         var reference = new CodeActionReference(
             Guid.Empty,
-            new CodeActionReplayRecipe(),
+            CodeActionExecutionTestFactory.CreateReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
 
         var info = new CodeActionInfo
@@ -168,7 +168,7 @@ public sealed class DescribeCodeActionToolTests
         var action = CreateDiscoveredAction(roslyn.Solution);
         var reference = new CodeActionReference(
             Guid.Empty,
-            new CodeActionReplayRecipe(),
+            CodeActionExecutionTestFactory.CreateReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
 
         composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());

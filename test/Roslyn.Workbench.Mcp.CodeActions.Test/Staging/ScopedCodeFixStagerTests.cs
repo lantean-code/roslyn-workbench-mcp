@@ -807,9 +807,15 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
 
     private static Diagnostic CreateDiagnostic()
     {
-        return Diagnostic.Create(
-            new DiagnosticDescriptor("DiagnosticId", "Title", "Message", "Category", Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, true),
-            Location.None);
+        var descriptor = new DiagnosticDescriptor(
+            "DiagnosticId",
+            "Title",
+            "Message",
+            "Category",
+            Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        return Diagnostic.Create(descriptor, Location.None);
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateRejection()

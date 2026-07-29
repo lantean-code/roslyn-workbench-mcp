@@ -50,6 +50,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(17));
+
         _instanceStatusPublisher
             .Setup(item => item.OpenAsync(
                 It.IsAny<string>(),
@@ -318,15 +319,19 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_ProjectPreflightFailure_WHEN_OpeningProject_THEN_ShouldReturnExpectedRejection(bool hasDiagnostics)
     {
         var expected = CreateResult<WorkspaceOpenOutcome>();
-        SetupOpenPreflight("/workspace/New.csproj", alias: null);
-        SetupLoadFailure(
-            "/workspace/New.csproj",
-            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
-            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+        var loadFailure = ValidatedWorkspaceLoadFailure.NotSupported;
+        IReadOnlyList<DiagnosticInfo> diagnostics = [];
+        var errorCode = WorkspaceErrorCodes.WorkspaceNotSupported;
+        if (hasDiagnostics)
+        {
+            loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
+            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
+        }
 
-        SetupRejectedResult(
-            expected,
-            hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
+        SetupOpenPreflight("/workspace/New.csproj", alias: null);
+        SetupLoadFailure("/workspace/New.csproj", loadFailure, diagnostics);
+        SetupRejectedResult(expected, errorCode);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
@@ -376,15 +381,19 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_LoadWorkflowRejectsCompatibility_WHEN_OpeningSolution_THEN_ShouldReturnExpectedFailure(bool hasDiagnostics)
     {
         var expected = CreateResult<WorkspaceOpenOutcome>();
-        SetupOpenPreflight("/workspace/New.sln", alias: null);
-        SetupLoadFailure(
-            "/workspace/New.sln",
-            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
-            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+        var loadFailure = ValidatedWorkspaceLoadFailure.NotSupported;
+        IReadOnlyList<DiagnosticInfo> diagnostics = [];
+        var errorCode = WorkspaceErrorCodes.WorkspaceNotSupported;
+        if (hasDiagnostics)
+        {
+            loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
+            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
+        }
 
-        SetupRejectedResult(
-            expected,
-            hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadFailure("/workspace/New.sln", loadFailure, diagnostics);
+        SetupRejectedResult(expected, errorCode);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
@@ -557,6 +566,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _changeDetector
             .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace"))
             .Returns(manifest);
+
         _resultFactory.Setup(item => item.Faulted<WorkspaceOpenOutcome>(
             "WorkspaceInputEvaluationFailed",
             It.IsAny<string>(),
@@ -832,7 +842,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var transaction = state == WorkspaceLifecycleState.TransactionActive ? CreateTransaction() : null;
+        WorkspaceTransaction? transaction = null;
+        if (state == WorkspaceLifecycleState.TransactionActive)
+        {
+            transaction = CreateTransaction();
+        }
+
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction) with
         {
             OperationGate = gate.Object,
@@ -1090,15 +1105,19 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         };
 
         var expected = CreateResult<WorkspaceReloadOutcome>();
-        SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        SetupLoadFailure(
-            "/workspace/Project.csproj",
-            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
-            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+        var loadFailure = ValidatedWorkspaceLoadFailure.NotSupported;
+        IReadOnlyList<DiagnosticInfo> diagnostics = [];
+        var errorCode = WorkspaceErrorCodes.WorkspaceNotSupported;
+        if (hasDiagnostics)
+        {
+            loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
+            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
+        }
 
-        SetupRejectedResult(
-            expected,
-            hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        SetupLoadFailure("/workspace/Project.csproj", loadFailure, diagnostics);
+        SetupRejectedResult(expected, errorCode);
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
 
@@ -1232,6 +1251,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _changeDetector
             .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace"))
             .Returns(manifest);
+
         _resultFactory.Setup(item => item.Faulted<WorkspaceReloadOutcome>(
             "WorkspaceInputEvaluationFailed",
             It.IsAny<string>(),
@@ -1462,24 +1482,30 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var directory = Path.GetDirectoryName(path);
         var workspaceRoot = string.IsNullOrWhiteSpace(directory) ? path : directory;
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = 2,
+            LoadedPath = path,
+            WorkspaceRoot = workspaceRoot,
+            Alias = alias,
+        };
 
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = transaction is null ? WorkspaceLifecycleState.Ready : WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = workspaceId,
-                WorkspaceEpoch = 2,
-                LoadedPath = path,
-                WorkspaceRoot = workspaceRoot,
-                Alias = alias,
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = new Mock<ILoadedWorkspace>().Object,
             CurrentSolution = transaction?.CurrentSolution ?? _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = new Mock<IWorkspaceOperationGate>().Object,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction),
         };
     }
 

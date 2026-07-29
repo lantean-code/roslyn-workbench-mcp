@@ -65,14 +65,16 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             resolvedAction.Reference,
             resolvedLocation);
 
+        var descriptorContext = new CodeActionDescriptorContext
+        {
+            Kind = resolvedAction.Descriptor.ContextKind,
+            Message = resolvedAction.Descriptor.Message,
+        };
+
         var data = new DescribeCodeActionData
         {
             Descriptor = descriptor,
-            Context = new CodeActionDescriptorContext
-            {
-                Kind = resolvedAction.Descriptor.ContextKind,
-                Message = resolvedAction.Descriptor.Message,
-            },
+            Context = descriptorContext,
         };
 
         return CodeActionExecutionResult.Success(data);

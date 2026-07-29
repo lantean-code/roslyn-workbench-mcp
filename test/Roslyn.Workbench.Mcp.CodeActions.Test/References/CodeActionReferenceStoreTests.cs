@@ -101,6 +101,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         {
             PreparedFixAllScope = CodeActionFixAllScope.Solution,
         };
+
         _target.TryCreate(recipe, expiresAt, out var reference).Should().BeTrue();
         var actionId = reference.Should().BeOfType<CodeActionReference>().Which.ActionId;
         _timeProvider.Setup(item => item.GetUtcNow()).Returns(expiresAt.AddTicks(1));
@@ -140,6 +141,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
                 value = cachedValueAvailable
                     ? cacheEntry.Object.Value
                     : null;
+
                 cachedValueAvailable = false;
                 return value is not null;
             });
@@ -321,7 +323,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         long? transactionId = 1,
         long workspaceEpoch = 1)
     {
-        return new CodeActionReplayRecipe
+        return CodeActionExecutionTestFactory.CreateReplayRecipe() with
         {
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],
@@ -337,9 +339,11 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         long? transactionId = 1,
         long workspaceEpoch = 1)
     {
-        WorkspaceTransactionId? typedTransactionId = transactionId is null
-            ? null
-            : new WorkspaceTransactionId(transactionId.Value);
+        WorkspaceTransactionId? typedTransactionId = null;
+        if (transactionId is not null)
+        {
+            typedTransactionId = new WorkspaceTransactionId(transactionId.Value);
+        }
 
         return new WorkspaceSnapshotIdentity(
             "WorkspaceId",

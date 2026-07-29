@@ -181,6 +181,7 @@ public sealed class PluginExecutionContextFactoryTests
         var context = new PluginQueryContext(
             CreateWorkspaceContext(roslyn.Solution),
             new Mock<IToolExecutionServices>().Object);
+
         workspaceFactory
             .Setup(item => item.DetectUnexpectedWorkspaceChange("WorkspaceId"))
             .Returns(new WorkspaceExecutionFailure

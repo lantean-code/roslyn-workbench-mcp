@@ -248,14 +248,15 @@ public sealed class CodeActionStagerTests
             EquivalenceKey = "EquivalenceKey",
         };
 
+        var replayRecipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
+        var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero);
+        var reference = new CodeActionReference(Guid.Empty, replayRecipe, expiresAt);
+
         return CodeActionResolution.Resolved<WorkspaceMutationCandidate>(
             discoveredAction,
             document,
             default,
-            new CodeActionReference(
-                Guid.Empty,
-                new CodeActionReplayRecipe(),
-                new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero)));
+            reference);
     }
 
     private static CodeAction CreateAction(Solution solution)

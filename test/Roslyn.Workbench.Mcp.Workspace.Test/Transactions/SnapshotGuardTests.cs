@@ -110,31 +110,55 @@ public sealed class SnapshotGuardTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var state = WorkspaceLifecycleState.Ready;
+        if (transaction is not null)
+        {
+            state = WorkspaceLifecycleState.TransactionActive;
+        }
+
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
-            State = WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                WorkspaceEpoch = 1,
-                LoadedPath = "LoadedPath",
-            },
+            CommittedSnapshotId = committedSnapshotId,
+            State = state,
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = null!,
             OperationGate = null!,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction),
         };
     }
 
     private WorkspaceTransaction CreateTransaction()
     {
+        var revision = new WorkspaceTransactionRevision
+        {
+            SnapshotId = new WorkspaceSnapshotId(2),
+            Solution = _workspace.CurrentSolution,
+            Changes = new ChangeSummary(),
+            Operation = "Operation",
+            Summary = "Summary",
+            Preview = new MutationPreview(),
+        };
+
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
             BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
+            Revisions = [revision],
             CurrentRevision = 1,
         };
     }

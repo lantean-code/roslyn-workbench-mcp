@@ -91,6 +91,21 @@ public sealed class PrepareFixAllToolTests
         result.Error!.Code.Should().Be("InvalidRequest");
     }
 
+    [Theory]
+    [InlineData(null, null, 50, 20)]
+    [InlineData(12, 7, 12, 7)]
+    public void GIVEN_OptionalLimits_WHEN_GettingEffectiveLimits_THEN_ShouldUseRequestedOrPublishedValues(
+        int? maxChanges,
+        int? affectedDocumentsLimit,
+        int expectedMaxChanges,
+        int expectedAffectedDocumentsLimit)
+    {
+        var request = CreateRequest(maxChanges, affectedDocumentsLimit);
+
+        request.EffectiveMaxChanges.Should().Be(expectedMaxChanges);
+        request.EffectiveAffectedDocumentsLimit.Should().Be(expectedAffectedDocumentsLimit);
+    }
+
     [Fact]
     public async Task GIVEN_UndefinedScope_WHEN_PreparingFixAll_THEN_ShouldRejectRequest()
     {
@@ -138,6 +153,7 @@ public sealed class PrepareFixAllToolTests
             roslyn.Document,
             DiscoveredActionKind.CodeFix,
             [CodeActionFixAllScope.Document]);
+
         var preparedReference = new CodeActionReference(
             resolution.Reference!.ActionId,
             resolution.Reference.Recipe with
@@ -145,6 +161,7 @@ public sealed class PrepareFixAllToolTests
                 PreparedFixAllScope = CodeActionFixAllScope.Document,
             },
             resolution.Reference.ExpiresAt);
+
         SetupResolution(new CodeActionResolution<PrepareFixAllData>(
             rejection: null,
             CodeActionResolutionFailureKind.None,
@@ -254,6 +271,7 @@ public sealed class PrepareFixAllToolTests
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         _referenceStore.Verify(item => item.TryCreate(
             It.IsAny<CodeActionReplayRecipe>(),
             It.IsAny<DateTimeOffset>(),
@@ -361,8 +379,9 @@ public sealed class PrepareFixAllToolTests
         SetupSuccessfulEvaluation(roslyn, CodeActionFixAllScope.Document, []);
         var preparedReference = new CodeActionReference(
             Guid.NewGuid(),
-            new CodeActionReplayRecipe(),
+            CodeActionExecutionTestFactory.CreateReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
+
         _referenceStore
             .Setup(item => item.TryCreate(
                 It.IsAny<CodeActionReplayRecipe>(),
@@ -396,20 +415,24 @@ public sealed class PrepareFixAllToolTests
             new DocumentReference { Path = "First.cs" },
             new DocumentReference { Path = "Second.cs" },
         };
+
         _workspaceResolver
             .SetupSequence(item => item.CreateDocumentReference(roslyn.Document))
             .Returns(documentReferences[0])
             .Returns(documentReferences[1]);
+
         var preparedReference = new CodeActionReference(
             Guid.NewGuid(),
-            new CodeActionReplayRecipe(),
+            CodeActionExecutionTestFactory.CreateReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
+
         _referenceStore
             .Setup(item => item.TryCreate(
                 It.IsAny<CodeActionReplayRecipe>(),
                 new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero),
                 out preparedReference))
             .Returns(true);
+
         var affectedDocumentsLimit = scope == CodeActionFixAllScope.Document ? 2 : 1;
 
         var result = await _target.ExecuteAsync(
@@ -424,6 +447,7 @@ public sealed class PrepareFixAllToolTests
         result.Data.AffectedDocuments.Items.Should().Equal(documentReferences.Take(affectedDocumentsLimit));
         result.Data.AffectedDocuments.HasMore.Should().Be(
             changedDocuments.Length > affectedDocumentsLimit);
+
         _referenceStore.Verify(item => item.TryCreate(
             It.Is<CodeActionReplayRecipe>(recipe => recipe.PreparedFixAllScope == scope),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero),
@@ -464,12 +488,14 @@ public sealed class PrepareFixAllToolTests
         _evaluator
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, TestContext.Current.CancellationToken))
             .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
+
         _linkedDocumentChangeMerger
             .Setup(item => item.MergeAsync(
                 roslyn.Solution,
                 roslyn.Solution,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(LinkedDocumentChangeMergeResult.Succeeded(roslyn.Solution));
+
         _solutionChangeCounter
             .Setup(item => item.GetChangedSourceDocumentsAsync(
                 roslyn.Solution,
@@ -542,10 +568,11 @@ public sealed class PrepareFixAllToolTests
         DiscoveredActionKind kind,
         IReadOnlyList<CodeActionFixAllScope> scopes)
     {
-        var recipe = new CodeActionReplayRecipe
+        var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe() with
         {
             ProviderId = "ProviderId",
         };
+
         var action = new DiscoveredCodeAction
         {
             Action = CodeAction.Create("Title", _ => Task.FromResult(document.Project.Solution)),
@@ -562,14 +589,14 @@ public sealed class PrepareFixAllToolTests
             FixAllScopes = scopes,
         };
 
+        var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero);
+        var reference = new CodeActionReference(Guid.Empty, recipe, expiresAt);
+
         return CodeActionResolution.Resolved<PrepareFixAllData>(
             action,
             document,
             default,
-            new CodeActionReference(
-                Guid.Empty,
-                recipe,
-                new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero)));
+            reference);
     }
 
     private static PrepareFixAllRequest CreateRequest(

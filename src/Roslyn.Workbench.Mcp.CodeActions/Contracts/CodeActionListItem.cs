@@ -10,17 +10,17 @@ internal sealed record CodeActionListItem
     /// <summary>
     /// Gets the opaque action reference.
     /// </summary>
-    public Guid ActionId { get; init; }
+    public required Guid ActionId { get; init; }
 
     /// <summary>
     /// Gets the display title.
     /// </summary>
-    public string Title { get; init; } = string.Empty;
+    public required string Title { get; init; }
 
     /// <summary>
     /// Gets the action kind.
     /// </summary>
-    public CodeActionKind Kind { get; init; }
+    public required CodeActionKind Kind { get; init; }
 
     /// <summary>
     /// Gets the precise source location to which the action applies.
@@ -31,7 +31,7 @@ internal sealed record CodeActionListItem
     /// Gets concise diagnostic context for a code fix.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<CodeActionDiagnosticContext>? Diagnostics { get; init; }
+    public BoundedCollection<CodeActionDiagnosticContext>? Diagnostics { get; init; }
 
     /// <summary>
     /// Gets the supported Fix All scopes for a code fix.

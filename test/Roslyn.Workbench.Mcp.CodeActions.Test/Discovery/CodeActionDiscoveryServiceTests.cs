@@ -28,15 +28,19 @@ public sealed class CodeActionDiscoveryServiceTests
         _providerSelection
             .SetupGet(item => item.RefactoringProviders)
             .Returns(FrozenDictionary<string, CodeRefactoringProvider>.Empty);
+
         _providerSelection
             .SetupGet(item => item.CodeFixProviders)
             .Returns(FrozenDictionary<string, CodeFixProvider>.Empty);
+
         _policy
             .Setup(item => item.EvaluateProvider(It.IsAny<string>()))
             .Returns(CodeActionPolicyDecision.Allowed());
+
         _policy
             .Setup(item => item.EvaluateAction(It.IsAny<string>(), It.IsAny<CodeAction>()))
             .Returns(CodeActionPolicyDecision.Allowed());
+
         _descriptorRegistry
             .Setup(item => item.GetProviderCapability(It.IsAny<string>()))
             .Returns(new CodeActionProviderCapability
@@ -132,6 +136,7 @@ public sealed class CodeActionDiscoveryServiceTests
         _providerSelection
             .SetupGet(item => item.RefactoringProviders)
             .Returns(CreateProviderSelection((providerId, provider.Object)));
+
         _policy
             .Setup(item => item.EvaluateProvider(providerId))
             .Returns(CodeActionPolicyDecision.Excluded("ReasonCode"));
@@ -149,6 +154,7 @@ public sealed class CodeActionDiscoveryServiceTests
         _providerSelection
             .SetupGet(item => item.RefactoringProviders)
             .Returns(CreateProviderSelection((providerId, provider.Object)));
+
         _descriptorRegistry
             .Setup(item => item.GetProviderCapability(providerId))
             .Returns(new CodeActionProviderCapability
@@ -206,6 +212,7 @@ public sealed class CodeActionDiscoveryServiceTests
         _providerSelection
             .SetupGet(item => item.CodeFixProviders)
             .Returns(CreateProviderSelection((providerId, provider.Object)));
+
         _policy
             .Setup(item => item.EvaluateProvider(providerId))
             .Returns(CodeActionPolicyDecision.Excluded("ReasonCode"));
@@ -393,6 +400,7 @@ public sealed class CodeActionDiscoveryServiceTests
         fixAllProvider
             .Setup(item => item.GetSupportedFixAllScopes())
             .Returns([FixAllScope.Document, FixAllScope.Document, FixAllScope.Project, FixAllScope.Solution, FixAllScope.ContainingType]);
+
         provider.Setup(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
             .Returns((CodeFixContext context) =>
             {
@@ -433,6 +441,7 @@ public sealed class CodeActionDiscoveryServiceTests
                 Length = 1,
             },
         ]);
+
         result.Should().OnlyContain(item =>
             item.FixAllScopes.SequenceEqual(new[]
             {
@@ -440,6 +449,7 @@ public sealed class CodeActionDiscoveryServiceTests
                 CodeActionFixAllScope.Project,
                 CodeActionFixAllScope.Solution,
             }));
+
         result.Should().OnlyContain(item =>
             item.Kind == DiscoveredActionKind.CodeFix
             && item.ProviderId == providerId
@@ -467,6 +477,7 @@ public sealed class CodeActionDiscoveryServiceTests
         fixAllProvider
             .Setup(item => item.GetSupportedFixAllScopes())
             .Returns([FixAllScope.Document]);
+
         provider.Setup(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
             .Returns((CodeFixContext context) =>
             {

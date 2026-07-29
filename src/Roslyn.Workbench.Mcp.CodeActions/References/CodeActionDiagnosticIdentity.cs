@@ -2,11 +2,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.References;
 
 internal sealed record CodeActionDiagnosticIdentity
 {
-    public string Id { get; init; } = string.Empty;
+    public required string Id { get; init; }
 
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 
-    public int Start { get; init; }
+    public required int Start { get; init; }
 
-    public int Length { get; init; }
+    public required int Length { get; init; }
 }

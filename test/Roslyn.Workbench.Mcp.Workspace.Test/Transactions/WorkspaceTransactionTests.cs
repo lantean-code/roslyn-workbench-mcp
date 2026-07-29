@@ -245,6 +245,10 @@ public sealed class WorkspaceTransactionTests : IDisposable
         {
             SnapshotId = new WorkspaceSnapshotId(snapshotId),
             Solution = solution,
+            Changes = new ChangeSummary(),
+            Operation = "Operation",
+            Summary = "Summary",
+            Preview = new MutationPreview(),
         };
     }
 }

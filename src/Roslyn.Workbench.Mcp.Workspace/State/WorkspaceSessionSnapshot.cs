@@ -18,15 +18,11 @@ internal sealed record WorkspaceSessionSnapshot
 
     public required IWorkspaceOperationGate OperationGate { get; init; }
 
+    public required WorkspaceSnapshotIdentity CurrentSnapshotIdentity { get; init; }
+
     public int ProjectCount { get; init; }
 
     public int DocumentCount { get; init; }
 
     public IReadOnlyList<DiagnosticInfo> LoadDiagnostics { get; init; } = [];
-
-    public WorkspaceSnapshotIdentity CurrentSnapshotIdentity => new(
-        Workspace.WorkspaceId,
-        Workspace.WorkspaceEpoch,
-        Transaction?.CurrentSnapshotId ?? CommittedSnapshotId,
-        Transaction?.TransactionId);
 }

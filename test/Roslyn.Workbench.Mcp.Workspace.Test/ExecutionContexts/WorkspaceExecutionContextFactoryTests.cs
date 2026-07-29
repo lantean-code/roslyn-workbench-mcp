@@ -283,6 +283,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _changeDetector.Verify(
             item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()),
             Times.Never);
+
         _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
         _instanceStatusPublisher.Verify(item => item.QueueUpdate(
             transitioned.Workspace.WorkspaceId,
@@ -314,6 +315,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(
             new Mock<IWorkspaceOperationGate>().Object,
             WorkspaceLifecycleState.TransactionActive);
+
         var transitioned = session with { State = WorkspaceLifecycleState.TransactionConflicted };
         _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
         _loadedWorkspace.SetupGet(item => item.HasCurrentSolutionChanged).Returns(true);
@@ -508,11 +510,19 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 {
                     SnapshotId = new WorkspaceSnapshotId(2),
                     Solution = _workspace.CurrentSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
                 new WorkspaceTransactionRevision
                 {
                     SnapshotId = new WorkspaceSnapshotId(3),
                     Solution = _workspace.CurrentSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
             ],
             CurrentRevision = 2,
@@ -634,39 +644,54 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         WorkspaceTransaction? transaction = default,
         bool hasTransaction = true)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 1,
+            Alias = "Alias",
+            LoadedPath = "LoadedPath",
+        };
+
+        var effectiveTransaction = transaction;
+        if (hasTransaction && effectiveTransaction is null)
+        {
+            effectiveTransaction = new WorkspaceTransaction
+            {
+                TransactionId = new WorkspaceTransactionId(1),
+                BaselineSnapshotId = committedSnapshotId,
+                BaselineSolution = _workspace.CurrentSolution,
+                Revisions =
+                [
+                    new WorkspaceTransactionRevision
+                    {
+                        SnapshotId = new WorkspaceSnapshotId(2),
+                        Solution = _workspace.CurrentSolution,
+                        Changes = new ChangeSummary(),
+                        Operation = "Operation",
+                        Summary = "Summary",
+                        Preview = new MutationPreview(),
+                    },
+                ],
+                CurrentRevision = 1,
+                MaxRevisions = 2,
+            };
+        }
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = state,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                WorkspaceEpoch = 1,
-                Alias = "Alias",
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = _loadedWorkspace.Object,
             CurrentSolution = _workspace.CurrentSolution,
-            Transaction = hasTransaction
-                ? transaction ?? new WorkspaceTransaction
-                {
-                    TransactionId = new WorkspaceTransactionId(1),
-                    BaselineSnapshotId = new WorkspaceSnapshotId(1),
-                    BaselineSolution = _workspace.CurrentSolution,
-                    Revisions =
-                    [
-                        new WorkspaceTransactionRevision
-                        {
-                            SnapshotId = new WorkspaceSnapshotId(2),
-                            Solution = _workspace.CurrentSolution,
-                        },
-                    ],
-                    CurrentRevision = 1,
-                    MaxRevisions = 2,
-                }
-                : null,
+            Transaction = hasTransaction ? effectiveTransaction : null,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = gate,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                hasTransaction ? effectiveTransaction : null),
         };
     }
 

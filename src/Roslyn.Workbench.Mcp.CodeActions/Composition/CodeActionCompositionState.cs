@@ -29,8 +29,10 @@ internal sealed record CodeActionCompositionState
         string? version,
         string? message)
     {
+        var status = CodeActionCompositionStatus.Available(version, message);
+
         return new CodeActionCompositionState(
-            CodeActionCompositionStatus.Available(version, message),
+            status,
             workspaceHostServices,
             refactoringProviders,
             codeFixProviders);
@@ -38,8 +40,10 @@ internal sealed record CodeActionCompositionState
 
     public static CodeActionCompositionState Unavailable(string message)
     {
+        var status = CodeActionCompositionStatus.Unavailable(message);
+
         return new CodeActionCompositionState(
-            CodeActionCompositionStatus.Unavailable(message),
+            status,
             workspaceHostServices: null,
             refactoringProviders: [],
             codeFixProviders: []);

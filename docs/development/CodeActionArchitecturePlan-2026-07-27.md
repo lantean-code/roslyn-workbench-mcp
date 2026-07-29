@@ -129,10 +129,10 @@ The response is a bounded collection. Each action contains only:
 | `Title` | Always | Roslyn display title explaining what the action will do. |
 | `Kind` | Always | Code Fix or refactoring. |
 | `Location` | Always | Precise resolved location to which the action applies. This is required even when the request targeted a complete document. |
-| `Diagnostics` | Code Fixes only | One or more concise `{ Id, Message }` values explaining why the action is offered without requiring a diagnostic lookup. |
+| `Diagnostics` | Code Fixes only | A `BoundedCollection` of concise `{ Id, Message }` values explaining why the action is offered without requiring a diagnostic lookup. |
 | `FixAllScopes` | Only when supported | Scopes advertised by the originating `FixAllProvider`. |
 
-The `Actions` property uses `BoundedCollection<CodeActionListItem>` so it reports the returned items, `HasMore` and optional `TotalCount` when the complete count is already known cheaply. It does not return provider identity, CLR action type, equivalence key, action path, Workspace identity, expiry, execution mode, executor tool, internal requirements or exclusion rationale.
+The `Actions` property uses `BoundedCollection<CodeActionListItem>` so it reports the returned items, `HasMore` and optional `TotalCount` when the complete count is already known cheaply. Each action's nested `Diagnostics` collection uses the same contract with a fixed default maximum of 10 contexts per action, preventing an action list from multiplying an unbounded inner collection. `FixAllScopes` remains an ordinary list because Roslyn exposes a closed set of only document, project and solution scopes. The response does not return provider identity, CLR action type, equivalence key, action path, Workspace identity, expiry, execution mode, executor tool, internal requirements or exclusion rationale.
 
 ### Document and range semantics
 

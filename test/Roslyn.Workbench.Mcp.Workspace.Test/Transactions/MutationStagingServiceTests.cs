@@ -27,6 +27,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(3));
+
         _linkedDocumentChangeMerger
             .Setup(item => item.MergeAsync(
                 It.IsAny<Solution>(),
@@ -253,6 +254,10 @@ public sealed class MutationStagingServiceTests : IDisposable
                 {
                     SnapshotId = new WorkspaceSnapshotId(2),
                     Solution = currentSolution,
+                    Changes = new ChangeSummary(),
+                    Operation = "Operation",
+                    Summary = "Summary",
+                    Preview = new MutationPreview(),
                 },
             ],
             CurrentRevision = 0,
@@ -304,7 +309,9 @@ public sealed class MutationStagingServiceTests : IDisposable
                 && replacement.Transaction != null
                 && replacement.Transaction.CurrentRevision == 1
                 && replacement.Transaction.Revisions.Count == 1
-                && replacement.Transaction.CurrentSnapshotId == new WorkspaceSnapshotId(3)),
+                && replacement.Transaction.CurrentSnapshotId == new WorkspaceSnapshotId(3)
+                && replacement.CurrentSnapshotIdentity.TransactionId == replacement.Transaction.TransactionId
+                && replacement.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3)),
             It.Is<IReadOnlyList<WorkspaceSnapshotId>>(snapshotIds =>
                 snapshotIds.SequenceEqual(new[] { new WorkspaceSnapshotId(2) }))), Times.Once);
     }
@@ -382,20 +389,27 @@ public sealed class MutationStagingServiceTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            LoadedPath = "LoadedPath",
+        };
+
         return new WorkspaceSessionSnapshot
         {
-            CommittedSnapshotId = new WorkspaceSnapshotId(1),
+            CommittedSnapshotId = committedSnapshotId,
             State = WorkspaceLifecycleState.TransactionActive,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = "WorkspaceId",
-                LoadedPath = "LoadedPath",
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = null!,
             CurrentSolution = transaction?.CurrentSolution ?? _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = null!,
             OperationGate = new Mock<IWorkspaceOperationGate>().Object,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction),
         };
     }
 
@@ -413,10 +427,12 @@ public sealed class MutationStagingServiceTests : IDisposable
 
     private static WorkspaceOperationResult<MutationStagingOutcome> CreateRejectedResult(string code)
     {
-        return WorkspaceOperationResult.Rejected<MutationStagingOutcome>(new WorkspaceOperationError
+        var error = new WorkspaceOperationError
         {
             Code = code,
             Message = "Message",
-        });
+        };
+
+        return WorkspaceOperationResult.Rejected<MutationStagingOutcome>(error);
     }
 }

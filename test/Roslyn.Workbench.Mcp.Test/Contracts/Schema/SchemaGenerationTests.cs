@@ -189,11 +189,20 @@ public sealed class SchemaGenerationTests
         var actionsSchema = dataSchema
             .GetProperty("properties")
             .GetProperty("actions");
+
         var actionsText = actionsSchema.GetRawText();
         var actionText = actionsSchema
             .GetProperty("properties")
             .GetProperty("items")
             .GetProperty("items")
+            .GetRawText();
+
+        var diagnosticsText = actionsSchema
+            .GetProperty("properties")
+            .GetProperty("items")
+            .GetProperty("items")
+            .GetProperty("properties")
+            .GetProperty("diagnostics")
             .GetRawText();
 
         dataText.Should().NotContain("returnedCount");
@@ -205,6 +214,9 @@ public sealed class SchemaGenerationTests
         actionText.Should().Contain("location");
         actionText.Should().Contain("diagnostics");
         actionText.Should().Contain("fixAllScopes");
+        diagnosticsText.Should().Contain("items");
+        diagnosticsText.Should().Contain("hasMore");
+        diagnosticsText.Should().Contain("totalCount");
         actionText.Should().NotContain("providerId");
         actionText.Should().NotContain("equivalenceKey");
         actionText.Should().NotContain("actionPath");

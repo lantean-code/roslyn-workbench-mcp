@@ -213,9 +213,11 @@ public sealed class ToolSchemaFactoryIntegrationTests
         foreach (var requestType in requestTypes)
         {
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);
-            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
-                ? schema
-                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            var invocationResult = closedSchemaMethod.Invoke(target, null);
+            if (invocationResult is not JsonElement publishedSchema)
+            {
+                throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            }
 
             var requiredProperties = publishedSchema.GetProperty("required")
                 .EnumerateArray()
@@ -277,9 +279,11 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 ?? throw new InvalidOperationException("The limit property did not have a declaring type.");
 
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
-            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
-                ? schema
-                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            var invocationResult = closedSchemaMethod.Invoke(target, null);
+            if (invocationResult is not JsonElement publishedSchema)
+            {
+                throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            }
 
             var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(limitProperty.Name);
             var publishedDefault = GetProperty(publishedSchema, jsonPropertyName).GetProperty("default");
@@ -297,7 +301,9 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     private static ToolSchemaFactory CreateTarget()
     {
-        return new ToolSchemaFactory(new McpSdkSchemaProvider());
+        var schemaProvider = new McpSdkSchemaProvider();
+
+        return new ToolSchemaFactory(schemaProvider);
     }
 
     private static void AssertRequiredNonNullableProperties(ToolSchemaFactory target, IReadOnlyList<PropertyInfo> targetSelectorProperties)
@@ -311,9 +317,11 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 ?? throw new InvalidOperationException("The target selector property did not have a declaring type.");
 
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
-            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
-                ? schema
-                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            var invocationResult = closedSchemaMethod.Invoke(target, null);
+            if (invocationResult is not JsonElement publishedSchema)
+            {
+                throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+            }
 
             var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(targetSelectorProperty.Name);
             var requiredProperties = publishedSchema.GetProperty("required")

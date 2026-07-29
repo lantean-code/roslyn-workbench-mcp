@@ -159,10 +159,9 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Should().Equal(codeFixItem, refactoringItem);
-        result.Data.ReturnedCount.Should().Be(2);
-        result.Data.HasMore.Should().BeFalse();
-        result.Data.TotalCount.Should().Be(2);
+        result.Data!.Actions.Items.Should().Equal(codeFixItem, refactoringItem);
+        result.Data.Actions.HasMore.Should().BeFalse();
+        result.Data.Actions.TotalCount.Should().Be(2);
     }
 
     [Theory]
@@ -239,7 +238,7 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Should().BeEmpty();
+        result.Data!.Actions.Items.Should().BeEmpty();
         result.Warnings.Should().ContainSingle().Which.Message.Should().Be("Warning");
         _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
@@ -268,10 +267,9 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Should().ContainSingle().Which.Should().BeSameAs(firstItem);
-        result.Data.ReturnedCount.Should().Be(1);
-        result.Data.HasMore.Should().BeTrue();
-        result.Data.TotalCount.Should().Be(2);
+        result.Data!.Actions.Items.Should().ContainSingle().Which.Should().BeSameAs(firstItem);
+        result.Data.Actions.HasMore.Should().BeTrue();
+        result.Data.Actions.TotalCount.Should().Be(2);
         _infoFactory.Verify(item => item.TryCreate(
             second,
             It.IsAny<ICodeActionExecutionContext>(),
@@ -304,8 +302,8 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Should().BeEmpty();
-        result.Data.TotalCount.Should().Be(0);
+        result.Data!.Actions.Items.Should().BeEmpty();
+        result.Data.Actions.TotalCount.Should().Be(0);
         _infoFactory.Verify(item => item.TryCreate(
             It.IsAny<DiscoveredCodeAction>(),
             It.IsAny<ICodeActionExecutionContext>(),

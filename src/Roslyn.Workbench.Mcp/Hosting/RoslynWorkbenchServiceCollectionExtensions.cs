@@ -124,6 +124,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionProviderSelection, CodeActionProviderSelection>();
         services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
         services.AddSingleton<ICodeActionResolver, CodeActionResolver>();
+        services.AddSingleton<IPreparedFixAllResolver, PreparedFixAllResolver>();
         services.AddSingleton<ICodeActionEvaluator, CodeActionEvaluator>();
         services.AddSingleton<IFixAllActionFactory, FixAllActionFactory>();
         services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();

@@ -123,8 +123,8 @@ public sealed class PluginInvocationAnalyzerTests
 
             public sealed record Response
             {
-                public Roslyn.Workbench.Mcp.Plugins.BoundedCollection<string> Items { get; init; } =
-                    new Roslyn.Workbench.Mcp.Plugins.BoundedCollection<string>();
+                public Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<string> Items { get; init; } =
+                    new Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<string>();
             }
 
             public sealed class Handler :

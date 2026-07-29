@@ -26,6 +26,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var codeContextSchema = target.CreateInputSchema<GetCodeContextRequest>();
         var transactionPreviewSchema = target.CreateInputSchema<TransactionPreviewRequest>();
         var fixAllSchema = target.CreateInputSchema<StageFixAllRequest>();
+        var prepareFixAllSchema = target.CreateInputSchema<PrepareFixAllRequest>();
 
         GetProperty(calleesSchema, "maxDepth").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(operationTreeSchema, "maxDepth").GetProperty("default").GetInt32().Should().Be(8);
@@ -38,6 +39,8 @@ public sealed class ToolSchemaFactoryIntegrationTests
         GetProperty(codeContextSchema, "afterLines").GetProperty("default").GetInt32().Should().Be(10);
         GetProperty(transactionPreviewSchema, "contextLines").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(fixAllSchema, "maxChanges").GetProperty("default").GetInt32().Should().Be(50);
+        GetProperty(prepareFixAllSchema, "maxChanges").GetProperty("default").GetInt32().Should().Be(50);
+        GetProperty(prepareFixAllSchema, "affectedDocumentsLimit").GetProperty("default").GetInt32().Should().Be(20);
     }
 
     [Fact]
@@ -153,6 +156,8 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<StageCodeActionRequest>(nameof(StageCodeActionRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.Scope)),
+            GetRequiredProperty<PrepareFixAllRequest>(nameof(PrepareFixAllRequest.ActionId)),
+            GetRequiredProperty<PrepareFixAllRequest>(nameof(PrepareFixAllRequest.Scope)),
             GetRequiredProperty<TransactionHistoryRequest>(nameof(TransactionHistoryRequest.Direction)),
             GetRequiredProperty<AddConstructorParametersRequest>(nameof(AddConstructorParametersRequest.Kind)),
             GetRequiredProperty<AddAwaitRequest>(nameof(AddAwaitRequest.Kind)),
@@ -166,7 +171,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<ReplaceMethodWithPropertyRequest>(nameof(ReplaceMethodWithPropertyRequest.Kind)),
         };
 
-        requiredProperties.Should().HaveCount(18);
+        requiredProperties.Should().HaveCount(20);
         AssertRequiredNonNullableProperties(target, requiredProperties);
     }
 
@@ -224,6 +229,22 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_PrepareFixAllRequest_WHEN_ExportingInputSchema_THEN_ShouldRequireSnapshotPrecondition()
+    {
+        var target = CreateTarget();
+
+        var schema = target.CreateInputSchema<PrepareFixAllRequest>();
+        var requiredProperties = schema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        requiredProperties.Should().Contain("expectedSnapshot");
+        AllowsNull(GetProperty(schema, "expectedSnapshot")).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_BuiltInToolRequests_WHEN_AuditingLimitProperties_THEN_EveryLimitShouldDeclareAndPublishItsDefault()
     {
         var target = CreateTarget();
@@ -249,7 +270,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .Where(IsLimitProperty)
             .ToArray();
 
-        limitProperties.Should().HaveCount(47);
+        limitProperties.Should().HaveCount(49);
         foreach (var limitProperty in limitProperties)
         {
             var declaringType = limitProperty.DeclaringType

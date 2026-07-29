@@ -63,10 +63,6 @@ internal static class AnalyzerSourcePrelude
             {
             }
 
-            public sealed class BoundedCollection<TItem>
-            {
-            }
-
             public static class PluginApiVersions
             {
                 public const string V1 = "1.0";
@@ -94,6 +90,13 @@ internal static class AnalyzerSourcePrelude
 
             public sealed class MutationToolConfigurationBuilder :
                 ToolConfigurationBuilder<MutationToolConfigurationBuilder>
+            {
+            }
+        }
+
+        namespace Roslyn.Workbench.Mcp.Workspace.Results
+        {
+            public sealed class BoundedCollection<TItem>
             {
             }
         }

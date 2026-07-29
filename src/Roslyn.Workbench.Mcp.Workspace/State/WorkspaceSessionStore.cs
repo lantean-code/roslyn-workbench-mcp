@@ -66,7 +66,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public WorkspaceOperationError? TryAddWorkspace(WorkspaceSessionSnapshot session, Func<WorkspaceHostSnapshot, WorkspaceOperationError?> validate)
     {
-
         lock (_syncRoot)
         {
             var validationError = validate(_snapshot);

@@ -21,14 +21,14 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
         }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Data!.Actions.Should().NotBeEmpty();
-        result.Data.Actions.Should().OnlyContain(static action =>
+        result.Data!.Actions.Items.Should().NotBeEmpty();
+        result.Data.Actions.Items.Should().OnlyContain(static action =>
             action.Kind == CodeActionKind.CodeFix
             && action.ActionId != Guid.Empty
             && action.Location.Span.Length > 0
             && action.Diagnostics != null
             && action.Diagnostics.Any(diagnostic => diagnostic.Id == "CS0266"));
-        result.Data.ReturnedCount.Should().Be(result.Data.Actions.Count);
+        result.Data.Actions.TotalCount.Should().BeGreaterThanOrEqualTo(result.Data.Actions.Items.Count);
     }
 
     [Fact]

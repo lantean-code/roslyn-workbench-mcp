@@ -94,6 +94,36 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_PreparedFixAllReferenceHasExpired_WHEN_CheckingReferenceKind_THEN_ShouldRemoveIt()
+    {
+        var expiresAt = _utcNow.AddMinutes(5);
+        var recipe = CreateRecipe() with
+        {
+            PreparedFixAllScope = CodeActionFixAllScope.Solution,
+        };
+        _target.TryCreate(recipe, expiresAt, out var reference).Should().BeTrue();
+        var actionId = reference.Should().BeOfType<CodeActionReference>().Which.ActionId;
+        _timeProvider.Setup(item => item.GetUtcNow()).Returns(expiresAt.AddTicks(1));
+
+        _target.IsPreparedFixAll(actionId).Should().BeFalse();
+        _target.TryGet(actionId, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_SingleAndPreparedReferences_WHEN_CheckingReferenceKind_THEN_ShouldIdentifyOnlyPreparedFixAll()
+    {
+        var single = CreateReference(CreateRecipe());
+        var prepared = CreateReference(CreateRecipe() with
+        {
+            PreparedFixAllScope = CodeActionFixAllScope.Project,
+        });
+
+        _target.IsPreparedFixAll(single.ActionId).Should().BeFalse();
+        _target.IsPreparedFixAll(prepared.ActionId).Should().BeTrue();
+        _target.IsPreparedFixAll(Guid.Empty).Should().BeFalse();
+    }
+
+    [Fact]
     public void GIVEN_CacheEntryWasRemovedWithoutCallback_WHEN_GettingReference_THEN_ShouldRemoveRegistration()
     {
         var cache = new Mock<IMemoryCache>();

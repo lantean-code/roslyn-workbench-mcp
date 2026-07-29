@@ -6,6 +6,7 @@ public sealed class CodeActionStagerTests
 {
     private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionResolver> _resolver;
+    private readonly Mock<IPreparedFixAllResolver> _preparedFixAllResolver;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionExecutionContext> _context;
@@ -15,6 +16,7 @@ public sealed class CodeActionStagerTests
     {
         _composition = new Mock<ICodeActionComposition>();
         _resolver = new Mock<ICodeActionResolver>();
+        _preparedFixAllResolver = new Mock<IPreparedFixAllResolver>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionExecutionContext>();
@@ -22,6 +24,7 @@ public sealed class CodeActionStagerTests
         _target = new CodeActionStager(
             _composition.Object,
             _resolver.Object,
+            _preparedFixAllResolver.Object,
             _evaluator.Object,
             _referenceStore.Object);
     }
@@ -74,6 +77,43 @@ public sealed class CodeActionStagerTests
 
         result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
         result.Data.Summary.Should().Be("Title");
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedFixAllReference_WHEN_StagingCodeAction_THEN_ShouldResolvePreparedAction()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var expectedSnapshot = new SnapshotPrecondition();
+        var action = CreateAction(roslyn.Solution);
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _referenceStore.Setup(item => item.IsPreparedFixAll(Guid.Empty)).Returns(true);
+        _preparedFixAllResolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                Guid.Empty,
+                expectedSnapshot,
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
+
+        var result = await _target.StageAsync(
+            new StageCodeActionRequest
+            {
+                ExpectedSnapshot = expectedSnapshot,
+                ActionId = Guid.Empty,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+            It.IsAny<Guid>(),
+            It.IsAny<SnapshotPrecondition?>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

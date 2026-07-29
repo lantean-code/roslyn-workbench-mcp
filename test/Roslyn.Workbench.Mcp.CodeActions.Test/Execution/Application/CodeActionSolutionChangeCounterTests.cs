@@ -58,7 +58,7 @@ public sealed class CodeActionSolutionChangeCounterTests
     }
 
     [Fact]
-    public async Task GIVEN_DocumentIsMissingFromCandidate_WHEN_CountingChanges_THEN_ShouldIgnoreMissingDocument()
+    public async Task GIVEN_DocumentIsMissingFromCandidate_WHEN_CountingChanges_THEN_ShouldCountRemovedDocument()
     {
         using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
         var document = roslyn.GetDocument("First.cs");
@@ -69,7 +69,26 @@ public sealed class CodeActionSolutionChangeCounterTests
             updatedSolution,
             TestContext.Current.CancellationToken);
 
-        result.Should().Be(0);
+        result.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentIsAddedToCandidate_WHEN_GettingChanges_THEN_ShouldReturnAddedDocument()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var project = roslyn.Solution.Projects.First();
+        var documentId = DocumentId.CreateNewId(project.Id);
+        var updatedSolution = roslyn.Solution.AddDocument(
+            documentId,
+            "Added.cs",
+            SourceText.From("class Added { }"));
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Id.Should().Be(documentId);
     }
 
     [Fact]

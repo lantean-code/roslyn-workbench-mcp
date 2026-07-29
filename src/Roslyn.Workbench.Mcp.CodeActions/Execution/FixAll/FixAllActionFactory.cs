@@ -9,31 +9,27 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
         _diagnosticService = diagnosticService;
     }
 
-    public Task<FixAllActionCreationResult> CreateAsync(
+    public Task<FixAllActionCreationResult> CreateDocumentAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Document document,
-        TextSpan originSpan,
-        FixAllScope scope,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var fixAllContext = new FixAllContext(
-            document,
-            scope is FixAllScope.ContainingMember or FixAllScope.ContainingType ? originSpan : null,
+        return CreateDocumentScopedAsync(
             provider,
-            scope,
-            equivalenceKey,
+            fixAllProvider,
+            document,
             diagnosticIds,
-            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds, syntheticDiagnosticId),
+            equivalenceKey,
+            syntheticDiagnosticId,
+            FixAllScope.Document,
             cancellationToken);
-
-        return CreateCoreAsync(fixAllProvider, fixAllContext);
     }
 
-    public Task<FixAllActionCreationResult> CreateAsync(
+    public Task<FixAllActionCreationResult> CreateProjectAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Project project,
@@ -46,6 +42,48 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
             project,
             provider,
             FixAllScope.Project,
+            equivalenceKey,
+            diagnosticIds,
+            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds, syntheticDiagnosticId),
+            cancellationToken);
+
+        return CreateCoreAsync(fixAllProvider, fixAllContext);
+    }
+
+    public Task<FixAllActionCreationResult> CreateSolutionAsync(
+        CodeFixProvider provider,
+        FixAllProvider fixAllProvider,
+        Document originDocument,
+        IReadOnlyList<string> diagnosticIds,
+        string? equivalenceKey,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
+    {
+        return CreateDocumentScopedAsync(
+            provider,
+            fixAllProvider,
+            originDocument,
+            diagnosticIds,
+            equivalenceKey,
+            syntheticDiagnosticId,
+            FixAllScope.Solution,
+            cancellationToken);
+    }
+
+    private Task<FixAllActionCreationResult> CreateDocumentScopedAsync(
+        CodeFixProvider provider,
+        FixAllProvider fixAllProvider,
+        Document originDocument,
+        IReadOnlyList<string> diagnosticIds,
+        string? equivalenceKey,
+        string? syntheticDiagnosticId,
+        FixAllScope scope,
+        CancellationToken cancellationToken)
+    {
+        var fixAllContext = new FixAllContext(
+            originDocument,
+            provider,
+            scope,
             equivalenceKey,
             diagnosticIds,
             new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds, syntheticDiagnosticId),

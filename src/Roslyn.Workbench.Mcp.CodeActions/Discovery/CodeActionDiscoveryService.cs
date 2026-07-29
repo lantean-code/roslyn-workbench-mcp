@@ -462,5 +462,4 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
         return scopes;
     }
-
 }

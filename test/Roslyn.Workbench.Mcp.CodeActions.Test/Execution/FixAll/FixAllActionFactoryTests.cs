@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution.FixAll;
 
@@ -28,12 +27,10 @@ public sealed class FixAllActionFactoryTests : IDisposable
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync((CodeAction?)null);
 
-        var result = await _target.CreateAsync(
+        var result = await _target.CreateDocumentAsync(
             provider.Object,
             fixAllProvider.Object,
             _roslyn.Document,
-            new TextSpan(0, 1),
-            FixAllScope.Document,
             _diagnosticIds,
             "EquivalenceKey",
             "SyntheticDiagnosticId",
@@ -45,8 +42,6 @@ public sealed class FixAllActionFactoryTests : IDisposable
     [Theory]
     [InlineData(FixAllScope.Document)]
     [InlineData(FixAllScope.Solution)]
-    [InlineData(FixAllScope.ContainingMember)]
-    [InlineData(FixAllScope.ContainingType)]
     public async Task GIVEN_DocumentFixAllScope_WHEN_CreatingAction_THEN_ShouldReturnProviderAction(
         FixAllScope scope)
     {
@@ -61,16 +56,23 @@ public sealed class FixAllActionFactoryTests : IDisposable
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync(action);
 
-        var result = await _target.CreateAsync(
-            provider.Object,
-            fixAllProvider.Object,
-            _roslyn.Document,
-            new TextSpan(0, 1),
-            scope,
-            _diagnosticIds,
-            "EquivalenceKey",
-            "SyntheticDiagnosticId",
-            TestContext.Current.CancellationToken);
+        var result = scope == FixAllScope.Document
+            ? await _target.CreateDocumentAsync(
+                provider.Object,
+                fixAllProvider.Object,
+                _roslyn.Document,
+                _diagnosticIds,
+                "EquivalenceKey",
+                "SyntheticDiagnosticId",
+                TestContext.Current.CancellationToken)
+            : await _target.CreateSolutionAsync(
+                provider.Object,
+                fixAllProvider.Object,
+                _roslyn.Document,
+                _diagnosticIds,
+                "EquivalenceKey",
+                "SyntheticDiagnosticId",
+                TestContext.Current.CancellationToken);
 
         result.Action.Should().BeSameAs(action);
         fixAllProvider.Verify(item => item.GetFixAsync(
@@ -97,7 +99,7 @@ public sealed class FixAllActionFactoryTests : IDisposable
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync(action);
 
-        var result = await _target.CreateAsync(
+        var result = await _target.CreateProjectAsync(
             provider.Object,
             fixAllProvider.Object,
             _roslyn.Document.Project,

@@ -13,5 +13,7 @@ internal interface ICodeActionReferenceStore
         Guid actionId,
         [NotNullWhen(true)] out CodeActionReference? reference);
 
+    bool IsPreparedFixAll(Guid actionId);
+
     void Remove(Guid actionId);
 }

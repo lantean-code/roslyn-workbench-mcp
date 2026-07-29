@@ -69,7 +69,6 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         {
             Action = resolution.Action,
             OriginDocument = resolution.Document,
-            OriginSpan = resolution.Span,
             Provider = provider,
             FixAllProvider = fixAllProvider,
         };
@@ -161,10 +160,9 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
                 "The requested action reference is no longer valid.");
         }
 
-        return await ApplyDocumentFixAllAsync(
+        return await ApplySolutionFixAllAsync(
             operation,
             originDocument,
-            FixAllScope.Solution,
             cancellationToken);
     }
 
@@ -185,7 +183,6 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         return await ApplyDocumentFixAllAsync(
             operation,
             targetDocument,
-            FixAllScope.Document,
             cancellationToken);
     }
 
@@ -240,15 +237,12 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
     private async ValueTask<CodeActionApplyResult> ApplyDocumentFixAllAsync(
         FixAllOperation operation,
         Document document,
-        FixAllScope scope,
         CancellationToken cancellationToken)
     {
-        var creation = await _fixAllActionFactory.CreateAsync(
+        var creation = await _fixAllActionFactory.CreateDocumentAsync(
             operation.Provider,
             operation.FixAllProvider,
             document,
-            operation.OriginSpan,
-            scope,
             operation.Action.DiagnosticIds,
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
@@ -272,7 +266,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         Project project,
         CancellationToken cancellationToken)
     {
-        var creation = await _fixAllActionFactory.CreateAsync(
+        var creation = await _fixAllActionFactory.CreateProjectAsync(
             operation.Provider,
             operation.FixAllProvider,
             project,
@@ -291,6 +285,33 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         return await _evaluator.EvaluateAsync(
             creation.Action,
             project.Solution,
+            cancellationToken);
+    }
+
+    private async ValueTask<CodeActionApplyResult> ApplySolutionFixAllAsync(
+        FixAllOperation operation,
+        Document originDocument,
+        CancellationToken cancellationToken)
+    {
+        var creation = await _fixAllActionFactory.CreateSolutionAsync(
+            operation.Provider,
+            operation.FixAllProvider,
+            originDocument,
+            operation.Action.DiagnosticIds,
+            operation.Action.EquivalenceKey,
+            syntheticDiagnosticId: null,
+            cancellationToken);
+
+        if (creation.HasFailure)
+        {
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            originDocument.Project.Solution,
             cancellationToken);
     }
 
@@ -357,8 +378,6 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         public required DiscoveredCodeAction Action { get; init; }
 
         public required Document OriginDocument { get; init; }
-
-        public required TextSpan OriginSpan { get; init; }
 
         public required CodeFixProvider Provider { get; init; }
 

@@ -185,7 +185,7 @@ The Batch 2 diagnostics map to the stable runtime diagnostics as follows:
 The runtime warning adjustments are:
 
 1. `PluginLegacyRegistration` no longer treats an arbitrary static method named `Register` as legacy registration. The precise `ToolRegistrationMetadata` field check remains.
-2. `BoundedCollection<TItem>` now belongs to the public Plugins authoring surface rather than the bundled `Plugins.Core` contracts, so the runtime recommendation is actionable for external authors. Its intent-revealing `CreatePrebounded` factories make the plugin responsible for applying the bound before constructing the response. `QueryResponseContractInspector` should also inspect a raw collection used directly as `TResponse`, not only collection-valued response properties.
+2. `BoundedCollection<TItem>` belongs to the public Plugins authoring surface through the bundled Abstractions assembly rather than the bundled `Plugins.Core` contracts, so the runtime recommendation is actionable for external authors and reusable by internal Code Action tools without crossing the Plugins boundary. Its intent-revealing `CreatePrebounded` factories make the plugin responsible for applying the bound before constructing the response. `QueryResponseContractInspector` should also inspect a raw collection used directly as `TResponse`, not only collection-valued response properties.
 
 Keep a documented mapping between `RWMCP` diagnostics and related runtime IDs. Do not silently rename the stable runtime IDs exposed through `server-status`.
 

@@ -153,10 +153,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
         var data = new CodeActionListData
         {
-            Actions = actionItems,
-            ReturnedCount = actionItems.Count,
-            HasMore = totalCount > actionItems.Count,
-            TotalCount = totalCount,
+            Actions = BoundedCollection.CreatePrebounded(actionItems, totalCount),
         };
 
         var warnings = new List<WarningInfo>(diagnosticWarnings.Count);

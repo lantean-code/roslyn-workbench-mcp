@@ -413,7 +413,7 @@ internal static class BuiltInCodeActionAuditHarness
 
     private static bool IsVisible(CodeActionExecutionResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
     {
-        return result.Data?.Actions.Any(action =>
+        return result.Data?.Actions.Items.Any(action =>
             action.Kind == (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
                 ? CodeActionKind.CodeFix
                 : CodeActionKind.Refactoring)

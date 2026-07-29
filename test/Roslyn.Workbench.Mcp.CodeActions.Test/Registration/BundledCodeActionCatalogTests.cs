@@ -79,6 +79,7 @@ public sealed class BundledCodeActionCatalogTests
             order-modifiers|Order Modifiers|Reorders declaration modifiers into a valid sequence through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             organize-imports|Organize Imports|Sorts imports in one document through Roslyn composition and the document's configured import-order options.|Mutation|OrganizeImportsRequest|MutationData|True|<null>
             pass-captured-variables-as-arguments|Pass Captured Variables As Arguments|Passes captured variables as arguments to an invalid static local function through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
+            prepare-fix-all|Prepare Fix All|Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.|Query|PrepareFixAllRequest|PrepareFixAllData|False|<null>
             remove-documentation-comment-node|Remove Documentation Comment Node|Removes a duplicate or unmatched parameter documentation node through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             remove-in-keyword|Remove In Keyword|Removes an invalid in argument modifier through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             remove-new-modifier|Remove New Modifier|Removes a new modifier that does not hide an accessible inherited member through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
@@ -125,6 +126,7 @@ public sealed class BundledCodeActionCatalogTests
             "describe-code-action",
             "stage-code-action",
             "stage-fix-all",
+            "prepare-fix-all",
         };
 
         var actualDedicatedToolNames = toolNames
@@ -157,6 +159,7 @@ public sealed class BundledCodeActionCatalogTests
     [InlineData("describe-code-action")]
     [InlineData("stage-code-action")]
     [InlineData("stage-fix-all")]
+    [InlineData("prepare-fix-all")]
     public void GIVEN_InfrastructureTool_WHEN_CreatingCatalog_THEN_ShouldPublishOutsideDedicatedLedger(string toolName)
     {
         var tools = BundledCodeActionCatalog.Create();

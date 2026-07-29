@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionService : ITransactionService

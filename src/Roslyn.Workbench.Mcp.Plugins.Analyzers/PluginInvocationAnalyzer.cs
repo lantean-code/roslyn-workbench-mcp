@@ -11,7 +11,7 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
     private const string _queryHandlerMetadataName = "Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler`2";
     private const string _mutationHandlerMetadataName = "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1";
     private const string _cancellationTokenMetadataName = "System.Threading.CancellationToken";
-    private const string _boundedCollectionMetadataName = "Roslyn.Workbench.Mcp.Plugins.BoundedCollection`1";
+    private const string _boundedCollectionMetadataName = "Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection`1";
 
     private static readonly ImmutableArray<string> _rawCollectionMetadataNames =
     [

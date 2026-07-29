@@ -6,17 +6,20 @@ internal sealed class CodeActionStager : ICodeActionStager
 {
     private readonly ICodeActionComposition _composition;
     private readonly ICodeActionResolver _resolver;
+    private readonly IPreparedFixAllResolver _preparedFixAllResolver;
     private readonly ICodeActionEvaluator _evaluator;
     private readonly ICodeActionReferenceStore _referenceStore;
 
     public CodeActionStager(
         ICodeActionComposition composition,
         ICodeActionResolver resolver,
+        IPreparedFixAllResolver preparedFixAllResolver,
         ICodeActionEvaluator evaluator,
         ICodeActionReferenceStore referenceStore)
     {
         _composition = composition;
         _resolver = resolver;
+        _preparedFixAllResolver = preparedFixAllResolver;
         _evaluator = evaluator;
         _referenceStore = referenceStore;
     }
@@ -32,11 +35,17 @@ internal sealed class CodeActionStager : ICodeActionStager
             return runtimeRejection;
         }
 
-        var resolvedAction = await _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
-            request.ActionId,
-            request.ExpectedSnapshot,
-            context,
-            cancellationToken);
+        var resolvedAction = _referenceStore.IsPreparedFixAll(request.ActionId)
+            ? await _preparedFixAllResolver.ResolveActionAsync<WorkspaceMutationCandidate>(
+                request.ActionId,
+                request.ExpectedSnapshot,
+                context,
+                cancellationToken)
+            : await _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
+                request.ActionId,
+                request.ExpectedSnapshot,
+                context,
+                cancellationToken);
 
         if (resolvedAction.HasRejection)
         {

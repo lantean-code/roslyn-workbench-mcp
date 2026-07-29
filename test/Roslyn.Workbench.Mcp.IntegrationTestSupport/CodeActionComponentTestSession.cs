@@ -30,6 +30,13 @@ internal sealed class CodeActionComponentTestSession
         return ExecuteQueryAsync<DescribeCodeActionTool, DescribeCodeActionRequest, DescribeCodeActionData>(request, cancellationToken);
     }
 
+    internal ValueTask<CodeActionExecutionResult<PrepareFixAllData>> PrepareFixAllAsync(
+        PrepareFixAllRequest request,
+        CancellationToken cancellationToken)
+    {
+        return ExecuteQueryAsync<PrepareFixAllTool, PrepareFixAllRequest, PrepareFixAllData>(request, cancellationToken);
+    }
+
     internal ValueTask<CodeActionExecutionResult<MutationData>> StageCodeActionAsync(
         StageCodeActionRequest request,
         CancellationToken cancellationToken)

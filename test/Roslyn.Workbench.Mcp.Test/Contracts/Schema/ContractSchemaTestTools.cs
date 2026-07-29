@@ -110,6 +110,14 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "prepare-fix-all", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<PrepareFixAllData>))]
+    public static CallToolResult PrepareFixAll(PrepareFixAllRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
     [McpServerTool(Name = "describe-code-action", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<DescribeCodeActionData>))]
     public static CallToolResult DescribeCodeAction(DescribeCodeActionRequest request)
     {

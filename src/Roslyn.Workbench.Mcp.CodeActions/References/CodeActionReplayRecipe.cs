@@ -16,6 +16,8 @@ internal sealed record CodeActionReplayRecipe
 
     public IReadOnlyList<CodeActionDiagnosticIdentity> Diagnostics { get; init; } = [];
 
+    public CodeActionFixAllScope? PreparedFixAllScope { get; init; }
+
     public WorkspaceSnapshotIdentity SnapshotIdentity { get; init; }
 
     public string DocumentPath { get; init; } = string.Empty;

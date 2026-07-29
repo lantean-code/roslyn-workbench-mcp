@@ -244,6 +244,12 @@ internal static class BundledCodeActionToolRegistrar
                 "List Code Actions",
                 "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret."));
 
+        registry.RegisterQueryTool<PrepareFixAllTool, PrepareFixAllRequest, PrepareFixAllData>(
+            CreateMetadata(
+                "prepare-fix-all",
+                "Prepare Fix All",
+                "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes."));
+
         registry.RegisterMutationTool<StageCodeActionTool, StageCodeActionRequest>(
             CreateMutationMetadata(
                 "stage-code-action",

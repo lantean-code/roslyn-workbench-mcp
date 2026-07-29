@@ -153,12 +153,10 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
                 "The selected code fix does not expose a fix-all provider.");
         }
 
-        return await CreateAndEvaluateFixAllAsync(
+        return await CreateAndEvaluateSolutionFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             candidate.Document,
-            candidate.DocumentSpan,
-            FixAllScope.Solution,
             candidate.DiagnosticIds,
             candidate.EquivalenceKey,
             request.SyntheticDiagnosticId,
@@ -186,12 +184,10 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
                 cancellationToken);
         }
 
-        return await CreateAndEvaluateFixAllAsync(
+        return await CreateAndEvaluateDocumentFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             targetDocument,
-            candidate.DocumentSpan,
-            FixAllScope.Document,
             candidate.DiagnosticIds,
             candidate.EquivalenceKey,
             request.SyntheticDiagnosticId,
@@ -214,7 +210,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 
         var targetProject = scopeResolution.Projects[0];
 
-        return await CreateAndEvaluateFixAllAsync(
+        return await CreateAndEvaluateProjectFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             targetProject,
@@ -249,7 +245,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
                     "The project selector did not resolve to a source project.");
             }
 
-            var fixAllResult = await CreateAndEvaluateFixAllAsync(
+            var fixAllResult = await CreateAndEvaluateProjectFixAllAsync(
                 candidate.Provider,
                 fixAllProvider,
                 targetProject,
@@ -318,23 +314,19 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             cancellationToken);
     }
 
-    private async Task<CodeActionApplyResult> CreateAndEvaluateFixAllAsync(
+    private async Task<CodeActionApplyResult> CreateAndEvaluateDocumentFixAllAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Document document,
-        TextSpan originSpan,
-        FixAllScope scope,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var creation = await _fixAllActionFactory.CreateAsync(
+        var creation = await _fixAllActionFactory.CreateDocumentAsync(
             provider,
             fixAllProvider,
             document,
-            originSpan,
-            scope,
             diagnosticIds,
             equivalenceKey,
             syntheticDiagnosticId,
@@ -353,7 +345,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             cancellationToken);
     }
 
-    private async Task<CodeActionApplyResult> CreateAndEvaluateFixAllAsync(
+    private async Task<CodeActionApplyResult> CreateAndEvaluateProjectFixAllAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Project project,
@@ -362,7 +354,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var creation = await _fixAllActionFactory.CreateAsync(
+        var creation = await _fixAllActionFactory.CreateProjectAsync(
             provider,
             fixAllProvider,
             project,
@@ -381,6 +373,37 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
         return await _evaluator.EvaluateAsync(
             creation.Action,
             project.Solution,
+            cancellationToken);
+    }
+
+    private async Task<CodeActionApplyResult> CreateAndEvaluateSolutionFixAllAsync(
+        CodeFixProvider provider,
+        FixAllProvider fixAllProvider,
+        Document originDocument,
+        IReadOnlyList<string> diagnosticIds,
+        string? equivalenceKey,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
+    {
+        var creation = await _fixAllActionFactory.CreateSolutionAsync(
+            provider,
+            fixAllProvider,
+            originDocument,
+            diagnosticIds,
+            equivalenceKey,
+            syntheticDiagnosticId,
+            cancellationToken);
+
+        if (creation.HasFailure)
+        {
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            originDocument.Project.Solution,
             cancellationToken);
     }
 

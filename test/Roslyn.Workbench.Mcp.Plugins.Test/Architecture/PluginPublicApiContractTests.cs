@@ -18,6 +18,8 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult",
+        "Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection",
+        "Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection`1",
         "Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary",
         "Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo",
         "Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity",
@@ -47,8 +49,6 @@ public sealed class PluginPublicApiContractTests
 
     private static readonly string[] _expectedExportedTypes =
     [
-        "Roslyn.Workbench.Mcp.Plugins.BoundedCollection",
-        "Roslyn.Workbench.Mcp.Plugins.BoundedCollection`1",
         "Roslyn.Workbench.Mcp.Plugins.IMutationContext",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1",

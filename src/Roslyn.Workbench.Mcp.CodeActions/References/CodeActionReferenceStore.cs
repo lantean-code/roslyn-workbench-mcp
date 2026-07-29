@@ -30,18 +30,18 @@ internal sealed class CodeActionReferenceStore : ICodeActionReferenceStore, IWor
         DateTimeOffset expiresAt,
         [NotNullWhen(true)] out CodeActionReference? reference)
     {
-        var actionId = Guid.NewGuid();
-        var candidate = new CodeActionReference(actionId, recipe, expiresAt);
-        var registration = new ReferenceRegistration(actionId, recipe.SnapshotIdentity);
-        var options = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(expiresAt)
-            .SetSize(CalculateSize(recipe))
-            .RegisterPostEvictionCallback(
-                (_, _, _, _) => RemoveRegistration(registration));
-
-        var key = new CodeActionReferenceCacheKey(actionId);
         lock (_syncRoot)
         {
+            var actionId = Guid.NewGuid();
+            var candidate = new CodeActionReference(actionId, recipe, expiresAt);
+            var registration = new ReferenceRegistration(actionId, recipe.SnapshotIdentity);
+            var options = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(expiresAt)
+                .SetSize(CalculateSize(recipe))
+                .RegisterPostEvictionCallback(
+                    (_, _, _, _) => RemoveRegistration(registration));
+
+            var key = new CodeActionReferenceCacheKey(actionId);
             AddRegistration(registration);
             _cache.Set(key, candidate, options);
             if (_cache.TryGetValue(key, out reference) && reference is not null)
@@ -102,6 +102,12 @@ internal sealed class CodeActionReferenceStore : ICodeActionReferenceStore, IWor
         _cache.Remove(new CodeActionReferenceCacheKey(actionId));
     }
 
+    public bool IsPreparedFixAll(Guid actionId)
+    {
+        return TryGet(actionId, out var reference)
+            && reference.Recipe.PreparedFixAllScope is not null;
+    }
+
     public void InvalidateWorkspace(string workspaceId, long workspaceEpoch)
     {
         var workspaceKey = new WorkspaceInstanceCacheKey(workspaceId, workspaceEpoch);
@@ -140,6 +146,7 @@ internal sealed class CodeActionReferenceStore : ICodeActionReferenceStore, IWor
             + recipe.ProjectId.Length
             + recipe.ActionPath.Count
             + recipe.Diagnostics.Count
+            + (recipe.PreparedFixAllScope is null ? 0 : 1)
             + 3;
 
         foreach (var diagnosticId in recipe.DiagnosticIds)

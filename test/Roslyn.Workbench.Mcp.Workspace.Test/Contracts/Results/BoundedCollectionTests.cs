@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Contracts.Results;
 
 public sealed class BoundedCollectionTests
 {
@@ -44,7 +44,7 @@ public sealed class BoundedCollectionTests
     }
 
     [Fact]
-    public void GIVEN_NoMoreResults_WHEN_CreatingPreboundedCollection_THEN_ShouldPublishReturnedCountAsTotal()
+    public void GIVEN_NoMoreResults_WHEN_CreatingPreboundedCollection_THEN_ShouldPublishItemCountAsTotal()
     {
         var result = BoundedCollection.CreatePrebounded(["Item"], hasMore: false);
 
@@ -61,7 +61,7 @@ public sealed class BoundedCollectionTests
     }
 
     [Fact]
-    public void GIVEN_KnownTotalMatchesReturnedCount_WHEN_CreatingCollection_THEN_ShouldReportCompleteResult()
+    public void GIVEN_KnownTotalMatchesItemCount_WHEN_CreatingCollection_THEN_ShouldReportCompleteResult()
     {
         var result = BoundedCollection.CreatePrebounded(["First", "Second"], totalCount: 2);
 
@@ -81,7 +81,7 @@ public sealed class BoundedCollectionTests
     }
 
     [Fact]
-    public void GIVEN_KnownTotalBelowReturnedCount_WHEN_CreatingCollection_THEN_ShouldThrow()
+    public void GIVEN_KnownTotalBelowItemCount_WHEN_CreatingCollection_THEN_ShouldThrow()
     {
         var action = () => BoundedCollection.CreatePrebounded(["First", "Second"], totalCount: 1);
 

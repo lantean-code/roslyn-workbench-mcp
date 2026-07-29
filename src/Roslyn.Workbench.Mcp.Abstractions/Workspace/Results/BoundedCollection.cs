@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Roslyn.Workbench.Mcp.Plugins;
+namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 #pragma warning disable CA1711 // The bounded-collection wire contract accurately describes its collection payload.
 /// <summary>

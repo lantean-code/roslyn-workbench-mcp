@@ -186,15 +186,19 @@ public sealed class SchemaGenerationTests
 
         var dataSchema = outputSchema.GetProperty("properties").GetProperty("data");
         var dataText = dataSchema.GetRawText();
-        var actionText = dataSchema
+        var actionsSchema = dataSchema
             .GetProperty("properties")
-            .GetProperty("actions")
+            .GetProperty("actions");
+        var actionsText = actionsSchema.GetRawText();
+        var actionText = actionsSchema
+            .GetProperty("properties")
+            .GetProperty("items")
             .GetProperty("items")
             .GetRawText();
 
-        dataText.Should().Contain("returnedCount");
-        dataText.Should().Contain("hasMore");
-        dataText.Should().Contain("totalCount");
+        dataText.Should().NotContain("returnedCount");
+        actionsText.Should().Contain("hasMore");
+        actionsText.Should().Contain("totalCount");
         actionText.Should().Contain("actionId");
         actionText.Should().Contain("title");
         actionText.Should().Contain("kind");
@@ -213,6 +217,31 @@ public sealed class SchemaGenerationTests
         actionText.Should().NotContain("describeTool");
         actionText.Should().NotContain("unsupportedReasonCode");
         actionText.Should().NotContain("requirements");
+    }
+
+    [Fact]
+    public void GIVEN_PrepareFixAllOutput_WHEN_GeneratingToolSchema_THEN_ShouldPublishBoundedAffectedDocuments()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.PrepareFixAll), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        var dataSchema = outputSchema.GetProperty("properties").GetProperty("data");
+        var dataText = dataSchema.GetRawText();
+        var affectedDocumentsText = dataSchema
+            .GetProperty("properties")
+            .GetProperty("affectedDocuments")
+            .GetRawText();
+
+        dataText.Should().Contain("actionId");
+        dataText.Should().Contain("scope");
+        dataText.Should().Contain("affectedDiagnosticCount");
+        dataText.Should().NotContain("affectedDocumentCount");
+        dataText.Should().NotContain("hasMoreAffectedDocuments");
+        affectedDocumentsText.Should().Contain("items");
+        affectedDocumentsText.Should().Contain("hasMore");
+        affectedDocumentsText.Should().Contain("totalCount");
     }
 
     [Fact]

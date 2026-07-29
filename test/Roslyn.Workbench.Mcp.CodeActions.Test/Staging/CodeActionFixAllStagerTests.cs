@@ -58,12 +58,10 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         _discoveryService.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(_provider.Object);
         _provider.Setup(item => item.GetFixAllProvider()).Returns(_fixAllProvider.Object);
         _fixAllActionFactory
-            .Setup(item => item.CreateAsync(
+            .Setup(item => item.CreateDocumentAsync(
                 _provider.Object,
                 _fixAllProvider.Object,
                 It.IsAny<Document>(),
-                new TextSpan(0, 1),
-                It.IsAny<FixAllScope>(),
                 _discoveredAction.DiagnosticIds,
                 "EquivalenceKey",
                 null,
@@ -71,7 +69,18 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .ReturnsAsync(FixAllActionCreationResult.Created(_fixAllAction));
 
         _fixAllActionFactory
-            .Setup(item => item.CreateAsync(
+            .Setup(item => item.CreateSolutionAsync(
+                _provider.Object,
+                _fixAllProvider.Object,
+                It.IsAny<Document>(),
+                _discoveredAction.DiagnosticIds,
+                "EquivalenceKey",
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FixAllActionCreationResult.Created(_fixAllAction));
+
+        _fixAllActionFactory
+            .Setup(item => item.CreateProjectAsync(
                 _provider.Object,
                 _fixAllProvider.Object,
                 It.IsAny<Project>(),
@@ -268,12 +277,10 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         };
 
         _fixAllActionFactory
-            .Setup(item => item.CreateAsync(
+            .Setup(item => item.CreateSolutionAsync(
                 _provider.Object,
                 _fixAllProvider.Object,
                 It.IsAny<Document>(),
-                It.IsAny<TextSpan>(),
-                FixAllScope.Solution,
                 _discoveredAction.DiagnosticIds,
                 "EquivalenceKey",
                 null,
@@ -305,12 +312,10 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("ActionExpired");
-        _fixAllActionFactory.Verify(item => item.CreateAsync(
+        _fixAllActionFactory.Verify(item => item.CreateSolutionAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<FixAllProvider>(),
             It.IsAny<Document>(),
-            It.IsAny<TextSpan>(),
-            It.IsAny<FixAllScope>(),
             It.IsAny<IReadOnlyList<string>>(),
             It.IsAny<string?>(),
             It.IsAny<string?>(),
@@ -458,7 +463,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("ProjectNotFound");
-        _fixAllActionFactory.Verify(item => item.CreateAsync(
+        _fixAllActionFactory.Verify(item => item.CreateProjectAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<FixAllProvider>(),
             It.IsAny<Project>(),
@@ -499,7 +504,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        _fixAllActionFactory.Verify(item => item.CreateAsync(
+        _fixAllActionFactory.Verify(item => item.CreateProjectAsync(
             _provider.Object,
             _fixAllProvider.Object,
             It.IsAny<Project>(),

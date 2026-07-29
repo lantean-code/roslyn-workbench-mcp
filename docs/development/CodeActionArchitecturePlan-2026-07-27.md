@@ -132,7 +132,7 @@ The response is a bounded collection. Each action contains only:
 | `Diagnostics` | Code Fixes only | One or more concise `{ Id, Message }` values explaining why the action is offered without requiring a diagnostic lookup. |
 | `FixAllScopes` | Only when supported | Scopes advertised by the originating `FixAllProvider`. |
 
-The collection also reports `ReturnedCount`, `HasMore` and optional `TotalCount` when the complete count is already known cheaply. It does not return provider identity, CLR action type, equivalence key, action path, Workspace identity, expiry, execution mode, executor tool, internal requirements or exclusion rationale.
+The `Actions` property uses `BoundedCollection<CodeActionListItem>` so it reports the returned items, `HasMore` and optional `TotalCount` when the complete count is already known cheaply. It does not return provider identity, CLR action type, equivalence key, action path, Workspace identity, expiry, execution mode, executor tool, internal requirements or exclusion rationale.
 
 ### Document and range semantics
 
@@ -156,7 +156,7 @@ The request contains:
 | `AffectedDocumentsLimit` | Optional with published curated default | Bounds the affected-document list returned to the agent. |
 | `ExpectedSnapshot` | Required | Revalidates the Workspace and transaction revision. |
 
-Preparation revalidates the originating Code Fix, verifies its `FixAllProvider` and requested scope, constructs the Fix All action, evaluates its candidate solution without staging it, validates the source-only boundary and records a replayable Fix All recipe.
+Preparation revalidates the originating Code Fix, verifies its `FixAllProvider` and requested scope, constructs the Fix All action, evaluates its candidate solution without staging it, applies the same linked-document merge and source-only candidate validation used by Workspace staging, and records a replayable Fix All recipe.
 
 The response contains:
 
@@ -165,9 +165,7 @@ The response contains:
 | `ActionId` | New opaque reference representing the prepared Fix All operation. |
 | `Scope` | The accepted Fix All scope. |
 | `AffectedDiagnosticCount` | Complete number of diagnostics addressed when cheaply and authoritatively available. |
-| `AffectedDocumentCount` | Complete number of changed source documents. |
-| `AffectedDocuments` | Bounded project-aware document identities needed to assess impact. |
-| `HasMoreAffectedDocuments` | Indicates truncation of the affected-document list. |
+| `AffectedDocuments` | `BoundedCollection<DocumentReference>` containing project-aware document identities, truncation state and the complete changed-document count. |
 
 The response does not contain source diffs. The agent stages the prepared action and uses the existing transaction preview when it needs the actual changes.
 
@@ -610,15 +608,15 @@ This batch closes replay-cache lifecycle and memory-pressure gaps before Fix All
 
 Completion checklist:
 
-- [ ] `prepare-fix-all` is published as a query and accepts only a valid originating Code Fix reference and one supported explicit scope.
-- [ ] Preparation produces no transaction revision and performs no filesystem mutation.
-- [ ] Changed-document and affected-document limits are enforced with published curated defaults.
-- [ ] The response contains only the prepared action ID, accepted scope, authoritative impact totals and bounded affected-document identities.
-- [ ] Prepared Fix All recipes contain enough identity to recreate the same operation without retaining a Roslyn action or candidate solution.
-- [ ] Prepared Fix All references use the same immutable snapshot identity, reachable-history retention and active eviction path as single-action references.
-- [ ] `PreparedFixAllResolver` recreates the action and routes it through the same evaluator and `CodeActionStager` path as a single action.
-- [ ] Unit and integration coverage prove preparation, staging, preview, rollback, expiry, stale scope and unsupported Fix All behaviour.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] `prepare-fix-all` is published as a query and accepts only a valid originating Code Fix reference and one supported explicit scope.
+- [x] Preparation produces no transaction revision and performs no filesystem mutation.
+- [x] Changed-document and affected-document limits are enforced with published curated defaults.
+- [x] The response contains only the prepared action ID, accepted scope, authoritative impact totals and bounded affected-document identities.
+- [x] Prepared Fix All recipes contain enough identity to recreate the same operation without retaining a Roslyn action or candidate solution.
+- [x] Prepared Fix All references use the same immutable snapshot identity, reachable-history retention and active eviction path as single-action references.
+- [x] `PreparedFixAllResolver` recreates the action and routes it through the same evaluator and `CodeActionStager` path as a single action.
+- [x] Unit and integration coverage prove preparation, staging, preview, rollback, expiry, stale scope and unsupported Fix All behaviour.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 ### Batch 6 — Remove the dedicated surface and obsolete internals
 

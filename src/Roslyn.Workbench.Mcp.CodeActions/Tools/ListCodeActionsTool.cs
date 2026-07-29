@@ -56,8 +56,40 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
         var document = selectionResolution.Value.Document;
         var span = selectionResolution.Value.Span;
-        var discovered = new List<DiscoveredCodeAction>();
+
+        var (discovered, diagnosticWarnings) = await DiscoverActionsAsync(
+            request,
+            document,
+            span,
+            cancellationToken);
+
+        var boundedActions = await CreateBoundedActionsAsync(
+            discovered,
+            document,
+            request.EffectiveLimit,
+            context,
+            cancellationToken);
+
+        var data = new CodeActionListData
+        {
+            Actions = boundedActions,
+        };
+
+        var warnings = CreateWarnings(diagnosticWarnings);
+        return CodeActionExecutionResult.Success(data, warnings: warnings);
+    }
+
+    private async ValueTask<(
+        List<DiscoveredCodeAction> Actions,
+        IReadOnlyList<string> DiagnosticWarnings)> DiscoverActionsAsync(
+        ListCodeActionsRequest request,
+        Document document,
+        TextSpan span,
+        CancellationToken cancellationToken)
+    {
+        var actions = new List<DiscoveredCodeAction>();
         IReadOnlyList<string> diagnosticWarnings = [];
+
         if (IncludesRefactorings(request.Kinds))
         {
             using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -68,8 +100,13 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 foreach (var provider in refactoringProviders)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
-                    discovered.AddRange(actions);
+                    var discovered = await _discoveryService.DiscoverRefactoringsAsync(
+                        provider,
+                        document,
+                        span,
+                        cancellationToken);
+
+                    actions.AddRange(discovered);
                 }
             }
         }
@@ -79,7 +116,10 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
             if (codeFixProviders.Count > 0)
             {
-                var effectiveDiagnosticIds = GetEffectiveDiagnosticIds(codeFixProviders, request.DiagnosticIds);
+                var effectiveDiagnosticIds = GetEffectiveDiagnosticIds(
+                    codeFixProviders,
+                    request.DiagnosticIds);
+
                 if (effectiveDiagnosticIds.Count > 0)
                 {
                     IReadOnlyList<Diagnostic> diagnostics = [];
@@ -104,14 +144,29 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                         foreach (var provider in codeFixProviders)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
-                            discovered.AddRange(actions);
+                            var discovered = await _discoveryService.DiscoverCodeFixesAsync(
+                                provider,
+                                document,
+                                diagnostics,
+                                cancellationToken);
+
+                            actions.AddRange(discovered);
                         }
                     }
                 }
             }
         }
 
+        return (actions, diagnosticWarnings);
+    }
+
+    private async ValueTask<BoundedCollection<CodeActionListItem>> CreateBoundedActionsAsync(
+        List<DiscoveredCodeAction> discovered,
+        Document document,
+        int limit,
+        ICodeActionQueryContext context,
+        CancellationToken cancellationToken)
+    {
         List<CodeActionListItem> actionItems;
         var totalCount = 0;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -119,7 +174,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             WorkbenchPerformanceEventSource.CodeActionProjectionPhase))
         {
             discovered.Sort(CompareActions);
-            actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, request.EffectiveLimit));
+            actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, limit));
             var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
             if (syntaxTree is not null)
             {
@@ -132,9 +187,9 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                         continue;
                     }
 
-                    totalCount++;
-                    if (actionItems.Count == request.EffectiveLimit)
+                    if (actionItems.Count == limit)
                     {
+                        totalCount++;
                         continue;
                     }
 
@@ -146,17 +201,18 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                         out var actionItem))
                     {
                         actionItems.Add(actionItem);
+                        totalCount++;
                     }
                 }
             }
         }
 
-        var boundedActions = BoundedCollection.CreatePrebounded(actionItems, totalCount);
-        var data = new CodeActionListData
-        {
-            Actions = boundedActions,
-        };
+        return BoundedCollection.CreatePrebounded(actionItems, totalCount);
+    }
 
+    private static List<WarningInfo> CreateWarnings(
+        IReadOnlyList<string> diagnosticWarnings)
+    {
         var warnings = new List<WarningInfo>(diagnosticWarnings.Count);
         foreach (var warning in diagnosticWarnings)
         {
@@ -167,7 +223,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             });
         }
 
-        return CodeActionExecutionResult.Success(data, warnings: warnings);
+        return warnings;
     }
 
     private static bool IncludesCodeFixes(CodeActionKindSelection kinds)

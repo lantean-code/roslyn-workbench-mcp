@@ -320,6 +320,49 @@ public sealed class ListCodeActionsToolTests
             out It.Ref<CodeActionListItem?>.IsAny), Times.Never);
     }
 
+    [Fact]
+    public async Task GIVEN_ActionReferenceCannotBeCreated_WHEN_Executing_THEN_ShouldExcludeActionFromBoundedMetadata()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        CodeActionListItem? rejectedItem = null;
+
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([action]);
+
+        _infoFactory
+            .Setup(item => item.TryCreate(
+                action,
+                _context.Object,
+                roslyn.Document,
+                It.IsAny<ResolvedLocation>(),
+                out rejectedItem))
+            .Returns(false);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        result.Data.Actions.HasMore.Should().BeFalse();
+        result.Data.Actions.TotalCount.Should().Be(0);
+        _infoFactory.Verify(item => item.TryCreate(
+            action,
+            _context.Object,
+            roslyn.Document,
+            It.IsAny<ResolvedLocation>(),
+            out rejectedItem), Times.Once);
+    }
+
     private DocumentSelector SetupDocument(Document document)
     {
         var selector = new DocumentSelector { Path = "Code.cs" };

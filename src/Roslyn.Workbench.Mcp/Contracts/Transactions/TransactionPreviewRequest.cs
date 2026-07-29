@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 
@@ -22,6 +23,7 @@ internal sealed record TransactionPreviewRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the requested diff context line count.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultContextLines)]
     public int ContextLines { get; init; } = _defaultContextLines;
 }

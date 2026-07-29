@@ -67,37 +67,38 @@ Every file in the appendix was reviewed in its aggregate baseline-to-current for
 | CA-AUD-006 | The optional affected-diagnostic count could serialize as `null`, and the new Prepare Fix All output contract lacked sufficiently focused schema evidence. | Suppressed null serialization and added explicit response-schema and contract tests for the concise output. | Closed |
 | CA-AUD-007 | Three touched implementation files contained statement-separation inconsistencies relative to the readability standard. | Normalised separation in Code Action discovery, Workspace session storage and transaction handling. | Closed |
 | CA-AUD-008 | `CodeActionListItem.Diagnostics` was an unbounded collection inside the already bounded action collection, allowing response size to multiply with diagnostic fan-out. | Changed the property to `BoundedCollection<CodeActionDiagnosticContext>`, imposed a fixed maximum of 10 contexts per action, retained the known total count, added truncation and schema tests, and documented why the closed three-value Fix All scope set does not need the same treatment. | Closed |
-| CA-AUD-009 | Code Action request effective limits repeated `Math.Max` expressions instead of following the `ToolExecutionHelpers.GetMaxResults` convention used by comparable requests. | Added the assembly-local `ToolExecutionHelpers` implementation and routed list, prepare and legacy Fix All effective limits through it; added requested/default-value tests. | Closed |
+| CA-AUD-009 | Code Action request effective limits repeated `Math.Max` expressions, while the comparable Plugins.Core convention combined unrelated limit and selector helpers and could not be shared without cloning it. | Added the public, documented `ResultLimit.GetEffectiveValue` contract to Abstractions, routed bundled effective limits through it, added binding-time non-negative range validation, and retained positive published defaults with explicit zero support. | Closed |
 | CA-AUD-010 | `CodeActionInfoFactory` combined nested object construction with conditional expressions whose branches performed projection work. | Split path normalisation, kind selection, location, bounded diagnostics and Fix All scopes into named stages before constructing the final response item. | Closed |
 | CA-AUD-011 | Several newly introduced data/state records represented mandatory values with default values, including empty-string replay identities and default value-type identifiers. | Marked mandatory action, diagnostic identity, replay recipe and transaction revision members `required`; kept only collections whose empty value is semantically meaningful; updated construction sites and tests. | Closed |
 | CA-AUD-012 | `WorkspaceSessionSnapshot.CurrentSnapshotIdentity` constructed a new derived value on every access instead of storing the identity belonging to the immutable session snapshot. The broader fixture review also found a revision-1 test transaction with no revision data. | Made the identity a required init-only property, centralised derivation in `WorkspaceSnapshotIdentity.Create`, and set it on load, transaction start, staging, history movement, rollback and commit transitions. Test fixtures that alter transaction state now update the identity at the same construction boundary, and the invalid transaction fixture now contains its claimed revision and uses a consistent lifecycle state. | Closed |
 | CA-AUD-013 | The first audit did not repeat the established readability scan over all production and test files changed since the pre-Batch-1 baseline. The full pass found 18 production expression/construction candidates, 80 exact test statement-separation violations and 14 test conditional expressions performing work. | Corrected every production candidate and every exact separation/conditional violation. Reviewed the remaining 33 coalescing and 50 nested-return test candidates individually: invariant `?? throw` checks and 42 narrow test-data/Roslyn fixture factories were retained; composite result wrappers, nested dependencies and fallback construction were split into named stages. Eight production LINQ pipelines were retained as short single-purpose ordering or materialisation operations. | Closed |
+| CA-AUD-014 | Request validation mixed member presence, nullability and supplied-value validity, while several numeric constraints remained in handlers and the Host duplicated range keywords already emitted by `AIJsonUtilities.CreateJsonSchema`. | Kept C# `required` and JSON Schema `required` for presence, retained Host nullability correction because the SDK probe loses nullable-reference metadata, moved supported value constraints to ComponentModel attributes evaluated by the binder, removed duplicated range schema projection and redundant handler checks, and retained service-owned domain validation where no standard attribute expresses the rule. | Closed |
+| CA-AUD-015 | The remaining Plugins.Core `ToolExecutionHelpers` mixed selector construction with the limit helpers removed under CA-AUD-009, while CodeActions independently duplicated the same resolved-location projection. | Added the public `IWorkspaceSelectorFactory` abstraction and Workspace implementation, exposed the singleton through `IToolExecutionServices`, migrated Resolve Symbol and the three Code Action replay-selector consumers, removed both helper classes, and retained invocation-scoped `IWorkspaceResolver` on execution contexts. | Closed |
 
 ## Validation Evidence
 
-Validation was run after all behaviour-affecting corrections. Subsequent changes only updated this audit record with the final evidence:
+Validation was rerun after all behaviour-affecting corrections, including the request-validation consolidation:
 
 | Validation | Result |
 | --- | --- |
 | Pinned SDK availability | Pass |
 | Normal solution build | Pass, 0 warnings and 0 errors |
-| Solution `latest-all` analyser build with code style enforced and no incremental compilation | Pass, 0 warnings and 0 errors |
-| CodeActions unit and contract tests | Pass, 639 |
-| Host unit and contract tests | Pass, 289 |
-| Workspace unit and contract tests | Pass, 873 |
-| Plugins unit and contract tests | Pass, 99 |
-| Plugins.Core unit and contract tests | Pass, 282 |
+| Solution `latest-all` analyser build with code style enforced | Pass, 0 warnings and 0 errors |
+| CodeActions unit and contract tests | Pass, 628 |
+| Host unit and contract tests | Pass, 300 |
+| Plugins.Core unit and contract tests | Pass, 268 |
+| Plugins unit and contract tests | Pass, 100 |
+| Workspace unit and contract tests | Pass, 889 |
 | Plugin analyser tests | Pass, 45 |
 | CodeActions integration tests | Pass, 17 |
-| Workspace integration tests | Pass, 73 |
-| Host integration tests | Pass, 54 |
+| Host integration tests | Pass, 59 |
 | Plugins.Core integration tests | Pass, 7 |
-| Code Action compatibility audit tests | Pass, 173 |
-| Total non-acceptance tests | Pass, 2,551 |
+| Total non-acceptance tests | Pass, 2,313 |
+| Serilog multi-revision state-sequence scenario | Pass, one measured iteration through the WSL platform wrapper |
 | Scoped `dotnet format` verification | Pass, no changes required |
 | `git diff --check` | Pass |
 | CRLF verification | Pass for every CRLF-governed implementation file |
-| Prohibited-pattern scans | Pass: no `ConfigureAwait(false)`, `Task.Delay`, `async void`, TODO/FIXME marker, broad pragma suppression or production null-forgiving operator in scope |
+| Prohibited-pattern scans | Pass: no changed line introduces `ConfigureAwait(false)`, `Task.Delay`, `async void`, TODO/FIXME marker, broad pragma suppression or production null-forgiving operator |
 | Dependency-boundary scan | Pass: no CodeActions-to-Plugins reference |
 
 Published-host acceptance tests were not run because neither Batch 5 nor these audit corrections change acceptance infrastructure and repository policy requires explicit user instruction before running that suite. This is an intentional validation boundary, not an unresolved audit finding. Batches 6 and 7 remain future work in the architecture plan and their unchecked requirements were not assessed as if already implemented.
@@ -126,11 +127,13 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `docs/development/TestingStrategy.md` | Pass — CodeActions, Workspace and Plugins dependency map |
 | `docs/development/Tool Test Inventory.md` | Pass — tool ownership and coverage mapping |
 
-### Production Source — 101 files
+### Production Source — 160 files
 
 | File | Disposition |
 | --- | --- |
 | `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Results/BoundedCollection.cs` | Corrected — CA-AUD-001; renamed from Plugins and reviewed as a public Abstractions contract |
+| `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Results/ResultLimit.cs` | Corrected — CA-AUD-009; shared documented effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/IWorkspaceSelectorFactory.cs` | Corrected — CA-AUD-015; public selector-projection boundary |
 | `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/TextSpanRange.cs` | Pass — selector contract and nullability |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Composition/CodeActionAssemblyResolver.cs` | Pass — assembly resolution and isolation |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Composition/CodeActionCompositionState.cs` | Pass — state ownership and naming |
@@ -174,7 +177,7 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/Contexts/CodeActionMutationContext.cs` | Pass — invocation-specific mutation state |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/Contexts/CodeActionQueryContext.cs` | Pass — invocation-specific query state |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/Contexts/ICodeActionExecutionContext.cs` | Pass — shared execution state |
-| `src/Roslyn.Workbench.Mcp.CodeActions/Execution/ToolExecutionHelpers.cs` | Corrected — CA-AUD-009; request-limit convention |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Execution/ToolExecutionHelpers.cs` | Removed — CA-AUD-009; superseded by the shared Abstractions result-limit contract |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/FixAll/FixAllActionFactory.cs` | Pass — dedicated document, project and solution creation methods |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/FixAll/IFixAllActionFactory.cs` | Pass — scope-targeted interface with no redundant prepared-action delegate |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Execution/Results/CodeActionExecutionResultFactory.cs` | Pass — result mapping |
@@ -183,6 +186,9 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `src/Roslyn.Workbench.Mcp.CodeActions/Policy/CodeActionPolicy.cs` | Pass — exception-based policy |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Policy/CodeActionPolicyDecision.cs` | Pass — policy result |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Policy/ICodeActionPolicy.cs` | Pass — provider and leaf decision boundary |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Refactorings/EncapsulateFieldTool.cs` | Corrected — CA-AUD-015; shared selector factory consumer |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Refactorings/InlineVariableTool.cs` | Corrected — CA-AUD-015; shared selector factory consumer |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Refactorings/MoveTypeToFileTool.cs` | Corrected — CA-AUD-015; shared selector factory consumer |
 | `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionDiagnosticIdentity.cs` | Corrected — CA-AUD-011; mandatory replay diagnostic identity |
 | `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionReferenceStore.cs` | Corrected — CA-AUD-004 |
 | `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionReplayRecipe.cs` | Corrected — CA-AUD-011; mandatory replay identity and target state |
@@ -193,8 +199,8 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/ICodeActionResolver.cs` | Pass — ordinary resolution boundary |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/IPreparedFixAllResolver.cs` | Pass — prepared Fix All resolution boundary |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/PreparedFixAllResolver.cs` | Pass — targeted factory dispatch and unified stager path |
-| `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Requests/CodeActionToolRequestResolver.cs` | Pass — request and snapshot resolution |
-| `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Requests/ICodeActionToolRequestResolver.cs` | Pass — focused request-resolution boundary |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Requests/CodeActionToolRequestResolver.cs` | Corrected — CA-AUD-015; request resolution no longer owns selector projection |
+| `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Requests/ICodeActionToolRequestResolver.cs` | Corrected — CA-AUD-015; focused request-resolution boundary |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionFixAllStager.cs` | Pass — retained pre-migration compatibility reviewed against batch boundary |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionSelectionStager.cs` | Pass — retained pre-migration compatibility reviewed against batch boundary |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionStager.cs` | Pass — renamed unified single/prepared-action stager |
@@ -208,11 +214,58 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `src/Roslyn.Workbench.Mcp.CodeActions/Tools/StageCodeActionTool.cs` | Pass — unified staging entry point |
 | `src/Roslyn.Workbench.Mcp.CodeActions/Tools/StageCodeFixTool.cs` | Removed — superseded dedicated entry point |
 | `src/Roslyn.Workbench.Mcp.Plugins.Analyzers/PluginInvocationAnalyzer.cs` | Corrected — CA-AUD-001 |
+| `src/Roslyn.Workbench.Mcp.Plugins.Analyzers/PluginHandlerAnalyzer.cs` | Corrected — CA-AUD-014; attribute-based request validation recognition |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/AnalyzeAsyncRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/AnalyzeDisposablesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/AnalyzeNullabilityRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindCalleesRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindCallersRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindDependencyCyclesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindDerivedTypesRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindDuplicateCodeRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindImplementationsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindOverloadsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindOverridesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindReferencesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FindUnusedSymbolsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetApiSurfaceRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetChangeImpactRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetCodeContextRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetCodeMetricsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetControlFlowGraphRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetDependencyGraphRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetDiagnosticsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetOperationTreeRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetPartialDeclarationsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetProjectDetailsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSolutionStructureRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSymbolAttributesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSymbolDependenciesRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSymbolDependentsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSymbolMembersRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetTestImpactRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetTypeHierarchyRequest.cs` | Corrected — CA-AUD-009 and CA-AUD-014; shared limits and declarative ranges |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/RenameSymbolRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/SearchSymbolsRequest.cs` | Corrected — CA-AUD-009; shared effective-limit semantics |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Execution/ToolExecutionHelpers.cs` | Removed — CA-AUD-009 and CA-AUD-015; limit and selector responsibilities moved to their owners |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/GlobalUsings.cs` | Corrected — CA-AUD-009; shared result-limit namespace |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindCalleesTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindDerivedTypesTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindDuplicateCodeTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetCodeContextTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetControlFlowGraphTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDependencyGraphTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetTypeHierarchyTool.cs` | Corrected — CA-AUD-014; redundant handler range validation removed |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/ResolveSymbolTool.cs` | Corrected — CA-AUD-015; shared selector factory consumer |
+| `src/Roslyn.Workbench.Mcp.Plugins/Execution/ToolExecutionServices.cs` | Corrected — CA-AUD-015; selector factory service exposure |
+| `src/Roslyn.Workbench.Mcp.Plugins/IToolExecutionServices.cs` | Corrected — CA-AUD-015; public selector factory service contract |
 | `src/Roslyn.Workbench.Mcp.Workspace/Diagnostics/WorkbenchPerformanceEventSource.cs` | Pass — neutral performance events |
 | `src/Roslyn.Workbench.Mcp.Workspace/ExecutionContexts/IWorkspaceExecutionContext.cs` | Pass — neutral Workspace execution boundary |
 | `src/Roslyn.Workbench.Mcp.Workspace/ExecutionContexts/WorkspaceExecutionContext.cs` | Pass — Workspace-owned execution state |
 | `src/Roslyn.Workbench.Mcp.Workspace/ExecutionContexts/WorkspaceExecutionContextFactory.cs` | Pass — context construction |
 | `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs` | Pass — neutral lifecycle publication |
+| `src/Roslyn.Workbench.Mcp.Workspace/Resolution/WorkspaceResolver.cs` | Corrected — CA-AUD-014; domain validation retained at the resolution boundary |
+| `src/Roslyn.Workbench.Mcp.Workspace/Selectors/WorkspaceSelectorFactory.cs` | Corrected — CA-AUD-015; stateless resolved-location projection |
 | `src/Roslyn.Workbench.Mcp.Workspace/State/IWorkspaceSessionStore.cs` | Pass — session-store boundary |
 | `src/Roslyn.Workbench.Mcp.Workspace/State/IWorkspaceSnapshotLifecycleObserver.cs` | Pass — neutral snapshot invalidation abstraction |
 | `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionSnapshot.cs` | Corrected — CA-AUD-012; stored immutable snapshot identity |
@@ -227,12 +280,24 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceTransaction.cs` | Pass — reachable-history semantics |
 | `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceTransactionAppendResult.cs` | Pass — append outcome |
 | `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceTransactionRevision.cs` | Corrected — CA-AUD-011; mandatory revision state |
+| `src/Roslyn.Workbench.Mcp/Contracts/Server/WorkspaceOpenRequest.cs` | Corrected — CA-AUD-014; declarative request validation |
+| `src/Roslyn.Workbench.Mcp/Contracts/Transactions/TransactionPreviewRequest.cs` | Corrected — CA-AUD-014; declarative request validation |
 | `src/Roslyn.Workbench.Mcp/GlobalUsings.cs` | Pass — Host composition namespaces |
 | `src/Roslyn.Workbench.Mcp/Hosting/HostConfiguredMsBuildWorkspaceFactory.cs` | Pass — Host-owned Workspace configuration |
-| `src/Roslyn.Workbench.Mcp/Hosting/RoslynWorkbenchServiceCollectionExtensions.cs` | Pass — composition and dependency direction |
+| `src/Roslyn.Workbench.Mcp/Hosting/RoslynWorkbenchServiceCollectionExtensions.cs` | Corrected — CA-AUD-015; selector factory composition |
+| `src/Roslyn.Workbench.Mcp/Protocol/InputSchemaContractPublisher.cs` | Corrected — CA-AUD-014; SDK schema reuse with Host nullability correction |
+| `src/Roslyn.Workbench.Mcp/Protocol/ToolRequestBinder.cs` | Corrected — CA-AUD-014; ComponentModel validation in the binding pipeline |
+| `src/Roslyn.Workbench.Mcp/Protocol/ToolRequestBindingMetadata.cs` | Corrected — CA-AUD-014; cached validation metadata |
+| `src/Roslyn.Workbench.Mcp/Protocol/ValidationArgumentMetadata.cs` | Corrected — CA-AUD-014; focused validation-argument metadata |
 | `src/Roslyn.Workbench.Mcp/Status/ServerStatusService.cs` | Pass — Code Action component status remains distinct from Plugins |
 
-### Tests — 73 files
+### Tooling — 1 file
+
+| File | Disposition |
+| --- | --- |
+| `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Scenarios/StateSequences/StateSequenceRunner.cs` | Corrected — CA-AUD-013; explicit transaction fallback projection, validated through the affected multi-revision scenario |
+
+### Tests — 94 files
 
 | File | Disposition |
 | --- | --- |
@@ -260,6 +325,9 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Execution/FixAll/FixAllActionFactoryTests.cs` | Pass — document, project and solution-specific construction |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/GlobalUsings.cs` | Pass — test-project conventions |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Policy/CodeActionPolicyTests.cs` | Pass — exception policy |
+| `test/Roslyn.Workbench.Mcp.CodeActions.Test/Refactorings/EncapsulateFieldToolTests.cs` | Corrected — CA-AUD-015; selector factory interaction coverage |
+| `test/Roslyn.Workbench.Mcp.CodeActions.Test/Refactorings/InlineVariableToolTests.cs` | Corrected — CA-AUD-015; selector factory interaction coverage |
+| `test/Roslyn.Workbench.Mcp.CodeActions.Test/Refactorings/MoveTypeToFileToolTests.cs` | Corrected — CA-AUD-015; selector factory interaction coverage |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/References/CodeActionReferenceStoreTests.cs` | Corrected — CA-AUD-004 concurrency and lifecycle evidence |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Registration/BundledCodeActionCatalogTests.cs` | Pass — published internal tool catalogue |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Resolution/Replay/CodeActionResolverTests.cs` | Pass — ordinary replay branches |
@@ -277,7 +345,8 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Tools/StageCodeFixToolTests.cs` | Removed — tests for superseded dedicated tool |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test/Tools/StageFixAllToolTests.cs` | Corrected — CA-AUD-009; retained pre-migration effective-limit evidence |
 | `test/Roslyn.Workbench.Mcp.IntegrationTest/GlobalUsings.cs` | Pass — Host integration namespaces |
-| `test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs` | Pass — real Host component composition |
+| `test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs` | Corrected — CA-AUD-015; real Host selector-factory composition |
+| `test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/McpSdkSchemaProviderIntegrationTests.cs` | Corrected — CA-AUD-014; SDK attribute-schema evidence |
 | `test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs` | Corrected — CA-AUD-002, CA-AUD-003, CA-AUD-006, CA-AUD-009 and CA-AUD-013 schema evidence |
 | `test/Roslyn.Workbench.Mcp.IntegrationTest/ServerStatusRecoveryIntegrationTests.cs` | Pass — Code Action component recovery |
 | `test/Roslyn.Workbench.Mcp.IntegrationTestSupport/BundledComponentWorkspaceFactory.cs` | Pass — shared real-boundary fixture |
@@ -291,16 +360,32 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 | `test/Roslyn.Workbench.Mcp.Plugins.Test/Execution/PluginExecutionContextFactoryTests.cs` | Pass — plugin context remains independent of CodeActions |
 | `test/Roslyn.Workbench.Mcp.Plugins.Test/Execution/PluginExecutionContextTests.cs` | Pass — plugin execution-state contract |
 | `test/Roslyn.Workbench.Mcp.Plugins.Test/GlobalUsings.cs` | Pass — namespace update after shared contract move |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Execution/ToolExecutionHelpersTests.cs` | Removed — helper-specific coverage redistributed to owning contracts |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Execution/ToolResolutionResultTests.cs` | Corrected — helper-independent result contract coverage |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/FindCalleesToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/FindDerivedTypesToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/FindDuplicateCodeToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetCodeContextToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetDependencyGraphToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetTypeHierarchyToolTests.cs` | Corrected — CA-AUD-014; binding-owned range validation expectations |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/ResolveSymbolToolTests.cs` | Corrected — CA-AUD-015; source and fallback selector-factory coverage |
 | `test/Roslyn.Workbench.Mcp.Test/Contracts/Schema/ContractSchemaTestTools.cs` | Corrected — CA-AUD-006 schema fixture |
 | `test/Roslyn.Workbench.Mcp.Test/Contracts/Schema/SchemaGenerationTests.cs` | Corrected — CA-AUD-002, CA-AUD-003, CA-AUD-006 and CA-AUD-008 |
+| `test/Roslyn.Workbench.Mcp.Test/Architecture/ProductionSourceAudit.cs` | Corrected — CA-AUD-014; declarative validation source rules |
 | `test/Roslyn.Workbench.Mcp.Test/Hosting/HostConfiguredMsBuildWorkspaceFactoryTests.cs` | Pass — Host Workspace configuration |
 | `test/Roslyn.Workbench.Mcp.Test/Protocol/ToolRequestBinderTests.cs` | Pass — new request binding |
+| `test/Roslyn.Workbench.Mcp.Test/Protocol/ToolSchemaFactoryTests.cs` | Corrected — CA-AUD-014; attribute and nullability schema evidence |
 | `test/Roslyn.Workbench.Mcp.Test/Status/ServerStatusServiceTests.cs` | Pass — component/plugin status separation |
 | `test/Roslyn.Workbench.Mcp.Test/ToolExecution/CodeActions/CodeActionMutationMcpServerToolTests.cs` | Pass — Host Code Action mutation adapter |
+| `test/Roslyn.Workbench.Mcp.Test/ToolExecution/CodeActions/CodeActionQueryMcpServerToolTests.cs` | Corrected — CA-AUD-014; binder validation integration |
+| `test/Roslyn.Workbench.Mcp.Test/Tools/WorkspaceOpenToolTests.cs` | Corrected — CA-AUD-014; binder validation integration |
+| `test/Roslyn.Workbench.Mcp.TestSupport/QueryContextMockHelper.cs` | Corrected — CA-AUD-015; selector factory test graph |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/Contracts/Results/BoundedCollectionTests.cs` | Corrected — CA-AUD-001; renamed from Plugins tests to neutral contract owner coverage |
+| `test/Roslyn.Workbench.Mcp.Workspace.Test/Contracts/Results/ResultLimitTests.cs` | Corrected — CA-AUD-009; negative, zero and default limit semantics |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/ExecutionContexts/WorkspaceExecutionContextFactoryTests.cs` | Pass — neutral execution-context construction |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs` | Corrected — CA-AUD-012 and CA-AUD-013; lifecycle identity fixtures and explicit scenario branches |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/Selection/WorkspaceSelectorServiceTests.cs` | Pass — selector changes |
+| `test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs` | Corrected — CA-AUD-015; complete selector projection branches |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/State/WorkspaceSessionAcquirerTests.cs` | Pass — acquisition and snapshot state |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/State/WorkspaceSessionStoreTests.cs` | Corrected — CA-AUD-012 and CA-AUD-013; internally consistent immutable session replacements |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test/State/WorkspaceStateTransitionsTests.cs` | Pass — lifecycle transitions |
@@ -312,4 +397,4 @@ Published-host acceptance tests were not run because neither Batch 5 nor these a
 
 ## Final Disposition
 
-All 183 implementation files have an explicit disposition above. The seven audit findings are closed in the current worktree, the aggregate architecture remains inside the approved Batch 1–5 boundary, and the recorded non-acceptance validation is green.
+All 255 production, tooling and test files have an explicit disposition above. The fifteen audit findings are closed in the current worktree, the aggregate architecture remains inside the approved Batch 1–5 boundary, and the recorded non-acceptance validation is green.

@@ -26,6 +26,4 @@ internal interface ICodeActionToolRequestResolver
     CodeActionScopeResolution ResolveScope(
         ScopeSelector scope,
         ICodeActionExecutionContext context);
-
-    LocationSelector? CreateLocationSelector(ResolvedLocation? resolvedLocation);
 }

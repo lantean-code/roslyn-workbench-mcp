@@ -20,6 +20,7 @@ internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultImplementationsMaxResults)]
     public int? ImplementationsLimit { get; init; } = _defaultImplementationsMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveImplementationsLimit => ToolExecutionHelpers.GetMaxResults(ImplementationsLimit, _defaultImplementationsMaxResults);
+    internal int EffectiveImplementationsLimit => ResultLimit.GetEffectiveValue(ImplementationsLimit, _defaultImplementationsMaxResults);
 }

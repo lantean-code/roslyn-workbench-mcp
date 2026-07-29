@@ -67,9 +67,9 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
-        var maxBlocks = Math.Max(0, request.MaxBlocks);
+        var maxBlocks = request.MaxBlocks;
         var blocks = CreateBlocks(graph, maxBlocks);
-        var regions = CreateRegions(graph, Math.Max(0, request.MaxRegions), out var regionsTruncated);
+        var regions = CreateRegions(graph, request.MaxRegions, out var regionsTruncated);
 
         var data = new ControlFlowGraphData
         {

@@ -10,6 +10,8 @@ The findings are not limited to explicit `string.Empty` initializers. They also 
 
 The review classified all 758 candidate declarations found in repository-owned C# source: 575 production declarations and 183 test declarations. Of those, 474 were reviewed as legitimate defaults and are recorded below as non-findings.
 
+Subsequent request-validation work remediated `WorkspaceOpenRequest.Path`: the property is now C# `required`, non-nullable and annotated with `[Required]`, so omission, explicit `null` and blank text are rejected independently. The original counts below remain the point-in-time record produced by this audit rather than being rewritten after each remediation.
+
 ## Governing rule
 
 A declaration initializer is appropriate when it creates a genuinely valid and fully functional default for the member. Empty collections, request option defaults, caches, locks, comparers and configured policy defaults are examples of valid defaults.

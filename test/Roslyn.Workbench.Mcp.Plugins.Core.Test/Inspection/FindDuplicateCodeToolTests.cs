@@ -3,25 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDuplicateCodeToolTests
 {
     [Fact]
-    public async Task GIVEN_MinimumStatementsIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new FindDuplicateCodeTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        var result = await target.ExecuteAsync(new FindDuplicateCodeRequest
-        {
-            MinimumStatements = 0,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "MinimumStatements must be at least 1.",
-        });
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindDuplicateCodeTool();

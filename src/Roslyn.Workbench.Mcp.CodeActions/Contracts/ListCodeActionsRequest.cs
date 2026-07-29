@@ -32,8 +32,9 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of action leaves to return.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultLimit)]
     public int? Limit { get; init; } = _defaultLimit;
 
-    internal int EffectiveLimit => ToolExecutionHelpers.GetMaxResults(Limit, _defaultLimit);
+    internal int EffectiveLimit => ResultLimit.GetEffectiveValue(Limit, _defaultLimit);
 }

@@ -16,14 +16,16 @@ internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the minimum statement count to consider.
     /// </summary>
+    [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMinimumStatements)]
     public int MinimumStatements { get; init; } = _defaultMinimumStatements;
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultGroupsMaxResults)]
     public int? GroupsLimit { get; init; } = _defaultGroupsMaxResults;
 
-    internal int EffectiveGroupsLimit => ToolExecutionHelpers.GetMaxResults(GroupsLimit, _defaultGroupsMaxResults);
+    internal int EffectiveGroupsLimit => ResultLimit.GetEffectiveValue(GroupsLimit, _defaultGroupsMaxResults);
 }

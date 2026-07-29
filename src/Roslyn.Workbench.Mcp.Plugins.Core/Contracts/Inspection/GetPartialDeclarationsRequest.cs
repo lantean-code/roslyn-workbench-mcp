@@ -15,6 +15,7 @@ internal sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDeclarationsMaxResults)]
     public int? DeclarationsLimit { get; init; } = _defaultDeclarationsMaxResults;
 
@@ -23,5 +24,5 @@ internal sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveDeclarationsLimit => ToolExecutionHelpers.GetMaxResults(DeclarationsLimit, _defaultDeclarationsMaxResults);
+    internal int EffectiveDeclarationsLimit => ResultLimit.GetEffectiveValue(DeclarationsLimit, _defaultDeclarationsMaxResults);
 }

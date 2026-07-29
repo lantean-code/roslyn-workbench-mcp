@@ -21,12 +21,14 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum traversal depth. Directly derived types are at depth one.
     /// </summary>
+    [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDerivedTypesMaxResults)]
     public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
 
@@ -35,5 +37,5 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveDerivedTypesLimit => ToolExecutionHelpers.GetMaxResults(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
+    internal int EffectiveDerivedTypesLimit => ResultLimit.GetEffectiveValue(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
 }

@@ -15,13 +15,16 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the dependency graph granularity.
     /// </summary>
+    [AllowedValues("Project", "Namespace", "Type")]
+    [DefaultValue("Type")]
     public string Granularity { get; init; } = "Type";
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCyclesMaxResults)]
     public int? CyclesLimit { get; init; } = _defaultCyclesMaxResults;
 
-    internal int EffectiveCyclesLimit => ToolExecutionHelpers.GetMaxResults(CyclesLimit, _defaultCyclesMaxResults);
+    internal int EffectiveCyclesLimit => ResultLimit.GetEffectiveValue(CyclesLimit, _defaultCyclesMaxResults);
 }

@@ -8,6 +8,11 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public interface IToolExecutionServices
 {
     /// <summary>
+    /// Gets the factory for projecting resolved workspace identities into replayable selectors.
+    /// </summary>
+    IWorkspaceSelectorFactory WorkspaceSelectorFactory { get; }
+
+    /// <summary>
     /// Gets the bounded cache for reusable query results.
     /// </summary>
     IQueryCache QueryCache { get; }

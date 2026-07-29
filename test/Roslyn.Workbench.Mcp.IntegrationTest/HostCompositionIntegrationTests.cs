@@ -92,6 +92,7 @@ public sealed class HostCompositionIntegrationTests
         var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var toolExecutionServices = host.Services.GetRequiredService<IToolExecutionServices>();
+        var workspaceSelectorFactory = host.Services.GetRequiredService<IWorkspaceSelectorFactory>();
         var workspaceQueryCache = host.Services.GetRequiredService<IWorkspaceQueryCache>();
         var referenceStore = host.Services.GetRequiredService<ICodeActionReferenceStore>();
         var lifecycleObservers = host.Services.GetServices<IWorkspaceSnapshotLifecycleObserver>().ToArray();
@@ -105,6 +106,8 @@ public sealed class HostCompositionIntegrationTests
 
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
         toolExecutionServices.QueryCache.Should().BeOfType<QueryCache>();
+        workspaceSelectorFactory.Should().BeOfType<WorkspaceSelectorFactory>();
+        toolExecutionServices.WorkspaceSelectorFactory.Should().BeSameAs(workspaceSelectorFactory);
         workspaceQueryCache.Should().BeOfType<WorkspaceQueryCache>();
         toolExecutionServices.QueryCache.Should().NotBeSameAs(workspaceQueryCache);
         host.Services.GetRequiredService<IQueryCache>().Should().BeSameAs(toolExecutionServices.QueryCache);

@@ -16,21 +16,25 @@ internal sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the dependency graph granularity.
     /// </summary>
+    [AllowedValues("Project", "Namespace", "Type", "Symbol")]
+    [DefaultValue("Type")]
     public string Granularity { get; init; } = "Type";
 
     /// <summary>
     /// Gets the optional nodes limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultNodesMaxResults)]
     public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
 
     /// <summary>
     /// Gets the optional edges limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultEdgesMaxResults)]
     public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;
 
-    internal int EffectiveNodesLimit => ToolExecutionHelpers.GetMaxResults(NodesLimit, _defaultNodesMaxResults);
+    internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);
 
-    internal int EffectiveEdgesLimit => ToolExecutionHelpers.GetMaxResults(EdgesLimit, _defaultEdgesMaxResults);
+    internal int EffectiveEdgesLimit => ResultLimit.GetEffectiveValue(EdgesLimit, _defaultEdgesMaxResults);
 }

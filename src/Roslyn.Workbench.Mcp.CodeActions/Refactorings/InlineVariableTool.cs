@@ -10,13 +10,16 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
 
     private readonly ICodeActionSelectionStager _selectionStager;
     private readonly ICodeActionToolRequestResolver _requestResolver;
+    private readonly IWorkspaceSelectorFactory _selectorFactory;
 
     public InlineVariableTool(
         ICodeActionSelectionStager selectionStager,
-        ICodeActionToolRequestResolver requestResolver)
+        ICodeActionToolRequestResolver requestResolver,
+        IWorkspaceSelectorFactory selectorFactory)
     {
         _selectionStager = selectionStager;
         _requestResolver = requestResolver;
+        _selectorFactory = selectorFactory;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(InlineVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -49,7 +52,7 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
         }
 
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
-        var locationSelector = _requestResolver.CreateLocationSelector(resolvedLocation);
+        var locationSelector = _selectorFactory.CreateLocationSelector(resolvedLocation);
         if (locationSelector is null)
         {
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);

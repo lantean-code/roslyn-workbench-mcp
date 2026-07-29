@@ -7,6 +7,35 @@ namespace Roslyn.Workbench.Mcp.Test.Tools;
 public sealed class WorkspaceOpenToolTests
 {
     [Fact]
+    public async Task GIVEN_PathIsWhitespace_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeCallingService()
+    {
+        var service = new Mock<IWorkspaceLifecycleService>();
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "workspace-open",
+            new Dictionary<string, JsonElement>
+            {
+                ["path"] = JsonSerializer.SerializeToElement(" "),
+            },
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
+        result.StructuredContent.Value.GetProperty("error").GetProperty("message").GetString()
+            .Should().Be("Invalid value for tool argument: 'path'.");
+        service.Verify(
+            item => item.OpenAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_OpenRequest_WHEN_OpeningWorkspace_THEN_ShouldRouteAndMapResult()
     {
         var service = new Mock<IWorkspaceLifecycleService>();

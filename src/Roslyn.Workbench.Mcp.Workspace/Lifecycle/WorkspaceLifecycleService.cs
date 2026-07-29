@@ -498,10 +498,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             transaction: null);
 
         var effectiveOperationGate = operationGate;
-        if (effectiveOperationGate is null)
-        {
-            effectiveOperationGate = new WorkspaceOperationGate(_options.MaxConcurrentQueries);
-        }
+        effectiveOperationGate ??= new WorkspaceOperationGate(_options.MaxConcurrentQueries);
 
         return new WorkspaceSessionSnapshot
         {

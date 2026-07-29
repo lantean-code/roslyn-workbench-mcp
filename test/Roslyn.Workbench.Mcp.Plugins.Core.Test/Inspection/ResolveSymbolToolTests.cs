@@ -205,6 +205,25 @@ public sealed class ResolveSymbolToolTests
                     item.SourceSpan.Length);
             });
 
+        var sourceSpanSelector = new TextSpanSelector
+        {
+            Start = firstSourceLocation.SourceSpan.Start,
+        };
+
+        var sourceLocationSelector = new LocationSelector
+        {
+            Span = sourceSpanSelector,
+        };
+
+        var sourceSelector = new SymbolSelector
+        {
+            Location = sourceLocationSelector,
+        };
+
+        queryContextMocks.WorkspaceSelectorFactory
+            .Setup(item => item.CreateSymbolSelector(It.IsAny<ResolvedLocation?>()))
+            .Returns(sourceSelector);
+
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
             Location = requestLocation,
@@ -263,6 +282,25 @@ public sealed class ResolveSymbolToolTests
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item == usageLocation)))
             .Returns(resolvedUsageLocation);
+
+        var fallbackSpanSelector = new TextSpanSelector
+        {
+            Start = usageLocation.SourceSpan.Start,
+        };
+
+        var fallbackLocationSelector = new LocationSelector
+        {
+            Span = fallbackSpanSelector,
+        };
+
+        var fallbackSelector = new SymbolSelector
+        {
+            Location = fallbackLocationSelector,
+        };
+
+        queryContextMocks.WorkspaceSelectorFactory
+            .Setup(item => item.CreateSymbolSelector(resolvedUsageLocation))
+            .Returns(fallbackSelector);
 
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {

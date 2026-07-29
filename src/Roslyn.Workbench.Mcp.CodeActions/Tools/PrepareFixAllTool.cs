@@ -50,12 +50,6 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             return CodeActionsUnavailable<PrepareFixAllData>();
         }
 
-        var requestRejection = ValidateRequest(request);
-        if (requestRejection is not null)
-        {
-            return requestRejection;
-        }
-
         var resolution = await _resolver.ResolveActionAsync<PrepareFixAllData>(
             request.ActionId,
             request.ExpectedSnapshot,
@@ -217,26 +211,6 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             action.EquivalenceKey,
             syntheticDiagnosticId: null,
             cancellationToken);
-    }
-
-    private static CodeActionExecutionResult<PrepareFixAllData>? ValidateRequest(
-        PrepareFixAllRequest request)
-    {
-        if (!Enum.IsDefined(request.Scope))
-        {
-            return Rejected<PrepareFixAllData>(
-                "InvalidRequest",
-                "Scope must identify a supported Fix All scope.");
-        }
-
-        if (request.MaxChanges is < 0 || request.AffectedDocumentsLimit is < 0)
-        {
-            return Rejected<PrepareFixAllData>(
-                "InvalidRequest",
-                "MaxChanges and AffectedDocumentsLimit must be zero or greater.");
-        }
-
-        return null;
     }
 
     private static CodeActionExecutionResult<PrepareFixAllData>? ValidateResolution(

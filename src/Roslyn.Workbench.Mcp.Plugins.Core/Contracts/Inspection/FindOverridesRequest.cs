@@ -20,6 +20,7 @@ internal sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultOverridesMaxResults)]
     public int? OverridesLimit { get; init; } = _defaultOverridesMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveOverridesLimit => ToolExecutionHelpers.GetMaxResults(OverridesLimit, _defaultOverridesMaxResults);
+    internal int EffectiveOverridesLimit => ResultLimit.GetEffectiveValue(OverridesLimit, _defaultOverridesMaxResults);
 }

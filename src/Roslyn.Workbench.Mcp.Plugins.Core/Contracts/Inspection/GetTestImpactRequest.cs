@@ -25,6 +25,7 @@ internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultTestsMaxResults)]
     public int? TestsLimit { get; init; } = _defaultTestsMaxResults;
 
@@ -33,5 +34,5 @@ internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveTestsLimit => ToolExecutionHelpers.GetMaxResults(TestsLimit, _defaultTestsMaxResults);
+    internal int EffectiveTestsLimit => ResultLimit.GetEffectiveValue(TestsLimit, _defaultTestsMaxResults);
 }

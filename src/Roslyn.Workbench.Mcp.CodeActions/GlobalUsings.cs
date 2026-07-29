@@ -1,3 +1,4 @@
+global using System.ComponentModel.DataAnnotations;
 global using Microsoft.CodeAnalysis;
 global using Microsoft.CodeAnalysis.CodeActions;
 global using Microsoft.CodeAnalysis.CodeFixes;

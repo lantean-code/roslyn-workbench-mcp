@@ -25,6 +25,7 @@ internal sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMembersMaxResults)]
     public int? MembersLimit { get; init; } = _defaultMembersMaxResults;
 
@@ -33,5 +34,5 @@ internal sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveMembersLimit => ToolExecutionHelpers.GetMaxResults(MembersLimit, _defaultMembersMaxResults);
+    internal int EffectiveMembersLimit => ResultLimit.GetEffectiveValue(MembersLimit, _defaultMembersMaxResults);
 }

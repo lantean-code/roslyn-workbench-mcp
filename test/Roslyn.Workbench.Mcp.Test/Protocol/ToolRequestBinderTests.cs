@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -151,6 +152,109 @@ public sealed class ToolRequestBinderTests
         errorMessage.Should().Be("Unsupported values for tool arguments: 'optional', 'signedFlags', 'unsignedFlags'.");
     }
 
+    [Fact]
+    public void GIVEN_NegativeRangedArgument_WHEN_Binding_THEN_ShouldReturnNamedError()
+    {
+        var result = ToolRequestBinder.TryBind<RangedRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["limit"] = JsonSerializer.SerializeToElement(-1),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid value for tool argument: 'limit'.");
+    }
+
+    [Fact]
+    public void GIVEN_MultipleInvalidRangedArguments_WHEN_Binding_THEN_ShouldReturnOrderedNamedError()
+    {
+        var result = ToolRequestBinder.TryBind<MultipleRangedRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["secondLimit"] = JsonSerializer.SerializeToElement(-1),
+                ["firstLimit"] = JsonSerializer.SerializeToElement(-1),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid values for tool arguments: 'firstLimit', 'secondLimit'.");
+    }
+
+    [Fact]
+    public void GIVEN_RequiredStringIsWhitespace_WHEN_Binding_THEN_ShouldReturnNamedValueError()
+    {
+        var result = ToolRequestBinder.TryBind<MeaningfulStringRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["value"] = JsonSerializer.SerializeToElement(" "),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid value for tool argument: 'value'.");
+    }
+
+    [Fact]
+    public void GIVEN_DataAnnotatedRequiredStringIsOmitted_WHEN_Binding_THEN_ShouldReturnNamedMissingArgumentError()
+    {
+        var result = ToolRequestBinder.TryBind<DataAnnotatedRequiredRequest>(
+            new Dictionary<string, JsonElement>(),
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Missing required tool argument: 'value'.");
+    }
+
+    [Fact]
+    public void GIVEN_StringIsNotAnAllowedValue_WHEN_Binding_THEN_ShouldReturnNamedValueError()
+    {
+        var result = ToolRequestBinder.TryBind<AllowedValueRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["value"] = JsonSerializer.SerializeToElement("Third"),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid value for tool argument: 'value'.");
+    }
+
+    [Theory]
+    [InlineData(null, 25)]
+    [InlineData(0, 0)]
+    [InlineData(7, 7)]
+    public void GIVEN_ValidOptionalRangedArgument_WHEN_Binding_THEN_ShouldPreserveRequestedOrDefaultValue(
+        int? requestedLimit,
+        int expectedLimit)
+    {
+        var arguments = new Dictionary<string, JsonElement>();
+        if (requestedLimit is not null)
+        {
+            arguments["limit"] = JsonSerializer.SerializeToElement(requestedLimit);
+        }
+
+        var result = ToolRequestBinder.TryBind<RangedRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        request.Limit.Should().Be(expectedLimit);
+        errorMessage.Should().BeNull();
+    }
+
     private static void AssertEnumRequestBinds(IDictionary<string, JsonElement> arguments)
     {
         var result = ToolRequestBinder.TryBind<EnumRequest>(
@@ -212,6 +316,59 @@ public sealed class ToolRequestBinderTests
     private sealed record RequiredEnumRequest
     {
         public required TestEnum Value { get; init; }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record RangedRequest
+    {
+        [Range(0, int.MaxValue)]
+        public int? Limit { get; init; } = 25;
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record MultipleRangedRequest
+    {
+        [Range(0, int.MaxValue)]
+        public int? FirstLimit { get; init; } = 25;
+
+        [Range(0, int.MaxValue)]
+        public int? SecondLimit { get; init; } = 25;
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record MeaningfulStringRequest
+    {
+        [Required]
+        public required string Value { get; init; }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record AllowedValueRequest
+    {
+        [AllowedValues("First", "Second")]
+        public string Value { get; init; } = "First";
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record DataAnnotatedRequiredRequest
+    {
+        [Required]
+        public string Value { get; init; } = "Value";
     }
 
     private enum TestEnum

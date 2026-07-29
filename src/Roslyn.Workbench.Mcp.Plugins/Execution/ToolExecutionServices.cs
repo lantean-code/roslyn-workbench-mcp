@@ -11,6 +11,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         IProjectStructureService projectStructureService,
         IProjectTargetFrameworkResolver projectTargetFrameworkResolver,
         IDependencyAnalysisService dependencyAnalysisService,
+        IWorkspaceSelectorFactory workspaceSelectorFactory,
         IQueryCache queryCache)
     {
         RequestResolver = requestResolver;
@@ -19,6 +20,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         ProjectStructureService = projectStructureService;
         ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;
         DependencyAnalysisService = dependencyAnalysisService;
+        WorkspaceSelectorFactory = workspaceSelectorFactory;
         QueryCache = queryCache;
     }
 
@@ -33,6 +35,8 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     public IProjectTargetFrameworkResolver ProjectTargetFrameworkResolver { get; }
 
     public IDependencyAnalysisService DependencyAnalysisService { get; }
+
+    public IWorkspaceSelectorFactory WorkspaceSelectorFactory { get; }
 
     public IQueryCache QueryCache { get; }
 }

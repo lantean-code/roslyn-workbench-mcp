@@ -22,8 +22,9 @@ internal sealed record StageFixAllRequest : WorkspaceMutationRequest, ICodeActio
     /// <summary>
     /// Gets the maximum number of changed source documents to allow.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxChanges)]
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
-    internal int EffectiveMaxChanges => ToolExecutionHelpers.GetMaxResults(MaxChanges, _defaultMaxChanges);
+    internal int EffectiveMaxChanges => ResultLimit.GetEffectiveValue(MaxChanges, _defaultMaxChanges);
 }

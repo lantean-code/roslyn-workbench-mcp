@@ -20,6 +20,7 @@ internal sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAttributesMaxResults)]
     public int? AttributesLimit { get; init; } = _defaultAttributesMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveAttributesLimit => ToolExecutionHelpers.GetMaxResults(AttributesLimit, _defaultAttributesMaxResults);
+    internal int EffectiveAttributesLimit => ResultLimit.GetEffectiveValue(AttributesLimit, _defaultAttributesMaxResults);
 }

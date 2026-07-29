@@ -15,6 +15,8 @@ internal sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the minimum accessibility threshold as Public, Protected, or Internal.
     /// </summary>
+    [AllowedValues("Public", "Protected", "Internal")]
+    [DefaultValue("Public")]
     public string MinimumAccessibility { get; init; } = "Public";
 
     /// <summary>
@@ -25,8 +27,9 @@ internal sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultSymbolsMaxResults)]
     public int? SymbolsLimit { get; init; } = _defaultSymbolsMaxResults;
 
-    internal int EffectiveSymbolsLimit => ToolExecutionHelpers.GetMaxResults(SymbolsLimit, _defaultSymbolsMaxResults);
+    internal int EffectiveSymbolsLimit => ResultLimit.GetEffectiveValue(SymbolsLimit, _defaultSymbolsMaxResults);
 }

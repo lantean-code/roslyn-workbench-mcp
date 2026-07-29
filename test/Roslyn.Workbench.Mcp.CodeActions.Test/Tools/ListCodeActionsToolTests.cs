@@ -57,19 +57,6 @@ public sealed class ListCodeActionsToolTests
     }
 
     [Fact]
-    public async Task GIVEN_NegativeLimit_WHEN_Executing_THEN_ShouldRejectBeforeResolvingDocument()
-    {
-        var result = await _target.ExecuteAsync(
-            CreateRequest(limit: -1),
-            _context.Object,
-            TestContext.Current.CancellationToken);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-        result.Error.Message.Should().Be("Limit must be zero or greater when provided.");
-        _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
-    }
-
-    [Fact]
     public void GIVEN_LimitIsNull_WHEN_GettingEffectiveLimit_THEN_ShouldUsePublishedDefault()
     {
         var request = CreateRequest(limit: null);

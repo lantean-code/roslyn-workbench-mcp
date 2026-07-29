@@ -528,8 +528,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     [Theory]
     [InlineData(null, 50, false)]
     [InlineData(null, 51, true)]
-    [InlineData(-1, 0, false)]
-    [InlineData(-1, 1, true)]
     [InlineData(3, 3, false)]
     [InlineData(2, 3, true)]
     public async Task GIVEN_ChangeLimit_WHEN_StagingFixAll_THEN_ShouldEnforceMaximum(

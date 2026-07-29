@@ -13,6 +13,7 @@ internal sealed record RenameSymbolRequest : WorkspaceMutationRequest
     /// <summary>
     /// Gets the new symbol name.
     /// </summary>
+    [Required]
     public required string NewName { get; init; }
 
     /// <summary>

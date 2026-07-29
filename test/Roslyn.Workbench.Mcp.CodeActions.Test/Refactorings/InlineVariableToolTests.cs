@@ -2,6 +2,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class InlineVariableToolTests
 {
+    private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
+
+    public InlineVariableToolTests()
+    {
+        _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
+    }
+
     [Fact]
     public async Task GIVEN_RemoveDeclarationIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOptionRejection()
     {
@@ -143,6 +150,10 @@ public sealed class InlineVariableToolTests
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
 
+        _selectorFactory
+            .Setup(item => item.CreateLocationSelector(resolvedLocation))
+            .Returns(new LocationSelector());
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
@@ -193,11 +204,11 @@ public sealed class InlineVariableToolTests
         };
     }
 
-    private static InlineVariableTool CreateTarget(ICodeActionSelectionStager selectionStager)
+    private InlineVariableTool CreateTarget(ICodeActionSelectionStager selectionStager)
     {
         var requestResolver = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
 
-        return new InlineVariableTool(selectionStager, requestResolver);
+        return new InlineVariableTool(selectionStager, requestResolver, _selectorFactory.Object);
     }
 
     private static Mock<ILocalSymbol> CreateLocalSymbol(IReadOnlyList<Location> locations)

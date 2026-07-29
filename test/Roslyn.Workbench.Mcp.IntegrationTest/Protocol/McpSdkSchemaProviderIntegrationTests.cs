@@ -1,3 +1,7 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
@@ -19,6 +23,64 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
         result.GetProperty("type").GetString().Should().Be("object");
         result.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_DataAnnotations_WHEN_ExportingInputSchema_THEN_ShouldPublishValidationKeywords()
+    {
+        var result = _target.GetInputSchema<AnnotatedRequest>();
+
+        var properties = result.GetProperty("properties");
+        var range = properties.GetProperty("range");
+        var text = properties.GetProperty("text");
+        var choice = properties.GetProperty("choice");
+
+        range.GetProperty("minimum").GetInt32().Should().Be(1);
+        range.GetProperty("maximum").GetInt32().Should().Be(10);
+        text.GetProperty("minLength").GetInt32().Should().Be(2);
+        text.GetProperty("maxLength").GetInt32().Should().Be(10);
+        choice.GetProperty("enum")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Equal("First", "Second");
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_PresenceAndNullabilityContracts_WHEN_ExportingInputSchema_THEN_ShouldPublishPresenceButLoseNullabilityState()
+    {
+        var result = _target.GetInputSchema<PresenceRequest>();
+
+        var required = result.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        required.Should().Contain("dataAnnotatedRequired");
+        required.Should().Contain("requiredNonNullable");
+        required.Should().Contain("requiredNullable");
+        required.Should().NotContain("notNullAnnotated");
+
+        var properties = result.GetProperty("properties");
+        AllowsNull(properties.GetProperty("dataAnnotatedRequired")).Should().BeTrue();
+        AllowsNull(properties.GetProperty("requiredNonNullable")).Should().BeTrue();
+        AllowsNull(properties.GetProperty("requiredNullable")).Should().BeTrue();
+        AllowsNull(properties.GetProperty("notNullAnnotated")).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_PropertyDefaultValueAttribute_WHEN_ExportingInputSchema_THEN_ShouldNotPublishPropertyDefault()
+    {
+        var result = _target.GetInputSchema<DefaultedRequest>();
+
+        result.GetProperty("properties")
+            .GetProperty("limit")
+            .TryGetProperty("default", out _)
+            .Should()
+            .BeFalse();
     }
 
     [Fact]
@@ -71,6 +133,21 @@ public sealed class McpSdkSchemaProviderIntegrationTests
         second.GetRawText().Should().Be(first.GetRawText());
     }
 
+    private static bool AllowsNull(JsonElement schema)
+    {
+        if (!schema.TryGetProperty("type", out var type))
+        {
+            return false;
+        }
+
+        return type.ValueKind switch
+        {
+            JsonValueKind.String => string.Equals(type.GetString(), "null", StringComparison.Ordinal),
+            JsonValueKind.Array => type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal)),
+            _ => false,
+        };
+    }
+
 #pragma warning disable CA1812 // Schema fixtures are consumed through type metadata without construction.
     private sealed record TestRequest
     {
@@ -80,6 +157,37 @@ public sealed class McpSdkSchemaProviderIntegrationTests
     private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
+    }
+
+    private sealed record AnnotatedRequest
+    {
+        [Range(1, 10)]
+        public int Range { get; init; } = 1;
+
+        [StringLength(10, MinimumLength = 2)]
+        public string? Text { get; init; }
+
+        [AllowedValues("First", "Second")]
+        public string? Choice { get; init; }
+    }
+
+    private sealed record PresenceRequest
+    {
+        [Required]
+        public string? DataAnnotatedRequired { get; init; }
+
+        public required string RequiredNonNullable { get; init; }
+
+        public required string? RequiredNullable { get; init; }
+
+        [NotNull]
+        public string? NotNullAnnotated { get; init; }
+    }
+
+    private sealed record DefaultedRequest
+    {
+        [DefaultValue(25)]
+        public int? Limit { get; init; } = 25;
     }
 #pragma warning restore CA1812
 

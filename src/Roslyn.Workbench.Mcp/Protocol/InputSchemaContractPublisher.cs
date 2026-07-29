@@ -41,10 +41,7 @@ internal static class InputSchemaContractPublisher
         foreach (var property in contractType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             var jsonPropertyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
-            if (jsonPropertyName is null)
-            {
-                jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(property.Name);
-            }
+            jsonPropertyName ??= JsonNamingPolicy.CamelCase.ConvertName(property.Name);
 
             if (schemaProperties[jsonPropertyName] is not JsonObject propertySchema)
             {

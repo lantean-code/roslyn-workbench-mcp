@@ -27,10 +27,12 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange",
         "Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind",
         "Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction",
+        "Roslyn.Workbench.Mcp.Workspace.Results.ResultLimit",
         "Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo",
         "Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation",
@@ -165,6 +167,37 @@ public sealed class PluginPublicApiContractTests
         ]);
 
         typeof(IWorkspaceMutationStager).IsAssignableFrom(typeof(IMutationContext)).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_ToolExecutionServices_WHEN_InspectingCapabilities_THEN_ShouldExposeSupportedReadOnlyServices()
+    {
+        var properties = typeof(IToolExecutionServices).GetProperties();
+
+        properties.Should().OnlyContain(static property => property.SetMethod == null);
+        properties.Select(static property => property.Name).Should().BeEquivalentTo(
+        [
+            nameof(IToolExecutionServices.CompilerDiagnosticService),
+            nameof(IToolExecutionServices.DependencyAnalysisService),
+            nameof(IToolExecutionServices.InspectionContextService),
+            nameof(IToolExecutionServices.ProjectStructureService),
+            nameof(IToolExecutionServices.ProjectTargetFrameworkResolver),
+            nameof(IToolExecutionServices.QueryCache),
+            nameof(IToolExecutionServices.RequestResolver),
+            nameof(IToolExecutionServices.WorkspaceSelectorFactory),
+        ]);
+
+        var selectorFactoryMethods = typeof(IWorkspaceSelectorFactory)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(static method => method.Name)
+            .ToArray();
+
+        selectorFactoryMethods.Should().BeEquivalentTo(
+        [
+            nameof(IWorkspaceSelectorFactory.CreateLocationSelector),
+            nameof(IWorkspaceSelectorFactory.CreateSymbolSelector),
+        ]);
     }
 
     [Fact]

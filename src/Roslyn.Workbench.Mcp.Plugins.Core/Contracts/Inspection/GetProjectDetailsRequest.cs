@@ -23,32 +23,36 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional documents limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDocumentsMaxResults)]
     public int? DocumentsLimit { get; init; } = _defaultDocumentsMaxResults;
 
     /// <summary>
     /// Gets the optional project references limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultProjectReferencesMaxResults)]
     public int? ProjectReferencesLimit { get; init; } = _defaultProjectReferencesMaxResults;
 
     /// <summary>
     /// Gets the optional metadata references limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMetadataReferencesMaxResults)]
     public int? MetadataReferencesLimit { get; init; } = _defaultMetadataReferencesMaxResults;
 
     /// <summary>
     /// Gets the optional analyzers limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAnalyzersMaxResults)]
     public int? AnalyzersLimit { get; init; } = _defaultAnalyzersMaxResults;
 
-    internal int EffectiveDocumentsLimit => ToolExecutionHelpers.GetMaxResults(DocumentsLimit, _defaultDocumentsMaxResults);
+    internal int EffectiveDocumentsLimit => ResultLimit.GetEffectiveValue(DocumentsLimit, _defaultDocumentsMaxResults);
 
-    internal int EffectiveProjectReferencesLimit => ToolExecutionHelpers.GetMaxResults(ProjectReferencesLimit, _defaultProjectReferencesMaxResults);
+    internal int EffectiveProjectReferencesLimit => ResultLimit.GetEffectiveValue(ProjectReferencesLimit, _defaultProjectReferencesMaxResults);
 
-    internal int EffectiveMetadataReferencesLimit => ToolExecutionHelpers.GetMaxResults(MetadataReferencesLimit, _defaultMetadataReferencesMaxResults);
+    internal int EffectiveMetadataReferencesLimit => ResultLimit.GetEffectiveValue(MetadataReferencesLimit, _defaultMetadataReferencesMaxResults);
 
-    internal int EffectiveAnalyzersLimit => ToolExecutionHelpers.GetMaxResults(AnalyzersLimit, _defaultAnalyzersMaxResults);
+    internal int EffectiveAnalyzersLimit => ResultLimit.GetEffectiveValue(AnalyzersLimit, _defaultAnalyzersMaxResults);
 }

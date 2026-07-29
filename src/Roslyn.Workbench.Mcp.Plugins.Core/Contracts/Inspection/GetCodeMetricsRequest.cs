@@ -25,6 +25,7 @@ internal sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMetricsMaxResults)]
     public int? MetricsLimit { get; init; } = _defaultMetricsMaxResults;
 
@@ -33,5 +34,5 @@ internal sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveMetricsLimit => ToolExecutionHelpers.GetMaxResults(MetricsLimit, _defaultMetricsMaxResults);
+    internal int EffectiveMetricsLimit => ResultLimit.GetEffectiveValue(MetricsLimit, _defaultMetricsMaxResults);
 }

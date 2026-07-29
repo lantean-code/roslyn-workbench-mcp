@@ -15,6 +15,7 @@ internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum traversal depth.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
 

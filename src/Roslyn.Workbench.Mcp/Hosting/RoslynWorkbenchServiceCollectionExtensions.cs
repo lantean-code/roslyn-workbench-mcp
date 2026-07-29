@@ -73,6 +73,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceQueryCache, WorkspaceQueryCache>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
+        services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
         services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
         services.AddSingleton<IWorkspaceProjectCompatibilityInspector, WorkspaceProjectCompatibilityInspector>();

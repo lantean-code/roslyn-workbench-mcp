@@ -30,6 +30,7 @@ internal sealed record FindReferencesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultReferencesMaxResults)]
     public int? ReferencesLimit { get; init; } = _defaultReferencesMaxResults;
 
@@ -38,5 +39,5 @@ internal sealed record FindReferencesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveReferencesLimit => ToolExecutionHelpers.GetMaxResults(ReferencesLimit, _defaultReferencesMaxResults);
+    internal int EffectiveReferencesLimit => ResultLimit.GetEffectiveValue(ReferencesLimit, _defaultReferencesMaxResults);
 }

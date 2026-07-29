@@ -15,6 +15,7 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultOverloadsMaxResults)]
     public int? OverloadsLimit { get; init; } = _defaultOverloadsMaxResults;
 
@@ -23,5 +24,5 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveOverloadsLimit => ToolExecutionHelpers.GetMaxResults(OverloadsLimit, _defaultOverloadsMaxResults);
+    internal int EffectiveOverloadsLimit => ResultLimit.GetEffectiveValue(OverloadsLimit, _defaultOverloadsMaxResults);
 }

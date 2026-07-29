@@ -20,6 +20,7 @@ internal sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDependentsMaxResults)]
     public int? DependentsLimit { get; init; } = _defaultDependentsMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveDependentsLimit => ToolExecutionHelpers.GetMaxResults(DependentsLimit, _defaultDependentsMaxResults);
+    internal int EffectiveDependentsLimit => ResultLimit.GetEffectiveValue(DependentsLimit, _defaultDependentsMaxResults);
 }

@@ -26,12 +26,14 @@ internal sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum call depth to traverse when indirect callees are included. Direct callees are at depth one.
     /// </summary>
+    [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCalleesMaxResults)]
     public int? CalleesLimit { get; init; } = _defaultCalleesMaxResults;
 
@@ -40,5 +42,5 @@ internal sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveCalleesLimit => ToolExecutionHelpers.GetMaxResults(CalleesLimit, _defaultCalleesMaxResults);
+    internal int EffectiveCalleesLimit => ResultLimit.GetEffectiveValue(CalleesLimit, _defaultCalleesMaxResults);
 }

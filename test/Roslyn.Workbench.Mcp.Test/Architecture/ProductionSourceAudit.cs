@@ -28,15 +28,9 @@ internal static class ProductionSourceAudit
             ?.Value;
 
         var repositoryRoot = FindRepositoryRootFrom(configuredRoot);
-        if (repositoryRoot is null)
-        {
-            repositoryRoot = FindRepositoryRootFrom(Directory.GetCurrentDirectory());
-        }
+        repositoryRoot ??= FindRepositoryRootFrom(Directory.GetCurrentDirectory());
 
-        if (repositoryRoot is null)
-        {
-            repositoryRoot = FindRepositoryRootFrom(AppContext.BaseDirectory);
-        }
+        repositoryRoot ??= FindRepositoryRootFrom(AppContext.BaseDirectory);
 
         return repositoryRoot
             ?? throw new InvalidOperationException("The repository root could not be found.");

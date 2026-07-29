@@ -15,8 +15,9 @@ internal sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
 
-    internal int EffectiveFindingsLimit => ToolExecutionHelpers.GetMaxResults(FindingsLimit, _defaultFindingsMaxResults);
+    internal int EffectiveFindingsLimit => ResultLimit.GetEffectiveValue(FindingsLimit, _defaultFindingsMaxResults);
 }

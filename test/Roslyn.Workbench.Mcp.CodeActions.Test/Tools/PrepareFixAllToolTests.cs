@@ -74,21 +74,6 @@ public sealed class PrepareFixAllToolTests
     }
 
     [Theory]
-    [InlineData(-1, 20)]
-    [InlineData(50, -1)]
-    public async Task GIVEN_NegativeLimit_WHEN_PreparingFixAll_THEN_ShouldRejectRequest(
-        int maxChanges,
-        int affectedDocumentsLimit)
-    {
-        var result = await _target.ExecuteAsync(
-            CreateRequest(maxChanges, affectedDocumentsLimit),
-            _context.Object,
-            TestContext.Current.CancellationToken);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-    }
-
-    [Theory]
     [InlineData(null, null, 50, 20)]
     [InlineData(12, 7, 12, 7)]
     public void GIVEN_OptionalLimits_WHEN_GettingEffectiveLimits_THEN_ShouldUseRequestedOrPublishedValues(
@@ -101,17 +86,6 @@ public sealed class PrepareFixAllToolTests
 
         request.EffectiveMaxChanges.Should().Be(expectedMaxChanges);
         request.EffectiveAffectedDocumentsLimit.Should().Be(expectedAffectedDocumentsLimit);
-    }
-
-    [Fact]
-    public async Task GIVEN_UndefinedScope_WHEN_PreparingFixAll_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.ExecuteAsync(
-            CreateRequest(scope: (CodeActionFixAllScope)int.MaxValue),
-            _context.Object,
-            TestContext.Current.CancellationToken);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
     }
 
     [Fact]

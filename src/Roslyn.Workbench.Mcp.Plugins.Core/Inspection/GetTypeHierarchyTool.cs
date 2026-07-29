@@ -7,11 +7,6 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 {
     protected override async ValueTask<PluginExecutionResult<TypeHierarchyData>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        if (request.MaxDepth < 1)
-        {
-            return PluginExecutionResult.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
-        }
-
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {

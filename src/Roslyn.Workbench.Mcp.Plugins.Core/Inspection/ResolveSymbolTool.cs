@@ -28,11 +28,18 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         }
 
         var symbol = symbolResolution.Value;
-        var selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver);
+        SymbolSelector? selector = null;
+        var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
+        if (sourceLocation is not null)
+        {
+            var resolvedSourceLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
+            selector = context.ToolExecutionServices.WorkspaceSelectorFactory.CreateSymbolSelector(resolvedSourceLocation);
+        }
+
         if (selector is null)
         {
             var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value);
-            selector = ToolExecutionHelpers.CreateLocationSymbolSelector(resolvedLocation);
+            selector = context.ToolExecutionServices.WorkspaceSelectorFactory.CreateSymbolSelector(resolvedLocation);
         }
 
         var declarations = new List<ResolvedLocation>();

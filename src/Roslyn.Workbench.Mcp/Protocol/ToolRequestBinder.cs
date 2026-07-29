@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
@@ -44,6 +45,12 @@ internal static class ToolRequestBinder
             request = Deserialize<TRequest>(buffer);
             if (foundEnumArguments is not null
                 && TryCreateUndefinedEnumArgumentsError(request, metadata.EnumArguments, foundEnumArguments, out errorMessage))
+            {
+                request = null;
+                return false;
+            }
+
+            if (TryCreateInvalidArgumentsError(request, metadata.ValidationArguments, out errorMessage))
             {
                 request = null;
                 return false;
@@ -227,28 +234,90 @@ internal static class ToolRequestBinder
         return Convert.ToUInt64(value, CultureInfo.InvariantCulture);
     }
 
+    private static bool TryCreateInvalidArgumentsError<TRequest>(
+        TRequest request,
+        ValidationArgumentMetadata[] validationArguments,
+        [NotNullWhen(true)] out string? errorMessage)
+        where TRequest : class
+    {
+        List<string>? invalidArguments = null;
+
+        foreach (var argument in validationArguments)
+        {
+            var value = argument.Getter(request);
+            var validationContext = new ValidationContext(request)
+            {
+                DisplayName = argument.Name,
+                MemberName = argument.Name,
+            };
+
+            if (argument.Attributes.All(attribute =>
+                attribute.GetValidationResult(value, validationContext) == ValidationResult.Success))
+            {
+                continue;
+            }
+
+            invalidArguments ??= [];
+            invalidArguments.Add(argument.Name);
+        }
+
+        if (invalidArguments is null)
+        {
+            errorMessage = null;
+            return false;
+        }
+
+        var valueLabel = invalidArguments.Count == 1
+            ? "value"
+            : "values";
+
+        var argumentLabel = invalidArguments.Count == 1
+            ? "argument"
+            : "arguments";
+
+        var argumentNames = string.Join("', '", invalidArguments);
+        errorMessage = $"Invalid {valueLabel} for tool {argumentLabel}: '{argumentNames}'.";
+        return true;
+    }
+
     private static ToolRequestBindingMetadata CreateRequestMetadata(Type requestType)
     {
         var typeInfo = _serializerOptions.GetTypeInfo(requestType);
         var requiredArgumentNames = new List<string>();
         var enumArguments = new List<EnumArgumentMetadata>();
+        var validationArguments = new List<ValidationArgumentMetadata>();
 
         foreach (var property in typeInfo.Properties)
         {
-            if (property.IsRequired)
-            {
-                requiredArgumentNames.Add(property.Name);
-            }
-
             var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
             if (propertyType.IsEnum && property.Get is not null)
             {
                 enumArguments.Add(new EnumArgumentMetadata(property.Name, propertyType, property.Get));
             }
+
+            var validationAttributes = property.AttributeProvider?
+                .GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
+                .OfType<ValidationAttribute>()
+                .ToArray();
+
+            if (property.IsRequired
+                || validationAttributes?.Any(static attribute => attribute is RequiredAttribute) == true)
+            {
+                requiredArgumentNames.Add(property.Name);
+            }
+
+            if (validationAttributes is { Length: > 0 } && property.Get is not null)
+            {
+                validationArguments.Add(new ValidationArgumentMetadata(
+                    property.Name,
+                    property.Get,
+                    validationAttributes));
+            }
         }
 
         requiredArgumentNames.Sort(StringComparer.Ordinal);
         enumArguments.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
+        validationArguments.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
 
         var requiredNames = requiredArgumentNames.ToArray();
         var requiredIndexes = new Dictionary<string, int>(requiredNames.Length, StringComparer.OrdinalIgnoreCase);
@@ -270,7 +339,8 @@ internal static class ToolRequestBinder
             requiredNames,
             requiredIndexes,
             enumArgumentArray,
-            enumIndexes);
+            enumIndexes,
+            validationArguments.ToArray());
     }
 
     private static JsonSerializerOptions CreateSerializerOptions()

@@ -11,12 +11,14 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of projected basic blocks.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxBlocks)]
     public int MaxBlocks { get; init; } = _defaultMaxBlocks;
 
     /// <summary>
     /// Gets the maximum number of projected flow regions.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxRegions)]
     public int MaxRegions { get; init; } = _defaultMaxRegions;
 

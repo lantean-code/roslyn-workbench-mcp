@@ -3,26 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDerivedTypesToolTests
 {
     [Fact]
-    public async Task GIVEN_MaxDepthIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new FindDerivedTypesTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        var result = await target.ExecuteAsync(new FindDerivedTypesRequest
-        {
-            Symbol = new SymbolSelector(),
-            MaxDepth = 0,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "MaxDepth must be at least 1.",
-        });
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindDerivedTypesTool();

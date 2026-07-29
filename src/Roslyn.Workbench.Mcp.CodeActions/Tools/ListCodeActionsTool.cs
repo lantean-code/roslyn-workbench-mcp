@@ -36,13 +36,6 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return CodeActionsUnavailable<CodeActionListData>();
         }
 
-        if (request.Limit is < 0)
-        {
-            return Rejected<CodeActionListData>(
-                "InvalidRequest",
-                "Limit must be zero or greater when provided.");
-        }
-
         var selectionResolution = await _requestResolver.ResolveDocumentSelectionAsync<CodeActionListData>(
             request.Document,
             request.Range,

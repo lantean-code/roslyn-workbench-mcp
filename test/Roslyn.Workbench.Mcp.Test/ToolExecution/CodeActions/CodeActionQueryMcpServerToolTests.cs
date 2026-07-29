@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
@@ -216,6 +217,27 @@ public sealed class CodeActionQueryMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task GIVEN_RangedArgumentIsNegative_WHEN_InvokingQuery_THEN_ShouldPublishInvalidRequestWithoutAcquiringContext()
+    {
+        var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
+        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = McpServerToolTestData.CreateArguments();
+        arguments["limit"] = JsonSerializer.SerializeToElement(-1);
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
+        result.StructuredContent.Value.GetProperty("error").GetProperty("message").GetString()
+            .Should().Be("Invalid value for tool argument: 'limit'.");
+
+        contextFactory.Verify(item => item.CreateQueryContext(
+            It.IsAny<WorkspaceBoundRequest>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private CodeActionQueryMcpServerTool<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse> CreateTarget(
         ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         ICodeActionExecutionContextFactory contextFactory)
@@ -254,6 +276,9 @@ public sealed class CodeActionQueryMcpServerToolTests
     public sealed record TestQueryRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
+
+        [Range(0, int.MaxValue)]
+        public int? Limit { get; init; } = 25;
     }
 
     public sealed record TestQueryResponse

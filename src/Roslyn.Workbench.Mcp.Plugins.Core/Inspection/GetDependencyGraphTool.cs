@@ -10,11 +10,6 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             return PluginExecutionResult.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
         }
 
-        if (request.NodesLimit is < 0 || request.EdgesLimit is < 0)
-        {
-            return PluginExecutionResult.Rejected<DependencyGraphData>("InvalidRequest", "NodesLimit and EdgesLimit must be zero or greater when provided.");
-        }
-
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyGraphData>(request.Scope, context);
         if (documents.HasRejection)
         {

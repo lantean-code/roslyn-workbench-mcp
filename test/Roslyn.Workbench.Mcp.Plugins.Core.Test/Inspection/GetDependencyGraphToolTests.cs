@@ -31,64 +31,6 @@ public sealed class GetDependencyGraphToolTests
     }
 
     [Fact]
-    public async Task GIVEN_NodesLimitIsNegative_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new GetDependencyGraphTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-        var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.DependencyAnalysisService)
-            .Returns(dependencyAnalysisService.Object);
-
-        dependencyAnalysisService
-            .Setup(item => item.IsSupportedGraphGranularity("Type"))
-            .Returns(true);
-
-        var result = await target.ExecuteAsync(new GetDependencyGraphRequest
-        {
-            Granularity = "Type",
-            NodesLimit = -1,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "NodesLimit and EdgesLimit must be zero or greater when provided.",
-        });
-    }
-
-    [Fact]
-    public async Task GIVEN_EdgesLimitIsNegative_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new GetDependencyGraphTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-        var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.DependencyAnalysisService)
-            .Returns(dependencyAnalysisService.Object);
-
-        dependencyAnalysisService
-            .Setup(item => item.IsSupportedGraphGranularity("Type"))
-            .Returns(true);
-
-        var result = await target.ExecuteAsync(new GetDependencyGraphRequest
-        {
-            Granularity = "Type",
-            EdgesLimit = -1,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "NodesLimit and EdgesLimit must be zero or greater when provided.",
-        });
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetDependencyGraphTool();

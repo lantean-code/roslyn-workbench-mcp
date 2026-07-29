@@ -299,10 +299,7 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
                 }
 
                 var location = PluginSymbolFacts.FindSourceLocation(inaccessibleType);
-                if (location is null)
-                {
-                    location = GetRequiredSourceLocation(handlerType);
-                }
+                location ??= GetRequiredSourceLocation(handlerType);
 
                 var typeName = GetDisplayName(inaccessibleType);
                 Report(context, PluginDiagnosticDescriptors.PublicTransportContract, location, typeName);

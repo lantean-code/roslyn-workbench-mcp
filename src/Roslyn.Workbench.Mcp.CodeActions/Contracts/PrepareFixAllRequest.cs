@@ -23,12 +23,14 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of changed source documents to allow.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxChanges)]
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
     /// <summary>
     /// Gets the maximum number of affected document identities to return.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAffectedDocumentsLimit)]
     public int? AffectedDocumentsLimit { get; init; } = _defaultAffectedDocumentsLimit;
 
@@ -37,9 +39,9 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// </summary>
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
-    internal int EffectiveMaxChanges => ToolExecutionHelpers.GetMaxResults(MaxChanges, _defaultMaxChanges);
+    internal int EffectiveMaxChanges => ResultLimit.GetEffectiveValue(MaxChanges, _defaultMaxChanges);
 
-    internal int EffectiveAffectedDocumentsLimit => ToolExecutionHelpers.GetMaxResults(
+    internal int EffectiveAffectedDocumentsLimit => ResultLimit.GetEffectiveValue(
         AffectedDocumentsLimit,
         _defaultAffectedDocumentsLimit);
 }

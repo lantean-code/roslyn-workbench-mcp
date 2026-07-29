@@ -2,6 +2,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class EncapsulateFieldToolTests
 {
+    private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
+
+    public EncapsulateFieldToolTests()
+    {
+        _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
+    }
+
     [Fact]
     public async Task GIVEN_SymbolResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
@@ -122,6 +129,10 @@ public sealed class EncapsulateFieldToolTests
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
 
+        _selectorFactory
+            .Setup(item => item.CreateLocationSelector(resolvedLocation))
+            .Returns(new LocationSelector());
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
@@ -166,6 +177,10 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
+
+        _selectorFactory
+            .Setup(item => item.CreateLocationSelector(resolvedLocation))
+            .Returns(new LocationSelector());
 
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
@@ -217,11 +232,11 @@ public sealed class EncapsulateFieldToolTests
         };
     }
 
-    private static EncapsulateFieldTool CreateTarget(ICodeActionSelectionStager selectionStager)
+    private EncapsulateFieldTool CreateTarget(ICodeActionSelectionStager selectionStager)
     {
         var requestResolver = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
 
-        return new EncapsulateFieldTool(selectionStager, requestResolver);
+        return new EncapsulateFieldTool(selectionStager, requestResolver, _selectorFactory.Object);
     }
 
     private static Mock<IFieldSymbol> CreateFieldSymbol(string name, IReadOnlyList<Location> locations)

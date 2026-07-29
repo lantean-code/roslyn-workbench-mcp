@@ -25,6 +25,7 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCallersMaxResults)]
     public int? CallersLimit { get; init; } = _defaultCallersMaxResults;
 
@@ -33,5 +34,5 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveCallersLimit => ToolExecutionHelpers.GetMaxResults(CallersLimit, _defaultCallersMaxResults);
+    internal int EffectiveCallersLimit => ResultLimit.GetEffectiveValue(CallersLimit, _defaultCallersMaxResults);
 }

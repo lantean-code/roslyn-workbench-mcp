@@ -201,10 +201,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         if (node is not null)
         {
             symbol = semanticModel.GetDeclaredSymbol(node, cancellationToken);
-            if (symbol is null)
-            {
-                symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
-            }
+            symbol ??= semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
         }
 
         if (symbol is null)

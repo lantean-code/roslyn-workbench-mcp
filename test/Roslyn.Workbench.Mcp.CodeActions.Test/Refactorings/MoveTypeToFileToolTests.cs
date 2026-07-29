@@ -2,6 +2,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class MoveTypeToFileToolTests
 {
+    private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
+
+    public MoveTypeToFileToolTests()
+    {
+        _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
+    }
+
     [Fact]
     public async Task GIVEN_PreserveNamespaceIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOptionRejection()
     {
@@ -143,6 +150,10 @@ public sealed class MoveTypeToFileToolTests
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
 
+        _selectorFactory
+            .Setup(item => item.CreateLocationSelector(resolvedLocation))
+            .Returns(new LocationSelector());
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
@@ -191,11 +202,11 @@ public sealed class MoveTypeToFileToolTests
         };
     }
 
-    private static MoveTypeToFileTool CreateTarget(ICodeActionSelectionStager selectionStager)
+    private MoveTypeToFileTool CreateTarget(ICodeActionSelectionStager selectionStager)
     {
         var requestResolver = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
 
-        return new MoveTypeToFileTool(selectionStager, requestResolver);
+        return new MoveTypeToFileTool(selectionStager, requestResolver, _selectorFactory.Object);
     }
 
     private static Mock<INamedTypeSymbol> CreateNamedTypeSymbol(IReadOnlyList<Location> locations)

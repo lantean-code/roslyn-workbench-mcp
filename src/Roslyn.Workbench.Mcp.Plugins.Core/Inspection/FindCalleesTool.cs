@@ -10,11 +10,6 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             return PluginExecutionResult.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
-        if (request.MaxDepth < 1)
-        {
-            return PluginExecutionResult.Rejected<CalleeSearchData>("InvalidRequest", "MaxDepth must be at least 1.");
-        }
-
         var directCallees = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         ISymbol sourceSymbol;
 

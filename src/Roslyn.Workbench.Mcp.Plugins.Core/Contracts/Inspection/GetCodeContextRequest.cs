@@ -16,12 +16,14 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the number of lines to include before the selected location.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultBeforeLines)]
     public int BeforeLines { get; init; } = _defaultBeforeLines;
 
     /// <summary>
     /// Gets the number of lines to include after the selected location.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAfterLines)]
     public int AfterLines { get; init; } = _defaultAfterLines;
 

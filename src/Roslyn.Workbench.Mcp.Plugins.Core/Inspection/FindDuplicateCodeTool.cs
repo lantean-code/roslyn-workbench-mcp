@@ -5,11 +5,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 {
     protected override async ValueTask<PluginExecutionResult<DuplicateCodeData>> ExecuteCoreAsync(FindDuplicateCodeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        if (request.MinimumStatements < 1)
-        {
-            return PluginExecutionResult.Rejected<DuplicateCodeData>("InvalidRequest", "MinimumStatements must be at least 1.");
-        }
-
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DuplicateCodeData>(request.Scope, context);
         if (documents.HasRejection)
         {

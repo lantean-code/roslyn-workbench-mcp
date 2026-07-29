@@ -23,24 +23,28 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum base-type and derived-type traversal depth. Direct relationships are at depth one.
     /// </summary>
+    [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the optional base types limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultBaseTypesMaxResults)]
     public int? BaseTypesLimit { get; init; } = _defaultBaseTypesMaxResults;
 
     /// <summary>
     /// Gets the optional interfaces limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultInterfacesMaxResults)]
     public int? InterfacesLimit { get; init; } = _defaultInterfacesMaxResults;
 
     /// <summary>
     /// Gets the optional derived types limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDerivedTypesMaxResults)]
     public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
 
@@ -49,9 +53,9 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveBaseTypesLimit => ToolExecutionHelpers.GetMaxResults(BaseTypesLimit, _defaultBaseTypesMaxResults);
+    internal int EffectiveBaseTypesLimit => ResultLimit.GetEffectiveValue(BaseTypesLimit, _defaultBaseTypesMaxResults);
 
-    internal int EffectiveInterfacesLimit => ToolExecutionHelpers.GetMaxResults(InterfacesLimit, _defaultInterfacesMaxResults);
+    internal int EffectiveInterfacesLimit => ResultLimit.GetEffectiveValue(InterfacesLimit, _defaultInterfacesMaxResults);
 
-    internal int EffectiveDerivedTypesLimit => ToolExecutionHelpers.GetMaxResults(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
+    internal int EffectiveDerivedTypesLimit => ResultLimit.GetEffectiveValue(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
 }

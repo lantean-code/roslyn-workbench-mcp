@@ -20,6 +20,7 @@ internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultLocationsMaxResults)]
     public int? LocationsLimit { get; init; } = _defaultLocationsMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveLocationsLimit => ToolExecutionHelpers.GetMaxResults(LocationsLimit, _defaultLocationsMaxResults);
+    internal int EffectiveLocationsLimit => ResultLimit.GetEffectiveValue(LocationsLimit, _defaultLocationsMaxResults);
 }

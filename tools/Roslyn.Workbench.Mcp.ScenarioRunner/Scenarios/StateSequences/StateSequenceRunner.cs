@@ -739,10 +739,7 @@ internal sealed class StateSequenceRunner
         var errorCode = TryGetString(content, "error", "code");
         var requiredAction = TryGetString(content, "next");
         var transaction = TryGetObject(content, "data", "transaction");
-        if (transaction is null)
-        {
-            transaction = TryGetObject(content, "data", "mutation", "transaction");
-        }
+        transaction ??= TryGetObject(content, "data", "mutation", "transaction");
 
         var references = TryGetObject(content, "data", "references");
         var externalChange = TryGetObject(content, "data", "externalChange");

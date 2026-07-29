@@ -20,6 +20,7 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
 
@@ -28,5 +29,5 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
-    internal int EffectiveFindingsLimit => ToolExecutionHelpers.GetMaxResults(FindingsLimit, _defaultFindingsMaxResults);
+    internal int EffectiveFindingsLimit => ResultLimit.GetEffectiveValue(FindingsLimit, _defaultFindingsMaxResults);
 }

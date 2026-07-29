@@ -16,16 +16,18 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional folders limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFoldersMaxResults)]
     public int? FoldersLimit { get; init; } = _defaultFoldersMaxResults;
 
     /// <summary>
     /// Gets the optional projects limit.
     /// </summary>
+    [Range(0, int.MaxValue)]
     [DefaultValue(_defaultProjectsMaxResults)]
     public int? ProjectsLimit { get; init; } = _defaultProjectsMaxResults;
 
-    internal int EffectiveFoldersLimit => ToolExecutionHelpers.GetMaxResults(FoldersLimit, _defaultFoldersMaxResults);
+    internal int EffectiveFoldersLimit => ResultLimit.GetEffectiveValue(FoldersLimit, _defaultFoldersMaxResults);
 
-    internal int EffectiveProjectsLimit => ToolExecutionHelpers.GetMaxResults(ProjectsLimit, _defaultProjectsMaxResults);
+    internal int EffectiveProjectsLimit => ResultLimit.GetEffectiveValue(ProjectsLimit, _defaultProjectsMaxResults);
 }

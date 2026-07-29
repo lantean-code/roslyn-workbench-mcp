@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Server.Contracts;
 using Roslyn.Workbench.Mcp.Transaction.Contracts;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
@@ -53,6 +55,55 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
         var limitProperty = GetProperty(result, "calleesLimit");
         limitProperty.GetProperty("default").GetInt32().Should().Be(100);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_ClosedStringOptions_WHEN_ExportingInputSchemas_THEN_ShouldPublishAllowedValuesAndDefaults()
+    {
+        var target = CreateTarget();
+
+        var cycleGranularity = GetProperty(target.CreateInputSchema<FindDependencyCyclesRequest>(), "granularity");
+        var graphGranularity = GetProperty(target.CreateInputSchema<GetDependencyGraphRequest>(), "granularity");
+        var minimumAccessibility = GetProperty(target.CreateInputSchema<GetApiSurfaceRequest>(), "minimumAccessibility");
+
+        cycleGranularity.GetProperty("enum")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Equal("Project", "Namespace", "Type");
+
+        graphGranularity.GetProperty("enum")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Equal("Project", "Namespace", "Type", "Symbol");
+
+        minimumAccessibility.GetProperty("enum")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Equal("Public", "Protected", "Internal");
+
+        cycleGranularity.GetProperty("default").GetString().Should().Be("Type");
+        graphGranularity.GetProperty("default").GetString().Should().Be("Type");
+        minimumAccessibility.GetProperty("default").GetString().Should().Be("Public");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_WorkspaceOpenPath_WHEN_ExportingInputSchema_THEN_ShouldPublishRequiredNonNullableProperty()
+    {
+        var target = CreateTarget();
+
+        var schema = target.CreateInputSchema<WorkspaceOpenRequest>();
+        var requiredProperties = schema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        requiredProperties.Should().Contain("path");
+        AllowsNull(GetProperty(schema, "path")).Should().BeFalse();
     }
 
     [Fact]
@@ -273,6 +324,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .ToArray();
 
         limitProperties.Should().HaveCount(49);
+        limitProperties.Count(IsCollectionLimitProperty).Should().Be(39);
         foreach (var limitProperty in limitProperties)
         {
             var declaringType = limitProperty.DeclaringType
@@ -296,6 +348,23 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 ?? throw new InvalidOperationException($"{declaringType.Name} could not be constructed for its default-value audit.");
 
             limitProperty.GetValue(defaultRequest).Should().Be(fixedDefault.Value);
+
+            var range = limitProperty.GetCustomAttribute<RangeAttribute>()
+                ?? throw new InvalidOperationException($"{declaringType.Name}.{limitProperty.Name} must declare its valid range.");
+
+            var publishedLimit = GetProperty(publishedSchema, jsonPropertyName);
+            publishedLimit.GetProperty("minimum").GetInt32()
+                .Should().Be(Convert.ToInt32(range.Minimum, System.Globalization.CultureInfo.InvariantCulture));
+
+            publishedLimit.GetProperty("maximum").GetInt32()
+                .Should().Be(Convert.ToInt32(range.Maximum, System.Globalization.CultureInfo.InvariantCulture));
+
+            if (IsCollectionLimitProperty(limitProperty))
+            {
+                Convert.ToInt32(fixedDefault.Value, System.Globalization.CultureInfo.InvariantCulture).Should().BePositive();
+                Convert.ToInt32(range.Minimum, System.Globalization.CultureInfo.InvariantCulture).Should().Be(0);
+                Convert.ToInt32(range.Maximum, System.Globalization.CultureInfo.InvariantCulture).Should().Be(int.MaxValue);
+            }
         }
     }
 
@@ -348,6 +417,12 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 || property.Name.StartsWith("Minimum", StringComparison.Ordinal)
                 || property.Name.EndsWith("Lines", StringComparison.Ordinal)
                 || property.Name.EndsWith("Limit", StringComparison.Ordinal));
+    }
+
+    private static bool IsCollectionLimitProperty(PropertyInfo property)
+    {
+        return property.Name.EndsWith("Limit", StringComparison.Ordinal)
+            || string.Equals(property.Name, "MaxChanges", StringComparison.Ordinal);
     }
 
     private static bool IsTargetSelectorProperty(PropertyInfo property)

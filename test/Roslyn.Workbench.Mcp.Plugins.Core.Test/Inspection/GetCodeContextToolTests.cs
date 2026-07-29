@@ -148,61 +148,6 @@ public sealed class GetCodeContextToolTests
     }
 
     [Fact]
-    public async Task GIVEN_IncludeEnclosingSymbolsAndDiagnosticsAreFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnRequestedCodeWindowOnly()
-    {
-        using var document = RoslynTestFactory.CreateDocument("""
-            class Formatter
-            {
-                void Run()
-                {
-                    var value = 1;
-                    value++;
-                    value--;
-                }
-            }
-            """);
-
-        var target = new GetCodeContextTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
-            document.Document,
-            static (LocalDeclarationStatementSyntax item) => item.ToString().Contains("var value = 1;", StringComparison.Ordinal),
-            TestContext.Current.CancellationToken);
-
-        queryContextMocks.QueryContext
-            .SetupGet(item => item.CurrentSolution)
-            .Returns(document.Solution);
-
-        queryContextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<CodeContextData>(
-                queryContextMocks.QueryContext.Object,
-                It.IsAny<SnapshotPrecondition?>()))
-            .Returns((PluginExecutionResult<CodeContextData>?)null);
-
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
-            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
-
-        var result = await target.ExecuteAsync(new GetCodeContextRequest
-        {
-            Location = new LocationSelector(),
-            BeforeLines = -2,
-            AfterLines = -1,
-            IncludeDiagnostics = false,
-            IncludeEnclosingSymbols = false,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.EnclosingSymbols.Should().BeEmpty();
-        result.Data.Diagnostics.Should().BeEmpty();
-        result.Data.Text.Should().Contain("var value = 1;");
-    }
-
-    [Fact]
     public async Task GIVEN_IncludeEnclosingSymbolsAndDiagnosticsAreTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnDistinctDiagnosticsAndEnclosingSymbols()
     {
         using var document = RoslynTestFactory.CreateDocument("""

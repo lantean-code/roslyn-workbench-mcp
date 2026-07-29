@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Roslyn.Workbench.Mcp.Server.Contracts;
 
 /// <summary>
@@ -13,7 +15,8 @@ internal sealed record WorkspaceOpenRequest
     /// <summary>
     /// Gets the absolute solution or project path to load.
     /// </summary>
-    public string Path { get; init; } = string.Empty;
+    [Required]
+    public required string Path { get; init; }
 
     /// <summary>
     /// Gets the optional absolute repository or workspace root used for coordination and transaction boundaries.

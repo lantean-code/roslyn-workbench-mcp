@@ -7,8 +7,7 @@ internal sealed class MutationStagingService : IMutationStagingService
     private readonly IWorkspaceDiffBuilder _diffBuilder;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
-    private readonly IWorkspaceMutationCandidateValidator _candidateValidator;
-    private readonly ILinkedDocumentChangeMerger _linkedDocumentChangeMerger;
+    private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
 
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
@@ -16,16 +15,14 @@ internal sealed class MutationStagingService : IMutationStagingService
         IWorkspaceDiffBuilder diffBuilder,
         IWorkspaceResolverFactory resolverFactory,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
-        IWorkspaceMutationCandidateValidator candidateValidator,
-        ILinkedDocumentChangeMerger linkedDocumentChangeMerger)
+        IWorkspaceMutationCandidateProcessor candidateProcessor)
     {
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
-        _candidateValidator = candidateValidator;
-        _linkedDocumentChangeMerger = linkedDocumentChangeMerger;
+        _candidateProcessor = candidateProcessor;
     }
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
@@ -49,35 +46,20 @@ internal sealed class MutationStagingService : IMutationStagingService
             return CreateTransactionRequiredResult();
         }
 
-        var validationError = _candidateValidator.Validate(session.CurrentSolution, candidate.CandidateSolution);
-        if (validationError is not null)
-        {
-            return CreateValidationFailureResult(validationError, diagnostics, warnings);
-        }
-
-        var mergeResult = await _linkedDocumentChangeMerger.MergeAsync(
+        var processingResult = await _candidateProcessor.ProcessAsync(
             session.CurrentSolution,
             candidate.CandidateSolution,
             cancellationToken);
 
-        if (!mergeResult.IsSucceeded)
+        if (!processingResult.IsSucceeded)
         {
-            return CreateValidationFailureResult(mergeResult.Error, diagnostics, warnings);
+            return CreateValidationFailureResult(processingResult.Error, diagnostics, warnings);
         }
 
         var mergedCandidate = candidate with
         {
-            CandidateSolution = mergeResult.Solution,
+            CandidateSolution = processingResult.Solution,
         };
-
-        validationError = _candidateValidator.Validate(
-            session.CurrentSolution,
-            mergedCandidate.CandidateSolution);
-
-        if (validationError is not null)
-        {
-            return CreateValidationFailureResult(validationError, diagnostics, warnings);
-        }
 
         var stagedMutation = await CreateStagedMutationAsync(
             operationName,

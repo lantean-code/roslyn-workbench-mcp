@@ -13,8 +13,7 @@ public sealed class PrepareFixAllToolTests
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionSolutionChangeCounter> _solutionChangeCounter;
-    private readonly Mock<IWorkspaceMutationCandidateValidator> _candidateValidator;
-    private readonly Mock<ILinkedDocumentChangeMerger> _linkedDocumentChangeMerger;
+    private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
     private readonly Mock<TimeProvider> _timeProvider;
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
@@ -29,8 +28,7 @@ public sealed class PrepareFixAllToolTests
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _resolver = new Mock<ICodeActionResolver>();
         _solutionChangeCounter = new Mock<ICodeActionSolutionChangeCounter>();
-        _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
-        _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
         _timeProvider = new Mock<TimeProvider>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
@@ -49,8 +47,7 @@ public sealed class PrepareFixAllToolTests
             _referenceStore.Object,
             _resolver.Object,
             _solutionChangeCounter.Object,
-            _candidateValidator.Object,
-            _linkedDocumentChangeMerger.Object,
+            _candidateProcessor.Object,
             _timeProvider.Object,
             Options.Create(new CodeActionExecutionOptions
             {
@@ -253,13 +250,16 @@ public sealed class PrepareFixAllToolTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         SetupSuccessfulEvaluation(roslyn, CodeActionFixAllScope.Document, []);
-        _candidateValidator
-            .Setup(item => item.Validate(roslyn.Solution, roslyn.Solution))
-            .Returns(new WorkspaceOperationError
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
+                roslyn.Solution,
+                roslyn.Solution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
                 Code = "UnsupportedChange",
                 Message = "Mutation proposals must not alter project references.",
-            });
+            }));
 
         var result = await _target.ExecuteAsync(
             CreateRequest(),
@@ -283,12 +283,12 @@ public sealed class PrepareFixAllToolTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         SetupSuccessfulEvaluation(roslyn, CodeActionFixAllScope.Document, []);
-        _linkedDocumentChangeMerger
-            .Setup(item => item.MergeAsync(
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(LinkedDocumentChangeMergeResult.Failed(new WorkspaceOperationError
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
                 Code = "LinkedDocumentConflict",
                 Message = "Linked document changes conflict.",
@@ -311,14 +311,16 @@ public sealed class PrepareFixAllToolTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         SetupSuccessfulEvaluation(roslyn, CodeActionFixAllScope.Document, []);
-        _candidateValidator
-            .SetupSequence(item => item.Validate(roslyn.Solution, roslyn.Solution))
-            .Returns((WorkspaceOperationError?)null)
-            .Returns(new WorkspaceOperationError
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
+                roslyn.Solution,
+                roslyn.Solution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
                 Code = "UnsupportedChange",
                 Message = "Merged changes are unsupported.",
-            });
+            }));
 
         var result = await _target.ExecuteAsync(
             CreateRequest(),
@@ -489,12 +491,12 @@ public sealed class PrepareFixAllToolTests
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, TestContext.Current.CancellationToken))
             .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
 
-        _linkedDocumentChangeMerger
-            .Setup(item => item.MergeAsync(
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(LinkedDocumentChangeMergeResult.Succeeded(roslyn.Solution));
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Succeeded(roslyn.Solution));
 
         _solutionChangeCounter
             .Setup(item => item.GetChangedSourceDocumentsAsync(

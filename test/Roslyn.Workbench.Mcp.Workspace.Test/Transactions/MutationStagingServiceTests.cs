@@ -10,8 +10,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
-    private readonly Mock<IWorkspaceMutationCandidateValidator> _candidateValidator;
-    private readonly Mock<ILinkedDocumentChangeMerger> _linkedDocumentChangeMerger;
+    private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
     private readonly MutationStagingService _target;
 
     public MutationStagingServiceTests()
@@ -22,14 +21,13 @@ public sealed class MutationStagingServiceTests : IDisposable
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
-        _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
-        _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(3));
 
-        _linkedDocumentChangeMerger
-            .Setup(item => item.MergeAsync(
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
                 It.IsAny<Solution>(),
                 It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
@@ -37,7 +35,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 Solution _,
                 Solution candidateSolution,
                 CancellationToken _) => ValueTask.FromResult(
-                    LinkedDocumentChangeMergeResult.Succeeded(candidateSolution)));
+                    WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution)));
 
         _target = new MutationStagingService(
             _resultFactory.Object,
@@ -45,8 +43,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             _diffBuilder.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object,
-            _candidateValidator.Object,
-            _linkedDocumentChangeMerger.Object);
+            _candidateProcessor.Object);
     }
 
     [Fact]
@@ -107,7 +104,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _linkedDocumentChangeMerger.Verify(item => item.MergeAsync(
+        _candidateProcessor.Verify(item => item.ProcessAsync(
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -128,12 +125,12 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var expected = CreateRejectedResult(error.Code);
         SetupOwner(session);
-        _linkedDocumentChangeMerger
-            .Setup(item => item.MergeAsync(
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
                 currentSolution,
                 candidate.CandidateSolution,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(LinkedDocumentChangeMergeResult.Failed(error));
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
@@ -171,12 +168,12 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var expected = CreateRejectedResult(error.Code);
         SetupOwner(session);
-        _candidateValidator
-            .SetupSequence(item => item.Validate(
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
                 currentSolution,
-                candidate.CandidateSolution))
-            .Returns((WorkspaceOperationError?)null)
-            .Returns(error);
+                candidate.CandidateSolution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
@@ -355,9 +352,12 @@ public sealed class MutationStagingServiceTests : IDisposable
             Message = message,
         };
 
-        _candidateValidator
-            .Setup(item => item.Validate(It.IsAny<Solution>(), It.IsAny<Solution>()))
-            .Returns(error);
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(

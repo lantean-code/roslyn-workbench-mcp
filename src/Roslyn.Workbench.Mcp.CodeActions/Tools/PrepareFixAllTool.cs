@@ -12,8 +12,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
-    private readonly IWorkspaceMutationCandidateValidator _candidateValidator;
-    private readonly ILinkedDocumentChangeMerger _linkedDocumentChangeMerger;
+    private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _referenceLifetime;
 
@@ -25,8 +24,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         ICodeActionReferenceStore referenceStore,
         ICodeActionResolver resolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter,
-        IWorkspaceMutationCandidateValidator candidateValidator,
-        ILinkedDocumentChangeMerger linkedDocumentChangeMerger,
+        IWorkspaceMutationCandidateProcessor candidateProcessor,
         TimeProvider timeProvider,
         IOptions<CodeActionExecutionOptions> options)
     {
@@ -37,8 +35,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         _referenceStore = referenceStore;
         _resolver = resolver;
         _solutionChangeCounter = solutionChangeCounter;
-        _candidateValidator = candidateValidator;
-        _linkedDocumentChangeMerger = linkedDocumentChangeMerger;
+        _candidateProcessor = candidateProcessor;
         _timeProvider = timeProvider;
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
@@ -53,18 +50,10 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             return CodeActionsUnavailable<PrepareFixAllData>();
         }
 
-        if (!Enum.IsDefined(request.Scope))
+        var requestRejection = ValidateRequest(request);
+        if (requestRejection is not null)
         {
-            return Rejected<PrepareFixAllData>(
-                "InvalidRequest",
-                "Scope must identify a supported Fix All scope.");
-        }
-
-        if (request.MaxChanges is < 0 || request.AffectedDocumentsLimit is < 0)
-        {
-            return Rejected<PrepareFixAllData>(
-                "InvalidRequest",
-                "MaxChanges and AffectedDocumentsLimit must be zero or greater.");
+            return requestRejection;
         }
 
         var resolution = await _resolver.ResolveActionAsync<PrepareFixAllData>(
@@ -78,23 +67,13 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             return resolution.Rejection;
         }
 
-        if (resolution.Reference.Recipe.PreparedFixAllScope is not null)
+        var resolutionRejection = ValidateResolution(
+            resolution.Action,
+            resolution.Reference,
+            request.Scope);
+        if (resolutionRejection is not null)
         {
-            return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
-                "The selected reference already represents a prepared Fix All operation.");
-        }
-
-        if (resolution.Action.Kind != DiscoveredActionKind.CodeFix)
-        {
-            return Rejected<PrepareFixAllData>("FixAllUnavailable", "The selected action is not a Code Fix.");
-        }
-
-        if (!resolution.Action.FixAllScopes.Contains(request.Scope))
-        {
-            return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
-                "The selected Code Fix does not support the requested Fix All scope.");
+            return resolutionRejection;
         }
 
         var provider = _discoveryService.FindCodeFixProvider(resolution.Action.ProviderId);
@@ -129,45 +108,21 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             return Rejected<PrepareFixAllData>(application.Failure);
         }
 
-        var candidateSolution = application.CandidateSolution;
-        var validationError = _candidateValidator.Validate(
+        var processingResult = await _candidateProcessor.ProcessAsync(
             context.CurrentSolution,
-            candidateSolution);
-
-        if (validationError is not null)
-        {
-            return Rejected<PrepareFixAllData>(
-                validationError.Code,
-                validationError.Message);
-        }
-
-        var mergeResult = await _linkedDocumentChangeMerger.MergeAsync(
-            context.CurrentSolution,
-            candidateSolution,
+            application.CandidateSolution,
             cancellationToken);
 
-        if (!mergeResult.IsSucceeded)
+        if (!processingResult.IsSucceeded)
         {
             return Rejected<PrepareFixAllData>(
-                mergeResult.Error.Code,
-                mergeResult.Error.Message);
-        }
-
-        candidateSolution = mergeResult.Solution;
-        validationError = _candidateValidator.Validate(
-            context.CurrentSolution,
-            candidateSolution);
-
-        if (validationError is not null)
-        {
-            return Rejected<PrepareFixAllData>(
-                validationError.Code,
-                validationError.Message);
+                processingResult.Error.Code,
+                processingResult.Error.Message);
         }
 
         var changedDocuments = await _solutionChangeCounter.GetChangedSourceDocumentsAsync(
             context.CurrentSolution,
-            candidateSolution,
+            processingResult.Solution,
             cancellationToken);
 
         if (changedDocuments.Count > request.EffectiveMaxChanges)
@@ -178,7 +133,22 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 RequiredAction.NarrowRequest);
         }
 
-        var preparedRecipe = resolution.Reference.Recipe with
+        return CreatePreparedReferenceResult(
+            request,
+            resolution.Reference,
+            changedDocuments,
+            context.WorkspaceResolver,
+            cancellationToken);
+    }
+
+    private CodeActionExecutionResult<PrepareFixAllData> CreatePreparedReferenceResult(
+        PrepareFixAllRequest request,
+        CodeActionReference reference,
+        IReadOnlyList<Document> changedDocuments,
+        IWorkspaceResolver workspaceResolver,
+        CancellationToken cancellationToken)
+    {
+        var preparedRecipe = reference.Recipe with
         {
             PreparedFixAllScope = request.Scope,
         };
@@ -186,7 +156,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         var affectedDocuments = CreateAffectedDocuments(
             changedDocuments,
             request.EffectiveAffectedDocumentsLimit,
-            context.WorkspaceResolver,
+            workspaceResolver,
             cancellationToken);
 
         var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
@@ -247,6 +217,55 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             action.EquivalenceKey,
             syntheticDiagnosticId: null,
             cancellationToken);
+    }
+
+    private static CodeActionExecutionResult<PrepareFixAllData>? ValidateRequest(
+        PrepareFixAllRequest request)
+    {
+        if (!Enum.IsDefined(request.Scope))
+        {
+            return Rejected<PrepareFixAllData>(
+                "InvalidRequest",
+                "Scope must identify a supported Fix All scope.");
+        }
+
+        if (request.MaxChanges is < 0 || request.AffectedDocumentsLimit is < 0)
+        {
+            return Rejected<PrepareFixAllData>(
+                "InvalidRequest",
+                "MaxChanges and AffectedDocumentsLimit must be zero or greater.");
+        }
+
+        return null;
+    }
+
+    private static CodeActionExecutionResult<PrepareFixAllData>? ValidateResolution(
+        DiscoveredCodeAction action,
+        CodeActionReference reference,
+        CodeActionFixAllScope scope)
+    {
+        if (reference.Recipe.PreparedFixAllScope is not null)
+        {
+            return Rejected<PrepareFixAllData>(
+                "FixAllUnavailable",
+                "The selected reference already represents a prepared Fix All operation.");
+        }
+
+        if (action.Kind != DiscoveredActionKind.CodeFix)
+        {
+            return Rejected<PrepareFixAllData>(
+                "FixAllUnavailable",
+                "The selected action is not a Code Fix.");
+        }
+
+        if (!action.FixAllScopes.Contains(scope))
+        {
+            return Rejected<PrepareFixAllData>(
+                "FixAllUnavailable",
+                "The selected Code Fix does not support the requested Fix All scope.");
+        }
+
+        return null;
     }
 
     private static BoundedCollection<DocumentReference> CreateAffectedDocuments(

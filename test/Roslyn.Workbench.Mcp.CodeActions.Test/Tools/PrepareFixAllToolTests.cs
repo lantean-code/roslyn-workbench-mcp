@@ -137,7 +137,6 @@ public sealed class PrepareFixAllToolTests
             rejection: null,
             CodeActionResolutionFailureKind.None,
             resolution.Action,
-            resolution.Descriptor,
             resolution.Document,
             resolution.Span,
             preparedReference));
@@ -447,7 +446,6 @@ public sealed class PrepareFixAllToolTests
                     roslyn.Document.Project,
                     It.IsAny<IReadOnlyList<string>>(),
                     It.IsAny<string?>(),
-                    null,
                     TestContext.Current.CancellationToken))
                 .ReturnsAsync(creation);
         }
@@ -505,7 +503,6 @@ public sealed class PrepareFixAllToolTests
                 document,
                 It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<string?>(),
-                null,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(result);
     }
@@ -523,7 +520,6 @@ public sealed class PrepareFixAllToolTests
                 originDocument,
                 It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<string?>(),
-                null,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(result);
     }
@@ -555,10 +551,6 @@ public sealed class PrepareFixAllToolTests
             Kind = kind,
             ProviderId = "ProviderId",
             Title = "Title",
-            Descriptor = new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            },
             TargetSpan = default,
             EquivalenceKey = "EquivalenceKey",
             DiagnosticIds = ["DiagnosticId"],

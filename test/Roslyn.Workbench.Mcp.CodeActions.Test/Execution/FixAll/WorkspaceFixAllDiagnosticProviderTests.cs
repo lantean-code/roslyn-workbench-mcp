@@ -24,31 +24,27 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
         ]);
 
         _diagnosticIds = ["DiagnosticId"];
-        _target = new WorkspaceFixAllDiagnosticProvider(_diagnosticService.Object, _diagnosticIds, "SyntheticDiagnosticId");
+        _target = new WorkspaceFixAllDiagnosticProvider(_diagnosticService.Object, _diagnosticIds);
     }
 
     [Fact]
-    public async Task GIVEN_Document_WHEN_GettingDocumentDiagnostics_THEN_ShouldDelegateScopedRequest()
+    public async Task GIVEN_Document_WHEN_GettingDocumentDiagnostics_THEN_ShouldDelegateDocumentRequest()
     {
         var document = _roslyn.GetDocument("First.cs");
         IReadOnlyList<Diagnostic> expected = [CreateDiagnostic("DiagnosticId")];
         _diagnosticService
-            .Setup(item => item.GetScopedCodeFixDiagnosticsAsync(
+            .Setup(item => item.GetDocumentDiagnosticsAsync(
                 document,
                 _diagnosticIds,
-                null,
-                "SyntheticDiagnosticId",
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(expected);
 
         var result = await _target.GetDocumentDiagnosticsAsync(document, TestContext.Current.CancellationToken);
 
         result.Should().Equal(expected);
-        _diagnosticService.Verify(item => item.GetScopedCodeFixDiagnosticsAsync(
+        _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
             document,
             _diagnosticIds,
-            null,
-            "SyntheticDiagnosticId",
             TestContext.Current.CancellationToken), Times.Once);
     }
 

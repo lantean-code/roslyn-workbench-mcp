@@ -12,6 +12,7 @@ internal sealed class ToolInvocationRunner
     private static readonly TimeSpan _exclusiveLeaseRecoveryTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan _exclusiveLeaseRetryDelay = TimeSpan.FromMilliseconds(10);
     private readonly ScenarioHost _host;
+    private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _workspaceId;
     private readonly string _repositoryRoot;
 
@@ -20,6 +21,7 @@ internal sealed class ToolInvocationRunner
         _host = host;
         _workspaceId = workspaceId;
         _repositoryRoot = repositoryRoot;
+        _codeActionWorkflow = new CodeActionWorkflowInvoker(host, workspaceId, repositoryRoot);
     }
 
     public async Task WarmUpAsync(
@@ -205,8 +207,11 @@ internal sealed class ToolInvocationRunner
         ScenarioDefinition scenario,
         CancellationToken cancellationToken)
     {
-        var arguments = Materialize(scenario.Arguments);
-        var result = await _host.CallToolAsync(scenario.Tool, arguments, cancellationToken);
+        var result = await _codeActionWorkflow.InvokeAsync(
+            scenario.Tool,
+            scenario.Arguments,
+            scenario.CodeActionSelection,
+            cancellationToken);
         ThrowIfScenarioFailed(scenario.Id, result);
 
         return result;
@@ -227,17 +232,13 @@ internal sealed class ToolInvocationRunner
     {
         foreach (var call in calls)
         {
-            await InvokeRequiredAsync(call.Tool, call.Arguments, cancellationToken);
+            var result = await _codeActionWorkflow.InvokeAsync(
+                call.Tool,
+                call.Arguments,
+                call.CodeActionSelection,
+                cancellationToken);
+            ThrowIfScenarioFailed(call.Tool, result);
         }
-    }
-
-    private async Task InvokeRequiredAsync(
-        string tool,
-        JsonElement argumentDefinition,
-        CancellationToken cancellationToken)
-    {
-        var arguments = Materialize(argumentDefinition);
-        await InvokeRequiredAsync(tool, arguments, cancellationToken);
     }
 
     private IReadOnlyDictionary<string, object?> Materialize(JsonElement arguments)

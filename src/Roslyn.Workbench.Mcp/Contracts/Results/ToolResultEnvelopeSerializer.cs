@@ -75,8 +75,14 @@ internal static class ToolResultEnvelopeSerializer
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The optional follow-up action.</param>
+    /// <param name="diagnostics">The diagnostics that explain the failure.</param>
+    /// <param name="warnings">The warnings associated with the failure.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateFailure(ToolError? error, RequiredAction? requiredAction)
+    public static JsonElement CreateFailure(
+        ToolError? error,
+        RequiredAction? requiredAction,
+        IReadOnlyList<DiagnosticInfo>? diagnostics = null,
+        IReadOnlyList<WarningInfo>? warnings = null)
     {
         return BuildPayload(writer =>
         {
@@ -97,6 +103,18 @@ internal static class ToolResultEnvelopeSerializer
             {
                 writer.WritePropertyName("next");
                 JsonSerializer.Serialize(writer, requiredAction, _serializerOptions);
+            }
+
+            if (diagnostics is { Count: > 0 })
+            {
+                writer.WritePropertyName("diagnostics");
+                JsonSerializer.Serialize(writer, diagnostics, _serializerOptions);
+            }
+
+            if (warnings is { Count: > 0 })
+            {
+                writer.WritePropertyName("warnings");
+                JsonSerializer.Serialize(writer, warnings, _serializerOptions);
             }
 
             writer.WriteEndObject();

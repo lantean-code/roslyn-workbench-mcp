@@ -1,0 +1,81 @@
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.References;
+
+namespace Roslyn.Workbench.Mcp.TestSupport;
+
+/// <summary>
+/// Holds the visible mocks connected for a query tool unit test.
+/// </summary>
+public sealed record QueryContextMockGraph
+{
+    /// <summary>
+    /// Gets the query context mock.
+    /// </summary>
+    public Mock<IQueryContext> QueryContext { get; }
+
+    /// <summary>
+    /// Gets the workspace resolver mock.
+    /// </summary>
+    public Mock<IWorkspaceResolver> WorkspaceResolver { get; }
+
+    /// <summary>
+    /// Gets the tool execution services mock.
+    /// </summary>
+    public Mock<IToolExecutionServices> ToolExecutionServices { get; }
+
+    /// <summary>
+    /// Gets the tool request resolver mock.
+    /// </summary>
+    public Mock<IToolRequestResolver> RequestResolver { get; }
+
+    /// <summary>
+    /// Gets the project target-framework resolver mock.
+    /// </summary>
+    public Mock<IProjectTargetFrameworkResolver> ProjectTargetFrameworkResolver { get; }
+
+    /// <summary>
+    /// Gets the Workspace selector factory mock.
+    /// </summary>
+    public Mock<IWorkspaceSelectorFactory> WorkspaceSelectorFactory { get; }
+
+    /// <summary>
+    /// Gets the query cache mock.
+    /// </summary>
+    public Mock<IQueryCache> QueryCache { get; }
+
+    /// <summary>
+    /// Gets the reference discovery service mock.
+    /// </summary>
+    public Mock<IReferenceDiscoveryService> ReferenceDiscoveryService { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="QueryContextMockGraph"/> class.
+    /// </summary>
+    /// <param name="queryContext">The query context mock.</param>
+    /// <param name="workspaceResolver">The workspace resolver mock.</param>
+    /// <param name="toolExecutionServices">The tool execution services mock.</param>
+    /// <param name="requestResolver">The tool request resolver mock.</param>
+    /// <param name="projectTargetFrameworkResolver">The project target-framework resolver mock.</param>
+    /// <param name="workspaceSelectorFactory">The Workspace selector factory mock.</param>
+    /// <param name="queryCache">The query cache mock.</param>
+    /// <param name="referenceDiscoveryService">The reference discovery service mock.</param>
+    public QueryContextMockGraph(
+        Mock<IQueryContext> queryContext,
+        Mock<IWorkspaceResolver> workspaceResolver,
+        Mock<IToolExecutionServices> toolExecutionServices,
+        Mock<IToolRequestResolver> requestResolver,
+        Mock<IProjectTargetFrameworkResolver> projectTargetFrameworkResolver,
+        Mock<IWorkspaceSelectorFactory> workspaceSelectorFactory,
+        Mock<IQueryCache> queryCache,
+        Mock<IReferenceDiscoveryService> referenceDiscoveryService)
+    {
+        QueryContext = queryContext;
+        WorkspaceResolver = workspaceResolver;
+        ToolExecutionServices = toolExecutionServices;
+        RequestResolver = requestResolver;
+        ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;
+        WorkspaceSelectorFactory = workspaceSelectorFactory;
+        QueryCache = queryCache;
+        ReferenceDiscoveryService = referenceDiscoveryService;
+    }
+}

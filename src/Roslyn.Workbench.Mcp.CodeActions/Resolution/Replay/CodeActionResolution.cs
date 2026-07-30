@@ -10,8 +10,6 @@ internal sealed record CodeActionResolution<T>
 
     public DiscoveredCodeAction? Action { get; }
 
-    public CodeActionDescriptorEntry? Descriptor { get; }
-
     public Document? Document { get; }
 
     public TextSpan Span { get; }
@@ -20,7 +18,6 @@ internal sealed record CodeActionResolution<T>
 
     [MemberNotNullWhen(true, nameof(Rejection))]
     [MemberNotNullWhen(false, nameof(Action))]
-    [MemberNotNullWhen(false, nameof(Descriptor))]
     [MemberNotNullWhen(false, nameof(Document))]
     [MemberNotNullWhen(false, nameof(Reference))]
     public bool HasRejection => Rejection is not null;
@@ -29,7 +26,6 @@ internal sealed record CodeActionResolution<T>
         CodeActionExecutionResult<T>? rejection,
         CodeActionResolutionFailureKind failureKind,
         DiscoveredCodeAction? action,
-        CodeActionDescriptorEntry? descriptor,
         Document? document,
         TextSpan span,
         CodeActionReference? reference)
@@ -37,7 +33,6 @@ internal sealed record CodeActionResolution<T>
         Rejection = rejection;
         FailureKind = failureKind;
         Action = action;
-        Descriptor = descriptor;
         Document = document;
         Span = span;
         Reference = reference;
@@ -56,7 +51,6 @@ internal static class CodeActionResolution
             rejection: null,
             CodeActionResolutionFailureKind.None,
             action,
-            action.Descriptor,
             document,
             span,
             reference);
@@ -70,7 +64,6 @@ internal static class CodeActionResolution
             rejection,
             failureKind,
             action: null,
-            descriptor: null,
             document: null,
             span: default,
             reference: null);

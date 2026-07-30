@@ -7,4 +7,8 @@ internal sealed record CodeActionExecutionFailure
     public CodeActionExecutionError Error { get; init; } = new();
 
     public RequiredAction? RequiredAction { get; init; }
+
+    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
+
+    public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
 }

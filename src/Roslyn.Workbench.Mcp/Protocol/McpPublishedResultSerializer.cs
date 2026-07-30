@@ -11,7 +11,13 @@ internal static class McpPublishedResultSerializer
             throw new InvalidOperationException($"Failure serialization requires an error outcome, but '{result.Outcome}' was supplied.");
         }
 
-        return SerializeFailure(result.Error.Code, result.Error.Message, result.Error.CorrelationId, result.RequiredAction);
+        return SerializeFailure(
+            result.Error.Code,
+            result.Error.Message,
+            result.Error.CorrelationId,
+            result.RequiredAction,
+            result.Diagnostics,
+            result.Warnings);
     }
 
     public static JsonElement SerializePluginQuery<TResponse>(PluginExecutionResult<TResponse> result)
@@ -44,7 +50,13 @@ internal static class McpPublishedResultSerializer
             throw new InvalidOperationException($"Failure serialization requires an error outcome, but '{result.Outcome}' was supplied.");
         }
 
-        return SerializeFailure(result.Error.Code, result.Error.Message, result.Error.CorrelationId, result.RequiredAction);
+        return SerializeFailure(
+            result.Error.Code,
+            result.Error.Message,
+            result.Error.CorrelationId,
+            result.RequiredAction,
+            result.Diagnostics,
+            result.Warnings);
     }
 
     public static JsonElement SerializeCodeActionQuery<TResponse>(CodeActionExecutionResult<TResponse> result)
@@ -93,6 +105,8 @@ internal static class McpPublishedResultSerializer
             Outcome = result.Outcome,
             Error = error,
             RequiredAction = result.RequiredAction,
+            Diagnostics = result.Diagnostics,
+            Warnings = result.Warnings,
         };
     }
 
@@ -100,7 +114,9 @@ internal static class McpPublishedResultSerializer
         string code,
         string message,
         string? correlationId,
-        RequiredAction? requiredAction)
+        RequiredAction? requiredAction,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings)
     {
         var error = new ToolError
         {
@@ -109,6 +125,6 @@ internal static class McpPublishedResultSerializer
             CorrelationId = correlationId,
         };
 
-        return ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction);
+        return ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction, diagnostics, warnings);
     }
 }

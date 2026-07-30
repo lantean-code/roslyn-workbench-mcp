@@ -27,6 +27,7 @@ global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;
 global using Roslyn.Workbench.Mcp.Workspace.Recovery;
+global using Roslyn.Workbench.Mcp.Workspace.References;
 global using Roslyn.Workbench.Mcp.Workspace.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;
 global using Xunit;

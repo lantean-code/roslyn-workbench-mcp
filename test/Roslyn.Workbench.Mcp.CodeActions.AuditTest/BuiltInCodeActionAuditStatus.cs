@@ -6,7 +6,5 @@ internal enum BuiltInCodeActionAuditStatus
     PendingReplayValidation,
     RequiresBuiltInDiagnosticSupport,
     RequiresActionLevelClassification,
-    CoveredByDedicatedTool,
-    RequiresDedicatedImplementation,
     Excluded,
 }

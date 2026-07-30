@@ -106,8 +106,9 @@
 - Static methods and classes are acceptable when they are truly stateless.
 - Avoid partial classes in user code unless generated code or a framework requires them.
 - Use `record` for data-only objects when value semantics are useful.
-- Do not use positional record syntax.
-- For records and classes with constructors, declare explicit properties and constructor bodies.
+- Do not use positional syntax for records or record structs.
+- Do not use primary constructors as a shortcut for state-bearing classes or structs.
+- For records, record structs, classes and structs with constructor-supplied state, declare explicit properties or fields and explicit constructor bodies.
 - Constructor parameter names must use `camelCase`.
 - Extension methods are permitted and should follow standard naming conventions.
 - Do not change production contracts, inheritance, implemented interfaces, or other runtime design purely to simplify tests. Production design must drive the tests, and tests must adapt to the production API.
@@ -150,7 +151,7 @@
 - [ ] LINQ is used for simple operations; loops are used where they improve clarity or performance.
 - [ ] No exceptions are used for flow control.
 - [ ] Design follows DI, SOLID, DRY, and avoids security pitfalls.
-- [ ] Positional records are not used; explicit properties and constructors are used and constructor parameters are camelCase.
+- [ ] Positional records and record structs are not used; state-bearing classes and structs do not use primary constructors; explicit properties, fields and constructor bodies are used and constructor parameters are camelCase.
 - [ ] Query and mutation tools are kept in plugin projects, not server-owned lifecycle projects.
 - [ ] The SDK `latest-all` .NET analyzer set has been run and applicable diagnostics in changed source files are fixed or explicitly justified.
 - [ ] Any conflicts with existing code or docs are reported for clarification.

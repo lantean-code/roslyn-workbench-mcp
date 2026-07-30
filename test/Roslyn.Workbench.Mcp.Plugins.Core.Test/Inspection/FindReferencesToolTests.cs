@@ -136,6 +136,9 @@ public sealed class FindReferencesToolTests
             TestContext.Current.CancellationToken);
 
         var documents = solution.Solution.Projects.Single().Documents.ToArray();
+        var referenceOccurrences = await CreateReferenceOccurrencesAsync(
+            solution.GetDocument("Usage.cs"),
+            symbol);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -166,6 +169,16 @@ public sealed class FindReferencesToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ReferenceSearchData>(documents));
+
+        queryContextMocks.ReferenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                "WorkspaceId",
+                solution.Solution,
+                symbol,
+                documents,
+                includeDefinitions: false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(referenceOccurrences);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -255,8 +268,25 @@ public sealed class FindReferencesToolTests
             TestContext.Current.CancellationToken);
 
         var usageDocument = solution.GetDocument("Usage.cs");
+        var definitionDocument = solution.GetDocument("StateHolder.cs");
         var usageRoot = await usageDocument.GetSyntaxRootAsync(TestContext.Current.CancellationToken)
             ?? throw new InvalidOperationException("The test document must have a syntax root.");
+
+        var referenceOccurrences = await CreateReferenceOccurrencesAsync(
+            usageDocument,
+            symbol);
+
+        var definitionOccurrence = new ReferenceOccurrence
+        {
+            Location = symbol.Locations.Single(),
+            Document = definitionDocument,
+            Definition = symbol,
+            IsDefinition = true,
+        };
+
+        var discoveredOccurrences = referenceOccurrences
+            .Prepend(definitionOccurrence)
+            .ToArray();
 
         var locationToSkip = usageRoot.DescendantNodes()
             .OfType<IdentifierNameSyntax>()
@@ -289,6 +319,16 @@ public sealed class FindReferencesToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ReferenceSearchData>(solution.Solution.Projects.Single().Documents.ToArray()));
+
+        queryContextMocks.ReferenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                "WorkspaceId",
+                solution.Solution,
+                symbol,
+                It.IsAny<IReadOnlyList<Document>>(),
+                includeDefinitions: true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(discoveredOccurrences);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -324,6 +364,278 @@ public sealed class FindReferencesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().NotContain(item => item.IsDefinition);
         result.Data.References.Items.Count(item => !item.IsDefinition).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GIVEN_DiscoveryExcludesDefinition_WHEN_CallingExecuteAsync_THEN_ShouldProjectReturnedReferenceOnly()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "StateHolder.cs",
+                        Source = """
+                            class StateHolder
+                            {
+                                public int Current
+                                {
+                                    get;
+                                    set;
+                                }
+                            }
+                            """,
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Usage.cs",
+                        Source = """
+                            class Usage
+                            {
+                                int Read(StateHolder holder)
+                                {
+                                    return holder.Current;
+                                }
+                            }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var target = new FindReferencesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var inspectionContextService = new Mock<IInspectionContextService>();
+        var definitionDocument = solution.GetDocument("StateHolder.cs");
+        var usageDocument = solution.GetDocument("Usage.cs");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredPropertySymbolAsync(
+            definitionDocument,
+            "Current",
+            TestContext.Current.CancellationToken);
+
+        var referenceOccurrences = await CreateReferenceOccurrencesAsync(
+            usageDocument,
+            symbol);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.InspectionContextService)
+            .Returns(inspectionContextService.Object);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<ReferenceSearchData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ReferenceSearchData>(symbol));
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ReferenceSearchData>([usageDocument]));
+
+        queryContextMocks.ReferenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                "WorkspaceId",
+                solution.Solution,
+                symbol,
+                It.IsAny<IReadOnlyList<Document>>(),
+                includeDefinitions: true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(referenceOccurrences);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        inspectionContextService
+            .Setup(item => item.TryCreateContainingSymbolAsync(
+                It.IsAny<Document>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ISymbol?)null);
+
+        var result = await target.ExecuteAsync(new FindReferencesRequest
+        {
+            Symbol = new SymbolSelector(),
+            IncludeDefinitions = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.References.Items.Should().ContainSingle();
+        result.Data.References.Items.Should().NotContain(item => item.IsDefinition);
+        result.Data.References.Items.Single().Location!.Document!.Path.Should().Be("Usage.cs");
+    }
+
+    [Fact]
+    public async Task GIVEN_DiscoveryReturnsProjectScopedOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldProjectReturnedOccurrences()
+    {
+        const string definitionSource = """
+            class StateHolder
+            {
+                public int Current
+                {
+                    get;
+                    set;
+                }
+            }
+            """;
+        const string usageSource = """
+            class Usage
+            {
+                int Read(StateHolder holder)
+                {
+                    return holder.Current;
+                }
+            }
+            """;
+
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project (net10.0)",
+                AssemblyName = "Project",
+                FilePath = "/workspace/Project.csproj",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "StateHolder.cs",
+                        FilePath = "/workspace/StateHolder.cs",
+                        Source = definitionSource,
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Usage.cs",
+                        FilePath = "/workspace/Usage.cs",
+                        Source = usageSource,
+                    },
+                ],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project (net9.0)",
+                AssemblyName = "Project",
+                FilePath = "/workspace/Project.csproj",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "StateHolder.cs",
+                        FilePath = "/workspace/StateHolder.cs",
+                        Source = definitionSource,
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Usage.cs",
+                        FilePath = "/workspace/Usage.cs",
+                        Source = usageSource,
+                    },
+                ],
+            },
+        ]);
+
+        var target = new FindReferencesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var inspectionContextService = new Mock<IInspectionContextService>();
+        var definitionDocument = solution.GetDocument("StateHolder.cs", "Project (net10.0)");
+        var selectedDocuments = solution.GetProject("Project (net10.0)").Documents.ToArray();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredPropertySymbolAsync(
+            definitionDocument,
+            "Current",
+            TestContext.Current.CancellationToken);
+
+        var definitionOccurrence = new ReferenceOccurrence
+        {
+            Location = symbol.Locations.Single(),
+            Document = definitionDocument,
+            Definition = symbol,
+            IsDefinition = true,
+        };
+
+        var usageOccurrences = await CreateReferenceOccurrencesAsync(
+            solution.GetDocument("Usage.cs", "Project (net10.0)"),
+            symbol);
+
+        var discoveredOccurrences = usageOccurrences
+            .Prepend(definitionOccurrence)
+            .ToArray();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.InspectionContextService)
+            .Returns(inspectionContextService.Object);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<ReferenceSearchData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ReferenceSearchData>(symbol));
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ReferenceSearchData>(selectedDocuments));
+
+        queryContextMocks.ReferenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                "WorkspaceId",
+                solution.Solution,
+                symbol,
+                selectedDocuments,
+                includeDefinitions: true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(discoveredOccurrences);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        inspectionContextService
+            .Setup(item => item.TryCreateContainingSymbolAsync(
+                It.IsAny<Document>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ISymbol?)null);
+
+        var result = await target.ExecuteAsync(new FindReferencesRequest
+        {
+            Symbol = new SymbolSelector(),
+            IncludeDefinitions = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.References.Items.Should().HaveCount(2);
+        result.Data.References.Items.Should().ContainSingle(item => item.IsDefinition);
+        result.Data.References.Items.Should().ContainSingle(item => !item.IsDefinition);
+        result.Data.References.Items
+            .Select(item => item.Location!.Document!.Path)
+            .Should()
+            .BeEquivalentTo("StateHolder.cs", "Usage.cs");
     }
 
     [Fact]
@@ -477,6 +789,9 @@ public sealed class FindReferencesToolTests
             TestContext.Current.CancellationToken);
 
         var codeDocument = solution.GetDocument("Code.cs");
+        var referenceOccurrences = await CreateReferenceOccurrencesAsync(
+            codeDocument,
+            symbol);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -503,6 +818,16 @@ public sealed class FindReferencesToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ReferenceSearchData>([codeDocument]));
+
+        queryContextMocks.ReferenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                "WorkspaceId",
+                solution.Solution,
+                symbol,
+                It.IsAny<IReadOnlyList<Document>>(),
+                includeDefinitions: true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(referenceOccurrences);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -538,5 +863,25 @@ public sealed class FindReferencesToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().Contain(item => item.IsWrite && item.Context == expectedContext);
+    }
+
+    private static async Task<ReferenceOccurrence[]> CreateReferenceOccurrencesAsync(
+        Document document,
+        ISymbol definition)
+    {
+        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("The test document must have a syntax root.");
+
+        return syntaxRoot.DescendantNodes()
+            .OfType<IdentifierNameSyntax>()
+            .Where(identifier => identifier.Identifier.ValueText == definition.Name)
+            .Select(identifier => new ReferenceOccurrence
+            {
+                Location = identifier.GetLocation(),
+                Document = document,
+                Definition = definition,
+                IsDefinition = false,
+            })
+            .ToArray();
     }
 }

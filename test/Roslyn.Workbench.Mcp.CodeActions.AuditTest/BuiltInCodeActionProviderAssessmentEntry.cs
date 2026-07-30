@@ -2,9 +2,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 internal sealed record BuiltInCodeActionProviderAssessmentEntry
 {
-    public string ProviderId { get; init; } = string.Empty;
+    public required string ProviderId { get; init; }
 
-    public BuiltInCodeActionFamilyKind Kind { get; init; }
+    public DiscoveredActionKind Kind { get; init; }
 
     public BuiltInCodeActionAuditStatus Status { get; init; }
 }

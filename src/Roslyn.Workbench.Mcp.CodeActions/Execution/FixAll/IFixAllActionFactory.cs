@@ -8,7 +8,6 @@ internal interface IFixAllActionFactory
         Document document,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 
     Task<FixAllActionCreationResult> CreateProjectAsync(
@@ -17,7 +16,6 @@ internal interface IFixAllActionFactory
         Project project,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 
     Task<FixAllActionCreationResult> CreateSolutionAsync(
@@ -26,6 +24,5 @@ internal interface IFixAllActionFactory
         Document originDocument,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 }

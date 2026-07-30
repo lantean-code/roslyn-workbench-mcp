@@ -13,6 +13,8 @@ internal sealed record ScenarioDefinition
 
     public required JsonElement Arguments { get; init; }
 
+    public CodeActionSelectionDefinition? CodeActionSelection { get; init; }
+
     public IReadOnlyList<ToolCallDefinition> Setup { get; init; } = [];
 
     public IReadOnlyList<ToolCallDefinition> Cleanup { get; init; } = [];

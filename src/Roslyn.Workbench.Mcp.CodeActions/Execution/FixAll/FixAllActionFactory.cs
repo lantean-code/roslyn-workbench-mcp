@@ -15,7 +15,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
         Document document,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
         return CreateDocumentScopedAsync(
@@ -24,7 +23,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
             document,
             diagnosticIds,
             equivalenceKey,
-            syntheticDiagnosticId,
             FixAllScope.Document,
             cancellationToken);
     }
@@ -35,7 +33,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
         Project project,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
         var fixAllContext = new FixAllContext(
@@ -44,7 +41,7 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
             FixAllScope.Project,
             equivalenceKey,
             diagnosticIds,
-            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds, syntheticDiagnosticId),
+            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds),
             cancellationToken);
 
         return CreateCoreAsync(fixAllProvider, fixAllContext);
@@ -56,7 +53,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
         Document originDocument,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
         return CreateDocumentScopedAsync(
@@ -65,7 +61,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
             originDocument,
             diagnosticIds,
             equivalenceKey,
-            syntheticDiagnosticId,
             FixAllScope.Solution,
             cancellationToken);
     }
@@ -76,7 +71,6 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
         Document originDocument,
         IReadOnlyList<string> diagnosticIds,
         string? equivalenceKey,
-        string? syntheticDiagnosticId,
         FixAllScope scope,
         CancellationToken cancellationToken)
     {
@@ -86,7 +80,7 @@ internal sealed class FixAllActionFactory : IFixAllActionFactory
             scope,
             equivalenceKey,
             diagnosticIds,
-            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds, syntheticDiagnosticId),
+            new WorkspaceFixAllDiagnosticProvider(_diagnosticService, diagnosticIds),
             cancellationToken);
 
         return CreateCoreAsync(fixAllProvider, fixAllContext);

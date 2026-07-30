@@ -124,7 +124,6 @@ public sealed class PreparedFixAllResolverTests
                 roslyn.Document,
                 It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<string?>(),
-                null,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(FixAllActionCreationResult.Failed(
                 new FixAllActionCreationFailure { Message = "Creation failed." }));
@@ -159,7 +158,6 @@ public sealed class PreparedFixAllResolverTests
                     roslyn.Document.Project,
                     It.IsAny<IReadOnlyList<string>>(),
                     It.IsAny<string?>(),
-                    null,
                     TestContext.Current.CancellationToken))
                 .ReturnsAsync(creation);
         }
@@ -172,7 +170,6 @@ public sealed class PreparedFixAllResolverTests
                     roslyn.Document,
                     It.IsAny<IReadOnlyList<string>>(),
                     It.IsAny<string?>(),
-                    null,
                     TestContext.Current.CancellationToken))
                 .ReturnsAsync(creation);
         }
@@ -185,7 +182,6 @@ public sealed class PreparedFixAllResolverTests
                     roslyn.Document,
                     It.IsAny<IReadOnlyList<string>>(),
                     It.IsAny<string?>(),
-                    null,
                     TestContext.Current.CancellationToken))
                 .ReturnsAsync(creation);
         }
@@ -241,10 +237,6 @@ public sealed class PreparedFixAllResolverTests
             Kind = kind,
             ProviderId = "ProviderId",
             Title = "Title",
-            Descriptor = new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            },
             TargetSpan = default,
             DiagnosticIds = ["DiagnosticId"],
             EquivalenceKey = "EquivalenceKey",

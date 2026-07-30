@@ -151,11 +151,11 @@ This shared base should not automatically include:
 - workspace identifiers
 - workspace epoch
 - transaction revision
-- diagnostics
-- warnings
 - change summaries
 
 Those belong only on tool families that genuinely need them.
+
+Failed results may include non-empty `diagnostics` and `warnings` collections when they provide actionable detail that is not represented by the compact error payload. Empty collections remain omitted.
 
 ### Layer 2: Family-specific success payloads
 

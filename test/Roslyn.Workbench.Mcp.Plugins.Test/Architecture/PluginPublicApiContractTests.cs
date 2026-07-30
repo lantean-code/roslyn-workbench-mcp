@@ -1,5 +1,7 @@
 using System.Reflection;
 
+using Roslyn.Workbench.Mcp.Workspace.References;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Test.Architecture;
 
 public sealed class PluginPublicApiContractTests
@@ -12,6 +14,8 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult",
         "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo",
         "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult",
+        "Roslyn.Workbench.Mcp.Workspace.References.IReferenceDiscoveryService",
+        "Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult`1",
@@ -184,6 +188,7 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionServices.ProjectStructureService),
             nameof(IToolExecutionServices.ProjectTargetFrameworkResolver),
             nameof(IToolExecutionServices.QueryCache),
+            nameof(IToolExecutionServices.ReferenceDiscoveryService),
             nameof(IToolExecutionServices.RequestResolver),
             nameof(IToolExecutionServices.WorkspaceSelectorFactory),
         ]);
@@ -198,6 +203,14 @@ public sealed class PluginPublicApiContractTests
             nameof(IWorkspaceSelectorFactory.CreateLocationSelector),
             nameof(IWorkspaceSelectorFactory.CreateSymbolSelector),
         ]);
+
+        var referenceDiscoveryMethods = typeof(IReferenceDiscoveryService)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(static method => method.Name)
+            .ToArray();
+
+        referenceDiscoveryMethods.Should().ContainSingle()
+            .Which.Should().Be(nameof(IReferenceDiscoveryService.FindReferencesAsync));
     }
 
     [Fact]

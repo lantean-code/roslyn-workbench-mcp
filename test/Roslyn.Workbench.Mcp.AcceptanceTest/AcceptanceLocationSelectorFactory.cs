@@ -65,6 +65,19 @@ internal sealed class AcceptanceLocationSelectorFactory
         return CreateLocation(documentPath, start, (end - start) + endText.Length);
     }
 
+    public Dictionary<string, object?> CreateRange(
+        string documentPath,
+        string startText,
+        string endText)
+    {
+        var sourceText = GetSourceText(documentPath);
+        var start = FindText(documentPath, startText, occurrenceIndex: 0);
+        var end = sourceText.IndexOf(endText, start, StringComparison.Ordinal);
+        end.Should().BeGreaterThanOrEqualTo(start);
+
+        return CreateRange(start, (end - start) + endText.Length);
+    }
+
     public static Dictionary<string, object?> CreateDocument(string documentPath)
     {
         return new Dictionary<string, object?>
@@ -149,6 +162,15 @@ internal sealed class AcceptanceLocationSelectorFactory
                 ["start"] = start,
                 ["length"] = length,
             },
+        };
+    }
+
+    private static Dictionary<string, object?> CreateRange(int start, int length)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["start"] = start,
+            ["length"] = length,
         };
     }
 }

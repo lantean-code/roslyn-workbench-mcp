@@ -281,7 +281,7 @@ internal static class BuiltInCodeFixProviderAssessment
 
         if (_coveredProviderIds.Contains(providerId))
         {
-            return BuiltInCodeActionAuditStatus.CoveredByDedicatedTool;
+            return BuiltInCodeActionAuditStatus.ValidatedSupported;
         }
 
         if (_compilerDiagnosticProviderIds.Contains(providerId))

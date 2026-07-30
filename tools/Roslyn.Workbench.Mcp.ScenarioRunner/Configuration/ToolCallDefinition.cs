@@ -8,5 +8,7 @@ internal sealed record ToolCallDefinition
     public required string Tool { get; init; }
 
     public required JsonElement Arguments { get; init; }
+
+    public CodeActionSelectionDefinition? CodeActionSelection { get; init; }
 }
 #pragma warning restore CA1812

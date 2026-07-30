@@ -39,22 +39,17 @@ internal static class BundledComponentWorkspaceFactory
 
     internal static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
     {
-        return CreateCodeActionWorkspace(composition, ControlledCodeActionDescriptorClassifier.Classify);
+        return CreateCodeActionWorkspace(composition);
     }
 
-    private static ComponentWorkspace CreateCodeActionWorkspace(
-        ICodeActionComposition composition,
-        CodeActionDescriptorOverride? descriptorOverride = null)
+    private static ComponentWorkspace CreateCodeActionWorkspace(ICodeActionComposition composition)
     {
         var options = new ComponentWorkspaceOptions
         {
             Boundary = ComponentWorkspaceBoundary.CodeActions,
         };
 
-        return ComponentWorkspace.Create(
-            options,
-            composition,
-            descriptorOverride);
+        return ComponentWorkspace.Create(options, composition);
     }
 
     internal static SnapshotPrecondition CreateSnapshot(

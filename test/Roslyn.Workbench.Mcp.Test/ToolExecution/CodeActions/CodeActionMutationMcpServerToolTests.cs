@@ -81,6 +81,8 @@ public sealed class CodeActionMutationMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(outcomeName);
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
+        result.StructuredContent.Value.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
         stager.Verify(item => item.StageAsync(
             It.IsAny<string>(),
             It.IsAny<WorkspaceMutationCandidate>(),
@@ -551,12 +553,40 @@ public sealed class CodeActionMutationMcpServerToolTests
             Code = outcomeName,
             Message = "Message",
         };
+        var diagnostics = new[]
+        {
+            new DiagnosticInfo
+            {
+                Id = "Id",
+                Message = "Message",
+            },
+        };
+        var warnings = new[]
+        {
+            new WarningInfo
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+        };
 
         return outcomeName switch
         {
-            "Rejected" => CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
-            "Conflict" => CodeActionExecutionResult.Conflict<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
-            "Faulted" => CodeActionExecutionResult.Faulted<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
+            "Rejected" => CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(
+                error,
+                RequiredAction.Retry,
+                diagnostics,
+                warnings),
+            "Conflict" => CodeActionExecutionResult.Conflict<WorkspaceMutationCandidate>(
+                error,
+                RequiredAction.Retry,
+                diagnostics,
+                warnings),
+            "Faulted" => CodeActionExecutionResult.Faulted<WorkspaceMutationCandidate>(
+                error,
+                RequiredAction.Retry,
+                diagnostics,
+                warnings),
             _ => throw new InvalidOperationException($"Outcome '{outcomeName}' is not a failure outcome."),
         };
     }

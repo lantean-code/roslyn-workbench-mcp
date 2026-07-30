@@ -6,16 +6,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
     private readonly ICodeActionProviderSelection _providerSelection;
-    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
     private readonly ICodeActionPolicy _policy;
 
     public CodeActionDiscoveryService(
         ICodeActionProviderSelection providerSelection,
-        ICodeActionDescriptorRegistry descriptorRegistry,
         ICodeActionPolicy policy)
     {
         _providerSelection = providerSelection;
-        _descriptorRegistry = descriptorRegistry;
         _policy = policy;
     }
 
@@ -158,7 +155,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             return [];
         }
 
-        var capability = _descriptorRegistry.GetProviderCapability(providerId);
         var rootActions = new List<CodeAction>();
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
@@ -166,7 +162,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         return Flatten(
             rootActions,
             providerId,
-            capability,
             DiscoveredActionKind.Refactoring,
             span,
             diagnosticIds: [],
@@ -188,7 +183,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             return [];
         }
 
-        var capability = _descriptorRegistry.GetProviderCapability(providerId);
         var diagnosticsBySpan = new Dictionary<TextSpan, List<Diagnostic>>();
         var orderedSpans = new List<TextSpan>();
         var fixableDiagnosticIds = provider.FixableDiagnosticIds;
@@ -244,7 +238,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             FlattenCore(
                 action,
                 providerId,
-                capability,
                 DiscoveredActionKind.CodeFix,
                 targetSpan,
                 diagnosticIds,
@@ -261,7 +254,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     private List<DiscoveredCodeAction> Flatten(
         List<CodeAction> rootActions,
         string providerId,
-        CodeActionProviderCapability capability,
         DiscoveredActionKind kind,
         TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds,
@@ -278,7 +270,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             FlattenCore(
                 rootActions[index],
                 providerId,
-                capability,
                 kind,
                 targetSpan,
                 diagnosticIds,
@@ -297,7 +288,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     private void FlattenCore(
         CodeAction action,
         string providerId,
-        CodeActionProviderCapability capability,
         DiscoveredActionKind kind,
         TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds,
@@ -316,7 +306,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 FlattenCore(
                     nested[index],
                     providerId,
-                    capability,
                     kind,
                     targetSpan,
                     diagnosticIds,
@@ -337,19 +326,12 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             return;
         }
 
-        var descriptor = capability.Descriptor;
-        if (capability.RequiresActionResolution)
-        {
-            descriptor = _descriptorRegistry.ResolveActionDependentDescriptor(action, providerId, action.Title);
-        }
-
         discovered.Add(new DiscoveredCodeAction
         {
             Action = action,
             Kind = kind,
             ProviderId = providerId,
             Title = action.Title,
-            Descriptor = descriptor,
             TargetSpan = targetSpan,
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = path.ToArray(),

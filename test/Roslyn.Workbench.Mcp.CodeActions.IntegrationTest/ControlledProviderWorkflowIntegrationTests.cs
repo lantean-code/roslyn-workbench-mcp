@@ -71,7 +71,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_ControlledCodeFix_WHEN_StagingSolutionFixAll_THEN_ShouldStageSolutionScope()
+    public async Task GIVEN_ControlledCodeFix_WHEN_PreparingSolutionFixAll_THEN_ShouldStageSolutionScope()
     {
         using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
@@ -80,19 +80,21 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), includeRefactorings: false);
 
-        var result = await session.StageFixAllAsync(new StageFixAllRequest
+        var prepared = await session.PrepareFixAllAsync(new PrepareFixAllRequest
         {
             ActionId = codeFixes.Data!.Actions.Items.Single(static action => action.Title == "Apply test code fix").ActionId,
-            Scope = new ScopeSelector
-            {
-                Kind = ScopeKind.Solution,
-            },
+            Scope = CodeActionFixAllScope.Solution,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        var result = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = prepared.Data!.ActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
         }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Data!.Summary.Should().Be("Fix all: Apply test code fix");
-        result.Data.Transaction!.Revision.Should().Be(1);
+        result.Data!.Transaction!.Revision.Should().Be(1);
     }
 
     [Fact]

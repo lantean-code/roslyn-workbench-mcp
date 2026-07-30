@@ -36,7 +36,13 @@ public sealed class HostStartupComposerTests
 
         result.Options.Should().BeSameAs(result.Configuration.Options);
         result.Configuration.Warnings.Should().BeEmpty();
-        result.CodeActions.Tools.Should().NotBeEmpty();
+        result.CodeActions.Tools
+            .Select(static tool => tool.Metadata.Name)
+            .Should()
+            .Equal(
+                "list-code-actions",
+                "prepare-fix-all",
+                "stage-code-action");
         result.Plugins.Should().BeSameAs(pluginCatalog);
 
         var protectedToolNames = result.CodeActions.Tools

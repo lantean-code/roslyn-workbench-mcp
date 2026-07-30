@@ -16,8 +16,8 @@ The supported surface is grouped as follows:
 | Configuration | `IPluginConfiguration`, `ToolConfigurationBuilder<TBuilder>`, `QueryToolConfigurationBuilder`, `MutationToolConfigurationBuilder` |
 | Handlers and contexts | query and mutation handler interfaces, `IToolExecutionContext`, `IQueryContext`, `IMutationContext` |
 | Execution results | `PluginExecutionResult<TResponse>`, `PluginExecutionResult`, `PluginExecutionOutcome`, `PluginExecutionError`, `MutationCandidate` |
-| Query helpers | `IToolExecutionServices`, request resolution, compiler diagnostics, inspection, project structure and dependency analysis contracts and their result models |
-| Transitive Workspace surface | selector, result and resolution contracts only |
+| Query helpers | `IToolExecutionServices`, request resolution, compiler diagnostics, inspection, project structure, target-framework resolution, dependency analysis, reference discovery, selector construction and bounded query caching contracts and their result models |
+| Transitive Workspace surface | selector, result, resolution, project metadata, reference discovery and bounded query-cache contracts only |
 
 The exact exported type set is locked by `PluginPublicApiContractTests`. Adding another exported type requires an intentional contract-test update and review of its transitive member signatures.
 

@@ -10,8 +10,6 @@ internal sealed record DiscoveredCodeAction
 
     public required string Title { get; init; }
 
-    public required CodeActionDescriptorEntry Descriptor { get; init; }
-
     public required TextSpan TargetSpan { get; init; }
 
     public string? EquivalenceKey { get; init; }

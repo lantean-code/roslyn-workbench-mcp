@@ -35,16 +35,3 @@ public static class MutationContextMockHelper
             requestResolver);
     }
 }
-
-/// <summary>
-/// Holds the visible mocks connected for a mutation tool unit test.
-/// </summary>
-/// <param name="MutationContext">The mutation context mock.</param>
-/// <param name="WorkspaceResolver">The workspace resolver mock.</param>
-/// <param name="ToolExecutionServices">The tool execution services mock.</param>
-/// <param name="RequestResolver">The tool request resolver mock.</param>
-public sealed record MutationContextMockGraph(
-    Mock<IMutationContext> MutationContext,
-    Mock<IWorkspaceResolver> WorkspaceResolver,
-    Mock<IToolExecutionServices> ToolExecutionServices,
-    Mock<IToolRequestResolver> RequestResolver);

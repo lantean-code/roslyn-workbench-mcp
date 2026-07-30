@@ -6,13 +6,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 
 public sealed class CodeActionDiagnosticServiceTests
 {
-    private readonly Mock<ICodeActionAnalyzerActivator> _analyzerActivator;
     private readonly Mock<ICodeActionBuiltInAnalyzerIndex> _builtInAnalyzerIndex;
     private readonly CodeActionDiagnosticService _target;
 
     public CodeActionDiagnosticServiceTests()
     {
-        _analyzerActivator = new Mock<ICodeActionAnalyzerActivator>();
         _builtInAnalyzerIndex = new Mock<ICodeActionBuiltInAnalyzerIndex>();
         _builtInAnalyzerIndex
             .SetupGet(item => item.Warnings)
@@ -22,9 +20,7 @@ public sealed class CodeActionDiagnosticServiceTests
             .Setup(item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()))
             .Returns([]);
 
-        _target = new CodeActionDiagnosticService(
-            _analyzerActivator.Object,
-            _builtInAnalyzerIndex.Object);
+        _target = new CodeActionDiagnosticService(_builtInAnalyzerIndex.Object);
     }
 
     [Theory]
@@ -429,227 +425,6 @@ public sealed class CodeActionDiagnosticServiceTests
         {
             result.Should().BeEmpty();
         }
-    }
-
-    [Fact]
-    public async Task GIVEN_ExistingCompilerDiagnostic_WHEN_GettingScopedDiagnostics_THEN_ShouldNotActivateAdditionalAnalyzer()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            ["CS0246"],
-            "AnalyzerTypeName",
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle(item => item.Id == "CS0246");
-        _analyzerActivator.Verify(item => item.Activate(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_ExistingCompilerDiagnosticAtLocation_WHEN_GettingLocationDiagnostics_THEN_ShouldNotActivateAdditionalAnalyzer()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
-        var diagnostics = await _target.GetDocumentDiagnosticsAsync(
-            roslyn.Document,
-            ["CS0246"],
-            TestContext.Current.CancellationToken);
-
-        var result = await _target.GetLocationScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            diagnostics[0].Location.SourceSpan,
-            ["CS0246"],
-            "AnalyzerTypeName",
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle(item => item.Id == "CS0246");
-        _analyzerActivator.Verify(item => item.Activate(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_AdditionalAnalyzerDiagnostics_WHEN_GettingScopedDiagnostics_THEN_ShouldApplyIdAndLocationFilters()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { int First; int Second; }");
-        var analyzer = CreateSourceAnalyzer(
-        [
-            ("ANALYZER001", new TextSpan(0, 1)),
-            ("ANALYZER002", new TextSpan(20, 1)),
-        ]);
-
-        _analyzerActivator
-            .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
-
-        var locationDiagnostics = await _target.GetLocationScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            new TextSpan(0, 2),
-            ["ANALYZER001", "ANALYZER002"],
-            "AnalyzerTypeName",
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        var documentDiagnostics = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            ["ANALYZER002"],
-            "AnalyzerTypeName",
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        locationDiagnostics.Should().ContainSingle(item => item.Id == "ANALYZER001");
-        documentDiagnostics.Should().ContainSingle(item => item.Id == "ANALYZER002");
-        _analyzerActivator.Verify(item => item.Activate("AnalyzerTypeName"), Times.Exactly(2));
-    }
-
-    [Fact]
-    public async Task GIVEN_AdditionalAnalyzerReturnsOtherLocations_WHEN_GettingScopedDiagnostics_THEN_ShouldReturnOnlyCurrentDocumentSourceDiagnostics()
-    {
-        using var roslyn = RoslynTestFactory.CreateSolution(
-        [
-            new InMemoryRoslynProjectDefinition
-            {
-                Name = "Project",
-                Documents =
-                [
-                    new InMemoryRoslynDocumentDefinition
-                    {
-                        Name = "First.cs",
-                        Source = "class First { }",
-                    },
-                    new InMemoryRoslynDocumentDefinition
-                    {
-                        Name = "Second.cs",
-                        Source = "class Second { }",
-                    },
-                ],
-            },
-        ]);
-
-        var analyzer = CreateCompilationAnalyzer("SOURCE001", "PROJECT001");
-        _analyzerActivator
-            .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
-
-        var document = roslyn.GetDocument("First.cs");
-        var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            document,
-            [],
-            "AnalyzerTypeName",
-            syntheticDiagnosticId: null,
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle(item => item.Id == "SOURCE001");
-        result[0].Location.SourceTree.Should().Be(syntaxTree);
-    }
-
-    [Fact]
-    public async Task GIVEN_NoDiagnostics_WHEN_GettingScopedDiagnosticsWithSyntheticId_THEN_ShouldCreateFullDocumentDiagnostic()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
-        var sourceText = await roslyn.Document.GetTextAsync(TestContext.Current.CancellationToken);
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            [],
-            analyzerTypeName: null,
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle();
-        result[0].Id.Should().Be("SYNTHETIC001");
-        result[0].Location.SourceSpan.Should().Be(new TextSpan(0, sourceText.Length));
-    }
-
-    [Fact]
-    public async Task GIVEN_NoDiagnostics_WHEN_GettingLocationDiagnosticsWithSyntheticId_THEN_ShouldCreateSelectedSpanDiagnostic()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
-        var span = new TextSpan(2, 4);
-
-        var result = await _target.GetLocationScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            span,
-            [],
-            analyzerTypeName: null,
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle();
-        result[0].Id.Should().Be("SYNTHETIC001");
-        result[0].Location.SourceSpan.Should().Be(span);
-    }
-
-    [Fact]
-    public async Task GIVEN_AdditionalAnalyzerIsUnavailableAndSyntheticIdIsBlank_WHEN_GettingScopedDiagnostics_THEN_ShouldReturnEmpty()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
-        _analyzerActivator
-            .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(CodeActionAnalyzerActivationResult.TypeNotFound());
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            [],
-            "AnalyzerTypeName",
-            " ",
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-        _analyzerActivator.Verify(item => item.Activate("AnalyzerTypeName"), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_UnsupportedDocument_WHEN_GettingSyntheticDiagnostics_THEN_ShouldReturnEmpty()
-    {
-        using var roslyn = RoslynTestFactory.CreateUnsupportedDocument();
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            [],
-            analyzerTypeName: null,
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GIVEN_UnsupportedDocument_WHEN_GettingLocationSyntheticDiagnostics_THEN_ShouldReturnEmpty()
-    {
-        using var roslyn = RoslynTestFactory.CreateUnsupportedDocument();
-
-        var result = await _target.GetLocationScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            new TextSpan(0, 1),
-            [],
-            analyzerTypeName: null,
-            "SYNTHETIC001",
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GIVEN_UnsupportedDocumentAndAvailableAnalyzer_WHEN_GettingScopedDiagnostics_THEN_ShouldReturnEmpty()
-    {
-        using var roslyn = RoslynTestFactory.CreateUnsupportedDocument();
-        var analyzer = new Mock<DiagnosticAnalyzer>();
-        _analyzerActivator
-            .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
-
-        var result = await _target.GetScopedCodeFixDiagnosticsAsync(
-            roslyn.Document,
-            [],
-            "AnalyzerTypeName",
-            syntheticDiagnosticId: null,
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-        _analyzerActivator.Verify(item => item.Activate("AnalyzerTypeName"), Times.Once);
     }
 
     [Fact]

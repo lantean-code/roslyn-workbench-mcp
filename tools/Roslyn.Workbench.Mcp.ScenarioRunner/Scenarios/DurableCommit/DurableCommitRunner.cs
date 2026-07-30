@@ -10,7 +10,7 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.DurableCommit;
 internal sealed class DurableCommitRunner
 {
     private readonly ScenarioHost _host;
-    private readonly string _repositoryRoot;
+    private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _workspaceId;
 
     public DurableCommitRunner(
@@ -20,7 +20,7 @@ internal sealed class DurableCommitRunner
     {
         _host = host;
         _workspaceId = workspaceId;
-        _repositoryRoot = repositoryRoot;
+        _codeActionWorkflow = new CodeActionWorkflowInvoker(host, workspaceId, repositoryRoot);
     }
 
     public async Task<DurableCommitExecution> ExecuteAsync(
@@ -37,13 +37,14 @@ internal sealed class DurableCommitRunner
     {
         foreach (var call in scenario.Setup)
         {
-            await InvokeRequiredAsync(call.Tool, call.Arguments, cancellationToken);
+            await InvokeRequiredAsync(call, cancellationToken);
         }
 
         var stagingStopwatch = Stopwatch.StartNew();
         var mutationResult = await InvokeRequiredAsync(
             scenario.Tool,
             scenario.Arguments,
+            scenario.CodeActionSelection,
             cancellationToken);
         stagingStopwatch.Stop();
 
@@ -137,15 +138,32 @@ internal sealed class DurableCommitRunner
     private async Task<CallToolResult> InvokeRequiredAsync(
         string tool,
         JsonElement argumentDefinition,
+        CodeActionSelectionDefinition? selection,
         CancellationToken cancellationToken)
     {
-        var arguments = ArgumentMaterializer.Materialize(
+        var result = await _codeActionWorkflow.InvokeAsync(
+            tool,
             argumentDefinition,
-            _workspaceId,
-            _repositoryRoot,
-            _host.GetWorkspaceEpoch(_workspaceId));
+            selection,
+            cancellationToken);
+        if (result.IsError == true)
+        {
+            throw new InvalidOperationException(
+                $"Tool '{tool}' returned an MCP error: {result.StructuredContent?.GetRawText()}");
+        }
 
-        return await InvokeRequiredAsync(tool, arguments, cancellationToken);
+        return result;
+    }
+
+    private Task<CallToolResult> InvokeRequiredAsync(
+        ToolCallDefinition call,
+        CancellationToken cancellationToken)
+    {
+        return InvokeRequiredAsync(
+            call.Tool,
+            call.Arguments,
+            call.CodeActionSelection,
+            cancellationToken);
     }
 
     private async Task<CallToolResult> InvokeRequiredAsync(

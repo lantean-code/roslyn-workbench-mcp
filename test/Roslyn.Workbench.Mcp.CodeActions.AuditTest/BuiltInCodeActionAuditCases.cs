@@ -255,22 +255,7 @@ internal static class BuiltInCodeActionAuditCases
         },
     ];
 
-    private static readonly Dictionary<string, BuiltInCodeActionAuditCase> _replayMetadataByProviderId =
-        _replayMetadata.ToDictionary(static item => item.ProviderId, StringComparer.Ordinal);
-
-    public static IReadOnlyList<string> VisibleDedicatedToolNames { get; } = BuiltInCodeActionLedger.Families
-        .Where(static family => !string.IsNullOrWhiteSpace(family.ToolName))
-        .Select(static family => family.ToolName!)
-        .Distinct(StringComparer.Ordinal)
-        .OrderBy(static toolName => toolName, StringComparer.Ordinal)
-        .ToArray();
-
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> VisibleReplayFamilies { get; } = BuiltInCodeActionLedger.Families
-        .Where(static family => family.ExecutionMode == CodeActionExecutionMode.Replay)
-        .Select(static family => family.ProviderId)
-        .Where(_replayMetadataByProviderId.ContainsKey)
-        .Select(static providerId => _replayMetadataByProviderId[providerId])
-        .ToArray();
+    public static IReadOnlyList<BuiltInCodeActionAuditCase> VisibleReplayFamilies { get; } = _replayMetadata;
 
     private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _validatedCodeFixCompatibilityCases =
     [

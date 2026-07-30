@@ -6,7 +6,7 @@ internal static class BuiltInCodeActionProviderAssessment
     [
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider",
-            BuiltInCodeActionAuditStatus.CoveredByDedicatedTool),
+            BuiltInCodeActionAuditStatus.ValidatedSupported),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.GenerateEqualsAndGetHashCodeFromMembers.GenerateEqualsAndGetHashCodeFromMembersCodeRefactoringProvider",
@@ -14,27 +14,27 @@ internal static class BuiltInCodeActionProviderAssessment
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.GenerateOverrides.GenerateOverridesCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.MoveToNamespace.MoveToNamespaceCodeActionProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.PreferFrameworkType.PreferFrameworkTypeCodeFixProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.ChangeSignature.ChangeSignatureCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.ExtractInterface.ExtractInterfaceCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ExtractClass.CSharpExtractClassCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.GenerateConstructors.CSharpGenerateConstructorsCodeRefactoringProvider",
@@ -42,11 +42,11 @@ internal static class BuiltInCodeActionProviderAssessment
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.MoveStaticMembers.CSharpMoveStaticMembersRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.PullMemberUp.CSharpPullMemberUpCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.AddMissingReference.CSharpAddMissingReferenceCodeFixProvider",
@@ -62,19 +62,19 @@ internal static class BuiltInCodeActionProviderAssessment
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.EmbeddedLanguages.CSharpJsonDetectionCodeFixProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.SimplifyThisOrMe.CSharpSimplifyThisOrMeCodeFixProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.SimplifyTypeNames.SimplifyTypeNamesCodeFixProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.UsePatternMatching.CSharpIsAndCastCheckWithoutNameCodeFixProvider",
-            BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
+            BuiltInCodeActionAuditStatus.Excluded),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.CSharp.Copilot.CSharpCopilotCodeFixProvider",
@@ -92,7 +92,7 @@ internal static class BuiltInCodeActionProviderAssessment
         return new BuiltInCodeActionProviderAssessmentEntry
         {
             ProviderId = providerId,
-            Kind = BuiltInCodeActionFamilyKind.Refactoring,
+            Kind = DiscoveredActionKind.Refactoring,
             Status = status,
         };
     }
@@ -104,7 +104,7 @@ internal static class BuiltInCodeActionProviderAssessment
         return new BuiltInCodeActionProviderAssessmentEntry
         {
             ProviderId = providerId,
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            Kind = DiscoveredActionKind.CodeFix,
             Status = status,
         };
     }

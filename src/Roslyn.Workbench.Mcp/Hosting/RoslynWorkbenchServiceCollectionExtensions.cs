@@ -74,6 +74,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
+        services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
         services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
         services.AddSingleton<IWorkspaceProjectCompatibilityInspector, WorkspaceProjectCompatibilityInspector>();
@@ -86,6 +87,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();
+        services.AddSingleton<IAddedDocumentProjectContextPropagator, AddedDocumentProjectContextPropagator>();
         services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
         services.AddSingleton<IWorkspaceMutationCandidateProcessor, WorkspaceMutationCandidateProcessor>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
@@ -113,7 +115,6 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
         services.AddSingleton<ICodeActionBuiltInAnalyzerIndex, CodeActionBuiltInAnalyzerIndex>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
-        services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
         services.AddSingleton<CodeActionReferenceStore>();
         services.AddSingleton<ICodeActionReferenceStore>(
             static provider => provider.GetRequiredService<CodeActionReferenceStore>());
@@ -133,13 +134,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IFixAllActionFactory, FixAllActionFactory>();
         services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();
         services.AddSingleton<ICodeActionStager, CodeActionStager>();
-        services.AddSingleton<ICodeActionSelectionStager, CodeActionSelectionStager>();
         services.AddSingleton<ICodeActionScopeResolver, CodeActionScopeResolver>();
         services.AddSingleton<ICodeActionToolRequestResolver, CodeActionToolRequestResolver>();
-        services.AddSingleton<IScopedCodeFixCandidateResolver, ScopedCodeFixCandidateResolver>();
-        services.AddSingleton<ICodeActionFixAllStager, CodeActionFixAllStager>();
-        services.AddSingleton<IScopedCodeFixStager, ScopedCodeFixStager>();
-        services.AddSingleton<ILocationCodeFixStager, LocationCodeFixStager>();
         services.AddSingleton<ICodeActionExecutionContextFactory, CodeActionExecutionContextFactory>();
     }
 

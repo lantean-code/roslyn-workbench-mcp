@@ -100,37 +100,6 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         return true;
     }
 
-    public CodeActionInfo CreateFromReference(
-        DiscoveredCodeAction action,
-        ICodeActionExecutionContext context,
-        CodeActionDescriptorEntry descriptor,
-        CodeActionReference reference,
-        ResolvedLocation location)
-    {
-        var info = new CodeActionInfo
-        {
-            ActionId = reference.ActionId,
-            WorkspaceId = context.WorkspaceIdentity.WorkspaceId,
-            Title = action.Title,
-            ProviderId = action.ProviderId,
-            Kind = action.Kind == DiscoveredActionKind.Refactoring ? "Refactoring" : "CodeFix",
-            EquivalenceKey = action.EquivalenceKey,
-            ActionPath = action.ActionPath,
-            DiagnosticIds = action.DiagnosticIds,
-            Location = location,
-            WorkspaceEpoch = context.WorkspaceIdentity.WorkspaceEpoch,
-            TransactionRevision = context.TransactionRevision,
-            ExpiresAt = reference.ExpiresAt.ToString("O"),
-            ExecutionMode = descriptor.ExecutionMode,
-            ExecutorTool = descriptor.ExecutorTool,
-            DescribeTool = descriptor.DescribeTool,
-            UnsupportedReasonCode = descriptor.UnsupportedReasonCode,
-            Requirements = descriptor.Requirements,
-        };
-
-        return info;
-    }
-
     private static BoundedCollection<CodeActionDiagnosticContext> CreateDiagnosticContexts(
         IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
         int maximumDiagnosticContexts)

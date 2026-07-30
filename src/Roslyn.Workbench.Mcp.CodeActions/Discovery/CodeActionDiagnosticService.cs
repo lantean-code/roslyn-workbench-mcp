@@ -9,14 +9,10 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 {
     private const int _warningLimit = 20;
 
-    private readonly ICodeActionAnalyzerActivator _analyzerActivator;
     private readonly ICodeActionBuiltInAnalyzerIndex _builtInAnalyzerIndex;
 
-    public CodeActionDiagnosticService(
-        ICodeActionAnalyzerActivator analyzerActivator,
-        ICodeActionBuiltInAnalyzerIndex builtInAnalyzerIndex)
+    public CodeActionDiagnosticService(ICodeActionBuiltInAnalyzerIndex builtInAnalyzerIndex)
     {
-        _analyzerActivator = analyzerActivator;
         _builtInAnalyzerIndex = builtInAnalyzerIndex;
     }
 
@@ -83,64 +79,6 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             cancellationToken);
 
         return collection.Diagnostics;
-    }
-
-    public async Task<IReadOnlyList<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
-        Document document,
-        IReadOnlyList<string> diagnosticIds,
-        string? analyzerTypeName,
-        string? syntheticDiagnosticId,
-        CancellationToken cancellationToken)
-    {
-        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken);
-        if (diagnostics.Count > 0)
-        {
-            return diagnostics;
-        }
-
-        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span: null, diagnosticIds, analyzerTypeName, cancellationToken);
-        if (diagnostics.Count > 0 || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
-        {
-            return diagnostics;
-        }
-
-        var sourceText = await document.GetTextAsync(cancellationToken);
-        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, new TextSpan(0, sourceText.Length), syntheticDiagnosticId, cancellationToken);
-        if (syntheticDiagnostic is null)
-        {
-            return [];
-        }
-
-        return [syntheticDiagnostic];
-    }
-
-    public async Task<IReadOnlyList<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
-        Document document,
-        TextSpan span,
-        IReadOnlyList<string> diagnosticIds,
-        string? analyzerTypeName,
-        string? syntheticDiagnosticId,
-        CancellationToken cancellationToken)
-    {
-        var diagnostics = await GetDocumentDiagnosticsAsync(document, span, diagnosticIds, cancellationToken);
-        if (diagnostics.Count > 0)
-        {
-            return diagnostics;
-        }
-
-        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span, diagnosticIds, analyzerTypeName, cancellationToken);
-        if (diagnostics.Count > 0 || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
-        {
-            return diagnostics;
-        }
-
-        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, span, syntheticDiagnosticId, cancellationToken);
-        if (syntheticDiagnostic is null)
-        {
-            return [];
-        }
-
-        return [syntheticDiagnostic];
     }
 
     public async Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
@@ -420,84 +358,4 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             or TypeLoadException;
     }
 
-    private async Task<List<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
-        Document document,
-        TextSpan? span,
-        IReadOnlyList<string> diagnosticIds,
-        string? analyzerTypeName,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(analyzerTypeName))
-        {
-            return [];
-        }
-
-        var activation = _analyzerActivator.Activate(analyzerTypeName);
-        if (!activation.IsAvailable)
-        {
-            return [];
-        }
-
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
-        if (compilation is null)
-        {
-            return [];
-        }
-
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
-        if (syntaxTree is null)
-        {
-            return [];
-        }
-
-        var diagnostics = await compilation
-            .WithAnalyzers([activation.Analyzer], document.Project.AnalyzerOptions)
-            .GetAnalyzerDiagnosticsAsync(cancellationToken);
-
-        var matchingDiagnostics = new List<Diagnostic>();
-        foreach (var diagnostic in diagnostics)
-        {
-            if (!diagnostic.Location.IsInSource || diagnostic.Location.SourceTree != syntaxTree)
-            {
-                continue;
-            }
-
-            if (diagnosticIds.Count > 0 && !diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
-            {
-                continue;
-            }
-
-            if (span is not null && !diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
-            {
-                continue;
-            }
-
-            matchingDiagnostics.Add(diagnostic);
-        }
-
-        return matchingDiagnostics;
-    }
-
-    private static async Task<Diagnostic?> CreateSyntheticDiagnosticAsync(
-        Document document,
-        TextSpan span,
-        string diagnosticId,
-        CancellationToken cancellationToken)
-    {
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
-        if (syntaxTree is null)
-        {
-            return null;
-        }
-
-        var descriptor = new DiagnosticDescriptor(
-            diagnosticId,
-            diagnosticId,
-            diagnosticId,
-            "Style",
-            Microsoft.CodeAnalysis.DiagnosticSeverity.Hidden,
-            isEnabledByDefault: true);
-
-        return Diagnostic.Create(descriptor, Location.Create(syntaxTree, span));
-    }
 }

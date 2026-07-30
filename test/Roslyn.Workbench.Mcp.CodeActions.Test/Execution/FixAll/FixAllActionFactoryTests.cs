@@ -33,7 +33,6 @@ public sealed class FixAllActionFactoryTests : IDisposable
             _roslyn.Document,
             _diagnosticIds,
             "EquivalenceKey",
-            "SyntheticDiagnosticId",
             TestContext.Current.CancellationToken);
 
         result.Failure!.Message.Should().Be("The selected code fix could not produce a fix-all action.");
@@ -65,7 +64,6 @@ public sealed class FixAllActionFactoryTests : IDisposable
                 _roslyn.Document,
                 _diagnosticIds,
                 "EquivalenceKey",
-                "SyntheticDiagnosticId",
                 TestContext.Current.CancellationToken);
         }
         else
@@ -76,7 +74,6 @@ public sealed class FixAllActionFactoryTests : IDisposable
                 _roslyn.Document,
                 _diagnosticIds,
                 "EquivalenceKey",
-                "SyntheticDiagnosticId",
                 TestContext.Current.CancellationToken);
         }
 
@@ -111,7 +108,6 @@ public sealed class FixAllActionFactoryTests : IDisposable
             _roslyn.Document.Project,
             _diagnosticIds,
             "EquivalenceKey",
-            "SyntheticDiagnosticId",
             TestContext.Current.CancellationToken);
 
         result.Action.Should().BeSameAs(action);

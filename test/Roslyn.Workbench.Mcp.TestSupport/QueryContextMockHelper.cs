@@ -1,4 +1,5 @@
 using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -15,10 +16,25 @@ public static class QueryContextMockHelper
         var projectTargetFrameworkResolver = new Mock<IProjectTargetFrameworkResolver>();
         var workspaceSelectorFactory = new Mock<IWorkspaceSelectorFactory>();
         var queryCache = new Mock<IQueryCache>();
+        var referenceDiscoveryService = new Mock<IReferenceDiscoveryService>();
 
         toolExecutionServices
             .SetupGet(item => item.QueryCache)
             .Returns(queryCache.Object);
+
+        toolExecutionServices
+            .SetupGet(item => item.ReferenceDiscoveryService)
+            .Returns(referenceDiscoveryService.Object);
+
+        referenceDiscoveryService
+            .Setup(item => item.FindReferencesAsync(
+                It.IsAny<string>(),
+                It.IsAny<Solution>(),
+                It.IsAny<ISymbol>(),
+                It.IsAny<IReadOnlyList<Document>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<ReferenceOccurrence>());
 
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
@@ -58,15 +74,7 @@ public static class QueryContextMockHelper
             requestResolver,
             projectTargetFrameworkResolver,
             workspaceSelectorFactory,
-            queryCache);
+            queryCache,
+            referenceDiscoveryService);
     }
 }
-
-public sealed record QueryContextMockGraph(
-    Mock<IQueryContext> QueryContext,
-    Mock<IWorkspaceResolver> WorkspaceResolver,
-    Mock<IToolExecutionServices> ToolExecutionServices,
-    Mock<IToolRequestResolver> RequestResolver,
-    Mock<IProjectTargetFrameworkResolver> ProjectTargetFrameworkResolver,
-    Mock<IWorkspaceSelectorFactory> WorkspaceSelectorFactory,
-    Mock<IQueryCache> QueryCache);

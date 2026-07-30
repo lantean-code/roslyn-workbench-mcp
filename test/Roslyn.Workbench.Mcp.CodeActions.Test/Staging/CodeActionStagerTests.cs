@@ -60,7 +60,7 @@ public sealed class CodeActionStagerTests
                 expectedSnapshot,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+            .ReturnsAsync(CreateResolution(action, roslyn.Document));
 
         _evaluator
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
@@ -93,7 +93,7 @@ public sealed class CodeActionStagerTests
                 expectedSnapshot,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+            .ReturnsAsync(CreateResolution(action, roslyn.Document));
 
         _evaluator
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
@@ -175,31 +175,6 @@ public sealed class CodeActionStagerTests
     }
 
     [Fact]
-    public async Task GIVEN_ResolvedActionRequiresParameters_WHEN_StagingCodeAction_THEN_ShouldRejectWithoutEvaluation()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var action = CreateAction(roslyn.Solution);
-        _resolver
-            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                Guid.Empty,
-                It.IsAny<SnapshotPrecondition>(),
-                _context.Object,
-                CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Parameterised));
-
-        var result = await _target.StageAsync(
-            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = Guid.Empty },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("ActionRequiresParameters");
-        _evaluator.Verify(item => item.EvaluateAsync(
-            It.IsAny<CodeAction>(),
-            It.IsAny<Solution>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_EvaluatorRejectsAction_WHEN_StagingCodeAction_THEN_ShouldReturnEvaluatorFailure()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
@@ -211,7 +186,7 @@ public sealed class CodeActionStagerTests
                 It.IsAny<SnapshotPrecondition>(),
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+            .ReturnsAsync(CreateResolution(action, roslyn.Document));
 
         _evaluator
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
@@ -231,8 +206,7 @@ public sealed class CodeActionStagerTests
 
     private static CodeActionResolution<WorkspaceMutationCandidate> CreateResolution(
         CodeAction action,
-        Document document,
-        CodeActionExecutionMode executionMode)
+        Document document)
     {
         var discoveredAction = new DiscoveredCodeAction
         {
@@ -240,10 +214,6 @@ public sealed class CodeActionStagerTests
             Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = "Title",
-            Descriptor = new CodeActionDescriptorEntry
-            {
-                ExecutionMode = executionMode,
-            },
             TargetSpan = default,
             EquivalenceKey = "EquivalenceKey",
         };

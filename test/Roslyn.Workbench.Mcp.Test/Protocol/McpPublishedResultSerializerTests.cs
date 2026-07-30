@@ -46,4 +46,71 @@ public sealed class McpPublishedResultSerializerTests
             .WithMessage("Failure serialization requires an error outcome, but 'Succeeded' was supplied.");
     }
 
+    [Fact]
+    public void GIVEN_PluginFailureDetails_WHEN_SerializingFailure_THEN_ShouldPublishDetails()
+    {
+        var result = PluginExecutionResult.Rejected<TestData>(
+            new PluginExecutionError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+            diagnostics:
+            [
+                new DiagnosticInfo
+                {
+                    Id = "Id",
+                    Message = "Message",
+                },
+            ],
+            warnings:
+            [
+                new WarningInfo
+                {
+                    Code = "Code",
+                    Message = "Message",
+                },
+            ]);
+
+        var published = McpPublishedResultSerializer.SerializePluginQuery(result);
+
+        published.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
+        published.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
+    }
+
+    [Fact]
+    public void GIVEN_CodeActionFailureDetails_WHEN_SerializingFailure_THEN_ShouldPublishDetails()
+    {
+        var result = CodeActionExecutionResult.Rejected<TestData>(
+            new CodeActionExecutionError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+            diagnostics:
+            [
+                new DiagnosticInfo
+                {
+                    Id = "Id",
+                    Message = "Message",
+                },
+            ],
+            warnings:
+            [
+                new WarningInfo
+                {
+                    Code = "Code",
+                    Message = "Message",
+                },
+            ]);
+
+        var published = McpPublishedResultSerializer.SerializeCodeActionQuery(result);
+
+        published.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
+        published.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
+    }
+
+#pragma warning disable CA1812 // Payload fixture is consumed through generic serializer metadata.
+    private sealed record TestData;
+#pragma warning restore CA1812
 }

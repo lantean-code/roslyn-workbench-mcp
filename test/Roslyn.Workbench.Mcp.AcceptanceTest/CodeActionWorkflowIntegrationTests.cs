@@ -4,7 +4,8 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class CodeActionWorkflowIntegrationTests
 {
-    private const string _declareAsNullableProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider";
+    private const int _codeFixKind = 1;
+    private const int _refactoringKind = 2;
 
     private static readonly string[] _nullableReturnDiagnosticIds = ["CS8603"];
 
@@ -50,51 +51,30 @@ public sealed class CodeActionWorkflowIntegrationTests
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["location"] = new Dictionary<string, object?>
+                    ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("RawString.cs"),
+                    ["range"] = new Dictionary<string, object?>
                     {
-                        ["span"] = new Dictionary<string, object?>
-                        {
-                            ["document"] = new Dictionary<string, object?>
-                            {
-                                ["path"] = "RawString.cs",
-                            },
-                            ["start"] = stringLiteralStart,
-                            ["length"] = 0,
-                        },
+                        ["start"] = stringLiteralStart,
+                        ["length"] = 0,
                     },
-                    ["expectedSnapshot"] = snapshot,
-                    ["includeRefactorings"] = true,
-                    ["includeCodeFixes"] = false,
+                    ["kinds"] = _refactoringKind,
                 },
                 TestContext.Current.CancellationToken);
 
             startResult.IsError.Should().NotBeTrue();
-            listResult.IsError.Should().NotBeTrue();
-            var actions = AcceptanceProtocol.GetSuccessData(listResult).GetProperty("actions").EnumerateArray().ToArray();
+            listResult.IsError.Should().NotBeTrue(
+                listResult.IsError == true
+                    ? AcceptanceProtocol.GetError(listResult).GetRawText()
+                    : string.Empty);
+            var actions = AcceptanceProtocol.GetSuccessData(listResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .EnumerateArray()
+                .ToArray();
             var action = actions.Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string");
-            action.GetProperty("providerId").GetString().Should().Be(
-                "Microsoft.CodeAnalysis.CSharp.ConvertToRawString.ConvertStringToRawStringCodeRefactoringProvider");
 
             var actionIdText = action.GetProperty("actionId").GetString();
             Guid.TryParse(actionIdText, out var actionId).Should().BeTrue();
-
-            var describeResult = await target.CallToolAsync(
-                "describe-code-action",
-                new Dictionary<string, object?>
-                {
-                    ["workspace"] = workspaceSelector,
-                    ["actionId"] = actionId,
-                    ["expectedSnapshot"] = snapshot,
-                },
-                TestContext.Current.CancellationToken);
-
-            describeResult.IsError.Should().NotBeTrue();
-            var describedAction = AcceptanceProtocol.GetSuccessData(describeResult).GetProperty("descriptor");
-            describedAction.GetProperty("actionId").GetGuid().Should().Be(actionId);
-            describedAction.GetProperty("expiresAt").GetString().Should().Be(action.GetProperty("expiresAt").GetString());
-            var describedLocation = describedAction.GetProperty("location");
-            var listedLocation = action.GetProperty("location");
-            describedLocation.GetRawText().Should().Be(listedLocation.GetRawText());
 
             var stageResult = await target.CallToolAsync(
                 "stage-code-action",
@@ -198,7 +178,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             var locations = new AcceptanceLocationSelectorFactory(target.WorkspaceRoot);
-            var broadLocation = locations.CreateSelection(
+            var broadRange = locations.CreateRange(
                 documentPath,
                 "internal static string DeclareAsNullable()",
                 "internal static void DeclareLocalAsNullable()");
@@ -226,33 +206,13 @@ public sealed class CodeActionWorkflowIntegrationTests
 
             var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
             var workspaceSelector = workspace.CreateSelector();
-            var snapshot = workspace.CreateSnapshot(transactionRevision: 0);
             await StartTransactionAsync(target, workspaceSelector);
 
-            var listResult = await target.CallToolAsync(
-                "list-code-actions",
-                new Dictionary<string, object?>
-                {
-                    ["workspace"] = workspaceSelector,
-                    ["location"] = broadLocation,
-                    ["expectedSnapshot"] = snapshot,
-                    ["includeRefactorings"] = false,
-                    ["includeCodeFixes"] = true,
-                    ["diagnosticIds"] = _nullableReturnDiagnosticIds,
-                },
-                TestContext.Current.CancellationToken);
-
-            listResult.IsError.Should().NotBeTrue();
-            var actions = new List<JsonElement>();
-            var listedActions = AcceptanceProtocol.GetSuccessData(listResult).GetProperty("actions");
-            foreach (var action in listedActions.EnumerateArray())
-            {
-                var providerId = action.GetProperty("providerId").GetString();
-                if (providerId == _declareAsNullableProviderId)
-                {
-                    actions.Add(action);
-                }
-            }
+            var actions = await ListNullableReturnActionsAsync(
+                target,
+                workspaceSelector,
+                documentPath,
+                broadRange);
 
             actions.Should().HaveCount(2);
             var actionStarts = new List<int>();
@@ -274,11 +234,16 @@ public sealed class CodeActionWorkflowIntegrationTests
                 "internal static string? DeclareAsNullable()");
 
             await StartTransactionAsync(target, workspaceSelector);
+            var rediscoveredActions = await ListNullableReturnActionsAsync(
+                target,
+                workspaceSelector,
+                documentPath,
+                broadRange);
             await AssertStagesExpectedCodeFixAsync(
                 target,
                 workspace,
                 workspaceSelector,
-                actions[1],
+                rediscoveredActions[1],
                 documentPath,
                 "internal static string? DeclareSecondAsNullable()");
         }
@@ -354,6 +319,44 @@ public sealed class CodeActionWorkflowIntegrationTests
         }
     }
 
+    private static async Task<IReadOnlyList<JsonElement>> ListNullableReturnActionsAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        string documentPath,
+        IReadOnlyDictionary<string, object?> range)
+    {
+        var listResult = await target.CallToolAsync(
+            "list-code-actions",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["document"] = AcceptanceLocationSelectorFactory.CreateDocument(documentPath),
+                ["range"] = range,
+                ["kinds"] = _codeFixKind,
+                ["diagnosticIds"] = _nullableReturnDiagnosticIds,
+            },
+            TestContext.Current.CancellationToken);
+
+        listResult.IsError.Should().NotBeTrue(
+            listResult.IsError == true
+                ? AcceptanceProtocol.GetError(listResult).GetRawText()
+                : string.Empty);
+
+        var actions = new List<JsonElement>();
+        var listedActions = AcceptanceProtocol.GetSuccessData(listResult)
+            .GetProperty("actions")
+            .GetProperty("items");
+        foreach (var action in listedActions.EnumerateArray())
+        {
+            if (action.GetProperty("title").GetString() == "Declare as nullable")
+            {
+                actions.Add(action);
+            }
+        }
+
+        return actions;
+    }
+
     private static async Task AssertStagesExpectedCodeFixAsync(
         AcceptanceProcessFixture target,
         AcceptanceWorkspaceIdentity workspace,
@@ -363,7 +366,7 @@ public sealed class CodeActionWorkflowIntegrationTests
         string expectedChangedText)
     {
         var stageResult = await target.CallToolAsync(
-            "stage-code-fix",
+            "stage-code-action",
             new Dictionary<string, object?>
             {
                 ["workspace"] = workspaceSelector,
@@ -372,7 +375,10 @@ public sealed class CodeActionWorkflowIntegrationTests
             },
             TestContext.Current.CancellationToken);
 
-        stageResult.IsError.Should().NotBeTrue();
+        stageResult.IsError.Should().NotBeTrue(
+            stageResult.IsError == true
+                ? AcceptanceProtocol.GetError(stageResult).GetRawText()
+                : string.Empty);
         var previewResult = await target.CallToolAsync(
             "transaction-preview",
             new Dictionary<string, object?>

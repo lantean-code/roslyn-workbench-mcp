@@ -7,48 +7,11 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class PublishedToolCatalogueSizeIntegrationTests
 {
-    private static readonly IReadOnlyList<string> _codeActionInfrastructureToolNames =
+    private static readonly IReadOnlyList<string> _codeActionToolNames =
     [
-        "describe-code-action",
         "list-code-actions",
+        "prepare-fix-all",
         "stage-code-action",
-        "stage-code-fix",
-        "stage-fix-all",
-    ];
-
-    private static readonly IReadOnlyList<string> _fixedCompilerCodeFixToolNames =
-    [
-        "add-anonymous-type-member-name",
-        "add-conditional-interpolation-parentheses",
-        "add-documentation-comment-nodes",
-        "add-explicit-cast",
-        "add-inheritdoc",
-        "add-obsolete-attribute",
-        "add-yield",
-        "change-iterator-return-type",
-        "declare-as-nullable",
-        "disambiguate-same-variable",
-        "fix-incorrect-constraint",
-        "fix-return-type",
-        "hide-base-member",
-        "make-member-required",
-        "make-member-static",
-        "make-ref-struct",
-        "make-statement-asynchronous",
-        "make-type-abstract",
-        "make-type-partial",
-        "order-modifiers",
-        "pass-captured-variables-as-arguments",
-        "remove-documentation-comment-node",
-        "remove-in-keyword",
-        "remove-new-modifier",
-        "remove-unused-local-function",
-        "replace-default-literal",
-        "transpose-record-keyword",
-        "unseal-class",
-        "use-explicit-array-in-expression-tree",
-        "use-explicit-type-for-const",
-        "use-interpolated-verbatim-string",
     ];
 
     [Fact]
@@ -60,52 +23,25 @@ public sealed class PublishedToolCatalogueSizeIntegrationTests
         try
         {
             var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
-            var dedicatedCodeActionToolNames = new HashSet<string>(
-                CodeActionAcceptanceManifest.LoadToolNames(),
-                StringComparer.Ordinal);
-            var codeActionToolNames = CreateCodeActionToolNames(dedicatedCodeActionToolNames);
-            var codeActionTools = SelectTools(tools, codeActionToolNames);
-            var dedicatedCodeActionTools = SelectTools(tools, dedicatedCodeActionToolNames);
-            var fixedCompilerCodeFixTools = SelectTools(tools, _fixedCompilerCodeFixToolNames);
+            var codeActionTools = SelectTools(tools, _codeActionToolNames);
 
             var cataloguePayloadBytes = MeasurePayloadBytes(tools);
             var codeActionPayloadBytes = MeasurePayloadBytes(codeActionTools);
-            var dedicatedCodeActionPayloadBytes = MeasurePayloadBytes(dedicatedCodeActionTools);
-            var fixedCompilerCodeFixPayloadBytes = MeasurePayloadBytes(fixedCompilerCodeFixTools);
 
             tools.Should().NotBeEmpty();
-            codeActionTools.Should().HaveCount(codeActionToolNames.Count);
-            dedicatedCodeActionTools.Should().HaveCount(dedicatedCodeActionToolNames.Count);
-            fixedCompilerCodeFixTools.Should().HaveCount(_fixedCompilerCodeFixToolNames.Count);
+            codeActionTools.Select(static tool => tool.Name).Should().BeEquivalentTo(_codeActionToolNames);
             cataloguePayloadBytes.Should().BeGreaterThan(codeActionPayloadBytes);
-            codeActionPayloadBytes.Should().BeGreaterThan(dedicatedCodeActionPayloadBytes);
-            dedicatedCodeActionPayloadBytes.Should().BeGreaterThan(fixedCompilerCodeFixPayloadBytes);
 
             TestContext.Current.TestOutputHelper?.WriteLine(
                 $"Complete tools/list result: {tools.Count} tools, {cataloguePayloadBytes:N0} UTF-8 bytes.");
             TestContext.Current.TestOutputHelper?.WriteLine(
                 $"Code Action tools/list result: {codeActionTools.Count} tools, {codeActionPayloadBytes:N0} UTF-8 bytes.");
-            TestContext.Current.TestOutputHelper?.WriteLine(
-                $"Dedicated Code Action tools/list result: {dedicatedCodeActionTools.Count} tools, {dedicatedCodeActionPayloadBytes:N0} UTF-8 bytes.");
-            TestContext.Current.TestOutputHelper?.WriteLine(
-                $"Fixed compiler Code Fix tools/list result: {fixedCompilerCodeFixTools.Count} tools, {fixedCompilerCodeFixPayloadBytes:N0} UTF-8 bytes.");
         }
         catch
         {
             target.RetainRootOnFailure();
             throw;
         }
-    }
-
-    private static HashSet<string> CreateCodeActionToolNames(
-        IEnumerable<string> dedicatedCodeActionToolNames)
-    {
-        var toolNames = new HashSet<string>(
-            dedicatedCodeActionToolNames,
-            StringComparer.Ordinal);
-
-        toolNames.UnionWith(_codeActionInfrastructureToolNames);
-        return toolNames;
     }
 
     private static List<McpClientTool> SelectTools(

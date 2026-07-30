@@ -146,7 +146,7 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
             Options.Create(new CodeActionCompositionOptions()),
             activator);
 
-        return new CodeActionDiagnosticService(activator, index);
+        return new CodeActionDiagnosticService(index);
     }
 
     private static AdhocWorkspace CreateWorkspace(

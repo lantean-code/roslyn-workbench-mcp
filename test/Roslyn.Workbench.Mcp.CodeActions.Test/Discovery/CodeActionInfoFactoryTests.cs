@@ -274,45 +274,6 @@ public sealed class CodeActionInfoFactoryTests
             out It.Ref<CodeActionReference?>.IsAny), Times.Never);
     }
 
-    [Fact]
-    public void GIVEN_ExistingReference_WHEN_CreatingLegacyDescriptor_THEN_ShouldPreserveTemporaryDescriptorMetadata()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var referenceStore = new Mock<ICodeActionReferenceStore>();
-        var timeProvider = new Mock<TimeProvider>();
-        var context = new Mock<ICodeActionExecutionContext>();
-        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
-        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
-        var reference = new CodeActionReference(
-            _actionId,
-            CodeActionExecutionTestFactory.CreateReplayRecipe(),
-            _utcNow.AddMinutes(5));
-
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
-        {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-        });
-
-        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
-
-        var result = target.CreateFromReference(
-            action,
-            context.Object,
-            new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Parameterised,
-                ExecutorTool = "ExecutorTool",
-            },
-            reference,
-            resolvedLocation);
-
-        result.ActionId.Should().Be(_actionId);
-        result.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
-        result.ExecutorTool.Should().Be("ExecutorTool");
-        result.Location.Should().BeSameAs(resolvedLocation);
-    }
-
     private static CodeActionInfoFactory CreateTarget(
         Mock<ICodeActionReferenceStore> referenceStore,
         Mock<TimeProvider> timeProvider,
@@ -350,7 +311,6 @@ public sealed class CodeActionInfoFactoryTests
             Kind = kind,
             ProviderId = "ProviderId",
             Title = "Title",
-            Descriptor = new CodeActionDescriptorEntry(),
             TargetSpan = new TextSpan(3, 4),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1, 2],

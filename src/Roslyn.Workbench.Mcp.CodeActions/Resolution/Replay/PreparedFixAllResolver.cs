@@ -92,7 +92,6 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
                 originDocument,
                 action.DiagnosticIds,
                 action.EquivalenceKey,
-                syntheticDiagnosticId: null,
                 cancellationToken);
         }
 
@@ -104,7 +103,6 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
                 originDocument.Project,
                 action.DiagnosticIds,
                 action.EquivalenceKey,
-                syntheticDiagnosticId: null,
                 cancellationToken);
         }
 
@@ -114,7 +112,6 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
             originDocument,
             action.DiagnosticIds,
             action.EquivalenceKey,
-            syntheticDiagnosticId: null,
             cancellationToken);
     }
 

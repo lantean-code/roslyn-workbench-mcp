@@ -187,7 +187,6 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 originDocument,
                 action.DiagnosticIds,
                 action.EquivalenceKey,
-                syntheticDiagnosticId: null,
                 cancellationToken);
         }
 
@@ -199,7 +198,6 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 originDocument.Project,
                 action.DiagnosticIds,
                 action.EquivalenceKey,
-                syntheticDiagnosticId: null,
                 cancellationToken);
         }
 
@@ -209,7 +207,6 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             originDocument,
             action.DiagnosticIds,
             action.EquivalenceKey,
-            syntheticDiagnosticId: null,
             cancellationToken);
     }
 

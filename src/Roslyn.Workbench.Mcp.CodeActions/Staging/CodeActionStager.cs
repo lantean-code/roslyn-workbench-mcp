@@ -63,17 +63,6 @@ internal sealed class CodeActionStager : ICodeActionStager
             return resolvedAction.Rejection;
         }
 
-        if (resolvedAction.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
-        {
-            var error = new CodeActionExecutionError
-            {
-                Code = "ActionRequiresParameters",
-                Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
-            };
-
-            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
-        }
-
         var application = await _evaluator.EvaluateAsync(
             resolvedAction.Action.Action,
             context.CurrentSolution,

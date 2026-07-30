@@ -36,8 +36,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal static ComponentWorkspace Create(
         ComponentWorkspaceOptions? options = null,
-        ICodeActionComposition? codeActionComposition = null,
-        CodeActionDescriptorOverride? descriptorOverride = null)
+        ICodeActionComposition? codeActionComposition = null)
     {
         options ??= new ComponentWorkspaceOptions();
         TemporaryDirectory? ownedStateDirectory = null;
@@ -91,12 +90,6 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             if (codeActionComposition is not null)
             {
                 services.AddSingleton(codeActionComposition);
-            }
-
-            if (descriptorOverride is not null)
-            {
-                services.AddSingleton<ICodeActionDescriptorRegistry>(
-                    new CodeActionDescriptorRegistry([descriptorOverride]));
             }
 
             var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions

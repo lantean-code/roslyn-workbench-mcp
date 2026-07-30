@@ -79,13 +79,6 @@ internal sealed class CodeActionResolver : ICodeActionResolver
                 CodeActionResolutionFailureKind.InvalidReference);
         }
 
-        if (!action.Descriptor.IsVisible)
-        {
-            return RejectedResolution(
-                ActionUnavailable<T>(),
-                CodeActionResolutionFailureKind.InvalidReference);
-        }
-
         return CodeActionResolution.Resolved<T>(
             action,
             referenceResolution.Context.Document,

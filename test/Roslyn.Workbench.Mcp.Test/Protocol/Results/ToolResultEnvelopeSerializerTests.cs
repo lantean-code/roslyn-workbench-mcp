@@ -44,6 +44,42 @@ public sealed class ToolResultEnvelopeSerializerTests
         result.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.GetProperty("error").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
         result.TryGetProperty("next", out _).Should().BeFalse();
+        result.TryGetProperty("diagnostics", out _).Should().BeFalse();
+        result.TryGetProperty("warnings", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_FailureDiagnosticsAndWarnings_WHEN_Serializing_THEN_ShouldPublishDetails()
+    {
+        var diagnostic = new DiagnosticInfo
+        {
+            Id = "Id",
+            Severity = DiagnosticSeverity.Error,
+            Message = "Message",
+        };
+        var warning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = ToolResultEnvelopeSerializer.CreateFailure(
+            new ToolError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+            RequiredAction.Retry,
+            [diagnostic],
+            [warning]);
+
+        var publishedDiagnostic = result.GetProperty("diagnostics").EnumerateArray().Should().ContainSingle().Subject;
+        publishedDiagnostic.GetProperty("id").GetString().Should().Be("Id");
+        publishedDiagnostic.GetProperty("severity").GetString().Should().Be("Error");
+        publishedDiagnostic.GetProperty("message").GetString().Should().Be("Message");
+        var publishedWarning = result.GetProperty("warnings").EnumerateArray().Should().ContainSingle().Subject;
+        publishedWarning.GetProperty("code").GetString().Should().Be("Code");
+        publishedWarning.GetProperty("message").GetString().Should().Be("Message");
     }
 
 #pragma warning disable CA1812 // Payload fixture is consumed through generic serializer metadata.

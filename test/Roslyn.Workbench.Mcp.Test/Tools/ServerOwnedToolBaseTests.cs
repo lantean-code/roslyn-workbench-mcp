@@ -71,12 +71,32 @@ public sealed class ServerOwnedToolBaseTests
             Message = "Message",
             RequiredAction = RequiredAction.Retry,
         };
+        var diagnostic = new DiagnosticInfo
+        {
+            Id = "Id",
+            Severity = DiagnosticSeverity.Error,
+            Message = "Message",
+        };
+        var warning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
 
         var serviceResult = status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<WorkspaceListOutcome>(error),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<WorkspaceListOutcome>(error),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<WorkspaceListOutcome>(error),
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<WorkspaceListOutcome>(
+                error,
+                diagnostics: [diagnostic],
+                warnings: [warning]),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<WorkspaceListOutcome>(
+                error,
+                diagnostics: [diagnostic],
+                warnings: [warning]),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<WorkspaceListOutcome>(
+                error,
+                diagnostics: [diagnostic],
+                warnings: [warning]),
             _ => throw new ArgumentOutOfRangeException(nameof(statusName), statusName, "A failure status is required."),
         };
 
@@ -97,6 +117,8 @@ public sealed class ServerOwnedToolBaseTests
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(statusName);
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
+        result.StructuredContent.Value.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
     }
 
     [Fact]

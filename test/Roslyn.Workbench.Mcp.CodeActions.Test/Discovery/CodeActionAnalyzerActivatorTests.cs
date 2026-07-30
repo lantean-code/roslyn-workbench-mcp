@@ -14,16 +14,6 @@ public sealed class CodeActionAnalyzerActivatorTests
     }
 
     [Fact]
-    public void GIVEN_LoadedAnalyzerType_WHEN_Activating_THEN_ShouldCreateAnalyzer()
-    {
-        var result = _target.Activate(GetTypeName(typeof(AvailableAnalyzer)));
-
-        result.Status.Should().Be(CodeActionAnalyzerActivationStatus.Available);
-        result.IsAvailable.Should().BeTrue();
-        result.Analyzer.Should().BeOfType<AvailableAnalyzer>();
-    }
-
-    [Fact]
     public void GIVEN_AnalyzerType_WHEN_ActivatingByType_THEN_ShouldCreateAnalyzer()
     {
         var result = _target.Activate(typeof(AvailableAnalyzer));
@@ -41,26 +31,6 @@ public sealed class CodeActionAnalyzerActivatorTests
         result.Analyzer.Should().BeNull();
     }
 
-    [Fact]
-    public void GIVEN_LoadedNonAnalyzerType_WHEN_Activating_THEN_ShouldReportIncompatibleType()
-    {
-        var result = _target.Activate(GetTypeName(typeof(CodeActionAnalyzerActivatorTests)));
-
-        result.Status.Should().Be(CodeActionAnalyzerActivationStatus.IncompatibleType);
-        result.IsAvailable.Should().BeFalse();
-        result.Analyzer.Should().BeNull();
-    }
-
-    [Fact]
-    public void GIVEN_UnknownType_WHEN_Activating_THEN_ShouldReportTypeNotFound()
-    {
-        var result = _target.Activate("Missing.Analyzer.Type");
-
-        result.Status.Should().Be(CodeActionAnalyzerActivationStatus.TypeNotFound);
-        result.IsAvailable.Should().BeFalse();
-        result.Analyzer.Should().BeNull();
-    }
-
     [Theory]
     [InlineData(typeof(ConstructorlessAnalyzer))]
     [InlineData(typeof(ThrowingAnalyzer))]
@@ -72,16 +42,11 @@ public sealed class CodeActionAnalyzerActivatorTests
         Justification = "xUnit requires public test methods and supplies the non-null Type values declared by the InlineData attributes.")]
     public void GIVEN_AnalyzerCannotBeConstructed_WHEN_Activating_THEN_ShouldReportConstructionFailed(Type analyzerType)
     {
-        var result = _target.Activate(GetTypeName(analyzerType));
+        var result = _target.Activate(analyzerType);
 
         result.Status.Should().Be(CodeActionAnalyzerActivationStatus.ConstructionFailed);
         result.IsAvailable.Should().BeFalse();
         result.Analyzer.Should().BeNull();
-    }
-
-    private static string GetTypeName(Type type)
-    {
-        return type.FullName ?? throw new InvalidOperationException("The test analyzer type has no full name.");
     }
 
 #pragma warning disable CA1812 // Analyzer fixtures are activated or deliberately rejected through reflection.

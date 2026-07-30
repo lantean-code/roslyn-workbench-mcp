@@ -26,19 +26,9 @@ internal sealed record CodeActionAnalyzerActivationResult
             analyzer);
     }
 
-    public static CodeActionAnalyzerActivationResult TypeNotFound()
-    {
-        return Unavailable(CodeActionAnalyzerActivationStatus.TypeNotFound);
-    }
-
     public static CodeActionAnalyzerActivationResult IncompatibleType()
     {
         return Unavailable(CodeActionAnalyzerActivationStatus.IncompatibleType);
-    }
-
-    public static CodeActionAnalyzerActivationResult InspectionFailed()
-    {
-        return Unavailable(CodeActionAnalyzerActivationStatus.InspectionFailed);
     }
 
     public static CodeActionAnalyzerActivationResult ConstructionFailed()

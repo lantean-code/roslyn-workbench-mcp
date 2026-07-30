@@ -8,6 +8,7 @@ global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
+global using Roslyn.Workbench.Mcp.Workspace.References;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;

@@ -2,8 +2,10 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class DurableMutationIntegrationTests
 {
+    private const int _refactoringKind = 2;
+
     [Fact]
-    public async Task GIVEN_DedicatedCreateAndReplaceCodeAction_WHEN_CommittingAndRestarting_THEN_ShouldPromoteCleanDurableState()
+    public async Task GIVEN_DiscoveredCreateAndReplaceCodeAction_WHEN_CommittingAndRestarting_THEN_ShouldPromoteCleanDurableState()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
@@ -17,17 +19,39 @@ public sealed class DurableMutationIntegrationTests
             var workspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
             var workspaceSelector = workspace.CreateSelector();
             await StartTransactionAsync(target, workspaceSelector);
+            var locations = new AcceptanceLocationSelectorFactory(target.WorkspaceRoot);
 
-            var mutationResult = await target.CallToolAsync(
-                "move-type-to-file",
+            var listResult = await target.CallToolAsync(
+                "list-code-actions",
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["type"] = new Dictionary<string, object?>
-                    {
-                        ["documentationCommentId"] = "T:Sample.AlphaCycle",
-                    },
-                    ["preserveNamespace"] = true,
+                    ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("Formatting.cs"),
+                    ["range"] = locations.CreateRange(
+                        "Formatting.cs",
+                        "public sealed class AlphaCycle",
+                        "public sealed class AlphaCycle"),
+                    ["kinds"] = _refactoringKind,
+                },
+                TestContext.Current.CancellationToken);
+
+            listResult.IsError.Should().NotBeTrue(
+                listResult.IsError == true
+                    ? AcceptanceProtocol.GetError(listResult).GetRawText()
+                    : string.Empty);
+            var actions = AcceptanceProtocol.GetSuccessData(listResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .EnumerateArray();
+            var moveTypeAction = actions.Single(static action =>
+                action.GetProperty("title").GetString()?.Contains("Move type to", StringComparison.Ordinal) == true);
+
+            var mutationResult = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = moveTypeAction.GetProperty("actionId").GetGuid(),
                     ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
                 },
                 TestContext.Current.CancellationToken);

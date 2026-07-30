@@ -13,6 +13,7 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.StateSequences;
 internal sealed class StateSequenceRunner
 {
     private readonly ScenarioHost _host;
+    private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _repositoryRoot;
     private readonly string _workspaceId;
 
@@ -24,6 +25,7 @@ internal sealed class StateSequenceRunner
         _host = host;
         _workspaceId = workspaceId;
         _repositoryRoot = repositoryRoot;
+        _codeActionWorkflow = new CodeActionWorkflowInvoker(host, workspaceId, repositoryRoot);
     }
 
     public Task<StateSequenceExecution> ExecuteAsync(
@@ -388,8 +390,7 @@ internal sealed class StateSequenceRunner
                 var mutation = definition.Mutations[index];
                 var step = await InvokeRequiredAsync(
                     $"mutation-{index + 1}",
-                    mutation.Tool,
-                    Materialize(mutation.Arguments),
+                    mutation,
                     cancellationToken);
 
                 steps.Add(step);
@@ -471,6 +472,33 @@ internal sealed class StateSequenceRunner
 
             throw;
         }
+    }
+
+    private async Task<StateSequenceStepMeasurement> InvokeRequiredAsync(
+        string name,
+        ToolCallDefinition call,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var result = await _codeActionWorkflow.InvokeAsync(
+            call.Tool,
+            call.Arguments,
+            call.CodeActionSelection,
+            cancellationToken);
+
+        stopwatch.Stop();
+        var step = CreateStep(
+            name,
+            call.Tool,
+            stopwatch.Elapsed.TotalMilliseconds,
+            result);
+        if (step.IsError)
+        {
+            throw new InvalidOperationException(
+                $"State sequence step '{name}' returned '{step.ErrorCode ?? "an MCP error"}'.");
+        }
+
+        return step;
     }
 
     private async Task<StateSequenceStepMeasurement> InvokeRequiredAsync(

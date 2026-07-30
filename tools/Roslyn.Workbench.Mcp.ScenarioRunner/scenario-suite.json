@@ -160,17 +160,14 @@
           "tool": "list-code-actions",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "location": {
-              "span": {
-                "document": {
-                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
-                },
-                "start": 6189,
-                "length": 0
-              }
+            "document": {
+              "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
             },
-            "includeRefactorings": true,
-            "includeCodeFixes": true
+            "range": {
+              "start": 6189,
+              "length": 0
+            },
+            "kinds": 3
           }
         },
         {
@@ -200,7 +197,7 @@
         {
           "id": "organize-imports",
           "description": "Stages Roslyn import ordering through the mutation transaction path.",
-          "tool": "organize-imports",
+          "tool": "stage-code-action",
           "setup": [
             {
               "tool": "transaction-start",
@@ -213,13 +210,20 @@
               "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
             }
           ],
+          "codeActionSelection": {
+            "titleContains": "Sort Usings",
+            "arguments": {
+              "workspace": { "workspaceId": "${workspaceId}" },
+              "document": {
+                "path": "src/GuardClauses/GuardAgainstExpressionExtensions.cs",
+                "project": { "name": "GuardClauses(net8.0)" }
+              },
+              "kinds": 2
+            }
+          },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
-            "document": {
-              "path": "src/GuardClauses/GuardAgainstExpressionExtensions.cs",
-              "project": { "name": "GuardClauses(net8.0)" }
-            }
+            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
           }
         },
         {
@@ -683,7 +687,7 @@
         {
           "id": "move-no-enumeration-to-file-durable",
           "description": "Stages Roslyn's move-type refactoring for a secondary type, creating its own source file and updating the original document.",
-          "tool": "move-type-to-file",
+          "tool": "stage-code-action",
           "commitOnly": true,
           "crashAfterOperation": "Create",
           "setup": [
@@ -698,17 +702,27 @@
               "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
             }
           ],
+          "codeActionSelection": {
+            "titleContains": "Move type to",
+            "arguments": {
+              "workspace": { "workspaceId": "${workspaceId}" },
+              "document": {
+                "path": "src/Serilog/Guard.cs",
+                "project": {
+                  "path": "src/Serilog/Serilog.csproj",
+                  "targetFramework": "net10.0"
+                }
+              },
+              "range": {
+                "start": 117,
+                "length": 35
+              },
+              "kinds": 2
+            }
+          },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
-            "type": {
-              "project": {
-                "path": "src/Serilog/Serilog.csproj",
-                "targetFramework": "net10.0"
-              },
-              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
-            },
-            "preserveNamespace": true
+            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
           }
         },
         {
@@ -733,6 +747,13 @@
               },
               "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
             },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
             "includeDefinitions": true,
             "includeContext": false,
             "referencesLimit": 500
@@ -747,18 +768,28 @@
             "kind": "MultiRevisionCommit",
             "mutations": [
               {
-                "tool": "move-type-to-file",
+                "tool": "stage-code-action",
+                "codeActionSelection": {
+                  "titleContains": "Move type to",
+                  "arguments": {
+                    "workspace": { "workspaceId": "${workspaceId}" },
+                    "document": {
+                      "path": "src/Serilog/Guard.cs",
+                      "project": {
+                        "path": "src/Serilog/Serilog.csproj",
+                        "targetFramework": "net10.0"
+                      }
+                    },
+                    "range": {
+                      "start": 117,
+                      "length": 35
+                    },
+                    "kinds": 2
+                  }
+                },
                 "arguments": {
                   "workspace": { "workspaceId": "${workspaceId}" },
-                  "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
-                  "type": {
-                    "project": {
-                      "path": "src/Serilog/Serilog.csproj",
-                      "targetFramework": "net10.0"
-                    },
-                    "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
-                  },
-                  "preserveNamespace": true
+                  "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
                 }
               },
               {
@@ -787,6 +818,13 @@
                 "targetFramework": "net10.0"
               },
               "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
             },
             "includeDefinitions": true,
             "includeContext": false,

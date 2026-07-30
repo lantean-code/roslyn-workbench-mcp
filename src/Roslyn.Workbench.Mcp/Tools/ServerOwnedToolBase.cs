@@ -52,7 +52,11 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
     {
         if (result.Outcome.IsError())
         {
-            return ToolResultEnvelopeSerializer.CreateFailure(result.Error, result.RequiredAction);
+            return ToolResultEnvelopeSerializer.CreateFailure(
+                result.Error,
+                result.RequiredAction,
+                result.Diagnostics,
+                result.Warnings);
         }
 
         return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);

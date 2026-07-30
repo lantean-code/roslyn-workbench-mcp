@@ -1,8 +1,4 @@
-using Roslyn.Workbench.Mcp.CodeActions.CodeFixes;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 using Roslyn.Workbench.Mcp.CodeActions.References;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
@@ -23,13 +19,6 @@ internal sealed class CodeActionComponentTestSession
         return ExecuteQueryAsync<ListCodeActionsTool, ListCodeActionsRequest, CodeActionListData>(request, cancellationToken);
     }
 
-    internal ValueTask<CodeActionExecutionResult<DescribeCodeActionData>> DescribeAsync(
-        DescribeCodeActionRequest request,
-        CancellationToken cancellationToken)
-    {
-        return ExecuteQueryAsync<DescribeCodeActionTool, DescribeCodeActionRequest, DescribeCodeActionData>(request, cancellationToken);
-    }
-
     internal ValueTask<CodeActionExecutionResult<PrepareFixAllData>> PrepareFixAllAsync(
         PrepareFixAllRequest request,
         CancellationToken cancellationToken)
@@ -42,20 +31,6 @@ internal sealed class CodeActionComponentTestSession
         CancellationToken cancellationToken)
     {
         return ExecuteMutationAsync<StageCodeActionTool, StageCodeActionRequest>("stage-code-action", request, cancellationToken);
-    }
-
-    internal ValueTask<CodeActionExecutionResult<MutationData>> StageFixAllAsync(
-        StageFixAllRequest request,
-        CancellationToken cancellationToken)
-    {
-        return ExecuteMutationAsync<StageFixAllTool, StageFixAllRequest>("stage-fix-all", request, cancellationToken);
-    }
-
-    internal ValueTask<CodeActionExecutionResult<MutationData>> RemoveUnusedUsingsAsync(
-        RemoveUnusedUsingsRequest request,
-        CancellationToken cancellationToken)
-    {
-        return ExecuteMutationAsync<RemoveUnusedUsingsTool, RemoveUnusedUsingsRequest>("remove-unused-usings", request, cancellationToken);
     }
 
     private async ValueTask<CodeActionExecutionResult<TResponse>> ExecuteQueryAsync<THandler, TRequest, TResponse>(

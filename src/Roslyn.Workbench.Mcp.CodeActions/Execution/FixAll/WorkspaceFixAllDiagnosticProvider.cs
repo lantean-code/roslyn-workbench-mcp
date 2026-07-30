@@ -4,25 +4,20 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
 {
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly IReadOnlyList<string> _diagnosticIds;
-    private readonly string? _syntheticDiagnosticId;
 
     public WorkspaceFixAllDiagnosticProvider(
         ICodeActionDiagnosticService diagnosticService,
-        IReadOnlyList<string> diagnosticIds,
-        string? syntheticDiagnosticId)
+        IReadOnlyList<string> diagnosticIds)
     {
         _diagnosticService = diagnosticService;
         _diagnosticIds = diagnosticIds;
-        _syntheticDiagnosticId = syntheticDiagnosticId;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
     {
-        var diagnostics = await _diagnosticService.GetScopedCodeFixDiagnosticsAsync(
+        var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
             document,
             _diagnosticIds,
-            analyzerTypeName: null,
-            _syntheticDiagnosticId,
             cancellationToken);
 
         return diagnostics;

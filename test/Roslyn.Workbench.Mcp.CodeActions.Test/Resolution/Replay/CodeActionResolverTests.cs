@@ -19,7 +19,6 @@ public sealed class CodeActionResolverTests : IDisposable
     private readonly Mock<CodeFixProvider> _codeFixProvider;
     private readonly InMemoryRoslynDocument _roslyn;
     private readonly DiscoveredCodeAction _matchingAction;
-    private readonly CodeActionDescriptorEntry _visibleDescriptor;
     private readonly CodeActionResolver _target;
 
     public CodeActionResolverTests()
@@ -32,10 +31,6 @@ public sealed class CodeActionResolverTests : IDisposable
         _refactoringProvider = new Mock<CodeRefactoringProvider>();
         _codeFixProvider = new Mock<CodeFixProvider>();
         _roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        _visibleDescriptor = new CodeActionDescriptorEntry
-        {
-            ExecutionMode = CodeActionExecutionMode.Replay,
-        };
 
         _matchingAction = CreateAction();
 
@@ -344,39 +339,12 @@ public sealed class CodeActionResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_RediscoveredActionIsHidden_WHEN_ResolvingAction_THEN_ShouldRejectUnavailableAction()
-    {
-        var hiddenAction = _matchingAction with
-        {
-            Descriptor = new CodeActionDescriptorEntry
-            {
-                IsVisible = false,
-            },
-        };
-
-        _discoveryService
-            .Setup(item => item.RediscoverRefactoringsAsync(
-                _refactoringProvider.Object,
-                _roslyn.Document,
-                new TextSpan(3, 4),
-                CancellationToken.None))
-            .ReturnsAsync([hiddenAction]);
-
-        var result = await ResolveAsync();
-
-        result.Rejection!.Error!.Code.Should().Be("ActionUnavailable");
-        result.Rejection.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
-        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
-    }
-
-    [Fact]
     public async Task GIVEN_RefactoringIsRediscoveredUniquely_WHEN_ResolvingAction_THEN_ShouldReturnResolvedAction()
     {
         var result = await ResolveAsync();
 
         result.HasRejection.Should().BeFalse();
         result.Action.Should().BeSameAs(_matchingAction);
-        result.Descriptor.Should().BeSameAs(_visibleDescriptor);
         result.Document.Should().BeSameAs(_roslyn.Document);
         result.Span.Should().Be(new TextSpan(3, 4));
         result.Reference.Should().NotBeNull();
@@ -502,7 +470,6 @@ public sealed class CodeActionResolverTests : IDisposable
             Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = "Title",
-            Descriptor = _visibleDescriptor,
             TargetSpan = new TextSpan(3, 4),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],

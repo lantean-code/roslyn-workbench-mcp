@@ -10,11 +10,4 @@ internal interface ICodeActionInfoFactory
         Document document,
         ResolvedLocation location,
         [NotNullWhen(true)] out CodeActionListItem? item);
-
-    CodeActionInfo CreateFromReference(
-        DiscoveredCodeAction action,
-        ICodeActionExecutionContext context,
-        CodeActionDescriptorEntry descriptor,
-        CodeActionReference reference,
-        ResolvedLocation location);
 }

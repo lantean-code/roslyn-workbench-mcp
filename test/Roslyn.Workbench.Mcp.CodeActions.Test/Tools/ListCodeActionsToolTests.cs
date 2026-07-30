@@ -409,7 +409,6 @@ public sealed class ListCodeActionsToolTests
             Kind = kind,
             ProviderId = "ProviderId",
             Title = title,
-            Descriptor = new CodeActionDescriptorEntry(),
             TargetSpan = targetSpan,
             EquivalenceKey = title,
         };

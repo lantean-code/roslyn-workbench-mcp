@@ -631,14 +631,14 @@ Completion checklist:
 
 Completion checklist:
 
-- [ ] Every existing dedicated Code Action handler has a recorded ordinary replay, leaf-selector, Fix All, Plugins.Core or explicit exclusion disposition.
-- [ ] Every approved Workbench-owned transformation has moved to Plugins.Core with an appropriate contract, or has an explicit deferred decision.
-- [ ] `describe-code-action`, `stage-code-fix`, `stage-fix-all` and all ordinary dedicated replay tools are absent from Host registration and published metadata.
-- [ ] The positive ledger, descriptor registry, execution-mode metadata and unused dedicated request contracts have been removed.
-- [ ] Selection, location, scoped and Fix All stagers and their `AnalyzerTypeName` compatibility path have been removed after their final consumers were migrated; `ICodeActionAnalyzerActivator` exposes only exact `Type` activation and `CodeActionDiagnosticService` no longer depends on it directly.
-- [ ] Host reserved-name, collision, status and DI composition logic reflects exactly the three orchestration tools.
-- [ ] Source and test searches find no dead dedicated registrations or ordinary provider requiring a dedicated MCP tool.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] Every existing dedicated Code Action handler has a recorded ordinary replay, leaf-selector, Fix All, Plugins.Core or explicit exclusion disposition in [CodeActionBatch6Disposition-2026-07-29.md](CodeActionBatch6Disposition-2026-07-29.md).
+- [x] Every approved Workbench-owned transformation has moved to Plugins.Core with an appropriate contract, or has an explicit deferred decision. The classification found no new Workbench-owned transformation; the existing `rename-symbol` and `format-document` operations remain in Plugins.Core.
+- [x] `describe-code-action`, `stage-code-fix`, `stage-fix-all` and all ordinary dedicated replay tools are absent from Host registration and published metadata.
+- [x] The positive ledger, descriptor registry, execution-mode metadata and unused dedicated request contracts have been removed.
+- [x] Selection, location, scoped and Fix All stagers and their `AnalyzerTypeName` compatibility path have been removed after their final consumers were migrated; `ICodeActionAnalyzerActivator` exposes only exact `Type` activation and `CodeActionDiagnosticService` no longer depends on it directly.
+- [x] Host reserved-name, collision, status and DI composition logic reflects exactly the three orchestration tools.
+- [x] Source and test searches find no dead dedicated registrations or ordinary provider requiring a dedicated MCP tool.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 ### Batch 7 — Rebuild validation around the architecture
 

@@ -19,21 +19,6 @@ internal interface ICodeActionDiagnosticService
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
-        Document document,
-        IReadOnlyList<string> diagnosticIds,
-        string? analyzerTypeName,
-        string? syntheticDiagnosticId,
-        CancellationToken cancellationToken);
-
-    Task<IReadOnlyList<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
-        Document document,
-        TextSpan span,
-        IReadOnlyList<string> diagnosticIds,
-        string? analyzerTypeName,
-        string? syntheticDiagnosticId,
-        CancellationToken cancellationToken);
-
     Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
         Project project,
         IReadOnlyList<string>? diagnosticIds,

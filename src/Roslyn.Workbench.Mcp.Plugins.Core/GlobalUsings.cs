@@ -20,6 +20,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Resolution;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
+global using Roslyn.Workbench.Mcp.Workspace.References;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;

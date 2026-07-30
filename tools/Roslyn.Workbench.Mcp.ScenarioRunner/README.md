@@ -247,7 +247,7 @@ Measure the representative relationship, source-scan, whole-project and deep-pro
   --iterations 5 --warmups 3 --skip-prepare
 ```
 
-Measurements, summaries, workspace state and diagnostic captures default to a unique directory beneath `artifacts/performance/results`. Use `--output` to override that location or `--cache` to override the temporary repository cache.
+Measurements, summaries, workspace state and diagnostic captures default to a unique directory beneath `artifacts/performance/results`. Use `--output` to override that location or `--cache` to override the temporary repository cache. Keep custom Windows cache paths short because deeply nested repositories such as EF Core can exceed path limits in parts of the MSBuild toolchain.
 
 ## Measurement discipline
 

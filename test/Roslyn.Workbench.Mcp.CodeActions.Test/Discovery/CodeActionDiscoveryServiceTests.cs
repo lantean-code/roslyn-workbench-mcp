@@ -10,20 +10,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 public sealed class CodeActionDiscoveryServiceTests
 {
     private readonly Mock<ICodeActionProviderSelection> _providerSelection;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionPolicy> _policy;
-    private readonly CodeActionDescriptorEntry _descriptor;
     private readonly CodeActionDiscoveryService _target;
 
     public CodeActionDiscoveryServiceTests()
     {
         _providerSelection = new Mock<ICodeActionProviderSelection>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _policy = new Mock<ICodeActionPolicy>();
-        _descriptor = new CodeActionDescriptorEntry
-        {
-            ExecutionMode = CodeActionExecutionMode.Replay,
-        };
 
         _providerSelection
             .SetupGet(item => item.RefactoringProviders)
@@ -41,15 +34,7 @@ public sealed class CodeActionDiscoveryServiceTests
             .Setup(item => item.EvaluateAction(It.IsAny<string>(), It.IsAny<CodeAction>()))
             .Returns(CodeActionPolicyDecision.Allowed());
 
-        _descriptorRegistry
-            .Setup(item => item.GetProviderCapability(It.IsAny<string>()))
-            .Returns(new CodeActionProviderCapability
-            {
-                ShouldDiscover = true,
-                Descriptor = _descriptor,
-            });
-
-        _target = new CodeActionDiscoveryService(_providerSelection.Object, _descriptorRegistry.Object, _policy.Object);
+        _target = new CodeActionDiscoveryService(_providerSelection.Object, _policy.Object);
     }
 
     [Theory]
@@ -144,31 +129,6 @@ public sealed class CodeActionDiscoveryServiceTests
         var result = _target.GetMatchingRefactoringProviders(providerId);
 
         result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void GIVEN_ProviderHasLegacyHiddenCapability_WHEN_GettingMatchingProviders_THEN_ShouldRemainDiscoverable()
-    {
-        var provider = new Mock<CodeRefactoringProvider>();
-        var providerId = _target.GetProviderId(provider.Object);
-        _providerSelection
-            .SetupGet(item => item.RefactoringProviders)
-            .Returns(CreateProviderSelection((providerId, provider.Object)));
-
-        _descriptorRegistry
-            .Setup(item => item.GetProviderCapability(providerId))
-            .Returns(new CodeActionProviderCapability
-            {
-                ShouldDiscover = false,
-                Descriptor = new CodeActionDescriptorEntry
-                {
-                    IsVisible = false,
-                },
-            });
-
-        var result = _target.GetMatchingRefactoringProviders(providerId: null);
-
-        result.Should().ContainSingle().Which.Should().BeSameAs(provider.Object);
     }
 
     [Theory]
@@ -303,38 +263,8 @@ public sealed class CodeActionDiscoveryServiceTests
         result.Should().OnlyContain(item =>
             item.Kind == DiscoveredActionKind.Refactoring
             && item.ProviderId == providerId
-            && item.Descriptor == _descriptor
             && item.TargetSpan == new TextSpan(0, 1)
             && item.DiagnosticIds.Count == 0);
-
-        _descriptorRegistry.Verify(item => item.ResolveActionDependentDescriptor(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_RefactoringProviderHasLegacyHiddenCapability_WHEN_DiscoveringRefactorings_THEN_ShouldInvokeProvider()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var provider = new Mock<CodeRefactoringProvider>();
-        var providerId = _target.GetProviderId(provider.Object);
-        _descriptorRegistry
-            .Setup(item => item.GetProviderCapability(providerId))
-            .Returns(new CodeActionProviderCapability
-            {
-                ShouldDiscover = false,
-                Descriptor = _descriptor,
-            });
-
-        var result = await _target.DiscoverRefactoringsAsync(
-            provider.Object,
-            roslyn.Document,
-            new TextSpan(0, 1),
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-        provider.Verify(item => item.ComputeRefactoringsAsync(It.IsAny<CodeRefactoringContext>()), Times.Once);
     }
 
     [Fact]
@@ -354,31 +284,6 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        provider.Verify(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_CodeFixProviderHasLegacyHiddenCapability_WHEN_DiscoveringCodeFixes_THEN_ShouldInspectDiagnostics()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var provider = new Mock<CodeFixProvider>();
-        var providerId = _target.GetProviderId(provider.Object);
-        _descriptorRegistry
-            .Setup(item => item.GetProviderCapability(providerId))
-            .Returns(new CodeActionProviderCapability
-            {
-                ShouldDiscover = false,
-                Descriptor = _descriptor,
-            });
-
-        var result = await _target.DiscoverCodeFixesAsync(
-            provider.Object,
-            roslyn.Document,
-            [],
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-        provider.VerifyGet(item => item.FixableDiagnosticIds, Times.Once);
         provider.Verify(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()), Times.Never);
     }
 
@@ -453,7 +358,6 @@ public sealed class CodeActionDiscoveryServiceTests
         result.Should().OnlyContain(item =>
             item.Kind == DiscoveredActionKind.CodeFix
             && item.ProviderId == providerId
-            && item.Descriptor == _descriptor
             && item.ActionPath.SequenceEqual(new[] { 0 }));
 
         provider.Verify(item => item.RegisterCodeFixesAsync(
@@ -493,43 +397,6 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle().Which.FixAllScopes.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GIVEN_ActionDependentCapability_WHEN_DiscoveringRefactoring_THEN_ShouldResolveDescriptorOncePerLeaf()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var action = CodeAction.Create("Title", _ => Task.FromResult(roslyn.Document));
-        var provider = new Mock<CodeRefactoringProvider>();
-        provider.Setup(item => item.ComputeRefactoringsAsync(It.IsAny<CodeRefactoringContext>()))
-            .Returns((CodeRefactoringContext context) =>
-            {
-                context.RegisterRefactoring(action);
-                return Task.CompletedTask;
-            });
-
-        var providerId = _target.GetProviderId(provider.Object);
-        _descriptorRegistry
-            .Setup(item => item.GetProviderCapability(providerId))
-            .Returns(new CodeActionProviderCapability
-            {
-                ShouldDiscover = true,
-                Descriptor = _descriptor,
-                RequiresActionResolution = true,
-            });
-
-        _descriptorRegistry
-            .Setup(item => item.ResolveActionDependentDescriptor(action, providerId, "Title"))
-            .Returns(_descriptor);
-
-        var result = await _target.DiscoverRefactoringsAsync(
-            provider.Object,
-            roslyn.Document,
-            new TextSpan(0, 1),
-            TestContext.Current.CancellationToken);
-
-        result.Should().ContainSingle().Which.Descriptor.Should().BeSameAs(_descriptor);
-        _descriptorRegistry.Verify(item => item.ResolveActionDependentDescriptor(action, providerId, "Title"), Times.Once);
     }
 
     [Fact]
@@ -598,9 +465,6 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        _descriptorRegistry.Verify(
-            item => item.ResolveActionDependentDescriptor(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
     }
 
     [Fact]

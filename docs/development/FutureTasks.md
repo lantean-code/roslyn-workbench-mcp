@@ -117,6 +117,18 @@ Retain separate cache semantics for immutable query results, replayable Code Act
 
 Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
 
+## P3 — Engineering Efficiency
+
+### Make external-repository preparation clean and repeatable
+
+**Status:** Not started
+
+Make scenario-runner repository preparation preserve the pinned tracked state across repeated native Windows and Linux/WSL runs without requiring manual cache repair. The Batch 7 Windows EF Core run exposed a mismatch: repository preparation could remove the pinned commit's three zero-byte tracked sentinel files, causing the next cache reuse to fail its deliberate tracked-cleanliness guard even though no source mutation occurred.
+
+Retain the guard against silently concealing real source mutations, failed durable restoration or recovery defects. Do not introduce a blanket reset or clean. Instead, identify preparation side effects at the preparation boundary, fail with the exact affected paths, and either isolate generated preparation output from the checkout or support explicitly declared, pinned-content restoration for known repository-owned preparation effects. Add repeat-preparation and cache-reuse coverage for EF Core on Windows and representative Linux/WSL coverage.
+
+Source: [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md#external-repository-preparation-follow-up)
+
 ## Conditional Backlog
 
 These items are intentionally inactive. Move one into the appropriate priority band only when its stated trigger occurs.

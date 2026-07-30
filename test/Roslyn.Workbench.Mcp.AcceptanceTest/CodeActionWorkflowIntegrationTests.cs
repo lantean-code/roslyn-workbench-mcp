@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
@@ -7,6 +8,7 @@ public sealed class CodeActionWorkflowIntegrationTests
     private const int _codeFixKind = 1;
     private const int _refactoringKind = 2;
 
+    private static readonly string[] _builtInIdeDiagnosticIds = ["IDE0003"];
     private static readonly string[] _nullableReturnDiagnosticIds = ["CS8603"];
 
     [Fact]
@@ -319,6 +321,345 @@ public sealed class CodeActionWorkflowIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task GIVEN_DocumentSelectionAndCaretRequests_WHEN_ListingActions_THEN_ShouldPublishConciseLocationAwareResults()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var documentPath = Path.Combine(target.WorkspaceRoot, "CandidateRefactorings.cs");
+            var sourceText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
+            var typeStart = sourceText.IndexOf("internal sealed class MethodPropertyCandidate", StringComparison.Ordinal);
+            var methodStart = sourceText.IndexOf("public int GetValue()", typeStart, StringComparison.Ordinal);
+            typeStart.Should().BeGreaterThanOrEqualTo(0);
+            methodStart.Should().BeGreaterThanOrEqualTo(0);
+
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+
+            var documentResult = await ListRefactoringsAsync(
+                target,
+                workspaceSelector,
+                "CandidateRefactorings.cs");
+            var selectionResult = await ListRefactoringsAsync(
+                target,
+                workspaceSelector,
+                "CandidateRefactorings.cs",
+                new Dictionary<string, object?>
+                {
+                    ["start"] = typeStart,
+                    ["length"] = "internal sealed class MethodPropertyCandidate".Length,
+                });
+            var caretResult = await ListRefactoringsAsync(
+                target,
+                workspaceSelector,
+                "CandidateRefactorings.cs",
+                new Dictionary<string, object?>
+                {
+                    ["start"] = methodStart,
+                    ["length"] = 0,
+                });
+
+            AssertConciseActionList(documentResult, "CandidateRefactorings.cs");
+            AssertConciseActionList(selectionResult, "CandidateRefactorings.cs");
+            AssertConciseActionList(caretResult, "CandidateRefactorings.cs");
+            AcceptanceProtocol.GetSuccessData(selectionResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .GetArrayLength()
+                .Should()
+                .BeGreaterThan(0);
+            AcceptanceProtocol.GetSuccessData(caretResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .GetArrayLength()
+                .Should()
+                .BeGreaterThan(0);
+            AcceptanceProtocol.GetSuccessData(caretResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .EnumerateArray()
+                .Select(static action => action.GetProperty("title").GetString())
+                .Should()
+                .NotContain(title =>
+                    title != null
+                    && (title.Contains("Change signature", StringComparison.OrdinalIgnoreCase)
+                        || title.Contains("Generate overrides", StringComparison.OrdinalIgnoreCase)));
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_BuiltInIdeCodeFix_WHEN_PreparingAndStagingFixAll_THEN_ShouldRemainReadOnlyUntilStandardStaging()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var documentPath = Path.Combine(target.WorkspaceRoot, "SimplifyThisOrMe.cs");
+            var originalBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+
+            var listResult = await target.CallToolAsync(
+                "list-code-actions",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("SimplifyThisOrMe.cs"),
+                    ["kinds"] = _codeFixKind,
+                    ["diagnosticIds"] = _builtInIdeDiagnosticIds,
+                },
+                TestContext.Current.CancellationToken);
+
+            listResult.IsError.Should().NotBeTrue(
+                listResult.IsError == true
+                    ? AcceptanceProtocol.GetError(listResult).GetRawText()
+                    : string.Empty);
+            var action = AcceptanceProtocol.GetSuccessData(listResult)
+                .GetProperty("actions")
+                .GetProperty("items")
+                .EnumerateArray()
+                .Single(candidate =>
+                    candidate.GetProperty("diagnostics")
+                        .GetProperty("items")
+                        .EnumerateArray()
+                        .Any(diagnostic => diagnostic.GetProperty("id").GetString() == "IDE0003")
+                    && candidate.TryGetProperty("fixAllScopes", out var scopes)
+                    && scopes.EnumerateArray().Any(scope => scope.GetInt32() == 0));
+
+            var prepareResult = await target.CallToolAsync(
+                "prepare-fix-all",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = action.GetProperty("actionId").GetGuid(),
+                    ["scope"] = 0,
+                    ["maxChanges"] = 10,
+                    ["affectedDocumentsLimit"] = 10,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            prepareResult.IsError.Should().NotBeTrue(
+                prepareResult.IsError == true
+                    ? AcceptanceProtocol.GetError(prepareResult).GetRawText()
+                    : string.Empty);
+            var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
+            prepared.GetProperty("scope").GetInt32().Should().Be(0);
+            prepared.GetProperty("affectedDocuments")
+                .GetProperty("items")
+                .EnumerateArray()
+                .Should()
+                .ContainSingle(document => document.GetProperty("path").GetString() == "SimplifyThisOrMe.cs");
+            (await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken)).Should().Equal(originalBytes);
+
+            var previewBeforeStage = await target.CallToolAsync(
+                "transaction-preview",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            AcceptanceProtocol.GetSuccessData(previewBeforeStage)
+                .GetProperty("documents")
+                .GetArrayLength()
+                .Should()
+                .Be(0);
+
+            var stageResult = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = prepared.GetProperty("actionId").GetGuid(),
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            stageResult.IsError.Should().NotBeTrue(
+                stageResult.IsError == true
+                    ? AcceptanceProtocol.GetError(stageResult).GetRawText()
+                    : string.Empty);
+            AcceptanceProtocol.GetSuccessData(stageResult)
+                .GetProperty("transaction")
+                .GetProperty("revision")
+                .GetInt32()
+                .Should()
+                .Be(1);
+
+            var previewAfterStage = await target.CallToolAsync(
+                "transaction-preview",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            AcceptanceProtocol.GetSuccessData(previewAfterStage)
+                .GetProperty("documents")
+                .EnumerateArray()
+                .Should()
+                .ContainSingle(change => change.GetProperty("document").GetProperty("path").GetString() == "SimplifyThisOrMe.cs");
+
+            var rollbackResult = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            rollbackResult.IsError.Should().NotBeTrue();
+            (await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken)).Should().Equal(originalBytes);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_ExpiredAndStaleCodeActionReferences_WHEN_Staging_THEN_ShouldRequireRediscovery()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample,
+            environmentVariables: new Dictionary<string, string?>
+            {
+                ["ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME"] = "00:00:05",
+            });
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var sourceText = await File.ReadAllTextAsync(
+                Path.Combine(target.WorkspaceRoot, "RawString.cs"),
+                TestContext.Current.CancellationToken);
+            var stringLiteralStart = sourceText.IndexOf("\"raw\"", StringComparison.Ordinal);
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+
+            var firstList = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart);
+            var secondList = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart);
+            var firstActionId = GetRawStringActionId(firstList);
+            var staleActionId = GetRawStringActionId(secondList);
+
+            var firstStage = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = firstActionId,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            firstStage.IsError.Should().NotBeTrue();
+            var staleStage = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = staleActionId,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
+                },
+                TestContext.Current.CancellationToken);
+
+            AssertStaleAction(staleStage);
+            var rollback = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            rollback.IsError.Should().NotBeTrue();
+            await StartTransactionAsync(target, workspaceSelector);
+            var expiringList = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart);
+            var expiringActionId = GetRawStringActionId(expiringList);
+            await WaitForTimerAsync(TimeSpan.FromMilliseconds(5250), TestContext.Current.CancellationToken);
+
+            var expiredStage = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = expiringActionId,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            AssertActionExpired(expiredStage);
+            var finalRollback = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            finalRollback.IsError.Should().NotBeTrue();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
     private static async Task<IReadOnlyList<JsonElement>> ListNullableReturnActionsAsync(
         AcceptanceProcessFixture target,
         IReadOnlyDictionary<string, object?> workspaceSelector,
@@ -426,5 +767,141 @@ public sealed class CodeActionWorkflowIntegrationTests
             TestContext.Current.CancellationToken);
 
         startResult.IsError.Should().NotBeTrue();
+    }
+
+    private static Task<CallToolResult> ListRefactoringsAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        string documentPath,
+        IReadOnlyDictionary<string, object?>? range = null)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            ["workspace"] = workspaceSelector,
+            ["document"] = AcceptanceLocationSelectorFactory.CreateDocument(documentPath),
+            ["kinds"] = _refactoringKind,
+        };
+
+        if (range is not null)
+        {
+            arguments["range"] = range;
+        }
+
+        return target.CallToolAsync(
+            "list-code-actions",
+            arguments,
+            TestContext.Current.CancellationToken);
+    }
+
+    private static void AssertConciseActionList(CallToolResult result, string expectedDocumentPath)
+    {
+        result.IsError.Should().NotBeTrue(
+            result.IsError == true
+                ? AcceptanceProtocol.GetError(result).GetRawText()
+                : string.Empty);
+
+        var forbiddenProperties = new[]
+        {
+            "providerId",
+            "providerType",
+            "equivalenceKey",
+            "actionPath",
+            "executionMode",
+            "executorTool",
+            "expectedSnapshot",
+            "expiry",
+        };
+
+        foreach (var action in AcceptanceProtocol.GetSuccessData(result)
+            .GetProperty("actions")
+            .GetProperty("items")
+            .EnumerateArray())
+        {
+            action.GetProperty("actionId").GetGuid().Should().NotBe(Guid.Empty);
+            action.GetProperty("title").GetString().Should().NotBeNullOrWhiteSpace();
+            action.GetProperty("location")
+                .GetProperty("document")
+                .GetProperty("path")
+                .GetString()
+                .Should()
+                .Be(expectedDocumentPath);
+
+            foreach (var propertyName in forbiddenProperties)
+            {
+                action.TryGetProperty(propertyName, out _).Should().BeFalse();
+            }
+        }
+    }
+
+    private static Task<CallToolResult> ListRawStringActionsAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        int stringLiteralStart)
+    {
+        return target.CallToolAsync(
+            "list-code-actions",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("RawString.cs"),
+                ["range"] = new Dictionary<string, object?>
+                {
+                    ["start"] = stringLiteralStart,
+                    ["length"] = 0,
+                },
+                ["kinds"] = _refactoringKind,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static Guid GetRawStringActionId(CallToolResult listResult)
+    {
+        listResult.IsError.Should().NotBeTrue(
+            listResult.IsError == true
+                ? AcceptanceProtocol.GetError(listResult).GetRawText()
+                : string.Empty);
+
+        return AcceptanceProtocol.GetSuccessData(listResult)
+            .GetProperty("actions")
+            .GetProperty("items")
+            .EnumerateArray()
+            .Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string")
+            .GetProperty("actionId")
+            .GetGuid();
+    }
+
+    private static void AssertActionExpired(CallToolResult result)
+    {
+        result.IsError.Should().BeTrue();
+        var error = AcceptanceProtocol.GetError(result);
+        error.GetProperty("code").GetString().Should().Be("ActionExpired");
+        var content = result.StructuredContent;
+        content.Should().NotBeNull();
+        content.Value
+            .GetProperty("next")
+            .GetString()
+            .Should()
+            .Be("ResolveTargetAgain");
+    }
+
+    private static void AssertStaleAction(CallToolResult result)
+    {
+        result.IsError.Should().BeTrue();
+        var error = AcceptanceProtocol.GetError(result);
+        error.GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+        var content = result.StructuredContent;
+        content.Should().NotBeNull();
+        content.Value.GetProperty("next").GetString().Should().Be("ResolveTargetAgain");
+    }
+
+    private static async Task WaitForTimerAsync(TimeSpan duration, CancellationToken cancellationToken)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var timer = new Timer(
+            static state => ((TaskCompletionSource)state!).TrySetResult(),
+            completion,
+            duration,
+            Timeout.InfiniteTimeSpan);
+        await completion.Task.WaitAsync(cancellationToken);
     }
 }

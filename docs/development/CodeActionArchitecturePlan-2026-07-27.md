@@ -655,17 +655,19 @@ Completion checklist:
 
 Completion checklist:
 
-- [ ] The exact 250-provider composition snapshot remains green and detects provider additions, removals and duplicates.
-- [ ] The dedicated-tool acceptance matrix and its case, manifest and tool-name infrastructure have been removed rather than translated into per-provider generic MCP calls.
-- [ ] Policy, diagnostic-source, mixed-provider, replay-reference and execution-path audit and integration tests cover the final architecture rather than removed dedicated tools.
-- [ ] Diagnostic-specific compatibility evidence remains for representative and exceptional multi-diagnostic routes.
-- [ ] Published-host acceptance covers the complete architecture-focused case list in the Validation Strategy, including durable create-and-replace commit and separation from Plugins.
-- [ ] Acceptance proves that only the three orchestration tools are published and `PublishedToolCatalogueSizeIntegrationTests` records the resulting `tools/list` and response sizes.
-- [ ] The complete acceptance suite has passed on both WSL and Windows because the acceptance workflows changed.
-- [ ] The scenario runner can select a discovered action deterministically, capture its opaque reference, inject it into staging, rediscover for a new current revision and retain references when exercising undo or redo restoration.
-- [ ] Every affected external-repository scenario has passed through both platform wrappers with representative coverage of each affected repository and scenario family; unaffected scenarios are not run merely for ceremony.
-- [ ] Performance measurements for small, medium and large document discovery, cold and warm built-in diagnostics, replay staging and Fix All preparation and staging are recorded with any production remediation decision.
-- [ ] The full normal build, affected non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] The exact 250-provider composition snapshot remains green and detects provider additions, removals and duplicates.
+- [x] The dedicated-tool acceptance matrix and its case, manifest and tool-name infrastructure have been removed rather than translated into per-provider generic MCP calls.
+- [x] Policy, diagnostic-source, mixed-provider, replay-reference and execution-path audit and integration tests cover the final architecture rather than removed dedicated tools.
+- [x] Diagnostic-specific compatibility evidence remains for representative and exceptional multi-diagnostic routes.
+- [x] Published-host acceptance covers the complete architecture-focused case list in the Validation Strategy, including durable create-and-replace commit and separation from Plugins.
+- [x] Acceptance proves that only the three orchestration tools are published and `PublishedToolCatalogueSizeIntegrationTests` records the resulting `tools/list` and response sizes.
+- [x] The complete acceptance suite has passed on both WSL and Windows because the acceptance workflows changed.
+- [x] The scenario runner can select a discovered action deterministically, capture its opaque reference, inject it into staging, rediscover for a new current revision and retain references when exercising undo or redo restoration.
+- [x] Every affected external-repository scenario has passed through both platform wrappers with representative coverage of each affected repository and scenario family; unaffected scenarios are not run merely for ceremony.
+- [x] Performance measurements for small, medium and large document discovery, cold and warm built-in diagnostics, replay staging and Fix All preparation and staging are recorded with any production remediation decision in [CodeActionBatch7Validation-2026-07-30.md](CodeActionBatch7Validation-2026-07-30.md).
+- [x] The full normal build, affected non-acceptance tests, formatting and `latest-all` analyser validation are green.
+
+WSL and native Windows evidence is recorded in [CodeActionBatch7Validation-2026-07-30.md](CodeActionBatch7Validation-2026-07-30.md).
 
 ### Batch 8 — Final documentation and release alignment
 

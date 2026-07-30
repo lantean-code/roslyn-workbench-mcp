@@ -25,6 +25,8 @@ Folders and namespaces are aligned. Scenario-specific execution and result types
 
 `measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It also records an exact response hash, mutation `staged` state, every bounded collection's JSON path, item count, `HasMore` value, optional known total and ordered item hashes, and the count, maximum size and total size of any returned Code Action references. These observations prove deterministic ordering and prefix equivalence and expose the reference contribution to Code Action projection without retaining large response bodies. Code Action discovery intentionally issues new GUID references and expiry timestamps, so its exact raw response hash is expected to vary even when its ordered action metadata is stable. The runner writes the raw observations and run environment to `measurements.json` and a first/subsequent plus median/P95 summary to `summary.md`. Warm-ups are excluded and their count is recorded so a zero-warm-up first invocation can be interpreted as cold. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
 
+Code Action scenarios use one focused workflow facility. A selection can match one listed action by title fragment, diagnostic ID and exact document span, capture its opaque reference under a scenario-local name, and inject that reference into `prepare-fix-all` or `stage-code-action`. Preparation can capture the resulting prepared reference for a later staging step. Reusing a capture name deliberately replaces its value, so setup can rediscover against each new current revision; a distinct name retains an older reachable-revision reference for undo or redo workflows. This facility is intentionally limited to the three published Code Action orchestration tools and is not a general JSON response-query language.
+
 `cancel` starts one selected query with a known JSON-RPC request ID, sends and awaits the protocol `notifications/cancelled` message after the configured delay, and measures both client-visible cancellation latency and the time until an exclusive transaction lease can be acquired. The explicit notification avoids mistaking cancellation of the runner's local client wait for server-side cancellation. The lease check polls only the explicit `WorkspaceBusy` result, rolls the verification transaction back, and writes `cancellation.json` plus `cancellation.md`.
 
 `commit-cancellation` validates both sides of the durable application boundary using the selected mutation scenario. It sends a real MCP cancellation notification after the Host publishes `Staging`, requiring cancellation with the staged transaction still previewable and no source changes. A fresh execution sends cancellation after `Applying`, requiring the Host to ignore cancellation and reach a successful durable commit. Each boundary uses a fresh Host, restores the checkout and validates recovery, Workspace and shutdown state. Results are written to `commit-cancellation.json`, `commit-cancellation.md` and `validation.json`.
@@ -59,9 +61,11 @@ BenchmarkDotNet is deliberately not part of this end-to-end runner. Use it later
 
 The checked-in `scenario-suite.json` defines exact commits and curated requests for:
 
-- `guardclauses` — small; includes Code Action discovery, two bundled mutation scenarios and the Roslyn-backed `organize-imports` scenario;
+- `guardclauses` — small; includes document and selection Code Action discovery, separate Fix All preparation and prepared-staging measurements, two bundled mutation scenarios and the Roslyn-backed import-ordering scenario;
 - `serilog` — medium; and
 - `efcore` — large.
+
+Each repository includes a `document-code-fixes` scenario so complete-document discovery can be compared across small, medium and large solutions. Run it with zero warm-ups for cold built-in analyzer activation and with at least one warm-up for cached reuse. GuardClauses also separates `prepare-fix-all` and `stage-prepared-fix-all`, keeping discovery, preparation and staging outside one another's timed invocation.
 
 The low/high-limit pairs deliberately submit the same semantic query with different response bounds. A low-limit invocation that costs almost as much as the high-limit invocation can reveal discovery or enrichment work performed before the published bound.
 
@@ -99,6 +103,30 @@ Measure every small-repository scenario with the normal warm-up and iteration de
 ```bash
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   measure --repository guardclauses --scenario all
+```
+
+Measure cold and warm document Code Fix discovery:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  measure --repository guardclauses --scenario document-code-fixes \
+  --iterations 1 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  measure --repository guardclauses --scenario document-code-fixes \
+  --iterations 5 --warmups 1 --skip-prepare
+```
+
+Measure Fix All preparation and prepared staging separately:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  measure --repository guardclauses --scenario prepare-fix-all \
+  --iterations 5 --warmups 1 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  measure --repository guardclauses --scenario stage-prepared-fix-all \
+  --iterations 5 --warmups 1 --skip-prepare
 ```
 
 Collect a 30-second CPU trace for a suspected weak scenario:

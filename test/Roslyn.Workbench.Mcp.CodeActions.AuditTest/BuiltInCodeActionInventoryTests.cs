@@ -1,8 +1,13 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 [Trait("Category", "Audit")]
 public sealed class BuiltInCodeActionInventoryTests
 {
+    private const string _expectedProviderIdentitySha256 = "215A5BE5A0E994F1288BFE1090C1F43142D39F60A5A6B4FB80C68D5F6092B385";
+
     [Fact]
     public void GIVEN_PinnedBuiltInComposition_WHEN_InspectingProviders_THEN_ShouldRetainExactProviderCountAndUniqueIdentities()
     {
@@ -20,6 +25,13 @@ public sealed class BuiltInCodeActionInventoryTests
 
         providerIds.Should().HaveCount(250);
         providerIds.Should().OnlyHaveUniqueItems();
+        var sortedProviderSnapshot = string.Join(
+            '\n',
+            providerIds.Order(StringComparer.Ordinal)) + "\n";
+        var providerIdentitySha256 = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(sortedProviderSnapshot)));
+
+        providerIdentitySha256.Should().Be(_expectedProviderIdentitySha256);
         target.RefactoringProviders.Should().NotBeEmpty();
         target.CodeFixProviders.Should().NotBeEmpty();
     }

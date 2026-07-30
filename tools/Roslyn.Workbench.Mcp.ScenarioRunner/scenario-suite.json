@@ -171,6 +171,138 @@
           }
         },
         {
+          "id": "document-code-fixes",
+          "description": "Measures complete-document Code Fix discovery, including cold or warm built-in analyzer activation according to the selected warm-up count.",
+          "tool": "list-code-actions",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "document": {
+              "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+            },
+            "kinds": 1
+          }
+        },
+        {
+          "id": "prepare-fix-all",
+          "description": "Measures document Fix All preparation after discovery has captured one precise built-in analyzer-backed Code Fix reference.",
+          "tool": "prepare-fix-all",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            },
+            {
+              "tool": "list-code-actions",
+              "codeActionSelection": {
+                "titleContains": "Use discard",
+                "diagnosticId": "IDE0058",
+                "location": {
+                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs",
+                  "start": 390,
+                  "length": 68
+                },
+                "captureAs": "guard-use-discard",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "document": {
+                    "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                  },
+                  "kinds": 1,
+                  "diagnosticIds": ["IDE0058"]
+                }
+              },
+              "arguments": {
+                "workspace": { "workspaceId": "${workspaceId}" },
+                "document": {
+                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                },
+                "kinds": 1,
+                "diagnosticIds": ["IDE0058"]
+              }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "codeActionSelection": {
+            "useCaptured": "guard-use-discard",
+            "captureAs": "guard-use-discard-prepared"
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": 0,
+            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+          }
+        },
+        {
+          "id": "stage-prepared-fix-all",
+          "description": "Measures prepared Fix All replay and standard transaction staging after discovery and preparation have completed outside the timed invocation.",
+          "tool": "stage-code-action",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            },
+            {
+              "tool": "list-code-actions",
+              "codeActionSelection": {
+                "titleContains": "Use discard",
+                "diagnosticId": "IDE0058",
+                "location": {
+                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs",
+                  "start": 390,
+                  "length": 68
+                },
+                "captureAs": "guard-use-discard",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "document": {
+                    "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                  },
+                  "kinds": 1,
+                  "diagnosticIds": ["IDE0058"]
+                }
+              },
+              "arguments": {
+                "workspace": { "workspaceId": "${workspaceId}" },
+                "document": {
+                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                },
+                "kinds": 1,
+                "diagnosticIds": ["IDE0058"]
+              }
+            },
+            {
+              "tool": "prepare-fix-all",
+              "codeActionSelection": {
+                "useCaptured": "guard-use-discard",
+                "captureAs": "guard-use-discard-prepared"
+              },
+              "arguments": {
+                "workspace": { "workspaceId": "${workspaceId}" },
+                "scope": 0,
+                "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+              }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "codeActionSelection": {
+            "useCaptured": "guard-use-discard-prepared"
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+          }
+        },
+        {
           "id": "format-document",
           "description": "Stages full-document formatting through the mutation transaction path.",
           "tool": "format-document",
@@ -407,6 +539,22 @@
             "projectReferencesLimit": 25,
             "metadataReferencesLimit": 100,
             "analyzersLimit": 25
+          }
+        },
+        {
+          "id": "document-code-fixes",
+          "description": "Measures complete-document Code Fix discovery and built-in analyzer reuse on the medium repository.",
+          "tool": "list-code-actions",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "document": {
+              "path": "src/Serilog/Guard.cs",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "kinds": 1
           }
         },
         {
@@ -940,6 +1088,22 @@
             "projectReferencesLimit": 50,
             "metadataReferencesLimit": 100,
             "analyzersLimit": 50
+          }
+        },
+        {
+          "id": "document-code-fixes",
+          "description": "Measures complete-document Code Fix discovery and built-in analyzer reuse on the large repository.",
+          "tool": "list-code-actions",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "document": {
+              "path": "src/EFCore/DbContext.cs",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "kinds": 1
           }
         },
         {

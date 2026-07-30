@@ -105,6 +105,18 @@ Implementation order:
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
+## P2 — Release Support and Ecosystem
+
+### Harden the plugin query-cache boundary
+
+**Status:** Not started
+
+Replace the raw `IToolExecutionServices.QueryCache` contract with a Host-created query-result cache bound to the current Workspace snapshot, plugin and tool. Keep storage, bounds, expiration and invalidation generations internal to Workspace; prevent cross-plugin key collisions, late stores into an invalidated generation and manual Workspace identity mistakes.
+
+Retain separate cache semantics for immutable query results, replayable Code Action handles and process-lifetime metadata. Decide explicitly whether query results and Code Action references share one capacity budget or use isolated caches.
+
+Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
+
 ## Conditional Backlog
 
 These items are intentionally inactive. Move one into the appropriate priority band only when its stated trigger occurs.

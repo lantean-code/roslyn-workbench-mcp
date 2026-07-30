@@ -1,6 +1,8 @@
 # Code Action Architecture Plan — 2026-07-27
 
-Status: Approved implementation authority
+Status: Complete on 2026-07-30
+
+The final release-facing contract is [Code Actions](../CodeActions.md). This document is retained as the completed migration record and architectural rationale; its descriptions of the replaced surface are historical rather than current product guidance.
 
 ## Purpose
 
@@ -680,13 +682,15 @@ WSL and native Windows evidence is recorded in [CodeActionBatch7Validation-2026-
 
 Completion checklist:
 
-- [ ] `docs/CodeActions.md` describes the final agent-facing discovery, Fix All preparation and staging workflow without migration terminology.
-- [ ] Every active release and development document uses composition and exception-policy terminology rather than the positive catalogue model.
-- [ ] Repository-wide searches find no active reference to removed tools, execution modes, dedicated ordinary replay tools or token-based Code Action references.
-- [ ] All documentation links resolve and retained source-analysis evidence remains linked from this plan.
-- [ ] The Code Action migration item has been removed from `FutureTasks.md` only after every earlier batch checklist is complete.
-- [ ] `tools/list`, tool metadata, release documentation and acceptance evidence agree on the same three-tool surface and contract shapes.
-- [ ] Changed Markdown complies with repository formatting and CRLF requirements.
+- [x] `docs/CodeActions.md` describes the final agent-facing discovery, Fix All preparation and staging workflow without migration terminology.
+- [x] Every active release and development document uses composition and exception-policy terminology rather than the positive catalogue model.
+- [x] Repository-wide searches find no active reference to removed tools, execution modes, dedicated ordinary replay tools or token-based Code Action references.
+- [x] All documentation links resolve and retained source-analysis evidence remains linked from this plan.
+- [x] The Code Action migration item has been removed from `FutureTasks.md` only after every earlier batch checklist is complete.
+- [x] `tools/list`, tool metadata, release documentation and acceptance evidence agree on the same three-tool surface and contract shapes.
+- [x] Changed Markdown complies with repository formatting and CRLF requirements.
+
+Completion evidence is recorded in [Code Action Batch 8 Documentation Validation — 2026-07-30](CodeActionBatch8DocumentationValidation-2026-07-30.md).
 
 ## Validation Strategy
 

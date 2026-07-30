@@ -8,6 +8,7 @@ Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# work
 2. Review the available [startup configuration](Configuration.md).
 3. Let the client discover the live [tool surface and result contracts](ToolDiscovery.md).
 4. Follow the [workspace and transaction safety model](WorkspacesAndTransactions.md) before making changes.
+5. Use the final [Code Action discovery, Fix All and staging workflow](CodeActions.md).
 
 ## Extend the server
 
@@ -17,6 +18,6 @@ The author-facing Plugins package includes its minimal Abstractions assembly; pl
 
 ## Documentation authority
 
-The documents directly under `docs` are intended to accompany a release and describe supported user and agent behaviour. MCP `tools/list` is the authoritative tool inventory for a running server because the enabled plugin set and Code Action catalogue are fixed during startup.
+The documents directly under `docs` are intended to accompany a release and describe supported user and agent behaviour. MCP `tools/list` is the authoritative tool inventory for a running server because the enabled plugin set and the three Host-owned Code Action tools are composed once during startup.
 
 Plans, specifications, audits, implementation matrices, inventories, backlog items and dated evidence are kept under [`development`](development/). They are engineering records and may describe intended, intermediate, historical or aspirational states rather than the release contract.

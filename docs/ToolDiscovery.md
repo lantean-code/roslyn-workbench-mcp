@@ -6,12 +6,14 @@ Use MCP `tools/list` to discover the exact tools published by the running proces
 
 - server-owned status, workspace and transaction tools;
 - bundled Roslyn inspection and mutation tools;
-- the internal Code Action catalogue; and
+- the Host-owned `list-code-actions`, `prepare-fix-all` and `stage-code-action` tools; and
 - enabled third-party plugins.
 
 The tool list does not vary with workspace or transaction state and does not change during the process lifetime. A tool that cannot run in the current state returns a structured state error rather than disappearing from discovery.
 
 `server-status` reports the total published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.
+
+The three-tool [Code Action workflow](CodeActions.md) discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.
 
 ## Schemas and metadata
 
@@ -49,4 +51,4 @@ Bundled collection defaults are curated by result shape and expected cost:
 - 200 results: diagnostics, project documents, solution folders and dependency graph nodes; and
 - 400 results: dependency graph edges.
 
-Other bounded numeric inputs also publish their effective defaults: hierarchy, derived-type and callee depth is 3; operation-tree depth is 8; duplicate-code matching requires at least 3 statements; code-context windows are 10 lines on each side; transaction diff context is 3 lines; and fix-all is capped at 50 changed source documents unless the caller supplies another value.
+Other bounded numeric inputs also publish their effective defaults: hierarchy, derived-type and callee depth is 3; operation-tree depth is 8; duplicate-code matching requires at least 3 statements; code-context windows are 10 lines on each side; transaction diff context is 3 lines; Code Action discovery returns at most 50 leaves; Fix All preparation allows at most 50 changed source documents and returns at most 20 affected document identities unless the caller supplies other values.

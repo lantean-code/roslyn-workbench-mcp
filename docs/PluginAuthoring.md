@@ -119,7 +119,7 @@ The bundled first-party tools are loaded with the Host rather than discovered fr
 
 ## Diagnostics and collisions
 
-Host validates package metadata and compatibility before executing plugin code. It builds the internal Code Action catalogue first and reserves Code Action and server-owned tool names. Collision rules are deterministic:
+Host validates package metadata and compatibility before executing plugin code. It composes the three Host-owned Code Action tools first and reserves those names together with other server-owned names. Collision rules are deterministic:
 
 - reserved and Plugins.Core names defeat external plugins;
 - every external package sharing a plugin ID is disabled;

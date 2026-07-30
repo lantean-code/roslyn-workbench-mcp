@@ -25,10 +25,10 @@ Validated evidence:
 
 - Host is the only production project that references the MCP SDK.
 - Host owns MCP request binding, schema publication, result serialization, transport adapters and server-owned tools.
-- Code Actions are loaded through their internal catalogue and do not appear as plugins.
+- Code Actions are composed as three Host-owned tools and do not appear as plugins.
 - Plugins.Core is bundled but uses the same plugin configuration and materialisation rules as external plugins.
 - External plugin discovery, PE inspection, load-context isolation, MEF composition and deterministic collision handling have focused collaborators.
-- Plugin and Code Action invocation remains closed-generic after catalogue materialisation.
+- Plugin and Code Action invocation remains closed-generic after startup composition.
 - No Host production code uses null-forgiving operators or builds a temporary service provider.
 
 The project boundary does not need redesign. The remaining work is concentrated in Host composition, protocol construction, adapter registration, exception filtering and startup sequencing.
@@ -39,7 +39,7 @@ The MEF implementation has already split the former plugin-loader hotspot into a
 
 The classes that do cross a useful responsibility boundary are:
 
-- `RoslynWorkbenchHostApplicationBuilderExtensions`, which currently parses configuration, constructs startup catalogues, configures logging, maps options, registers every subsystem, registers MCP tools and establishes hosted-service ordering;
+- `RoslynWorkbenchHostApplicationBuilderExtensions`, which currently parses configuration, constructs startup composition, configures logging, maps options, registers every subsystem, registers MCP tools and establishes hosted-service ordering;
 - `ToolSchemaBuilder`, which combines MCP SDK compatibility reflection, schema export, schema rewriting and process-wide caches;
 - the plugin MCP registration path, which constructs tools through service-provider lambdas even though the Code Action path already supports direct container-validatable registration; and
 - both MCP base classes, which suppress unhandled exceptions into correlation-bearing responses without logging the matching exception and correlation identifier.
@@ -80,7 +80,7 @@ Status: Complete
 
 `StartupOptions` follows the normal mutable options shape and is registered with `AddOptions`. The original parser silently replaced malformed values with defaults without retaining any diagnostic, while the first H1 implementation failed startup for those values. Neither behaviour suited an MCP server normally launched by an agent from pre-defined configuration: silent fallback was unobservable, while fail-fast configuration prevented the server and its diagnostics tools from becoming available.
 
-The plugin catalogue consumes these values before the Host is built, so DI-only validation would occur too late for all callers.
+Startup composition consumes these values before the Host is built, so DI-only validation would occur too late for all callers.
 
 ### Decision
 
@@ -94,14 +94,14 @@ Do not replace this with a temporary DI container. Do not create a parameter obj
 
 `StartupOptionsResolver` now produces a `StartupConfigurationSnapshot` containing effective options and structured warnings. Known command-line options without a value, malformed or non-positive numeric and time-span values, unsupported schema modes, blank plugin roots and invalid state-directory syntax fall back only the affected setting. Integer and time-span parsing uses invariant culture, command-line scalar values retain precedence over environment values, repeated plugin roots are preserved and deduplicated, and unknown arguments remain available to the surrounding Host and MCP infrastructure.
 
-`StartupOptionsRules` contains the shared deterministic validity rules. `StartupOptionsValidator` protects the resolved options before either catalogue is built and is registered with `ValidateOnStart` for the normal options pipeline. `StartupConfigurationReporter` logs every fallback after Host logging becomes available, and full `server-status` exposes the same warnings through `startupWarnings`. No temporary service provider is created.
+`StartupOptionsRules` contains the shared deterministic validity rules. `StartupOptionsValidator` protects the resolved options before Code Action tool composition and plugin catalogue loading and is registered with `ValidateOnStart` for the normal options pipeline. `StartupConfigurationReporter` logs every fallback after Host logging becomes available, and full `server-status` exposes the same warnings through `startupWarnings`. No temporary service provider is created.
 
 The complete startup configuration feature now lives under the `Configuration` folder and `Roslyn.Workbench.Mcp.Configuration` namespace, with its unit tests in the matching test folder and namespace. Later Host phases should follow the same feature-based convention and avoid generic `Services`, `Factories` or `Models` folders.
 
 ### Working checklist
 
 - [x] Resolve malformed, missing or semantically invalid settings independently to their defaults and retain structured warnings.
-- [x] Validate positive result, query, revision and token-lifetime values and a non-empty state directory.
+- [x] Validate positive result, query, revision and reference-lifetime values and a non-empty state directory.
 - [x] Keep command-line values ahead of environment values and preserve the current repeated plugin-directory behaviour.
 - [x] Register the same rules through `AddOptions<StartupOptions>()` and `ValidateOnStart`.
 - [x] Log startup fallback warnings and expose them through full `server-status`.
@@ -232,17 +232,17 @@ Complexity: medium.
 
 `RoslynWorkbenchHostApplicationBuilderExtensions.AddRoslynWorkbench` is the correct composition root, but its helper methods now conceal too many phases. `AddCoreServices` registers Workspace, Plugins, CodeActions and Host services in one long list. `PluginCatalogComposition.CreateLoader` hides a second manually constructed object graph before DI.
 
-Pre-DI catalogue materialisation is legitimate because the complete MCP tool set must be known before Host DI is built. The issue is not manual construction at the composition root; it is that the boundary and resulting startup state are implicit.
+Pre-DI tool composition is legitimate because the complete MCP tool set must be known before Host DI is built. The issue is not manual construction at the composition root; it is that the boundary and resulting startup state are implicit.
 
 ### Decision
 
-Represent pre-DI work as an explicit startup composition containing validated options, the Code Action catalogue and the plugin catalogue. Give plugin bootstrap construction one focused owner. Split registrations by architectural ownership while keeping `AddRoslynWorkbench` as the readable ordered coordinator.
+Represent pre-DI work as an explicit startup composition containing validated options, the three Code Action tool registrations and the plugin catalogue. Give plugin bootstrap construction one focused owner. Split registrations by architectural ownership while keeping `AddRoslynWorkbench` as the readable ordered coordinator.
 
 Do not build a temporary service provider. Do not introduce interfaces for deterministic registration extensions. Do not split each registration line into a separate class.
 
 ### Resolution
 
-`HostStartupComposer` now owns the ordered pre-DI phase and returns an explicit `HostStartupComposition` containing the validated configuration, Code Action catalogue and plugin catalogue. It creates the Code Action catalogue first and passes the combined Code Action and server-owned names into plugin loading as protected names. `PluginCatalogBootstrap` is the named owner of the manual plugin-loading object graph; the former hidden static loader factory has been removed.
+`HostStartupComposer` now owns the ordered pre-DI phase and returns an explicit `HostStartupComposition` containing the validated configuration, three Code Action tool registrations and plugin catalogue. It composes the Code Action tools first and passes their names together with other server-owned names into plugin loading as protected names. `PluginCatalogBootstrap` is the named owner of the manual plugin-loading object graph; the former hidden static loader factory has been removed.
 
 The Host builder now reads as the startup sequence described below. Options, Workspace, Plugins, CodeActions, Host services, MCP tools and startup prerequisites are registered through cohesive ownership-based extensions while preserving singleton lifetimes and constructor-visible service dependencies. Host composition remains the only pre-DI coordinator and does not build a temporary service provider.
 
@@ -250,9 +250,9 @@ Host-owned composition types now live under `Hosting`, and external plugin disco
 
 ### Working checklist
 
-- [x] Add an immutable Host startup-composition result for validated options and catalogue snapshots.
+- [x] Add an immutable Host startup-composition result for validated options, Code Action registrations and plugin snapshots.
 - [x] Give plugin bootstrap object-graph construction one named owner instead of a hidden static loader factory.
-- [x] Keep Code Action catalogue creation before plugin collision validation.
+- [x] Keep Code Action tool composition before plugin collision validation.
 - [x] Split service registration into cohesive Workspace, Plugins, CodeActions and Host registration groups.
 - [x] Keep all dependencies constructor visible and preserve singleton lifetimes.
 - [x] Leave the top-level extension as a short sequence: compose, configure logging/options, register subsystems, register tools, register startup prerequisites and transport.

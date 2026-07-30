@@ -41,16 +41,6 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
 
-### Rebuild Code Actions around generic discovery and replay
-
-**Status:** Started
-
-Replace the positive supported-provider ledger and dedicated Code Action tool surface with generic Roslyn discovery, an exception-based runtime policy, built-in diagnostic activation, document and selection discovery, concise agent-facing results, prepared Fix All references and one unified staging path.
-
-Implement the dependency-ordered batches in the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). Preserve MEF composition, replay recipes, operation validation and Workspace transaction staging while removing dedicated ordinary replay tools, descriptor execution modes and alternative Code Action stagers. Keep Workbench-owned semantic transformations in Plugins.Core.
-
-Complete the accompanying documentation cleanup so release documentation describes only `list-code-actions`, `prepare-fix-all` and `stage-code-action`, and no active document presents the superseded positive catalogue as current behaviour.
-
 ### Prepare and publish the v1 release artifacts
 
 **Status:** Not started

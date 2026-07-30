@@ -17,7 +17,7 @@ The current policy is recorded in `TestingStrategy.md`. The implemented architec
 | MCP envelopes, schemas and lifecycle contracts | `Roslyn.Workbench.Mcp.Test` | Host-owned serialisation, binding, schema and transport behaviour |
 | Plugin execution and configuration | `Roslyn.Workbench.Mcp.Plugins.Test` | Fluent configuration, handler inspection, materialisation, typed visitor and context-adaptation behaviour |
 | Inspection and normal refactoring tools | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Per-tool unit coverage and Roslyn algorithm branches |
-| Code-action tools and workflows | `Roslyn.Workbench.Mcp.CodeActions.Test` | Isolated catalogue, discovery, token, workflow and tool behaviour |
+| Code Action tools and workflows | `Roslyn.Workbench.Mcp.CodeActions.Test` | Isolated composition, exception policy, discovery, replay-reference, Fix All, staging and tool behaviour |
 | Server-owned tools | `Roslyn.Workbench.Mcp.Test` | Tool mapping and mock-isolated host service behaviour |
 
 Every production tool currently has dedicated unit coverage in its owning unit project. A tool is not required to have a same-named integration class.
@@ -47,14 +47,14 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Code Action provider matching, nested-action flattening and exact-span diagnostic grouping | `CodeActionDiscoveryServiceTests` | Covered; 100% line and branch coverage without exception-driven registration retries |
 | Code Action query MCP adapter | `CodeActionQueryMcpServerToolTests` | Covered; 100% line and branch coverage |
 | Code Action mutation MCP adapter and separate staging | `CodeActionMutationMcpServerToolTests` | Covered; 100% line and branch coverage |
-| Code Action list/describe orchestration and action-info projection | `ListCodeActionsToolTests`, `DescribeCodeActionToolTests`, `CodeActionInfoFactoryTests` | Covered; 100% line and branch coverage, including deterministic ordering, classification, token projection and rejection paths |
+| Code Action discovery, Fix All preparation and concise action projection | `ListCodeActionsToolTests`, `PrepareFixAllToolTests`, `CodeActionInfoFactoryTests` | Covered, including deterministic ordering, document/selection/caret discovery, diagnostic context, reference projection, impact bounds and rejection paths |
 | Plugin adaptation of neutral Workspace contexts and failures | `PluginExecutionContextFactoryTests`, `PluginExecutionContextTests` | Covered |
 | Code Action adaptation of neutral Workspace contexts and failures | `CodeActionExecutionContextFactoryTests`, `CodeActionExecutionContextTests` | Covered; contexts expose Workspace execution state only and handlers receive stable services through constructor injection |
-| Code Action candidate identity and replay, fix-all, scoped-fix and location-fix services | `CodeActionCandidateIdentityTests`, `CodeActionReplayServiceTests`, `CodeActionFixAllServiceTests`, `CodeActionScopedFixServiceTests`, `CodeActionLocationFixServiceTests` | Covered; 100% line and branch coverage, including value-based duplicate candidate handling and every scoped application path |
+| Code Action replay identity, exact rediscovery, prepared Fix All resolution and source-only candidate validation | `CodeActionResolverTests`, `PreparedFixAllResolverTests`, `CodeActionEvaluatorTests` | Covered, including expiry, stale and ambiguous references, exact candidate identity, supported Fix All scopes and rejected operation shapes |
 | Stager separate from Workspace handler context | `WorkspaceExecutionLeaseTests` | Covered at lease boundary |
 | Reserved Code Action name disables a colliding plugin | `PluginPackageDiscoveryIntegrationTests` | Covered with a real fixture package |
 | Host constructs all tool families | `HostCompositionIntegrationTests` | Covered at composition boundary |
-| CodeActions excluded from plugin discovery/status | Separate Code Action catalogue and status mapping tests | Covered behaviourally; keep explicit when status tests change |
+| Code Actions excluded from plugin discovery/status | Separate Code Action composition and status mapping tests | Covered behaviourally; keep explicit when status tests change |
 | Forbidden production dependency directions | Manual project-reference inspection | Automate with a project-reference/build check in a later architecture-test round |
 
 ## Integration Capability Ownership
@@ -68,18 +68,18 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Cross-project search | `SolutionSearchIntegrationTests` | Implementations, references, callers, derived types and dependency relationships |
 | Selector and snapshot semantics | `SelectorAndSnapshotIntegrationTests` | Resolution, search, metadata, bounded results and stale snapshots |
 | Mutation staging | `MutationPipelineIntegrationTests` | Rename, formatting, using changes, preview and transaction staging |
-| Controlled code actions | `ControlledProviderWorkflowIntegrationTests` | List, describe, stage, fix-all, token and snapshot workflows |
+| Controlled Code Actions | `ControlledProviderWorkflowIntegrationTests` | Discovery, concise projection, single-action staging, Fix All preparation/staging, reference and snapshot workflows |
 | Built-in code actions | `BuiltInCodeActionStagingIntegrationTests` | Representative built-in provider staging |
 | Code-action composition | `MefCodeActionCompositionIntegrationTests` | Provider composition and discovery |
 | Host composition | `HostCompositionIntegrationTests` | Configuration projection, dependency injection and MCP tool registration |
 | Plugin package discovery | `PluginPackageDiscoveryIntegrationTests`, `PluginAssemblyMetadataReaderIntegrationTests`, `PluginAssemblyLoadContextIntegrationTests`, `MefPluginComposerIntegrationTests` | Fixture assembly loading, PE metadata, private dependency routing, MEF composition, collisions and failure isolation |
-| MCP protocol and published workflows | `PublishedHostProtocolIntegrationTests`, `WorkspaceWorkflowIntegrationTests`, `ExternalPluginWorkflowIntegrationTests`, `CodeActionWorkflowIntegrationTests` | Real stdio initialisation, catalogue/schema publication, query, plugin mutation, Code Action mutation and external plugin invocation |
+| MCP protocol and published workflows | `PublishedHostProtocolIntegrationTests`, `WorkspaceWorkflowIntegrationTests`, `ExternalPluginWorkflowIntegrationTests`, `CodeActionWorkflowIntegrationTests` | Real stdio initialisation, tool/schema publication, query, plugin mutation, three-tool Code Action workflow and external plugin invocation |
 | Host lifecycle and recovery | `PublishedHostLifetimeIntegrationTests`, `StartupAndRecoveryWorkflowIntegrationTests`, `ServerStatusRecoveryIntegrationTests` | End-of-stdin lifetime, restart/configuration fallback and persisted recovery diagnostics |
-| Built-in compatibility governance | `Roslyn.Workbench.Mcp.CodeActions.AuditTest` | Provider ledger, matching and replay-wrapper compatibility |
+| Built-in compatibility governance | `Roslyn.Workbench.Mcp.CodeActions.AuditTest` | Exact provider composition, exception policy, diagnostic mapping, mixed-provider leaves and replay compatibility |
 
 ## Acceptance Ownership
 
-Acceptance remains representative rather than per-tool. Its ten cases cover prerequisite diagnostics, startup stderr, protocol/catalogue publication, Workspace lifecycle and semantic query, plugin transaction commit, Code Action stage/rollback, an external plugin with a private dependency, restart/recovery diagnostics and end-of-stdin process lifetime. Ordinary request variants and branch outcomes remain with the owning Unit/Contract project.
+Acceptance remains representative rather than per-tool. The published-host suite covers prerequisite diagnostics, startup stderr, tool/schema publication, Workspace lifecycle and semantic queries, plugin transactions, the complete three-tool Code Action workflow, durable create-and-replace commit, external plugins, restart/recovery diagnostics and end-of-stdin process lifetime. Ordinary provider compatibility and branch outcomes remain with the owning Unit/Contract, Integration and Audit projects.
 
 ## Partial Branch Reassessment
 

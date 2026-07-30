@@ -50,8 +50,8 @@ The completed CodeActions follow-up record has been superseded by the [Code Acti
 
 - [x] Break up `MefCodeActionService` into focused collaborators. Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/MefCodeActionService.cs` Notes:
-  - The class is still acting as a god service.
-  - Current responsibilities include discovery, filtering, snapshot checks, action resolution, token creation/validation, analyzer activation, result construction, and JSON handling.
+  - The former class combined discovery, filtering, snapshot checks, action resolution, reference management, analyser activation, result construction and JSON handling.
+  - CodeActions now assigns composition, diagnostics, discovery, exception policy, replay-reference storage and resolution, operation evaluation and staging to focused collaborators.
 
 - [x] Remove invalid-state ambiguity from workspace selection. Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceSelectorService.cs`
@@ -73,7 +73,7 @@ The completed CodeActions follow-up record has been superseded by the [Code Acti
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolSchemaFactory.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/Tooling/ToolSchemaBuilder.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolResponseShaper.cs` Notes:
-  - Host now owns schema generation, response shaping and MCP publication for both plugin and internal Code Action catalogues.
+  - Host now owns schema generation, response shaping and MCP publication for both plugin tools and the three Host-owned Code Action tools.
 
 ## P2: Medium Priority
 
@@ -85,12 +85,12 @@ The completed CodeActions follow-up record has been superseded by the [Code Acti
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceExecutionContextFactory.cs` Notes:
   - Workspace exposes only workspace-owned contexts, failures, mutation candidates and staging results.
 
-- [x] Rework Code Action provider composition into a container-validatable catalogue boundary. Files:
+- [x] Rework Code Action provider composition into a container-validatable composition boundary. Files:
   - `src/Roslyn.Workbench.Mcp.CodeActions/Composition/MefCodeActionComposition.cs`
   - `src/Roslyn.Workbench.Mcp/HostConfiguredMsBuildWorkspaceFactory.cs` Notes:
   - Code Actions owns an immutable MEF provider composition; Host bridges its optional Roslyn host services into Workspace creation through constructor-injected services.
-  - Code Action tool registrations retain closed handler, request and response generic types without constructing handlers during catalogue creation. Host registers the handler and closed MCP adapter with DI, allowing constructor validation.
-  - Query and mutation execution contexts contain only invocation-specific Workspace state. List and describe handlers own their orchestration and receive focused collaborators; mutation handlers receive replay, fix-all, scoped-fix or location-fix services directly through constructor injection. There are no aggregated query- or mutation-workflow façades.
+  - Code Action tool registrations retain closed handler, request and response generic types without constructing handlers during startup composition. Host registers the handler and closed MCP adapter with DI, allowing constructor validation.
+  - Query and mutation execution contexts contain only invocation-specific Workspace state. Discovery, Fix All preparation and unified staging handlers own their orchestration and receive focused collaborators through constructor injection. There are no aggregated query- or mutation-workflow façades.
 
 ### Host
 

@@ -2,6 +2,8 @@
 
 Date: 2026-07-23
 
+Status: Historical gap analysis. The final three-tool Code Action scenario coverage and cross-platform measurements are recorded in [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md); the checked-in suite and runner behaviour are documented in the scenario-runner README.
+
 ## Purpose
 
 This second-pass audit checks whether the performance programme exercises the production workflows most likely to expose correctness, state-management and platform defects. It follows the durable-commit and conflict measurements, which found critical Windows, linked-document and recovery-path issues that ordinary unit and integration coverage had not exposed.

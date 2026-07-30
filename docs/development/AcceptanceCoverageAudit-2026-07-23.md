@@ -2,6 +2,8 @@
 
 Date: 2026-07-23
 
+Status: Implemented. The final 53-case published-host suite and cross-platform Code Action evidence are recorded in [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md).
+
 ## Purpose
 
 This audit defines the acceptance contract for a Roslyn Workbench release. It starts from the supported user and agent behaviour in the release documentation, not from the tests or scenario runner that happen to exist today.
@@ -72,11 +74,11 @@ Before Batches 2 and 3, the acceptance project contained twelve tests:
 
 Current published-Host evidence covers:
 
-- catalogue and selected schema-default publication;
+- tool inventory and selected schema-default publication;
 - full server status and invalid-option fallback;
 - one direct SDK project open, semantic query, status, close and empty-state rejection;
 - one bundled rename transaction through durable commit;
-- one token-based Code Action through staging, preview and rollback;
+- one opaque-reference Code Action through staging, preview and rollback;
 - one valid external query plugin with a private dependency;
 - deterministic external query and mutation packages plus known-request-ID invocation readiness;
 - blocked-recovery reporting from a synthetic `RecoveryConflict` manifest; and
@@ -106,7 +108,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
 | --- | --- | --- | --- | --- |
-| Catalogue is fixed for process lifetime and independent of Workspace state | Unit/integration composition; initial acceptance list | Compare catalogue identity before open, during transaction and after close | PR: Ubuntu, Windows | Stability across state transitions is not asserted |
+| Tool inventory is fixed for process lifetime and independent of Workspace state | Unit/integration composition; initial acceptance list | Compare tool identity before open, during transaction and after close | PR: Ubuntu, Windows | Stability across state transitions is not asserted |
 | Names, titles, descriptions, annotations and input schemas are published | Contract tests; acceptance samples three names and two defaults | Validate representative server, query, bundled mutation, Code Action and external plugin metadata; keep exhaustive schema ownership in Contract tests | PR: Ubuntu, Windows | Execution-family metadata sampling is incomplete |
 | Curated defaults are published and applied | Contract/integration audit covers all built-in limits; acceptance samples two | Invoke one bounded tool with omitted and explicit limits, proving the published default matches execution | PR: Ubuntu, Windows | Runtime use of a discovered default is not accepted |
 | Bounded collections are deterministic and report `hasMore` | Tool tests and release runner | Repeat one bounded query, compare ordered response, then raise the limit and verify prefix equivalence | PR: Ubuntu, Windows | No small published-boundary determinism case |
@@ -158,7 +160,7 @@ Acceptance does not need one test per query tool. It must sample every distinct 
 | Server-owned lifecycle query | `server-status` and `workspace-status` | Existing | Covered |
 | Bundled plugin query | `search-symbols` plus one bounded structural query | Existing search only | Add bounded/default evidence |
 | External plugin query | Packaged query with private dependency | Existing | Covered |
-| Code Action query | `list-code-actions` with executable and filtered actions | Existing executable action | Add diagnostic/fix filtering only if needed by mutation representative |
+| Code Action query | `list-code-actions` with executable and filtered actions | Document, selection and caret discovery with compiler and built-in diagnostics | Covered |
 | Solution scope | Structure or symbol query over a small solution | Component/runner | Missing |
 | Project scope and target framework | Project-qualified query in a multi-target fixture | Unit/component and runner selectors | Missing |
 | Document scope | Document outline/options or formatting target | Tool tests | Missing at published boundary |
@@ -179,8 +181,8 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 | --- | --- | --- | --- | --- |
 | Bundled mutation stages but does not write before commit | Existing rename commit; Code Action rollback checks disk | Explicitly check disk before bundled preview/commit | PR: Ubuntu, Windows | Pre-commit disk invariant is not explicit for bundled mutation |
 | External plugin mutation proposes and Host stages | Adapter/component tests | Package, invoke, preview and roll back external mutation | PR: Ubuntu, Windows | Missing |
-| Token-based Code Action mutation stages and rolls back | Existing raw-string action | Retain | PR: Ubuntu, Windows | Covered |
-| Dedicated or replay Code Action mutation executes | Code Action integration/audit and release runner | Use one deterministic dedicated/replay tool through published Host | PR: Ubuntu, Windows | Missing |
+| Opaque-reference Code Action mutation stages and rolls back | Existing raw-string action | Retain | PR: Ubuntu, Windows | Covered |
+| Generic Code Action replay executes | Code Action integration/audit and release runner | Discover and stage one deterministic refactoring through the three-tool workflow | PR: Ubuntu, Windows | Covered |
 | No-change result does not create a revision | Tool unit tests and runner scenario | Invoke one deterministic no-change mutation and inspect transaction revision | PR: Ubuntu, Windows | Missing |
 | Rejected mutation retains transaction and disk state | Unit/component tests | Use a stale snapshot or invalid target, then prove transaction remains usable | PR: Ubuntu, Windows | Missing |
 | Create and replace operations commit and promote | Release Code Action scenario; component durability | Commit a small Code Action that creates one file and replaces another | PR: Ubuntu, Windows | Missing |
@@ -254,11 +256,11 @@ The expanded suite is complete only when these production paths each have at lea
 | Workspace lifecycle | Open, list, status, reload and close |
 | Bundled query | Bounded semantic or structural query |
 | External query | Packaged query with private dependency |
-| Code Action query | Discovery with token metadata |
+| Code Action query | Document, selection and caret discovery with concise action references |
 | Bundled mutation | Rename or formatting proposal through preview/commit |
 | External mutation | Packaged mutation through preview/rollback |
-| Token-based Code Action mutation | Existing raw-string stage/rollback |
-| Dedicated/replay Code Action mutation | One deterministic refactoring tool |
+| Single Code Action mutation | Discovered raw-string refactoring stage/rollback |
+| Prepared Fix All mutation | Built-in IDE Code Fix preparation, staging, preview and rollback |
 | Transaction lifecycle | Start, preview, history, rollback and commit |
 | Recovery/status | Blocked recovery plus clean restart after commit |
 | Cancellation/concurrency | Deterministic shared lease, cancellation, retry and exclusive acquisition |
@@ -348,7 +350,7 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 
 - bundled mutation pre-commit disk invariant;
 - external plugin mutation staging and rollback;
-- token and dedicated/replay Code Action mutation paths;
+- single-action and prepared Fix All Code Action mutation paths;
 - no-change and rejected mutation invariants;
 - Code Action create/replace commit;
 - two revisions, staged queries, preview, undo, redo and rollback;
@@ -361,8 +363,8 @@ Implemented evidence:
 - returning the immutable current solution exercises the no-change envelope and retains revision zero;
 - a stale mutation snapshot is rejected without consuming a revision, after which two compatible renames stage successfully;
 - staged semantic queries follow revision zero, revision one, revision two, undo and redo before rollback restores baseline bytes and semantics;
-- the existing token-based Code Action remains covered, while `move-type-to-file` supplies the dedicated replay path and a real create/replace commit;
-- multi-file bundled rename and dedicated Code Action cases assert the pre-commit disk invariant and promoted post-commit semantics; and
+- the generic discovery and staging workflow covers the existing raw-string action and discovers a move-type refactoring for the real create/replace commit;
+- multi-file bundled rename and generic Code Action cases assert the pre-commit disk invariant and promoted post-commit semantics; and
 - two loaded Workspaces prove blocked concurrent ownership, rollback release, ownership transfer and the public `workspace-list` owner projection.
 
 ### Batch 5 — Durability and restart

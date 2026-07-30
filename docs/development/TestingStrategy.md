@@ -46,7 +46,7 @@ Each owning unit project is responsible for reachable line and branch coverage o
 | Workspace | Domain models with behaviour, selection, acquisition results, leases, state, resolver algorithms and staging behaviour that can be isolated |
 | Plugins | Public plugin surface, typed registration/visitor dispatch, Workspace context adaptation, plugin services, result and proposal mapping |
 | Plugins.Core | Inspection and ordinary mutation handler branches plus owned DTO validation |
-| CodeActions | Internal catalogue, typed registration/visitor dispatch, context adaptation, workflows, tokens, result mapping and Code Action handlers |
+| CodeActions | Provider composition, exception policy, typed registration/visitor dispatch, context adaptation, discovery, replay references, Fix All, staging and result mapping |
 | Host | Host services, lifecycle tools, Host-owned contracts, schemas, binding, publication and all four MCP adapters |
 
 ### Contract
@@ -81,8 +81,8 @@ The refactor created four distinct Host transport paths. Each path needs focused
 | --- | --- | --- | --- |
 | Plugin query | Plugins and Plugins.Core | request binding, acquisition, handler result/failure, cancellation, exception and publication | plugin discovery and representative MCP invocation |
 | Plugin mutation | Plugins and Plugins.Core | proposal, no-change/failure, separate staging, staged result, cancellation and exception | real mutation staging through MCP |
-| Code Action query | CodeActions | request binding, Code Action context acquisition, result/failure, cancellation, exception and publication | controlled-provider list/describe flow and Host composition |
-| Code Action mutation | CodeActions | proposal, no-change/failure, separate staging, staged result, cancellation and exception | controlled-provider staging and representative built-in staging |
+| Code Action query | CodeActions | request binding, Code Action context acquisition, result/failure, cancellation, exception and publication | controlled-provider discovery and Fix All preparation plus Host composition |
+| Code Action mutation | CodeActions | proposal, no-change/failure, Host transaction staging, staged result, cancellation and exception | controlled-provider single/prepared staging and representative built-in staging |
 
 The shared Host MCP base is tested once for common argument, cancellation and safe-exception behaviour. Path-specific acquisition, result mapping and staging remain tests of each closed generic adapter.
 
@@ -98,7 +98,7 @@ Architecture assertions should be behavioural or project-reference based whereve
 - plugin contexts add only plugin execution services
 - Code Action contexts expose only invocation-specific Workspace execution state; stable Code Action services are constructor-injected into their handlers
 - staging remains on the mutation lease, not the handler context
-- duplicate internal Code Action names fail catalogue construction
+- duplicate internal Code Action names fail startup tool composition
 - plugins colliding with reserved Code Action or existing plugin names are disabled with diagnostics
 - external packages with duplicate plugin IDs or shared tool names are all disabled deterministically
 - Plugins.Core follows the same MEF configuration and materialisation path while remaining in the default load context

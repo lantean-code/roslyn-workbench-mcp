@@ -45,4 +45,6 @@ Only one loaded workspace may own the server's active transaction slot.
 
 Queries run against the effective solution: the staged working solution while a transaction is active, otherwise the loaded baseline. Mutation, lifecycle and transaction operations require exclusive workspace access and may return `WorkspaceBusy` with a retry action instead of waiting in a server-side queue.
 
+For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the [three-tool Code Action workflow](CodeActions.md). After a successful stage advances the revision, rediscover any subsequent action against that new current revision.
+
 `transaction-commit` rechecks the source-file manifest and is the only public operation that writes staged source changes to disk. It does not compile the solution or modify project, props or targets files. Durable recovery records protect interrupted commits and are surfaced by `server-status`.

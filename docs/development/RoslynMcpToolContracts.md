@@ -2,53 +2,19 @@
 
 > **Engineering record:** This catalogue guided contract implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
 >
-> **Code Action reassessment:** The “not planned while Roslyn APIs are unavailable” decisions below are superseded by the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
+> **Code Action contract:** The final release workflow is documented in [Code Actions](../CodeActions.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
 
 ## Purpose
 
-This document defines the MCP metadata, request contracts and structured output shapes for the planned tools. It is the contract source for plugin authors, the server tool adapter and generated JSON Schemas. It supersedes the request shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserve their intent, but use the safer workspace, selector and transaction model defined by this project.
+This document records the MCP metadata, request contracts and structured output shapes used during tool planning and implementation. It is retained for engineering history, not as the current contract source for plugin authors or clients. It superseded the request shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserved their intent while adopting the safer workspace, selector and transaction model defined by this project.
 
-## Current Execution Surface Note (2026-07-02)
+## Current Execution Surface Note (2026-07-30)
 
-The current build now registers and serves the `get-code-context`, `find-callees`, `find-overrides`, `get-symbol-dependencies`, `get-symbol-dependents`, `get-change-impact`, `get-api-surface`, `convert-expression-body`, and `add-null-checks` contracts described in this catalogue, and `get-control-flow-graph` now returns populated `regions` data instead of an empty placeholder array. The narrowed future request contracts for `move-type-to-file` and `convert-property` now exist in the contracts project, and the shipped `convert-auto-property-to-full-property` split uses its own dedicated CLR request contract.
-
-The following point 2 catalogue entries remain planned contracts only and are not registered by the current build:
-
-- `get-code-metrics`
-- `find-unused-symbols`
-- `find-duplicate-code`
-- `get-dependency-graph`
-- `find-dependency-cycles`
-- `get-test-impact`
-- `analyze-nullability`
-- `analyze-async`
-- `analyze-disposables`
-- `move-type-to-file`
-- `move-type-to-namespace`
-- `convert-to-async`
-- `convert-property`
-- `convert-to-pattern-matching`
-- `generate-constructor`
-- `generate-tostring`
-
-The following mutation families are not planned for implementation in this server while they depend on non-public Roslyn services or internal IDE-only generation paths. Their request and response shapes remain in this catalogue only as aspirational end-state contracts:
-
-- `move-type-to-namespace`
-- `convert-to-async`
-- `convert-to-pattern-matching`
-- `generate-constructor`
-- `generate-tostring`
-- `extract-interface`
-- `extract-base-class`
-- `change-signature`
-- `generate-equals-hashcode`
-- `generate-overrides`
-
-Where those deferred or not-planned tools still appear below, their request and response shapes should not be read as evidence that the current build publishes them through `tools/list`.
+MCP `tools/list` is the sole current tool inventory. Planned or historical entries retained below do not imply publication. The Code Action surface is exactly `list-code-actions`, `prepare-fix-all` and `stage-code-action`; ordinary Roslyn providers are discovered through that workflow rather than published as provider-specific tools.
 
 ## MCP Metadata
 
-Every tool listed here is exposed through `tools/list` with the following MCP metadata:
+Tools that were implemented from this catalogue used the following MCP metadata. Historical or aspirational rows are not necessarily exposed through the current `tools/list`:
 
 | Field | Rule |
 | --- | --- |
@@ -132,7 +98,7 @@ The server resolves every selector against the effective solution: the loaded ba
 | `ResolvedLocation` | `{ workspaceId?: string, document: DocumentReference, span: { start: int, length: int }, line: int, column: int, workspaceEpoch: long, transactionRevision?: int }` |
 | `DocumentReference` | `{ documentId: string, path: string, projectId: string }` |
 | `SymbolReference` | `{ displayName: string, kind: string, documentationCommentId?: string, location?: ResolvedLocation }`. Metadata names may be returned in descriptive text, but are never accepted as identity selectors. |
-| `CodeActionInfo` | `{ workspaceId?: string, actionId: string, title: string, providerId: string, kind?: string, equivalenceKey?: string, actionPath: int[], diagnosticIds: string[], location: ResolvedLocation, workspaceEpoch: long, transactionRevision?: int, expiresAt: string, executionMode?: Replay \| Parameterised \| Unsupported, executorTool?: string, describeTool?: string, unsupportedReasonCode?: string, requirements?: string[] }`. `location` is the precise target for this action even when discovery used a broader range. `actionId` is an opaque GUID reference to a replay recipe for that precise target and is valid only for the stated snapshot and reference lifetime. |
+| `CodeActionListItem` | `{ actionId: string, title: string, kind: CodeFix \| Refactoring, location: { document: DocumentReference, span: { start: int, length: int }, line: int, column: int }, diagnostics?: BoundedCollection<{ id: string, message: string }>, fixAllScopes?: (Document \| Project \| Solution)[] }`. `location` is the precise target even when discovery used a broader range. Internal provider and replay identity is not published. |
 | `MutationPreview` | `{ summary: string }` |
 | `DocumentDiff` | `{ document: DocumentReference, hunks: DiffHunk[], truncated: boolean }` |
 | `DiffSummary` | `{ addedLines: int, removedLines: int, changedLines: int }` |
@@ -160,13 +126,13 @@ Every mutation request includes `expectedSnapshot: SnapshotPrecondition`. Every 
 
 Collection results have a deterministic order for one snapshot: source locations sort by normalised path then span, symbols by fully qualified display name then location, and other values by documented stable key. `hasMore` means the ordered result set contained more eligible values than returned. A larger named request limit recomputes from the start; there are deliberately no cursors. `hasMore` reports whether a bounded collection was shortened. Query tools no longer shrink results by response byte size; callers control bounded top-level collections through explicit named request limits.
 
-Code-action IDs are opaque GUID references to revalidation recipes in a bounded, process-local cache, not handles to cached provider objects. Expiry is controlled by the startup `CodeActionReferenceLifetime`, initially five minutes, and use does not extend the absolute expiry. Callers must echo the reference unchanged. Describing an action preserves the same reference; successful transaction staging consumes it, while rejected or failed staging retains it for retry. An unknown, expired, evicted or snapshot-invalid reference is rejected as `ActionExpired`. `list-code-actions` omits action families that the current server build knows it cannot execute and actions whose replay recipe cannot be retained. The published `unsupported` execution mode is reserved for visible fallback actions that were discovered successfully but have not yet been implemented or explicitly hidden in that build.
+Code Action IDs are opaque GUID references to revalidation recipes in a bounded, process-local cache, not handles to cached provider objects. Expiry is controlled by the startup `CodeActionReferenceLifetime`, initially five minutes, and use does not extend the absolute expiry. Callers must echo the reference unchanged. Successful transaction staging consumes it, while rejected or failed staging retains it for retry. An unknown, expired, evicted or snapshot-invalid reference is rejected with recovery guidance to resolve the target again. `list-code-actions` omits excluded leaves and actions whose replay recipe cannot be retained.
 
 Every request that executes against a loaded workspace may include `workspace?: WorkspaceSelector`. When exactly one workspace is loaded, the selector may be omitted and the server routes the request there. When more than one workspace is loaded, omitting it is rejected with `WorkspaceSelectorRequired`.
 
 The output tables below name the successful response payload for each tool. Successful query results now always publish as `{ ok: true, data: <payload> }`. Mutation and server-owned tools continue to use their existing structured result envelopes.
 
-Contract ownership follows the production boundary: Workspace owns selector, snapshot, diagnostic, mutation and transaction models; Plugins.Core owns inspection DTOs and collection limits; CodeActions owns Code Action and refactoring requests; Plugins owns plugin metadata and execution results; Host owns MCP envelopes, schemas, binding and lifecycle requests. Code Actions are an internal catalogue and are not reported as a plugin by `server-status`.
+Contract ownership follows the production boundary: Workspace owns selector, snapshot, diagnostic, mutation and transaction models; Plugins.Core owns inspection DTOs and collection limits; CodeActions owns Code Action discovery, preparation and staging requests; Plugins owns plugin metadata and execution results; Host owns MCP envelopes, schemas, binding and lifecycle requests. Code Actions are Host-owned and are not reported as a plugin by `server-status`.
 
 ## Server and Workspace Context (8)
 
@@ -288,15 +254,13 @@ Structural tools explicitly state that the target SDK-style project must include
 | `format-document` | Existing | M | **Format Document**. Formats one source document using loaded workspace options. | `document: DocumentSelector`, `range?: TextSpanSelector`. |
 | `use-explicit-type-for-const` | New | M | **Use Explicit Type For Const**. Replaces `var` with the inferred explicit type in a constant declaration through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 
-## Code Actions and Transaction Control (10)
+## Code Actions and Transaction Control (8)
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 | --- | --- | --- | --- | --- | --- |
-| `list-code-actions` | Internal Code Action | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. This tool is an intentional internal exception and always returns the full applicable action set for the selected location. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`. | `CodeActionListData { actions: CodeActionListItem[] }` |
-| `describe-code-action` | Internal Code Action | Q | **Describe Code Action**. Revalidates one discovered action and returns its descriptor plus any preflight context required before dedicated execution. | `actionId: UUID string`, `expectedSnapshot: SnapshotPrecondition`. | `DescribeCodeActionData { descriptor: CodeActionInfo, context: CodeActionDescriptorContext }` |
-| `stage-code-action` | Internal Code Action | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: UUID string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
-| `stage-code-fix` | Internal Code Action | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: UUID string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
-| `stage-fix-all` | Internal Code Action | M | **Stage Fix All**. Re-runs the recorded provider and stages one matching code fix across a selected scope, subject to any configured fix-all cap. | `actionId: UUID string`, `scope: ScopeSelector`, `maxChanges?: int = 50`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
+| `list-code-actions` | Host-owned Code Action | Q | **List Code Actions**. Lists bounded Roslyn Code Fixes and refactorings for a document, selection or caret after exception-policy filtering. | `document: DocumentSelector`, `range?: TextSpanRange`, `kinds: CodeFixes \| Refactorings \| All`, `diagnosticIds?: string[]`, `limit?: int = 50`, `workspace?: WorkspaceSelector`. | `CodeActionListData { actions: BoundedCollection<CodeActionListItem> }` |
+| `prepare-fix-all` | Host-owned Code Action | Q | **Prepare Fix All**. Revalidates one discovered Code Fix and reports the bounded impact of one supported explicit scope without staging changes. | `actionId: UUID string`, `scope: Document \| Project \| Solution`, `maxChanges?: int = 50`, `affectedDocumentsLimit?: int = 20`, `expectedSnapshot: SnapshotPrecondition`, `workspace?: WorkspaceSelector`. | `PrepareFixAllData { actionId: string, scope, affectedDiagnosticCount?: int, affectedDocuments: BoundedCollection<DocumentReference> }` |
+| `stage-code-action` | Host-owned Code Action | M | **Stage Code Action**. Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction. | `actionId: UUID string`, `expectedSnapshot: SnapshotPrecondition`, `workspace?: WorkspaceSelector`. | `MutationData` |
 | `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution for one selected workspace and opens an empty staged revision journal. It rejects if another workspace already owns the global transaction slot. Check `workspace-status` first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. | `workspace?: WorkspaceSelector`. | `TransactionStartData { transaction: TransactionInfo }` |
 | `transaction-preview` | Replaces `get-change-set` | Q | **Preview Transaction**. Returns transaction summaries, or a detailed diff for one explicitly selected document. | `document?: DocumentSelector`, `includeDiff?: boolean = false`, `contextLines?: int = 3`. | `TransactionPreviewData { transaction: TransactionInfo, documents: DocumentChange[], diff?: DocumentDiff }` |
 | `transaction-history` | New server | S | **Transaction History**. Moves the staged revision backward or forward. | `direction: Undo \| Redo`, `expectedSnapshot: SnapshotPrecondition`. | `TransactionHistoryData { transaction: TransactionInfo }` |

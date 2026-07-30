@@ -14,6 +14,8 @@ Roslyn Workbench accepts command-line options and equivalent environment variabl
 
 `server-status` with `detail: Full` reports the effective non-sensitive configuration and all startup fallback warnings. Plugin directories and the state-directory path are not included in that public configuration projection.
 
+Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the [Code Action workflow](CodeActions.md) and rediscover when directed.
+
 The default state directory is `%LOCALAPPDATA%\roslyn-workbench-mcp\state` on Windows, `$XDG_STATE_HOME/roslyn-workbench-mcp` on Linux when `XDG_STATE_HOME` is an absolute path, `~/.local/state/roslyn-workbench-mcp` on Linux otherwise, and `~/Library/Application Support/roslyn-workbench-mcp/state` on macOS. Unix state directories are created with `0700` permissions and recovery files with `0600`; Windows state inherits the current user's local-application-data access controls.
 
 The plugin set is discovered once during startup. Adding, removing or upgrading a plugin package requires a server restart.

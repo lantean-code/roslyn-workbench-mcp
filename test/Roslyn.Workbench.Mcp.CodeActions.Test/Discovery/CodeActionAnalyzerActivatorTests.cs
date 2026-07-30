@@ -51,6 +51,7 @@ public sealed class CodeActionAnalyzerActivatorTests
 
 #pragma warning disable CA1812 // Analyzer fixtures are activated or deliberately rejected through reflection.
 #pragma warning disable RS1001 // Private analyser fixtures are resolved explicitly by type name rather than exported.
+
     private sealed class AvailableAnalyzer : DiagnosticAnalyzer
     {
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [];
@@ -110,6 +111,7 @@ public sealed class CodeActionAnalyzerActivatorTests
             context.EnableConcurrentExecution();
         }
     }
+
 #pragma warning restore RS1001
 #pragma warning restore CA1812
 }

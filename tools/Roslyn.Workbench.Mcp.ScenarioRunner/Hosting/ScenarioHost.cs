@@ -129,7 +129,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
             return;
         }
 
-        _ = TryTerminate();
+        TryTerminate();
         if (!_process.HasExited)
         {
             await _process.WaitForExitAsync(CancellationToken.None);

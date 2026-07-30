@@ -17,7 +17,6 @@ internal sealed class PluginMutationRegistration<TRequest> : IRegisteredPluginTo
 
     public TResult Accept<TResult>(IPluginToolRegistrationVisitor<TResult> visitor)
     {
-
         return visitor.VisitMutation(this);
     }
 }

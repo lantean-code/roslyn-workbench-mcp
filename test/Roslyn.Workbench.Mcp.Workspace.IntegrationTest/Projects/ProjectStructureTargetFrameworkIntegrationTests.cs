@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
 
 public sealed class ProjectStructureTargetFrameworkIntegrationTests
@@ -41,7 +39,6 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             DeleteDirectory(directoryPath);
         }
     }
-
 
     [Fact]
     public void GIVEN_MissingProjectFile_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()

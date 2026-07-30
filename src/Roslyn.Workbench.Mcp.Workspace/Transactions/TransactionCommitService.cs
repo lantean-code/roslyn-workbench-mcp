@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionCommitService : ITransactionCommitService
@@ -416,7 +414,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         }
 
         var state = await _commitWriter.RestoreAsync(manifest);
-        _ = await TryWriteManifestAsync(manifest with { State = state });
+        await TryWriteManifestAsync(manifest with { State = state });
         if (state == RecoveryState.Restored)
         {
             _recoveryStore.DeleteStatus(manifest.CommitId);

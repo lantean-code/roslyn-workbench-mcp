@@ -13,6 +13,7 @@ internal sealed class ConflictRunner
 {
     private static readonly byte[] _externalMarker = Encoding.UTF8.GetBytes(
         $"{Environment.NewLine}// Roslyn Workbench external conflict marker{Environment.NewLine}");
+
     private static readonly TimeSpan _manifestTimeout = TimeSpan.FromMinutes(2);
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;

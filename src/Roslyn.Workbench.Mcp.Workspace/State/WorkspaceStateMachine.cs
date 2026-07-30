@@ -1,4 +1,3 @@
-
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal static class WorkspaceStateMachine

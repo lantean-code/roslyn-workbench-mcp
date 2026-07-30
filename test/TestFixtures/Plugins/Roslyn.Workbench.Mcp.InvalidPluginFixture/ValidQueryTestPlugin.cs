@@ -10,7 +10,7 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        _ = configuration.AddQueryTool<Handler>();
+        configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -28,8 +28,8 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            _ = context;
-            _ = cancellationToken;
+            context;
+            cancellationToken;
 
             var response = new Response
             {

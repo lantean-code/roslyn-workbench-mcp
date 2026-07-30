@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.State;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution.Contexts;
 
 public sealed class CodeActionExecutionLeaseTests

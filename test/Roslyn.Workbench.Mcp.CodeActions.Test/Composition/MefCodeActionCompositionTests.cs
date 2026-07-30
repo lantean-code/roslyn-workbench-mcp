@@ -28,5 +28,4 @@ public sealed class MefCodeActionCompositionTests
         exportProvider.Verify(item => item.ReadExports<CodeRefactoringProvider>(It.IsAny<MefHostServices>()), Times.Never);
         exportProvider.Verify(item => item.ReadExports<CodeFixProvider>(It.IsAny<MefHostServices>()), Times.Never);
     }
-
 }

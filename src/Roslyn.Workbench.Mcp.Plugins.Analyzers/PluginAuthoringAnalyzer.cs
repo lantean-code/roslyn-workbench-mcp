@@ -326,5 +326,4 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
 
         return false;
     }
-
 }

@@ -1,5 +1,3 @@
-using System.IO.Abstractions;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
 
 public sealed class PhysicalPathContainmentTests

@@ -500,12 +500,15 @@ public sealed class TransactionCommitServiceTests : IDisposable
                     .ThrowsAsync(new IOException("plan"));
 
                 break;
+
             case "Persist":
                 _recoveryStore.Setup(item => item.PersistPlanAsync(plan, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("persist"));
                 break;
+
             case "Revalidate":
                 _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("revalidate"));
                 break;
+
             case "ApplyingManifest":
                 _recoveryStore.Setup(item => item.WriteManifestAsync(
                     It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying),

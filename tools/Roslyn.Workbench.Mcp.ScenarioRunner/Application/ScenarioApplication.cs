@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
-using System.Text.Json;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Diagnostics;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
@@ -464,7 +463,7 @@ internal static class ScenarioApplication
         {
             await Console.Out.WriteLineAsync(
                 $"Warming durable commit {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
-            _ = await RunDurableCommitIterationAsync(
+            await RunDurableCommitIterationAsync(
                 repository,
                 scenario,
                 hostPath,
@@ -555,7 +554,7 @@ internal static class ScenarioApplication
             {
                 await Console.Out.WriteLineAsync(
                     $"Warming commit cancellation {repository.Id}/{scenario.Id}/{boundary} ({warmup}/{options.Warmups})");
-                _ = await RunCommitCancellationIterationAsync(
+                await RunCommitCancellationIterationAsync(
                     repository,
                     scenario,
                     boundary,
@@ -833,7 +832,7 @@ internal static class ScenarioApplication
         {
             await Console.Out.WriteLineAsync(
                 $"Warming state sequence {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
-            _ = await RunStateSequenceIterationAsync(
+            await RunStateSequenceIterationAsync(
                 repository,
                 scenario,
                 hostPath,
@@ -1267,7 +1266,7 @@ internal static class ScenarioApplication
         {
             await Console.Out.WriteLineAsync(
                 $"Warming conflict {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
-            _ = await RunConflictIterationAsync(
+            await RunConflictIterationAsync(
                 repository,
                 scenario,
                 hostPath,
@@ -1515,7 +1514,7 @@ internal static class ScenarioApplication
         {
             await Console.Out.WriteLineAsync(
                 $"Warming crash recovery {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
-            _ = await RunCrashRecoveryIterationAsync(
+            await RunCrashRecoveryIterationAsync(
                 repository,
                 scenario,
                 hostPath,
@@ -2347,6 +2346,7 @@ internal static class ScenarioApplication
     }
 
 #pragma warning disable CA1303 // CLI help is intentionally invariant developer-facing text, not localised UI content.
+
     private static void WriteHelp()
     {
         Console.WriteLine(
@@ -2368,5 +2368,6 @@ internal static class ScenarioApplication
             Repository clones default to the operating system's temporary directory. Results, state, and diagnostic captures default beneath artifacts/performance/results in the repository root.
             """);
     }
+
 #pragma warning restore CA1303
 }

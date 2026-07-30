@@ -134,5 +134,4 @@ public sealed class PluginPackageDiscoveryIntegrationTests
             DefaultMaxResults = 100,
         };
     }
-
 }

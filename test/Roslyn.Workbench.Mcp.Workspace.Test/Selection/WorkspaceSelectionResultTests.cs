@@ -36,5 +36,4 @@ public sealed class WorkspaceSelectionResultTests
         target.Error.Should().BeSameAs(error);
         target.Selection.Should().BeNull();
     }
-
 }

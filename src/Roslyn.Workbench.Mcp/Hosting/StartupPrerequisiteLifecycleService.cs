@@ -19,7 +19,7 @@ internal sealed class StartupPrerequisiteLifecycleService : IHostedLifecycleServ
     public async Task StartingAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = _msBuildRegistrationService.EnsureRegistered();
+        _msBuildRegistrationService.EnsureRegistered();
         _stateDirectory.Initialize();
         await _workspaceCommitRecoveryService.RecoverAsync(cancellationToken);
     }

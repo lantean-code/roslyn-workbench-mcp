@@ -99,7 +99,7 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
 
         public override object? GetOptions(CancellationToken cancellationToken)
         {
-            _ = cancellationToken;
+            cancellationToken;
 
             return new ParameterisedOptions
             {
@@ -139,7 +139,7 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
 
         public override object? GetOptions(CancellationToken cancellationToken)
         {
-            _ = cancellationToken;
+            cancellationToken;
 
             return new ParameterisedOptions
             {
@@ -205,7 +205,7 @@ public sealed class TestCodeFixProvider : CodeFixProvider
 
             var replacements = declarations.ToDictionary(
                 static declaration => declaration,
-                static declaration => SyntaxFactory.ParseStatement("_ = 42;").WithTriviaFrom(declaration));
+                static declaration => SyntaxFactory.ParseStatement("42;").WithTriviaFrom(declaration));
 
             var updatedRoot = root.ReplaceNodes(replacements.Keys, (original, _) => replacements[original]);
             return document.WithSyntaxRoot(updatedRoot);
@@ -238,7 +238,7 @@ public sealed class TestCodeFixProvider : CodeFixProvider
     private static async Task<Document> ReplaceDeclarationAsync(Document document, LocalDeclarationStatementSyntax declaration, CancellationToken cancellationToken)
     {
         var text = await document.GetTextAsync(cancellationToken);
-        var updated = text.ToString().Replace(declaration.ToString(), "_ = 42;", StringComparison.Ordinal);
+        var updated = text.ToString().Replace(declaration.ToString(), "42;", StringComparison.Ordinal);
         return document.WithText(SourceText.From(updated));
     }
 }

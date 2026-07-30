@@ -33,7 +33,7 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
                 {
                     if (_packagePathPolicy.TryGetContainedPath(searchRoot, packageDirectory, out var containedPackageDirectory))
                     {
-                        _ = packageDirectories.Add(containedPackageDirectory);
+                        packageDirectories.Add(containedPackageDirectory);
                     }
                     else
                     {

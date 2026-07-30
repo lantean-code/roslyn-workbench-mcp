@@ -69,7 +69,6 @@ public sealed class CodeActionWorkspaceResultMapperTests
             result.RequiredAction.Should().Be(RequiredAction.Retry);
         }
 
-
         result.Diagnostics.Should().ContainSingle().Which.Id.Should().Be("DiagnosticId");
         result.Warnings.Should().ContainSingle().Which.Code.Should().Be("WarningCode");
     }

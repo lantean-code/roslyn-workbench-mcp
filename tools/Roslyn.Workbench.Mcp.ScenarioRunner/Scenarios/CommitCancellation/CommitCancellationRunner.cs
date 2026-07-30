@@ -12,8 +12,10 @@ internal sealed class CommitCancellationRunner
 {
     private static readonly TimeSpan _settlementRetryDelay =
         TimeSpan.FromMilliseconds(10);
+
     private static readonly TimeSpan _settlementTimeout =
         TimeSpan.FromSeconds(30);
+
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;
     private readonly string _stateDirectory;

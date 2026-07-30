@@ -12,7 +12,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        _ = configuration.AddMutationTool<Handler>();
+        configuration.AddMutationTool<Handler>();
     }
 
     public sealed record Request : WorkspaceMutationRequest

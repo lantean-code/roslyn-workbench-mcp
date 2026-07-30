@@ -142,5 +142,6 @@ public sealed class CodeActionToolRegistryTests
             return ValueTask.FromResult(CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
         }
     }
+
 #pragma warning restore CA1812
 }

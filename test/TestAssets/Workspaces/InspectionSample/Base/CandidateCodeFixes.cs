@@ -31,7 +31,7 @@ internal static class CandidateCodeFixes
     internal static void UseExplicitTypeForConst()
     {
         const var value = 1;
-        _ = value;
+        value;
     }
 
     internal static char AssignOutParameterAboveReturn(out int value)
@@ -62,7 +62,7 @@ internal static class CandidateCodeFixes
     internal static void DeclareLocalAsNullable()
     {
         string value = null;
-        _ = value;
+        value;
     }
 
     internal static void DeclareParameterAsNullable()
@@ -85,12 +85,12 @@ internal static class CandidateCodeFixes
 
     private static void AcceptValue(int value)
     {
-        _ = value;
+        value;
     }
 
     private static void AcceptNullableValue(string value)
     {
-        _ = value;
+        value;
     }
 }
 
@@ -132,7 +132,7 @@ internal sealed class CandidateObsoleteCollection : System.Collections.Generic.I
     [System.Obsolete]
     public void Add(int value)
     {
-        _ = value;
+        value;
     }
 
     public System.Collections.Generic.IEnumerator<int> GetEnumerator()
@@ -151,7 +151,7 @@ internal sealed class CandidateObsoleteMessageCollection : System.Collections.Ge
     [System.Obsolete("message")]
     public void Add(int value)
     {
-        _ = value;
+        value;
     }
 
     public System.Collections.Generic.IEnumerator<int> GetEnumerator()
@@ -169,12 +169,12 @@ internal static class CandidateObsoleteCollectionConsumer
 {
     internal static void CreateObsoleteCollection()
     {
-        _ = new CandidateObsoleteCollection { 1 };
+        new CandidateObsoleteCollection { 1 };
     }
 
     internal static void CreateObsoleteMessageCollection()
     {
-        _ = new CandidateObsoleteMessageCollection { 1 };
+        new CandidateObsoleteMessageCollection { 1 };
     }
 }
 

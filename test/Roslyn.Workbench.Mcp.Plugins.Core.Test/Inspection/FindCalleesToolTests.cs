@@ -811,6 +811,7 @@ public sealed class FindCalleesToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
+
     private static async Task<IMethodSymbol> GetAccessorSymbolAsync(Document document, string propertyName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);

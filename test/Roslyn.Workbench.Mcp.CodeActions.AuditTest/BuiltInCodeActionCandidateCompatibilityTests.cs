@@ -19,5 +19,4 @@ public sealed class BuiltInCodeActionCandidateCompatibilityTests
 
         candidateProviderIds.Should().BeEquivalentTo(expectedProviderIds);
     }
-
 }

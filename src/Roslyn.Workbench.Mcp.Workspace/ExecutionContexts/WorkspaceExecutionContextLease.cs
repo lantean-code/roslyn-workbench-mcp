@@ -28,7 +28,6 @@ internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
         IWorkspaceExecutionContext context,
         IWorkspaceOperationLease? lease = null)
     {
-
         return new WorkspaceExecutionContextLease(context, null, lease);
     }
 
@@ -37,7 +36,6 @@ internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
         IWorkspaceExecutionContext? context = null,
         IWorkspaceOperationLease? lease = null)
     {
-
         return new WorkspaceExecutionContextLease(context, failure, lease);
     }
 

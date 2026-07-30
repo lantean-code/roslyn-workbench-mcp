@@ -75,6 +75,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         AtomicFileAccess.Default,
                         CancellationToken.None);
                     break;
+
                 case WorkspaceFileOperation.Delete:
                     if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
                     {

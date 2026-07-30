@@ -10,7 +10,7 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        _ = configuration.AddQueryTool<Handler>();
+        configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -28,9 +28,9 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            _ = request;
-            _ = context;
-            _ = cancellationToken;
+            request;
+            context;
+            cancellationToken;
 
             var response = new Response
             {

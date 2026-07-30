@@ -615,7 +615,7 @@ public sealed class GetSymbolDependenciesToolTests
                 public void Run()
                 {
                     Func<string, string> formatter = value => value.Trim();
-                    _ = formatter("value");
+                    formatter("value");
                 }
             }
             """);
@@ -665,5 +665,4 @@ public sealed class GetSymbolDependenciesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Trim");
     }
-
 }

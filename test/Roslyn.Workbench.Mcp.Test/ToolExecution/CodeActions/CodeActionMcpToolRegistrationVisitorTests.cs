@@ -132,5 +132,6 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
             return ValueTask.FromResult(CodeActionExecutionResult.NoChange<WorkspaceMutationCandidate>());
         }
     }
+
 #pragma warning restore CA1812
 }

@@ -149,7 +149,6 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             using System.Reflection;
 
             [assembly: AssemblyInformationalVersion("VersionMarker")]
-
             public sealed class Plugin
             {
             }

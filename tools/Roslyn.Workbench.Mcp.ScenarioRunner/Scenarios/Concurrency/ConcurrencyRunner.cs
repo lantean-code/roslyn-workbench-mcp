@@ -4,7 +4,6 @@ using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
-using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Concurrency;
 
@@ -49,7 +48,7 @@ internal sealed class ConcurrencyRunner
             _host.GetWorkspaceEpoch(_secondaryWorkspaceId));
         for (var warmup = 0; warmup < warmupCount; warmup++)
         {
-            _ = await InvokeRequiredAsync(
+            await InvokeRequiredAsync(
                 "primary-warmup",
                 scenario.Tool,
                 primaryArguments,
@@ -439,7 +438,7 @@ internal sealed class ConcurrencyRunner
 
     private async Task TryRollbackAsync(string workspaceId)
     {
-        _ = await _host.CallToolAsync(
+        await _host.CallToolAsync(
             "transaction-rollback",
             CreateWorkspaceArguments(workspaceId),
             CancellationToken.None);

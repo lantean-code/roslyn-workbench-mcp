@@ -59,6 +59,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
     }
 
 #pragma warning disable CA1859 // Reflection binds both factories to one interface-returning delegate signature.
+
     private static IRegisteredPluginTool CreateQueryRegistration<TRequest, TResponse>(RegisteredTool tool, object handler)
         where TRequest : WorkspaceBoundRequest
     {
@@ -72,6 +73,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
         var mutationHandler = (IMutationToolHandler<TRequest>)handler;
         return new PluginMutationRegistration<TRequest>(tool, mutationHandler);
     }
+
 #pragma warning restore CA1859
 
     private static MethodInfo GetMaterializationMethod(string name)

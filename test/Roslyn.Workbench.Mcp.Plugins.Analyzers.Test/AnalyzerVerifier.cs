@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
-using Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers.Test;
 

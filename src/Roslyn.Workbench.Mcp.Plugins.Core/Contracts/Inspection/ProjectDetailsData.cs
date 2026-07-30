@@ -34,5 +34,4 @@ internal sealed record ProjectDetailsData
     /// Gets the compilation options.
     /// </summary>
     public CompilationOptionsInfo? CompilationOptions { get; init; }
-
 }

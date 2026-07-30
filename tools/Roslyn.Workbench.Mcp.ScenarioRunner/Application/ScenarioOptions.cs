@@ -10,7 +10,7 @@ internal sealed class ScenarioOptions
     private static readonly TimeSpan _defaultCancellationDelay = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan _defaultProfileDuration = TimeSpan.FromSeconds(30);
 
-    public required ScenarioCommand Command { get; init; }
+    public ScenarioCommand Command { get; init; }
 
     public string? Repository { get; init; }
 

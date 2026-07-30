@@ -278,7 +278,7 @@ public sealed class CodeActionInfoFactoryTests
         Mock<ICodeActionReferenceStore> referenceStore,
         Mock<TimeProvider> timeProvider,
         TimeSpan referenceLifetime,
-        int maximumDiagnosticContextsPerAction = CodeActionExecutionOptions.DefaultMaximumDiagnosticContextsPerAction)
+        int maximumDiagnosticContextsPerAction = CodeActionExecutionOptions._defaultMaximumDiagnosticContextsPerAction)
     {
         var executionOptions = new CodeActionExecutionOptions
         {

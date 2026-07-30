@@ -30,7 +30,7 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_AttributeAndFluentMetadata_WHEN_PreparingQuery_THEN_ShouldApplyFluentPrecedence()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddQueryTool<AttributedQueryHandler>()
+        configuration.AddQueryTool<AttributedQueryHandler>()
             .WithName("fluent-name")
             .WithTitle("Fluent Title")
             .WithDescription("Fluent description")
@@ -60,7 +60,7 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_AttributeOnlyMutation_WHEN_Preparing_THEN_ShouldPreserveDestructiveMetadata()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddMutationTool<AttributedMutationHandler>().IsDestructive();
+        configuration.AddMutationTool<AttributedMutationHandler>().IsDestructive();
         configuration.Freeze();
         SetupContract(typeof(IMutationToolHandler<Request>));
 
@@ -80,11 +80,11 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_MissingOrDuplicateMetadata_WHEN_Preparing_THEN_ShouldRejectPlugin()
     {
         var missing = new PluginConfiguration();
-        _ = missing.AddQueryTool<FluentQueryHandler>();
+        missing.AddQueryTool<FluentQueryHandler>();
         missing.Freeze();
         var duplicate = new PluginConfiguration();
-        _ = duplicate.AddQueryTool<AttributedQueryHandler>();
-        _ = duplicate.AddQueryTool<AttributedQueryHandler>();
+        duplicate.AddQueryTool<AttributedQueryHandler>();
+        duplicate.AddQueryTool<AttributedQueryHandler>();
         duplicate.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
@@ -114,7 +114,7 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_DestructiveQueryMetadata_WHEN_Preparing_THEN_ShouldRejectPlugin()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddQueryTool<DestructiveQueryHandler>();
+        configuration.AddQueryTool<DestructiveQueryHandler>();
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
@@ -133,7 +133,7 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_HandlerWarnings_WHEN_Preparing_THEN_ShouldPublishWarningsWithoutDisabling()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddQueryTool<AttributedQueryHandler>();
+        configuration.AddQueryTool<AttributedQueryHandler>();
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
         _warningInspector.Setup(static value => value.Inspect(typeof(AttributedQueryHandler))).Returns(
@@ -163,8 +163,8 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_MultipleInvalidTools_WHEN_Preparing_THEN_ShouldAccumulateEveryExpectedError()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddQueryTool<FluentQueryHandler>();
-        _ = configuration.AddQueryTool<DestructiveQueryHandler>();
+        configuration.AddQueryTool<FluentQueryHandler>();
+        configuration.AddQueryTool<DestructiveQueryHandler>();
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
@@ -184,7 +184,7 @@ public sealed class PluginConfigurationPreparerTests
     public void GIVEN_OneToolHasIndependentInspectionIssues_WHEN_Preparing_THEN_ShouldPreserveEveryDiagnostic()
     {
         var configuration = new PluginConfiguration();
-        _ = configuration.AddQueryTool<FluentQueryHandler>();
+        configuration.AddQueryTool<FluentQueryHandler>();
         configuration.Freeze();
         _typeInspector.Setup(static value => value.Inspect(typeof(FluentQueryHandler))).Returns(
         [

@@ -1,4 +1,3 @@
-
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal sealed class WorkspaceStateTransitions : IWorkspaceStateTransitions
@@ -10,7 +9,6 @@ internal sealed class WorkspaceStateTransitions : IWorkspaceStateTransitions
 
     public WorkspaceSessionSnapshot ApplyExternalChangeDetected(WorkspaceSessionSnapshot session)
     {
-
         var trigger = session.State switch
         {
             WorkspaceLifecycleState.Ready => WorkspaceTrigger.ExternalChangeDetected,

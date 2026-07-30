@@ -29,7 +29,7 @@ internal static class ContractSchemaTestTools
     [McpServerTool(Name = "schema-probe")]
     public static string SchemaProbe(ContractSchemaProbeRequest request)
     {
-        _ = request;
+        request;
         return "SchemaProbe";
     }
 
@@ -95,7 +95,7 @@ internal static class ContractSchemaTestTools
 
     private static CallToolResult CreateResult<TRequest>(TRequest request)
     {
-        _ = request;
+        request;
         return new CallToolResult();
     }
 }

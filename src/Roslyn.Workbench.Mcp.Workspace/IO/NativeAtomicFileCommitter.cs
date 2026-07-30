@@ -146,5 +146,4 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
     [LibraryImport("libSystem.dylib", EntryPoint = "fsync", SetLastError = true)]
     private static partial int FsyncMacOs(int fileDescriptor);
-
 }

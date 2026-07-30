@@ -355,6 +355,7 @@ public sealed class FindCallersToolTests
             It.IsAny<TextSpan>(),
             It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
+
     private static async Task<IReadOnlyList<Location>> GetCalleeIdentifierLocationsAsync(Document document, string methodName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);

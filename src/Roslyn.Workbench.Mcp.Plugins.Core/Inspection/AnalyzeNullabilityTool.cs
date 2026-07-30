@@ -5,7 +5,6 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
 {
     protected override async ValueTask<PluginExecutionResult<NullabilityAnalysisData>> ExecuteCoreAsync(AnalyzeNullabilityRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         TextSpan? selectedSpan = null;
         IReadOnlyList<Document> documents;
         if (request.Location is not null)

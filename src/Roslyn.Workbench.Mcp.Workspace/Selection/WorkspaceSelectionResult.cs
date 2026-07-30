@@ -28,7 +28,6 @@ internal sealed class WorkspaceSelectionResult
 
     public static WorkspaceSelectionResult Success(WorkspaceSelection selection)
     {
-
         return new WorkspaceSelectionResult(
             selection: selection,
             error: null);
@@ -36,7 +35,6 @@ internal sealed class WorkspaceSelectionResult
 
     public static WorkspaceSelectionResult Failure(WorkspaceOperationError error)
     {
-
         return new WorkspaceSelectionResult(
             selection: null,
             error: error);

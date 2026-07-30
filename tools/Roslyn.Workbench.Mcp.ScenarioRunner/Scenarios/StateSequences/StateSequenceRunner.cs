@@ -6,7 +6,6 @@ using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Repositories;
-using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.StateSequences;
 
@@ -463,7 +462,7 @@ internal sealed class StateSequenceRunner
         {
             if (transactionStarted)
             {
-                _ = await InvokeAsync(
+                await InvokeAsync(
                     "failure-rollback",
                     "transaction-rollback",
                     CreateWorkspaceArguments(),

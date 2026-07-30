@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
@@ -158,13 +157,13 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         var pluginVisitor = new PluginMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
-            _ = registeredTool.Accept(pluginVisitor);
+            registeredTool.Accept(pluginVisitor);
         }
 
         var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in codeActionTools)
         {
-            _ = registeredTool.Accept(codeActionVisitor);
+            registeredTool.Accept(codeActionVisitor);
         }
 
         ServerOwnedToolRegistration.AddMcpTools(services);

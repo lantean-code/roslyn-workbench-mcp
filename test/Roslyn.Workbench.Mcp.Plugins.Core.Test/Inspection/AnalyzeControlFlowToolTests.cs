@@ -414,5 +414,4 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(
             It.Is<Location>(item => item.SourceSpan == returnLocation.SourceSpan)), Times.Exactly(2));
     }
-
 }

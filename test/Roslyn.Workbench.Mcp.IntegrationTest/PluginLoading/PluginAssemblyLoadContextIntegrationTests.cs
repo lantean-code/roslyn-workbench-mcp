@@ -95,7 +95,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();
         var loadContext = target ?? throw new InvalidOperationException("The plugin load context was not created.");
-        _ = loadContext.LoadFromAssemblyPath(entryAssemblyPath);
+        loadContext.LoadFromAssemblyPath(entryAssemblyPath);
 
         var result = loadContext.LoadFromAssemblyName(new AssemblyName("NuGet.Versioning"));
 
@@ -123,7 +123,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();
         var loadContext = target ?? throw new InvalidOperationException("The plugin load context was not created.");
-        _ = loadContext.LoadFromAssemblyPath(entryAssemblyPath);
+        loadContext.LoadFromAssemblyPath(entryAssemblyPath);
 
         var action = () => loadContext.LoadFromAssemblyName(new AssemblyName("NuGet.Versioning"));
 

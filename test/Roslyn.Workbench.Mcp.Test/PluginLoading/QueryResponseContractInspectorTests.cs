@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class QueryResponseContractInspectorTests

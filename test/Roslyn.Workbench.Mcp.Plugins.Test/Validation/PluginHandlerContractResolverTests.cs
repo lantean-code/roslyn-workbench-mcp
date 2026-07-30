@@ -244,5 +244,6 @@ public sealed class PluginHandlerContractResolverTests
             return ValueTask.FromResult(PluginExecutionResult.Success<PrivateResponse[]>([]));
         }
     }
+
 #pragma warning restore CA1812
 }

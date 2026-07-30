@@ -6,10 +6,10 @@ namespace Sample;
 
 public static class UsingSamples
 {
-    public static string BuildText( )
+    public static string BuildText()
     {
-        StringBuilder builder=new( );
+        StringBuilder builder = new();
         builder.Append(nameof(FormatterBase));
-        return builder.ToString( );
+        return builder.ToString();
     }
 }

@@ -117,7 +117,6 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
         }
     }
 
-
     [Fact]
     public async Task GIVEN_MissingSolutionFile_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
@@ -160,7 +159,6 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             DeleteDirectory(directoryPath);
         }
     }
-
 
     private static string CreateDirectoryPath()
     {

@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Server.Contracts;
 using Roslyn.Workbench.Mcp.Transaction.Contracts;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
@@ -406,5 +405,4 @@ public sealed class ToolSchemaFactoryIntegrationTests
     {
         return schema.GetProperty("properties").GetProperty(propertyName);
     }
-
 }

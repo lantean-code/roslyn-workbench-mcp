@@ -35,7 +35,7 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
             contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
         }
 
-        await using var _ = contextLease;
+        await using var contextLease;
         if (contextLease.HasFailure)
         {
             return CreateStructuredResult(

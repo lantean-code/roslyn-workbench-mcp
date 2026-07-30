@@ -1,7 +1,6 @@
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
 using Roslyn.Workbench.Mcp.CodeActions.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
-using Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 

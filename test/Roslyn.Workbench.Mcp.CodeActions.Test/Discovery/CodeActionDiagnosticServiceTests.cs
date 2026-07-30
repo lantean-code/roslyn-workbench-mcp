@@ -542,6 +542,7 @@ public sealed class CodeActionDiagnosticServiceTests
     }
 
 #pragma warning disable RS1001 // The configurable analyser is supplied directly as unit-test data rather than exported.
+
     private sealed class ConfigurableAnalyzer : DiagnosticAnalyzer
     {
         private static readonly DiagnosticDescriptor _descriptor = CreateDescriptor("CONFIG001");
@@ -567,5 +568,6 @@ public sealed class CodeActionDiagnosticServiceTests
             });
         }
     }
+
 #pragma warning restore RS1001
 }

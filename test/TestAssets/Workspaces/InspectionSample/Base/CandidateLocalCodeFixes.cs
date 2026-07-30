@@ -7,7 +7,7 @@ internal static class CandidateStatementAsynchronous
     {
         foreach (var value in values)
         {
-            _ = value;
+            value;
         }
     }
 
@@ -42,8 +42,8 @@ public sealed class CandidateDocumentationComments
     /// <param name="documented">The documented value.</param>
     public void AddMissingParameter(int documented, int missing)
     {
-        _ = documented;
-        _ = missing;
+        documented;
+        missing;
     }
 
     /// <summary>Contains a duplicate parameter node.</summary>
@@ -51,14 +51,14 @@ public sealed class CandidateDocumentationComments
     /// <param name="value">The duplicate value.</param>
     public void RemoveDuplicateParameter(int value)
     {
-        _ = value;
+        value;
     }
 
     /// <summary>Contains an unmatched parameter node.</summary>
     /// <param name="missing">The missing value.</param>
     public void RemoveUnmatchedParameter(int value)
     {
-        _ = value;
+        value;
     }
 }
 
@@ -77,7 +77,7 @@ internal static class CandidateCapturedLocalFunction
 
         static void LocalFunction()
         {
-            _ = captured;
+            captured;
         }
     }
 }

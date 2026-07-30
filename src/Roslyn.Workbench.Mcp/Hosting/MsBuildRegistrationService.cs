@@ -1,4 +1,3 @@
-
 using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Hosting;

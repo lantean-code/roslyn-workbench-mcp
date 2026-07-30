@@ -39,7 +39,7 @@ internal static class Program
         {
             await Console.Out.WriteLineAsync("LOCKED");
             await Console.Out.FlushAsync();
-            _ = await Console.In.ReadLineAsync();
+            await Console.In.ReadLineAsync();
             return 0;
         }
         finally

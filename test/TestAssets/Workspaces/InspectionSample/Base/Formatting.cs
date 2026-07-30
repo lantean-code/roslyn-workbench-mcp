@@ -98,12 +98,12 @@ public static class FormatterCallerTests
 {
     public static void GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting()
     {
-        _ = FormatterCaller.Call();
+        FormatterCaller.Call();
     }
 
     public static void Helper()
     {
-        _ = new GreetingFormatter().Decorate("helper");
+        new GreetingFormatter().Decorate("helper");
     }
 }
 
@@ -139,7 +139,7 @@ public static class FlowSamples
         }
         finally
         {
-            _ = value?.Length ?? 0;
+            value?.Length ?? 0;
         }
     }
 }

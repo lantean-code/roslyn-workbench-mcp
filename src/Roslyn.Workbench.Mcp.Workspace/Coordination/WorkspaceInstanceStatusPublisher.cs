@@ -15,11 +15,13 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly Channel<WorkspaceInstanceStatusUpdate> _updates;
     private readonly Task _updateWorker;
     private readonly Lock _updateSync = new();
+
     [SuppressMessage(
         "Usage",
         "CA2213:Disposable fields should be disposed",
         Justification = "The semaphore remains usable after logical disposal so queued and repeated lifecycle calls can observe disposed state without ObjectDisposedException; AvailableWaitHandle is never accessed.")]
     private readonly SemaphoreSlim _gate = new(1, 1);
+
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
     private bool _isDisposed;
 

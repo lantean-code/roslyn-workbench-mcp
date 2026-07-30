@@ -56,6 +56,7 @@ public sealed class PluginHandlerWarningInspectorTests
     }
 
 #pragma warning disable CA1812 // Handler fixtures are inspected for reflected state and legacy registration shapes.
+
     private sealed class StatefulLegacyHandler
     {
         private const int _constantState = 1;
@@ -69,8 +70,8 @@ public sealed class PluginHandlerWarningInspectorTests
 
         public static void Register()
         {
-            _ = _constantState;
-            _ = _metadata;
+            _constantState;
+            _metadata;
         }
 
         public void Update()
@@ -82,6 +83,7 @@ public sealed class PluginHandlerWarningInspectorTests
     }
 
 #pragma warning disable CA1802 // This fixture must retain readonly static state so the inspector can distinguish it from a constant.
+
     private sealed class ReadonlyStaticHandler
     {
         private const int _constantValue = 1;
@@ -92,6 +94,7 @@ public sealed class PluginHandlerWarningInspectorTests
             return _constantValue + _readonlyValue;
         }
     }
+
 #pragma warning restore CA1802
 
     private abstract class StatefulHandlerBase
@@ -113,6 +116,7 @@ public sealed class PluginHandlerWarningInspectorTests
     }
 
 #pragma warning disable CA1001 // This fixture deliberately models unsupported disposable field ownership.
+
     private sealed class DisposableFieldHandler
     {
         private readonly MemoryStream _stream = new();
@@ -122,6 +126,7 @@ public sealed class PluginHandlerWarningInspectorTests
             return _stream.Length;
         }
     }
+
 #pragma warning restore CA1001
 
     private sealed class RegisterMethodHandler
@@ -130,5 +135,6 @@ public sealed class PluginHandlerWarningInspectorTests
         {
         }
     }
+
 #pragma warning restore CA1812
 }

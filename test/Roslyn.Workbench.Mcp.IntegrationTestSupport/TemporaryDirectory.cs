@@ -66,5 +66,4 @@ public sealed class TemporaryDirectory : IDisposable
                 exception);
         }
     }
-
 }

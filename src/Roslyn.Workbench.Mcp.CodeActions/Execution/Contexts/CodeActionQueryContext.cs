@@ -23,5 +23,4 @@ internal sealed class CodeActionQueryContext : ICodeActionQueryContext
     public int DefaultMaxResults { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
-
 }

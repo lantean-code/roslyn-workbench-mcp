@@ -357,5 +357,4 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             or ReflectionTypeLoadException
             or TypeLoadException;
     }
-
 }

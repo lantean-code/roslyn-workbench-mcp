@@ -1,7 +1,6 @@
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers.Test;
 

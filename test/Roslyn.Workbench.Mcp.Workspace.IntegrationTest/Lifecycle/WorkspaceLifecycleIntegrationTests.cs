@@ -94,7 +94,6 @@ public sealed class WorkspaceLifecycleIntegrationTests
         Directory.Exists(secondStateDirectory).Should().BeFalse();
     }
 
-
     [Fact]
     public async Task GIVEN_TwoOpenedWorkspaces_WHEN_ListingAndGettingStatus_THEN_ShouldRequireExplicitSelection()
     {
@@ -167,7 +166,6 @@ public sealed class WorkspaceLifecycleIntegrationTests
         result.Error!.Code.Should().Be("WorkspaceLoadFailed");
         result.Diagnostics.Should().NotBeEmpty();
     }
-
 
     [Fact]
     public async Task GIVEN_UnresolvedRecoveryState_WHEN_OpeningWorkspace_THEN_ShouldRejectRequest()

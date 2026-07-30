@@ -33,7 +33,7 @@ internal static class StartupOptionsRules
 
         try
         {
-            _ = Path.GetFullPath(value);
+            Path.GetFullPath(value);
             return true;
         }
         catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)

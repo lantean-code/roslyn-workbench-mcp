@@ -206,5 +206,4 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
 
         plugins.Add(plugin);
     }
-
 }

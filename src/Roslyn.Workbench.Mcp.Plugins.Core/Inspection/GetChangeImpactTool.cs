@@ -9,7 +9,6 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
 {
     protected override async ValueTask<PluginExecutionResult<ChangeImpactData>> ExecuteCoreAsync(GetChangeImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ChangeImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {

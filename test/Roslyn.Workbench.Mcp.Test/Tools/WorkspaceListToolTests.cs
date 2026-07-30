@@ -42,5 +42,4 @@ public sealed class WorkspaceListToolTests
         data.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be("WorkspaceId");
         workspaceLifecycleService.Verify(service => service.ListAsync(CancellationToken.None), Times.Once);
     }
-
 }

@@ -10,7 +10,6 @@ global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Handlers;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Results;
-global using Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 global using Roslyn.Workbench.Mcp.CodeActions.Tools;
 global using Roslyn.Workbench.Mcp.Hosting;
 global using Roslyn.Workbench.Mcp.Plugins;

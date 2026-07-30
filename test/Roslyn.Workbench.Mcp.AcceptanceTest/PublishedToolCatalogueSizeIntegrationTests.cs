@@ -15,6 +15,7 @@ public sealed class PublishedToolCatalogueSizeIntegrationTests
     ];
 
     private static readonly string[] _nullableReturnDiagnosticIds = ["CS8603"];
+
     private static readonly string[] _removedCodeActionToolNames =
     [
         "describe-code-action",

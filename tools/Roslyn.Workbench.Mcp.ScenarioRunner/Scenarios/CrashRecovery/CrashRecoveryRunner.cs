@@ -261,7 +261,7 @@ internal sealed class CrashRecoveryRunner
         var returnedResult = false;
         try
         {
-            _ = await commitTask;
+            await commitTask;
             returnedResult = true;
         }
         catch (Exception)

@@ -70,5 +70,4 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
             }
         }
     }
-
 }

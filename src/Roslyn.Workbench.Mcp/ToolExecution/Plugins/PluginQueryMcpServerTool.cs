@@ -31,7 +31,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
             contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
         }
 
-        await using var _ = contextLease;
+        await using var contextLease;
         if (contextLease.HasShortCircuitResult)
         {
             return CreateStructuredResult(

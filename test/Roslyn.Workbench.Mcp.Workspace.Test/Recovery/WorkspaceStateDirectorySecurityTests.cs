@@ -3,6 +3,7 @@ using Roslyn.Workbench.Mcp.Workspace.Recovery;
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Recovery;
 
 #pragma warning disable CA1416 // Moq expression trees configure Unix-only members without invoking the operating-system API.
+
 public sealed class WorkspaceStateDirectorySecurityTests
 {
     private const UnixFileMode _privateDirectoryMode =

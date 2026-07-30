@@ -31,7 +31,7 @@ internal sealed class PluginCollisionPolicy : IPluginCollisionPolicy
 
             if (!observedPluginIds.Add(pluginId))
             {
-                _ = duplicatePluginIds.Add(pluginId);
+                duplicatePluginIds.Add(pluginId);
             }
         }
 
@@ -53,7 +53,7 @@ internal sealed class PluginCollisionPolicy : IPluginCollisionPolicy
                 var toolName = tool.Tool.Metadata.Name;
                 if (protectedToolNames.Contains(toolName))
                 {
-                    _ = collisions.Add(pluginId);
+                    collisions.Add(pluginId);
                 }
 
                 if (!pluginIdsByToolName.TryGetValue(toolName, out var pluginIds))
@@ -62,7 +62,7 @@ internal sealed class PluginCollisionPolicy : IPluginCollisionPolicy
                     pluginIdsByToolName.Add(toolName, pluginIds);
                 }
 
-                _ = pluginIds.Add(pluginId);
+                pluginIds.Add(pluginId);
             }
         }
 

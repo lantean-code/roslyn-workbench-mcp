@@ -26,8 +26,8 @@ public sealed class ExamplePlugin : IRoslynPlugin
 {
     public void Configure(IPluginConfiguration configuration)
     {
-        _ = configuration.AddQueryTool<ExampleQueryTool>();
-        _ = configuration.AddMutationTool<ExampleMutationTool>()
+        configuration.AddQueryTool<ExampleQueryTool>();
+        configuration.AddMutationTool<ExampleMutationTool>()
             .WithName("example-mutation")
             .WithTitle("Example Mutation")
             .WithDescription("Stages an example source mutation.")
@@ -56,7 +56,7 @@ internal sealed class ExampleQueryTool
         IQueryContext context,
         CancellationToken cancellationToken)
     {
-        _ = context;
+        context;
         cancellationToken.ThrowIfCancellationRequested();
 
         var data = new ExampleQueryData

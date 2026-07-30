@@ -3,7 +3,6 @@ using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
-using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.DurableCommit;
 

@@ -7,6 +7,7 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Repositories;
 internal sealed class RepositoryRestorer
 {
     private const int _restoreBatchSize = 100;
+
     private static StringComparer PathComparer => OperatingSystem.IsWindows()
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;

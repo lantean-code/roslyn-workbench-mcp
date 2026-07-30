@@ -96,7 +96,6 @@ public sealed class WorkspaceExternalChangeIntegrationTests
         status.Data.ReloadRequired.Should().BeFalse();
     }
 
-
     [Fact]
     public async Task GIVEN_MalformedProjectAfterExternalChange_WHEN_ReloadingWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {

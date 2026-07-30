@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis.Text;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class LinkedDocumentChangeMergerTests : IDisposable

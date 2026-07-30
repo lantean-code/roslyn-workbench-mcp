@@ -312,7 +312,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             {
                 public void Configure(IPluginConfiguration configuration)
                 {
-                    _ = configuration.AddQueryTool<ExampleQueryTool>();
+                    configuration.AddQueryTool<ExampleQueryTool>();
                 }
             }
 
@@ -338,7 +338,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                     IQueryContext context,
                     CancellationToken cancellationToken)
                 {
-                    _ = context;
+                    context;
                     cancellationToken.ThrowIfCancellationRequested();
 
                     var data = new ExampleQueryData

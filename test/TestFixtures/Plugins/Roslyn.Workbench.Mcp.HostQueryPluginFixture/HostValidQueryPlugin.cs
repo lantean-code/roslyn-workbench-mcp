@@ -12,7 +12,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        _ = configuration.AddQueryTool<Handler>();
+        configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -36,7 +36,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     {
         public async ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            _ = context;
+            context;
 
             await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
             if (request.Throw)

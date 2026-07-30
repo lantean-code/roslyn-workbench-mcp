@@ -755,7 +755,7 @@ internal static class BuiltInCodeActionAuditCases
             ExpectedChangedText = "static void LocalFunction(int captured)",
             UnexpectedChangedText = "static void LocalFunction()",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "_ = captured;"),
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "captured;"),
         },
         new()
         {

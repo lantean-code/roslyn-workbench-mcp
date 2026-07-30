@@ -1,6 +1,6 @@
 # Future Tasks
 
-Date: 2026-07-27
+Date: 2026-07-30
 
 ## Purpose
 
@@ -8,13 +8,15 @@ This document is the single active engineering backlog for work already justifie
 
 Completed work, superseded checklists, approved defensive coverage gaps and standing guardrails are excluded. Trigger-based ideas are kept separately from scheduled work so they are not mistaken for current commitments.
 
-Priority bands mean:
+Active tasks are ordered by delivery sequence rather than severity. Complete each phase before the next unless the tasks are explicitly safe to run in parallel:
 
-- **P0 — Release decision or blocker**: resolve before release, or explicitly accept and document the residual risk.
-- **P1 — Production confidence**: high-value evidence or hardening that should normally precede release.
-- **P2 — Release support and ecosystem**: important for the supported-platform or extension story, but not necessarily a core release blocker.
-- **P3 — Engineering efficiency**: valuable improvements that should not delay the product release.
-- **Conditional**: do not schedule unless the stated external capability, evidence threshold or product need exists.
+1. **Foundation** — resolve known reproducibility defects and stabilise the public v1 extension boundary.
+2. **Release automation** — automate the evidence required for a release candidate.
+3. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
+4. **Final release gate** — complete the readiness review against the prepared candidate.
+5. **Publication** — publish only the candidate that passed the final gate.
+
+Conditional tasks remain inactive until their stated external capability, evidence threshold or product need exists.
 
 Statuses mean:
 
@@ -24,55 +26,29 @@ Statuses mean:
 
 When a task is completed, remove it from this document rather than retaining a completed entry.
 
-## P0 — Release Decisions and Blockers
+## Phase 1 — Foundation
 
-### Complete the pre-release readiness review
-
-**Status:** Started
-
-Align the release documentation and package-facing material, remove development-only content from public surfaces, validate the complete supported functionality, perform a security and trust-boundary audit, and finish the product polish needed before release packaging begins.
-
-Implement the dependency-ordered batches defined by the [Pre-release Readiness Audit](PreReleaseReadinessAudit-2026-07-24.md):
-
-1. release documentation, backlog and package-facing documentation alignment — complete;
-2. supported-functionality and public-contract audit — complete;
-3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded reference and recovery input processing are resolved; and
-4. final product polish and release-readiness validation.
-
-Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
-
-### Prepare and publish the v1 release artifacts
+### Make external-repository preparation clean and repeatable
 
 **Status:** Not started
 
-Implement tag-driven release publication using GitVersion. A release tag must produce one consistent version across the Host assemblies, .NET tool package, standalone executable archives and Plugins NuGet package.
+Make scenario-runner repository preparation preserve the pinned tracked state across repeated native Windows and Linux/WSL runs without requiring manual cache repair. The Batch 7 Windows EF Core run exposed a mismatch: repository preparation could remove the pinned commit's three zero-byte tracked sentinel files, causing the next cache reuse to fail its deliberate tracked-cleanliness guard even though no source mutation occurred.
 
-Publish and retain these immutable artifacts:
+Retain the guard against silently concealing real source mutations, failed durable restoration or recovery defects. Do not introduce a blanket reset or clean. Instead, identify preparation side effects at the preparation boundary, fail with the exact affected paths, and either isolate generated preparation output from the checkout or support explicitly declared, pinned-content restoration for known repository-owned preparation effects. Add repeat-preparation and cache-reuse coverage for EF Core on Windows and representative Linux/WSL coverage.
 
-- the MCP server as a .NET tool package;
-- standalone executable archives for every supported runtime identifier;
-- the third-party Plugins library as the author-facing NuGet package, containing the Plugins and Abstractions assemblies plus the authoring analyser;
-- symbol packages where applicable;
-- checksums for downloadable standalone artifacts; and
-- release notes identifying the source tag and commit.
+Source: [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md#external-repository-preparation-follow-up)
 
-Release reproducibility is based on the tagged source, pinned .NET SDK, centrally managed exact direct dependency versions and retention of the artifacts produced by the release workflow. Do not adopt `packages.lock.json` files solely for release publication or GitHub Actions caching. Leave NuGet package caching disabled unless restore performance later becomes a measured problem that justifies revisiting the policy.
+### Harden the plugin query-cache boundary
 
-GitHub and publication preparation own `PRR-F023`. Before public publishing, pin every reusable GitHub Action to a reviewed full commit SHA, configure an automated update path such as Dependabot, retain minimal workflow permissions, and use environment-protected OIDC or trusted publishing rather than long-lived publishing credentials.
+**Status:** Not started
 
-Before publishing:
+Replace the raw `IToolExecutionServices.QueryCache` contract with a Host-created query-result cache bound to the current Workspace snapshot, plugin and tool. Keep storage, bounds, expiration and invalidation generations internal to Workspace; prevent cross-plugin key collisions, late stores into an invalidated generation and manual Workspace identity mistakes.
 
-1. Restore, build, test, pack and publish from the release tag in one controlled workflow.
-2. Confirm every artifact carries the GitVersion-derived release version.
-3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
-4. Run each standalone executable on its target operating system without relying on repository build output.
-5. Inspect the Plugins package and generated `.nuspec`; verify that it contains the Plugins and Abstractions assemblies and analyser without publishing Workspace as an authoring dependency, then deliberately approve its direct dependency ranges.
-6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
-7. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
+Retain separate cache semantics for immutable query results, replayable Code Action handles and process-lifetime metadata. Decide explicitly whether query results and Code Action references share one capacity budget or use isolated caches.
 
-The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
+Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
 
-## P1 — Production Confidence and Performance
+## Phase 2 — Release Automation
 
 ### Automate release scenario validation and performance history
 
@@ -91,33 +67,69 @@ Implementation order:
 3. Add compatible previous-release comparison and Markdown reporting.
 4. Add manual and release-branch workflow orchestration.
 5. Once the repository is public, add best-effort macOS release validation.
-6. Attach the final aggregate and comparison to the GitHub release.
+6. Make the final aggregate and comparison available to the publication workflow for attachment to the GitHub release.
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
-## P2 — Release Support and Ecosystem
+## Phase 3 — Release Candidate Preparation
 
-### Harden the plugin query-cache boundary
-
-**Status:** Not started
-
-Replace the raw `IToolExecutionServices.QueryCache` contract with a Host-created query-result cache bound to the current Workspace snapshot, plugin and tool. Keep storage, bounds, expiration and invalidation generations internal to Workspace; prevent cross-plugin key collisions, late stores into an invalidated generation and manual Workspace identity mistakes.
-
-Retain separate cache semantics for immutable query results, replayable Code Action handles and process-lifetime metadata. Decide explicitly whether query results and Code Action references share one capacity budget or use isolated caches.
-
-Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
-
-## P3 — Engineering Efficiency
-
-### Make external-repository preparation clean and repeatable
+### Prepare and validate the v1 release artifacts
 
 **Status:** Not started
 
-Make scenario-runner repository preparation preserve the pinned tracked state across repeated native Windows and Linux/WSL runs without requiring manual cache repair. The Batch 7 Windows EF Core run exposed a mismatch: repository preparation could remove the pinned commit's three zero-byte tracked sentinel files, causing the next cache reuse to fail its deliberate tracked-cleanliness guard even though no source mutation occurred.
+Implement tag-driven release preparation using GitVersion. A release tag must produce one consistent version across the Host assemblies, .NET tool package, standalone executable archives and Plugins NuGet package.
 
-Retain the guard against silently concealing real source mutations, failed durable restoration or recovery defects. Do not introduce a blanket reset or clean. Instead, identify preparation side effects at the preparation boundary, fail with the exact affected paths, and either isolate generated preparation output from the checkout or support explicitly declared, pinned-content restoration for known repository-owned preparation effects. Add repeat-preparation and cache-reuse coverage for EF Core on Windows and representative Linux/WSL coverage.
+Prepare and retain these candidate artifacts:
 
-Source: [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md#external-repository-preparation-follow-up)
+- the MCP server as a .NET tool package;
+- standalone executable archives for every supported runtime identifier;
+- the third-party Plugins library as the author-facing NuGet package, containing the Plugins and Abstractions assemblies plus the authoring analyser;
+- symbol packages where applicable;
+- checksums for downloadable standalone artifacts; and
+- draft release notes identifying the source tag and commit.
+
+Release reproducibility is based on the tagged source, pinned .NET SDK, centrally managed exact direct dependency versions and retention of the artifacts produced by the release workflow. Do not adopt `packages.lock.json` files solely for release publication or GitHub Actions caching. Leave NuGet package caching disabled unless restore performance later becomes a measured problem that justifies revisiting the policy.
+
+GitHub and publication preparation own `PRR-F023`. Pin every reusable GitHub Action to a reviewed full commit SHA, configure an automated update path such as Dependabot, retain minimal workflow permissions, and configure environment-protected OIDC or trusted publishing rather than long-lived publishing credentials.
+
+Validate the candidate without publishing it:
+
+1. Restore, build, test and pack from the release tag in one controlled workflow.
+2. Confirm every artifact carries the GitVersion-derived release version.
+3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
+4. Run each standalone executable on its target operating system without relying on repository build output.
+5. Inspect the Plugins package and generated `.nuspec`; verify that it contains the Plugins and Abstractions assemblies and analyser without publishing Workspace as an authoring dependency, then deliberately approve its direct dependency ranges.
+6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
+7. Retain the exact candidate artifacts and validation evidence for the final release gate.
+
+The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
+
+## Phase 4 — Final Release Gate
+
+### Complete the pre-release readiness review
+
+**Status:** Started
+
+Align the release documentation and package-facing material, remove development-only content from public surfaces, validate the complete supported functionality, perform a security and trust-boundary audit, and finish the product polish needed before publication.
+
+Implement the dependency-ordered batches defined by the [Pre-release Readiness Audit](PreReleaseReadinessAudit-2026-07-24.md):
+
+1. release documentation, backlog and package-facing documentation alignment — complete;
+2. supported-functionality and public-contract audit — complete;
+3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded reference and recovery input processing are resolved; and
+4. final product polish and release-readiness validation against the prepared v1 candidate.
+
+Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
+
+## Phase 5 — Publication
+
+### Publish the validated v1 release artifacts
+
+**Status:** Not started
+
+Publish only the exact candidate artifacts that passed Phase 3 validation and the Phase 4 release gate. Do not rebuild or replace artifacts under the same version.
+
+Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 3 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 2 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
 
 ## Conditional Backlog
 

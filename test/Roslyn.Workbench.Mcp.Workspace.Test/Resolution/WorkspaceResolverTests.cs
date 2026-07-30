@@ -1,7 +1,5 @@
 using Microsoft.CodeAnalysis.CSharp;
 
-using Roslyn.Workbench.Mcp.Workspace.Selection;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverTests

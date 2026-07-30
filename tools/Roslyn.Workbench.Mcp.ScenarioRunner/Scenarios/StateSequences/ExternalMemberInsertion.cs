@@ -8,6 +8,7 @@ internal sealed class ExternalMemberInsertion : IAsyncDisposable
     private static readonly Encoding _encoding = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: true);
+
     private readonly byte[] _originalContents;
     private readonly string _path;
     private bool _isRestored;

@@ -532,5 +532,4 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
         return AcceptanceFailureDiagnostics.IsRetentionEnabled();
     }
-
 }

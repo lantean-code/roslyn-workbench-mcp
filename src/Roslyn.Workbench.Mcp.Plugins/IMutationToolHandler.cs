@@ -8,9 +8,11 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// implementing this marker directly.
 /// </remarks>
 #pragma warning disable CA1040 // The non-generic interface is an intentional marker used for mutation-handler discovery and registration.
+
 public interface IMutationToolHandler
 {
 }
+
 #pragma warning restore CA1040
 
 /// <summary>

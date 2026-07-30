@@ -1,4 +1,3 @@
-
 namespace Roslyn.Workbench.Mcp.Hosting;
 
 internal interface IMsBuildRegistrationService

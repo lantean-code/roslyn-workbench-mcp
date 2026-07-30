@@ -418,5 +418,4 @@ public sealed class AnalyzeNullabilityToolTests
         result.Data.Findings.Items.Should().Contain(item => item.Diagnostic!.Location == null);
         result.Data.Findings.Items.Should().Contain(item => item.Diagnostic!.Location != null);
     }
-
 }

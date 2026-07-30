@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.State;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Test.Execution;
 
 public sealed class PluginExecutionContextTests

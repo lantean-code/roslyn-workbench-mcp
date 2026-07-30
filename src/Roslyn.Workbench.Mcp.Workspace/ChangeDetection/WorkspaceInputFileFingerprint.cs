@@ -7,5 +7,4 @@ internal sealed record WorkspaceInputFileFingerprint
     public DateTime LastWriteTimeUtc { get; init; }
 
     public long Length { get; init; }
-
 }

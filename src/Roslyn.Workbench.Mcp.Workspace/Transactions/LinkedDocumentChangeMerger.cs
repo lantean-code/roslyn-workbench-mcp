@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis.Text;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger

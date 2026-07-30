@@ -10,7 +10,7 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        _ = configuration.AddMutationTool<Handler>();
+        configuration.AddMutationTool<Handler>();
     }
 
     public sealed record Request : WorkspaceMutationRequest
@@ -23,8 +23,8 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
-            _ = context;
-            _ = cancellationToken;
+            context;
+            cancellationToken;
 
             var candidate = new MutationCandidate
             {

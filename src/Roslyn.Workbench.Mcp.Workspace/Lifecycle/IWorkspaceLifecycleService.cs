@@ -1,4 +1,3 @@
-
 namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
 /// <summary>

@@ -151,5 +151,6 @@ public sealed class PluginHandlerTypeInspectorTests
             return ValueTask.FromResult(result);
         }
     }
+
 #pragma warning restore CA1812
 }

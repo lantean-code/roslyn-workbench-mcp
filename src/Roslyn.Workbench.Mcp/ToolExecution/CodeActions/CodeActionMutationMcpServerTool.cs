@@ -40,7 +40,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
         }
 
-        await using var _ = contextLease;
+        await using var contextLease;
         if (contextLease.HasFailure)
         {
             return CreateStructuredResult(

@@ -35,5 +35,4 @@ public sealed class ServerStatusToolTests
         result.StructuredContent!.Value.GetProperty("data").GetProperty("toolCount").GetInt32().Should().Be(5);
         service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None), Times.Once);
     }
-
 }

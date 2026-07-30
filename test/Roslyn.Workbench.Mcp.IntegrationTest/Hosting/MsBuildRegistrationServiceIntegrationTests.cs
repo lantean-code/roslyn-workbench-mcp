@@ -17,7 +17,7 @@ public sealed class MsBuildRegistrationServiceIntegrationTests
     public void GIVEN_MsBuildIsRegistered_WHEN_EnsuringRegistration_THEN_ShouldReturnAndCacheAvailableStatus()
     {
         var registrationService = new MsBuildRegistrationService();
-        _ = registrationService.EnsureRegistered();
+        registrationService.EnsureRegistered();
         var target = new MsBuildRegistrationService();
 
         var status = target.EnsureRegistered();

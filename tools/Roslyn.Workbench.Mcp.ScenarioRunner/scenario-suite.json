@@ -9,7 +9,7 @@
       "preparation": [
         {
           "fileName": "dotnet",
-          "arguments": ["restore", "GuardClauses.sln"]
+          "arguments": [ "restore", "GuardClauses.sln" ]
         }
       ],
       "scenarios": [
@@ -43,7 +43,7 @@
             "kind": "LiveBuild",
             "build": {
               "fileName": "dotnet",
-              "arguments": ["build", "GuardClauses.sln", "--no-restore"]
+              "arguments": [ "build", "GuardClauses.sln", "--no-restore" ]
             }
           },
           "arguments": {
@@ -208,7 +208,7 @@
                     "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                   },
                   "kinds": 1,
-                  "diagnosticIds": ["IDE0058"]
+                  "diagnosticIds": [ "IDE0058" ]
                 }
               },
               "arguments": {
@@ -217,7 +217,7 @@
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                 },
                 "kinds": 1,
-                "diagnosticIds": ["IDE0058"]
+                "diagnosticIds": [ "IDE0058" ]
               }
             }
           ],
@@ -234,7 +234,11 @@
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "scope": 0,
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            }
           }
         },
         {
@@ -263,7 +267,7 @@
                     "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                   },
                   "kinds": 1,
-                  "diagnosticIds": ["IDE0058"]
+                  "diagnosticIds": [ "IDE0058" ]
                 }
               },
               "arguments": {
@@ -272,7 +276,7 @@
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                 },
                 "kinds": 1,
-                "diagnosticIds": ["IDE0058"]
+                "diagnosticIds": [ "IDE0058" ]
               }
             },
             {
@@ -284,7 +288,11 @@
               "arguments": {
                 "workspace": { "workspaceId": "${workspaceId}" },
                 "scope": 0,
-                "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+                "expectedSnapshot": {
+                  "workspaceId": "${workspaceId}",
+                  "workspaceEpoch": "${workspaceEpoch}",
+                  "transactionRevision": 0
+                }
               }
             }
           ],
@@ -299,7 +307,11 @@
           },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            }
           }
         },
         {
@@ -320,7 +332,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "document": {
               "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
             }
@@ -355,7 +371,11 @@
           },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            }
           }
         },
         {
@@ -376,7 +396,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
             },
@@ -402,7 +426,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
             },
@@ -427,7 +455,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
             },
@@ -583,7 +615,11 @@
           "tool": "find-references",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "project": {
                 "path": "src/Serilog/Serilog.csproj",
@@ -820,7 +856,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "project": {
                 "path": "src/Serilog/Serilog.csproj",
@@ -870,7 +910,11 @@
           },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            }
           }
         },
         {
@@ -937,14 +981,22 @@
                 },
                 "arguments": {
                   "workspace": { "workspaceId": "${workspaceId}" },
-                  "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 }
+                  "expectedSnapshot": {
+                    "workspaceId": "${workspaceId}",
+                    "workspaceEpoch": "${workspaceEpoch}",
+                    "transactionRevision": 0
+                  }
                 }
               },
               {
                 "tool": "rename-symbol",
                 "arguments": {
                   "workspace": { "workspaceId": "${workspaceId}" },
-                  "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 1 },
+                  "expectedSnapshot": {
+                    "workspaceId": "${workspaceId}",
+                    "workspaceEpoch": "${workspaceEpoch}",
+                    "transactionRevision": 1
+                  },
                   "symbol": {
                     "project": {
                       "path": "src/Serilog/Serilog.csproj",
@@ -990,9 +1042,9 @@
       "preparation": [
         {
           "fileName": "bash",
-          "arguments": ["restore.sh", "-p:NuGetAudit=false"],
+          "arguments": [ "restore.sh", "-p:NuGetAudit=false" ],
           "windowsFileName": "cmd.exe",
-          "windowsArguments": ["/d", "/c", "restore.cmd", "/p:NuGetAudit=false"]
+          "windowsArguments": [ "/d", "/c", "restore.cmd", "/p:NuGetAudit=false" ]
         }
       ],
       "scenarios": [
@@ -1026,7 +1078,7 @@
             "kind": "LiveBuild",
             "build": {
               "fileName": "bash",
-              "arguments": ["build.sh", "-p:NuGetAudit=false"],
+              "arguments": [ "build.sh", "-p:NuGetAudit=false" ],
               "windowsFileName": "cmd.exe",
               "windowsArguments": [
                 "/d",
@@ -1359,7 +1411,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "project": {
                 "path": "src/EFCore/EFCore.csproj",
@@ -1387,7 +1443,11 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
             "symbol": {
               "project": {
                 "path": "src/EFCore/EFCore.csproj",

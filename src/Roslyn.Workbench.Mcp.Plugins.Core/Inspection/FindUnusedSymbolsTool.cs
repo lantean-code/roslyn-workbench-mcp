@@ -5,7 +5,6 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
 {
     protected override async ValueTask<PluginExecutionResult<UnusedSymbolsData>> ExecuteCoreAsync(FindUnusedSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<UnusedSymbolsData>(request.Scope, context);
         if (documents.HasRejection)
         {

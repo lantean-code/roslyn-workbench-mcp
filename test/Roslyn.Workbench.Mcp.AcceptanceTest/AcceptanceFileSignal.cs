@@ -31,8 +31,8 @@ internal static class AcceptanceFileSignal
 
         void handleSignal(object sender, FileSystemEventArgs arguments)
         {
-            _ = sender;
-            _ = arguments;
+            sender;
+            arguments;
             signalObserved.TrySetResult();
         }
     }

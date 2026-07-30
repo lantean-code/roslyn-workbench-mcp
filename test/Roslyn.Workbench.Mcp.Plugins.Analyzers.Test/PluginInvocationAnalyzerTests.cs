@@ -39,7 +39,7 @@ public sealed class PluginInvocationAnalyzerTests
                     object context,
                     System.Threading.CancellationToken {|RWMCP013:cancellationToken|})
                 {
-                    _ = cancellationToken;
+                    cancellationToken;
                 }
             }
             """;

@@ -35,8 +35,8 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
             activator.Object);
 
         var diagnosticIds = new HashSet<string>(["INDEX001"], StringComparer.Ordinal);
-        _ = target.GetAnalyzers(diagnosticIds);
-        _ = target.GetAnalyzers(diagnosticIds);
+        target.GetAnalyzers(diagnosticIds);
+        target.GetAnalyzers(diagnosticIds);
 
         activator.Verify(
             item => item.Activate(typeof(IndexedAnalyzer)),
@@ -69,8 +69,8 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
 
         using var listener = new PerformanceEventListener();
         var diagnosticIds = new HashSet<string>(["INDEX001"], StringComparer.Ordinal);
-        _ = target.GetAnalyzers(diagnosticIds);
-        _ = target.GetAnalyzers(diagnosticIds);
+        target.GetAnalyzers(diagnosticIds);
+        target.GetAnalyzers(diagnosticIds);
 
         listener.Events.Should().ContainSingle(traceEvent =>
             traceEvent.EventName == "PhaseCompleted"
@@ -110,7 +110,7 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
             [typeof(CodeActionBuiltInAnalyzerIndexTests).Assembly],
             activator.Object);
 
-        _ = target.GetAnalyzers(new HashSet<string>(["INDEX001"], StringComparer.Ordinal));
+        target.GetAnalyzers(new HashSet<string>(["INDEX001"], StringComparer.Ordinal));
 
         target.Warnings.Should().Contain(warning =>
             warning.AnalyzerTypeName == typeof(MetadataFailureIndexedAnalyzer).FullName
@@ -142,6 +142,7 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
 #pragma warning disable RS1038 // The analysers intentionally share the unit-test assembly with their tests.
 #pragma warning disable RS1041 // The analysers are test fixtures rather than separately targeted compiler extensions.
 #pragma warning disable CA1812 // Analyzer fixtures are activated or inspected through reflection.
+
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     private sealed class IndexedAnalyzer : DiagnosticAnalyzer
     {
@@ -202,6 +203,7 @@ public sealed class CodeActionBuiltInAnalyzerIndexTests
             context.EnableConcurrentExecution();
         }
     }
+
 #pragma warning restore RS1001
 #pragma warning restore RS1004
 #pragma warning restore RS1036

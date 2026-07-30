@@ -10,7 +10,7 @@ public sealed class HostToolCompositionIntegrationTests
     public async Task GIVEN_CompleteHostComposition_WHEN_ValidatingContainer_THEN_ShouldResolveEveryRegisteredMcpTool()
     {
         var builder = Host.CreateApplicationBuilder();
-        _ = builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
 
         await using var serviceProvider = builder.Services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -77,7 +77,7 @@ public sealed class HostToolCompositionIntegrationTests
     public async Task GIVEN_CallToolFilterWithoutRequestServices_WHEN_InvokingFilter_THEN_ShouldRejectInvalidServerComposition()
     {
         var builder = Host.CreateApplicationBuilder();
-        _ = builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
         await using var serviceProvider = builder.Services.BuildServiceProvider();
         var mcpServerOptions = serviceProvider.GetRequiredService<IOptions<McpServerOptions>>().Value;
         var context = new RequestContext<CallToolRequestParams>(

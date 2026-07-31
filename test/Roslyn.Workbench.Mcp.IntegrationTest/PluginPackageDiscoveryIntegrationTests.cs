@@ -19,8 +19,11 @@ public sealed class PluginPackageDiscoveryIntegrationTests
         var tools = snapshot.Tools;
         var plugins = snapshot.Plugins;
 
-        tools.Should().HaveCount(2);
-        tools.Select(static tool => tool.Tool.Metadata.Name).Should().Contain(["host-valid-query", "host-valid-mutation"]);
+        tools.Select(static tool => tool.Tool.Metadata.Name).Should().BeEquivalentTo([
+            "host-query-cache-calibration",
+            "host-valid-mutation",
+            "host-valid-query",
+        ]);
 
         plugins.Should().ContainSingle(static status => status.PluginId == "host.valid.query" && status.Enabled);
         plugins.Should().ContainSingle(static status => status.PluginId == "host.valid.mutation" && status.Enabled);

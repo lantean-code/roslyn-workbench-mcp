@@ -5,15 +5,18 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
     private readonly IAddedDocumentProjectContextPropagator _addedDocumentProjectContextPropagator;
     private readonly IWorkspaceMutationCandidateValidator _candidateValidator;
     private readonly ILinkedDocumentChangeMerger _linkedDocumentChangeMerger;
+    private readonly IRemovedDocumentProjectContextPropagator _removedDocumentProjectContextPropagator;
 
     public WorkspaceMutationCandidateProcessor(
         IAddedDocumentProjectContextPropagator addedDocumentProjectContextPropagator,
         IWorkspaceMutationCandidateValidator candidateValidator,
-        ILinkedDocumentChangeMerger linkedDocumentChangeMerger)
+        ILinkedDocumentChangeMerger linkedDocumentChangeMerger,
+        IRemovedDocumentProjectContextPropagator removedDocumentProjectContextPropagator)
     {
         _addedDocumentProjectContextPropagator = addedDocumentProjectContextPropagator;
         _candidateValidator = candidateValidator;
         _linkedDocumentChangeMerger = linkedDocumentChangeMerger;
+        _removedDocumentProjectContextPropagator = removedDocumentProjectContextPropagator;
     }
 
     public async ValueTask<WorkspaceMutationCandidateProcessingResult> ProcessAsync(
@@ -33,6 +36,11 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
         var propagatedSolution = await _addedDocumentProjectContextPropagator.PropagateAsync(
             currentSolution,
             candidateSolution,
+            cancellationToken);
+
+        propagatedSolution = _removedDocumentProjectContextPropagator.Propagate(
+            currentSolution,
+            propagatedSolution,
             cancellationToken);
 
         var mergeResult = await _linkedDocumentChangeMerger.MergeAsync(

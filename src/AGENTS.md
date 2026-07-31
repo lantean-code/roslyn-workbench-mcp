@@ -103,6 +103,7 @@
 ### Design
 
 - Use constructor injection only unless a framework API requires otherwise.
+- Dependency-injection registration methods must not use factory delegate overloads. Register implementation types or instances directly so construction remains container-visible and validation can inspect the dependency graph. When one stateful concern must support multiple service contracts, split the contract responsibilities into focused services and share a separately registered state collaborator instead of resolving and aliasing a concrete service through an `IServiceProvider` delegate.
 - Static methods and classes are acceptable when they are truly stateless.
 - Avoid partial classes in user code unless generated code or a framework requires them.
 - Use `record` for data-only objects when value semantics are useful.

@@ -121,7 +121,7 @@ internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger
                 continue;
             }
 
-            if (previous.Span.IntersectsWith(change.Span))
+            if (ChangesConflict(previous, change))
             {
                 return CreateFailure(
                     firstCurrentDocument,
@@ -179,5 +179,15 @@ internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger
         return startComparison != 0
             ? startComparison
             : left.Span.Length.CompareTo(right.Span.Length);
+    }
+
+    private static bool ChangesConflict(TextChange previous, TextChange current)
+    {
+        if (previous.Span.End != current.Span.Start)
+        {
+            return previous.Span.End > current.Span.Start;
+        }
+
+        return previous.Span.IsEmpty || current.Span.IsEmpty;
     }
 }

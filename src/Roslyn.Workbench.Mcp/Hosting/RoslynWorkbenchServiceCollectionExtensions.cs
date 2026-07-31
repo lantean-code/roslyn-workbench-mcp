@@ -126,6 +126,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();
         services.AddSingleton<IAddedDocumentProjectContextPropagator, AddedDocumentProjectContextPropagator>();
+        services.AddSingleton<IRemovedDocumentProjectContextPropagator, RemovedDocumentProjectContextPropagator>();
         services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
         services.AddSingleton<IWorkspaceMutationCandidateProcessor, WorkspaceMutationCandidateProcessor>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
@@ -182,11 +183,9 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
         services.AddSingleton<IExternalErrorReportProjector, ExternalErrorReportProjector>();
         services.AddSingleton<IPreparedSubmissionStore, PreparedSubmissionStore>();
-        services.AddSingleton<ErrorReportingConsentService>();
-        services.AddSingleton<IErrorReportingConsentService>(
-            static provider => provider.GetRequiredService<ErrorReportingConsentService>());
-        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver>(
-            static provider => provider.GetRequiredService<ErrorReportingConsentService>());
+        services.AddSingleton<IErrorReportingConsentStore, ErrorReportingConsentStore>();
+        services.AddSingleton<IErrorReportingConsentService, ErrorReportingConsentService>();
+        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, ErrorReportingConsentLifecycleObserver>();
         services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
         AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();

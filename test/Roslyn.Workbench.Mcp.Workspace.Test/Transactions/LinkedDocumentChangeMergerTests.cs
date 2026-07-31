@@ -119,6 +119,30 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_LinkedDocumentsHaveAdjacentNonEmptyChanges_WHEN_Merging_THEN_ShouldCombineChanges()
+    {
+        var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution("abcdef");
+        var candidateSolution = currentSolution
+            .WithDocumentText(firstDocumentId, SourceText.From("ABCdef"))
+            .WithDocumentText(secondDocumentId, SourceText.From("abcDEF"));
+
+        var result = await _target.MergeAsync(
+            currentSolution,
+            candidateSolution,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeTrue();
+        var firstMergedText = await GetRequiredDocument(result.Solution, firstDocumentId)
+            .GetTextAsync(TestContext.Current.CancellationToken);
+
+        var secondMergedText = await GetRequiredDocument(result.Solution, secondDocumentId)
+            .GetTextAsync(TestContext.Current.CancellationToken);
+
+        firstMergedText.ToString().Should().Be("ABCDEF");
+        secondMergedText.ToString().Should().Be("ABCDEF");
+    }
+
+    [Fact]
     public async Task GIVEN_LinkedDocumentsHaveIdenticalChanges_WHEN_Merging_THEN_ShouldApplyChangeOnce()
     {
         var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution();
@@ -168,12 +192,47 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         error.Message.Should().Contain("overlapping changes");
     }
 
+    [Fact]
+    public async Task GIVEN_LinkedDocumentsHaveDifferentInsertionsAtSamePosition_WHEN_Merging_THEN_ShouldReturnConflict()
+    {
+        var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution("abcdef");
+        var candidateSolution = currentSolution
+            .WithDocumentText(firstDocumentId, SourceText.From("abcXdef"))
+            .WithDocumentText(secondDocumentId, SourceText.From("abcYdef"));
+
+        var result = await _target.MergeAsync(
+            currentSolution,
+            candidateSolution,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.Error?.Code.Should().Be(WorkspaceErrorCodes.LinkedDocumentConflict);
+    }
+
+    [Fact]
+    public async Task GIVEN_LinkedDocumentsHaveInsertionAtReplacementBoundary_WHEN_Merging_THEN_ShouldReturnConflict()
+    {
+        var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution("abcdef");
+        var candidateSolution = currentSolution
+            .WithDocumentText(firstDocumentId, SourceText.From("ABCdef"))
+            .WithDocumentText(secondDocumentId, SourceText.From("abcXdef"));
+
+        var result = await _target.MergeAsync(
+            currentSolution,
+            candidateSolution,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.Error?.Code.Should().Be(WorkspaceErrorCodes.LinkedDocumentConflict);
+    }
+
     public void Dispose()
     {
         _workspace.Dispose();
     }
 
-    private (Solution Solution, DocumentId FirstDocumentId, DocumentId SecondDocumentId) CreateLinkedSolution()
+    private (Solution Solution, DocumentId FirstDocumentId, DocumentId SecondDocumentId) CreateLinkedSolution(
+        string baselineText = _baselineText)
     {
         var filePath = Path.Combine(Path.GetTempPath(), "Linked", "Document.cs");
         var firstProject = AddProject("FirstProject");
@@ -182,7 +241,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
             DocumentId.CreateNewId(firstProject.Id),
             "Document.cs",
             loader: TextLoader.From(TextAndVersion.Create(
-                SourceText.From(_baselineText),
+                SourceText.From(baselineText),
                 VersionStamp.Default)),
             filePath: filePath));
 
@@ -190,7 +249,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
             DocumentId.CreateNewId(secondProject.Id),
             "Document.cs",
             loader: TextLoader.From(TextAndVersion.Create(
-                SourceText.From(_baselineText),
+                SourceText.From(baselineText),
                 VersionStamp.Default)),
             filePath: filePath));
 

@@ -5,6 +5,7 @@ public sealed class WorkspaceMutationCandidateProcessorTests
     private readonly Mock<IAddedDocumentProjectContextPropagator> _addedDocumentProjectContextPropagator;
     private readonly Mock<IWorkspaceMutationCandidateValidator> _candidateValidator;
     private readonly Mock<ILinkedDocumentChangeMerger> _linkedDocumentChangeMerger;
+    private readonly Mock<IRemovedDocumentProjectContextPropagator> _removedDocumentProjectContextPropagator;
     private readonly WorkspaceMutationCandidateProcessor _target;
 
     public WorkspaceMutationCandidateProcessorTests()
@@ -12,6 +13,7 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         _addedDocumentProjectContextPropagator = new Mock<IAddedDocumentProjectContextPropagator>();
         _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
         _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _removedDocumentProjectContextPropagator = new Mock<IRemovedDocumentProjectContextPropagator>();
         _addedDocumentProjectContextPropagator
             .Setup(item => item.PropagateAsync(
                 It.IsAny<Solution>(),
@@ -20,10 +22,18 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             .Returns((Solution _, Solution candidateSolution, CancellationToken _) =>
                 ValueTask.FromResult(candidateSolution));
 
+        _removedDocumentProjectContextPropagator
+            .Setup(item => item.Propagate(
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((Solution _, Solution candidateSolution, CancellationToken _) => candidateSolution);
+
         _target = new WorkspaceMutationCandidateProcessor(
             _addedDocumentProjectContextPropagator.Object,
             _candidateValidator.Object,
-            _linkedDocumentChangeMerger.Object);
+            _linkedDocumentChangeMerger.Object,
+            _removedDocumentProjectContextPropagator.Object);
     }
 
     [Fact]
@@ -49,6 +59,11 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             It.IsAny<CancellationToken>()), Times.Never);
 
         _linkedDocumentChangeMerger.Verify(item => item.MergeAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        _removedDocumentProjectContextPropagator.Verify(item => item.Propagate(
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -166,7 +181,8 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             new AddedDocumentProjectContextPropagator(pathComparison),
             new WorkspaceMutationCandidateValidator(
                 new PhysicalPathContainment(new FileSystem(), pathComparison)),
-            new LinkedDocumentChangeMerger());
+            new LinkedDocumentChangeMerger(),
+            new RemovedDocumentProjectContextPropagator(pathComparison));
 
         var result = await target.ProcessAsync(
             currentSolution,

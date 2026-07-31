@@ -1,60 +1,52 @@
-using Microsoft.Extensions.Options;
-
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
 
 public sealed class ErrorReportingConsentServiceTests
 {
     [Fact]
-    public void GIVEN_WorkspaceGrant_WHEN_WorkspaceEpochIsInvalidated_THEN_ShouldRequirePromptAgain()
+    public void GIVEN_StoredConsentState_WHEN_GettingState_THEN_ShouldReturnStoredState()
     {
-        var target = CreateTarget(ErrorReportingConsentMode.Prompt);
-        target.AllowWorkspace("WorkspaceId", 5);
+        var store = new Mock<IErrorReportingConsentStore>();
+        store
+            .Setup(item => item.GetState("WorkspaceId", 5))
+            .Returns(ErrorReportingConsentState.AllowedForWorkspace);
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.AllowedForWorkspace);
+        var target = new ErrorReportingConsentService(store.Object);
 
-        target.InvalidateWorkspace("WorkspaceId", 5);
+        var result = target.GetState("WorkspaceId", 5);
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.PromptRequired);
+        result.Should().Be(ErrorReportingConsentState.AllowedForWorkspace);
     }
 
     [Fact]
-    public void GIVEN_SessionGrant_WHEN_QueryingAnyWorkspace_THEN_ShouldAllowForSession()
+    public void GIVEN_WorkspaceScope_WHEN_AllowingWorkspace_THEN_ShouldStoreGrant()
     {
-        var target = CreateTarget(ErrorReportingConsentMode.Prompt);
+        var store = new Mock<IErrorReportingConsentStore>();
+        var target = new ErrorReportingConsentService(store.Object);
 
-        target.AllowSession();
+        target.AllowWorkspace("WorkspaceId", 5);
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.AllowedForSession);
-        target.GetState(null, null).Should().Be(ErrorReportingConsentState.AllowedForSession);
+        store.Verify(item => item.AllowWorkspace("WorkspaceId", 5), Times.Once);
     }
 
     [Fact]
-    public void GIVEN_SessionSuppression_WHEN_PreviousGrantsExist_THEN_ShouldSuppressEveryScope()
+    public void GIVEN_ConsentService_WHEN_AllowingSession_THEN_ShouldStoreGrant()
     {
-        var target = CreateTarget(ErrorReportingConsentMode.Prompt);
-        target.AllowWorkspace("WorkspaceId", 5);
+        var store = new Mock<IErrorReportingConsentStore>();
+        var target = new ErrorReportingConsentService(store.Object);
+
         target.AllowSession();
+
+        store.Verify(item => item.AllowSession(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ConsentService_WHEN_SuppressingSession_THEN_ShouldStoreSuppression()
+    {
+        var store = new Mock<IErrorReportingConsentStore>();
+        var target = new ErrorReportingConsentService(store.Object);
 
         target.SuppressSession();
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.SuppressedForSession);
-    }
-
-    [Fact]
-    public void GIVEN_AlwaysStartupPolicy_WHEN_NoTemporaryGrantExists_THEN_ShouldBeAlwaysApproved()
-    {
-        var target = CreateTarget(ErrorReportingConsentMode.Always);
-
-        target.GetState(null, null).Should().Be(ErrorReportingConsentState.AlwaysApproved);
-    }
-
-    private static ErrorReportingConsentService CreateTarget(ErrorReportingConsentMode mode)
-    {
-        var options = new ErrorReportingOptions
-        {
-            ConsentMode = mode,
-        };
-
-        return new ErrorReportingConsentService(Options.Create(options));
+        store.Verify(item => item.SuppressSession(), Times.Once);
     }
 }

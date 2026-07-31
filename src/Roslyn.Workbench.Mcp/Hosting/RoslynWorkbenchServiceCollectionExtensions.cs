@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
@@ -18,6 +17,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.PluginDirectories = startupOptions.PluginDirectories;
                 options.DefaultMaxResults = startupOptions.DefaultMaxResults;
                 options.CodeActionReferenceLifetime = startupOptions.CodeActionReferenceLifetime;
+                options.WorkspaceQueryCacheSizeLimit = startupOptions.WorkspaceQueryCacheSizeLimit;
+                options.PluginQueryCacheEntryLimit = startupOptions.PluginQueryCacheEntryLimit;
+                options.CodeActionReferenceCacheSizeLimit = startupOptions.CodeActionReferenceCacheSizeLimit;
+                options.WorkspaceQueryCacheSlidingExpiration = startupOptions.WorkspaceQueryCacheSlidingExpiration;
+                options.PluginQueryCacheSlidingExpiration = startupOptions.PluginQueryCacheSlidingExpiration;
                 options.MaxTransactionRevisions = startupOptions.MaxTransactionRevisions;
                 options.MaxConcurrentQueries = startupOptions.MaxConcurrentQueries;
                 options.ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode;
@@ -42,13 +46,30 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
                 options.StateDirectory = configured.StateDirectory;
             });
+
+        services.AddOptions<WorkspaceQueryCacheOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
+            {
+                options.SizeLimit = configuredStartupOptions.Value.WorkspaceQueryCacheSizeLimit;
+                options.SlidingExpiration = configuredStartupOptions.Value.WorkspaceQueryCacheSlidingExpiration;
+            });
+
+        services.AddOptions<PluginQueryCacheOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
+            {
+                options.EntryLimit = configuredStartupOptions.Value.PluginQueryCacheEntryLimit;
+                options.SlidingExpiration = configuredStartupOptions.Value.PluginQueryCacheSlidingExpiration;
+            });
+
+        services.AddOptions<CodeActionReferenceCacheOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
+            {
+                options.SizeLimit = configuredStartupOptions.Value.CodeActionReferenceCacheSizeLimit;
+            });
     }
 
     public static void AddWorkspaceServices(this IServiceCollection services)
     {
-        services.AddOptions<QueryCacheOptions>();
-        services.AddSingleton<IConfigureOptions<MemoryCacheOptions>, QueryCacheMemoryOptionsConfiguration>();
-        services.AddMemoryCache();
         services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
@@ -65,11 +86,13 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceCommitLockManager, WorkspaceCommitLockManager>();
         services.AddSingleton<IWorkspaceCommitWriter, WorkspaceCommitWriter>();
         services.AddSingleton<IWorkspaceCommitRecoveryService, WorkspaceCommitRecoveryService>();
-        services.AddSingleton<WorkspaceQueryCacheState>();
-        services.AddSingleton<IQueryCacheInvalidationTokenSource>(static provider => provider.GetRequiredService<WorkspaceQueryCacheState>());
-        services.AddSingleton<IWorkspaceQueryCacheState>(static provider => provider.GetRequiredService<WorkspaceQueryCacheState>());
-        services.AddSingleton<IQueryCache, QueryCache>();
+        services.AddSingleton<IWorkspaceQueryCacheState, WorkspaceQueryCacheState>();
+        services.AddSingleton<IWorkspaceQueryCacheStore, WorkspaceQueryCacheStore>();
+        services.AddSingleton<IWorkspaceQueryCacheScopeFactory, WorkspaceQueryCacheScopeFactory>();
+        services.AddSingleton<IPluginQueryCacheState, PluginQueryCacheState>();
+        services.AddSingleton<IPluginQueryCacheStore, PluginQueryCacheStore>();
         services.AddSingleton<IWorkspaceQueryCache, WorkspaceQueryCache>();
+        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, PluginQueryCacheLifecycleObserver>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
@@ -106,6 +129,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IInspectionContextService, InspectionContextService>();
         services.AddSingleton<IDependencyAnalysisService, DependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
+        services.AddSingleton<IQueryResultCacheScopeFactory, QueryResultCacheScopeFactory>();
         services.AddSingleton<IToolExecutionContextFactory, PluginExecutionContextFactory>();
     }
 
@@ -114,12 +138,9 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
         services.AddSingleton<ICodeActionBuiltInAnalyzerIndex, CodeActionBuiltInAnalyzerIndex>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
-        services.AddSingleton<CodeActionReferenceStore>();
-        services.AddSingleton<ICodeActionReferenceStore>(
-            static provider => provider.GetRequiredService<CodeActionReferenceStore>());
-
-        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver>(
-            static provider => provider.GetRequiredService<CodeActionReferenceStore>());
+        services.AddSingleton<ICodeActionReferenceState, CodeActionReferenceState>();
+        services.AddSingleton<ICodeActionReferenceStore, CodeActionReferenceStore>();
+        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, CodeActionReferenceLifecycleObserver>();
 
         services.AddSingleton<ICodeActionInfoFactory, CodeActionInfoFactory>();
         services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();

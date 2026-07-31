@@ -28,6 +28,14 @@ internal sealed record ProfileRunResult
 
     public required int InvocationCount { get; init; }
 
+    public required long WorkingSetBeforeBytes { get; init; }
+
+    public required long WorkingSetAfterBytes { get; init; }
+
+    public required long WorkingSetDeltaBytes { get; init; }
+
+    public required long PeakWorkingSetBytes { get; init; }
+
     public required string DiagnosticArtifact { get; init; }
 
     public string? PostCloseDiagnosticArtifact { get; init; }
@@ -35,4 +43,6 @@ internal sealed record ProfileRunResult
     public ProfileInvocationTiming? InvocationTiming { get; init; }
 
     public IReadOnlyList<PhaseTraceSummary> PhaseSummary { get; init; } = [];
+
+    public IReadOnlyList<CacheMetricSummary> CacheSummary { get; init; } = [];
 }

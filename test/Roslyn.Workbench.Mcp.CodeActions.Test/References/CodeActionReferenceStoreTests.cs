@@ -10,7 +10,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
     private readonly Mock<ISystemClock> _clock;
     private readonly Mock<TimeProvider> _timeProvider;
     private readonly MemoryCache _cache;
-    private readonly CodeActionReferenceStore _target;
+    private readonly CodeActionReferenceState _target;
 
     public CodeActionReferenceStoreTests()
     {
@@ -24,11 +24,12 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
             SizeLimit = 100_000,
         });
 
-        _target = new CodeActionReferenceStore(_cache, _timeProvider.Object);
+        _target = new CodeActionReferenceState(_cache, _timeProvider.Object);
     }
 
     public void Dispose()
     {
+        _target.Dispose();
         _cache.Dispose();
     }
 
@@ -73,7 +74,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
             SizeLimit = 1,
         });
 
-        var target = new CodeActionReferenceStore(cache, _timeProvider.Object);
+        using var target = new CodeActionReferenceState(cache, _timeProvider.Object);
         var recipe = CreateRecipe() with { Title = "Title" };
 
         var created = target.TryCreate(recipe, _utcNow.AddMinutes(5), out var reference);
@@ -146,7 +147,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
                 return value is not null;
             });
 
-        var target = new CodeActionReferenceStore(cache.Object, _timeProvider.Object);
+        using var target = new CodeActionReferenceState(cache.Object, _timeProvider.Object);
         target.TryCreate(
             CreateRecipe(),
             _utcNow.AddMinutes(5),

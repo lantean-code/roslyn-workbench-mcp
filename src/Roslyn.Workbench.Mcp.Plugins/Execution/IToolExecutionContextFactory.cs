@@ -11,6 +11,12 @@ internal interface IToolExecutionContextFactory
     /// <returns>The acquired or rejected query lease.</returns>
     ToolExecutionContextLease<IQueryContext> CreateQueryContext(
         WorkspaceBoundRequest request,
+        string pluginId,
+        string toolName,
+        CancellationToken cancellationToken);
+
+    ToolExecutionContextLease<IQueryContext> CreateQueryContext(
+        WorkspaceBoundRequest request,
         CancellationToken cancellationToken);
 
     /// <summary>Acquires a mutation context and its Host-only staging capability.</summary>

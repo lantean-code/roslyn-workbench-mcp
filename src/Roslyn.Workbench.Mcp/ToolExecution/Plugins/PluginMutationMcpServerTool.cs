@@ -33,7 +33,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
             contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
         }
 
-        await using var contextLease;
+        await using var contextLeaseDisposal = contextLease;
         if (contextLease.HasFailure)
         {
             return CreateStructuredResult(

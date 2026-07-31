@@ -28,10 +28,6 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            request;
-            context;
-            cancellationToken;
-
             var response = new Response
             {
                 Value = string.Empty,

@@ -7,6 +7,8 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
 {
     private readonly IQueryToolHandler<TRequest, TResponse> _handler;
     private readonly IToolExecutionContextFactory _contextFactory;
+    private readonly string _pluginId;
+    private readonly string _toolName;
 
     public PluginQueryMcpServerTool(
         PluginQueryRegistration<TRequest, TResponse> registration,
@@ -19,6 +21,8 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
     {
         _handler = registration.Handler;
         _contextFactory = contextFactory;
+        _pluginId = registration.Tool.Plugin.PluginId;
+        _toolName = registration.Tool.Metadata.Name;
     }
 
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
@@ -28,10 +32,14 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         ToolExecutionContextLease<IQueryContext> contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
         {
-            contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
+            contextLease = _contextFactory.CreateQueryContext(
+                request,
+                _pluginId,
+                _toolName,
+                cancellationToken);
         }
 
-        await using var contextLease;
+        await using var contextLeaseDisposal = contextLease;
         if (contextLease.HasShortCircuitResult)
         {
             return CreateStructuredResult(

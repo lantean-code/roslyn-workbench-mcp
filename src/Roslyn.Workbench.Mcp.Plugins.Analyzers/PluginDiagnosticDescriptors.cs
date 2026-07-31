@@ -121,6 +121,18 @@ internal static class PluginDiagnosticDescriptors
         "Type '{0}' declares RoslynToolAttribute but implements no closed query or mutation handler contract",
         DiagnosticSeverity.Error);
 
+    public static readonly DiagnosticDescriptor InvalidQueryCacheKey = Create(
+        "RWMCP020",
+        "Use a dedicated immutable query-cache key",
+        "Query-cache key type '{0}' must be a sealed immutable reference type with stable value equality and structurally safe members",
+        DiagnosticSeverity.Error);
+
+    public static readonly DiagnosticDescriptor UnsafeCachedValue = Create(
+        "RWMCP021",
+        "Cached value may be unsafe to retain",
+        "Query-cache value type '{0}' is mutable, disposable or a result envelope and should not be retained without a specific justification",
+        DiagnosticSeverity.Warning);
+
     private static DiagnosticDescriptor Create(
         string id,
         LocalizableString title,

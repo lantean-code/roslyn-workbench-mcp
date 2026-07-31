@@ -5,7 +5,6 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Diagnostics;
 
 internal sealed class DiagnosticCollector
 {
-    private const string _performanceProvider = "Roslyn-Workbench-Mcp:0xFFFFFFFFFFFFFFFF:4";
     private static readonly TimeSpan _collectionStartupDelay = TimeSpan.FromSeconds(1);
     private readonly string _frameworkRoot;
 
@@ -22,8 +21,8 @@ internal sealed class DiagnosticCollector
     {
         var arguments = profile switch
         {
-            ProfileKind.Trace => CreateTraceArguments(processId, duration, outputPath),
             ProfileKind.Counters => CreateCountersArguments(processId, duration, outputPath),
+            ProfileKind.Trace => throw new InvalidOperationException("Trace profiles use a directly controlled EventPipe session."),
             ProfileKind.GcDump => throw new InvalidOperationException("GC dumps are point-in-time captures."),
             _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown profile kind."),
         };
@@ -85,31 +84,6 @@ internal sealed class DiagnosticCollector
             throw new InvalidOperationException(
                 $"The diagnostics tools could not be restored.{Environment.NewLine}{result.StandardError}{result.StandardOutput}");
         }
-    }
-
-    private static IReadOnlyList<string> CreateTraceArguments(
-        int processId,
-        TimeSpan duration,
-        string outputPath)
-    {
-        return
-        [
-            "tool",
-            "run",
-            "dotnet-trace",
-            "--",
-            "collect",
-            "--process-id",
-            processId.ToString(CultureInfo.InvariantCulture),
-            "--profile",
-            "dotnet-sampled-thread-time",
-            "--providers",
-            _performanceProvider,
-            "--duration",
-            FormatDuration(duration),
-            "--output",
-            outputPath,
-        ];
     }
 
     private static IReadOnlyList<string> CreateCountersArguments(

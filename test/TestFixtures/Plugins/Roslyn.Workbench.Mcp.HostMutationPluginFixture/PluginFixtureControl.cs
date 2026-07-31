@@ -34,8 +34,6 @@ internal static class PluginFixtureControl
 
         void handleRelease(object sender, FileSystemEventArgs arguments)
         {
-            sender;
-            arguments;
             releaseObserved.TrySetResult();
         }
     }

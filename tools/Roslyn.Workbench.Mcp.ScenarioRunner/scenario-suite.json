@@ -466,6 +466,50 @@
             "newName": "PerformanceTestEnum",
             "renameFile": false
           }
+        },
+        {
+          "id": "plugin-cache-calibration-reuse",
+          "description": "Measures repeated asynchronous plugin-cache hits against one immutable value.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "guardclauses-reuse",
+            "keyCount": 1,
+            "payloadLength": 1024
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-pressure",
+          "description": "Cycles a large plugin key space to measure entry pressure, admission refusal and retained working set.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "guardclauses-pressure",
+            "keyCount": 20000,
+            "payloadLength": 1024
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-null",
+          "description": "Proves null plugin-cache factory results are returned but never admitted.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "guardclauses-null",
+            "keyCount": 1,
+            "returnNull": true
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-disposable",
+          "description": "Proves disposable plugin-cache factory results are returned to callers but never admitted.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "guardclauses-disposable",
+            "keyCount": 1,
+            "returnDisposable": true
+          }
         }
       ]
     },
@@ -1030,6 +1074,54 @@
             "includeContext": false,
             "referencesLimit": 100
           }
+        },
+        {
+          "id": "plugin-cache-calibration-reuse",
+          "description": "Measures repeated synchronous plugin-cache hits against one immutable value.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "serilog-reuse",
+            "keyCount": 1,
+            "payloadLength": 1024,
+            "useSynchronousFactory": true
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-pressure",
+          "description": "Cycles a large plugin key space to measure entry pressure, admission refusal and retained working set.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "serilog-pressure",
+            "keyCount": 20000,
+            "payloadLength": 1024
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-coalescing",
+          "description": "Starts concurrent non-admitted requests for one delayed key to exercise plugin single-flight joins.",
+          "tool": "host-query-cache-calibration",
+          "concurrency": {
+            "validateSingleFlight": true,
+            "secondaryWorkspacePath": "src/Serilog/Serilog.csproj",
+            "secondaryArguments": {
+              "workspace": { "workspaceId": "${workspaceId}" },
+              "workload": "serilog-coalescing-secondary",
+              "keyCount": 1,
+              "factoryDelayMilliseconds": 100,
+              "returnNull": true,
+              "includeFactoryExecutionCount": true
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "serilog-coalescing-primary",
+            "keyCount": 1,
+            "factoryDelayMilliseconds": 100,
+            "returnNull": true,
+            "includeFactoryExecutionCount": true
+          }
         }
       ]
     },
@@ -1457,6 +1549,28 @@
             },
             "newName": "PerformanceDbContext",
             "renameFile": false
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-reuse",
+          "description": "Measures repeated asynchronous plugin-cache hits against one immutable value in the large-repository Host.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "efcore-reuse",
+            "keyCount": 1,
+            "payloadLength": 1024
+          }
+        },
+        {
+          "id": "plugin-cache-calibration-pressure",
+          "description": "Cycles a large plugin key space to correlate entry pressure with retained working set in the large-repository Host.",
+          "tool": "host-query-cache-calibration",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "workload": "efcore-pressure",
+            "keyCount": 20000,
+            "payloadLength": 1024
           }
         }
       ]

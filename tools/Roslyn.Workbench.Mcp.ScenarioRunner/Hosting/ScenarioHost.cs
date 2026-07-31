@@ -220,10 +220,15 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string hostPath,
         string workingDirectory,
         string stateDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? pluginDirectory = null)
     {
         CreateStateDirectory(stateDirectory);
-        var startInfo = CreateStartInfo(hostPath, workingDirectory, stateDirectory);
+        var startInfo = CreateStartInfo(
+            hostPath,
+            workingDirectory,
+            stateDirectory,
+            pluginDirectory);
         var process = new Process
         {
             StartInfo = startInfo,
@@ -268,7 +273,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
     private static ProcessStartInfo CreateStartInfo(
         string hostPath,
         string workingDirectory,
-        string stateDirectory)
+        string stateDirectory,
+        string? pluginDirectory)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -291,6 +297,12 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
         startInfo.ArgumentList.Add("--state-directory");
         startInfo.ArgumentList.Add(stateDirectory);
+        if (!string.IsNullOrWhiteSpace(pluginDirectory))
+        {
+            startInfo.ArgumentList.Add("--plugin-directory");
+            startInfo.ArgumentList.Add(pluginDirectory);
+        }
+
         startInfo.Environment["NUGET_PACKAGES"] = RepositoryManager.GetNuGetPackagesDirectory(workingDirectory);
         return startInfo;
     }

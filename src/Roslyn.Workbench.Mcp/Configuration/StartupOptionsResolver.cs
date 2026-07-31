@@ -27,6 +27,42 @@ internal static class StartupOptionsResolver
                 "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
                 defaults.CodeActionReferenceLifetime,
                 warnings),
+            WorkspaceQueryCacheSizeLimit = ResolveBoundedLong(
+                optionMap,
+                "workspace-query-cache-size-limit",
+                "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SIZE_LIMIT",
+                defaults.WorkspaceQueryCacheSizeLimit,
+                StartupOptionsRules.MinimumWorkspaceQueryCacheSizeLimit,
+                StartupOptionsRules.MaximumWorkspaceQueryCacheSizeLimit,
+                warnings),
+            PluginQueryCacheEntryLimit = ResolveBoundedLong(
+                optionMap,
+                "plugin-query-cache-entry-limit",
+                "ROSLYN_WORKBENCH_MCP_PLUGIN_QUERY_CACHE_ENTRY_LIMIT",
+                defaults.PluginQueryCacheEntryLimit,
+                StartupOptionsRules.MinimumPluginQueryCacheEntryLimit,
+                StartupOptionsRules.MaximumPluginQueryCacheEntryLimit,
+                warnings),
+            CodeActionReferenceCacheSizeLimit = ResolveBoundedLong(
+                optionMap,
+                "code-action-reference-cache-size-limit",
+                "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_CACHE_SIZE_LIMIT",
+                defaults.CodeActionReferenceCacheSizeLimit,
+                StartupOptionsRules.MinimumCodeActionReferenceCacheSizeLimit,
+                StartupOptionsRules.MaximumCodeActionReferenceCacheSizeLimit,
+                warnings),
+            WorkspaceQueryCacheSlidingExpiration = ResolveQueryCacheSlidingExpiration(
+                optionMap,
+                "workspace-query-cache-sliding-expiration",
+                "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SLIDING_EXPIRATION",
+                defaults.WorkspaceQueryCacheSlidingExpiration,
+                warnings),
+            PluginQueryCacheSlidingExpiration = ResolveQueryCacheSlidingExpiration(
+                optionMap,
+                "plugin-query-cache-sliding-expiration",
+                "ROSLYN_WORKBENCH_MCP_PLUGIN_QUERY_CACHE_SLIDING_EXPIRATION",
+                defaults.PluginQueryCacheSlidingExpiration,
+                warnings),
             MaxTransactionRevisions = ResolvePositiveInt(
                 optionMap,
                 "max-transaction-revisions",
@@ -183,6 +219,54 @@ internal static class StartupOptionsResolver
         }
 
         AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString(CultureInfo.InvariantCulture)}'");
+        return defaultValue;
+    }
+
+    private static long ResolveBoundedLong(
+        Dictionary<string, List<string?>> optionMap,
+        string key,
+        string environmentVariable,
+        long defaultValue,
+        long minimum,
+        long maximum,
+        List<WarningInfo> warnings)
+    {
+        var value = ReadScalarValue(optionMap, key, environmentVariable, out var source);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedValue)
+            && StartupOptionsRules.IsWithinRange(parsedValue, minimum, maximum))
+        {
+            return parsedValue;
+        }
+
+        AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString(CultureInfo.InvariantCulture)}'");
+        return defaultValue;
+    }
+
+    private static TimeSpan ResolveQueryCacheSlidingExpiration(
+        Dictionary<string, List<string?>> optionMap,
+        string key,
+        string environmentVariable,
+        TimeSpan defaultValue,
+        List<WarningInfo> warnings)
+    {
+        var value = ReadScalarValue(optionMap, key, environmentVariable, out var source);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsedValue)
+            && StartupOptionsRules.IsSupportedQueryCacheSlidingExpiration(parsedValue))
+        {
+            return parsedValue;
+        }
+
+        AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString("c", CultureInfo.InvariantCulture)}'");
         return defaultValue;
     }
 

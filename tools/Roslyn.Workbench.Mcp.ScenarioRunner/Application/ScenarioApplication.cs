@@ -160,7 +160,8 @@ internal static class ScenarioApplication
                 hostPath,
                 repositoryRoot,
                 stateDirectory,
-                cancellationToken);
+                cancellationToken,
+                options.PluginDirectory);
             string? workspaceId = null;
             ExceptionDispatchInfo? runFailure = null;
             var workspaceClosed = false;
@@ -1998,6 +1999,7 @@ internal static class ScenarioApplication
         var collector = new DiagnosticCollector(frameworkRoot);
         var artifactPath = Path.Combine(outputDirectory, GetArtifactName(options.Profile));
         var startedAtUtc = DateTimeOffset.UtcNow;
+        var beforeProfile = host.CaptureSnapshot();
         int invocationCount;
         ProfileInvocationTiming? invocationTiming = null;
 
@@ -2015,50 +2017,77 @@ internal static class ScenarioApplication
         }
         else
         {
-            if (scenarios.Count != 1)
+            foreach (var scenario in scenarios)
             {
-                throw new ArgumentException("Trace and counter profiling require exactly one scenario.");
+                await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
             }
 
-            var scenario = scenarios[0];
-            await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
-            using var diagnosticProcess = collector.StartDurationProfile(
-                options.Profile,
-                host.ProcessId,
-                options.ProfileDuration,
-                artifactPath);
-            try
+            IReadOnlyList<double> elapsedMilliseconds;
+            if (options.Profile == ProfileKind.Trace)
             {
-                var standardOutput = diagnosticProcess.StandardOutput.ReadToEndAsync(cancellationToken);
-                var standardError = diagnosticProcess.StandardError.ReadToEndAsync(cancellationToken);
-                var elapsedMilliseconds = await runner.RunUntilExitAsync(
-                    scenario,
-                    diagnosticProcess,
+                await using var traceCollection = await TraceCollection.StartAsync(
+                    host.ProcessId,
+                    artifactPath,
                     cancellationToken);
 
-                invocationCount = elapsedMilliseconds.Count;
-                invocationTiming = ProfileInvocationTiming.Create(elapsedMilliseconds);
-                await diagnosticProcess.WaitForExitAsync(cancellationToken);
+                elapsedMilliseconds = await runner.RunSequenceForMinimumDurationAsync(
+                    scenarios,
+                    options.ProfileDuration,
+                    cancellationToken);
 
-                if (diagnosticProcess.ExitCode != 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Diagnostic collection failed with exit code {diagnosticProcess.ExitCode}.{Environment.NewLine}{await standardError}{await standardOutput}");
-                }
+                await traceCollection.StopAsync(cancellationToken);
             }
-            finally
+            else
             {
-                if (!diagnosticProcess.HasExited)
+                using var diagnosticProcess = collector.StartDurationProfile(
+                    options.Profile,
+                    host.ProcessId,
+                    options.ProfileDuration,
+                    artifactPath);
+                try
                 {
-                    diagnosticProcess.Kill(entireProcessTree: true);
-                    await diagnosticProcess.WaitForExitAsync(CancellationToken.None);
+                    var standardOutput = diagnosticProcess.StandardOutput.ReadToEndAsync(cancellationToken);
+                    var standardError = diagnosticProcess.StandardError.ReadToEndAsync(cancellationToken);
+                    await DiagnosticCollector.WaitForCollectionStartAsync(
+                        diagnosticProcess,
+                        cancellationToken);
+
+                    elapsedMilliseconds = await runner.RunSequenceUntilExitAsync(
+                        scenarios,
+                        diagnosticProcess,
+                        cancellationToken);
+
+                    await diagnosticProcess.WaitForExitAsync(cancellationToken);
+
+                    if (diagnosticProcess.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Diagnostic collection failed with exit code {diagnosticProcess.ExitCode}.{Environment.NewLine}{await standardError}{await standardOutput}");
+                    }
+                }
+                finally
+                {
+                    if (!diagnosticProcess.HasExited)
+                    {
+                        diagnosticProcess.Kill(entireProcessTree: true);
+                        await diagnosticProcess.WaitForExitAsync(CancellationToken.None);
+                    }
                 }
             }
+
+            invocationCount = elapsedMilliseconds.Count;
+            invocationTiming = ProfileInvocationTiming.Create(elapsedMilliseconds);
         }
 
+        var afterProfile = host.CaptureSnapshot();
         var phaseSummary = options.Profile == ProfileKind.Trace
             ? PhaseTraceAnalyzer.Analyze(artifactPath)
             : [];
+        IReadOnlyList<CacheMetricSummary> cacheSummary = [];
+        if (options.Profile == ProfileKind.Trace && File.Exists(artifactPath))
+        {
+            cacheSummary = PhaseTraceAnalyzer.AnalyzeCacheMetrics(artifactPath);
+        }
 
         var result = new ProfileRunResult
         {
@@ -2074,12 +2103,17 @@ internal static class ScenarioApplication
             Environment = environment,
             RequestedDuration = options.Profile == ProfileKind.GcDump ? null : options.ProfileDuration,
             InvocationCount = invocationCount,
+            WorkingSetBeforeBytes = beforeProfile.WorkingSetBytes,
+            WorkingSetAfterBytes = afterProfile.WorkingSetBytes,
+            WorkingSetDeltaBytes = afterProfile.WorkingSetBytes - beforeProfile.WorkingSetBytes,
+            PeakWorkingSetBytes = afterProfile.PeakWorkingSetBytes,
             DiagnosticArtifact = artifactPath,
             PostCloseDiagnosticArtifact = options.Profile == ProfileKind.GcDump
                 ? Path.Combine(outputDirectory, "heap-after-close.gcdump")
                 : null,
             InvocationTiming = invocationTiming,
             PhaseSummary = phaseSummary,
+            CacheSummary = cacheSummary,
         };
 
         await ResultWriter.WriteProfileAsync(outputDirectory, result, cancellationToken);
@@ -2363,7 +2397,7 @@ internal static class ScenarioApplication
               state-sequence --repository <id> --scenario <state-sequence-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               concurrency --repository <id> --scenario <concurrency-id> --host <path> [--parallelism 4] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
-              profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              profile --repository <id> --scenario <id[,id...]> --host <path> [--plugin-directory <path>] [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 
             Repository clones default to the operating system's temporary directory. Results, state, and diagnostic captures default beneath artifacts/performance/results in the repository root.
             """);

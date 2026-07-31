@@ -70,8 +70,8 @@ public sealed class PluginHandlerWarningInspectorTests
 
         public static void Register()
         {
-            _constantState;
-            _metadata;
+            _ = _constantState;
+            _ = _metadata;
         }
 
         public void Update()

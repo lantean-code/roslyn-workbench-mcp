@@ -24,6 +24,8 @@ internal sealed class ScenarioOptions
 
     public string? FrameworkRoot { get; init; }
 
+    public string? PluginDirectory { get; init; }
+
     public int Iterations { get; init; } = _defaultIterations;
 
     public int Parallelism { get; init; } = _defaultParallelism;
@@ -83,6 +85,7 @@ internal sealed class ScenarioOptions
             CacheDirectory = GetValue(values, "--cache"),
             OutputDirectory = GetValue(values, "--output"),
             FrameworkRoot = GetValue(values, "--framework-root"),
+            PluginDirectory = GetValue(values, "--plugin-directory"),
             Iterations = ParsePositiveInteger(values, "--iterations", _defaultIterations),
             Parallelism = ParsePositiveInteger(values, "--parallelism", _defaultParallelism),
             Warmups = ParseNonNegativeInteger(values, "--warmups", _defaultWarmups),

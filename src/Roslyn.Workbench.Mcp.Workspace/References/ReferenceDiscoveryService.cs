@@ -9,11 +9,13 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
 {
     private const string _operationName = "find-references";
 
-    private readonly IQueryCache _queryCache;
+    private const string _cacheComponentIdentity = "reference-discovery";
 
-    public ReferenceDiscoveryService(IQueryCache queryCache)
+    private readonly IWorkspaceQueryCacheScopeFactory _queryCacheScopeFactory;
+
+    public ReferenceDiscoveryService(IWorkspaceQueryCacheScopeFactory queryCacheScopeFactory)
     {
-        _queryCache = queryCache;
+        _queryCacheScopeFactory = queryCacheScopeFactory;
     }
 
     public async ValueTask<IReadOnlyList<ReferenceOccurrence>> FindReferencesAsync(
@@ -25,9 +27,6 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
-        ArgumentNullException.ThrowIfNull(solution);
-        ArgumentNullException.ThrowIfNull(symbol);
-        ArgumentNullException.ThrowIfNull(documents);
         cancellationToken.ThrowIfCancellationRequested();
 
         var referencedSymbols = await GetReferencedSymbolsAsync(
@@ -75,30 +74,42 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
         IReadOnlyList<Document> documents,
         CancellationToken cancellationToken)
     {
-        var cacheKey = new ReferenceDiscoveryCacheKey(solution, symbol, documents);
-        if (_queryCache.TryGet<ReferenceDiscoveryCacheEntry>(workspaceId, cacheKey, out var cachedEntry))
+        var cacheScope = _queryCacheScopeFactory.CreateScope(
+            workspaceId,
+            solution,
+            _cacheComponentIdentity);
+
+        var cacheKey = new ReferenceDiscoveryCacheKey(symbol, documents);
+        var cacheEntry = await cacheScope.GetOrCreateAsync(
+            cacheKey,
+            async factoryCancellationToken =>
+            {
+                var documentSet = documents.ToImmutableHashSet();
+                IEnumerable<ReferencedSymbol> discoveredReferences;
+                using (WorkbenchPerformanceEventSource.Log.StartPhase(_operationName, WorkbenchPerformanceEventSource.DiscoveryPhase))
+                {
+                    discoveredReferences = await SymbolFinder.FindReferencesAsync(
+                        symbol,
+                        solution,
+                        documentSet,
+                        factoryCancellationToken);
+                }
+
+                var referencedSymbols = discoveredReferences.ToImmutableArray();
+                factoryCancellationToken.ThrowIfCancellationRequested();
+                return new ReferenceDiscoveryCacheEntry(referencedSymbols);
+            },
+            static value => value.Size,
+            static _ => true,
+            cancellationToken);
+
+        if (cacheEntry is null)
         {
-            return cachedEntry.ReferencedSymbols;
+            throw new InvalidOperationException(
+                "The reference-discovery cache factory returned an unexpected null value.");
         }
 
-        var documentSet = documents.ToImmutableHashSet();
-        IEnumerable<ReferencedSymbol> discoveredReferences;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(_operationName, WorkbenchPerformanceEventSource.DiscoveryPhase))
-        {
-            discoveredReferences = await SymbolFinder.FindReferencesAsync(
-                symbol,
-                solution,
-                documentSet,
-                cancellationToken);
-        }
-
-        var referencedSymbols = discoveredReferences.ToImmutableArray();
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var cacheEntry = new ReferenceDiscoveryCacheEntry(referencedSymbols);
-        _queryCache.Store(workspaceId, cacheKey, cacheEntry, cacheEntry.Size);
-
-        return referencedSymbols;
+        return cacheEntry.ReferencedSymbols;
     }
 
     private static void AddDefinitionOccurrences(

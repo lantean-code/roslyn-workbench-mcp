@@ -19,4 +19,10 @@ internal sealed record ConcurrencyStepMeasurement
     public string? RequiredAction { get; init; }
 
     public int? WorkspaceCount { get; init; }
+
+    public string? Workload { get; init; }
+
+    public int? FactoryExecutionCount { get; init; }
+
+    public int? PayloadLength { get; init; }
 }

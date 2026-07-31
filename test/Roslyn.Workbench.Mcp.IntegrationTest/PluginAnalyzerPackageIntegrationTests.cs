@@ -39,9 +39,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
 
             ValidatePackageLayout(packagePath);
 
-            var projectPath = await CreateConsumerProjectAsync(
-                consumerDirectory,
-                TestContext.Current.CancellationToken);
+            var projectPath = CreateConsumerProject(consumerDirectory);
 
             await RestoreConsumerAsync(projectPath, feedDirectory);
             await ValidateAnalyzerActivationAsync(projectPath, consumerDirectory);
@@ -177,33 +175,19 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         return dependencyIds;
     }
 
-    private static async Task<string> CreateConsumerProjectAsync(
-        string consumerDirectory,
-        CancellationToken cancellationToken)
+    private static string CreateConsumerProject(string consumerDirectory)
     {
+        var assetDirectory = Path.Combine(
+            AppContext.BaseDirectory,
+            "TestAssets",
+            "PluginAnalyzerPackageConsumer");
+
         var projectPath = Path.Combine(consumerDirectory, "ExternalPlugin.csproj");
-        var project = $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-                <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="Roslyn.Workbench.Mcp.Plugins" Version="{_packageVersion}" />
-              </ItemGroup>
-            </Project>
-            """;
+        File.Copy(
+            Path.Combine(assetDirectory, "ExternalPlugin.csproj"),
+            projectPath);
 
-        await File.WriteAllTextAsync(projectPath, project, cancellationToken);
-
-        var sourcePath = Path.Combine(consumerDirectory, "Plugin.cs");
-        await File.WriteAllTextAsync(
-            sourcePath,
-            CreateInvalidPluginSource(),
-            cancellationToken);
-
+        CopyConsumerSource(assetDirectory, "InvalidPlugin.cs", consumerDirectory);
         return projectPath;
     }
 
@@ -228,6 +212,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "--packages",
             Path.Combine(consumerDirectory, "packages"),
             "-p:NuGetAudit=false",
+            $"-p:PluginPackageVersion={_packageVersion}",
         };
 
         AddConsumerArtifactsPath(arguments, consumerDirectory);
@@ -250,6 +235,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "build",
             projectPath,
             "--no-restore",
+            $"-p:PluginPackageVersion={_packageVersion}",
         };
 
         AddConsumerArtifactsPath(invalidBuildArguments, consumerDirectory);
@@ -261,17 +247,30 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         invalidExitCode.Should().NotBe(0);
         invalidOutput.Should().Contain("RWMCP015");
 
-        var sourcePath = Path.Combine(consumerDirectory, "Plugin.cs");
-        await File.WriteAllTextAsync(
-            sourcePath,
-            CreateValidPluginSource(),
+        var assetDirectory = Path.Combine(
+            AppContext.BaseDirectory,
+            "TestAssets",
+            "PluginAnalyzerPackageConsumer");
+
+        CopyConsumerSource(assetDirectory, "InvalidCache.cs", consumerDirectory);
+
+        var (cacheExitCode, cacheOutput) = await RunDotNetAsync(
+            consumerDirectory,
+            invalidBuildArguments,
             TestContext.Current.CancellationToken);
+
+        cacheExitCode.Should().NotBe(0);
+        cacheOutput.Should().Contain("RWMCP020");
+        cacheOutput.Should().Contain("RWMCP021");
+
+        CopyConsumerSource(assetDirectory, "ValidPlugin.cs", consumerDirectory);
 
         var validBuildArguments = new List<string>
         {
             "build",
             projectPath,
             "--no-restore",
+            $"-p:PluginPackageVersion={_packageVersion}",
         };
 
         AddConsumerArtifactsPath(validBuildArguments, consumerDirectory);
@@ -287,71 +286,15 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         validOutput.Should().NotContain("RWMCP");
     }
 
-    private static string CreateInvalidPluginSource()
+    private static void CopyConsumerSource(
+        string assetDirectory,
+        string assetName,
+        string consumerDirectory)
     {
-        return """
-            using Roslyn.Workbench.Mcp.Plugins;
-
-            public sealed class ExamplePlugin : IRoslynPlugin
-            {
-                public void Configure(IPluginConfiguration configuration)
-                {
-                }
-            }
-            """;
-    }
-
-    private static string CreateValidPluginSource()
-    {
-        return """
-            using Roslyn.Workbench.Mcp.Plugins;
-            using Roslyn.Workbench.Mcp.Workspace.Selectors;
-
-            [RoslynPlugin("example.tools", "Example Tools", PluginApiVersions.V1)]
-            public sealed class ExamplePlugin : IRoslynPlugin
-            {
-                public void Configure(IPluginConfiguration configuration)
-                {
-                    configuration.AddQueryTool<ExampleQueryTool>();
-                }
-            }
-
-            public sealed record ExampleQueryRequest : WorkspaceBoundRequest
-            {
-                public string Value { get; init; } = string.Empty;
-            }
-
-            public sealed record ExampleQueryData
-            {
-                public string Value { get; init; } = string.Empty;
-            }
-
-            [RoslynTool(
-                "example-query",
-                "Example Query",
-                "Returns an example response.")]
-            internal sealed class ExampleQueryTool :
-                IQueryToolHandler<ExampleQueryRequest, ExampleQueryData>
-            {
-                public ValueTask<PluginExecutionResult<ExampleQueryData>> ExecuteAsync(
-                    ExampleQueryRequest request,
-                    IQueryContext context,
-                    CancellationToken cancellationToken)
-                {
-                    context;
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    var data = new ExampleQueryData
-                    {
-                        Value = request.Value,
-                    };
-
-                    var executionResult = PluginExecutionResult.Success<ExampleQueryData>(data);
-                    var result = ValueTask.FromResult(executionResult);
-                    return result;
-                }
-            }
-            """;
+        File.Copy(
+            Path.Combine(assetDirectory, assetName),
+            Path.Combine(consumerDirectory, "Plugin.cs"),
+            overwrite: true);
     }
 
     private static void AddRepositoryArtifactsPath(List<string> arguments)

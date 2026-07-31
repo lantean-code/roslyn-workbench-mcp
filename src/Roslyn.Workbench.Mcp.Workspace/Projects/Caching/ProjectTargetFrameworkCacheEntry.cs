@@ -1,16 +1,16 @@
+using System.Collections.Immutable;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Projects.Caching;
 
 internal sealed class ProjectTargetFrameworkCacheEntry
 {
-    public ProjectTargetFrameworksResult Result { get; }
+    public ImmutableArray<string> TargetFrameworks { get; }
 
     public long Size { get; }
 
-    public ProjectTargetFrameworkCacheEntry(ProjectTargetFrameworksResult result)
+    public ProjectTargetFrameworkCacheEntry(IReadOnlyList<string> targetFrameworks)
     {
-        var targetFrameworks = result.TargetFrameworks.ToArray();
-
-        Result = ProjectTargetFrameworksResult.Succeeded(targetFrameworks);
-        Size = targetFrameworks.Length + 1;
+        TargetFrameworks = ImmutableArray.CreateRange(targetFrameworks);
+        Size = TargetFrameworks.Length + 1;
     }
 }

@@ -49,6 +49,24 @@ internal static class AnalyzerSourcePrelude
             {
             }
 
+            public interface IQueryResultCacheKey
+            {
+            }
+
+            public interface IQueryResultCache
+            {
+                TValue GetOrCreate<TKey, TValue>(
+                    TKey key,
+                    System.Func<System.Threading.CancellationToken, TValue> factory,
+                    System.Threading.CancellationToken cancellationToken)
+                    where TKey : class, IQueryResultCacheKey
+                    where TValue : notnull;
+            }
+
+            public sealed class PluginExecutionResult<TValue>
+            {
+            }
+
             public abstract record WorkspaceBoundRequest;
 
             public abstract record WorkspaceMutationRequest : WorkspaceBoundRequest;

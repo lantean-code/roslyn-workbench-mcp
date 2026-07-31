@@ -32,6 +32,8 @@ public sealed class McpServerToolBaseTests
         contextFactory
             .Setup(item => item.CreateQueryContext(
                 It.Is<TestRequest>(request => request.Name == string.Empty),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object));
 

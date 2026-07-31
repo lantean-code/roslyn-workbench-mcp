@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\TestAssets\PluginAnalyzerPackageConsumer\**\*">
+      <Link>TestAssets\PluginAnalyzerPackageConsumer\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\TestAssets\Workspaces\**\*">
       <Link>TestAssets\Workspaces\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

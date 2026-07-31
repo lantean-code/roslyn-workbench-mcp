@@ -23,9 +23,6 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
-            context;
-            cancellationToken;
-
             var candidate = new MutationCandidate
             {
                 CandidateSolution = context.CurrentSolution,

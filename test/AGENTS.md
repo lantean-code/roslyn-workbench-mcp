@@ -10,6 +10,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Expression-bodied members are not permitted in tests.
 - Insert a blank line after any statement that spans multiple lines before beginning the next statement.
 - Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
+- Do not construct meaningful objects inline inside another constructor, factory, wrapper, mock return, or complex return expression. Assign each constructed context, lease, scope, store, options object, identity component, expected result, or other meaningful value to its own clearly named local before assembling or returning the completed value.
 
 ## Naming
 

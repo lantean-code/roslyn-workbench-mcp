@@ -9,13 +9,36 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.References;
 
 public sealed class ReferenceDiscoveryServiceTests
 {
-    private readonly Mock<IQueryCache> _queryCache;
+    private readonly Mock<IWorkspaceQueryCacheScope> _queryCacheScope;
+    private readonly Mock<IWorkspaceQueryCacheScopeFactory> _queryCacheScopeFactory;
     private readonly ReferenceDiscoveryService _target;
 
     public ReferenceDiscoveryServiceTests()
     {
-        _queryCache = new Mock<IQueryCache>();
-        _target = new ReferenceDiscoveryService(_queryCache.Object);
+        _queryCacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        _queryCacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        _queryCacheScopeFactory
+            .Setup(item => item.CreateScope(
+                It.IsAny<string>(),
+                It.IsAny<Solution>(),
+                It.IsAny<string>()))
+            .Returns(_queryCacheScope.Object);
+
+        _queryCacheScope
+            .Setup(item => item.GetOrCreateAsync<ReferenceDiscoveryCacheKey, ReferenceDiscoveryCacheEntry>(
+                It.IsAny<ReferenceDiscoveryCacheKey>(),
+                It.IsAny<Func<CancellationToken, ValueTask<ReferenceDiscoveryCacheEntry?>>>(),
+                It.IsAny<Func<ReferenceDiscoveryCacheEntry, long>>(),
+                It.IsAny<Func<ReferenceDiscoveryCacheEntry, bool>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                ReferenceDiscoveryCacheKey _,
+                Func<CancellationToken, ValueTask<ReferenceDiscoveryCacheEntry?>> factory,
+                Func<ReferenceDiscoveryCacheEntry, long> _,
+                Func<ReferenceDiscoveryCacheEntry, bool> _,
+                CancellationToken cancellationToken) => factory(cancellationToken));
+
+        _target = new ReferenceDiscoveryService(_queryCacheScopeFactory.Object);
     }
 
     [Fact]
@@ -39,7 +62,7 @@ public sealed class ReferenceDiscoveryServiceTests
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _queryCache.VerifyNoOtherCalls();
+        _queryCacheScopeFactory.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -54,12 +77,14 @@ public sealed class ReferenceDiscoveryServiceTests
         var cachedEntry = new ReferenceDiscoveryCacheEntry(
             ImmutableArray<ReferencedSymbol>.Empty);
 
-        _queryCache
-            .Setup(item => item.TryGet<ReferenceDiscoveryCacheEntry>(
-                "WorkspaceId",
-                It.IsAny<object>(),
-                out cachedEntry))
-            .Returns(true);
+        _queryCacheScope
+            .Setup(item => item.GetOrCreateAsync<ReferenceDiscoveryCacheKey, ReferenceDiscoveryCacheEntry>(
+                It.IsAny<ReferenceDiscoveryCacheKey>(),
+                It.IsAny<Func<CancellationToken, ValueTask<ReferenceDiscoveryCacheEntry?>>>(),
+                It.IsAny<Func<ReferenceDiscoveryCacheEntry, long>>(),
+                It.IsAny<Func<ReferenceDiscoveryCacheEntry, bool>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cachedEntry);
 
         var result = await _target.FindReferencesAsync(
             "WorkspaceId",
@@ -70,11 +95,12 @@ public sealed class ReferenceDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        _queryCache.Verify(item => item.Store(
-            It.IsAny<string>(),
-            It.IsAny<object>(),
-            It.IsAny<ReferenceDiscoveryCacheEntry>(),
-            It.IsAny<long>()), Times.Never);
+        _queryCacheScope.Verify(item => item.GetOrCreateAsync<ReferenceDiscoveryCacheKey, ReferenceDiscoveryCacheEntry>(
+            It.IsAny<ReferenceDiscoveryCacheKey>(),
+            It.IsAny<Func<CancellationToken, ValueTask<ReferenceDiscoveryCacheEntry?>>>(),
+            It.IsAny<Func<ReferenceDiscoveryCacheEntry, long>>(),
+            It.IsAny<Func<ReferenceDiscoveryCacheEntry, bool>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -95,11 +121,12 @@ public sealed class ReferenceDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        _queryCache.Verify(item => item.Store(
-            "WorkspaceId",
+        _queryCacheScope.Verify(item => item.GetOrCreateAsync<ReferenceDiscoveryCacheKey, ReferenceDiscoveryCacheEntry>(
             It.IsAny<ReferenceDiscoveryCacheKey>(),
-            It.IsAny<ReferenceDiscoveryCacheEntry>(),
-            It.Is<long>(size => size > 0)), Times.Once);
+            It.IsAny<Func<CancellationToken, ValueTask<ReferenceDiscoveryCacheEntry?>>>(),
+            It.IsAny<Func<ReferenceDiscoveryCacheEntry, long>>(),
+            It.IsAny<Func<ReferenceDiscoveryCacheEntry, bool>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

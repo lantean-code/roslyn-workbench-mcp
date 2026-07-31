@@ -10,6 +10,8 @@ mkdir -p "$publish_parent"
 publish_root="$(mktemp -d "$publish_parent/$(date -u +%Y%m%d-%H%M%S)-XXXXXX")"
 host_output="$publish_root/host"
 runner_output="$publish_root/runner"
+plugin_output="$publish_root/plugins/host-query"
+plugin_root="$publish_root/plugins"
 artifacts_arguments=()
 
 cleanup() {
@@ -45,6 +47,12 @@ dotnet publish tools/Roslyn.Workbench.Mcp.ScenarioRunner/Roslyn.Workbench.Mcp.Sc
     --output "$runner_output" \
     "${artifacts_arguments[@]}"
 
+echo "Publishing cache-calibration plugin (Release)..."
+dotnet publish test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj \
+    --configuration Release \
+    --output "$plugin_output" \
+    "${artifacts_arguments[@]}"
+
 host_path="$host_output/Roslyn.Workbench.Mcp"
 if [[ ! -x "$host_path" ]]; then
     host_path="$host_output/Roslyn.Workbench.Mcp.dll"
@@ -54,11 +62,12 @@ runner_path="$runner_output/Roslyn.Workbench.Mcp.ScenarioRunner"
 echo "Temporary published binaries: $publish_root"
 
 if [[ -x "$runner_path" ]]; then
-    "$runner_path" "$@" --host "$host_path" --framework-root "$repository_root"
+    "$runner_path" "$@" --host "$host_path" --framework-root "$repository_root" --plugin-directory "$plugin_root"
     exit $?
 fi
 
 dotnet "$runner_output/Roslyn.Workbench.Mcp.ScenarioRunner.dll" \
     "$@" \
     --host "$host_path" \
-    --framework-root "$repository_root"
+    --framework-root "$repository_root" \
+    --plugin-directory "$plugin_root"

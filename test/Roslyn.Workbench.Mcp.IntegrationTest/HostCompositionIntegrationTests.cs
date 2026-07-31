@@ -98,30 +98,20 @@ public sealed class HostCompositionIntegrationTests
         var referenceStore = host.Services.GetRequiredService<ICodeActionReferenceStore>();
         var lifecycleObservers = host.Services.GetServices<IWorkspaceSnapshotLifecycleObserver>().ToArray();
         var mcpTools = host.Services.GetServices<McpServerTool>().ToArray();
-        var cachedValue = new object();
-
-        toolExecutionServices.QueryCache.Store("WorkspaceId", "Key", cachedValue, 1);
-        var foundBeforeInvalidation = toolExecutionServices.QueryCache.TryGet<object>("WorkspaceId", "Key", out var valueBeforeInvalidation);
-        workspaceQueryCache.InvalidateWorkspace("WorkspaceId");
-        var foundAfterInvalidation = toolExecutionServices.QueryCache.TryGet<object>("WorkspaceId", "Key", out _);
-
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
-        toolExecutionServices.QueryCache.Should().BeOfType<QueryCache>();
         referenceDiscoveryService.Should().BeOfType<ReferenceDiscoveryService>();
         toolExecutionServices.ReferenceDiscoveryService.Should().BeSameAs(referenceDiscoveryService);
         workspaceSelectorFactory.Should().BeOfType<WorkspaceSelectorFactory>();
         toolExecutionServices.WorkspaceSelectorFactory.Should().BeSameAs(workspaceSelectorFactory);
         workspaceQueryCache.Should().BeOfType<WorkspaceQueryCache>();
-        toolExecutionServices.QueryCache.Should().NotBeSameAs(workspaceQueryCache);
-        host.Services.GetRequiredService<IQueryCache>().Should().BeSameAs(toolExecutionServices.QueryCache);
-        foundBeforeInvalidation.Should().BeTrue();
-        valueBeforeInvalidation.Should().BeSameAs(cachedValue);
-        foundAfterInvalidation.Should().BeFalse();
+        host.Services.GetRequiredService<IWorkspaceQueryCacheState>().Should().BeOfType<WorkspaceQueryCacheState>();
+        host.Services.GetRequiredService<IPluginQueryCacheState>().Should().BeOfType<PluginQueryCacheState>();
         host.Services.GetRequiredService<ICodeActionComposition>().Should().BeOfType<MefCodeActionComposition>();
         host.Services.GetRequiredService<ICodeActionPolicy>().Should().BeOfType<CodeActionPolicy>();
         host.Services.GetRequiredService<ICodeActionProviderSelection>().Should().BeOfType<CodeActionProviderSelection>();
         host.Services.GetRequiredService<ICodeActionBuiltInAnalyzerIndex>().Should().BeOfType<CodeActionBuiltInAnalyzerIndex>();
-        lifecycleObservers.Should().ContainSingle().Which.Should().BeSameAs(referenceStore);
+        lifecycleObservers.Should().Contain(item => item is PluginQueryCacheLifecycleObserver);
+        lifecycleObservers.Should().Contain(item => item is CodeActionReferenceLifecycleObserver);
         host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();
         host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();

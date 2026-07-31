@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
@@ -21,8 +20,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
 
     public IReferenceDiscoveryService ReferenceDiscoveryService { get; }
 
-    public IQueryCache QueryCache { get; }
-
     public ToolExecutionServices(
         IToolRequestResolver requestResolver,
         ICompilerDiagnosticService compilerDiagnosticService,
@@ -31,8 +28,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         IProjectTargetFrameworkResolver projectTargetFrameworkResolver,
         IDependencyAnalysisService dependencyAnalysisService,
         IWorkspaceSelectorFactory workspaceSelectorFactory,
-        IReferenceDiscoveryService referenceDiscoveryService,
-        IQueryCache queryCache)
+        IReferenceDiscoveryService referenceDiscoveryService)
     {
         RequestResolver = requestResolver;
         CompilerDiagnosticService = compilerDiagnosticService;
@@ -42,6 +38,5 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         DependencyAnalysisService = dependencyAnalysisService;
         WorkspaceSelectorFactory = workspaceSelectorFactory;
         ReferenceDiscoveryService = referenceDiscoveryService;
-        QueryCache = queryCache;
     }
 }

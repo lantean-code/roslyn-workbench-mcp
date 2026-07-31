@@ -4,7 +4,8 @@ internal sealed class PluginQueryContext : IQueryContext
 {
     public PluginQueryContext(
         IWorkspaceExecutionContext workspaceContext,
-        IToolExecutionServices toolExecutionServices)
+        IToolExecutionServices toolExecutionServices,
+        IQueryResultCache queryResultCache)
     {
         CurrentSolution = workspaceContext.CurrentSolution;
         WorkspaceIdentity = workspaceContext.WorkspaceIdentity;
@@ -12,6 +13,7 @@ internal sealed class PluginQueryContext : IQueryContext
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
         WorkspaceResolver = workspaceContext.WorkspaceResolver;
         ToolExecutionServices = toolExecutionServices;
+        QueryResultCache = queryResultCache;
     }
 
     public Solution CurrentSolution { get; }
@@ -25,4 +27,6 @@ internal sealed class PluginQueryContext : IQueryContext
     public IWorkspaceResolver WorkspaceResolver { get; }
 
     public IToolExecutionServices ToolExecutionServices { get; }
+
+    public IQueryResultCache QueryResultCache { get; }
 }

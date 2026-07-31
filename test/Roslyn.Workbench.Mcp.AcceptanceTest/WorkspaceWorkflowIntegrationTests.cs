@@ -177,7 +177,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
             AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
             var committedText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
             committedText.Should().Be(
-                "namespace Sample;\r\n\r\npublic sealed class RenamedClass\r\n{\r\n}\r\n");
+                "namespace Sample;\r\n\r\npublic sealed class RenamedClass\r\n{\r\n}");
 
             var searchResult = await target.CallToolAsync(
                 "search-symbols",

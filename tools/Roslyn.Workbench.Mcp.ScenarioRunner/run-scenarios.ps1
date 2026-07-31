@@ -30,6 +30,8 @@ $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) 'roslyn-workbench-mcp\perf
 $publishRoot = Join-Path $temporaryRoot "publish\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
 $hostOutput = Join-Path $publishRoot 'host'
 $runnerOutput = Join-Path $publishRoot 'runner'
+$pluginOutput = Join-Path $publishRoot 'plugins\host-query'
+$pluginRoot = Join-Path $publishRoot 'plugins'
 $runnerArguments = $args
 
 if ($runnerArguments.Count -eq 0)
@@ -61,6 +63,14 @@ try
         '--output', $runnerOutput
     )
 
+    Write-Host 'Publishing cache-calibration plugin (Release)...'
+    Invoke-DotNet -Arguments @(
+        'publish',
+        'test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj',
+        '--configuration', 'Release',
+        '--output', $pluginOutput
+    )
+
     $hostPath = Join-Path $hostOutput 'Roslyn.Workbench.Mcp.exe'
     if (-not (Test-Path $hostPath -PathType Leaf))
     {
@@ -77,12 +87,12 @@ try
 
     if (Test-Path $runnerPath -PathType Leaf)
     {
-        & $runnerPath @runnerArguments --host $hostPath --framework-root $repositoryRoot
+        & $runnerPath @runnerArguments --host $hostPath --framework-root $repositoryRoot --plugin-directory $pluginRoot
     }
     else
     {
         $runnerDll = Join-Path $runnerOutput 'Roslyn.Workbench.Mcp.ScenarioRunner.dll'
-        & $dotnetPath $runnerDll @runnerArguments --host $hostPath --framework-root $repositoryRoot
+        & $dotnetPath $runnerDll @runnerArguments --host $hostPath --framework-root $repositoryRoot --plugin-directory $pluginRoot
     }
 
     $runnerExitCode = $LASTEXITCODE

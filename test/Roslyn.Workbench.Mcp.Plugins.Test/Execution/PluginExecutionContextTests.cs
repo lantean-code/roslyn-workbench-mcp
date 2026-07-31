@@ -28,7 +28,11 @@ public sealed class PluginExecutionContextTests
         var services = new Mock<IToolExecutionServices>();
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
 
-        var target = new PluginQueryContext(workspaceContext, services.Object);
+        var queryResultCache = new Mock<IQueryResultCache>();
+        var target = new PluginQueryContext(
+            workspaceContext,
+            services.Object,
+            queryResultCache.Object);
 
         target.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         target.WorkspaceIdentity.Should().BeSameAs(workspaceContext.WorkspaceIdentity);
@@ -36,6 +40,7 @@ public sealed class PluginExecutionContextTests
         target.DefaultMaxResults.Should().Be(100);
         target.WorkspaceResolver.Should().BeSameAs(workspaceContext.WorkspaceResolver);
         target.ToolExecutionServices.Should().BeSameAs(services.Object);
+        target.QueryResultCache.Should().BeSameAs(queryResultCache.Object);
         ((object)target).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
     }
 

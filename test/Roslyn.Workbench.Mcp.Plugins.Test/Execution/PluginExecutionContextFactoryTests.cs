@@ -21,7 +21,7 @@ public sealed class PluginExecutionContextFactoryTests
             .Setup(item => item.CreateQueryContext(request.Workspace, CancellationToken.None))
             .Returns(WorkspaceExecutionContextLease.Acquired(workspaceContext));
 
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, services.Object);
+        var target = CreateTarget(workspaceFactory.Object, services.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
 
@@ -49,7 +49,7 @@ public sealed class PluginExecutionContextFactoryTests
             }));
 
         var toolExecutionServices = new Mock<IToolExecutionServices>();
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateMutationContext(request, CancellationToken.None);
 
@@ -76,7 +76,7 @@ public sealed class PluginExecutionContextFactoryTests
             }));
 
         var toolExecutionServices = new Mock<IToolExecutionServices>();
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
 
@@ -107,7 +107,7 @@ public sealed class PluginExecutionContextFactoryTests
                 workspaceContext));
 
         var toolExecutionServices = new Mock<IToolExecutionServices>();
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
 
@@ -131,7 +131,7 @@ public sealed class PluginExecutionContextFactoryTests
                 new Mock<IWorkspaceMutationStager>().Object));
 
         var toolExecutionServices = new Mock<IToolExecutionServices>();
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateMutationContext(request, CancellationToken.None);
 
@@ -163,7 +163,7 @@ public sealed class PluginExecutionContextFactoryTests
                 workspaceContext));
 
         var toolExecutionServices = new Mock<IToolExecutionServices>();
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateMutationContext(request, CancellationToken.None);
 
@@ -178,9 +178,13 @@ public sealed class PluginExecutionContextFactoryTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var queryResultCache = new Mock<IQueryResultCache>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
         var context = new PluginQueryContext(
-            CreateWorkspaceContext(roslyn.Solution),
-            new Mock<IToolExecutionServices>().Object);
+            workspaceContext,
+            toolExecutionServices.Object,
+            queryResultCache.Object);
 
         workspaceFactory
             .Setup(item => item.DetectUnexpectedWorkspaceChange("WorkspaceId"))
@@ -195,9 +199,7 @@ public sealed class PluginExecutionContextFactoryTests
                 },
             });
 
-        var target = new PluginExecutionContextFactory(
-            workspaceFactory.Object,
-            new Mock<IToolExecutionServices>().Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.DetectUnexpectedWorkspaceChange(context);
 
@@ -211,13 +213,15 @@ public sealed class PluginExecutionContextFactoryTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var queryResultCache = new Mock<IQueryResultCache>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
         var context = new PluginQueryContext(
-            CreateWorkspaceContext(roslyn.Solution),
-            new Mock<IToolExecutionServices>().Object);
+            workspaceContext,
+            toolExecutionServices.Object,
+            queryResultCache.Object);
 
-        var target = new PluginExecutionContextFactory(
-            workspaceFactory.Object,
-            new Mock<IToolExecutionServices>().Object);
+        var target = CreateTarget(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.DetectUnexpectedWorkspaceChange(context);
 
@@ -225,6 +229,34 @@ public sealed class PluginExecutionContextFactoryTests
     }
 
     private sealed record TestRequest : WorkspaceBoundRequest;
+
+    private static PluginExecutionContextFactory CreateTarget(
+        IWorkspaceExecutionContextFactory workspaceFactory,
+        IToolExecutionServices services)
+    {
+        var store = new Mock<IPluginQueryCacheStore>();
+        store
+            .Setup(item => item.CreateScope(
+                It.IsAny<WorkspaceSnapshotIdentity>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(CreateCacheScopeIdentity());
+
+        var cacheScopeFactory = new QueryResultCacheScopeFactory(store.Object);
+        var target = new PluginExecutionContextFactory(
+            workspaceFactory,
+            services,
+            cacheScopeFactory);
+
+        return target;
+    }
+
+    private static QueryCacheScopeIdentity CreateCacheScopeIdentity()
+    {
+        var generation = new QueryCacheGeneration("Partition", CancellationToken.None);
+        var scopeIdentity = new QueryCacheScopeIdentity(generation, "Scope");
+        return scopeIdentity;
+    }
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(Microsoft.CodeAnalysis.Solution solution)
     {

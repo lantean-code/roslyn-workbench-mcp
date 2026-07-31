@@ -10,6 +10,11 @@ public sealed class StartupOptionsResolverTests
         "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
         "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
+        "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SIZE_LIMIT",
+        "ROSLYN_WORKBENCH_MCP_PLUGIN_QUERY_CACHE_ENTRY_LIMIT",
+        "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_CACHE_SIZE_LIMIT",
+        "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SLIDING_EXPIRATION",
+        "ROSLYN_WORKBENCH_MCP_PLUGIN_QUERY_CACHE_SLIDING_EXPIRATION",
         "ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS",
         "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES",
         "ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE",
@@ -39,11 +44,58 @@ public sealed class StartupOptionsResolverTests
             result.Options.PluginDirectories.Should().BeEmpty();
             result.Options.DefaultMaxResults.Should().Be(100);
             result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(5));
+            result.Options.WorkspaceQueryCacheSizeLimit.Should().Be(10_000);
+            result.Options.PluginQueryCacheEntryLimit.Should().Be(10_000);
+            result.Options.CodeActionReferenceCacheSizeLimit.Should().Be(75_000);
+            result.Options.WorkspaceQueryCacheSlidingExpiration.Should().Be(TimeSpan.FromHours(1));
+            result.Options.PluginQueryCacheSlidingExpiration.Should().Be(TimeSpan.FromHours(1));
             result.Options.MaxTransactionRevisions.Should().Be(20);
             result.Options.MaxConcurrentQueries.Should().Be(2);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Omit);
             result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_MinimumCodeActionReferenceCacheSize_WHEN_Resolving_THEN_ShouldRetainConfiguredValue()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--code-action-reference-cache-size-limit=40000"]);
+
+            result.Options.CodeActionReferenceCacheSizeLimit.Should().Be(40_000);
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_CodeActionReferenceCacheSizeBelowMinimum_WHEN_Resolving_THEN_ShouldUseDefaultAndReportWarning()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--code-action-reference-cache-size-limit=39999"]);
+
+            result.Options.CodeActionReferenceCacheSizeLimit.Should().Be(75_000);
+            var expectedWarning = new WarningInfo
+            {
+                Code = "StartupConfigurationFallback",
+                Message = "Configuration '--code-action-reference-cache-size-limit' is invalid; using default '75000'.",
+            };
+
+            result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(expectedWarning);
         }
         finally
         {

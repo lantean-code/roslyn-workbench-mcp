@@ -8,7 +8,6 @@ public sealed class PluginPublicApiContractTests
 {
     private static readonly string[] _expectedAbstractionsExportedTypes =
     [
-        "Roslyn.Workbench.Mcp.Workspace.Caching.IQueryCache",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver",
         "Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult",
@@ -60,6 +59,8 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1",
         "Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration",
         "Roslyn.Workbench.Mcp.Plugins.IQueryContext",
+        "Roslyn.Workbench.Mcp.Plugins.IQueryResultCache",
+        "Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey",
         "Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler",
         "Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler`2",
         "Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin",
@@ -187,7 +188,6 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionServices.InspectionContextService),
             nameof(IToolExecutionServices.ProjectStructureService),
             nameof(IToolExecutionServices.ProjectTargetFrameworkResolver),
-            nameof(IToolExecutionServices.QueryCache),
             nameof(IToolExecutionServices.ReferenceDiscoveryService),
             nameof(IToolExecutionServices.RequestResolver),
             nameof(IToolExecutionServices.WorkspaceSelectorFactory),

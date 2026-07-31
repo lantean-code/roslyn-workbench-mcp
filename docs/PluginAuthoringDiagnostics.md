@@ -187,3 +187,23 @@ The plugin ID and display name supplied to `RoslynPluginAttribute` must contain 
 `RoslynToolAttribute` may only decorate a type that implements a closed `IQueryToolHandler<TRequest, TResponse>` or `IMutationToolHandler<TRequest>` contract.
 
 Attribute-free handlers remain supported because fluent configuration can supply their complete metadata.
+
+<a id="RWMCP020"></a>
+
+## RWMCP020
+
+### Use a dedicated immutable query-cache key
+
+Every `IQueryResultCache` call must use a named, sealed, immutable reference type with stable value equality, normally a sealed record class implementing `IQueryResultCacheKey`. Put strings and other scalar semantic inputs inside that dedicated key rather than using them directly. Arrays, mutable collections, Roslyn snapshot objects, writable members and unsafe nested member shapes are rejected.
+
+The analyser cannot determine whether every semantic input is present. Include every input that can change the computed value within the registered tool.
+
+<a id="RWMCP021"></a>
+
+## RWMCP021
+
+### Cached value may be unsafe to retain
+
+An `IQueryResultCache` value is clearly mutable, disposable, recursively contains an unsafe retained shape, or is a plugin result envelope whose transient failure state could become sticky. Cache only values that callers treat as immutable and that do not own resources.
+
+This warning is intentionally suppressible when static analysis cannot see a valid immutability or ownership invariant. Give every suppression a specific justification. The Host still refuses an actual `IDisposable` or `IAsyncDisposable` value at runtime.

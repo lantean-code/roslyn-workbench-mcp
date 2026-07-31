@@ -45,6 +45,9 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public const string WorkspaceCompatibilityPhase = "workspace-compatibility";
     public const string WorkspaceLeaseAcquisitionPhase = "workspace-lease-acquisition";
     public const string WorkspaceLoadPhase = "workspace-load";
+    public const string WorkspaceQueryCacheFamily = "workspace-query";
+    public const string PluginQueryCacheFamily = "plugin-query";
+    public const string CodeActionReferenceCacheFamily = "code-action-reference";
 
     public static WorkbenchPerformanceEventSource Log { get; } = new();
 
@@ -63,5 +66,11 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public void PhaseCompleted(double elapsedMilliseconds, string operation, string phase)
     {
         WriteEvent(1, elapsedMilliseconds, operation, phase);
+    }
+
+    [Event(2, Level = EventLevel.Informational)]
+    public void CacheMetric(string family, string metric, long value)
+    {
+        WriteEvent(2, family, metric, value);
     }
 }

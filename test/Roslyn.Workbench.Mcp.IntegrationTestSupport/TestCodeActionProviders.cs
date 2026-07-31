@@ -99,8 +99,6 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
 
         public override object? GetOptions(CancellationToken cancellationToken)
         {
-            cancellationToken;
-
             return new ParameterisedOptions
             {
                 Replacement = "\"UnsupportedValue\"",
@@ -139,8 +137,6 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
 
         public override object? GetOptions(CancellationToken cancellationToken)
         {
-            cancellationToken;
-
             return new ParameterisedOptions
             {
                 Replacement = "\"ParameterisedValue\"",

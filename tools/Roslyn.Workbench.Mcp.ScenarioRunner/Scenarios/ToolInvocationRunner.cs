@@ -108,6 +108,64 @@ internal sealed class ToolInvocationRunner
         return elapsedMilliseconds;
     }
 
+    public async Task<IReadOnlyList<double>> RunSequenceUntilExitAsync(
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        Process diagnosticProcess,
+        CancellationToken cancellationToken)
+    {
+        var elapsedMilliseconds = new List<double>();
+        var scenarioIndex = 0;
+        while (!diagnosticProcess.HasExited)
+        {
+            var scenario = scenarios[scenarioIndex];
+            scenarioIndex = (scenarioIndex + 1) % scenarios.Count;
+            await InvokeSupportingCallsAsync(scenario.Setup, cancellationToken);
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                await InvokeCoreAsync(scenario, cancellationToken);
+                stopwatch.Stop();
+                elapsedMilliseconds.Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+            finally
+            {
+                await InvokeSupportingCallsAsync(scenario.Cleanup, cancellationToken);
+            }
+        }
+
+        return elapsedMilliseconds;
+    }
+
+    public async Task<IReadOnlyList<double>> RunSequenceForMinimumDurationAsync(
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        TimeSpan minimumDuration,
+        CancellationToken cancellationToken)
+    {
+        var elapsedMilliseconds = new List<double>();
+        var profileStopwatch = Stopwatch.StartNew();
+        do
+        {
+            foreach (var scenario in scenarios)
+            {
+                await InvokeSupportingCallsAsync(scenario.Setup, cancellationToken);
+                var invocationStopwatch = Stopwatch.StartNew();
+                try
+                {
+                    await InvokeCoreAsync(scenario, cancellationToken);
+                    invocationStopwatch.Stop();
+                    elapsedMilliseconds.Add(invocationStopwatch.Elapsed.TotalMilliseconds);
+                }
+                finally
+                {
+                    await InvokeSupportingCallsAsync(scenario.Cleanup, cancellationToken);
+                }
+            }
+        }
+        while (profileStopwatch.Elapsed < minimumDuration);
+
+        return elapsedMilliseconds;
+    }
+
     public async Task RunCountAsync(
         ScenarioDefinition scenario,
         int count,

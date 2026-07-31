@@ -11,10 +11,11 @@ Completed work, superseded checklists, approved defensive coverage gaps and stan
 Active tasks are ordered by delivery sequence rather than severity. Complete each phase before the next unless the tasks are explicitly safe to run in parallel:
 
 1. **Foundation** — resolve known reproducibility defects and stabilise the public v1 extension boundary.
-2. **Release automation** — automate the evidence required for a release candidate.
-3. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
-4. **Final release gate** — complete the readiness review against the prepared candidate.
-5. **Publication** — publish only the candidate that passed the final gate.
+2. **User-approved diagnostics** — make early v1 failures locally diagnosable and externally reportable only under explicit consent.
+3. **Release automation** — automate the evidence required for a release candidate.
+4. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
+5. **Final release gate** — complete the readiness review against the prepared candidate.
+6. **Publication** — publish only the candidate that passed the final gate.
 
 Conditional tasks remain inactive until their stated external capability, evidence threshold or product need exists.
 
@@ -42,13 +43,29 @@ Source: [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.m
 
 **Status:** Not started
 
-Replace the raw `IToolExecutionServices.QueryCache` contract with a Host-created query-result cache bound to the current Workspace snapshot, plugin and tool. Keep storage, bounds, expiration and invalidation generations internal to Workspace; prevent cross-plugin key collisions, late stores into an invalidated generation and manual Workspace identity mistakes.
+Replace the raw `IToolExecutionServices.QueryCache` contract with Host-created synchronous and asynchronous get-or-create scopes. Bind the public cache to the current query invocation, exact Workspace snapshot, plugin and tool; require dedicated immutable semantic key types; coalesce identical misses; and prevent cross-plugin collisions, escaped-scope use, recursive-factory deadlock, late stores into an invalidated generation and manual Workspace identity mistakes. Package analyser errors for unsafe keys and warnings for unsafe cached values.
 
-Retain separate cache semantics for immutable query results, replayable Code Action handles and process-lifetime metadata. Decide explicitly whether query results and Code Action references share one capacity budget or use isolated caches.
+Use physically separate, interface-registered state and capacity for Host Workspace query results, plugin query results and replayable Code Action handles. Preserve the Workspace cache's current solution-based invalidation, apply stricter exact-transaction-snapshot invalidation to plugins, retain existing Code Action expiry and lifecycle semantics, and remove concrete-plus-resolving-delegate registrations for shared query and Code Action state.
+
+Default both query caches to one-hour sliding expiration with independent command-line overrides up to 24 hours. Expose independently bounded capacity controls that cannot disable caching or fall below an evidence-backed supported minimum. Add permanent versioned scenario-runner cache metrics, calibrate minimum/default/maximum limits across representative repositories and a cache-using fixture plugin, and correlate logical pressure with retained process memory before locking the v1 defaults.
 
 Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
 
-## Phase 2 — Release Automation
+## Phase 2 — User-Approved Diagnostics
+
+### Implement local error inspection and user-approved external reporting
+
+**Status:** Not started
+
+Retain bounded immutable records for unexpected correlated tool failures, expose detailed local diagnostics to the trusted agent through `get-error-details`, and add `prepare-error-report` plus `submit-error-report` for sanitised external reporting. Preserve normal stderr logging and generic MCP failures; do not retain live exceptions, scrape raw logs, submit automatically or allow local diagnostic content to enter the external submission path.
+
+Use MCP form elicitation for per-report, Workspace and session approval. Support the concise agreed choices, session suppression through “No, and don't ask again”, and explicit command-line `never|prompt|always` policy. Temporary approvals bypass only the prompt: every external report must still be prepared, reviewed and passed to an explicit submission call. Include reporting availability with unexpected errors so agents do not attempt suppressed or unavailable preparation.
+
+Keep captured errors, prepared canonical payloads and consent state process-local, bounded, expiring and capacity-isolated. Implement Sentry first behind an internal provider abstraction, require provider-level idempotency, and validate privacy, exact-byte submission, concurrency, retry, conditional publication, open-world metadata and the trusted-agent boundary before release-candidate preparation.
+
+Implement the complete architecture and validation requirements in [User-Approved Error Reporting Proposal](UserApprovedErrorReportingProposal-2026-07-30.md).
+
+## Phase 3 — Release Automation
 
 ### Automate release scenario validation and performance history
 
@@ -71,7 +88,7 @@ Implementation order:
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
-## Phase 3 — Release Candidate Preparation
+## Phase 4 — Release Candidate Preparation
 
 ### Prepare and validate the v1 release artifacts
 
@@ -104,7 +121,7 @@ Validate the candidate without publishing it:
 
 The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
 
-## Phase 4 — Final Release Gate
+## Phase 5 — Final Release Gate
 
 ### Complete the pre-release readiness review
 
@@ -121,19 +138,19 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
 
-## Phase 5 — Publication
+## Phase 6 — Publication
 
 ### Publish the validated v1 release artifacts
 
 **Status:** Not started
 
-Publish only the exact candidate artifacts that passed Phase 3 validation and the Phase 4 release gate. Do not rebuild or replace artifacts under the same version.
+Publish only the exact candidate artifacts that passed Phase 4 validation and the Phase 5 release gate. Do not rebuild or replace artifacts under the same version.
 
-Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 3 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 2 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
+Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 4 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 3 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
 
 ## Conditional Backlog
 
-These items are intentionally inactive. Move one into the appropriate priority band only when its stated trigger occurs.
+These items are intentionally inactive. Move one into the appropriate delivery phase only when its stated trigger occurs.
 
 ### Migrate to Microsoft.Testing.Platform v2
 

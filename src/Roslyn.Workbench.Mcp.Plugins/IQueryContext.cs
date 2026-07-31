@@ -6,4 +6,8 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public interface IQueryContext :
     IToolExecutionContext
 {
+    /// <summary>
+    /// Gets the result cache bound to this query invocation, Workspace snapshot, plugin and tool.
+    /// </summary>
+    IQueryResultCache QueryResultCache { get; }
 }

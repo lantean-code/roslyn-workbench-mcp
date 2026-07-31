@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
 
@@ -15,12 +14,8 @@ public static class QueryContextMockHelper
         var requestResolver = new Mock<IToolRequestResolver>();
         var projectTargetFrameworkResolver = new Mock<IProjectTargetFrameworkResolver>();
         var workspaceSelectorFactory = new Mock<IWorkspaceSelectorFactory>();
-        var queryCache = new Mock<IQueryCache>();
+        var queryResultCache = new Mock<IQueryResultCache>();
         var referenceDiscoveryService = new Mock<IReferenceDiscoveryService>();
-
-        toolExecutionServices
-            .SetupGet(item => item.QueryCache)
-            .Returns(queryCache.Object);
 
         toolExecutionServices
             .SetupGet(item => item.ReferenceDiscoveryService)
@@ -57,6 +52,10 @@ public static class QueryContextMockHelper
             .Returns(toolExecutionServices.Object);
 
         queryContext
+            .SetupGet(item => item.QueryResultCache)
+            .Returns(queryResultCache.Object);
+
+        queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(workspace.CurrentSolution);
 
@@ -74,7 +73,7 @@ public static class QueryContextMockHelper
             requestResolver,
             projectTargetFrameworkResolver,
             workspaceSelectorFactory,
-            queryCache,
+            queryResultCache,
             referenceDiscoveryService);
     }
 }

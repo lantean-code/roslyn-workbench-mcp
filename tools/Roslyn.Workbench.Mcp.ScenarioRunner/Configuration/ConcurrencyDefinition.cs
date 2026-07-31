@@ -8,5 +8,7 @@ internal sealed record ConcurrencyDefinition
     public required string SecondaryWorkspacePath { get; init; }
 
     public required JsonElement SecondaryArguments { get; init; }
+
+    public bool ValidateSingleFlight { get; init; }
 }
 #pragma warning restore CA1812

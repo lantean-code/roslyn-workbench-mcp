@@ -5,15 +5,17 @@ namespace Roslyn.Workbench.Mcp.Workspace.Projects;
 
 internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkResolver
 {
+    private const string _cacheComponentIdentity = "project-target-framework";
+
     private readonly IProjectStructureService _projectStructureService;
-    private readonly IQueryCache _queryCache;
+    private readonly IWorkspaceQueryCacheScopeFactory _queryCacheScopeFactory;
 
     public ProjectTargetFrameworkResolver(
         IProjectStructureService projectStructureService,
-        IQueryCache queryCache)
+        IWorkspaceQueryCacheScopeFactory queryCacheScopeFactory)
     {
         _projectStructureService = projectStructureService;
-        _queryCache = queryCache;
+        _queryCacheScopeFactory = queryCacheScopeFactory;
     }
 
     public ProjectTargetFrameworksResult Resolve(
@@ -29,19 +31,27 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             return ProjectTargetFrameworksResult.Succeeded();
         }
 
-        var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, projectPath);
-        if (_queryCache.TryGet<ProjectTargetFrameworkCacheEntry>(workspaceId, cacheKey, out var cacheEntry))
-        {
-            return cacheEntry.Result;
-        }
+        var cacheScope = _queryCacheScopeFactory.CreateScope(
+            workspaceId,
+            project.Solution,
+            _cacheComponentIdentity);
 
-        var result = _projectStructureService.GetTargetFrameworks(project);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (result.IsSucceeded)
-        {
-            Store(workspaceId, cacheKey, result);
-        }
+        var cacheKey = new ProjectTargetFrameworkCacheKey(projectPath);
+        var result = cacheScope.GetOrCreateProjected<
+            ProjectTargetFrameworkCacheKey,
+            ProjectTargetFrameworkCacheEntry,
+            ProjectTargetFrameworksResult>(
+            cacheKey,
+            factoryCancellationToken =>
+            {
+                var evaluatedResult = _projectStructureService.GetTargetFrameworks(project);
+                factoryCancellationToken.ThrowIfCancellationRequested();
+                return evaluatedResult;
+            },
+            static evaluatedResult => SelectCacheEntry(evaluatedResult),
+            static cacheEntry => CreateSuccessfulResult(cacheEntry),
+            static value => value.Size,
+            cancellationToken);
 
         return result;
     }
@@ -52,7 +62,11 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
         CancellationToken cancellationToken)
     {
         var results = new ProjectTargetFrameworksResult[projects.Count];
-        var cacheMisses = new List<(int ResultIndex, Project Project, ProjectTargetFrameworkCacheKey CacheKey)>();
+        var cacheMisses = new List<(
+            int ResultIndex,
+            Project Project,
+            IWorkspaceQueryCacheScope CacheScope,
+            ProjectTargetFrameworkCacheKey CacheKey)>();
 
         for (var index = 0; index < projects.Count; index++)
         {
@@ -66,14 +80,22 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
                 continue;
             }
 
-            var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, projectPath);
-            if (_queryCache.TryGet<ProjectTargetFrameworkCacheEntry>(workspaceId, cacheKey, out var cacheEntry))
+            var cacheScope = _queryCacheScopeFactory.CreateScope(
+                workspaceId,
+                project.Solution,
+                _cacheComponentIdentity);
+
+            var cacheKey = new ProjectTargetFrameworkCacheKey(projectPath);
+            if (cacheScope.TryGet<ProjectTargetFrameworkCacheKey, ProjectTargetFrameworkCacheEntry>(
+                cacheKey,
+                out var cacheEntry)
+                && cacheEntry is not null)
             {
-                results[index] = cacheEntry.Result;
+                results[index] = CreateSuccessfulResult(cacheEntry);
                 continue;
             }
 
-            cacheMisses.Add((index, project, cacheKey));
+            cacheMisses.Add((index, project, cacheScope, cacheKey));
         }
 
         if (cacheMisses.Count == 0)
@@ -81,47 +103,49 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             return results;
         }
 
-        var projectsToEvaluate = new Project[cacheMisses.Count];
-        for (var index = 0; index < cacheMisses.Count; index++)
-        {
-            projectsToEvaluate[index] = cacheMisses[index].Project;
-        }
+        var projectsToEvaluate = cacheMisses
+            .Select(static miss => miss.Project)
+            .ToArray();
 
         var evaluatedResults = _projectStructureService.GetTargetFrameworks(projectsToEvaluate);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var allEvaluationsSucceeded = true;
         for (var index = 0; index < cacheMisses.Count; index++)
         {
-            var (resultIndex, _, _) = cacheMisses[index];
+            var (resultIndex, _, cacheScope, cacheKey) = cacheMisses[index];
             var result = evaluatedResults[index];
-
             results[resultIndex] = result;
-            allEvaluationsSucceeded &= result.IsSucceeded;
-        }
+            if (!result.IsSucceeded)
+            {
+                continue;
+            }
 
-        if (!allEvaluationsSucceeded)
-        {
-            return results;
-        }
-
-        for (var index = 0; index < cacheMisses.Count; index++)
-        {
-            var (resultIndex, _, cacheKey) = cacheMisses[index];
-
-            Store(workspaceId, cacheKey, results[resultIndex]);
+            var cacheEntry = new ProjectTargetFrameworkCacheEntry(result.TargetFrameworks);
+            cacheScope.Store(
+                cacheKey,
+                cacheEntry,
+                static value => value.Size);
         }
 
         return results;
     }
 
-    private void Store(
-        string workspaceId,
-        ProjectTargetFrameworkCacheKey cacheKey,
+    private static ProjectTargetFrameworkCacheEntry? SelectCacheEntry(
         ProjectTargetFrameworksResult result)
     {
-        var cacheEntry = new ProjectTargetFrameworkCacheEntry(result);
+        if (!result.IsSucceeded)
+        {
+            return null;
+        }
 
-        _queryCache.Store(workspaceId, cacheKey, cacheEntry, cacheEntry.Size);
+        var cacheEntry = new ProjectTargetFrameworkCacheEntry(result.TargetFrameworks);
+        return cacheEntry;
+    }
+
+    private static ProjectTargetFrameworksResult CreateSuccessfulResult(
+        ProjectTargetFrameworkCacheEntry cacheEntry)
+    {
+        var result = ProjectTargetFrameworksResult.Succeeded(cacheEntry.TargetFrameworks);
+        return result;
     }
 }

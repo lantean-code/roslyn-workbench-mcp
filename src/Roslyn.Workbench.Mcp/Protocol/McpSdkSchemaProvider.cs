@@ -107,8 +107,6 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         [McpServerTool(Name = "schema-input-probe")]
         public static string Invoke(TRequest request)
         {
-            request;
-
             return string.Empty;
         }
     }
@@ -118,8 +116,6 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         [McpServerTool(Name = "schema-value-probe")]
         public static string Invoke(SchemaValueWrapper<TValue> request)
         {
-            request;
-
             return string.Empty;
         }
     }

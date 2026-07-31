@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
@@ -12,11 +11,6 @@ public interface IToolExecutionServices
     /// Gets the factory for projecting resolved workspace identities into replayable selectors.
     /// </summary>
     IWorkspaceSelectorFactory WorkspaceSelectorFactory { get; }
-
-    /// <summary>
-    /// Gets the bounded cache for reusable query results.
-    /// </summary>
-    IQueryCache QueryCache { get; }
 
     /// <summary>
     /// Gets the service for discovering unique source references within selected documents.

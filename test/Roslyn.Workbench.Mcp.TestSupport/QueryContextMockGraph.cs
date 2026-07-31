@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -39,9 +38,9 @@ public sealed record QueryContextMockGraph
     public Mock<IWorkspaceSelectorFactory> WorkspaceSelectorFactory { get; }
 
     /// <summary>
-    /// Gets the query cache mock.
+    /// Gets the invocation query-result cache mock.
     /// </summary>
-    public Mock<IQueryCache> QueryCache { get; }
+    public Mock<IQueryResultCache> QueryResultCache { get; }
 
     /// <summary>
     /// Gets the reference discovery service mock.
@@ -57,7 +56,7 @@ public sealed record QueryContextMockGraph
     /// <param name="requestResolver">The tool request resolver mock.</param>
     /// <param name="projectTargetFrameworkResolver">The project target-framework resolver mock.</param>
     /// <param name="workspaceSelectorFactory">The Workspace selector factory mock.</param>
-    /// <param name="queryCache">The query cache mock.</param>
+    /// <param name="queryResultCache">The invocation query-result cache mock.</param>
     /// <param name="referenceDiscoveryService">The reference discovery service mock.</param>
     public QueryContextMockGraph(
         Mock<IQueryContext> queryContext,
@@ -66,7 +65,7 @@ public sealed record QueryContextMockGraph
         Mock<IToolRequestResolver> requestResolver,
         Mock<IProjectTargetFrameworkResolver> projectTargetFrameworkResolver,
         Mock<IWorkspaceSelectorFactory> workspaceSelectorFactory,
-        Mock<IQueryCache> queryCache,
+        Mock<IQueryResultCache> queryResultCache,
         Mock<IReferenceDiscoveryService> referenceDiscoveryService)
     {
         QueryContext = queryContext;
@@ -75,7 +74,7 @@ public sealed record QueryContextMockGraph
         RequestResolver = requestResolver;
         ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;
         WorkspaceSelectorFactory = workspaceSelectorFactory;
-        QueryCache = queryCache;
+        QueryResultCache = queryResultCache;
         ReferenceDiscoveryService = referenceDiscoveryService;
     }
 }

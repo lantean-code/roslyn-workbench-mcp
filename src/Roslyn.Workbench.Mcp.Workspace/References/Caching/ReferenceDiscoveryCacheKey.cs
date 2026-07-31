@@ -1,16 +1,14 @@
-using System.Runtime.CompilerServices;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.References.Caching;
 
-internal sealed class ReferenceDiscoveryCacheKey : IEquatable<ReferenceDiscoveryCacheKey>
+internal sealed class ReferenceDiscoveryCacheKey : IWorkspaceQueryCacheKey, IEquatable<ReferenceDiscoveryCacheKey>
 {
     private readonly Guid[] _documentIds;
-    private readonly Solution _solution;
     private readonly ISymbol _symbol;
 
-    public ReferenceDiscoveryCacheKey(Solution solution, ISymbol symbol, IReadOnlyList<Document> documents)
+    public ReferenceDiscoveryCacheKey(ISymbol symbol, IReadOnlyList<Document> documents)
     {
-        _solution = solution;
         _symbol = symbol;
         _documentIds = new Guid[documents.Count];
 
@@ -25,7 +23,6 @@ internal sealed class ReferenceDiscoveryCacheKey : IEquatable<ReferenceDiscovery
     public bool Equals(ReferenceDiscoveryCacheKey? other)
     {
         return other is not null
-            && ReferenceEquals(_solution, other._solution)
             && SymbolEqualityComparer.Default.Equals(_symbol, other._symbol)
             && _documentIds.AsSpan().SequenceEqual(other._documentIds);
     }
@@ -38,7 +35,6 @@ internal sealed class ReferenceDiscoveryCacheKey : IEquatable<ReferenceDiscovery
     public override int GetHashCode()
     {
         var hashCode = new HashCode();
-        hashCode.Add(RuntimeHelpers.GetHashCode(_solution));
         hashCode.Add(_symbol, SymbolEqualityComparer.Default);
 
         foreach (var documentId in _documentIds)

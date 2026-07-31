@@ -7,8 +7,6 @@ public sealed class ThrowingConfigurationTestPlugin : IRoslynPlugin
 {
     public void Configure(IPluginConfiguration configuration)
     {
-        configuration;
-
         throw new InvalidOperationException("Configuration failed.");
     }
 }

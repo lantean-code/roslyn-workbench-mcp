@@ -21,6 +21,34 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
+    public void GIVEN_MinimumCodeActionReferenceCacheSize_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions
+        {
+            CodeActionReferenceCacheSizeLimit = 40_000,
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_CodeActionReferenceCacheSizeBelowMinimum_WHEN_Validating_THEN_ShouldReportSupportedRange()
+    {
+        var options = new StartupOptions
+        {
+            CodeActionReferenceCacheSizeLimit = 39_999,
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().ContainSingle().Which.Should().Be(
+            "CodeActionReferenceCacheSizeLimit must be between 40000 and 250000, inclusive.");
+    }
+
+    [Fact]
     public void GIVEN_AllInvalidOptions_WHEN_Validating_THEN_ShouldReportEveryFailure()
     {
         var options = CreateInvalidOptions();

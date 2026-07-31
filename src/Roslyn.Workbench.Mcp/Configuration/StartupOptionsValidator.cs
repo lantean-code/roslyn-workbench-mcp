@@ -38,6 +38,37 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
                 $"{nameof(StartupOptions.CodeActionReferenceLifetime)} must be greater than zero and no greater than {StartupOptionsRules.MaximumCodeActionReferenceLifetime:c}.");
         }
 
+        AddRangeFailure(
+            failures,
+            nameof(StartupOptions.WorkspaceQueryCacheSizeLimit),
+            options.WorkspaceQueryCacheSizeLimit,
+            StartupOptionsRules.MinimumWorkspaceQueryCacheSizeLimit,
+            StartupOptionsRules.MaximumWorkspaceQueryCacheSizeLimit);
+
+        AddRangeFailure(
+            failures,
+            nameof(StartupOptions.PluginQueryCacheEntryLimit),
+            options.PluginQueryCacheEntryLimit,
+            StartupOptionsRules.MinimumPluginQueryCacheEntryLimit,
+            StartupOptionsRules.MaximumPluginQueryCacheEntryLimit);
+
+        AddRangeFailure(
+            failures,
+            nameof(StartupOptions.CodeActionReferenceCacheSizeLimit),
+            options.CodeActionReferenceCacheSizeLimit,
+            StartupOptionsRules.MinimumCodeActionReferenceCacheSizeLimit,
+            StartupOptionsRules.MaximumCodeActionReferenceCacheSizeLimit);
+
+        if (!StartupOptionsRules.IsSupportedQueryCacheSlidingExpiration(options.WorkspaceQueryCacheSlidingExpiration))
+        {
+            failures.Add($"{nameof(StartupOptions.WorkspaceQueryCacheSlidingExpiration)} must be greater than zero and no greater than {StartupOptionsRules.MaximumQueryCacheSlidingExpiration:c}.");
+        }
+
+        if (!StartupOptionsRules.IsSupportedQueryCacheSlidingExpiration(options.PluginQueryCacheSlidingExpiration))
+        {
+            failures.Add($"{nameof(StartupOptions.PluginQueryCacheSlidingExpiration)} must be greater than zero and no greater than {StartupOptionsRules.MaximumQueryCacheSlidingExpiration:c}.");
+        }
+
         if (!StartupOptionsRules.IsPositive(options.MaxTransactionRevisions))
         {
             failures.Add($"{nameof(StartupOptions.MaxTransactionRevisions)} must be greater than zero.");
@@ -64,5 +95,18 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
         }
 
         return failures;
+    }
+
+    private static void AddRangeFailure(
+        List<string> failures,
+        string name,
+        long value,
+        long minimum,
+        long maximum)
+    {
+        if (!StartupOptionsRules.IsWithinRange(value, minimum, maximum))
+        {
+            failures.Add($"{name} must be between {minimum} and {maximum}, inclusive.");
+        }
     }
 }

@@ -49,6 +49,15 @@ internal static class AnalyzerVerifier
         await test.RunAsync();
     }
 
+    public static async Task VerifyQueryCacheAsync(
+        string source,
+        params DiagnosticResult[] expected)
+    {
+        var test = CreateTest<PluginQueryCacheAnalyzer>(source);
+        test.ExpectedDiagnostics.AddRange(expected);
+        await test.RunAsync();
+    }
+
     private static CSharpAnalyzerTest<TAnalyzer, DefaultVerifier> CreateTest<TAnalyzer>(
         string source)
         where TAnalyzer : DiagnosticAnalyzer, new()

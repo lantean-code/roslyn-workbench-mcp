@@ -16,6 +16,8 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateQueryContext(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease.Rejected<IQueryContext>(failure, lease: operationLease.Object));
 
@@ -49,6 +51,8 @@ public sealed class PluginQueryMcpServerToolTests
                     request.Name == "Name"
                     && request.Workspace != null
                     && request.Workspace.WorkspaceId == "WorkspaceId"),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
@@ -71,6 +75,8 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Value");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.Is<TestQueryRequest>(request => request.Workspace!.WorkspaceId == "WorkspaceId"),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             CancellationToken.None), Times.Once);
 
         handler.Verify(item => item.ExecuteAsync(
@@ -88,7 +94,11 @@ public sealed class PluginQueryMcpServerToolTests
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var context = new Mock<IQueryContext>();
         contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object));
 
         handler
@@ -114,7 +124,11 @@ public sealed class PluginQueryMcpServerToolTests
             PluginExecutionOutcome.Conflict,
             "WorkspaceOutOfDate");
         contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object));
         contextFactory
             .Setup(item => item.DetectUnexpectedWorkspaceChange(context.Object))
@@ -149,7 +163,11 @@ public sealed class PluginQueryMcpServerToolTests
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var context = new Mock<IQueryContext>();
         contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object));
 
         handler
@@ -175,7 +193,11 @@ public sealed class PluginQueryMcpServerToolTests
         var operationLease = new Mock<IAsyncDisposable>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                CancellationToken.None))
             .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
         handler
@@ -202,7 +224,11 @@ public sealed class PluginQueryMcpServerToolTests
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
         contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                cancellationSource.Token))
             .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
         handler
@@ -234,6 +260,8 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
 
         handler.Verify(item => item.ExecuteAsync(
@@ -258,6 +286,8 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent.Value.GetProperty("error").GetProperty("message").GetString().Should().Be("Missing required tool argument: 'name'.");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
 
         handler.Verify(item => item.ExecuteAsync(

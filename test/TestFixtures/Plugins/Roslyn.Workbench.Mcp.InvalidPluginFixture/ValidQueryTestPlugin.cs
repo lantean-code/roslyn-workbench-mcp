@@ -28,9 +28,6 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            context;
-            cancellationToken;
-
             var response = new Response
             {
                 Value = request.Name,

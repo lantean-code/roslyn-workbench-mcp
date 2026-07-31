@@ -11,36 +11,37 @@ public sealed class ProjectTargetFrameworkResolverTests
         using var solution = CreateSolution();
         var project = solution.Solution.Projects.Single();
         var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
-        var cacheEntry = new ProjectTargetFrameworkCacheEntry(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
-        var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, project.FilePath!);
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var cacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        string[] cachedTargetFrameworks = ["net10.0"];
+        var cacheEntry = new ProjectTargetFrameworkCacheEntry(cachedTargetFrameworks);
 
-        queryCache
-            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
-            .Returns(true);
+        cacheScopeFactory
+            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Returns(cacheScope.Object);
 
-        var result = target.Resolve(
-            "WorkspaceId",
-            project,
-            TestContext.Current.CancellationToken);
+        cacheScope
+            .Setup(item => item.GetOrCreateProjected<
+                ProjectTargetFrameworkCacheKey,
+                ProjectTargetFrameworkCacheEntry,
+                ProjectTargetFrameworksResult>(
+                It.IsAny<ProjectTargetFrameworkCacheKey>(),
+                It.IsAny<Func<CancellationToken, ProjectTargetFrameworksResult>>(),
+                It.IsAny<Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?>>(),
+                It.IsAny<Func<ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult>>(),
+                It.IsAny<Func<ProjectTargetFrameworkCacheEntry, long>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                ProjectTargetFrameworkCacheKey _,
+                Func<CancellationToken, ProjectTargetFrameworksResult> _,
+                Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?> _,
+                Func<ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult> cachedResultSelector,
+                Func<ProjectTargetFrameworkCacheEntry, long> _,
+                CancellationToken _) => cachedResultSelector(cacheEntry));
 
-        result.Should().BeSameAs(cacheEntry.Result);
-        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<Project>()), Times.Never);
-    }
-
-    [Fact]
-    public void GIVEN_UncachedProject_WHEN_EvaluationSucceeds_THEN_ShouldStoreSuccessfulResult()
-    {
-        using var solution = CreateSolution();
-        var project = solution.Solution.Projects.Single();
-        var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
-
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
 
         var result = target.Resolve(
             "WorkspaceId",
@@ -48,43 +49,13 @@ public sealed class ProjectTargetFrameworkResolverTests
             TestContext.Current.CancellationToken);
 
         result.TargetFrameworks.Should().Equal("net10.0");
-        queryCache.Verify(item => item.Store(
-            "WorkspaceId",
-            It.Is<ProjectTargetFrameworkCacheKey>(key => key.Equals(new ProjectTargetFrameworkCacheKey(project.Solution, project.FilePath!))),
-            It.Is<ProjectTargetFrameworkCacheEntry>(entry =>
-                entry.Result.TargetFrameworks.Count == 1
-                && entry.Result.TargetFrameworks[0] == "net10.0"),
-            2), Times.Once);
+        projectStructureService.Verify(
+            item => item.GetTargetFrameworks(It.IsAny<Project>()),
+            Times.Never);
     }
 
     [Fact]
-    public void GIVEN_UncachedProject_WHEN_EvaluationFails_THEN_ShouldNotStoreResult()
-    {
-        using var solution = CreateSolution();
-        var project = solution.Solution.Projects.Single();
-        var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
-
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
-            .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
-
-        var result = target.Resolve(
-            "WorkspaceId",
-            project,
-            TestContext.Current.CancellationToken);
-
-        result.IsSucceeded.Should().BeFalse();
-        queryCache.Verify(item => item.Store(
-            It.IsAny<string>(),
-            It.IsAny<object>(),
-            It.IsAny<ProjectTargetFrameworkCacheEntry>(),
-            It.IsAny<long>()), Times.Never);
-    }
-
-    [Fact]
-    public void GIVEN_ProjectWithoutPath_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEmptyResultWithoutEvaluation()
+    public void GIVEN_ProjectWithoutPath_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEmptyWithoutCacheOrEvaluation()
     {
         using var solution = RoslynTestFactory.CreateSolution(
         [
@@ -105,8 +76,10 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         var project = solution.Solution.Projects.Single();
         var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
 
         var result = target.Resolve(
             "WorkspaceId",
@@ -114,84 +87,184 @@ public sealed class ProjectTargetFrameworkResolverTests
             TestContext.Current.CancellationToken);
 
         result.TargetFrameworks.Should().BeEmpty();
-        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<Project>()), Times.Never);
+        cacheScopeFactory.VerifyNoOtherCalls();
+        projectStructureService.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public void GIVEN_CachedAndUncachedProjects_WHEN_GettingTargetFrameworks_THEN_ShouldEvaluateOnlyMissesAndPreserveOrder()
-    {
-        using var solution = CreateSolution("Cached", "Uncached");
-        var cachedProject = solution.Solution.Projects.Single(item => item.Name == "Cached");
-        var uncachedProject = solution.Solution.Projects.Single(item => item.Name == "Uncached");
-        var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
-        var cacheEntry = new ProjectTargetFrameworkCacheEntry(ProjectTargetFrameworksResult.Succeeded(["net9.0"]));
-        var cacheKey = new ProjectTargetFrameworkCacheKey(cachedProject.Solution, cachedProject.FilePath!);
-
-        queryCache
-            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
-            .Returns(true);
-
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.Is<IReadOnlyList<Project>>(projects =>
-                projects.Count == 1 && projects[0] == uncachedProject)))
-            .Returns([ProjectTargetFrameworksResult.Succeeded(["net10.0"])]);
-
-        var results = target.Resolve(
-            "WorkspaceId",
-            [cachedProject, uncachedProject],
-            TestContext.Current.CancellationToken);
-
-        results[0].TargetFrameworks.Should().Equal("net9.0");
-        results[1].TargetFrameworks.Should().Equal("net10.0");
-        queryCache.Verify(item => item.Store(
-            "WorkspaceId",
-            It.IsAny<ProjectTargetFrameworkCacheKey>(),
-            It.IsAny<ProjectTargetFrameworkCacheEntry>(),
-            2), Times.Once);
-    }
-
-    [Fact]
-    public void GIVEN_AllProjectsCached_WHEN_GettingTargetFrameworks_THEN_ShouldNotEvaluateProjects()
+    public void GIVEN_FailedEvaluation_WHEN_GettingTargetFrameworks_THEN_ShouldReturnSharedResultWithoutCacheEntry()
     {
         using var solution = CreateSolution();
         var project = solution.Solution.Projects.Single();
         var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
-        var cacheEntry = new ProjectTargetFrameworkCacheEntry(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
-        var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, project.FilePath!);
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var cacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        var failedResult = ProjectTargetFrameworksResult.Failed("Failure");
 
-        queryCache
-            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
-            .Returns(true);
+        projectStructureService
+            .Setup(item => item.GetTargetFrameworks(project))
+            .Returns(failedResult);
 
-        var results = target.Resolve(
+        cacheScopeFactory
+            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Returns(cacheScope.Object);
+
+        cacheScope
+            .Setup(item => item.GetOrCreateProjected<
+                ProjectTargetFrameworkCacheKey,
+                ProjectTargetFrameworkCacheEntry,
+                ProjectTargetFrameworksResult>(
+                It.IsAny<ProjectTargetFrameworkCacheKey>(),
+                It.IsAny<Func<CancellationToken, ProjectTargetFrameworksResult>>(),
+                It.IsAny<Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?>>(),
+                It.IsAny<Func<ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult>>(),
+                It.IsAny<Func<ProjectTargetFrameworkCacheEntry, long>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                ProjectTargetFrameworkCacheKey _,
+                Func<CancellationToken, ProjectTargetFrameworksResult> resultFactory,
+                Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?> cacheValueSelector,
+                Func<ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult> _,
+                Func<ProjectTargetFrameworkCacheEntry, long> _,
+                CancellationToken cancellationToken) =>
+            {
+                var result = resultFactory(cancellationToken);
+                cacheValueSelector(result).Should().BeNull();
+                return result;
+            });
+
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
+
+        var result = target.Resolve(
             "WorkspaceId",
-            [project],
+            project,
             TestContext.Current.CancellationToken);
 
-        results.Should().ContainSingle().Which.Should().BeSameAs(cacheEntry.Result);
-        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()), Times.Never);
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Failure");
+        projectStructureService.Verify(
+            item => item.GetTargetFrameworks(project),
+            Times.Once);
     }
 
     [Fact]
-    public void GIVEN_ProjectBatchContainsFailure_WHEN_GettingTargetFrameworks_THEN_ShouldNotStoreAnyMisses()
+    public void GIVEN_CachedAndUncachedProjects_WHEN_GettingTargetFrameworks_THEN_ShouldBatchOnlyMissesAndPreserveOrder()
+    {
+        using var solution = CreateSolution("Cached", "FirstMiss", "SecondMiss");
+        var projects = solution.Solution.Projects.ToArray();
+        var cachedProject = projects.Single(item => item.Name == "Cached");
+        var firstMiss = projects.Single(item => item.Name == "FirstMiss");
+        var secondMiss = projects.Single(item => item.Name == "SecondMiss");
+        var projectStructureService = new Mock<IProjectStructureService>();
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var cacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        string[] cachedTargetFrameworks = ["net8.0"];
+        var cachedEntry = new ProjectTargetFrameworkCacheEntry(cachedTargetFrameworks);
+        ProjectTargetFrameworkCacheEntry? configuredCachedEntry = cachedEntry;
+        string[] firstTargetFrameworks = ["net9.0"];
+        string[] secondTargetFrameworks = ["net10.0"];
+        var firstEvaluatedResult = ProjectTargetFrameworksResult.Succeeded(firstTargetFrameworks);
+        var secondEvaluatedResult = ProjectTargetFrameworksResult.Succeeded(secondTargetFrameworks);
+        ProjectTargetFrameworksResult[] evaluatedResults =
+        [
+            firstEvaluatedResult,
+            secondEvaluatedResult,
+        ];
+
+        cacheScopeFactory
+            .Setup(item => item.CreateScope(
+                "WorkspaceId",
+                It.IsAny<Solution>(),
+                "project-target-framework"))
+            .Returns(cacheScope.Object);
+
+        cacheScope
+            .Setup(item => item.TryGet(
+                It.Is<ProjectTargetFrameworkCacheKey>(key =>
+                    key.ProjectPath == cachedProject.FilePath),
+                out configuredCachedEntry))
+            .Returns(true);
+
+        ProjectTargetFrameworkCacheEntry? missingEntry = null;
+        cacheScope
+            .Setup(item => item.TryGet(
+                It.Is<ProjectTargetFrameworkCacheKey>(key =>
+                    key.ProjectPath == firstMiss.FilePath
+                    || key.ProjectPath == secondMiss.FilePath),
+                out missingEntry))
+            .Returns(false);
+
+        projectStructureService
+            .Setup(item => item.GetTargetFrameworks(
+                It.Is<IReadOnlyList<Project>>(items =>
+                    items.Count == 2
+                    && items[0] == firstMiss
+                    && items[1] == secondMiss)))
+            .Returns(evaluatedResults);
+
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
+
+        var results = target.Resolve(
+            "WorkspaceId",
+            projects,
+            TestContext.Current.CancellationToken);
+
+        results[0].TargetFrameworks.Should().Equal("net8.0");
+        results[1].TargetFrameworks.Should().Equal("net9.0");
+        results[2].TargetFrameworks.Should().Equal("net10.0");
+        projectStructureService.Verify(
+            item => item.GetTargetFrameworks(It.IsAny<Project>()),
+            Times.Never);
+
+        cacheScope.Verify(item => item.Store(
+            It.IsAny<ProjectTargetFrameworkCacheKey>(),
+            It.IsAny<ProjectTargetFrameworkCacheEntry>(),
+            It.IsAny<Func<ProjectTargetFrameworkCacheEntry, long>>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public void GIVEN_BatchContainsFailure_WHEN_GettingTargetFrameworks_THEN_ShouldStoreOnlySuccessfulResults()
     {
         using var solution = CreateSolution("First", "Second");
         var projects = solution.Solution.Projects.ToArray();
         var projectStructureService = new Mock<IProjectStructureService>();
-        var queryCache = new Mock<IQueryCache>();
-        var target = new ProjectTargetFrameworkResolver(projectStructureService.Object, queryCache.Object);
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var cacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        ProjectTargetFrameworkCacheEntry? missingEntry = null;
+        string[] successfulTargetFrameworks = ["net10.0"];
+        var successfulResult = ProjectTargetFrameworksResult.Succeeded(successfulTargetFrameworks);
+        var failedResult = ProjectTargetFrameworksResult.Failed("Failure");
+        ProjectTargetFrameworksResult[] evaluatedResults =
+        [
+            successfulResult,
+            failedResult,
+        ];
+
+        cacheScopeFactory
+            .Setup(item => item.CreateScope(
+                "WorkspaceId",
+                It.IsAny<Solution>(),
+                "project-target-framework"))
+            .Returns(cacheScope.Object);
+
+        cacheScope
+            .Setup(item => item.TryGet(
+                It.IsAny<ProjectTargetFrameworkCacheKey>(),
+                out missingEntry))
+            .Returns(false);
 
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
-            .Returns(
-            [
-                ProjectTargetFrameworksResult.Succeeded(["net10.0"]),
-                ProjectTargetFrameworksResult.Failed("Failure"),
-            ]);
+            .Returns(evaluatedResults);
+
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
 
         var results = target.Resolve(
             "WorkspaceId",
@@ -200,11 +273,87 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         results[0].IsSucceeded.Should().BeTrue();
         results[1].IsSucceeded.Should().BeFalse();
-        queryCache.Verify(item => item.Store(
-            It.IsAny<string>(),
-            It.IsAny<object>(),
+        cacheScope.Verify(item => item.Store(
+            It.IsAny<ProjectTargetFrameworkCacheKey>(),
             It.IsAny<ProjectTargetFrameworkCacheEntry>(),
-            It.IsAny<long>()), Times.Never);
+            It.IsAny<Func<ProjectTargetFrameworkCacheEntry, long>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_AllProjectsCached_WHEN_GettingTargetFrameworks_THEN_ShouldNotEvaluateBatch()
+    {
+        using var solution = CreateSolution();
+        var project = solution.Solution.Projects.Single();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var cacheScope = new Mock<IWorkspaceQueryCacheScope>();
+        string[] cachedTargetFrameworks = ["net10.0"];
+        var expectedEntry = new ProjectTargetFrameworkCacheEntry(cachedTargetFrameworks);
+        ProjectTargetFrameworkCacheEntry? configuredEntry = expectedEntry;
+
+        cacheScopeFactory
+            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Returns(cacheScope.Object);
+
+        cacheScope
+            .Setup(item => item.TryGet(
+                It.IsAny<ProjectTargetFrameworkCacheKey>(),
+                out configuredEntry))
+            .Returns(true);
+
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
+
+        var results = target.Resolve(
+            "WorkspaceId",
+            [project],
+            TestContext.Current.CancellationToken);
+
+        results.Should().ContainSingle()
+            .Which.TargetFrameworks.Should().Equal("net10.0");
+        projectStructureService.Verify(
+            item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_PathlessProjectInBatch_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEmptyWithoutEvaluation()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                UseDefaultFilePathWhenNull = false,
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Project.cs",
+                        Source = "class Project { }",
+                    },
+                ],
+            },
+        ]);
+
+        var project = solution.Solution.Projects.Single();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        var cacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
+        var target = new ProjectTargetFrameworkResolver(
+            projectStructureService.Object,
+            cacheScopeFactory.Object);
+
+        var results = target.Resolve(
+            "WorkspaceId",
+            [project],
+            TestContext.Current.CancellationToken);
+
+        results.Should().ContainSingle()
+            .Which.TargetFrameworks.Should().BeEmpty();
+        cacheScopeFactory.VerifyNoOtherCalls();
+        projectStructureService.VerifyNoOtherCalls();
     }
 
     private static InMemoryRoslynSolution CreateSolution(params string[] projectNames)

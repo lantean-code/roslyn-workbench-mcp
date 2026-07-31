@@ -68,6 +68,11 @@ internal sealed class ConcurrencyRunner
                 scenario,
                 primaryArguments,
                 primaryBaseline.ResponseSha256,
+                definition.ValidateSingleFlight,
+                GetExpectedFactoryExecutionCount(
+                    primaryBaseline,
+                    iteration,
+                    definition.ValidateSingleFlight),
                 iteration,
                 parallelism,
                 cancellationToken);
@@ -83,6 +88,7 @@ internal sealed class ConcurrencyRunner
                 primaryArguments,
                 secondaryArguments,
                 primaryBaseline,
+                definition.ValidateSingleFlight,
                 cancellationToken);
 
             return new ConcurrencyExecution
@@ -106,6 +112,8 @@ internal sealed class ConcurrencyRunner
         ScenarioDefinition scenario,
         IReadOnlyDictionary<string, object?> arguments,
         string expectedSha256,
+        bool validateSingleFlight,
+        int? expectedFactoryExecutionCount,
         int iteration,
         int parallelism,
         CancellationToken cancellationToken)
@@ -120,6 +128,7 @@ internal sealed class ConcurrencyRunner
                 scenario,
                 arguments,
                 expectedSha256,
+                validateSingleFlight,
                 slot + 1,
                 cancellationToken);
         }
@@ -137,6 +146,12 @@ internal sealed class ConcurrencyRunner
                 continue;
             }
 
+            if (validateSingleFlight)
+            {
+                throw new InvalidOperationException(
+                    "The single-flight calibration batch could not execute every concurrent request.");
+            }
+
             var retry = await InvokeRequiredAsync(
                 $"parallel-read-{measurement.Slot}-retry",
                 scenario.Tool,
@@ -146,9 +161,15 @@ internal sealed class ConcurrencyRunner
             ValidateResponse(
                 retry,
                 expectedSha256,
+                validateSingleFlight,
                 $"Retry for parallel read {measurement.Slot} did not match the primary baseline.");
 
             measurements[index] = measurement with { RetrySucceeded = true };
+        }
+
+        if (validateSingleFlight)
+        {
+            ValidateSingleFlightBatch(measurements, expectedFactoryExecutionCount);
         }
 
         return new ConcurrentBatchMeasurement
@@ -164,6 +185,7 @@ internal sealed class ConcurrencyRunner
         ScenarioDefinition scenario,
         IReadOnlyDictionary<string, object?> arguments,
         string expectedSha256,
+        bool validateSingleFlight,
         int slot,
         CancellationToken cancellationToken)
     {
@@ -184,6 +206,7 @@ internal sealed class ConcurrencyRunner
             ValidateResponse(
                 measurement,
                 expectedSha256,
+                validateSingleFlight,
                 $"Parallel read {slot} did not match the primary baseline.");
         }
 
@@ -197,6 +220,7 @@ internal sealed class ConcurrencyRunner
             ErrorCode = measurement.ErrorCode,
             RequiredAction = measurement.RequiredAction,
             RetrySucceeded = false,
+            FactoryExecutionCount = measurement.FactoryExecutionCount,
         };
     }
 
@@ -205,6 +229,7 @@ internal sealed class ConcurrencyRunner
         IReadOnlyDictionary<string, object?> primaryArguments,
         IReadOnlyDictionary<string, object?> secondaryArguments,
         ConcurrencyStepMeasurement primaryBaseline,
+        bool validateSingleFlight,
         CancellationToken cancellationToken)
     {
         var steps = new List<ConcurrencyStepMeasurement> { primaryBaseline };
@@ -249,6 +274,7 @@ internal sealed class ConcurrencyRunner
         ValidateResponse(
             secondaryDuringPrimary,
             secondaryBaseline.ResponseSha256,
+            validateSingleFlight,
             "The secondary Workspace query changed while the primary Workspace owned the transaction.");
 
         var secondaryRejected = await InvokeAsync(
@@ -288,6 +314,7 @@ internal sealed class ConcurrencyRunner
         ValidateResponse(
             primaryDuringSecondary,
             primaryBaseline.ResponseSha256,
+            validateSingleFlight,
             "The primary Workspace query changed while the secondary Workspace owned the transaction.");
 
         var secondaryRollback = await InvokeRequiredAsync(
@@ -306,6 +333,7 @@ internal sealed class ConcurrencyRunner
             scenario,
             primaryArguments,
             primaryBaseline.ResponseSha256,
+            validateSingleFlight,
             slot: 1,
             cancellationToken: cancellationToken);
         var secondaryTask = InvokeAfterStartAsync(
@@ -313,6 +341,7 @@ internal sealed class ConcurrencyRunner
             scenario,
             secondaryArguments,
             secondaryBaseline.ResponseSha256,
+            validateSingleFlight,
             slot: 2,
             cancellationToken: cancellationToken);
 
@@ -369,6 +398,12 @@ internal sealed class ConcurrencyRunner
             ErrorCode = GetStructuredString(result, "error", "code"),
             RequiredAction = GetStructuredString(result, "next"),
             WorkspaceCount = GetWorkspaceCount(result),
+            Workload = GetStructuredString(result, "data", "workload"),
+            FactoryExecutionCount = GetStructuredInteger(
+                result,
+                "data",
+                "factoryExecutionCount"),
+            PayloadLength = GetStructuredInteger(result, "data", "payloadLength"),
         };
     }
 
@@ -436,6 +471,28 @@ internal sealed class ConcurrencyRunner
             : null;
     }
 
+    private static int? GetStructuredInteger(CallToolResult result, params string[] path)
+    {
+        if (result.StructuredContent is not JsonElement element)
+        {
+            return null;
+        }
+
+        foreach (var segment in path)
+        {
+            if (element.ValueKind != JsonValueKind.Object
+                || !element.TryGetProperty(segment, out element))
+            {
+                return null;
+            }
+        }
+
+        return element.ValueKind == JsonValueKind.Number
+            && element.TryGetInt32(out var value)
+                ? value
+                : null;
+    }
+
     private async Task TryRollbackAsync(string workspaceId)
     {
         await _host.CallToolAsync(
@@ -462,11 +519,69 @@ internal sealed class ConcurrencyRunner
     private static void ValidateResponse(
         ConcurrencyStepMeasurement actual,
         string expectedSha256,
+        bool validateSingleFlight,
         string message)
     {
+        if (validateSingleFlight)
+        {
+            if (actual.Workload is null
+                || actual.PayloadLength != 0
+                || actual.FactoryExecutionCount is null)
+            {
+                throw new InvalidOperationException(message);
+            }
+
+            return;
+        }
+
         if (!string.Equals(actual.ResponseSha256, expectedSha256, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(message);
+        }
+    }
+
+    private static int? GetExpectedFactoryExecutionCount(
+        ConcurrencyStepMeasurement baseline,
+        int iteration,
+        bool validateSingleFlight)
+    {
+        if (!validateSingleFlight)
+        {
+            return null;
+        }
+
+        var baselineCount = baseline.FactoryExecutionCount
+            ?? throw new InvalidOperationException(
+                "The single-flight calibration baseline reported no factory execution count.");
+
+        return checked(baselineCount + iteration);
+    }
+
+    private static void ValidateSingleFlightBatch(
+        ConcurrentInvocationMeasurement[] measurements,
+        int? expectedFactoryExecutionCount)
+    {
+        if (expectedFactoryExecutionCount is null)
+        {
+            throw new InvalidOperationException(
+                "The single-flight calibration batch has no expected factory execution count.");
+        }
+
+        if (measurements.Length == 0
+            || measurements.Any(static measurement => measurement.IsError))
+        {
+            throw new InvalidOperationException(
+                "The single-flight calibration batch did not complete every concurrent request.");
+        }
+
+        var actualCounts = measurements
+            .Select(static measurement => measurement.FactoryExecutionCount)
+            .ToArray();
+
+        if (actualCounts.Any(count => count != expectedFactoryExecutionCount))
+        {
+            throw new InvalidOperationException(
+                $"The single-flight calibration expected factory execution count {expectedFactoryExecutionCount.Value}, but observed {string.Join(", ", actualCounts.Select(static count => count?.ToString(CultureInfo.InvariantCulture) ?? "missing"))}.");
         }
     }
 

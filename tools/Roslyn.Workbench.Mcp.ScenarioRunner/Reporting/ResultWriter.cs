@@ -841,12 +841,15 @@ internal static class ResultWriter
             return;
         }
 
-        var toolTotal = phases.SingleOrDefault(static phase => phase.Phase == "tool-total");
-        if (toolTotal is null)
+        var toolTotals = phases
+            .Where(static phase => phase.Phase == "tool-total")
+            .ToArray();
+        if (toolTotals.Length != 1)
         {
             return;
         }
 
+        var toolTotal = toolTotals[0];
         var uninstrumentedMedian = Math.Max(
             0,
             invocationTiming.MedianMilliseconds - toolTotal.MedianMilliseconds);

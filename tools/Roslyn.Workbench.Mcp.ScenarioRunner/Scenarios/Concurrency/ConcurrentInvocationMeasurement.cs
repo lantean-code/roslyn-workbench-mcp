@@ -17,4 +17,6 @@ internal sealed record ConcurrentInvocationMeasurement
     public string? RequiredAction { get; init; }
 
     public required bool RetrySucceeded { get; init; }
+
+    public int? FactoryExecutionCount { get; init; }
 }

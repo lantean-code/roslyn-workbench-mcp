@@ -10,6 +10,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Registration;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.TestSupport;
+global using Roslyn.Workbench.Mcp.Workspace.Caching;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;

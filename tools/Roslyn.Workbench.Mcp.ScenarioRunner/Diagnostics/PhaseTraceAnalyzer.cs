@@ -6,6 +6,7 @@ internal static class PhaseTraceAnalyzer
 {
     private const string _performanceProviderName = "Roslyn-Workbench-Mcp";
     private const string _phaseCompletedEventName = "PhaseCompleted";
+    private const string _cacheMetricEventName = "CacheMetric";
     private const string _toolTotalPhase = "tool-total";
 
     public static IReadOnlyList<PhaseTraceSummary> Analyze(string tracePath)
@@ -26,6 +27,59 @@ internal static class PhaseTraceAnalyzer
                 group,
                 toolTotalMedians.GetValueOrDefault(group.Key.Operation)))
             .ToArray();
+    }
+
+    public static IReadOnlyList<CacheMetricSummary> AnalyzeCacheMetrics(string tracePath)
+    {
+        var observations = new List<CacheMetricObservation>();
+        using var source = new EventPipeEventSource(tracePath);
+        source.Dynamic.All += traceEvent =>
+        {
+            if (!string.Equals(traceEvent.ProviderName, _performanceProviderName, StringComparison.Ordinal)
+                || !string.Equals(traceEvent.EventName, _cacheMetricEventName, StringComparison.Ordinal)
+                || traceEvent.PayloadByName("family") is not string family
+                || traceEvent.PayloadByName("metric") is not string metric
+                || traceEvent.PayloadByName("value") is not long value)
+            {
+                return;
+            }
+
+            var observation = new CacheMetricObservation
+            {
+                Family = family,
+                Metric = metric,
+                Value = value,
+            };
+
+            observations.Add(observation);
+        };
+
+        source.Process();
+        var summaries = observations
+            .GroupBy(static item => (item.Family, item.Metric))
+            .OrderBy(static group => group.Key.Family, StringComparer.Ordinal)
+            .ThenBy(static group => group.Key.Metric, StringComparer.Ordinal)
+            .Select(CreateCacheMetricSummary)
+            .ToArray();
+
+        return summaries;
+    }
+
+    private static CacheMetricSummary CreateCacheMetricSummary(
+        IGrouping<(string Family, string Metric), CacheMetricObservation> group)
+    {
+        var value = IsMaximumMetric(group.Key.Metric)
+            ? group.Max(static item => item.Value)
+            : group.Sum(static item => item.Value);
+
+        var summary = new CacheMetricSummary
+        {
+            Family = group.Key.Family,
+            Metric = group.Key.Metric,
+            Value = value,
+        };
+
+        return summary;
     }
 
     private static List<PhaseTraceObservation> ReadObservations(string tracePath)
@@ -108,5 +162,11 @@ internal static class PhaseTraceAnalyzer
 
         var index = (int)Math.Ceiling(percentile * orderedValues.Length) - 1;
         return orderedValues[Math.Max(0, index)];
+    }
+
+    private static bool IsMaximumMetric(string metric)
+    {
+        return metric.StartsWith("peak-", StringComparison.Ordinal)
+            || metric.StartsWith("largest-", StringComparison.Ordinal);
     }
 }

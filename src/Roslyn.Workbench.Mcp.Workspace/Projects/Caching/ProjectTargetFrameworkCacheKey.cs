@@ -1,32 +1,13 @@
-using System.Runtime.CompilerServices;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Projects.Caching;
 
-internal sealed class ProjectTargetFrameworkCacheKey : IEquatable<ProjectTargetFrameworkCacheKey>
+internal sealed record ProjectTargetFrameworkCacheKey : IWorkspaceQueryCacheKey
 {
-    private readonly string _projectPath;
-    private readonly Solution _solution;
+    public string ProjectPath { get; }
 
-    public ProjectTargetFrameworkCacheKey(Solution solution, string projectPath)
+    public ProjectTargetFrameworkCacheKey(string projectPath)
     {
-        _solution = solution;
-        _projectPath = projectPath;
-    }
-
-    public bool Equals(ProjectTargetFrameworkCacheKey? other)
-    {
-        return other is not null
-            && ReferenceEquals(_solution, other._solution)
-            && string.Equals(_projectPath, other._projectPath, StringComparison.Ordinal);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return Equals(obj as ProjectTargetFrameworkCacheKey);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(RuntimeHelpers.GetHashCode(_solution), StringComparer.Ordinal.GetHashCode(_projectPath));
+        ProjectPath = projectPath;
     }
 }

@@ -96,6 +96,30 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_InstanceStatusPublicationIsCancelledAfterLoading_WHEN_OpeningWorkspace_THEN_ShouldDisposeLoadedWorkspace()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", _workspace.CurrentSolution, loadedWorkspace);
+        _instanceStatusPublisher.Setup(item => item.OpenAsync(
+            "WorkspaceId",
+            "/workspace",
+            "/workspace/New.sln",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken)).ThrowsAsync(
+                new OperationCanceledException(TestContext.Current.CancellationToken));
+
+        var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_CancelledToken_WHEN_ListingWorkspaces_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();

@@ -1,7 +1,24 @@
+using Microsoft.Extensions.Hosting;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle;
 
 public sealed class WorkspaceLifecycleIntegrationTests
 {
+    [Fact]
+    public async Task GIVEN_ComponentWorkspace_WHEN_Disposed_THEN_ShouldSignalHostLifetimeShutdown()
+    {
+        await using var target = ComponentWorkspace.Create();
+        var applicationLifetime = target.GetRequiredService<IHostApplicationLifetime>();
+
+        applicationLifetime.ApplicationStopping.IsCancellationRequested.Should().BeFalse();
+        applicationLifetime.ApplicationStopped.IsCancellationRequested.Should().BeFalse();
+
+        await target.DisposeAsync();
+
+        applicationLifetime.ApplicationStopping.IsCancellationRequested.Should().BeTrue();
+        applicationLifetime.ApplicationStopped.IsCancellationRequested.Should().BeTrue();
+    }
+
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_OpeningWorkspace_THEN_ShouldTransitionToReady()
     {

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
@@ -8,16 +9,16 @@ namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 internal sealed class ComponentWorkspace : IAsyncDisposable
 {
-    private readonly ServiceProvider _serviceProvider;
+    private readonly IHost _host;
     private readonly TemporaryDirectory? _ownedStateDirectory;
     private int _isDisposed;
 
     private ComponentWorkspace(
-        ServiceProvider serviceProvider,
+        IHost host,
         string stateDirectory,
         TemporaryDirectory? ownedStateDirectory)
     {
-        _serviceProvider = serviceProvider;
+        _host = host;
         StateDirectory = stateDirectory;
         _ownedStateDirectory = ownedStateDirectory;
     }
@@ -26,12 +27,12 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal IToolExecutionContextFactory PluginContextFactory
     {
-        get { return _serviceProvider.GetRequiredService<IToolExecutionContextFactory>(); }
+        get { return _host.Services.GetRequiredService<IToolExecutionContextFactory>(); }
     }
 
     internal ICodeActionExecutionContextFactory CodeActionContextFactory
     {
-        get { return _serviceProvider.GetRequiredService<ICodeActionExecutionContextFactory>(); }
+        get { return _host.Services.GetRequiredService<ICodeActionExecutionContextFactory>(); }
     }
 
     internal static ComponentWorkspace Create(
@@ -49,7 +50,15 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
         try
         {
-            var services = new ServiceCollection();
+            var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+            var serviceProviderFactory = new DefaultServiceProviderFactory(new ServiceProviderOptions
+            {
+                ValidateOnBuild = true,
+                ValidateScopes = true,
+            });
+
+            builder.ConfigureContainer(serviceProviderFactory, static _ => { });
+            var services = builder.Services;
             services.AddRoslynWorkbenchOptions(new StartupOptions
             {
                 DefaultMaxResults = options.DefaultMaxResults,
@@ -92,14 +101,17 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 services.AddSingleton(codeActionComposition);
             }
 
-            var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+            var host = builder.Build();
+            try
             {
-                ValidateOnBuild = true,
-                ValidateScopes = true,
-            });
-
-            serviceProvider.GetRequiredService<IWorkspaceStateDirectory>().Initialize();
-            return new ComponentWorkspace(serviceProvider, stateDirectory, ownedStateDirectory);
+                host.Services.GetRequiredService<IWorkspaceStateDirectory>().Initialize();
+                return new ComponentWorkspace(host, stateDirectory, ownedStateDirectory);
+            }
+            catch
+            {
+                host.Dispose();
+                throw;
+            }
         }
         catch
         {
@@ -110,12 +122,12 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal T GetRequiredService<T>() where T : notnull
     {
-        return _serviceProvider.GetRequiredService<T>();
+        return _host.Services.GetRequiredService<T>();
     }
 
     internal T CreateInstance<T>() where T : notnull
     {
-        return ActivatorUtilities.CreateInstance<T>(_serviceProvider);
+        return ActivatorUtilities.CreateInstance<T>(_host.Services);
     }
 
     internal ToolExecutionContextLease<IQueryContext> CreateQueryContext(
@@ -290,7 +302,23 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
         try
         {
-            await _serviceProvider.DisposeAsync();
+            await _host.StopAsync();
+        }
+        catch (Exception exception)
+        {
+            disposalFailure ??= exception;
+        }
+
+        try
+        {
+            if (_host is IAsyncDisposable asyncDisposableHost)
+            {
+                await asyncDisposableHost.DisposeAsync();
+            }
+            else
+            {
+                _host.Dispose();
+            }
         }
         catch (Exception exception)
         {

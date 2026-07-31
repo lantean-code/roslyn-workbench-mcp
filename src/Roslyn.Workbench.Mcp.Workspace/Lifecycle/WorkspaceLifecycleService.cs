@@ -95,63 +95,74 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         var workspaceId = _sessionStore.AllocateWorkspaceId();
-        var instanceStatus = await _instanceStatusPublisher.OpenAsync(
-            workspaceId,
-            request.WorkspaceRoot,
-            request.LoadedPath,
-            WorkspaceLifecycleState.Ready,
-            cancellationToken);
-
-        WorkspaceInputManifest inputManifest;
+        WorkspaceInputManifest? inputManifest = null;
+        var sessionRegistered = false;
         try
         {
+            var instanceStatus = await _instanceStatusPublisher.OpenAsync(
+                workspaceId,
+                request.WorkspaceRoot,
+                request.LoadedPath,
+                WorkspaceLifecycleState.Ready,
+                cancellationToken);
+
             inputManifest = _workspaceChangeDetector.BuildManifest(
                 loadedWorkspace.Solution,
                 request.LoadedPath,
                 request.WorkspaceRoot);
+
+            if (!inputManifest.IsComplete)
+            {
+                return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
+            }
+
+            var session = CreateSessionSnapshot(
+                workspaceId,
+                request.Alias,
+                loadedWorkspace.Workspace,
+                loadedWorkspace.Solution,
+                request.LoadedPath,
+                request.WorkspaceRoot,
+                _sessionStore.AllocateWorkspaceEpoch(),
+                loadedWorkspace.Diagnostics,
+                inputManifest,
+                operationGate: null);
+
+            var latestValidationError = TryRegisterSession(session, request.LoadedPath, request.Alias);
+            if (latestValidationError is not null)
+            {
+                return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
+            }
+
+            sessionRegistered = true;
+            var openDiagnostics = CreateOpenDiagnostics(
+                session.LoadDiagnostics,
+                instanceStatus,
+                request.LoadedPath);
+
+            return CreateOpenSuccessResult(session, openDiagnostics);
         }
-        catch
+        finally
         {
-            await _instanceStatusPublisher.CloseAsync(workspaceId);
-            loadedWorkspace.Workspace.Dispose();
-            throw;
+            if (!sessionRegistered)
+            {
+                try
+                {
+                    await _instanceStatusPublisher.CloseAsync(workspaceId);
+                }
+                finally
+                {
+                    try
+                    {
+                        inputManifest?.Dispose();
+                    }
+                    finally
+                    {
+                        loadedWorkspace.Workspace.Dispose();
+                    }
+                }
+            }
         }
-
-        if (!inputManifest.IsComplete)
-        {
-            inputManifest.Dispose();
-            await _instanceStatusPublisher.CloseAsync(workspaceId);
-            loadedWorkspace.Workspace.Dispose();
-            return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
-        }
-
-        var session = CreateSessionSnapshot(
-            workspaceId,
-            request.Alias,
-            loadedWorkspace.Workspace,
-            loadedWorkspace.Solution,
-            request.LoadedPath,
-            request.WorkspaceRoot,
-            _sessionStore.AllocateWorkspaceEpoch(),
-            loadedWorkspace.Diagnostics,
-            inputManifest,
-            operationGate: null);
-
-        var latestValidationError = TryRegisterSession(session, request.LoadedPath, request.Alias);
-        if (latestValidationError is not null)
-        {
-            await _instanceStatusPublisher.CloseAsync(workspaceId);
-            session.InputManifest.Dispose();
-            session.LoadedWorkspace.Dispose();
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
-        }
-
-        var openDiagnostics = CreateOpenDiagnostics(
-            session.LoadDiagnostics,
-            instanceStatus,
-            request.LoadedPath);
-
-        return CreateOpenSuccessResult(session, openDiagnostics);
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(

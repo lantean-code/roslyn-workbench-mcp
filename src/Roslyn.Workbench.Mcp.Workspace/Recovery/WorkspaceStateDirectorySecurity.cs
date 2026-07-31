@@ -4,6 +4,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectorySecurity
 {
+    private const string _writeProbePrefix = ".roslyn-workbench-write-probe";
+
     private const UnixFileMode _privateDirectoryMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
 
@@ -55,12 +57,67 @@ internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectory
         }
     }
 
+    public void ValidateWritableDirectory(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var probePath = _fileSystem.Path.Combine(path, $"{_writeProbePrefix}-{Guid.NewGuid():n}.tmp");
+        try
+        {
+            var options = new FileStreamOptions
+            {
+                Access = FileAccess.Write,
+                Mode = FileMode.CreateNew,
+                Options = FileOptions.WriteThrough,
+                Share = FileShare.None,
+            };
+
+            if (!OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = _privateFileMode;
+            }
+
+            using (var stream = _fileSystem.FileStream.New(probePath, options))
+            {
+                stream.WriteByte(0);
+                stream.Flush(flushToDisk: true);
+            }
+
+            ValidateFile(probePath);
+            _fileSystem.File.Delete(probePath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            TryDeleteProbe(probePath);
+            throw new InvalidOperationException(
+                $"The Workspace recovery directory '{path}' is not writable. Configure --state-directory with a local directory that permits durable file creation and deletion.",
+                exception);
+        }
+    }
+
     private void EnsureNotRedirected(string path, string kind)
     {
         var attributes = _fileSystem.File.GetAttributes(path);
         if ((attributes & FileAttributes.ReparsePoint) != 0)
         {
             throw new IOException($"The Workspace state {kind} '{path}' must not be a symbolic link or reparse point.");
+        }
+    }
+
+    private void TryDeleteProbe(string probePath)
+    {
+        try
+        {
+            if (_fileSystem.File.Exists(probePath))
+            {
+                _fileSystem.File.Delete(probePath);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
     }
 

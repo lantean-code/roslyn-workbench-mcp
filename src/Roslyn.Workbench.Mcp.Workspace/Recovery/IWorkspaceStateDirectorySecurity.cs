@@ -7,4 +7,6 @@ internal interface IWorkspaceStateDirectorySecurity
     void ValidateDirectory(string path);
 
     void ValidateFile(string path);
+
+    void ValidateWritableDirectory(string path);
 }

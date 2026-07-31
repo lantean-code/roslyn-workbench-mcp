@@ -16,6 +16,8 @@ Roslyn Workbench accepts command-line options and equivalent environment variabl
 | `--max-concurrent-queries` | `ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES` | `2` | Positive maximum number of concurrent query leases. |
 | `--tool-output-schema-mode` | `ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE` | `Omit` | `Omit` keeps `tools/list` compact; `Full` publishes generated family-specific output schemas. |
 | `--state-directory` | `ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY` | Per-user application state directory | Absolute or relative writable location for Host state and durable commit-recovery records. The directory must not be a symbolic link or reparse point; on Unix it must use owner-only `0700` permissions. |
+
+At startup, the Host verifies that the recovery directory supports exclusive file creation, durable writes and deletion. Startup fails with an actionable configuration error if the selected state directory cannot support recovery data; commit retains its own validation because filesystem permissions and availability can change while the Host is running.
 | `--error-reporting-consent` | None | `prompt` | Exact case-sensitive `never`, `prompt` or `always`. `never` and `always` must be supplied explicitly on the command line; the similarly named environment variable is ignored and reported as a fallback warning. Invalid input fails closed to `never`. |
 | `--error-record-capacity` | `ROSLYN_WORKBENCH_MCP_ERROR_RECORD_CAPACITY` | `100` | Temporary correlated local error records; supported range `10`–`1000`. |
 | `--error-record-lifetime` | `ROSLYN_WORKBENCH_MCP_ERROR_RECORD_LIFETIME` | `01:00:00` | Absolute local error-record lifetime, up to 24 hours. |

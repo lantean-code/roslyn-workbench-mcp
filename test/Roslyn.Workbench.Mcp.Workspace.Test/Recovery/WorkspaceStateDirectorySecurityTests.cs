@@ -15,6 +15,8 @@ public sealed class WorkspaceStateDirectorySecurityTests
     private readonly Mock<IFileSystem> _fileSystem;
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IFile> _file;
+    private readonly Mock<IFileStreamFactory> _fileStreamFactory;
+    private readonly Mock<IPath> _path;
     private readonly WorkspaceStateDirectorySecurity _target;
 
     public WorkspaceStateDirectorySecurityTests()
@@ -22,8 +24,13 @@ public sealed class WorkspaceStateDirectorySecurityTests
         _fileSystem = new Mock<IFileSystem>();
         _directory = new Mock<IDirectory>();
         _file = new Mock<IFile>();
+        _fileStreamFactory = new Mock<IFileStreamFactory>();
+        _path = new Mock<IPath>();
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
+        _fileSystem.SetupGet(item => item.FileStream).Returns(_fileStreamFactory.Object);
+        _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
+        _path.Setup(item => item.Combine("Directory", It.IsAny<string>())).Returns("ProbePath");
         _target = new WorkspaceStateDirectorySecurity(_fileSystem.Object);
     }
 
@@ -53,6 +60,16 @@ public sealed class WorkspaceStateDirectorySecurityTests
     public void GIVEN_InvalidPath_WHEN_ValidatingDirectory_THEN_ShouldRejectIt(string path)
     {
         var action = () => _target.ValidateDirectory(path);
+
+        action.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void GIVEN_InvalidPath_WHEN_ValidatingDirectoryWritability_THEN_ShouldRejectIt(string path)
+    {
+        var action = () => _target.ValidateWritableDirectory(path);
 
         action.Should().Throw<ArgumentException>();
     }
@@ -163,5 +180,83 @@ public sealed class WorkspaceStateDirectorySecurityTests
 
         action.Should().Throw<UnauthorizedAccessException>()
             .WithMessage("*Unix permissions '600'*");
+    }
+
+    [Fact]
+    public void GIVEN_WritableDirectory_WHEN_ValidatingWritability_THEN_ShouldDurablyWriteValidateAndDeleteProbe()
+    {
+        using var memoryStream = new MemoryStream();
+        var stream = new Mock<FileSystemStream>(memoryStream, "ProbePath", false) { CallBase = true };
+        _fileStreamFactory.Setup(item => item.New("ProbePath", It.IsAny<FileStreamOptions>()))
+            .Returns(stream.Object);
+
+        _file.Setup(item => item.GetAttributes("ProbePath")).Returns(FileAttributes.Normal);
+        _file.Setup(item => item.GetUnixFileMode("ProbePath")).Returns(_privateFileMode);
+
+        _target.ValidateWritableDirectory("Directory");
+
+        memoryStream.ToArray().Should().Equal(0);
+        _fileStreamFactory.Verify(item => item.New(
+            "ProbePath",
+            It.Is<FileStreamOptions>(options =>
+                options.Access == FileAccess.Write
+                && options.Mode == FileMode.CreateNew
+                && options.Options == FileOptions.WriteThrough
+                && options.Share == FileShare.None)), Times.Once);
+
+        _file.Verify(item => item.Delete("ProbePath"), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ProbeCannotBeCreated_WHEN_ValidatingWritability_THEN_ShouldReturnActionableStartupFailure()
+    {
+        var expectedException = new UnauthorizedAccessException("Access denied.");
+        _fileStreamFactory.Setup(item => item.New("ProbePath", It.IsAny<FileStreamOptions>()))
+            .Throws(expectedException);
+
+        var action = () => _target.ValidateWritableDirectory("Directory");
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Workspace recovery directory 'Directory' is not writable*--state-directory*")
+            .WithInnerExceptionExactly<UnauthorizedAccessException>()
+            .Which.Should().BeSameAs(expectedException);
+    }
+
+    [Fact]
+    public void GIVEN_PartialProbeAndCleanupFailure_WHEN_ValidatingWritability_THEN_ShouldPreserveOriginalFailure()
+    {
+        var expectedException = new IOException("Creation failed.");
+        _fileStreamFactory.Setup(item => item.New("ProbePath", It.IsAny<FileStreamOptions>()))
+            .Throws(expectedException);
+
+        _file.Setup(item => item.Exists("ProbePath")).Returns(true);
+        _file.Setup(item => item.Delete("ProbePath")).Throws(new UnauthorizedAccessException("Cleanup failed."));
+
+        var action = () => _target.ValidateWritableDirectory("Directory");
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithInnerExceptionExactly<IOException>()
+            .Which.Should().BeSameAs(expectedException);
+    }
+
+    [Fact]
+    public void GIVEN_ProbeCannotBeDeleted_WHEN_ValidatingWritability_THEN_ShouldPreserveDeletionFailure()
+    {
+        using var memoryStream = new MemoryStream();
+        var stream = new Mock<FileSystemStream>(memoryStream, "ProbePath", false) { CallBase = true };
+        var expectedException = new IOException("Deletion failed.");
+        _fileStreamFactory.Setup(item => item.New("ProbePath", It.IsAny<FileStreamOptions>()))
+            .Returns(stream.Object);
+
+        _file.Setup(item => item.GetAttributes("ProbePath")).Returns(FileAttributes.Normal);
+        _file.Setup(item => item.GetUnixFileMode("ProbePath")).Returns(_privateFileMode);
+        _file.Setup(item => item.Exists("ProbePath")).Returns(true);
+        _file.Setup(item => item.Delete("ProbePath")).Throws(expectedException);
+
+        var action = () => _target.ValidateWritableDirectory("Directory");
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithInnerExceptionExactly<IOException>()
+            .Which.Should().BeSameAs(expectedException);
     }
 }

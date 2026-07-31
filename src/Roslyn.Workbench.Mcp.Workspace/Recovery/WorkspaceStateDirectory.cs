@@ -26,5 +26,6 @@ internal sealed class WorkspaceStateDirectory : IWorkspaceStateDirectory
     {
         _security.EnsureDirectory(RootDirectory);
         _security.EnsureDirectory(RecoveryDirectory);
+        _security.ValidateWritableDirectory(RecoveryDirectory);
     }
 }

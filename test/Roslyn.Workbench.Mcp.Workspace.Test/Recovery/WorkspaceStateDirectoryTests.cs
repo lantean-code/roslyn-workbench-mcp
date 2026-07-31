@@ -38,5 +38,6 @@ public sealed class WorkspaceStateDirectoryTests
 
         _security.Verify(item => item.EnsureDirectory("/State"), Times.Once);
         _security.Verify(item => item.EnsureDirectory("/State/recovery"), Times.Once);
+        _security.Verify(item => item.ValidateWritableDirectory("/State/recovery"), Times.Once);
     }
 }

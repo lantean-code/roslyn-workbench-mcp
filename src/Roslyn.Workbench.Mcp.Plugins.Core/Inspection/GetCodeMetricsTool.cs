@@ -210,7 +210,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
     private static int CountLogicalLines(SyntaxNode syntaxNode)
     {
-        var lines = syntaxNode.ToString().Split(Environment.NewLine, StringSplitOptions.None);
+        var lines = syntaxNode.ToString().ReplaceLineEndings("\n").Split('\n');
         var logicalLines = 0;
         foreach (var line in lines)
         {

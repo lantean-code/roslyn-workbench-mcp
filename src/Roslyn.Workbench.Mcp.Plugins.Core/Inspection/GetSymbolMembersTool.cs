@@ -34,7 +34,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             {
                 foreach (var member in current.GetMembers())
                 {
-                    if (!member.IsImplicitlyDeclared)
+                    if (IsInheritedMember(member))
                     {
                         members.Add(member);
                     }
@@ -82,5 +82,20 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static bool IsInheritedMember(ISymbol member)
+    {
+        if (member.IsImplicitlyDeclared || member.DeclaredAccessibility == Accessibility.Private)
+        {
+            return false;
+        }
+
+        return member is not IMethodSymbol
+        {
+            MethodKind: MethodKind.Constructor
+                or MethodKind.StaticConstructor
+                or MethodKind.Destructor,
+        };
     }
 }

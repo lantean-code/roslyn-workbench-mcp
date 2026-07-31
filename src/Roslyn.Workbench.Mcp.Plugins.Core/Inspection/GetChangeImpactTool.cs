@@ -135,10 +135,19 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
 
     private static bool IsPublicSurface(ISymbol symbol)
     {
-        return symbol.DeclaredAccessibility is Accessibility.Public
-            or Accessibility.Protected
-            or Accessibility.ProtectedOrInternal
-            or Accessibility.ProtectedAndInternal;
+        for (var current = symbol; current is not null; current = current.ContainingType)
+        {
+            if (current.DeclaredAccessibility is not (
+                Accessibility.Public
+                or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal
+                or Accessibility.ProtectedAndInternal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static async ValueTask<ISymbol?> GetEnclosingSymbolAsync(Document document, int position, CancellationToken cancellationToken)

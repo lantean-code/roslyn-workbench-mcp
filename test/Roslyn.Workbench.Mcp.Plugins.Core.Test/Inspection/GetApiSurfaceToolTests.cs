@@ -89,6 +89,11 @@ public sealed class GetApiSurfaceToolTests
             {
             }
 
+            public enum PublicState
+            {
+                Ready,
+            }
+
             public class Container
             {
                 public int PublicField;
@@ -100,6 +105,16 @@ public sealed class GetApiSurfaceToolTests
                         return PublicField;
                     }
                 }
+
+                public int this[int index]
+                {
+                    get
+                    {
+                        return index;
+                    }
+                }
+
+                public event EventHandler? FieldChanged;
 
                 public event EventHandler Changed
                 {
@@ -158,6 +173,10 @@ public sealed class GetApiSurfaceToolTests
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicDelegate");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicField");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicProperty");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicState");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Ready");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("this[]");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("FieldChanged");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("InternalMethod");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("ObsoleteType");
     }

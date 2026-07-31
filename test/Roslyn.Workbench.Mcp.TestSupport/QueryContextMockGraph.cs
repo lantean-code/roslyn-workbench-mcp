@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -48,6 +49,11 @@ public sealed record QueryContextMockGraph
     public Mock<IReferenceDiscoveryService> ReferenceDiscoveryService { get; }
 
     /// <summary>
+    /// Gets the type-hierarchy service mock.
+    /// </summary>
+    public Mock<ITypeHierarchyService> TypeHierarchyService { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="QueryContextMockGraph"/> class.
     /// </summary>
     /// <param name="queryContext">The query context mock.</param>
@@ -58,6 +64,7 @@ public sealed record QueryContextMockGraph
     /// <param name="workspaceSelectorFactory">The Workspace selector factory mock.</param>
     /// <param name="queryResultCache">The invocation query-result cache mock.</param>
     /// <param name="referenceDiscoveryService">The reference discovery service mock.</param>
+    /// <param name="typeHierarchyService">The type-hierarchy service mock.</param>
     public QueryContextMockGraph(
         Mock<IQueryContext> queryContext,
         Mock<IWorkspaceResolver> workspaceResolver,
@@ -66,7 +73,8 @@ public sealed record QueryContextMockGraph
         Mock<IProjectTargetFrameworkResolver> projectTargetFrameworkResolver,
         Mock<IWorkspaceSelectorFactory> workspaceSelectorFactory,
         Mock<IQueryResultCache> queryResultCache,
-        Mock<IReferenceDiscoveryService> referenceDiscoveryService)
+        Mock<IReferenceDiscoveryService> referenceDiscoveryService,
+        Mock<ITypeHierarchyService> typeHierarchyService)
     {
         QueryContext = queryContext;
         WorkspaceResolver = workspaceResolver;
@@ -76,5 +84,6 @@ public sealed record QueryContextMockGraph
         WorkspaceSelectorFactory = workspaceSelectorFactory;
         QueryResultCache = queryResultCache;
         ReferenceDiscoveryService = referenceDiscoveryService;
+        TypeHierarchyService = typeHierarchyService;
     }
 }

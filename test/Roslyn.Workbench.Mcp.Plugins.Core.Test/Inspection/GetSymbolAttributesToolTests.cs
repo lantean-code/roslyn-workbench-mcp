@@ -30,7 +30,7 @@ public sealed class GetSymbolAttributesToolTests
     }
 
     [Fact]
-    public async Task GIVEN_NamedTypeIncludesInheritedAttributes_WHEN_CallingExecuteAsync_THEN_ShouldReturnDeclaredAndBaseAttributesInOrder()
+    public async Task GIVEN_DerivedTypeRedeclaresNonMultipleAttribute_WHEN_CallingExecuteAsync_THEN_ShouldReturnDeclaredAttributeOnly()
     {
         using var document = RoslynTestFactory.CreateDocument("""
             using System;
@@ -54,6 +54,12 @@ public sealed class GetSymbolAttributesToolTests
                 }
             }
 
+            [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+            public sealed class LocalOnlyAttribute : Attribute
+            {
+            }
+
+            [LocalOnly]
             [Marker("Base", Note = "BaseNote")]
             public class BaseType
             {
@@ -88,7 +94,7 @@ public sealed class GetSymbolAttributesToolTests
         {
             Symbol = new SymbolSelector(),
             IncludeInherited = true,
-            AttributesLimit = 1,
+            AttributesLimit = 10,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -98,7 +104,8 @@ public sealed class GetSymbolAttributesToolTests
         result.Data.Attributes.Items[0].Inherited.Should().BeFalse();
         result.Data.Attributes.Items[0].ConstructorArguments.Should().ContainSingle(item => item.Value == null);
         result.Data.Attributes.Items[0].NamedArguments.Should().ContainSingle(item => item.Name == "Note" && item.Value == null);
-        result.Data.Attributes.HasMore.Should().BeTrue();
+        result.Data.Attributes.Items.Should().NotContain(item => item.Name == "LocalOnlyAttribute");
+        result.Data.Attributes.HasMore.Should().BeFalse();
     }
 
     [Fact]
@@ -200,5 +207,62 @@ public sealed class GetSymbolAttributesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Attributes.Items.Should().ContainSingle();
         result.Data.Attributes.Items[0].Inherited.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GIVEN_OverriddenMethodHasInheritedAttribute_WHEN_CallingExecuteAsync_THEN_ShouldReturnBaseAttribute()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            [AttributeUsage(AttributeTargets.Method, Inherited = true)]
+            public sealed class MarkerAttribute : Attribute
+            {
+            }
+
+            public class BaseType
+            {
+                [Marker]
+                public virtual void Run()
+                {
+                }
+            }
+
+            public sealed class DerivedType : BaseType
+            {
+                public override void Run()
+                {
+                }
+            }
+            """);
+
+        var target = new GetSymbolAttributesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Run",
+            "DerivedType",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<SymbolAttributesData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, SymbolAttributesData>(symbol));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetSymbolAttributesRequest
+        {
+            Symbol = new SymbolSelector(),
+            IncludeInherited = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Attributes.Items.Should().ContainSingle(item => item.Name == "MarkerAttribute" && item.Inherited);
     }
 }

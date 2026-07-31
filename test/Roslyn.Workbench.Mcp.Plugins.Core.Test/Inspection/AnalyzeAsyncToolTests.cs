@@ -307,4 +307,100 @@ public sealed class AnalyzeAsyncToolTests
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(5));
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(5));
     }
+
+    [Fact]
+    public async Task GIVEN_AwaitExistsOnlyInNestedFunctionAndStoredTaskIsAwaited_WHEN_CallingExecuteAsync_THEN_ShouldRespectExecutableBoundaries()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+            using System.Threading.Tasks;
+
+            class Formatter
+            {
+                public async Task NestedOnlyAsync()
+                {
+                    Func<Task> nested = async () => await SaveAsync();
+                }
+
+                public async Task StoredAsync()
+                {
+                    var pending = SaveAsync();
+                    await pending;
+                }
+
+                private Task SaveAsync()
+                {
+                    return Task.CompletedTask;
+                }
+            }
+            """);
+
+        var target = new AnalyzeAsyncTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, AsyncAnalysisData>([document.Document]));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().ContainSingle();
+        result.Data.Findings.Items[0].Kind.Should().Be("AsyncWithoutAwait");
+        result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("NestedOnlyAsync");
+    }
+
+    [Fact]
+    public async Task GIVEN_TaskInvocationIsAssignedToDiscard_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnawaitedTaskFinding()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System.Threading.Tasks;
+
+            class Formatter
+            {
+                public async Task Run()
+                {
+                    _ = SaveAsync();
+                    await Task.CompletedTask;
+                }
+
+                private Task SaveAsync()
+                {
+                    return Task.CompletedTask;
+                }
+            }
+            """);
+
+        var target = new AnalyzeAsyncTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, AsyncAnalysisData>([document.Document]));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().ContainSingle();
+        result.Data.Findings.Items[0].Kind.Should().Be("UnawaitedTask");
+        result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("SaveAsync");
+    }
 }

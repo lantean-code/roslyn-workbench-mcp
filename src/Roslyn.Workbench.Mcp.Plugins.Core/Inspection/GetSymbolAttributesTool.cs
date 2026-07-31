@@ -13,17 +13,29 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
 
         var symbol = symbolResolution.Value;
         var discoveredAttributes = new List<(AttributeData Attribute, bool Inherited)>();
+        var nonMultipleAttributeTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         foreach (var attribute in symbol.GetAttributes())
         {
             discoveredAttributes.Add((attribute, false));
+            if (attribute.AttributeClass is { } attributeClass && !AllowsMultiple(attributeClass))
+            {
+                nonMultipleAttributeTypes.Add(attributeClass);
+            }
         }
 
-        if (request.IncludeInherited && symbol is INamedTypeSymbol namedType)
+        if (request.IncludeInherited)
         {
-            for (var current = namedType.BaseType; current is not null; current = current.BaseType)
+            for (var current = GetOverriddenOrBaseSymbol(symbol); current is not null; current = GetOverriddenOrBaseSymbol(current))
             {
                 foreach (var attribute in current.GetAttributes())
                 {
+                    if (attribute.AttributeClass is not { } attributeClass
+                        || !IsInherited(attributeClass)
+                        || !AllowsMultiple(attributeClass) && !nonMultipleAttributeTypes.Add(attributeClass))
+                    {
+                        continue;
+                    }
+
                     discoveredAttributes.Add((attribute, true));
                 }
             }
@@ -52,6 +64,58 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static bool AllowsMultiple(INamedTypeSymbol attributeClass)
+    {
+        var usage = GetAttributeUsage(attributeClass);
+        return GetBooleanNamedArgument(usage, "AllowMultiple", defaultValue: false);
+    }
+
+    private static AttributeData? GetAttributeUsage(INamedTypeSymbol attributeClass)
+    {
+        return attributeClass.GetAttributes().FirstOrDefault(static attribute =>
+            string.Equals(
+                attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                "global::System.AttributeUsageAttribute",
+                StringComparison.Ordinal));
+    }
+
+    private static bool GetBooleanNamedArgument(AttributeData? attribute, string name, bool defaultValue)
+    {
+        if (attribute is null)
+        {
+            return defaultValue;
+        }
+
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (string.Equals(argument.Key, name, StringComparison.Ordinal)
+                && argument.Value.Value is bool value)
+            {
+                return value;
+            }
+        }
+
+        return defaultValue;
+    }
+
+    private static ISymbol? GetOverriddenOrBaseSymbol(ISymbol symbol)
+    {
+        return symbol switch
+        {
+            INamedTypeSymbol namedType => namedType.BaseType,
+            IMethodSymbol method => method.OverriddenMethod,
+            IPropertySymbol property => property.OverriddenProperty,
+            IEventSymbol eventSymbol => eventSymbol.OverriddenEvent,
+            _ => null,
+        };
+    }
+
+    private static bool IsInherited(INamedTypeSymbol attributeClass)
+    {
+        var usage = GetAttributeUsage(attributeClass);
+        return GetBooleanNamedArgument(usage, "Inherited", defaultValue: true);
     }
 
     private static AttributeInfo CreateAttributeInfo(AttributeData attributeData, bool inherited)

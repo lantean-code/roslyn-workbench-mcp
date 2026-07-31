@@ -224,11 +224,19 @@ public sealed class FindDerivedTypesToolTests
                             {
                             }
 
+                            interface IAdvancedFormatter : IMessageFormatter
+                            {
+                            }
+
                             class ZFormatter : IMessageFormatter
                             {
                             }
 
                             class AFormatter : IMessageFormatter
+                            {
+                            }
+
+                            class AdvancedFormatter : IAdvancedFormatter
                             {
                             }
                             """,
@@ -278,6 +286,8 @@ public sealed class FindDerivedTypesToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AFormatter", "ZFormatter");
+        result.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Contain("IAdvancedFormatter");
+        result.Data.DerivedTypes.Items.Single(item => item.Type!.DisplayName == "IAdvancedFormatter").Depth.Should().Be(1);
+        result.Data.DerivedTypes.Items.Single(item => item.Type!.DisplayName == "AdvancedFormatter").Depth.Should().Be(2);
     }
 }

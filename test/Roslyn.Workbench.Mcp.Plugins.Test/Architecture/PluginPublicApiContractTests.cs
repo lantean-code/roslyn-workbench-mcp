@@ -1,5 +1,6 @@
 using System.Reflection;
 
+using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Test.Architecture;
@@ -8,6 +9,8 @@ public sealed class PluginPublicApiContractTests
 {
     private static readonly string[] _expectedAbstractionsExportedTypes =
     [
+        "Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService",
+        "Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver",
         "Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult",
@@ -190,6 +193,7 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionServices.ProjectTargetFrameworkResolver),
             nameof(IToolExecutionServices.ReferenceDiscoveryService),
             nameof(IToolExecutionServices.RequestResolver),
+            nameof(IToolExecutionServices.TypeHierarchyService),
             nameof(IToolExecutionServices.WorkspaceSelectorFactory),
         ]);
 
@@ -211,6 +215,14 @@ public sealed class PluginPublicApiContractTests
 
         referenceDiscoveryMethods.Should().ContainSingle()
             .Which.Should().Be(nameof(IReferenceDiscoveryService.FindReferencesAsync));
+
+        var typeHierarchyMethods = typeof(ITypeHierarchyService)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(static method => method.Name)
+            .ToArray();
+
+        typeHierarchyMethods.Should().ContainSingle()
+            .Which.Should().Be(nameof(ITypeHierarchyService.FindDerivedTypesAsync));
     }
 
     [Fact]

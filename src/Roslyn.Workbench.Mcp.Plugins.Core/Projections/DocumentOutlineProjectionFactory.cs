@@ -7,6 +7,20 @@ internal static class DocumentOutlineProjectionFactory
         var children = new List<OutlineNode>();
         foreach (var childNode in syntaxNode.ChildNodes())
         {
+            if (childNode is BaseFieldDeclarationSyntax fieldDeclaration)
+            {
+                foreach (var variable in fieldDeclaration.Declaration.Variables)
+                {
+                    var fieldSymbol = semanticModel.GetDeclaredSymbol(variable, cancellationToken);
+                    if (fieldSymbol is not null)
+                    {
+                        children.Add(CreateOutlineNode(fieldSymbol, resolver, []));
+                    }
+                }
+
+                continue;
+            }
+
             var child = CreateOutlineNode(childNode, semanticModel, resolver, includeMembers, cancellationToken);
             if (child is not null)
             {
@@ -25,11 +39,8 @@ internal static class DocumentOutlineProjectionFactory
             BaseTypeDeclarationSyntax typeDeclarationSyntax => semanticModel.GetDeclaredSymbol(typeDeclarationSyntax, cancellationToken),
             DelegateDeclarationSyntax delegateDeclarationSyntax => semanticModel.GetDeclaredSymbol(delegateDeclarationSyntax, cancellationToken),
             EnumMemberDeclarationSyntax enumMemberDeclarationSyntax => semanticModel.GetDeclaredSymbol(enumMemberDeclarationSyntax, cancellationToken),
-            MethodDeclarationSyntax methodDeclarationSyntax => semanticModel.GetDeclaredSymbol(methodDeclarationSyntax, cancellationToken),
-            PropertyDeclarationSyntax propertyDeclarationSyntax => semanticModel.GetDeclaredSymbol(propertyDeclarationSyntax, cancellationToken),
-            EventDeclarationSyntax eventDeclarationSyntax => semanticModel.GetDeclaredSymbol(eventDeclarationSyntax, cancellationToken),
-            FieldDeclarationSyntax fieldDeclarationSyntax => semanticModel.GetDeclaredSymbol(fieldDeclarationSyntax.Declaration.Variables.First(), cancellationToken),
-            ConstructorDeclarationSyntax constructorDeclarationSyntax => semanticModel.GetDeclaredSymbol(constructorDeclarationSyntax, cancellationToken),
+            BaseMethodDeclarationSyntax methodDeclarationSyntax => semanticModel.GetDeclaredSymbol(methodDeclarationSyntax, cancellationToken),
+            BasePropertyDeclarationSyntax propertyDeclarationSyntax => semanticModel.GetDeclaredSymbol(propertyDeclarationSyntax, cancellationToken),
             _ => null,
         };
 
@@ -42,6 +53,11 @@ internal static class DocumentOutlineProjectionFactory
             ? BuildOutlineChildren(syntaxNode, semanticModel, resolver, includeMembers, cancellationToken)
             : [];
 
+        return CreateOutlineNode(symbol, resolver, children);
+    }
+
+    private static OutlineNode CreateOutlineNode(ISymbol symbol, IWorkspaceResolver resolver, IReadOnlyList<OutlineNode> children)
+    {
         return new OutlineNode
         {
             Name = symbol.Name,

@@ -310,8 +310,49 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
             return false;
         }
 
-        return SymbolsMatch(dependency, targetSymbol)
-            || targetType is not null && SymbolsMatch(GetOwningTypeSymbol(dependency), targetType);
+        if (SymbolsMatch(dependency, targetSymbol)
+            || targetType is not null && SymbolsMatch(GetOwningTypeSymbol(dependency), targetType))
+        {
+            return true;
+        }
+
+        return dependency is ITypeSymbol typeSymbol
+            && ContainsTargetType(typeSymbol, targetSymbol, targetType);
+    }
+
+    private static bool ContainsTargetType(ITypeSymbol type, ISymbol targetSymbol, INamedTypeSymbol? targetType)
+    {
+        switch (type)
+        {
+            case IArrayTypeSymbol arrayType:
+                return IsTargetType(arrayType.ElementType, targetSymbol, targetType);
+
+            case IPointerTypeSymbol pointerType:
+                return IsTargetType(pointerType.PointedAtType, targetSymbol, targetType);
+
+            case IFunctionPointerTypeSymbol functionPointerType:
+                if (IsTargetType(functionPointerType.Signature.ReturnType, targetSymbol, targetType))
+                {
+                    return true;
+                }
+
+                return functionPointerType.Signature.Parameters.Any(parameter =>
+                    IsTargetType(parameter.Type, targetSymbol, targetType));
+
+            case INamedTypeSymbol namedType:
+                return namedType.TypeArguments.Any(typeArgument =>
+                    IsTargetType(typeArgument, targetSymbol, targetType));
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsTargetType(ITypeSymbol type, ISymbol targetSymbol, INamedTypeSymbol? targetType)
+    {
+        return SymbolsMatch(type, targetSymbol)
+            || targetType is not null && SymbolsMatch(GetOwningTypeSymbol(type), targetType)
+            || ContainsTargetType(type, targetSymbol, targetType);
     }
 
     private static ISymbol? GetReferencedSymbol(IOperation operation)
@@ -948,9 +989,43 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
     private static void AddTypeSymbol(ITypeSymbol? symbol, ISet<ISymbol> dependencies)
     {
-        if (symbol is not null)
+        if (symbol is null)
         {
-            dependencies.Add(symbol);
+            return;
+        }
+
+        if (!dependencies.Add(symbol))
+        {
+            return;
+        }
+
+        switch (symbol)
+        {
+            case IArrayTypeSymbol arrayType:
+                AddTypeSymbol(arrayType.ElementType, dependencies);
+                break;
+
+            case IPointerTypeSymbol pointerType:
+                AddTypeSymbol(pointerType.PointedAtType, dependencies);
+                break;
+
+            case IFunctionPointerTypeSymbol functionPointerType:
+                AddTypeSymbol(functionPointerType.Signature.ReturnType, dependencies);
+                foreach (var parameter in functionPointerType.Signature.Parameters)
+                {
+                    AddTypeSymbol(parameter.Type, dependencies);
+                }
+
+                break;
+
+            case INamedTypeSymbol namedType:
+                foreach (var typeArgument in namedType.TypeArguments)
+                {
+                    AddTypeSymbol(typeArgument, dependencies);
+                }
+
+                break;
+
         }
     }
 

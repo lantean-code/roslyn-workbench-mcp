@@ -117,9 +117,12 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
     private static void AddDirectCallees(IOperation operation, HashSet<ISymbol> callees)
     {
-        foreach (var descendant in operation.DescendantsAndSelf())
+        var pending = new Stack<IOperation>();
+        pending.Push(operation);
+        while (pending.Count > 0)
         {
-            switch (descendant)
+            var current = pending.Pop();
+            switch (current)
             {
                 case IInvocationOperation invocationOperation:
                     callees.Add(invocationOperation.TargetMethod);
@@ -128,6 +131,16 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
                 case IObjectCreationOperation objectCreationOperation when objectCreationOperation.Constructor is not null:
                     callees.Add(objectCreationOperation.Constructor);
                     break;
+            }
+
+            if (current is IAnonymousFunctionOperation or ILocalFunctionOperation)
+            {
+                continue;
+            }
+
+            foreach (var child in current.ChildOperations.Reverse())
+            {
+                pending.Push(child);
             }
         }
     }

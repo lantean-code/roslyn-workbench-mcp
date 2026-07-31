@@ -28,8 +28,6 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             var compilation = semanticModel.Compilation;
             var disposable = typeSymbolCache.GetTypeByMetadataName(compilation, "System.IDisposable");
             var asyncDisposable = typeSymbolCache.GetTypeByMetadataName(compilation, "System.IAsyncDisposable");
-            var disposedSymbolsByExecutable = new Dictionary<SyntaxNode, HashSet<ISymbol>>();
-
             foreach (var localDeclaration in syntaxRoot.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -42,7 +40,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
                 {
                     if (semanticModel.GetDeclaredSymbol(variableDeclarator, cancellationToken) is not ILocalSymbol localSymbol
                         || !ImplementsDisposable(localSymbol.Type, disposable, asyncDisposable)
-                        || IsDisposed(localDeclaration, localSymbol, semanticModel, disposedSymbolsByExecutable, cancellationToken))
+                        || IsDisposed(localDeclaration, localSymbol, semanticModel, cancellationToken))
                     {
                         continue;
                     }
@@ -93,57 +91,68 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
     private static bool ImplementsDisposable(ITypeSymbol type, INamedTypeSymbol? disposable, INamedTypeSymbol? asyncDisposable)
     {
-        return type.AllInterfaces.Any(interfaceType =>
-            SymbolEqualityComparer.Default.Equals(interfaceType, disposable)
-            || SymbolEqualityComparer.Default.Equals(interfaceType, asyncDisposable));
+        return SymbolEqualityComparer.Default.Equals(type, disposable)
+            || SymbolEqualityComparer.Default.Equals(type, asyncDisposable)
+            || type.AllInterfaces.Any(interfaceType =>
+                SymbolEqualityComparer.Default.Equals(interfaceType, disposable)
+                || SymbolEqualityComparer.Default.Equals(interfaceType, asyncDisposable));
     }
 
     private static bool IsDisposed(
         LocalDeclarationStatementSyntax localDeclaration,
         ILocalSymbol localSymbol,
         SemanticModel semanticModel,
-        Dictionary<SyntaxNode, HashSet<ISymbol>> disposedSymbolsByExecutable,
         CancellationToken cancellationToken)
     {
-        var executableNode = localDeclaration.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()?.Body;
-        executableNode ??= localDeclaration.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()?.Body;
-
-        if (executableNode is null)
+        var statementScope = localDeclaration.Parent;
+        if (statementScope is null)
         {
             return false;
         }
 
-        if (!disposedSymbolsByExecutable.TryGetValue(executableNode, out var disposedSymbols))
+        foreach (var invocation in statementScope.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
-            disposedSymbols = GetDisposedSymbols(executableNode, semanticModel, cancellationToken);
-            disposedSymbolsByExecutable.Add(executableNode, disposedSymbols);
-        }
-
-        return disposedSymbols.Contains(localSymbol);
-    }
-
-    private static HashSet<ISymbol> GetDisposedSymbols(SyntaxNode executableNode, SemanticModel semanticModel, CancellationToken cancellationToken)
-    {
-        var disposedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (var invocation in executableNode.DescendantNodes().OfType<InvocationExpressionSyntax>())
-        {
-            if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
-            {
-                continue;
-            }
-
-            if (memberAccess.Name.Identifier.ValueText is not ("Dispose" or "DisposeAsync"))
+            if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess
+                || memberAccess.Name.Identifier.ValueText is not ("Dispose" or "DisposeAsync")
+                || invocation.FirstAncestorOrSelf<ExpressionStatementSyntax>() is not { } disposalStatement
+                || GetDisposalRegionEnd(disposalStatement, statementScope) is not { } disposalRegionEnd
+                || disposalRegionEnd.SpanStart <= localDeclaration.SpanStart)
             {
                 continue;
             }
 
             var receiverSymbol = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken).Symbol;
-            if (receiverSymbol is ILocalSymbol)
+            if (!SymbolEqualityComparer.Default.Equals(receiverSymbol, localSymbol))
             {
-                disposedSymbols.Add(receiverSymbol);
+                continue;
+            }
+
+            var controlFlow = semanticModel.AnalyzeControlFlow(localDeclaration, disposalRegionEnd);
+            if (controlFlow is not null && controlFlow.ExitPoints.Length == 0)
+            {
+                return true;
             }
         }
 
-        return disposedSymbols;
+        return false;
+    }
+
+    private static StatementSyntax? GetDisposalRegionEnd(ExpressionStatementSyntax disposalStatement, SyntaxNode statementScope)
+    {
+        if (ReferenceEquals(disposalStatement.Parent, statementScope))
+        {
+            return disposalStatement;
+        }
+
+        return disposalStatement.Parent is BlockSyntax
+        {
+            Parent: FinallyClauseSyntax
+            {
+                Parent: TryStatementSyntax tryStatement,
+            },
+        }
+            && ReferenceEquals(tryStatement.Parent, statementScope)
+                ? tryStatement
+                : null;
     }
 }

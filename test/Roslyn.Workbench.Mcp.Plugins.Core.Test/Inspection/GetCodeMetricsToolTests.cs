@@ -393,4 +393,41 @@ public sealed class GetCodeMetricsToolTests
         result.Data!.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Notify");
         result.Data.Metrics.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "Formatter.Run(System.Collections.Generic.IEnumerable<int>, object)" && item.MaxNestingDepth == 6);
     }
+
+    [Fact]
+    public async Task GIVEN_SourceUsesDifferentLineEndingsFromHost_WHEN_CallingExecuteAsync_THEN_ShouldCountLogicalLinesCorrectly()
+    {
+        var sourceLineEnding = Environment.NewLine == "\n" ? "\r" : "\n";
+        var source = """
+            class Formatter
+            {
+                void Run()
+                {
+                    var value = 1;
+                }
+            }
+            """.ReplaceLineEndings(sourceLineEnding);
+        using var document = RoslynTestFactory.CreateDocument(source);
+
+        var target = new GetCodeMetricsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<CodeMetricsData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CodeMetricsData>([document.Document]));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetCodeMetricsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Metrics.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "Run" && item.LogicalLines == 2);
+    }
 }

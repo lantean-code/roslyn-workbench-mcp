@@ -51,12 +51,13 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         }
 
         var children = new List<OperationNode>();
+        truncated = false;
         foreach (var childOperation in operation.ChildOperations)
         {
-            children.Add(CreateOperationNode(childOperation, maxDepth, depth + 1, out _));
+            var child = CreateOperationNode(childOperation, maxDepth, depth + 1, out var childTruncated);
+            children.Add(child);
+            truncated |= childTruncated;
         }
-
-        truncated = false;
 
         return CreateOperationNodeProjection(operation, truncated, children.ToArray());
     }

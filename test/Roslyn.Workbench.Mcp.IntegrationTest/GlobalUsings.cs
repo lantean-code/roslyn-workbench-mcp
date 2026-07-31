@@ -24,6 +24,7 @@ global using Roslyn.Workbench.Mcp.Server.Contracts;
 global using Roslyn.Workbench.Mcp.Status;
 global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace.Configuration;
+global using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;

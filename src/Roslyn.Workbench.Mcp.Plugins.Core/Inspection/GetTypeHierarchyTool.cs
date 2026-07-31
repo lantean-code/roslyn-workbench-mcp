@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-type-hierarchy", "Get Type Hierarchy", "Returns base, interface, and optional derived type relationships for a resolved type.")]
@@ -34,26 +32,25 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         BoundedCollection<TypeHierarchyNode>? derivedTypes = null;
         if (request.IncludeDerived)
         {
-            var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken);
-            var uniqueTypes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+            var discoveredTypes = await context.ToolExecutionServices.TypeHierarchyService.FindDerivedTypesAsync(
+                namedType,
+                context.CurrentSolution,
+                context.CurrentSolution.Projects.ToArray(),
+                cancellationToken);
             var typeReferences = new List<TypeHierarchyNode>();
             foreach (var discoveredType in discoveredTypes)
             {
-                if (uniqueTypes.Add(discoveredType))
+                if (discoveredType.Depth > request.MaxDepth)
                 {
-                    var depth = GetTypeDepth(discoveredType, namedType);
-                    if (depth > request.MaxDepth)
-                    {
-                        continue;
-                    }
-
-                    var reference = context.WorkspaceResolver.CreateSymbolReference(discoveredType);
-                    typeReferences.Add(new TypeHierarchyNode
-                    {
-                        Type = reference,
-                        Depth = depth,
-                    });
+                    continue;
                 }
+
+                var reference = context.WorkspaceResolver.CreateSymbolReference(discoveredType.Type);
+                typeReferences.Add(new TypeHierarchyNode
+                {
+                    Type = reference,
+                    Depth = discoveredType.Depth,
+                });
             }
 
             var orderedTypes = typeReferences.OrderBy(static item => item.Type?.DisplayName ?? string.Empty, StringComparer.Ordinal);
@@ -98,31 +95,4 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         return PluginExecutionResult.Success(data);
     }
 
-    private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)
-    {
-        if (root.TypeKind == TypeKind.Interface)
-        {
-            return (await SymbolFinder.FindImplementationsAsync(root, solution, projects, cancellationToken))
-                .OfType<INamedTypeSymbol>()
-                .ToArray();
-        }
-
-        return (await SymbolFinder.FindDerivedClassesAsync(root, solution, projects, cancellationToken))
-            .ToArray();
-    }
-
-    private static int GetTypeDepth(INamedTypeSymbol symbol, INamedTypeSymbol root)
-    {
-        var depth = 0;
-        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
-        {
-            depth++;
-            if (SymbolEqualityComparer.Default.Equals(current, root))
-            {
-                return depth;
-            }
-        }
-
-        return depth;
-    }
 }

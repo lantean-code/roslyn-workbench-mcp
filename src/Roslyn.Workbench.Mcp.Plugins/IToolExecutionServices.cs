@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
@@ -16,6 +17,11 @@ public interface IToolExecutionServices
     /// Gets the service for discovering unique source references within selected documents.
     /// </summary>
     IReferenceDiscoveryService ReferenceDiscoveryService { get; }
+
+    /// <summary>
+    /// Gets the service for discovering class and interface hierarchy relationships.
+    /// </summary>
+    ITypeHierarchyService TypeHierarchyService { get; }
 
     /// <summary>
     /// Gets the request-resolution service for tool execution.

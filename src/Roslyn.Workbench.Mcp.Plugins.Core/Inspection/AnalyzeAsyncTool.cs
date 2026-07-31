@@ -40,7 +40,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
                     continue;
                 }
 
-                if (!methodDeclaration.DescendantNodes().OfType<AwaitExpressionSyntax>().Any())
+                if (!GetExecutableDescendants(methodDeclaration).OfType<AwaitExpressionSyntax>().Any())
                 {
                     if (findings.Count == maxResults)
                     {
@@ -64,9 +64,10 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
                     continue;
                 }
 
-                foreach (var invocation in rootOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
+                foreach (var invocation in GetExecutableOperations(rootOperation).OfType<IInvocationOperation>())
                 {
-                    if (!ReturnsTaskLike(invocation.Type, task, taskOfT, valueTask, valueTaskOfT) || IsAwaited(invocation))
+                    if (!ReturnsTaskLike(invocation.Type, task, taskOfT, valueTask, valueTaskOfT)
+                        || !IsDiscarded(invocation))
                     {
                         continue;
                     }
@@ -114,17 +115,47 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
         return PluginExecutionResult.Success(data);
     }
 
-    private static bool IsAwaited(IOperation operation)
+    private static IEnumerable<SyntaxNode> GetExecutableDescendants(MethodDeclarationSyntax methodDeclaration)
     {
-        for (var current = operation.Parent; current is not null; current = current.Parent)
+        return methodDeclaration.DescendantNodes(static node =>
+            node is not AnonymousFunctionExpressionSyntax
+                and not LocalFunctionStatementSyntax);
+    }
+
+    private static IEnumerable<IOperation> GetExecutableOperations(IOperation rootOperation)
+    {
+        var pending = new Stack<IOperation>();
+        pending.Push(rootOperation);
+        while (pending.Count > 0)
         {
-            if (current is IAwaitOperation)
+            var operation = pending.Pop();
+            yield return operation;
+            if (operation is IAnonymousFunctionOperation or ILocalFunctionOperation)
             {
-                return true;
+                continue;
+            }
+
+            foreach (var child in operation.ChildOperations.Reverse())
+            {
+                pending.Push(child);
             }
         }
+    }
 
-        return false;
+    private static bool IsDiscarded(IInvocationOperation invocation)
+    {
+        IOperation current = invocation;
+        while (current.Parent is IConversionOperation or IParenthesizedOperation)
+        {
+            current = current.Parent;
+        }
+
+        return current.Parent is IExpressionStatementOperation
+            || current.Parent is ISimpleAssignmentOperation
+            {
+                Target: IDiscardOperation,
+                Parent: IExpressionStatementOperation,
+            };
     }
 
     private static bool ReturnsTaskLike(

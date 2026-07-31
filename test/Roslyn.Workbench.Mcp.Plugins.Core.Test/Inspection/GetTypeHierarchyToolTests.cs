@@ -265,11 +265,19 @@ public sealed class GetTypeHierarchyToolTests
                             {
                             }
 
+                            public interface IAdvancedFormatter : IFormatter
+                            {
+                            }
+
                             public class FormatterBase : IFormatter
                             {
                             }
 
                             public sealed class AdvancedFormatter : FormatterBase
+                            {
+                            }
+
+                            public sealed class SpecialFormatter : IAdvancedFormatter
                             {
                             }
                             """,
@@ -312,11 +320,13 @@ public sealed class GetTypeHierarchyToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.DerivedTypes!.Items.Should().HaveCount(2);
+        result.Data!.DerivedTypes!.Items.Should().HaveCount(4);
         result.Data.DerivedTypes.Items[0].Type!.DisplayName.Should().Be("AdvancedFormatter");
         result.Data.DerivedTypes.Items[0].Depth.Should().Be(2);
         result.Data.DerivedTypes.Items[1].Type!.DisplayName.Should().Be("FormatterBase");
         result.Data.DerivedTypes.Items[1].Depth.Should().Be(1);
+        result.Data.DerivedTypes.Items.Single(item => item.Type!.DisplayName == "IAdvancedFormatter").Depth.Should().Be(1);
+        result.Data.DerivedTypes.Items.Single(item => item.Type!.DisplayName == "SpecialFormatter").Depth.Should().Be(2);
         result.Data.DerivedTypes.HasMore.Should().BeFalse();
     }
 }

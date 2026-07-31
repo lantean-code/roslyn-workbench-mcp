@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 using Roslyn.Workbench.Mcp.Workspace.References;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
@@ -20,6 +21,8 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
 
     public IReferenceDiscoveryService ReferenceDiscoveryService { get; }
 
+    public ITypeHierarchyService TypeHierarchyService { get; }
+
     public ToolExecutionServices(
         IToolRequestResolver requestResolver,
         ICompilerDiagnosticService compilerDiagnosticService,
@@ -28,7 +31,8 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         IProjectTargetFrameworkResolver projectTargetFrameworkResolver,
         IDependencyAnalysisService dependencyAnalysisService,
         IWorkspaceSelectorFactory workspaceSelectorFactory,
-        IReferenceDiscoveryService referenceDiscoveryService)
+        IReferenceDiscoveryService referenceDiscoveryService,
+        ITypeHierarchyService typeHierarchyService)
     {
         RequestResolver = requestResolver;
         CompilerDiagnosticService = compilerDiagnosticService;
@@ -38,5 +42,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         DependencyAnalysisService = dependencyAnalysisService;
         WorkspaceSelectorFactory = workspaceSelectorFactory;
         ReferenceDiscoveryService = referenceDiscoveryService;
+        TypeHierarchyService = typeHierarchyService;
     }
 }

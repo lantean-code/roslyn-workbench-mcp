@@ -812,6 +812,68 @@ public sealed class FindCalleesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
+    [Fact]
+    public async Task GIVEN_MethodDeclaresNestedFunctions_WHEN_CallingExecuteAsync_THEN_ShouldExcludeTheirBodiesFromDirectCallees()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            class Formatter
+            {
+                void Host()
+                {
+                    void Local()
+                    {
+                        NestedCall();
+                    }
+
+                    Action action = () => LambdaCall();
+                    Local();
+                }
+
+                void NestedCall()
+                {
+                }
+
+                void LambdaCall()
+                {
+                }
+            }
+            """);
+
+        var target = new FindCalleesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Host",
+            "Formatter",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CalleeSearchData>(symbol));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new FindCalleesRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Callees.Items.Select(item => item.DisplayName).Should().Equal("Local");
+    }
+
     private static async Task<IMethodSymbol> GetAccessorSymbolAsync(Document document, string propertyName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);

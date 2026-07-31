@@ -35,6 +35,7 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         }
 
         dependencies.RemoveWhere(dependency => SymbolEqualityComparer.Default.Equals(dependency, symbol));
+        dependencies.RemoveWhere(static dependency => string.IsNullOrWhiteSpace(dependency.Name));
 
         var orderedDependencies = dependencies
             .Select(item => (Symbol: item, Reference: context.WorkspaceResolver.CreateSymbolReference(item)))
@@ -148,7 +149,39 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
             return;
         }
 
-        dependencies.Add(symbol);
+        if (!dependencies.Add(symbol))
+        {
+            return;
+        }
+
+        switch (symbol)
+        {
+            case IArrayTypeSymbol arrayType:
+                AddTypeSymbol(arrayType.ElementType, dependencies);
+                break;
+
+            case IPointerTypeSymbol pointerType:
+                AddTypeSymbol(pointerType.PointedAtType, dependencies);
+                break;
+
+            case IFunctionPointerTypeSymbol functionPointerType:
+                AddTypeSymbol(functionPointerType.Signature.ReturnType, dependencies);
+                foreach (var parameter in functionPointerType.Signature.Parameters)
+                {
+                    AddTypeSymbol(parameter.Type, dependencies);
+                }
+
+                break;
+
+            case INamedTypeSymbol namedType:
+                foreach (var typeArgument in namedType.TypeArguments)
+                {
+                    AddTypeSymbol(typeArgument, dependencies);
+                }
+
+                break;
+
+        }
     }
 
     private static CSharpSyntaxNode? GetExecutableNode(SyntaxNode node)

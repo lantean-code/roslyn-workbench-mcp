@@ -167,6 +167,18 @@ public sealed class GetSymbolMembersToolTests
 
                             public class BaseFormatter
                             {
+                                public BaseFormatter()
+                                {
+                                }
+
+                                private BaseFormatter(string value)
+                                {
+                                }
+
+                                private void Hidden()
+                                {
+                                }
+
                                 public void Decorate()
                                 {
                                 }
@@ -236,6 +248,7 @@ public sealed class GetSymbolMembersToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Members.Items.Should().Contain(item => item.DocumentationCommentId == "M:Sample.BaseFormatter.Decorate");
+        result.Data.Members.Items.Should().NotContain(item => item.DisplayName == "Hidden" || item.DisplayName == ".ctor");
         result.Data.Members.Items.Count(item => item.DisplayName == "Dispose").Should().Be(2);
         result.Data.Members.Items
             .Where(item => item.DisplayName == "Dispose")

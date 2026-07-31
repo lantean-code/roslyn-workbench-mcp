@@ -252,4 +252,77 @@ public sealed class DependencyAnalysisServiceTests
         cycles.Should().BeEmpty();
         totalCount.Should().Be(1);
     }
+
+    [Fact]
+    public async Task GIVEN_TargetAppearsInsideCompositeTypes_WHEN_AnalyzingDependencies_THEN_ShouldFindGraphEdgeAndTestImpact()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System.Collections.Generic;
+
+            namespace Sample;
+
+            public sealed class Customer
+            {
+            }
+
+            public sealed class Consumer
+            {
+                public List<Customer> Values { get; } = [];
+            }
+
+            public sealed class CustomerTests
+            {
+                public Customer[] BuildTest()
+                {
+                    return [];
+                }
+            }
+            """);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var targetSymbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "Customer",
+            TestContext.Current.CancellationToken);
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContext
+            .SetupGet(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+
+        workspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        workspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var project = document.Solution.Projects.Single();
+        var (_, _, edges, _) = await target.BuildGraphAsync(
+            "Type",
+            [project],
+            [document.Document],
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        var (tests, hasMore) = await target.FindTestImpactsAsync(
+            targetSymbol,
+            [document.Document],
+            includeReasons: false,
+            10,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        edges.Should().Contain(edge => edge.FromDisplayName == "Consumer" && edge.ToDisplayName == "Customer");
+        tests.Should().ContainSingle(item => item.Test!.DisplayName.Contains("BuildTest", StringComparison.Ordinal));
+        hasMore.Should().BeFalse();
+    }
 }

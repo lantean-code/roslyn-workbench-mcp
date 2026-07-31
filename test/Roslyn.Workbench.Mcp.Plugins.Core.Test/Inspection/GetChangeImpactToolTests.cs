@@ -265,7 +265,7 @@ public sealed class GetChangeImpactToolTests
         result.Data.Impact.CallerCount.Should().BeGreaterThan(0);
         result.Data.Impact.OverrideCount.Should().BeGreaterThan(0);
         result.Data.Impact.ImplementationCount.Should().Be(0);
-        result.Data.Impact.PublicSurfaceCount.Should().Be(1);
+        result.Data.Impact.PublicSurfaceCount.Should().Be(0);
         result.Data.Locations.Items.Should().OnlyContain(item => item.Location != null);
         result.Data.Locations.HasMore.Should().BeTrue();
         inspectionContextService.Verify(item => item.ReadContextAsync(

@@ -52,6 +52,7 @@ global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.Coordination;
 global using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
+global using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;

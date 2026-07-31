@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 using Roslyn.Workbench.Mcp.Workspace.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
 
@@ -16,6 +17,8 @@ public static class QueryContextMockHelper
         var workspaceSelectorFactory = new Mock<IWorkspaceSelectorFactory>();
         var queryResultCache = new Mock<IQueryResultCache>();
         var referenceDiscoveryService = new Mock<IReferenceDiscoveryService>();
+        var typeHierarchyService = new Mock<ITypeHierarchyService>();
+        var typeHierarchyServiceImplementation = new TypeHierarchyService();
 
         toolExecutionServices
             .SetupGet(item => item.ReferenceDiscoveryService)
@@ -30,6 +33,19 @@ public static class QueryContextMockHelper
                 It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<ReferenceOccurrence>());
+
+        toolExecutionServices
+            .SetupGet(item => item.TypeHierarchyService)
+            .Returns(typeHierarchyService.Object);
+
+        typeHierarchyService
+            .Setup(item => item.FindDerivedTypesAsync(
+                It.IsAny<INamedTypeSymbol>(),
+                It.IsAny<Solution>(),
+                It.IsAny<IReadOnlyCollection<Project>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((INamedTypeSymbol root, Solution solution, IReadOnlyCollection<Project> projects, CancellationToken cancellationToken) =>
+                typeHierarchyServiceImplementation.FindDerivedTypesAsync(root, solution, projects, cancellationToken));
 
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
@@ -74,6 +90,7 @@ public static class QueryContextMockHelper
             projectTargetFrameworkResolver,
             workspaceSelectorFactory,
             queryResultCache,
-            referenceDiscoveryService);
+            referenceDiscoveryService,
+            typeHierarchyService);
     }
 }

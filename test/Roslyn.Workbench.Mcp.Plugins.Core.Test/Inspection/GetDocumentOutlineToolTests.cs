@@ -118,6 +118,8 @@ public sealed class GetDocumentOutlineToolTests
 
             class Formatter
             {
+                int First, Second;
+
                 Formatter()
                 {
                 }
@@ -126,6 +128,16 @@ public sealed class GetDocumentOutlineToolTests
                 {
                     get;
                 }
+
+                int this[int index]
+                {
+                    get
+                    {
+                        return index;
+                    }
+                }
+
+                event System.EventHandler? FieldChanged;
 
                 event System.EventHandler Changed
                 {
@@ -175,6 +187,10 @@ public sealed class GetDocumentOutlineToolTests
         result.Data!.Root!.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain(".ctor");
         result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Value");
         result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Changed");
+        result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("FieldChanged");
+        result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("First");
         result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Run");
+        result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Second");
+        result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("this[]");
     }
 }

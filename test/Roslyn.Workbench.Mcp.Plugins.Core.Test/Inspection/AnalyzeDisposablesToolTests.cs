@@ -407,6 +407,50 @@ public sealed class AnalyzeDisposablesToolTests
     }
 
     [Fact]
+    public async Task GIVEN_DisposableLocalIsDisposedInFinally_WHEN_CallingExecuteAsync_THEN_ShouldReturnNoFindings()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            class Formatter
+            {
+                void Run()
+                {
+                    var disposable = new Disposable();
+                    try
+                    {
+                        disposable.ToString();
+                    }
+                    finally
+                    {
+                        disposable.Dispose();
+                    }
+                }
+
+                private sealed class Disposable : IDisposable
+                {
+                    public void Dispose()
+                    {
+                    }
+                }
+            }
+            """);
+
+        var target = new AnalyzeDisposablesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DisposableAnalysisData>([document.Document]));
+
+        var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GIVEN_TopLevelLocalFunctionHasMoreDisposableFindingsThanLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedTruncatedFindings()
     {
         using var document = RoslynTestFactory.CreateDocument("""
@@ -481,6 +525,54 @@ public sealed class AnalyzeDisposablesToolTests
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
 
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DisposableAnalysisData>([document.Document]));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "disposable");
+    }
+
+    [Fact]
+    public async Task GIVEN_InterfaceTypedLocalIsDisposedOnlyConditionally_WHEN_CallingExecuteAsync_THEN_ShouldReturnUndisposedFinding()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            class Formatter
+            {
+                void Run(bool shouldDispose)
+                {
+                    IDisposable disposable = new Disposable();
+                    if (shouldDispose)
+                    {
+                        disposable.Dispose();
+                    }
+                }
+
+                private sealed class Disposable : IDisposable
+                {
+                    public void Dispose()
+                    {
+                    }
+                }
+            }
+            """);
+
+        var target = new AnalyzeDisposablesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),

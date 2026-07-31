@@ -398,4 +398,62 @@ public sealed class GetOperationTreeToolTests
         result.Data.Root.Children.Should().BeEmpty();
         result.Data.Truncated.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task GIVEN_DescendantOperationsExceedMaxDepth_WHEN_CallingExecuteAsync_THEN_ShouldMarkWholeTreeTruncated()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                    Format(GetValue());
+                }
+
+                string GetValue()
+                {
+                    return string.Empty;
+                }
+
+                void Format(string value)
+                {
+                }
+            }
+            """);
+
+        var target = new GetOperationTreeTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (InvocationExpressionSyntax item) => item.ToString().StartsWith("Format", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<OperationTreeData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetOperationTreeRequest
+        {
+            Location = new LocationSelector(),
+            MaxDepth = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Root!.Truncated.Should().BeTrue();
+        result.Data.Truncated.Should().BeTrue();
+    }
 }

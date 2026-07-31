@@ -43,11 +43,15 @@ public sealed class GetSymbolDependenciesToolTests
             """);
 
         using var foreignDocument = RoslynTestFactory.CreateDocument("""
+            public class Customer
+            {
+            }
+
             public class ForeignFormatter
             {
-                public string Format(string value)
+                public Customer[] Format(string value)
                 {
-                    return value;
+                    return [];
                 }
             }
             """);
@@ -86,6 +90,7 @@ public sealed class GetSymbolDependenciesToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Customer");
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("String");
     }
 

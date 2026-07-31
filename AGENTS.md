@@ -45,7 +45,8 @@
   - The current solution baseline, known `latest-all` exclusions and remediation policy are recorded in `./docs/development/Analyzer Inventory.md`.
 - Run tests:
   - Run the affected non-acceptance test projects, or use the preferred fast-loop command defined in `./test/AGENTS.md`.
-  - Do not run the acceptance-test project automatically as part of per-turn validation. Run acceptance tests only when the user explicitly requests them.
+  - Do not run the acceptance-test project automatically merely because production code participates in published-Host scenarios. Run acceptance tests when the user explicitly requests them or when the current task adds or modifies any acceptance-test source, fixture, project configuration, wrapper script or checked-in acceptance asset.
+  - Changing an acceptance-test artifact is itself authorisation and an explicit requirement to run the complete acceptance suite through the platform wrapper before finishing; no separate user request is required. Do not substitute a build, analyzer run, direct `dotnet test` invocation or filtered subset. If the complete wrapper cannot run, report the validation as incomplete rather than claiming the change is ready for confirmation.
   - Do not run the external-repository scenario runner automatically for ordinary development. When scenario-runner code or a checked-in scenario definition is changed, run every affected scenario through the platform wrapper before finishing; shared runner changes require representative coverage of every affected scenario family or repository.
 - After each behavior-affecting set of changes:
   - Run the relevant non-acceptance tests, applying the WSL-specific artifacts path above when required.
@@ -106,7 +107,7 @@
 - [ ] Tests adhere to `./test/AGENTS.md` and achieve required coverage.
 - [ ] No secrets, tokens, or user-specific paths committed.
 - [ ] Builds with the pinned SDK; `dotnet restore`, `dotnet build`, and the relevant non-acceptance tests succeed when required by the change.
-- [ ] Acceptance tests have been run only when explicitly requested by the user.
+- [ ] Acceptance tests have been run only when explicitly requested by the user or required because an acceptance-test artifact changed; every changed acceptance artifact has received a complete platform-wrapper run.
 - [ ] Error messages and logs are clear and actionable.
 
 ## Communication and assumptions

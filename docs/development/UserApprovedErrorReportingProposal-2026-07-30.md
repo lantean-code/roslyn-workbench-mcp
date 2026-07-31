@@ -145,10 +145,10 @@ Preparation:
 - performs no network activity;
 - creates a random submission handle unrelated to the correlation ID;
 - assigns the stable external report identifier;
-- creates a representative provider preview and serialises that preview into canonical UTF-8 bytes;
+- creates the provider-specific dispatch state and serialises its exact JSON into canonical UTF-8 bytes;
 - calculates and returns a SHA-256 digest of the preview bytes;
 - stores the immutable external report and preview with the handle, destination identity, expiry and submission state; and
-- returns the representative preview, destination, digest, expiry and excluded or redacted categories to the agent.
+- returns that JSON as an opaque `payloadJson` string together with the destination, digest, expiry and excluded or redacted categories so provider JSON is not confused with the structured MCP response.
 
 The tool description instructs the agent to present the payload and destination to the user before invoking `submit-error-report` when prompting is required.
 

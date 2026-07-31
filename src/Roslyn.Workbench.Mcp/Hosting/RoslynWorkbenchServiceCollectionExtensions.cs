@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
@@ -254,35 +253,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         }
 
         services.AddSingleton(sentryConfiguration);
-        services.AddSingleton<ISentryClient>(CreateSentryClient);
+        services.AddSingleton<SentryOptions, RoslynWorkbenchSentryOptions>();
+        services.AddSingleton<ISentryClient, SentryClient>();
         services.AddSingleton<IErrorReportDispatcher, SentryErrorReportDispatcher>();
-    }
-
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The Sentry client owns the configured HTTP handler and is itself owned and disposed by dependency injection.")]
-    private static ISentryClient CreateSentryClient(IServiceProvider serviceProvider)
-    {
-        var configuration = serviceProvider.GetRequiredService<SentryProviderConfiguration>();
-        var sentryOptions = new SentryOptions
-        {
-            Dsn = configuration.Dsn,
-            AutoSessionTracking = false,
-            DisableSentryHttpMessageHandler = true,
-            EnableLogs = false,
-            EnableMetrics = false,
-            IsGlobalModeEnabled = false,
-            SendClientReports = false,
-            SendDefaultPii = false,
-            ShutdownTimeout = SentrySdkPolicy.ShutdownTimeout,
-            CreateHttpMessageHandler = static () => new HttpClientHandler
-            {
-                AllowAutoRedirect = false,
-                CheckCertificateRevocationList = true,
-            },
-        };
-
-        return new SentryClient(sentryOptions);
     }
 }

@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 
 internal sealed record PreparedErrorReportData
@@ -14,7 +12,7 @@ internal sealed record PreparedErrorReportData
 
     public required DateTimeOffset ExpiresAt { get; init; }
 
-    public required JsonElement Payload { get; init; }
+    public required string PayloadJson { get; init; }
 
     public IReadOnlyList<string> ExcludedCategories { get; init; } = [];
 }

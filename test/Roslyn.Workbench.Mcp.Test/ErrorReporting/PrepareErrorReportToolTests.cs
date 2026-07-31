@@ -20,15 +20,16 @@ public sealed class PrepareErrorReportToolTests
         var timeProvider = new Mock<TimeProvider>();
         var record = CreateRecord(correlationId);
         var externalReport = CreateExternalReport();
-        var preview = JsonSerializer.SerializeToElement(new { value = "Value" });
-        var payload = new PreparedDispatchPayload
+        const string previewJson = "{\"value\":\"Value\"}";
+        var payload = new PreparedDispatchPayload<string>
         {
             DispatcherName = "Dispatcher",
             Destination = "Destination",
             ReportId = "ReportId",
             Report = externalReport,
-            PreviewBytes = Encoding.UTF8.GetBytes(preview.GetRawText()).ToImmutableArray(),
-            Preview = preview,
+            PreviewBytes = Encoding.UTF8.GetBytes(previewJson).ToImmutableArray(),
+            PreviewJson = previewJson,
+            DispatchState = previewJson,
         };
         CapturedErrorRecord? storedRecord = record;
         capturedErrorStore
@@ -84,7 +85,7 @@ public sealed class PrepareErrorReportToolTests
         result.IsError.Should().BeFalse();
         var data = result.StructuredContent!.Value.GetProperty("data");
         data.GetProperty("destination").GetString().Should().Be("Destination");
-        data.GetProperty("payload").GetProperty("value").GetString().Should().Be("Value");
+        data.GetProperty("payloadJson").GetString().Should().Be(previewJson);
         preparedSubmissionStore.Verify(item => item.TryAdd(
             It.Is<PreparedSubmission>(submission =>
                 submission.Payload.Report == externalReport

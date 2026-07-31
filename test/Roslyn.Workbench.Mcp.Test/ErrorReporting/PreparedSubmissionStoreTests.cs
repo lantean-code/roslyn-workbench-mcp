@@ -76,7 +76,7 @@ public sealed class PreparedSubmissionStoreTests
             CreatedAt = _now,
             ExpiresAt = _now.AddMinutes(30),
             State = PreparedSubmissionState.Prepared,
-            Payload = new PreparedDispatchPayload
+            Payload = new PreparedDispatchPayload<string>
             {
                 DispatcherName = "Dispatcher",
                 Destination = "Destination",
@@ -97,7 +97,8 @@ public sealed class PreparedSubmissionStoreTests
                     ProcessorArchitecture = "X64",
                 },
                 PreviewBytes = ImmutableArray.Create<byte>(1, 2, 3),
-                Preview = JsonSerializer.SerializeToElement(new { value = "Value" }),
+                PreviewJson = "PreviewJson",
+                DispatchState = "DispatchState",
             },
         };
     }

@@ -209,6 +209,12 @@ public sealed class HostCompositionIntegrationTests
 
         RoslynWorkbenchServiceCollectionExtensions.AddErrorReportDispatcher(services, configuration);
 
+        var clientRegistration = services.Single(item => item.ServiceType == typeof(ISentryClient));
+        clientRegistration.ImplementationType.Should().Be<SentryClient>();
+        clientRegistration.ImplementationFactory.Should().BeNull();
+        var optionsRegistration = services.Single(item => item.ServiceType == typeof(SentryOptions));
+        optionsRegistration.ImplementationType.Should().Be<RoslynWorkbenchSentryOptions>();
+        optionsRegistration.ImplementationFactory.Should().BeNull();
         using var serviceProvider = services.BuildServiceProvider();
         serviceProvider.GetRequiredService<IErrorReportDispatcher>().Should().BeOfType<SentryErrorReportDispatcher>();
         serviceProvider.GetRequiredService<ISentryClient>().Should().BeOfType<SentryClient>();

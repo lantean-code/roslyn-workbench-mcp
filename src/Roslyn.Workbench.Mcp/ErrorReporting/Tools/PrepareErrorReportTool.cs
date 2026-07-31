@@ -42,7 +42,7 @@ internal sealed class PrepareErrorReportTool :
             protocolFactory,
             ServerOwnedToolRegistration.PrepareErrorReportName,
             "Prepare Error Report",
-            "Creates the complete sanitised external payload without network activity. Present the returned destination, payload and digest to the user before calling submit-error-report when approval is required.",
+            "Creates the complete sanitised external payload without network activity. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required.",
             readOnly: true,
             destructive: false,
             idempotent: false)
@@ -121,7 +121,7 @@ internal sealed class PrepareErrorReportTool :
             Destination = payload.Destination,
             PayloadDigest = digest,
             ExpiresAt = submission.ExpiresAt,
-            Payload = payload.Preview,
+            PayloadJson = payload.PreviewJson,
             ExcludedCategories = _excludedCategories,
         };
 

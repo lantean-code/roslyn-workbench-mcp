@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
@@ -18,12 +19,14 @@ public sealed class LoggingErrorReportDispatcherTests
         result.Destination.Should().Be("standard error (stderr)");
         result.ReportId.Should().Be(report.ReportId);
         result.Report.Should().BeSameAs(report);
-        Encoding.UTF8.GetString(result.PreviewBytes.AsSpan()).Should().Be(result.Preview.GetRawText());
-        result.Preview.GetProperty("level").GetString().Should().Be("error");
-        result.Preview.GetProperty("logger").GetString().Should().Be("roslyn-workbench-mcp");
-        result.Preview.GetProperty("message").GetString().Should().Be(
+        Encoding.UTF8.GetString(result.PreviewBytes.AsSpan()).Should().Be(result.PreviewJson);
+        using var preview = JsonDocument.Parse(result.PreviewJson);
+        var previewRoot = preview.RootElement;
+        previewRoot.GetProperty("level").GetString().Should().Be("error");
+        previewRoot.GetProperty("logger").GetString().Should().Be("roslyn-workbench-mcp");
+        previewRoot.GetProperty("message").GetString().Should().Be(
             $"Roslyn Workbench reported {report.ExceptionClassification} in {report.Tool}.");
-        result.Preview.GetProperty("report").GetProperty("reportId").GetString().Should().Be(report.ReportId);
+        previewRoot.GetProperty("report").GetProperty("reportId").GetString().Should().Be(report.ReportId);
         logger.VerifyNoOtherCalls();
     }
 
@@ -57,6 +60,31 @@ public sealed class LoggingErrorReportDispatcherTests
         var report = CreateReport();
         var prepared = target.CreatePayload(report);
         var payload = prepared with { ReportId = "different-report-id" };
+
+        var result = await target.DispatchAsync(payload, CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
+        result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
+        logger.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedStateForDifferentDispatcher_WHEN_Dispatching_THEN_ShouldRejectWithoutLogging()
+    {
+        var logger = new Mock<ILogger<LoggingErrorReportDispatcher>>();
+        var target = new LoggingErrorReportDispatcher(logger.Object);
+        var report = CreateReport();
+        var prepared = target.CreatePayload(report);
+        var payload = new PreparedDispatchPayload<int>
+        {
+            DispatcherName = prepared.DispatcherName,
+            Destination = prepared.Destination,
+            ReportId = prepared.ReportId,
+            Report = prepared.Report,
+            PreviewBytes = prepared.PreviewBytes,
+            PreviewJson = prepared.PreviewJson,
+            DispatchState = 1,
+        };
 
         var result = await target.DispatchAsync(payload, CancellationToken.None);
 

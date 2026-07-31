@@ -1,9 +1,8 @@
 using System.Collections.Immutable;
-using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 
-internal sealed record PreparedDispatchPayload
+internal abstract record PreparedDispatchPayload
 {
     public required string DispatcherName { get; init; }
 
@@ -15,5 +14,10 @@ internal sealed record PreparedDispatchPayload
 
     public required ImmutableArray<byte> PreviewBytes { get; init; }
 
-    public required JsonElement Preview { get; init; }
+    public required string PreviewJson { get; init; }
+}
+
+internal sealed record PreparedDispatchPayload<TDispatchState> : PreparedDispatchPayload
+{
+    public required TDispatchState DispatchState { get; init; }
 }

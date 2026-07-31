@@ -30,16 +30,17 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
     {
         var loggingPayload = CreateLoggingPayload(report);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(loggingPayload, _serializerOptions);
-        var preview = JsonSerializer.SerializeToElement(loggingPayload, _serializerOptions);
+        var previewJson = Encoding.UTF8.GetString(bytes);
 
-        return new PreparedDispatchPayload
+        return new PreparedDispatchPayload<string>
         {
             DispatcherName = Name,
             Destination = Destination,
             ReportId = report.ReportId,
             Report = report,
             PreviewBytes = bytes.ToImmutableArray(),
-            Preview = preview,
+            PreviewJson = previewJson,
+            DispatchState = previewJson,
         };
     }
 
@@ -50,7 +51,8 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
         cancellationToken.ThrowIfCancellationRequested();
 
         var report = payload.Report;
-        if (!string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
+        if (payload is not PreparedDispatchPayload<string> preparedPayload
+            || !string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
         {
             return ValueTask.FromResult(new ErrorDispatchResult
             {
@@ -60,9 +62,7 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
             });
         }
 
-        var loggingPayload = CreateLoggingPayload(report);
-        var json = JsonSerializer.Serialize(loggingPayload, _serializerOptions);
-        LogApprovedErrorReport(_loggerInstance, report.ReportId, json);
+        LogApprovedErrorReport(_loggerInstance, report.ReportId, preparedPayload.DispatchState);
 
         return ValueTask.FromResult(new ErrorDispatchResult
         {

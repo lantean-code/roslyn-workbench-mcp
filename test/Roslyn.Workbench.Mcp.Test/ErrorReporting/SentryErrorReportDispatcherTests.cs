@@ -23,23 +23,27 @@ public sealed class SentryErrorReportDispatcherTests
         result.Destination.Should().Be(_destination);
         result.ReportId.Should().Be(report.ReportId);
         result.Report.Should().BeSameAs(report);
-        Encoding.UTF8.GetString(result.PreviewBytes.AsSpan()).Should().Be(result.Preview.GetRawText());
-        result.Preview.TryGetProperty("event_id", out _).Should().BeFalse();
-        result.Preview.GetProperty("fingerprint").EnumerateArray().Select(item => item.GetString()).Should().Equal(
+        Encoding.UTF8.GetString(result.PreviewBytes.AsSpan()).Should().Be(result.PreviewJson);
+        var preparedPayload = (PreparedDispatchPayload<SentryEvent>)result;
+        using var preview = JsonDocument.Parse(result.PreviewJson);
+        var previewRoot = preview.RootElement;
+        previewRoot.GetProperty("event_id").GetString().Should().Be(preparedPayload.DispatchState.EventId.ToString());
+        previewRoot.GetProperty("timestamp").GetDateTimeOffset().Should().Be(preparedPayload.DispatchState.Timestamp);
+        previewRoot.GetProperty("fingerprint").EnumerateArray().Select(item => item.GetString()).Should().Equal(
             "roslyn-workbench",
             report.Tool,
             report.ExceptionClassification,
             report.ExecutionFamily,
             "RoslynWorkbench",
             "Roslyn");
-        var message = result.Preview.GetProperty("logentry");
+        var message = previewRoot.GetProperty("logentry");
         message.GetProperty("message").GetString().Should().Be("Roslyn Workbench reported {0} in {1}.");
         message.GetProperty("params").EnumerateArray().Select(item => item.GetString()).Should().Equal(
             report.ExceptionClassification,
             report.Tool);
         message.GetProperty("formatted").GetString().Should().Be(
             $"Roslyn Workbench reported {report.ExceptionClassification} in {report.Tool}.");
-        result.Preview
+        previewRoot
             .GetProperty("contexts")
             .GetProperty("roslyn_workbench")
             .GetProperty("schemaVersion")
@@ -76,6 +80,10 @@ public sealed class SentryErrorReportDispatcherTests
         result.ReportReference.Should().Be(expectedEventId.ToString());
         capturedEvent.Should().NotBeNull();
         capturedEvent.Should().BeOfType<SentryEvent>();
+        var preparedEventPayload = (PreparedDispatchPayload<SentryEvent>)payload;
+        capturedEvent.Should().NotBeSameAs(preparedEventPayload.DispatchState);
+        capturedEvent.EventId.Should().Be(preparedEventPayload.DispatchState.EventId);
+        capturedEvent.Timestamp.Should().Be(preparedEventPayload.DispatchState.Timestamp);
         capturedEvent.Message!.Message.Should().Be("Roslyn Workbench reported {0} in {1}.");
         capturedEvent.Message.Params.Should().Equal(report.ExceptionClassification, report.Tool);
         capturedEvent.Message.Formatted.Should().Be(
@@ -119,6 +127,31 @@ public sealed class SentryErrorReportDispatcherTests
         result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
         result.ErrorCode.Should().Be("SentryCaptureRejected");
         client.Verify(item => item.FlushAsync(It.IsAny<TimeSpan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedStateForDifferentDispatcher_WHEN_Dispatching_THEN_ShouldRejectWithoutCapture()
+    {
+        var client = new Mock<ISentryClient>();
+        var configuration = new SentryProviderConfiguration(_dsn, _destination);
+        var target = new SentryErrorReportDispatcher(client.Object, configuration);
+        var prepared = target.CreatePayload(CreateReport());
+        var payload = new PreparedDispatchPayload<string>
+        {
+            DispatcherName = prepared.DispatcherName,
+            Destination = prepared.Destination,
+            ReportId = prepared.ReportId,
+            Report = prepared.Report,
+            PreviewBytes = prepared.PreviewBytes,
+            PreviewJson = prepared.PreviewJson,
+            DispatchState = "DispatchState",
+        };
+
+        var result = await target.DispatchAsync(payload, CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
+        result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
+        client.VerifyNoOtherCalls();
     }
 
     private static ExternalErrorReport CreateReport()

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class ConcurrencyAndFailureContainmentIntegrationTests
@@ -291,8 +293,10 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
             prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
             prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
-            prepared.GetProperty("payload").GetRawText().Should().NotContain("Sensitive query failure");
-            prepared.GetProperty("payload").GetRawText().Should().NotContain(target.WorkspaceRoot);
+            var payloadJson = prepared.GetProperty("payloadJson").GetString()
+                ?? throw new InvalidOperationException("The prepared logging payload must include its JSON representation.");
+            payloadJson.Should().NotContain("Sensitive query failure");
+            payloadJson.Should().NotContain(target.WorkspaceRoot);
 
             var submitResult = await target.CallToolAsync(
                 "submit-error-report",
@@ -359,7 +363,10 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
             prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
             prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
-            var payload = prepared.GetProperty("payload");
+            var payloadJson = prepared.GetProperty("payloadJson").GetString()
+                ?? throw new InvalidOperationException("The prepared logging payload must include its JSON representation.");
+            using var payloadDocument = JsonDocument.Parse(payloadJson);
+            var payload = payloadDocument.RootElement;
             var reportId = payload.GetProperty("report").GetProperty("reportId").GetString()
                 ?? throw new InvalidOperationException("The prepared logging payload must include its report identifier.");
 

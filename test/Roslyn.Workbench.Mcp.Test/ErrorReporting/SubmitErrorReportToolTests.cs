@@ -341,7 +341,6 @@ public sealed class SubmitErrorReportToolTests
 
     private static PreparedSubmission CreateSubmission()
     {
-        var preview = JsonSerializer.SerializeToElement(new { value = "Value" });
         return new PreparedSubmission
         {
             Handle = "Handle",
@@ -349,14 +348,15 @@ public sealed class SubmitErrorReportToolTests
             CreatedAt = DateTimeOffset.Parse("2000-01-01T00:00:00Z", CultureInfo.InvariantCulture),
             ExpiresAt = DateTimeOffset.Parse("2000-01-01T00:30:00Z", CultureInfo.InvariantCulture),
             State = PreparedSubmissionState.Prepared,
-            Payload = new PreparedDispatchPayload
+            Payload = new PreparedDispatchPayload<string>
             {
                 DispatcherName = "Dispatcher",
                 Destination = "Destination",
                 ReportId = "ReportId",
                 Report = CreateExternalReport(),
                 PreviewBytes = ImmutableArray.Create<byte>(1, 2, 3),
-                Preview = preview,
+                PreviewJson = "PreviewJson",
+                DispatchState = "DispatchState",
             },
         };
     }

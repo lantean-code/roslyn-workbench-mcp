@@ -108,9 +108,9 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 
 - After each behaviour-affecting set of changes, follow the test execution instructions in the repository root `AGENTS.md`.
 - If the change is docs-only or markdown-only and does not affect behaviour, test execution is optional unless explicitly requested.
-- Do not run `Roslyn.Workbench.Mcp.AcceptanceTest` automatically during per-turn validation, even when the affected code participates in published-host scenarios.
-- Run acceptance tests only when the user explicitly requests them. Otherwise report the non-acceptance validation that was completed without treating the omitted acceptance suite as a validation gap.
-- Adding or changing acceptance tests is an explicit requirement to run the complete acceptance suite through its repository script before finishing the change.
+- Do not run `Roslyn.Workbench.Mcp.AcceptanceTest` automatically merely because affected production code participates in published-Host scenarios. Otherwise report the non-acceptance validation completed without treating the omitted acceptance suite as a gap.
+- Run acceptance tests when the user explicitly requests them or when the current task adds or modifies any acceptance-test source, fixture, project configuration, wrapper script or checked-in acceptance asset.
+- Changing an acceptance-test artifact is itself authorisation and an explicit requirement to run the complete acceptance suite through `Roslyn.Workbench.Mcp.AcceptanceTest`'s platform wrapper before finishing; no separate user request is required. A build, analyzer run, direct `dotnet test` invocation or filtered subset does not satisfy this requirement. If the complete wrapper cannot run, report the validation as incomplete rather than claiming the change is ready for confirmation.
 - When contributing PR summaries or PR bodies, describe testing in terms of the coverage added or updated by the change, not just the commands executed.
 
 ## Anti-smell rules
@@ -147,7 +147,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
 - Audit coverage should run in broader CI or release gates, not in the default local loop.
-- Acceptance coverage is manually initiated and must not be included in automatic per-turn agent validation.
+- Acceptance coverage is manually initiated unless an acceptance-test artifact changes; any such change mandates a complete platform-wrapper run in the same task.
 - Preferred fast-loop command: `dotnet test <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
 
 ## Pre-flight checklist (must confirm all before generating tests)

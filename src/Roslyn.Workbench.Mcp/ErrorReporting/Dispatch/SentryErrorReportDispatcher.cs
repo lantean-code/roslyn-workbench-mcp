@@ -10,7 +10,6 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 {
     private const string _platform = "csharp";
-    private const string _level = "error";
     private const string _logger = "roslyn-workbench-mcp";
     private const string _messageTemplate = "Roslyn Workbench reported {0} in {1}.";
     private static readonly CompositeFormat _messageFormat = CompositeFormat.Parse(_messageTemplate);
@@ -37,36 +36,20 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 
     public PreparedDispatchPayload CreatePayload(ExternalErrorReport report)
     {
-        var messageParams = CreateMessageParams(report);
-        var sentryPayload = new SentryEventPayload
-        {
-            Platform = _platform,
-            Level = _level,
-            Logger = _logger,
-            Fingerprint = CreateFingerprint(report),
-            Message = new SentryMessagePayload
-            {
-                Message = _messageTemplate,
-                Params = messageParams,
-                Formatted = CreateFormattedMessage(messageParams),
-            },
-            Contexts = new SentryContextsPayload
-            {
-                Workbench = report,
-            },
-        };
+        var sentryEvent = CreateSentryEvent(report);
+        var allowedEvent = SentryEventAllowList.CreateAllowedCopy(sentryEvent);
+        var bytes = SentryEventJsonSerializer.Serialize(allowedEvent);
+        var previewJson = Encoding.UTF8.GetString(bytes.AsSpan());
 
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(sentryPayload, _serializerOptions);
-        var preview = JsonSerializer.SerializeToElement(sentryPayload, _serializerOptions);
-
-        return new PreparedDispatchPayload
+        return new PreparedDispatchPayload<SentryEvent>
         {
             DispatcherName = Name,
             Destination = Destination,
             ReportId = report.ReportId,
             Report = report,
-            PreviewBytes = bytes.ToImmutableArray(),
-            Preview = preview,
+            PreviewBytes = bytes,
+            PreviewJson = previewJson,
+            DispatchState = allowedEvent,
         };
     }
 
@@ -77,7 +60,8 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         cancellationToken.ThrowIfCancellationRequested();
 
         var report = payload.Report;
-        if (!string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
+        if (payload is not PreparedDispatchPayload<SentryEvent> preparedPayload
+            || !string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
         {
             return ValueTask.FromResult(new ErrorDispatchResult
             {
@@ -87,7 +71,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
             });
         }
 
-        var sentryEvent = CreateSentryEvent(report);
+        var sentryEvent = SentryEventAllowList.CreateAllowedCopy(preparedPayload.DispatchState);
 
         var eventId = _client.CaptureEvent(sentryEvent, scope: null, hint: null);
         if (eventId == SentryId.Empty)
@@ -152,35 +136,4 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         return fingerprint.ToImmutable();
     }
 
-    private sealed record SentryEventPayload
-    {
-        public required string Platform { get; init; }
-
-        public required string Level { get; init; }
-
-        public required string Logger { get; init; }
-
-        public required IReadOnlyList<string> Fingerprint { get; init; }
-
-        [JsonPropertyName("logentry")]
-        public required SentryMessagePayload Message { get; init; }
-
-        [JsonPropertyName("contexts")]
-        public required SentryContextsPayload Contexts { get; init; }
-    }
-
-    private sealed record SentryContextsPayload
-    {
-        [JsonPropertyName("roslyn_workbench")]
-        public required ExternalErrorReport Workbench { get; init; }
-    }
-
-    private sealed record SentryMessagePayload
-    {
-        public required string Message { get; init; }
-
-        public required IReadOnlyList<object> Params { get; init; }
-
-        public required string Formatted { get; init; }
-    }
 }

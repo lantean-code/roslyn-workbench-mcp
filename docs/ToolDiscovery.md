@@ -7,9 +7,12 @@ Use MCP `tools/list` to discover the exact tools published by the running proces
 - server-owned status, workspace and transaction tools;
 - bundled Roslyn inspection and mutation tools;
 - the Host-owned `list-code-actions`, `prepare-fix-all` and `stage-code-action` tools; and
+- `get-error-details`, plus the conditionally published `prepare-error-report` and `submit-error-report` tools; and
 - enabled third-party plugins.
 
 The tool list does not vary with workspace or transaction state and does not change during the process lifetime. A tool that cannot run in the current state returns a structured state error rather than disappearing from discovery.
+
+`get-error-details` is always published for local correlated failure inspection. The two external-reporting tools are published whenever startup consent is not `never`; the Host supplies the provider and destination as application configuration. Their names remain reserved against plugin collisions when omitted under `never`. Runtime approval or suppression changes behaviour and status, not `tools/list`.
 
 `server-status` reports the total published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.
 
@@ -20,6 +23,8 @@ The three-tool [Code Action workflow](CodeActions.md) discovers ordinary Roslyn 
 Every tool publishes its name, title, description, input schema and behavioural annotations. By default, output schemas are omitted to keep `tools/list` compact. Start the server with `--tool-output-schema-mode Full` when clients need the generated family-specific output schemas.
 
 Operational requirements that an agent must follow are stated in tool descriptions and structured diagnostics rather than hidden in client-specific metadata.
+
+Error-report preparation is read-only and performs no network activity, but each call creates a new temporary immutable handle. Submission is state-changing, idempotent for that handle, and marked as an open-world external effect. It accepts only the handle and maps the stored immutable external report to the provider SDK; the returned preview is representative rather than a byte-for-byte transport envelope. See [Error reporting and privacy](ErrorReporting.md).
 
 ## Result envelope
 
@@ -32,7 +37,7 @@ Successful calls use a common structured envelope:
 }
 ```
 
-Failures return `ok: false`, a structured `error`, and an optional `next` action. Agents should follow the returned action instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
+Failures return `ok: false`, a structured `error`, and an optional `next` action. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when it is disabled or suppressed. Agents should follow the returned action instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
 
 ## Bounded collections
 

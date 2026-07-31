@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
@@ -28,9 +29,22 @@ public sealed class HostToolCompositionIntegrationTests
         tools.Should().HaveCount(
             pluginCatalog.Tools.Count
             + codeActionCatalog.Tools.Count
-            + ServerOwnedToolRegistration.ToolCount);
+            + ServerOwnedToolRegistration.GetPublishedToolCount(
+                startupConfiguration.Options.ErrorReporting));
 
         tools.Select(static tool => tool.ProtocolTool.Name).Should().OnlyHaveUniqueItems();
+        var dispatcher = serviceProvider.GetRequiredService<IErrorReportDispatcher>();
+        if (SentrySdkPolicy.EmbeddedConfiguration is null)
+        {
+            dispatcher.Should().BeOfType<LoggingErrorReportDispatcher>();
+            serviceProvider.GetService<ISentryClient>().Should().BeNull();
+        }
+        else
+        {
+            dispatcher.Should().BeOfType<SentryErrorReportDispatcher>();
+            serviceProvider.GetRequiredService<ISentryClient>().Should().BeOfType<SentryClient>();
+            serviceProvider.GetRequiredService<ISentryClient>().IsEnabled.Should().BeTrue();
+        }
         mcpServerOptions.Filters.Request.CallToolFilters.Should().ContainSingle();
         startupConfiguration.Options.StateDirectory.Should().Be(Path.GetTempPath());
         serviceProvider.GetRequiredService<IWorkspaceLifecycleService>()

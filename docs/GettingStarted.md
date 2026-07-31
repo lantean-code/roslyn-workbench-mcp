@@ -22,6 +22,8 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
 
 The published executable is placed beneath `artifacts/publish/Roslyn.Workbench.Mcp/release`.
 
+Without additional build input, approved external reports use the stderr logging dispatcher. To produce an application-owned Sentry build, set `ROSLYN_WORKBENCH_SENTRY_DSN` while compiling or publishing; the DSN is embedded into the executable and is not read from the runtime environment. See [Configuration](Configuration.md#build-time-error-report-provider).
+
 ## Connect a client
 
 Configure the MCP client to launch the absolute path to the published `Roslyn.Workbench.Mcp` executable. Client configuration formats differ, but the equivalent process configuration is:

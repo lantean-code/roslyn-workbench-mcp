@@ -186,6 +186,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         _retainRoot = true;
     }
 
+    public string GetStandardErrorSnapshot()
+    {
+        return GetStandardError();
+    }
+
     public string CopyWorkspaceAsset(AcceptanceWorkspaceAsset workspaceAsset, string directoryName)
     {
         var destinationDirectory = Path.Combine(ScenarioRoot, "workspaces", directoryName);

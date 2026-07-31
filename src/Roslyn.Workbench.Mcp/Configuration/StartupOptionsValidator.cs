@@ -94,7 +94,79 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             failures.Add($"{nameof(StartupOptions.PluginDirectories)} must not contain blank paths.");
         }
 
+        AddErrorReportingFailures(failures, options.ErrorReporting);
+
         return failures;
+    }
+
+    private static void AddErrorReportingFailures(
+        List<string> failures,
+        ErrorReportingOptions options)
+    {
+        if (!Enum.IsDefined(options.ConsentMode))
+        {
+            failures.Add($"{nameof(ErrorReportingOptions.ConsentMode)} must be a supported value.");
+        }
+
+        AddErrorReportingRangeFailure(
+            failures,
+            nameof(ErrorReportingOptions.CapturedErrorCapacity),
+            options.CapturedErrorCapacity,
+            ErrorReportingOptionsRules.MinimumCapturedErrorCapacity,
+            ErrorReportingOptionsRules.MaximumCapturedErrorCapacity);
+        AddErrorReportingRangeFailure(
+            failures,
+            nameof(ErrorReportingOptions.MaximumCapturedErrorBytes),
+            options.MaximumCapturedErrorBytes,
+            ErrorReportingOptionsRules.MinimumCapturedErrorBytes,
+            ErrorReportingOptionsRules.MaximumCapturedErrorBytes);
+        AddErrorReportingRangeFailure(
+            failures,
+            nameof(ErrorReportingOptions.PreparedSubmissionCapacity),
+            options.PreparedSubmissionCapacity,
+            ErrorReportingOptionsRules.MinimumPreparedSubmissionCapacity,
+            ErrorReportingOptionsRules.MaximumPreparedSubmissionCapacity);
+        AddErrorReportingRangeFailure(
+            failures,
+            nameof(ErrorReportingOptions.MaximumPayloadBytes),
+            options.MaximumPayloadBytes,
+            ErrorReportingOptionsRules.MinimumPayloadBytes,
+            ErrorReportingOptionsRules.MaximumPayloadBytes);
+        AddErrorReportingLifetimeFailure(
+            failures,
+            nameof(ErrorReportingOptions.CapturedErrorLifetime),
+            options.CapturedErrorLifetime,
+            ErrorReportingOptionsRules.MaximumCapturedErrorLifetime);
+        AddErrorReportingLifetimeFailure(
+            failures,
+            nameof(ErrorReportingOptions.PreparedSubmissionLifetime),
+            options.PreparedSubmissionLifetime,
+            ErrorReportingOptionsRules.MaximumPreparedSubmissionLifetime);
+    }
+
+    private static void AddErrorReportingRangeFailure(
+        List<string> failures,
+        string name,
+        int value,
+        int minimum,
+        int maximum)
+    {
+        if (!ErrorReportingOptionsRules.IsWithinRange(value, minimum, maximum))
+        {
+            failures.Add($"{name} must be between {minimum} and {maximum}, inclusive.");
+        }
+    }
+
+    private static void AddErrorReportingLifetimeFailure(
+        List<string> failures,
+        string name,
+        TimeSpan value,
+        TimeSpan maximum)
+    {
+        if (!ErrorReportingOptionsRules.IsWithinLifetime(value, maximum))
+        {
+            failures.Add($"{name} must be greater than zero and no greater than {maximum:c}.");
+        }
     }
 
     private static void AddRangeFailure(

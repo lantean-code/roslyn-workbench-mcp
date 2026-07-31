@@ -29,4 +29,9 @@ internal sealed record ServerConfiguration
     /// Gets the configured output schema publication mode.
     /// </summary>
     public ToolOutputSchemaMode ToolOutputSchemaMode { get; init; }
+
+    /// <summary>
+    /// Gets the effective non-sensitive error-reporting configuration and session state.
+    /// </summary>
+    public ErrorReportingStatusData? ErrorReporting { get; init; }
 }

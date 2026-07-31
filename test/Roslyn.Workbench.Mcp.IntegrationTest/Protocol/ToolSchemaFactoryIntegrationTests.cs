@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Transaction.Contracts;
 
@@ -99,6 +100,21 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
         requiredProperties.Should().Contain("path");
         AllowsNull(GetProperty(schema, "path")).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_ErrorReportingRequests_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredTypedIdentifiers()
+    {
+        var target = CreateTarget();
+
+        var getDetailsSchema = target.CreateInputSchema<GetErrorDetailsRequest>();
+        var prepareSchema = target.CreateInputSchema<PrepareErrorReportRequest>();
+        var submitSchema = target.CreateInputSchema<SubmitErrorReportRequest>();
+
+        AssertRequiredStringProperty(getDetailsSchema, "correlationId", expectedFormat: "uuid");
+        AssertRequiredStringProperty(prepareSchema, "correlationId", expectedFormat: "uuid");
+        AssertRequiredStringProperty(submitSchema, "submissionHandle");
     }
 
     [Fact]
@@ -367,6 +383,31 @@ public sealed class ToolSchemaFactoryIntegrationTests
     {
         return typeof(TRequest).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public)
             ?? throw new InvalidOperationException($"{typeof(TRequest).Name}.{propertyName} was not found.");
+    }
+
+    private static void AssertRequiredStringProperty(
+        JsonElement schema,
+        string propertyName,
+        string? expectedFormat = null)
+    {
+        schema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Contain(propertyName);
+
+        var property = GetProperty(schema, propertyName);
+        var propertyType = property.GetProperty("type");
+        var publishedTypes = propertyType.ValueKind == JsonValueKind.Array
+            ? propertyType.EnumerateArray().Select(static item => item.GetString()).ToArray()
+            : [propertyType.GetString()];
+        publishedTypes.Should().Equal("string");
+        AllowsNull(property).Should().BeFalse();
+
+        if (expectedFormat is not null)
+        {
+            property.GetProperty("format").GetString().Should().Be(expectedFormat);
+        }
     }
 
     private static bool IsLimitProperty(PropertyInfo property)

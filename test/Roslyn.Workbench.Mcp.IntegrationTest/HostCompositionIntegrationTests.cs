@@ -1,16 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 using Roslyn.Workbench.Mcp.CodeActions.References;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.State;
+using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class HostCompositionIntegrationTests
 {
+    private const string _sentryDestination = "Sentry project 1000000000000000 at o100000.ingest.us.sentry.io";
+    private const string _sentryDsn = "https://0123456789abcdef0123456789abcdef@o100000.ingest.us.sentry.io/1000000000000000";
+
     [Fact]
     public void GIVEN_InvalidCommandLineOption_WHEN_ComposingHost_THEN_ShouldRegisterFallbackOptionsAndWarning()
     {
@@ -89,6 +92,7 @@ public sealed class HostCompositionIntegrationTests
             static descriptor => descriptor.ServiceType == typeof(IMsBuildWorkspaceFactory));
 
         using var host = builder.Build();
+        var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
         var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var toolExecutionServices = host.Services.GetRequiredService<IToolExecutionServices>();
@@ -123,10 +127,15 @@ public sealed class HostCompositionIntegrationTests
         builtInAnalyzerIndexRegistration.ImplementationType.Should().Be<CodeActionBuiltInAnalyzerIndex>();
         workspaceFactoryRegistration.ImplementationType.Should().Be<HostConfiguredMsBuildWorkspaceFactory>();
 
-        mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);
+        mcpTools.Should().HaveCount(
+            pluginCatalogSnapshot.Tools.Count
+            + codeActionCatalogSnapshot.Tools.Count
+            + ServerOwnedToolRegistration.GetPublishedToolCount(
+                startupOptions.ErrorReporting));
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
             "server-status",
+            "get-error-details",
             "workspace-open",
             "workspace-list",
             "workspace-close",
@@ -138,6 +147,59 @@ public sealed class HostCompositionIntegrationTests
             "transaction-commit",
             "transaction-rollback",
         ]);
+    }
+
+    [Fact]
+    public async Task GIVEN_CustomErrorReportDispatcher_WHEN_ComposingReportingTools_THEN_ShouldUseSubstitutedDispatcher()
+    {
+        var builder = Host.CreateApplicationBuilder([]);
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        dispatcher.SetupGet(item => item.Name).Returns("CustomDispatcher");
+        builder.AddRoslynWorkbench(
+        [
+            "--error-reporting-consent",
+            "always",
+        ]);
+        builder.Services.AddSingleton(dispatcher.Object);
+
+        using var host = builder.Build();
+        var reportingTools = host.Services
+            .GetServices<McpServerTool>()
+            .Where(tool => tool.ProtocolTool.Name is "prepare-error-report" or "submit-error-report")
+            .ToArray();
+
+        host.Services.GetRequiredService<IErrorReportDispatcher>().Should().BeSameAs(dispatcher.Object);
+        reportingTools.Should().HaveCount(2);
+        var statusService = host.Services.GetRequiredService<IServerStatusService>();
+        var status = await statusService.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+        status.Data!.Configuration!.ErrorReporting!.Provider.Should().Be("CustomDispatcher");
+    }
+
+    [Fact]
+    public void GIVEN_NoEmbeddedSentryConfiguration_WHEN_RegisteringDispatcher_THEN_ShouldUseLoggingProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        RoslynWorkbenchServiceCollectionExtensions.AddErrorReportDispatcher(services, sentryConfiguration: null);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        serviceProvider.GetRequiredService<IErrorReportDispatcher>().Should().BeOfType<LoggingErrorReportDispatcher>();
+        serviceProvider.GetService<ISentryClient>().Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_EmbeddedSentryConfiguration_WHEN_RegisteringDispatcher_THEN_ShouldUseIsolatedSentryProvider()
+    {
+        var services = new ServiceCollection();
+        var configuration = new SentryProviderConfiguration(_sentryDsn, _sentryDestination);
+
+        RoslynWorkbenchServiceCollectionExtensions.AddErrorReportDispatcher(services, configuration);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        serviceProvider.GetRequiredService<IErrorReportDispatcher>().Should().BeOfType<SentryErrorReportDispatcher>();
+        serviceProvider.GetRequiredService<ISentryClient>().Should().BeOfType<SentryClient>();
+        serviceProvider.GetRequiredService<ISentryClient>().IsEnabled.Should().BeTrue();
     }
 
     [Fact]

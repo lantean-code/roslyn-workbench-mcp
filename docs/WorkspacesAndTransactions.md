@@ -6,6 +6,8 @@ A workspace is an executable input, not just a collection of source files. `work
 
 Open only a workspace whose source, project files, imported build logic, SDK configuration and analyzer dependencies are fully trusted. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox first. The absence of a trust-confirmation request property is deliberate: a caller-provided confirmation would not isolate or validate executable repository content.
 
+The connected MCP agent is also part of the local trust boundary. `get-error-details` may disclose local exception messages and Workspace context to that agent without a separate reporting-consent prompt. External submission remains a distinct sanitised and user-approved workflow; do not copy the local diagnostic record into a report or another service. See [Error reporting and privacy](ErrorReporting.md).
+
 ## Workspace lifecycle
 
 After the caller has established that the workspace is fully trusted, `workspace-open` loads an absolute `.sln`, `.slnx` or `.csproj` into a workspace session. Use the returned workspace ID or alias to select it in later calls. When exactly one workspace is loaded, tools that accept an optional workspace selector may omit it.
@@ -16,7 +18,7 @@ By default, the workspace root is inferred from the loaded path. A caller may su
 
 When the server runs under WSL and opens a workspace on a mounted Windows filesystem, `workspace-open` returns a `WorkspaceOnWindowsFileSystemFromWsl` warning. This layout is supported but can substantially reduce load and query performance. Prefer WSL-native storage or run the server directly on Windows.
 
-`workspace-status` reports the selected workspace state, current transaction, reload requirement, diagnostics and other live Roslyn Workbench instances. `workspace-list` provides a lightweight identity list and the current global transaction owner; it does not refresh cross-instance diagnostics.
+`workspace-status` reports the selected workspace state, current transaction, reload requirement, diagnostics, other live Roslyn Workbench instances and the process-local external error-reporting consent state applying to that Workspace epoch. `workspace-list` provides a lightweight identity list and the current global transaction owner; it does not refresh cross-instance diagnostics.
 
 If source inputs change outside the loaded session, the workspace becomes out of date or its active transaction becomes conflicted. Do not reuse old source locations, spans or symbol results against a newer workspace epoch or transaction revision. Reload or resolve the target again as directed by the structured error.
 

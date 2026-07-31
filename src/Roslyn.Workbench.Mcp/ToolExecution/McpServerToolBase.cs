@@ -24,11 +24,22 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
         var arguments = requestContext.Params.Arguments
             ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-        return await InvokeArgumentsAsync(arguments, cancellationToken);
+        return await InvokeArgumentsAsync(arguments, requestContext, cancellationToken);
     }
 
     internal async ValueTask<CallToolResult> InvokeArgumentsAsync(
         IDictionary<string, JsonElement> arguments,
+        CancellationToken cancellationToken)
+    {
+        return await InvokeArgumentsAsync(
+            arguments,
+            requestContext: null,
+            cancellationToken);
+    }
+
+    private async ValueTask<CallToolResult> InvokeArgumentsAsync(
+        IDictionary<string, JsonElement> arguments,
+        RequestContext<CallToolRequestParams>? requestContext,
         CancellationToken cancellationToken)
     {
         using var phase = StartPhase(WorkbenchPerformanceEventSource.ToolTotalPhase);
@@ -44,7 +55,9 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
             request = boundRequest;
         }
 
-        return await InvokeBoundRequestAsync(request, cancellationToken);
+        return requestContext is null
+            ? await InvokeBoundRequestAsync(request, cancellationToken)
+            : await InvokeBoundRequestAsync(request, requestContext, cancellationToken);
     }
 
     protected PerformanceTraceScope StartPhase(string phase)
@@ -55,6 +68,14 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
     protected abstract ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken);
+
+    protected virtual ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
+        RequestContext<CallToolRequestParams> requestContext,
+        CancellationToken cancellationToken)
+    {
+        return InvokeBoundRequestAsync(request, cancellationToken);
+    }
 
     protected static CallToolResult CreateStructuredResult(JsonElement content, bool isError)
     {

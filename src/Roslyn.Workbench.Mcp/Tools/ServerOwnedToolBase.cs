@@ -15,15 +15,20 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         string description,
         bool readOnly,
         bool destructive,
-        string? resultSummary = null)
-        : base(protocolFactory.CreateServerOwnedTool<TRequest, TResponse>(
+        string? resultSummary = null,
+        bool? idempotent = null,
+        bool openWorld = false)
+        : base(CreateProtocolTool(
+            protocolFactory,
+            startupOptions.Value.ToolOutputSchemaMode,
             name,
             title,
             description,
             readOnly,
             destructive,
             resultSummary,
-            startupOptions.Value.ToolOutputSchemaMode))
+            idempotent,
+            openWorld))
     {
     }
 
@@ -48,6 +53,14 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         }
     }
 
+    protected override ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
+        RequestContext<CallToolRequestParams> requestContext,
+        CancellationToken cancellationToken)
+    {
+        return InvokeBoundRequestAsync(request, cancellationToken);
+    }
+
     private static JsonElement SerializeResult(ToolResult<TResponse> result)
     {
         if (result.Outcome.IsError())
@@ -60,5 +73,41 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         }
 
         return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
+    }
+
+    private static Tool CreateProtocolTool(
+        IMcpToolProtocolFactory protocolFactory,
+        ToolOutputSchemaMode outputSchemaMode,
+        string name,
+        string title,
+        string description,
+        bool readOnly,
+        bool destructive,
+        string? resultSummary,
+        bool? idempotent,
+        bool openWorld)
+    {
+        if (idempotent is null && !openWorld)
+        {
+            return protocolFactory.CreateServerOwnedTool<TRequest, TResponse>(
+                name,
+                title,
+                description,
+                readOnly,
+                destructive,
+                resultSummary,
+                outputSchemaMode);
+        }
+
+        return protocolFactory.CreateServerOwnedToolWithAnnotations<TRequest, TResponse>(
+            name,
+            title,
+            description,
+            readOnly,
+            destructive,
+            resultSummary,
+            outputSchemaMode,
+            idempotent ?? readOnly,
+            openWorld);
     }
 }

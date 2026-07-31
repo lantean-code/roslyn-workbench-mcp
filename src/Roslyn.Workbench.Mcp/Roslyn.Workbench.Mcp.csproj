@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="NuGet.Versioning" />
+    <PackageReference Include="Sentry" />
     <PackageReference Include="System.Composition" />
   </ItemGroup>
 
@@ -22,6 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="Sentry.DsnAttribute" Condition="'$(ROSLYN_WORKBENCH_SENTRY_DSN)' != ''">
+      <_Parameter1>$(ROSLYN_WORKBENCH_SENTRY_DSN)</_Parameter1>
+    </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Test</_Parameter1>
     </AssemblyAttribute>

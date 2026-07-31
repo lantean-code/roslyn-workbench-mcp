@@ -87,6 +87,7 @@ internal static class StartupOptionsResolver
                 "ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY",
                 defaults.StateDirectory,
                 warnings),
+            ErrorReporting = ResolveErrorReportingOptions(optionMap, warnings),
         };
 
         return new StartupConfigurationSnapshot
@@ -177,6 +178,115 @@ internal static class StartupOptionsResolver
         return distinctDirectories.ToArray();
     }
 
+    private static ErrorReportingOptions ResolveErrorReportingOptions(
+        Dictionary<string, List<string?>> optionMap,
+        List<WarningInfo> warnings)
+    {
+        var defaults = new ErrorReportingOptions();
+        var consentMode = ResolveErrorReportingConsentMode(
+            optionMap,
+            defaults.ConsentMode,
+            warnings);
+
+        return new ErrorReportingOptions
+        {
+            ConsentMode = consentMode,
+            CapturedErrorCapacity = ResolveBoundedInt(
+                optionMap,
+                "error-record-capacity",
+                "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_CAPACITY",
+                defaults.CapturedErrorCapacity,
+                ErrorReportingOptionsRules.MinimumCapturedErrorCapacity,
+                ErrorReportingOptionsRules.MaximumCapturedErrorCapacity,
+                warnings),
+            CapturedErrorLifetime = ResolveBoundedTimeSpan(
+                optionMap,
+                "error-record-lifetime",
+                "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_LIFETIME",
+                defaults.CapturedErrorLifetime,
+                ErrorReportingOptionsRules.MaximumCapturedErrorLifetime,
+                warnings),
+            MaximumCapturedErrorBytes = ResolveBoundedInt(
+                optionMap,
+                "error-record-max-bytes",
+                "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_MAX_BYTES",
+                defaults.MaximumCapturedErrorBytes,
+                ErrorReportingOptionsRules.MinimumCapturedErrorBytes,
+                ErrorReportingOptionsRules.MaximumCapturedErrorBytes,
+                warnings),
+            PreparedSubmissionCapacity = ResolveBoundedInt(
+                optionMap,
+                "error-submission-capacity",
+                "ROSLYN_WORKBENCH_MCP_ERROR_SUBMISSION_CAPACITY",
+                defaults.PreparedSubmissionCapacity,
+                ErrorReportingOptionsRules.MinimumPreparedSubmissionCapacity,
+                ErrorReportingOptionsRules.MaximumPreparedSubmissionCapacity,
+                warnings),
+            PreparedSubmissionLifetime = ResolveBoundedTimeSpan(
+                optionMap,
+                "error-submission-lifetime",
+                "ROSLYN_WORKBENCH_MCP_ERROR_SUBMISSION_LIFETIME",
+                defaults.PreparedSubmissionLifetime,
+                ErrorReportingOptionsRules.MaximumPreparedSubmissionLifetime,
+                warnings),
+            MaximumPayloadBytes = ResolveBoundedInt(
+                optionMap,
+                "error-report-max-bytes",
+                "ROSLYN_WORKBENCH_MCP_ERROR_REPORT_MAX_BYTES",
+                defaults.MaximumPayloadBytes,
+                ErrorReportingOptionsRules.MinimumPayloadBytes,
+                ErrorReportingOptionsRules.MaximumPayloadBytes,
+                warnings),
+        };
+    }
+
+    private static ErrorReportingConsentMode ResolveErrorReportingConsentMode(
+        Dictionary<string, List<string?>> optionMap,
+        ErrorReportingConsentMode defaultValue,
+        List<WarningInfo> warnings)
+    {
+        const string key = "error-reporting-consent";
+        const string environmentVariable = "ROSLYN_WORKBENCH_MCP_ERROR_REPORTING_CONSENT";
+
+        if (Environment.GetEnvironmentVariable(environmentVariable) is not null)
+        {
+            var defaultConsent = defaultValue switch
+            {
+                ErrorReportingConsentMode.Never => "never",
+                ErrorReportingConsentMode.Prompt => "prompt",
+                ErrorReportingConsentMode.Always => "always",
+                _ => throw new ArgumentOutOfRangeException(nameof(defaultValue)),
+            };
+            AddFallbackWarning(
+                warnings,
+                environmentVariable,
+                $"command-line/default consent '{defaultConsent}'");
+        }
+
+        if (!optionMap.TryGetValue(key, out var values))
+        {
+            return defaultValue;
+        }
+
+        var value = values[^1];
+        return value switch
+        {
+            "never" => ErrorReportingConsentMode.Never,
+            "prompt" => ErrorReportingConsentMode.Prompt,
+            "always" => ErrorReportingConsentMode.Always,
+            _ => AddInvalidConsentWarning(warnings),
+        };
+    }
+
+    private static ErrorReportingConsentMode AddInvalidConsentWarning(List<WarningInfo> warnings)
+    {
+        AddFallbackWarning(
+            warnings,
+            "--error-reporting-consent",
+            "fail-closed consent 'never'");
+        return ErrorReportingConsentMode.Never;
+    }
+
     private static string[] ReadPluginDirectoriesFromEnvironment(
         string environmentVariable,
         List<WarningInfo> warnings)
@@ -244,6 +354,55 @@ internal static class StartupOptionsResolver
         }
 
         AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString(CultureInfo.InvariantCulture)}'");
+        return defaultValue;
+    }
+
+    private static int ResolveBoundedInt(
+        Dictionary<string, List<string?>> optionMap,
+        string key,
+        string environmentVariable,
+        int defaultValue,
+        int minimum,
+        int maximum,
+        List<WarningInfo> warnings)
+    {
+        var value = ReadScalarValue(optionMap, key, environmentVariable, out var source);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedValue)
+            && ErrorReportingOptionsRules.IsWithinRange(parsedValue, minimum, maximum))
+        {
+            return parsedValue;
+        }
+
+        AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString(CultureInfo.InvariantCulture)}'");
+        return defaultValue;
+    }
+
+    private static TimeSpan ResolveBoundedTimeSpan(
+        Dictionary<string, List<string?>> optionMap,
+        string key,
+        string environmentVariable,
+        TimeSpan defaultValue,
+        TimeSpan maximum,
+        List<WarningInfo> warnings)
+    {
+        var value = ReadScalarValue(optionMap, key, environmentVariable, out var source);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsedValue)
+            && ErrorReportingOptionsRules.IsWithinLifetime(parsedValue, maximum))
+        {
+            return parsedValue;
+        }
+
+        AddFallbackWarning(warnings, source, $"default '{defaultValue.ToString("c", CultureInfo.InvariantCulture)}'");
         return defaultValue;
     }
 

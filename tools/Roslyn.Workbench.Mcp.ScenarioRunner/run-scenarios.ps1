@@ -33,6 +33,7 @@ $runnerOutput = Join-Path $publishRoot 'runner'
 $pluginOutput = Join-Path $publishRoot 'plugins\host-query'
 $pluginRoot = Join-Path $publishRoot 'plugins'
 $runnerArguments = $args
+$previousSentryDsn = $env:ROSLYN_WORKBENCH_SENTRY_DSN
 
 if ($runnerArguments.Count -eq 0)
 {
@@ -44,6 +45,7 @@ Push-Location $repositoryRoot
 
 try
 {
+    $env:ROSLYN_WORKBENCH_SENTRY_DSN = ''
     Write-Host 'Restoring pinned diagnostic tools...'
     Invoke-DotNet -Arguments @('tool', 'restore')
 
@@ -99,6 +101,7 @@ try
 }
 finally
 {
+    $env:ROSLYN_WORKBENCH_SENTRY_DSN = $previousSentryDsn
     Pop-Location
 
     if (Test-Path $publishRoot)

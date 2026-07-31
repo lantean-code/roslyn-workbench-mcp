@@ -98,6 +98,8 @@ For WSL or direct Linux, the wrapper publishes both the Host and scenario runner
 
 The wrapper detects WSL and applies the repository's required build artifacts path only there. Published binaries are placed in a unique temporary directory for each invocation, the path is printed before the requested command starts, and the directory is removed when the wrapper exits.
 
+Both wrappers clear `ROSLYN_WORKBENCH_SENTRY_DSN` while publishing the scenario Host, so manual scenarios always use the stderr logging dispatcher and cannot submit to Sentry. A future provider-specific reporting scenario must supply an explicit test provider and destination rather than relaxing this wrapper-level isolation.
+
 The runner owns repository preparation. On the first invocation for a repository it clones the pinned commit and restores its dependencies into the operating system's temporary cache. Later invocations on that operating system reuse the exact commit while the temporary cache remains available; omit `--skip-prepare` when dependencies may need refreshing.
 
 Measure every small-repository scenario with the normal warm-up and iteration defaults:

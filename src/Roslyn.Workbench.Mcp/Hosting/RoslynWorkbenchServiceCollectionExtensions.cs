@@ -1,9 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
-
 using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
@@ -26,8 +27,22 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.MaxConcurrentQueries = startupOptions.MaxConcurrentQueries;
                 options.ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode;
                 options.StateDirectory = startupOptions.StateDirectory;
+                options.ErrorReporting = startupOptions.ErrorReporting;
             })
             .ValidateOnStart();
+
+        services.AddOptions<ErrorReportingOptions>()
+            .Configure(options =>
+            {
+                var configured = startupOptions.ErrorReporting;
+                options.ConsentMode = configured.ConsentMode;
+                options.CapturedErrorCapacity = configured.CapturedErrorCapacity;
+                options.CapturedErrorLifetime = configured.CapturedErrorLifetime;
+                options.MaximumCapturedErrorBytes = configured.MaximumCapturedErrorBytes;
+                options.PreparedSubmissionCapacity = configured.PreparedSubmissionCapacity;
+                options.PreparedSubmissionLifetime = configured.PreparedSubmissionLifetime;
+                options.MaximumPayloadBytes = configured.MaximumPayloadBytes;
+            });
 
         services.AddSingleton<IValidateOptions<StartupOptions>, StartupOptionsValidator>();
         services.AddOptions<CodeActionCompositionOptions>();
@@ -162,6 +177,17 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     public static void AddHostServices(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ICapturedErrorStore, CapturedErrorStore>();
+        services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
+        services.AddSingleton<IExternalErrorReportProjector, ExternalErrorReportProjector>();
+        services.AddSingleton<IPreparedSubmissionStore, PreparedSubmissionStore>();
+        services.AddSingleton<ErrorReportingConsentService>();
+        services.AddSingleton<IErrorReportingConsentService>(
+            static provider => provider.GetRequiredService<ErrorReportingConsentService>());
+        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver>(
+            static provider => provider.GetRequiredService<ErrorReportingConsentService>());
+        services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
+        AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
         services.AddSingleton<ToolSchemaFactory>();
         services.AddSingleton<IMcpToolProtocolFactory, McpToolProtocolFactory>();
@@ -175,6 +201,18 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools)
     {
+        services.AddMcpTools(
+            pluginCatalogSnapshot,
+            codeActionTools,
+            new ErrorReportingOptions());
+    }
+
+    public static void AddMcpTools(
+        this IServiceCollection services,
+        PluginCatalogSnapshot pluginCatalogSnapshot,
+        IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
+        ErrorReportingOptions errorReportingOptions)
+    {
         var pluginVisitor = new PluginMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
@@ -187,7 +225,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             registeredTool.Accept(codeActionVisitor);
         }
 
-        ServerOwnedToolRegistration.AddMcpTools(services);
+        ServerOwnedToolRegistration.AddMcpTools(services, errorReportingOptions);
     }
 
     public static void AddStartupPrerequisites(this IServiceCollection services)
@@ -203,5 +241,48 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         {
             options.LogToStandardErrorThreshold = LogLevel.Trace;
         });
+    }
+
+    internal static void AddErrorReportDispatcher(
+        IServiceCollection services,
+        SentryProviderConfiguration? sentryConfiguration)
+    {
+        if (sentryConfiguration is null)
+        {
+            services.AddSingleton<IErrorReportDispatcher, LoggingErrorReportDispatcher>();
+            return;
+        }
+
+        services.AddSingleton(sentryConfiguration);
+        services.AddSingleton<ISentryClient>(CreateSentryClient);
+        services.AddSingleton<IErrorReportDispatcher, SentryErrorReportDispatcher>();
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The Sentry client owns the configured HTTP handler and is itself owned and disposed by dependency injection.")]
+    private static ISentryClient CreateSentryClient(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetRequiredService<SentryProviderConfiguration>();
+        var sentryOptions = new SentryOptions
+        {
+            Dsn = configuration.Dsn,
+            AutoSessionTracking = false,
+            DisableSentryHttpMessageHandler = true,
+            EnableLogs = false,
+            EnableMetrics = false,
+            IsGlobalModeEnabled = false,
+            SendClientReports = false,
+            SendDefaultPii = false,
+            ShutdownTimeout = SentrySdkPolicy.ShutdownTimeout,
+            CreateHttpMessageHandler = static () => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+                CheckCertificateRevocationList = true,
+            },
+        };
+
+        return new SentryClient(sentryOptions);
     }
 }

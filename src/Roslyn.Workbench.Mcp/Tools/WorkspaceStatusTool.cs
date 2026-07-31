@@ -5,11 +5,13 @@ namespace Roslyn.Workbench.Mcp.Tools;
 internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusRequest, WorkspaceStatusData>
 {
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
+    private readonly IErrorReportingConsentService _errorReportingConsentService;
 
     public WorkspaceStatusTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
-        IWorkspaceLifecycleService workspaceLifecycleService)
+        IWorkspaceLifecycleService workspaceLifecycleService,
+        IErrorReportingConsentService errorReportingConsentService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
@@ -20,6 +22,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             destructive: false)
     {
         _workspaceLifecycleService = workspaceLifecycleService;
+        _errorReportingConsentService = errorReportingConsentService;
     }
 
     protected override async ValueTask<ToolResult<WorkspaceStatusData>> ExecuteAsync(
@@ -36,7 +39,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
         return WorkspaceToolResultMapper.Map(result, CreateData);
     }
 
-    private static WorkspaceStatusData CreateData(WorkspaceStatusOutcome outcome)
+    private WorkspaceStatusData CreateData(WorkspaceStatusOutcome outcome)
     {
         WorkspaceExternalChangeData? externalChange = null;
         if (outcome.ExternalChange is not null)
@@ -62,6 +65,11 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             ReloadRequired = outcome.ReloadRequired,
             ExternalChange = externalChange,
             Instances = outcome.Instances,
+            ErrorReportingConsent = _errorReportingConsentService
+                .GetState(
+                    outcome.Workspace.WorkspaceId,
+                    outcome.Workspace.WorkspaceEpoch)
+                .ToString(),
         };
     }
 }

@@ -8,7 +8,8 @@ Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# work
 2. Review the available [startup configuration](Configuration.md).
 3. Let the client discover the live [tool surface and result contracts](ToolDiscovery.md).
 4. Follow the [workspace and transaction safety model](WorkspacesAndTransactions.md) before making changes.
-5. Use the final [Code Action discovery, Fix All and staging workflow](CodeActions.md).
+5. Review the boundary for [local diagnostics and user-approved external error reporting](ErrorReporting.md).
+6. Use the final [Code Action discovery, Fix All and staging workflow](CodeActions.md).
 
 ## Extend the server
 

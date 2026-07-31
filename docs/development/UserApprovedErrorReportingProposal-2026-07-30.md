@@ -1,6 +1,6 @@
 # User-Approved Error Reporting Proposal — 2026-07-30
 
-Status: Approved product direction; implementation pending
+Status: Implemented and validated on 2026-07-31; see [User-Approved Error Reporting Security Re-audit](UserApprovedErrorReportingSecurityReaudit-2026-07-31.md)
 
 ## Purpose
 
@@ -19,7 +19,7 @@ Early v1 usage is likely to expose unusual SDK, Workspace, Roslyn, operating-sys
 - Avoid repeated preparation attempts when reporting is unavailable or suppressed.
 - Exclude source code, project identity, user identity, secrets and stable installation identity from external reports.
 - Keep error records, prepared submissions and consent state bounded, process-local and automatically expiring.
-- Make retries idempotent across concurrent calls and ambiguous network outcomes.
+- Make explicit submission idempotent across concurrent and duplicate calls.
 - Keep consent, correlation, sanitisation and MCP contracts independent of the initial reporting provider.
 
 ## Non-Goals
@@ -50,7 +50,7 @@ The Host publishes up to three server-owned tools:
 | `prepare-error-report` | Read-only, non-idempotent, closed-world | Produces and stores one complete sanitised external payload for review without network activity. |
 | `submit-error-report` | State-changing, idempotent, destructive, open-world | Applies the effective consent policy and submits one previously prepared immutable payload. |
 
-`get-error-details` remains available independently of external-reporting configuration. `prepare-error-report` and `submit-error-report` are published only when a provider destination is configured and the startup consent mode is not `never`. All three names remain reserved against plugin collisions regardless of conditional publication.
+`get-error-details` remains available independently of external-reporting consent. The Host includes a provider destination as application configuration, so `prepare-error-report` and `submit-error-report` are published whenever the startup consent mode is not `never`. All three names remain reserved against plugin collisions regardless of conditional publication.
 
 Runtime consent changes do not alter `tools/list`; the published list remains fixed for the process lifetime. A reporting tool called after session suppression returns a structured `ErrorReportingSuppressed` result.
 
@@ -130,26 +130,25 @@ Reporting states are:
 - `AllowedForSession` — an elicitation grant applies for the remaining process lifetime;
 - `SuppressedForSession` — the user selected “No, and don't ask again”;
 - `DisabledByConfiguration` — startup policy is `never`;
-- `ProviderUnavailable` — no usable destination is configured; and
 - `ApprovalUnavailable` — approval is required but the connected client does not support elicitation.
 
-`canPrepare` is false for suppression, disabled configuration and provider unavailability. When client capability is known at the failure boundary, it is also false for `ApprovalUnavailable`; otherwise submission detects the unsupported capability and fails closed without network activity.
+`canPrepare` is false for suppression and disabled configuration. When client capability is known at the failure boundary, it is also false for `ApprovalUnavailable`; otherwise submission detects the unsupported capability and fails closed without network activity.
 
 Full `server-status` reports the effective non-sensitive provider, consent mode and session consent state. `workspace-status` reports any process-local approval applying to that Workspace instance. Provider credentials and destination connection details are never included in status output.
 
 ## Report Preparation
 
-`prepare-error-report` accepts only a correlation ID. It obtains the immutable captured record, selects externally useful fields through an allow-list projection, applies field-specific sanitisation and constructs the exact versioned provider payload.
+`prepare-error-report` accepts only a correlation ID. It obtains the immutable captured record, selects externally useful fields through an allow-list projection and applies field-specific sanitisation to construct the immutable versioned external report.
 
 Preparation:
 
 - performs no network activity;
 - creates a random submission handle unrelated to the correlation ID;
-- assigns the provider event or idempotency identifier;
-- serialises the payload into canonical UTF-8 bytes;
-- calculates and returns a SHA-256 digest of those bytes;
-- stores those exact bytes with the handle, destination identity, expiry and submission state; and
-- returns the complete payload, destination, digest, expiry and excluded or redacted categories to the agent.
+- assigns the stable external report identifier;
+- creates a representative provider preview and serialises that preview into canonical UTF-8 bytes;
+- calculates and returns a SHA-256 digest of the preview bytes;
+- stores the immutable external report and preview with the handle, destination identity, expiry and submission state; and
+- returns the representative preview, destination, digest, expiry and excluded or redacted categories to the agent.
 
 The tool description instructs the agent to present the payload and destination to the user before invoking `submit-error-report` when prompting is required.
 
@@ -170,7 +169,7 @@ Where useful and safe, the report may include:
 - operating-system family and processor architecture;
 - structural Workspace, transaction and Roslyn operation context;
 - compiler and built-in IDE diagnostic IDs; and
-- provider event ID, payload schema version and report format version.
+- external report ID, payload schema version and report format version.
 
 Bundled component identity and version may be included. External plugin identity is generalised unless an explicitly reviewed field can be shown not to expose a user-owned assembly, organisation or project.
 
@@ -201,7 +200,7 @@ The startup option is:
 --error-reporting-consent never|prompt|always
 ```
 
-`prompt` is the default when a provider destination is configured. `never` and `always` are accepted only as explicit command-line choices so ambient environment configuration, fallback behaviour or an MCP request cannot establish a permanent decision.
+`prompt` is the default. `never` and `always` are accepted only as explicit command-line choices so ambient environment configuration, fallback behaviour or an MCP request cannot establish a permanent decision.
 
 - `never` prevents report preparation and submission for the complete process lifetime.
 - `prompt` uses form elicitation unless a temporary approval or suppression applies.
@@ -248,7 +247,7 @@ Startup configuration covers:
 
 Exact option names and curated defaults for the bounds are fixed during implementation and published through `Configuration.md`. Validation applies hard upper limits so command-line input cannot create unbounded retention or response sizes.
 
-External preparation and submission are unavailable unless a valid provider destination is configured. The provider's public submission key or DSN is treated as a routing identifier rather than a secret, while any private credential or connection material follows the Host's existing non-public configuration rules.
+The provider destination and public submission DSN are application-owned configuration rather than user options. The DSN is treated as a routing identifier rather than a secret, while any private credential or connection material remains outside the Host and MCP contracts.
 
 Invalid configuration must never broaden consent. In particular, malformed `never` or `always` input cannot silently become the opposite permanent policy, and only an exact explicit command-line `always` value establishes permanent approval.
 
@@ -262,12 +261,9 @@ The submission store tracks `Prepared`, `Sending` and `Sent` states under one co
 - concurrent callers observe the in-progress state without starting another network operation;
 - successful provider identity and result remain available until expiry;
 - retries after success return the original result;
-- failed attempts retain a retryable prepared state where the provider outcome is known not to have succeeded; and
-- ambiguous transport outcomes retry with the same provider idempotency identifier.
+- local provider-SDK rejection retains a retryable prepared state.
 
-The provider contract must support a stable idempotency identifier and the configured provider must guarantee duplicate suppression for that identifier. Local locking alone cannot prevent duplication after a timeout that occurs after provider acceptance.
-
-A successful submission returns the provider name, immutable event or report reference and payload digest. It does not return credentials or a URL containing secret material.
+An accepted submission returns the provider name, provider-assigned event reference and preview digest. Acceptance means that the provider SDK accepted the event for delivery; it does not assert remote ingestion and does not return credentials or a URL containing secret material.
 
 ## Temporary State and Capacity Isolation
 
@@ -276,7 +272,7 @@ Correlated errors, prepared submissions and runtime consent grants are process-l
 The implementation uses separate stores and capacity budgets:
 
 - the correlated-error store owns diagnostic records indexed by correlation ID;
-- the prepared-submission store owns canonical payload bytes and submission state indexed by submission handle; and
+- the prepared-submission store owns immutable external reports, representative previews and submission state indexed by submission handle; and
 - the consent store owns Workspace and session grants or suppression.
 
 These budgets remain isolated from Workspace query results and Code Action replay references so one workload cannot evict another feature's security- or correctness-sensitive state. Each record has an absolute expiry; access does not extend it. Expiration callbacks and explicit lifecycle invalidation remove index entries, successful results and abandoned state.
@@ -285,11 +281,13 @@ Implementation must define curated defaults and hard upper bounds for record cou
 
 ## Provider Abstraction and Sentry
 
-Consent, correlation, local inspection, sanitisation, canonical payload creation and temporary state do not depend on a hosted provider. Provider-specific transport sits behind an internal `IErrorReportProvider` owned by the Host.
+Consent, correlation, local inspection, sanitisation and temporary state do not depend on a hosted provider. An immutable provider-neutral external report is passed to an internal `IErrorReportDispatcher` owned by the Host; the dispatcher owns the representative provider preview, strongly typed SDK mapping and transport. The preview describes the diagnostic content and destination but is not a byte-for-byte representation of SDK-assigned event or transport metadata.
 
-Sentry is the initial provider target. Open-source sponsorship may influence hosting cost but is not an architectural dependency. The adapter should send a deliberately minimal Sentry-compatible event or envelope rather than initialise a global automatic-capture SDK over live exceptions.
+Sentry is the hosted provider target. Open-source sponsorship may influence hosting cost but is not an architectural dependency. A Sentry DSN supplied through `ROSLYN_WORKBENCH_SENTRY_DSN` during compilation is embedded in the Host assembly and selects the Sentry dispatcher. Without that build input, the built-in logging dispatcher writes explicitly approved sanitised reports to stderr, so a source fork does not inherit the maintainer's Sentry destination. The Sentry adapter uses an isolated client from the official Sentry SDK to construct and submit a deliberately minimal strongly typed event. It does not initialise the global static SDK, automatic exception capture or automatic sessions over live exceptions.
 
-The Sentry event ID is generated during preparation, included in the reviewed payload and reused for every retry. The configured Sentry project should enable IP-address suppression and server-side data scrubbing as defence in depth. The DSN public key is a routing identifier, but provider credentials, private connection material and mutable endpoint selection never cross the MCP boundary.
+The Sentry event uses a stable message template and separate formatted message. Its explicit privacy-safe fingerprint includes the tool, coarse exception classification, execution family and sanitised stack-component sequence, but excludes per-report identity, timing, Workspace state and version values that would unnecessarily fragment issue grouping.
+
+The stable external report ID is generated during preparation and included in the reviewed report. The Sentry SDK assigns its event ID when it accepts the event for delivery. The configured Sentry project should enable IP-address suppression and server-side data scrubbing as defence in depth. The DSN public key is a routing identifier, but provider credentials, private connection material and mutable endpoint selection never cross the MCP boundary.
 
 The provider abstraction should permit a Sentry-compatible hosted or self-hosted alternative such as GlitchTip or Bugsink without changing tool contracts or consent behaviour. A project-owned relay may be added later if schema enforcement, abuse controls or provider independence justify its operational cost.
 
@@ -311,7 +309,7 @@ Server-owned tool registration, protected-name composition, metadata, schemas, s
 - no retention of live exceptions or prohibited context sources;
 - local-detail projection and unknown or expired correlation IDs;
 - allow-list external projection and every excluded data category;
-- canonical serialisation and stable payload digest;
+- canonical representative-preview serialisation and stable preview digest;
 - submission-handle opacity and separation from correlation and provider identifiers;
 - consent choice mapping, command-line-only `never` and `always`, Workspace epoch invalidation, session reset and suppression;
 - unsupported elicitation fails closed;
@@ -325,18 +323,18 @@ Server-owned tool registration, protected-name composition, metadata, schemas, s
 
 - an unexpected plugin, Code Action and server-owned tool exception creates one correlated record and retains safe MCP failure containment;
 - `get-error-details` returns the matching local record without exposing unrelated records;
-- preparation performs no network activity and returns the complete canonical payload;
-- submission sends exactly the prepared bytes to a local fake provider;
+- preparation performs no network activity and returns the complete representative preview;
+- submission passes the stored immutable external report to a local fake provider;
 - accept, decline, cancel, Workspace approval, session approval and session suppression work through a real MCP elicitation-capable client;
 - no-elicitation clients cannot submit in prompt mode;
 - `never` omits reporting tools while retaining local details and reserved names;
 - `always` skips prompting but still requires preparation and explicit submission;
 - `server-status`, `workspace-status`, `tools/list` and unexpected-error projections agree; and
-- provider retry after an ambiguous outcome uses one stable event identifier.
+- local provider-SDK rejection leaves the prepared report retryable.
 
 ### Published-host acceptance
 
-Published acceptance uses a local deterministic provider and an elicitation-capable test client; it never contacts Sentry or another external service. It proves local inspection, complete preview, explicit approval, exact-byte submission, decline and suppression, unavailable-state guidance, no automatic traffic and continued Host operation after the original exception.
+Published acceptance uses a local deterministic provider and an elicitation-capable test client; it never contacts Sentry or another external service. It proves local inspection, representative preview, explicit approval, immutable-report submission, decline and suppression, unavailable-state guidance, no automatic traffic and continued Host operation after the original exception.
 
 Provider contract tests may validate Sentry envelope shape and duplicate identifier reuse without sending production diagnostic data.
 
@@ -357,10 +355,10 @@ Documentation must distinguish local diagnostic disclosure from sanitised extern
 
 1. Add the correlated immutable error-record model, bounded store and invocation diagnostic context at the existing exception boundary.
 2. Add `get-error-details` and the diagnostic availability projection.
-3. Add the allow-list external projection, canonical payload schema and prepared-submission store.
+3. Add the allow-list external projection, representative preview schema and prepared-submission store.
 4. Add startup provider and consent configuration, validation, status projection and protected-name composition.
 5. Add the consent state service and MCP elicitation workflow.
-6. Add `prepare-error-report` and `submit-error-report` with exact-byte and idempotent state transitions.
+6. Add `prepare-error-report` and `submit-error-report` with immutable-report and idempotent state transitions.
 7. Implement and validate the Sentry provider behind the internal abstraction.
 8. Complete unit, integration and published-host acceptance coverage.
 9. Publish release-facing privacy, configuration, tool and trusted-agent documentation.
@@ -374,8 +372,8 @@ Documentation must distinguish local diagnostic disclosure from sanitised extern
 - Reporting availability is projected with each unexpected error so agents do not prepare suppressed or unavailable reports.
 - No diagnostic information is submitted automatically under any consent mode.
 - Preparation performs no external communication.
-- The complete canonical external payload, destination and digest are available before submission.
-- Submission accepts only the opaque handle and sends exactly the prepared bytes.
+- A complete representative provider preview, destination and preview digest are available before submission.
+- Submission accepts only the opaque handle and dispatches the immutable external report; the provider SDK constructs the event and adds its event and transport metadata.
 - Source code, project identity, user identity, stable installation identity and secrets are absent from external payloads.
 - Per-report, Workspace and session approval bypass only the elicitation prompt, never preparation or explicit submission.
 - “No, and don't ask again” suppresses reporting for the remaining server session.

@@ -47,6 +47,8 @@ public sealed class ServerStatusRecoveryIntegrationTests
             });
 
         var codeActionComposition = new Mock<ICodeActionComposition>();
+        var errorReportingConsentService = new Mock<IErrorReportingConsentService>();
+        var errorReportDispatcher = new Mock<IErrorReportDispatcher>();
         codeActionComposition
             .SetupGet(item => item.Status)
             .Returns(CodeActionCompositionStatus.Available());
@@ -61,7 +63,9 @@ public sealed class ServerStatusRecoveryIntegrationTests
             new CodeActionCatalogSnapshot(),
             msBuildRegistrationService.Object,
             codeActionComposition.Object,
-            recoveryStore);
+            recoveryStore,
+            errorReportingConsentService.Object,
+            errorReportDispatcher.Object);
 
         var result = await service.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 

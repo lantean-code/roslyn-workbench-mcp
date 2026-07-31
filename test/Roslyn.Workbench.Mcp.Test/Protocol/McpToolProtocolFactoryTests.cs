@@ -61,6 +61,26 @@ public sealed class McpToolProtocolFactoryTests
     }
 
     [Fact]
+    public void GIVEN_IdempotentOpenWorldServerTool_WHEN_CreatingProtocol_THEN_ShouldPublishIndependentAnnotations()
+    {
+        var result = _target.CreateServerOwnedToolWithAnnotations<TestRequest, TestResponse>(
+            "submit-error-report",
+            "Submit Error Report",
+            "Description",
+            readOnly: false,
+            destructive: true,
+            resultSummary: null,
+            ToolOutputSchemaMode.Omit,
+            idempotent: true,
+            openWorld: true);
+
+        result.Annotations!.ReadOnlyHint.Should().BeFalse();
+        result.Annotations.IdempotentHint.Should().BeTrue();
+        result.Annotations.OpenWorldHint.Should().BeTrue();
+        result.Annotations.DestructiveHint.Should().BeTrue();
+    }
+
+    [Fact]
     public void GIVEN_PluginQueryWithFullSchemaAndResultSummary_WHEN_CreatingProtocol_THEN_ShouldPublishReadOnlyMetadata()
     {
         var tool = new RegisteredTool

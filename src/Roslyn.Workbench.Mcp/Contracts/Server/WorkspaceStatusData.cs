@@ -53,4 +53,10 @@ internal sealed record WorkspaceStatusData
     /// Gets other live Roslyn Workbench MCP instances using this workspace.
     /// </summary>
     public IReadOnlyList<WorkspaceInstanceInfo> Instances { get; init; } = [];
+
+    /// <summary>
+    /// Gets the process-local error-reporting approval applying to this Workspace and epoch.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ErrorReportingConsent { get; init; }
 }

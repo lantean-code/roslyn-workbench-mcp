@@ -12,6 +12,18 @@ internal interface IMcpToolProtocolFactory
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : class;
 
+    Tool CreateServerOwnedToolWithAnnotations<TRequest, TResponse>(
+        string name,
+        string title,
+        string description,
+        bool readOnly,
+        bool destructive,
+        string? resultSummary,
+        ToolOutputSchemaMode outputSchemaMode,
+        bool idempotent,
+        bool openWorld)
+        where TRequest : class;
+
     Tool CreatePluginTool<TRequest>(RegisteredTool tool, ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest;
 

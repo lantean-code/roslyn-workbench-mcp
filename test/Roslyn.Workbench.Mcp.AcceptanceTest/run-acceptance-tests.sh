@@ -26,7 +26,7 @@ fi
 cd "$repository_root"
 
 echo "Publishing Roslyn Workbench Host (Release)..."
-dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
+ROSLYN_WORKBENCH_SENTRY_DSN= dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
     --configuration Release \
     --output "$host_output" \
     "${artifacts_arguments[@]}"

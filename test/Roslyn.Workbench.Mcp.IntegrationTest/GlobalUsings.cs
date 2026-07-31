@@ -8,6 +8,8 @@ global using Roslyn.Workbench.Mcp.CodeActions.Configuration;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Policy;
 global using Roslyn.Workbench.Mcp.Configuration;
+global using Roslyn.Workbench.Mcp.ErrorReporting.Consent;
+global using Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 global using Roslyn.Workbench.Mcp.Hosting;
 global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 global using Roslyn.Workbench.Mcp.PluginFixtures;

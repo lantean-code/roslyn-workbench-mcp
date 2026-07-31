@@ -7,6 +7,7 @@ It provides:
 - persistent multi-workspace sessions instead of reloading a solution for every tool call;
 - Roslyn queries for symbols, references, diagnostics, dependencies, metrics and code structure;
 - transactional mutation and Code Action workflows with preview, history, rollback, conflict detection and crash recovery; and
+- bounded local diagnostics with optional reviewed, user-approved external error reporting through a pluggable dispatcher; and
 - trusted in-process plugins for additional query and mutation tools.
 
 ## Documentation

@@ -11,11 +11,10 @@ Completed work, superseded checklists, approved defensive coverage gaps and stan
 Active tasks are ordered by delivery sequence rather than severity. Complete each phase before the next unless the tasks are explicitly safe to run in parallel:
 
 1. **Foundation** — resolve known reproducibility defects and stabilise the public v1 extension boundary.
-2. **User-approved diagnostics** — make early v1 failures locally diagnosable and externally reportable only under explicit consent.
-3. **Release automation** — automate the evidence required for a release candidate.
-4. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
-5. **Final release gate** — complete the readiness review against the prepared candidate.
-6. **Publication** — publish only the candidate that passed the final gate.
+2. **Release automation** — automate the evidence required for a release candidate.
+3. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
+4. **Final release gate** — complete the readiness review against the prepared candidate.
+5. **Publication** — publish only the candidate that passed the final gate.
 
 Conditional tasks remain inactive until their stated external capability, evidence threshold or product need exists.
 
@@ -51,21 +50,7 @@ Default both query caches to one-hour sliding expiration with independent comman
 
 Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
 
-## Phase 2 — User-Approved Diagnostics
-
-### Implement local error inspection and user-approved external reporting
-
-**Status:** Not started
-
-Retain bounded immutable records for unexpected correlated tool failures, expose detailed local diagnostics to the trusted agent through `get-error-details`, and add `prepare-error-report` plus `submit-error-report` for sanitised external reporting. Preserve normal stderr logging and generic MCP failures; do not retain live exceptions, scrape raw logs, submit automatically or allow local diagnostic content to enter the external submission path.
-
-Use MCP form elicitation for per-report, Workspace and session approval. Support the concise agreed choices, session suppression through “No, and don't ask again”, and explicit command-line `never|prompt|always` policy. Temporary approvals bypass only the prompt: every external report must still be prepared, reviewed and passed to an explicit submission call. Include reporting availability with unexpected errors so agents do not attempt suppressed or unavailable preparation.
-
-Keep captured errors, prepared canonical payloads and consent state process-local, bounded, expiring and capacity-isolated. Implement Sentry first behind an internal provider abstraction, require provider-level idempotency, and validate privacy, exact-byte submission, concurrency, retry, conditional publication, open-world metadata and the trusted-agent boundary before release-candidate preparation.
-
-Implement the complete architecture and validation requirements in [User-Approved Error Reporting Proposal](UserApprovedErrorReportingProposal-2026-07-30.md).
-
-## Phase 3 — Release Automation
+## Phase 2 — Release Automation
 
 ### Automate release scenario validation and performance history
 
@@ -88,7 +73,7 @@ Implementation order:
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
-## Phase 4 — Release Candidate Preparation
+## Phase 3 — Release Candidate Preparation
 
 ### Prepare and validate the v1 release artifacts
 
@@ -121,7 +106,7 @@ Validate the candidate without publishing it:
 
 The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
 
-## Phase 5 — Final Release Gate
+## Phase 4 — Final Release Gate
 
 ### Complete the pre-release readiness review
 
@@ -138,15 +123,15 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
 
-## Phase 6 — Publication
+## Phase 5 — Publication
 
 ### Publish the validated v1 release artifacts
 
 **Status:** Not started
 
-Publish only the exact candidate artifacts that passed Phase 4 validation and the Phase 5 release gate. Do not rebuild or replace artifacts under the same version.
+Publish only the exact candidate artifacts that passed Phase 3 validation and the Phase 4 release gate. Do not rebuild or replace artifacts under the same version.
 
-Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 4 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 3 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
+Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 3 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 2 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
 
 ## Conditional Backlog
 

@@ -7,6 +7,8 @@ public sealed class ServerStatusServiceTests
     private readonly Mock<ICodeActionComposition> _codeActionComposition = new Mock<ICodeActionComposition>();
     private readonly Mock<IMsBuildRegistrationService> _msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
     private readonly Mock<ICommitRecoveryStore> _recoveryStore = new Mock<ICommitRecoveryStore>();
+    private readonly Mock<IErrorReportingConsentService> _errorReportingConsentService = new Mock<IErrorReportingConsentService>();
+    private readonly Mock<IErrorReportDispatcher> _errorReportDispatcher = new Mock<IErrorReportDispatcher>();
 
     public ServerStatusServiceTests()
     {
@@ -22,6 +24,9 @@ public sealed class ServerStatusServiceTests
         _codeActionComposition
             .SetupGet(item => item.Status)
             .Returns(CodeActionCompositionStatus.Available());
+        _errorReportDispatcher
+            .SetupGet(item => item.Name)
+            .Returns("Dispatcher");
     }
 
     [Fact]
@@ -33,7 +38,9 @@ public sealed class ServerStatusServiceTests
         var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
-        data.ToolCount.Should().Be(pluginSnapshot.Tools.Count + ServerOwnedToolRegistration.ToolCount);
+        data.ToolCount.Should().Be(
+            pluginSnapshot.Tools.Count
+            + ServerOwnedToolRegistration.GetPublishedToolCount(new ErrorReportingOptions()));
         var msBuild = data.MsBuild ?? throw new InvalidOperationException("The status response did not contain MSBuild status.");
         var codeActions = data.CodeActions ?? throw new InvalidOperationException("The status response did not contain code-action status.");
         msBuild.IsAvailable.Should().BeTrue();
@@ -77,6 +84,7 @@ public sealed class ServerStatusServiceTests
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.Configuration.Should().NotBeNull();
         data.Configuration!.DefaultMaxResults.Should().Be(100);
+        data.Configuration.ErrorReporting!.Provider.Should().Be("Dispatcher");
         data.StartupWarnings.Should().ContainSingle().Which.Should().Be(startupWarning);
         data.Plugins.Should().BeEquivalentTo(pluginSnapshot.Plugins);
         data.Recovery.Should().ContainSingle().Which.Should().Be(recovery);
@@ -123,11 +131,12 @@ public sealed class ServerStatusServiceTests
 
         var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
 
-        result.Data!.ToolCount.Should().Be(3 + ServerOwnedToolRegistration.ToolCount);
+        result.Data!.ToolCount.Should().Be(
+            3 + ServerOwnedToolRegistration.GetPublishedToolCount(new ErrorReportingOptions()));
     }
 
     [Fact]
-    public async Task GIVEN_RepeatedFullDetail_WHEN_GettingStatus_THEN_ShouldReuseConfigurationProjection()
+    public async Task GIVEN_RepeatedFullDetail_WHEN_GettingStatus_THEN_ShouldRefreshRuntimeConfigurationProjection()
     {
         _recoveryStore.Setup(item => item.GetStatusesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
@@ -135,7 +144,8 @@ public sealed class ServerStatusServiceTests
         var first = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
         var second = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
 
-        first.Data!.Configuration.Should().BeSameAs(second.Data!.Configuration);
+        first.Data!.Configuration.Should().NotBeSameAs(second.Data!.Configuration);
+        first.Data.Configuration.Should().BeEquivalentTo(second.Data.Configuration);
     }
 
     [Fact]
@@ -171,7 +181,9 @@ public sealed class ServerStatusServiceTests
             codeActionSnapshot,
             _msBuildRegistrationService.Object,
             _codeActionComposition.Object,
-            _recoveryStore.Object);
+            _recoveryStore.Object,
+            _errorReportingConsentService.Object,
+            _errorReportDispatcher.Object);
     }
 
     private static PluginCatalogSnapshot CreatePluginSnapshot()

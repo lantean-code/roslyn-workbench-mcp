@@ -56,7 +56,12 @@ public sealed class WorkspaceStatusToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var target = new WorkspaceStatusTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            service.Object,
+            consentService.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full);
 
@@ -120,10 +125,12 @@ public sealed class WorkspaceStatusToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var consentService = new Mock<IErrorReportingConsentService>();
         var target = new WorkspaceStatusTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
-            service.Object);
+            service.Object,
+            consentService.Object);
 
         var arguments = new Dictionary<string, JsonElement>
         {

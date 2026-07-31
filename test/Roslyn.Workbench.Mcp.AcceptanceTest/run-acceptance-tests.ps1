@@ -30,12 +30,14 @@ $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) 'roslyn-workbench-mcp\acce
 $publishRoot = Join-Path $temporaryRoot "publish\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
 $hostOutput = Join-Path $publishRoot 'host'
 $previousHostPath = $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH
+$previousSentryDsn = $env:ROSLYN_WORKBENCH_SENTRY_DSN
 
 New-Item -ItemType Directory -Path $publishRoot | Out-Null
 Push-Location $repositoryRoot
 
 try
 {
+    $env:ROSLYN_WORKBENCH_SENTRY_DSN = ''
     Write-Host 'Publishing Roslyn Workbench Host (Release)...'
     Invoke-DotNet -Arguments @(
         'publish',
@@ -65,6 +67,7 @@ try
 finally
 {
     $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = $previousHostPath
+    $env:ROSLYN_WORKBENCH_SENTRY_DSN = $previousSentryDsn
     Pop-Location
 
     if (Test-Path $publishRoot)

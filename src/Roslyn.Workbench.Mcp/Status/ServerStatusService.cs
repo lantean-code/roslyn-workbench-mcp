@@ -14,8 +14,9 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
     private readonly ICodeActionComposition _codeActionComposition;
     private readonly ICommitRecoveryStore _recoveryStore;
+    private readonly IErrorReportingConsentService _errorReportingConsentService;
+    private readonly IErrorReportDispatcher _errorReportDispatcher;
     private readonly int _toolCount;
-    private ServerConfiguration? _configuration;
 
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
@@ -24,7 +25,9 @@ internal sealed class ServerStatusService : IServerStatusService
         CodeActionCatalogSnapshot codeActionCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
         ICodeActionComposition codeActionComposition,
-        ICommitRecoveryStore recoveryStore)
+        ICommitRecoveryStore recoveryStore,
+        IErrorReportingConsentService errorReportingConsentService,
+        IErrorReportDispatcher errorReportDispatcher)
     {
         _startupOptions = startupOptions.Value;
         _startupConfiguration = startupConfiguration;
@@ -33,9 +36,11 @@ internal sealed class ServerStatusService : IServerStatusService
         _msBuildRegistrationService = msBuildRegistrationService;
         _codeActionComposition = codeActionComposition;
         _recoveryStore = recoveryStore;
+        _errorReportingConsentService = errorReportingConsentService;
+        _errorReportDispatcher = errorReportDispatcher;
         _toolCount = _pluginCatalogSnapshot.Tools.Count
             + _codeActionCatalogSnapshot.Tools.Count
-            + ServerOwnedToolRegistration.ToolCount;
+            + ServerOwnedToolRegistration.GetPublishedToolCount(_startupOptions.ErrorReporting);
     }
 
     public async ValueTask<ToolResult<ServerStatusData>> GetStatusAsync(StatusDetailLevel detail, CancellationToken cancellationToken)
@@ -81,20 +86,22 @@ internal sealed class ServerStatusService : IServerStatusService
 
     private ServerConfiguration GetConfiguration()
     {
-        if (_configuration is not null)
-        {
-            return _configuration;
-        }
-
-        _configuration = new ServerConfiguration
+        return new ServerConfiguration
         {
             DefaultMaxResults = _startupOptions.DefaultMaxResults,
             CodeActionReferenceLifetime = _startupOptions.CodeActionReferenceLifetime,
             MaxTransactionRevisions = _startupOptions.MaxTransactionRevisions,
             MaxConcurrentQueries = _startupOptions.MaxConcurrentQueries,
             ToolOutputSchemaMode = _startupOptions.ToolOutputSchemaMode,
+            ErrorReporting = new ErrorReportingStatusData
+            {
+                Provider = _errorReportDispatcher.Name,
+                ConsentMode = _startupOptions.ErrorReporting.ConsentMode.ToString(),
+                SessionConsentState = _errorReportingConsentService
+                    .GetState(workspaceId: null, workspaceEpoch: null)
+                    .ToString(),
+            },
         };
 
-        return _configuration;
     }
 }

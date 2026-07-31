@@ -19,6 +19,13 @@ public sealed class StartupOptionsResolverTests
         "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES",
         "ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE",
         "ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY",
+        "ROSLYN_WORKBENCH_MCP_ERROR_REPORTING_CONSENT",
+        "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_CAPACITY",
+        "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_LIFETIME",
+        "ROSLYN_WORKBENCH_MCP_ERROR_RECORD_MAX_BYTES",
+        "ROSLYN_WORKBENCH_MCP_ERROR_SUBMISSION_CAPACITY",
+        "ROSLYN_WORKBENCH_MCP_ERROR_SUBMISSION_LIFETIME",
+        "ROSLYN_WORKBENCH_MCP_ERROR_REPORT_MAX_BYTES",
         "XDG_STATE_HOME",
     ];
 
@@ -53,7 +60,72 @@ public sealed class StartupOptionsResolverTests
             result.Options.MaxConcurrentQueries.Should().Be(2);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Omit);
             result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
+            result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Prompt);
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ExplicitAlwaysCommandLineConsent_WHEN_Resolving_THEN_ShouldEnablePermanentApproval()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--error-reporting-consent=always",
+            ]);
+
+            result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Always);
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_AmbientAlwaysConsent_WHEN_Resolving_THEN_ShouldIgnoreItAndWarn()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                "ROSLYN_WORKBENCH_MCP_ERROR_REPORTING_CONSENT",
+                "always");
+
+            var result = Resolve([]);
+
+            result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Prompt);
+            result.Warnings.Should().ContainSingle();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_MalformedConsentChoice_WHEN_Resolving_THEN_ShouldFailClosed()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--error-reporting-consent=Always",
+            ]);
+
+            result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Never);
+            result.Warnings.Should().ContainSingle();
         }
         finally
         {

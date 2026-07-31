@@ -23,7 +23,10 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         builder.Services.AddPluginServices();
         builder.Services.AddCodeActionServices();
         builder.Services.AddHostServices();
-        builder.Services.AddMcpTools(composition.Plugins, composition.CodeActions.Tools);
+        builder.Services.AddMcpTools(
+            composition.Plugins,
+            composition.CodeActions.Tools,
+            composition.Options.ErrorReporting);
         builder.Services.AddStartupPrerequisites();
         builder.Services.AddRoslynWorkbenchMcpServer();
 

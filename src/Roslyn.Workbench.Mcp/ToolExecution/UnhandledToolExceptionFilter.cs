@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution;
@@ -5,10 +6,20 @@ namespace Roslyn.Workbench.Mcp.ToolExecution;
 internal sealed partial class UnhandledToolExceptionFilter
 {
     private readonly ILogger<UnhandledToolExceptionFilter> _logger;
+    private readonly IErrorCaptureService _captureService;
+    private readonly ICapturedErrorStore _capturedErrorStore;
+    private readonly IErrorReportingAvailabilityService _availabilityService;
 
-    public UnhandledToolExceptionFilter(ILogger<UnhandledToolExceptionFilter> logger)
+    public UnhandledToolExceptionFilter(
+        ILogger<UnhandledToolExceptionFilter> logger,
+        IErrorCaptureService captureService,
+        ICapturedErrorStore capturedErrorStore,
+        IErrorReportingAvailabilityService availabilityService)
     {
         _logger = logger;
+        _captureService = captureService;
+        _capturedErrorStore = capturedErrorStore;
+        _availabilityService = availabilityService;
     }
 
     [SuppressMessage(
@@ -20,6 +31,8 @@ internal sealed partial class UnhandledToolExceptionFilter
         RequestContext<CallToolRequestParams> context,
         CancellationToken cancellationToken)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+
         try
         {
             return await next(context, cancellationToken);
@@ -30,17 +43,37 @@ internal sealed partial class UnhandledToolExceptionFilter
         }
         catch (Exception exception)
         {
-            var correlationId = Guid.NewGuid().ToString("n");
+            var correlationId = Guid.NewGuid();
             LogUnhandledToolException(
                 _logger,
                 context.Params.Name,
                 correlationId,
                 exception);
 
+            var duration = Stopwatch.GetElapsedTime(startedAt);
+            var record = _captureService.Capture(
+                correlationId,
+                context.Params.Name,
+                context.Params.Arguments,
+                duration,
+                cancellationToken.IsCancellationRequested,
+                exception);
+            _capturedErrorStore.Add(record);
+
+            bool? supportsElicitation = context.Server.ClientCapabilities is null
+                ? null
+                : context.Server.ClientCapabilities.Elicitation is not null;
+            var availability = _availabilityService.GetAvailability(
+                record.Workspace?.WorkspaceId,
+                record.Workspace?.WorkspaceEpoch,
+                supportsElicitation);
+
             return new CallToolResult
             {
                 Content = [],
-                StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(correlationId),
+                StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(
+                    correlationId,
+                    availability),
                 IsError = true,
             };
         }
@@ -53,6 +86,6 @@ internal sealed partial class UnhandledToolExceptionFilter
     private static partial void LogUnhandledToolException(
         ILogger logger,
         string toolName,
-        string correlationId,
+        Guid correlationId,
         Exception exception);
 }

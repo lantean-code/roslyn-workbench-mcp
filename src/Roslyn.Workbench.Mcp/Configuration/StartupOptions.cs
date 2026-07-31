@@ -25,4 +25,6 @@ internal sealed class StartupOptions
     public ToolOutputSchemaMode ToolOutputSchemaMode { get; set; } = ToolOutputSchemaMode.Omit;
 
     public string StateDirectory { get; set; } = StateDirectoryDefaults.GetDefaultPath();
+
+    public ErrorReportingOptions ErrorReporting { get; set; } = new();
 }

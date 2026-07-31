@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution;
@@ -5,13 +6,54 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution;
 public sealed class UnhandledToolExceptionFilterTests
 {
     private readonly Mock<ILogger<UnhandledToolExceptionFilter>> _logger;
+    private readonly Mock<IErrorCaptureService> _captureService;
+    private readonly Mock<ICapturedErrorStore> _capturedErrorStore;
+    private readonly Mock<IErrorReportingAvailabilityService> _availabilityService;
     private readonly UnhandledToolExceptionFilter _target;
 
     public UnhandledToolExceptionFilterTests()
     {
         _logger = new Mock<ILogger<UnhandledToolExceptionFilter>>();
+        _captureService = new Mock<IErrorCaptureService>();
+        _capturedErrorStore = new Mock<ICapturedErrorStore>();
+        _availabilityService = new Mock<IErrorReportingAvailabilityService>();
         _logger.Setup(item => item.IsEnabled(LogLevel.Error)).Returns(true);
-        _target = new UnhandledToolExceptionFilter(_logger.Object);
+        _captureService
+            .Setup(item => item.Capture(
+                It.IsAny<Guid>(),
+                "tool-name",
+                null,
+                It.IsAny<TimeSpan>(),
+                false,
+                It.IsAny<Exception>()))
+            .Returns((Guid correlationId, string _, IDictionary<string, JsonElement>? _, TimeSpan _, bool _, Exception _) =>
+                new CapturedErrorRecord
+                {
+                    CorrelationId = correlationId,
+                    FailureTime = DateTimeOffset.Parse("2000-01-01T00:00:00Z", CultureInfo.InvariantCulture),
+                    ExpiresAt = DateTimeOffset.Parse("2000-01-01T01:00:00Z", CultureInfo.InvariantCulture),
+                    ToolName = "tool-name",
+                    ExecutionFamily = "Unknown",
+                    PluginClassification = "Unknown",
+                    DurationMilliseconds = 0,
+                    ServerVersion = "ServerVersion",
+                    RoslynVersion = "RoslynVersion",
+                    DotNetVersion = "DotNetVersion",
+                    OperatingSystem = "OperatingSystem",
+                    ProcessorArchitecture = "ProcessorArchitecture",
+                });
+        _availabilityService
+            .Setup(item => item.GetAvailability(null, null, null))
+            .Returns(new ErrorReportingAvailability
+            {
+                State = ErrorReportingState.Available,
+            });
+
+        _target = new UnhandledToolExceptionFilter(
+            _logger.Object,
+            _captureService.Object,
+            _capturedErrorStore.Object,
+            _availabilityService.Object);
     }
 
     [Fact]
@@ -65,10 +107,14 @@ public sealed class UnhandledToolExceptionFilterTests
         var error = structuredContent.GetProperty("error");
         error.GetProperty("code").GetString().Should().Be("UnhandledException");
         error.GetProperty("message").GetString().Should().Be("Tool execution failed.");
-        var correlationId = error.GetProperty("correlationId").GetString();
-        correlationId.Should().NotBeNullOrWhiteSpace();
+        var correlationId = error.GetProperty("correlationId").GetGuid();
+        correlationId.Should().NotBeEmpty();
         structuredContent.GetRawText().Should().NotContain("Sensitive message");
         structuredContent.GetRawText().Should().NotContain(nameof(InvalidOperationException));
+        structuredContent.GetProperty("diagnostics").GetProperty("detailsAvailable").GetBoolean().Should().BeTrue();
+        structuredContent.GetProperty("reporting").GetProperty("state").GetString().Should().Be("Available");
+        _capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(
+            record => record.CorrelationId == correlationId)), Times.Once);
         _logger.Verify(
             item => item.Log(
                 LogLevel.Error,

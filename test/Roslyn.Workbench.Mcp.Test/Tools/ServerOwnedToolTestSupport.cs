@@ -28,13 +28,15 @@ internal static class ServerOwnedToolTestSupport
             cancellationToken);
     }
 
-    public static McpServer CreateServer()
+    public static McpServer CreateServer(
+        ClientCapabilities? clientCapabilities = null,
+        JsonRpcResponse? requestResponse = null)
     {
         var asyncDisposable = new Mock<IAsyncDisposable>();
         var server = new Mock<McpServer>();
 
         asyncDisposable.Setup(disposable => disposable.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        server.SetupGet(value => value.ClientCapabilities).Returns(new ClientCapabilities());
+        server.SetupGet(value => value.ClientCapabilities).Returns(clientCapabilities ?? new ClientCapabilities());
         server.SetupGet(value => value.ClientInfo).Returns(new Implementation
         {
             Name = "Test Client",
@@ -49,7 +51,7 @@ internal static class ServerOwnedToolTestSupport
         server.Setup(value => value.RunAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         server
             .Setup(value => value.SendRequestAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new JsonRpcResponse
+            .ReturnsAsync(requestResponse ?? new JsonRpcResponse
             {
                 Result = new JsonObject(),
             });

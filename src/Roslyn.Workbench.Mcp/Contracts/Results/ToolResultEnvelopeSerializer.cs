@@ -126,16 +126,40 @@ internal static class ToolResultEnvelopeSerializer
     /// </summary>
     /// <param name="correlationId">The server-side diagnostic correlation identifier.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateUnhandledException(string correlationId)
+    public static JsonElement CreateUnhandledException(
+        Guid correlationId,
+        ErrorReportingAvailability? reporting = null)
     {
-        return CreateFailure(
-            new ToolError
+        return BuildPayload(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", false);
+            writer.WriteStartObject("error");
+            writer.WriteString("code", "UnhandledException");
+            writer.WriteString("message", "Tool execution failed.");
+            writer.WriteString("correlationId", correlationId);
+            writer.WriteEndObject();
+
+            writer.WriteStartObject("diagnostics");
+            writer.WriteBoolean("detailsAvailable", true);
+            writer.WriteString("detailsTool", ServerOwnedToolRegistration.GetErrorDetailsName);
+            writer.WriteEndObject();
+
+            if (reporting is not null)
             {
-                Code = "UnhandledException",
-                Message = "Tool execution failed.",
-                CorrelationId = correlationId,
-            },
-            requiredAction: null);
+                writer.WriteStartObject("reporting");
+                writer.WriteString("state", reporting.State.ToString());
+                writer.WriteBoolean("canPrepare", reporting.CanPrepare);
+                if (reporting.PrepareTool is not null)
+                {
+                    writer.WriteString("prepareTool", reporting.PrepareTool);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndObject();
+        });
     }
 
     private static JsonElement BuildPayload(Action<Utf8JsonWriter> writePayload)

@@ -192,9 +192,39 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             var error = AcceptanceProtocol.GetError(throwingResult);
             error.GetProperty("code").GetString().Should().Be("UnhandledException");
             error.GetProperty("message").GetString().Should().Be("Tool execution failed.");
-            error.GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
-            throwingResult.StructuredContent!.Value.GetRawText().Should().NotContain("Sensitive query failure");
-            throwingResult.StructuredContent.Value.GetRawText().Should().NotContain(nameof(InvalidOperationException));
+            var correlationId = error.GetProperty("correlationId").GetString();
+            correlationId.Should().NotBeNullOrWhiteSpace();
+            var structuredContent = throwingResult.StructuredContent;
+            structuredContent.Should().NotBeNull();
+            var structuredError = structuredContent.GetValueOrDefault();
+            structuredError
+                .GetProperty("diagnostics")
+                .GetProperty("detailsTool")
+                .GetString()
+                .Should()
+                .Be("get-error-details");
+            structuredError
+                .GetProperty("reporting")
+                .GetProperty("canPrepare")
+                .GetBoolean()
+                .Should()
+                .BeFalse();
+            structuredError.GetRawText().Should().NotContain("Sensitive query failure");
+            structuredError.GetRawText().Should().NotContain(nameof(InvalidOperationException));
+
+            var detailsResult = await target.CallToolAsync(
+                "get-error-details",
+                new Dictionary<string, object?>
+                {
+                    ["correlationId"] = correlationId,
+                },
+                TestContext.Current.CancellationToken);
+            detailsResult.IsError.Should().NotBeTrue();
+            var details = AcceptanceProtocol.GetSuccessData(detailsResult);
+            details.GetProperty("sensitivity").GetString().Should().Be("LocalDiagnostic");
+            details.GetProperty("safeForExternalSubmission").GetBoolean().Should().BeFalse();
+            details.GetProperty("error").GetProperty("correlationId").GetString().Should().Be(correlationId);
+            details.GetRawText().Should().Contain("Sensitive query failure");
 
             var successfulQuery = await target.CallToolAsync(
                 "host-valid-query",
@@ -211,6 +241,155 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken);
             statusResult.IsError.Should().NotBeTrue();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_ConfiguredPromptReportingWithoutClientElicitation_WHEN_PreparingAndSubmitting_THEN_ShouldReviewLocallyAndFailClosed()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            pluginAssets: [AcceptancePluginAsset.HostQuery]);
+
+        try
+        {
+            var toolNames = (await target.ListToolsAsync(TestContext.Current.CancellationToken))
+                .Select(static tool => tool.Name)
+                .ToArray();
+            toolNames.Should().Contain(["get-error-details", "prepare-error-report", "submit-error-report"]);
+
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.csproj"),
+                target.WorkspaceRoot);
+            var throwingResult = await target.CallToolAsync(
+                "host-valid-query",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspace.CreateSelector(),
+                    ["name"] = "Throw",
+                    ["throw"] = true,
+                },
+                TestContext.Current.CancellationToken);
+
+            var correlationId = AcceptanceProtocol.GetError(throwingResult)
+                .GetProperty("correlationId")
+                .GetString();
+            var prepareResult = await target.CallToolAsync(
+                "prepare-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["correlationId"] = correlationId,
+                },
+                TestContext.Current.CancellationToken);
+            prepareResult.IsError.Should().NotBeTrue();
+            var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
+            prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
+            prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
+            prepared.GetProperty("payload").GetRawText().Should().NotContain("Sensitive query failure");
+            prepared.GetProperty("payload").GetRawText().Should().NotContain(target.WorkspaceRoot);
+
+            var submitResult = await target.CallToolAsync(
+                "submit-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["submissionHandle"] = prepared.GetProperty("submissionHandle").GetString(),
+                },
+                TestContext.Current.CancellationToken);
+            submitResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(submitResult)
+                .GetProperty("code")
+                .GetString()
+                .Should()
+                .Be("ApprovalUnavailable");
+
+            var statusResult = await target.CallToolAsync(
+                "server-status",
+                new Dictionary<string, object?>(),
+                TestContext.Current.CancellationToken);
+            statusResult.IsError.Should().NotBeTrue();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_LoggingFallbackAndAlwaysConsent_WHEN_SubmittingPreparedReport_THEN_ShouldWriteSanitisedReportToStandardError()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--error-reporting-consent", "always"],
+            pluginAssets: [AcceptancePluginAsset.HostQuery]);
+
+        try
+        {
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.csproj"),
+                target.WorkspaceRoot);
+            var throwingResult = await target.CallToolAsync(
+                "host-valid-query",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspace.CreateSelector(),
+                    ["name"] = "Throw",
+                    ["throw"] = true,
+                },
+                TestContext.Current.CancellationToken);
+
+            var correlationId = AcceptanceProtocol.GetError(throwingResult)
+                .GetProperty("correlationId")
+                .GetString();
+            var prepareResult = await target.CallToolAsync(
+                "prepare-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["correlationId"] = correlationId,
+                },
+                TestContext.Current.CancellationToken);
+            prepareResult.IsError.Should().NotBeTrue();
+            var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
+            prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
+            prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
+            var payload = prepared.GetProperty("payload");
+            var reportId = payload.GetProperty("report").GetProperty("reportId").GetString()
+                ?? throw new InvalidOperationException("The prepared logging payload must include its report identifier.");
+
+            var submitResult = await target.CallToolAsync(
+                "submit-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["submissionHandle"] = prepared.GetProperty("submissionHandle").GetString(),
+                },
+                TestContext.Current.CancellationToken);
+            submitResult.IsError.Should().NotBeTrue();
+            var submitted = AcceptanceProtocol.GetSuccessData(submitResult);
+            submitted.GetProperty("dispatcher").GetString().Should().Be("Logging");
+            submitted.GetProperty("reportReference").GetString().Should().Be(reportId);
+
+            var statusResult = await target.CallToolAsync(
+                "server-status",
+                new Dictionary<string, object?>(),
+                TestContext.Current.CancellationToken);
+            statusResult.IsError.Should().NotBeTrue();
+
+            await target.StopAsync();
+            var standardError = target.GetStandardErrorSnapshot();
+            standardError.Should().Contain("User-approved error report");
+            var approvedReportOffset = standardError.IndexOf("User-approved error report", StringComparison.Ordinal);
+            var approvedReportLog = standardError[approvedReportOffset..];
+            approvedReportLog.Should().Contain(reportId);
+            approvedReportLog.Should().Contain("external-plugin-tool");
+            approvedReportLog.Should().NotContain("Sensitive query failure");
+            approvedReportLog.Should().NotContain(target.WorkspaceRoot);
         }
         catch
         {

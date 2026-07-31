@@ -19,13 +19,37 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : class
     {
+        return CreateServerOwnedToolWithAnnotations<TRequest, TResponse>(
+            name,
+            title,
+            description,
+            readOnly,
+            destructive,
+            resultSummary,
+            outputSchemaMode,
+            idempotent: readOnly,
+            openWorld: false);
+    }
+
+    public Tool CreateServerOwnedToolWithAnnotations<TRequest, TResponse>(
+        string name,
+        string title,
+        string description,
+        bool readOnly,
+        bool destructive,
+        string? resultSummary,
+        ToolOutputSchemaMode outputSchemaMode,
+        bool idempotent,
+        bool openWorld)
+        where TRequest : class
+    {
         var publishedDescription = CreatePublishedDescription(description, resultSummary);
         var annotations = new ToolAnnotations
         {
             Title = title,
             ReadOnlyHint = readOnly,
-            IdempotentHint = readOnly,
-            OpenWorldHint = false,
+            IdempotentHint = idempotent,
+            OpenWorldHint = openWorld,
             DestructiveHint = destructive,
         };
 

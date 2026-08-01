@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Consent;
 
 internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 {
-    private readonly object _gate = new();
+    private readonly Lock _syncRoot = new();
     private readonly ErrorReportingConsentMode _startupMode;
     private readonly HashSet<WorkspaceConsentKey> _workspaceGrants = [];
     private bool _sessionAllowed;
@@ -17,7 +17,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     public ErrorReportingConsentState GetState(Guid? workspaceId, long? workspaceEpoch)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             if (_sessionSuppressed)
             {
@@ -47,7 +47,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     public void AllowWorkspace(Guid workspaceId, long workspaceEpoch)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             _workspaceGrants.Add(new WorkspaceConsentKey(workspaceId, workspaceEpoch));
         }
@@ -55,7 +55,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     public void AllowSession()
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             _sessionAllowed = true;
         }
@@ -63,7 +63,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     public void SuppressSession()
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             _sessionSuppressed = true;
             _sessionAllowed = false;
@@ -73,7 +73,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             _workspaceGrants.Remove(new WorkspaceConsentKey(workspaceId, workspaceEpoch));
         }

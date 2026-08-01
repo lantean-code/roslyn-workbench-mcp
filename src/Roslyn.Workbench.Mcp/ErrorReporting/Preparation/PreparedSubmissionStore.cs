@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Preparation;
 
 internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 {
-    private readonly object _gate = new();
+    private readonly Lock _syncRoot = new();
     private readonly Dictionary<string, PreparedSubmission> _submissions = new(StringComparer.Ordinal);
     private readonly TimeProvider _timeProvider;
     private readonly int _capacity;
@@ -20,7 +20,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 
     public bool TryAdd(PreparedSubmission submission)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             RemoveExpiredLocked();
             if (_submissions.Count >= _capacity)
@@ -36,7 +36,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
         string handle,
         [NotNullWhen(true)] out PreparedSubmission? submission)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             RemoveExpiredLocked();
             return _submissions.TryGetValue(handle, out submission);
@@ -45,7 +45,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 
     public SubmissionAcquisition TryBeginSubmission(string handle)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             RemoveExpiredLocked();
             if (!_submissions.TryGetValue(handle, out var submission))
@@ -87,7 +87,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 
     public void Complete(string handle, ErrorSubmissionReceipt receipt)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             if (_submissions.TryGetValue(handle, out var submission)
                 && submission.State == PreparedSubmissionState.Sending)
@@ -103,7 +103,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 
     public void ReleaseForRetry(string handle)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             if (_submissions.TryGetValue(handle, out var submission)
                 && submission.State == PreparedSubmissionState.Sending)
@@ -118,7 +118,7 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
 
     public void Discard(string handle)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             _submissions.Remove(handle);
         }

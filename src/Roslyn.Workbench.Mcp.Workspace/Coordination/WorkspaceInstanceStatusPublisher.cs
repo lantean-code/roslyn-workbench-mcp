@@ -14,7 +14,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly Dictionary<Guid, WorkspaceInstanceStatusHandle> _handles = [];
     private readonly Channel<WorkspaceInstanceStatusUpdate> _updates;
     private readonly Task _updateWorker;
-    private readonly Lock _updateSync = new();
+    private readonly Lock _syncRoot = new();
 
     [SuppressMessage(
         "Usage",
@@ -136,7 +136,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         string? commitPhase)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        lock (_updateSync)
+        lock (_syncRoot)
         {
             if (!_updates.Writer.TryWrite(CreateUpdate(
                 workspaceId,
@@ -160,7 +160,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         string? commitId,
         string? commitPhase)
     {
-        lock (_updateSync)
+        lock (_syncRoot)
         {
             _updates.Writer.TryWrite(CreateUpdate(
                 workspaceId,
@@ -196,7 +196,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         Justification = "Disposal must attempt every workspace status handle, retain the first failure, and rethrow it after all handles have been closed.")]
     public async ValueTask DisposeAsync()
     {
-        lock (_updateSync)
+        lock (_syncRoot)
         {
             _updates.Writer.TryComplete();
         }

@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 internal sealed class CapturedErrorStore : ICapturedErrorStore
 {
-    private readonly object _gate = new();
+    private readonly Lock _syncRoot = new();
     private readonly Dictionary<Guid, CapturedErrorRecord> _records = [];
     private readonly TimeProvider _timeProvider;
     private readonly int _capacity;
@@ -20,7 +20,7 @@ internal sealed class CapturedErrorStore : ICapturedErrorStore
 
     public void Add(CapturedErrorRecord record)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             RemoveExpiredLocked();
             while (_records.Count >= _capacity)
@@ -42,7 +42,7 @@ internal sealed class CapturedErrorStore : ICapturedErrorStore
         Guid correlationId,
         [NotNullWhen(true)] out CapturedErrorRecord? record)
     {
-        lock (_gate)
+        lock (_syncRoot)
         {
             RemoveExpiredLocked();
             return _records.TryGetValue(correlationId, out record);

@@ -14,13 +14,13 @@ public sealed class ErrorReportingAvailabilityServiceTests
         };
         var target = new ErrorReportingAvailabilityService(Options.Create(options), consentService.Object);
 
-        var result = target.GetAvailability("WorkspaceId", 1, supportsElicitation: true);
+        var result = target.GetAvailability(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1, supportsElicitation: true);
 
         result.State.Should().Be(ErrorReportingState.DisabledByConfiguration);
         result.CanPrepare.Should().BeFalse();
         result.PrepareTool.Should().BeNull();
         consentService.Verify(
-            item => item.GetState(It.IsAny<string?>(), It.IsAny<long?>()),
+            item => item.GetState(It.IsAny<Guid?>(), It.IsAny<long?>()),
             Times.Never);
     }
 
@@ -29,7 +29,7 @@ public sealed class ErrorReportingAvailabilityServiceTests
     {
         var target = CreateTarget(ErrorReportingConsentState.SuppressedForSession);
 
-        var result = target.GetAvailability("WorkspaceId", 1, supportsElicitation: true);
+        var result = target.GetAvailability(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1, supportsElicitation: true);
 
         result.State.Should().Be(ErrorReportingState.SuppressedForSession);
         result.CanPrepare.Should().BeFalse();
@@ -41,7 +41,7 @@ public sealed class ErrorReportingAvailabilityServiceTests
     {
         var target = CreateTarget(ErrorReportingConsentState.PromptRequired);
 
-        var result = target.GetAvailability("WorkspaceId", 1, supportsElicitation: false);
+        var result = target.GetAvailability(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1, supportsElicitation: false);
 
         result.State.Should().Be(ErrorReportingState.ApprovalUnavailable);
         result.CanPrepare.Should().BeFalse();
@@ -61,7 +61,7 @@ public sealed class ErrorReportingAvailabilityServiceTests
         var expectedState = (ErrorReportingState)expectedStateValue;
         var target = CreateTarget(consentState);
 
-        var result = target.GetAvailability("WorkspaceId", 1, supportsElicitation: true);
+        var result = target.GetAvailability(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1, supportsElicitation: true);
 
         result.State.Should().Be(expectedState);
         result.CanPrepare.Should().BeTrue();
@@ -72,7 +72,7 @@ public sealed class ErrorReportingAvailabilityServiceTests
     {
         var consentService = new Mock<IErrorReportingConsentService>();
         consentService
-            .Setup(item => item.GetState("WorkspaceId", 1))
+            .Setup(item => item.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1))
             .Returns(consentState);
 
         return new ErrorReportingAvailabilityService(

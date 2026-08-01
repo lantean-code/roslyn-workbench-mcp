@@ -13,10 +13,10 @@ internal sealed class ToolInvocationRunner
     private static readonly TimeSpan _exclusiveLeaseRetryDelay = TimeSpan.FromMilliseconds(10);
     private readonly ScenarioHost _host;
     private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
-    private readonly string _workspaceId;
+    private readonly Guid _workspaceId;
     private readonly string _repositoryRoot;
 
-    public ToolInvocationRunner(ScenarioHost host, string workspaceId, string repositoryRoot)
+    public ToolInvocationRunner(ScenarioHost host, Guid workspaceId, string repositoryRoot)
     {
         _host = host;
         _workspaceId = workspaceId;

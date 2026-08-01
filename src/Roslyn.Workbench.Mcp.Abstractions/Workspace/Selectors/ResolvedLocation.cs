@@ -8,7 +8,7 @@ public sealed record ResolvedLocation
     /// <summary>
     /// Gets the workspace identifier associated with this location.
     /// </summary>
-    public string? WorkspaceId { get; init; }
+    public Guid? WorkspaceId { get; init; }
 
     /// <summary>
     /// Gets the resolved document.

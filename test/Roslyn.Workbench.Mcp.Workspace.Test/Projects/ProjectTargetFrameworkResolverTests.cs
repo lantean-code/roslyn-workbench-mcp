@@ -17,7 +17,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         var cacheEntry = new ProjectTargetFrameworkCacheEntry(cachedTargetFrameworks);
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -44,7 +44,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             project,
             TestContext.Current.CancellationToken);
 
@@ -82,7 +82,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             project,
             TestContext.Current.CancellationToken);
 
@@ -106,7 +106,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             .Returns(failedResult);
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -138,7 +138,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             project,
             TestContext.Current.CancellationToken);
 
@@ -175,7 +175,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         cacheScopeFactory
             .Setup(item => item.CreateScope(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<Solution>(),
                 "project-target-framework"))
             .Returns(cacheScope.Object);
@@ -209,7 +209,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             projects,
             TestContext.Current.CancellationToken);
 
@@ -247,7 +247,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         cacheScopeFactory
             .Setup(item => item.CreateScope(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<Solution>(),
                 "project-target-framework"))
             .Returns(cacheScope.Object);
@@ -267,7 +267,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             projects,
             TestContext.Current.CancellationToken);
 
@@ -293,7 +293,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         ProjectTargetFrameworkCacheEntry? configuredEntry = expectedEntry;
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope("WorkspaceId", project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -307,7 +307,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             [project],
             TestContext.Current.CancellationToken);
 
@@ -346,7 +346,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             [project],
             TestContext.Current.CancellationToken);
 

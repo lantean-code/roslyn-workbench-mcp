@@ -15,11 +15,11 @@ internal sealed class CrashRecoveryRunner
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;
     private readonly string _stateDirectory;
-    private readonly string _workspaceId;
+    private readonly Guid _workspaceId;
 
     public CrashRecoveryRunner(
         ScenarioHost host,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot,
         string stateDirectory)
     {

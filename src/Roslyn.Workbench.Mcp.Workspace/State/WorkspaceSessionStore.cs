@@ -9,7 +9,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
     private readonly Lock _syncRoot;
     private WorkspaceHostSnapshot _snapshot;
     private long _nextWorkspaceEpoch;
-    private long _nextWorkspaceId;
     private long _nextWorkspaceSnapshotId;
     private long _nextWorkspaceTransactionId;
 
@@ -31,7 +30,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
-    public WorkspaceSessionSnapshot? ReadSession(string workspaceId)
+    public WorkspaceSessionSnapshot? ReadSession(Guid workspaceId)
     {
         lock (_syncRoot)
         {
@@ -41,10 +40,9 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
-    public string AllocateWorkspaceId()
+    public Guid AllocateWorkspaceId()
     {
-        var nextValue = Interlocked.Increment(ref _nextWorkspaceId);
-        return $"workspace-{nextValue}";
+        return Guid.NewGuid();
     }
 
     public long AllocateWorkspaceEpoch()
@@ -74,7 +72,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
                 return validationError;
             }
 
-            var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal)
+            var workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>(_snapshot.Workspaces)
             {
                 [session.Workspace.WorkspaceId] = session,
             };
@@ -88,7 +86,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
-    public WorkspaceSessionSnapshot? RemoveWorkspace(string workspaceId)
+    public WorkspaceSessionSnapshot? RemoveWorkspace(Guid workspaceId)
     {
         WorkspaceSessionSnapshot? session;
         lock (_syncRoot)
@@ -100,12 +98,12 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
             InvalidateWorkspace(session);
 
-            var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal);
+            var workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>(_snapshot.Workspaces);
             workspaces.Remove(workspaceId);
             _snapshot = _snapshot with
             {
                 Workspaces = workspaces,
-                TransactionOwnerWorkspaceId = string.Equals(_snapshot.TransactionOwnerWorkspaceId, workspaceId, StringComparison.Ordinal)
+                TransactionOwnerWorkspaceId = _snapshot.TransactionOwnerWorkspaceId == workspaceId
                     ? null
                     : _snapshot.TransactionOwnerWorkspaceId,
             };
@@ -127,7 +125,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         ReplaceSessionCore(session, discardedSnapshotIds);
     }
 
-    public void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, string? transactionOwnerWorkspaceId)
+    public void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, Guid? transactionOwnerWorkspaceId)
     {
         bool invalidateQueryCache;
         lock (_syncRoot)
@@ -173,7 +171,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
             || session.State is WorkspaceLifecycleState.WorkspaceOutOfDate
                 or WorkspaceLifecycleState.TransactionConflicted;
 
-        var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal)
+        var workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>(_snapshot.Workspaces)
         {
             [session.Workspace.WorkspaceId] = session,
         };

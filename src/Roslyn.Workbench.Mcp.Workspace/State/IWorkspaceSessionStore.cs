@@ -4,9 +4,9 @@ internal interface IWorkspaceSessionStore
 {
     WorkspaceHostSnapshot ReadSnapshot();
 
-    WorkspaceSessionSnapshot? ReadSession(string workspaceId);
+    WorkspaceSessionSnapshot? ReadSession(Guid workspaceId);
 
-    string AllocateWorkspaceId();
+    Guid AllocateWorkspaceId();
 
     long AllocateWorkspaceEpoch();
 
@@ -16,7 +16,7 @@ internal interface IWorkspaceSessionStore
 
     WorkspaceOperationError? TryAddWorkspace(WorkspaceSessionSnapshot session, Func<WorkspaceHostSnapshot, WorkspaceOperationError?> validate);
 
-    WorkspaceSessionSnapshot? RemoveWorkspace(string workspaceId);
+    WorkspaceSessionSnapshot? RemoveWorkspace(Guid workspaceId);
 
     void ReplaceSession(WorkspaceSessionSnapshot session);
 
@@ -24,5 +24,5 @@ internal interface IWorkspaceSessionStore
         WorkspaceSessionSnapshot session,
         IReadOnlyList<WorkspaceSnapshotId> discardedSnapshotIds);
 
-    void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, string? transactionOwnerWorkspaceId);
+    void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, Guid? transactionOwnerWorkspaceId);
 }

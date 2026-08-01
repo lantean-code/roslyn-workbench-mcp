@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 internal sealed record AcceptanceWorkspaceIdentity
 {
     private AcceptanceWorkspaceIdentity(
-        string workspaceId,
+        Guid workspaceId,
         string? alias,
         string loadedPath,
         long workspaceEpoch)
@@ -18,7 +18,7 @@ internal sealed record AcceptanceWorkspaceIdentity
         WorkspaceEpoch = workspaceEpoch;
     }
 
-    public string WorkspaceId { get; }
+    public Guid WorkspaceId { get; }
 
     public string? Alias { get; }
 
@@ -29,8 +29,11 @@ internal sealed record AcceptanceWorkspaceIdentity
     public static AcceptanceWorkspaceIdentity FromOpenResult(CallToolResult result)
     {
         var workspace = AcceptanceProtocol.GetSuccessData(result).GetProperty("workspace");
-        var workspaceId = workspace.GetProperty("workspaceId").GetString()
-            ?? throw new InvalidOperationException("The workspace-open response did not contain a workspace ID.");
+        var workspaceId = workspace.GetProperty("workspaceId").GetGuid();
+        if (workspaceId == Guid.Empty)
+        {
+            throw new InvalidOperationException("The workspace-open response contained an empty workspace ID.");
+        }
 
         return new AcceptanceWorkspaceIdentity(
             workspaceId,

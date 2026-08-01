@@ -45,7 +45,7 @@ public sealed class CodeActionResolverTests : IDisposable
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
         });
 
@@ -91,7 +91,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Fact]
     public async Task GIVEN_SnapshotDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldReturnSnapshotConflict()
     {
-        var expectedSnapshot = new SnapshotPrecondition();
+        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(expectedSnapshot))
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
@@ -135,7 +135,7 @@ public sealed class CodeActionResolverTests : IDisposable
             WorkspaceMismatch.WorkspaceId => recipe with
             {
                 SnapshotIdentity = new WorkspaceSnapshotIdentity(
-                    "OtherWorkspaceId",
+                    Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
                     1,
                     new WorkspaceSnapshotId(2),
                     new WorkspaceTransactionId(1)),
@@ -143,7 +143,7 @@ public sealed class CodeActionResolverTests : IDisposable
             WorkspaceMismatch.WorkspaceEpoch => recipe with
             {
                 SnapshotIdentity = new WorkspaceSnapshotIdentity(
-                    "WorkspaceId",
+                    Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     2,
                     new WorkspaceSnapshotId(2),
                     new WorkspaceTransactionId(1)),
@@ -166,7 +166,7 @@ public sealed class CodeActionResolverTests : IDisposable
         var recipe = CreateRecipe() with
         {
             SnapshotIdentity = new WorkspaceSnapshotIdentity(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceSnapshotId(3),
                 new WorkspaceTransactionId(1)),
@@ -490,7 +490,7 @@ public sealed class CodeActionResolverTests : IDisposable
     private static WorkspaceSnapshotIdentity CreateSnapshotIdentity()
     {
         return new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             new WorkspaceSnapshotId(2),
             new WorkspaceTransactionId(1));

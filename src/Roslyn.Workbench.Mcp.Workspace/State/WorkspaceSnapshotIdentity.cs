@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal readonly record struct WorkspaceSnapshotIdentity
 {
-    public string WorkspaceId { get; }
+    public Guid WorkspaceId { get; }
 
     public long WorkspaceEpoch { get; }
 
@@ -11,7 +11,7 @@ internal readonly record struct WorkspaceSnapshotIdentity
     public WorkspaceTransactionId? TransactionId { get; }
 
     public WorkspaceSnapshotIdentity(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceSnapshotId snapshotId,
         WorkspaceTransactionId? transactionId)

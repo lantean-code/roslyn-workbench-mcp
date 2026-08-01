@@ -58,7 +58,7 @@ public sealed class ErrorCaptureServiceTests
         var target = CreateTarget(options);
         var arguments = new Dictionary<string, JsonElement>
         {
-            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId = "UnknownWorkspace" }),
+            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") }),
         };
         var exception = new InvalidOperationException(
             new string('A', 1_000),
@@ -81,7 +81,7 @@ public sealed class ErrorCaptureServiceTests
         result.Exceptions.Should().HaveCount(2);
         result.Exceptions.Should().OnlyContain(item => item.Message.Length <= 128);
         result.Exceptions.Should().OnlyContain(item => item.StackFrames.Length <= 2);
-        _workspaceSessionStore.Verify(item => item.ReadSession("UnknownWorkspace"), Times.Once);
+        _workspaceSessionStore.Verify(item => item.ReadSession(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")), Times.Once);
     }
 
     [Fact]

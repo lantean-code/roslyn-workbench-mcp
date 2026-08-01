@@ -23,10 +23,10 @@ internal interface IPluginQueryCacheState
         where TKey : class
         where TValue : notnull;
 
-    void InvalidateWorkspace(string workspaceId, long workspaceEpoch);
+    void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch);
 
     void InvalidateTransaction(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceTransactionId transactionId);
 

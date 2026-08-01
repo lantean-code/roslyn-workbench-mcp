@@ -14,7 +14,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "NewName",
         };
@@ -41,7 +41,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = " ",
         };
@@ -75,7 +75,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "ExistingName",
         };
@@ -114,7 +114,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
             RenameOverloads = true,
@@ -166,7 +166,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
             RenameInStrings = true,
@@ -215,7 +215,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
             RenameInComments = true,
@@ -267,7 +267,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
             RenameOverloads = true,
@@ -322,7 +322,7 @@ public sealed class RenameSymbolToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
         };

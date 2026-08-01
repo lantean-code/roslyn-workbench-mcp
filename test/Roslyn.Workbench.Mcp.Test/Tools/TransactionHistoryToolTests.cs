@@ -32,7 +32,7 @@ public sealed class TransactionHistoryToolTests
         var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
-        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

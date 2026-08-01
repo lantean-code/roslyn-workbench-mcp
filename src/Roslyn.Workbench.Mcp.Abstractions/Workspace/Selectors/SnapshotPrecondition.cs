@@ -8,7 +8,8 @@ public sealed record SnapshotPrecondition
     /// <summary>
     /// Gets the workspace identifier associated with the expected snapshot.
     /// </summary>
-    public string? WorkspaceId { get; init; }
+    [NonEmptyGuid]
+    public required Guid WorkspaceId { get; init; }
 
     /// <summary>
     /// Gets the expected workspace epoch.

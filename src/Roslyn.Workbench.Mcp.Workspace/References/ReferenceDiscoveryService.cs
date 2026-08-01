@@ -19,14 +19,13 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
     }
 
     public async ValueTask<IReadOnlyList<ReferenceOccurrence>> FindReferencesAsync(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         ISymbol symbol,
         IReadOnlyList<Document> documents,
         bool includeDefinitions,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var referencedSymbols = await GetReferencedSymbolsAsync(
@@ -68,7 +67,7 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
     }
 
     private async Task<ImmutableArray<ReferencedSymbol>> GetReferencedSymbolsAsync(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         ISymbol symbol,
         IReadOnlyList<Document> documents,

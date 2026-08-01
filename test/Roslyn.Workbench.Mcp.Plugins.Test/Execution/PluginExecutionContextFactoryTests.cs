@@ -13,7 +13,7 @@ public sealed class PluginExecutionContextFactoryTests
         {
             Workspace = new WorkspaceSelector
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             },
         };
 
@@ -187,7 +187,7 @@ public sealed class PluginExecutionContextFactoryTests
             queryResultCache.Object);
 
         workspaceFactory
-            .Setup(item => item.DetectUnexpectedWorkspaceChange("WorkspaceId"))
+            .Setup(item => item.DetectUnexpectedWorkspaceChange(Guid.Parse("11111111-1111-1111-1111-111111111111")))
             .Returns(new WorkspaceExecutionFailure
             {
                 Status = WorkspaceOperationStatus.Conflict,
@@ -264,11 +264,11 @@ public sealed class PluginExecutionContextFactoryTests
             solution,
             new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 WorkspaceEpoch = 1,
             },
             new WorkspaceSnapshotIdentity(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceSnapshotId(1),
                 transactionId: null),

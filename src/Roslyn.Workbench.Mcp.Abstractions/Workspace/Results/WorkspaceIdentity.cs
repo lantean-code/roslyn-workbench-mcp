@@ -8,7 +8,7 @@ public sealed record WorkspaceIdentity
     /// <summary>
     /// Gets the stable server-generated workspace identifier.
     /// </summary>
-    public string WorkspaceId { get; init; } = string.Empty;
+    public Guid WorkspaceId { get; init; }
 
     /// <summary>
     /// Gets the optional caller-friendly alias.

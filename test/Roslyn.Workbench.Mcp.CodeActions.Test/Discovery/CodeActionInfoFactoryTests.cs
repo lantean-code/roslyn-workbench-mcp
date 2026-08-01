@@ -44,7 +44,7 @@ public sealed class CodeActionInfoFactoryTests
 
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
         });
 
@@ -297,7 +297,7 @@ public sealed class CodeActionInfoFactoryTests
         var transactionId = new WorkspaceTransactionId(1);
 
         return new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             committedSnapshotId,
             transactionId);

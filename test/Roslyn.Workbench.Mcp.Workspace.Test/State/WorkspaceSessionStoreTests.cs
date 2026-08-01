@@ -27,15 +27,17 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_NewStore_WHEN_AllocatingWorkspaceIds_THEN_ShouldReturnMonotonicallyIncreasingIds()
+    public void GIVEN_IndependentStores_WHEN_AllocatingWorkspaceIds_THEN_ShouldReturnGloballyUniqueIds()
     {
-        var target = CreateStore();
+        var firstTarget = CreateStore();
+        var secondTarget = CreateStore();
 
-        var first = target.AllocateWorkspaceId();
-        var second = target.AllocateWorkspaceId();
+        var first = firstTarget.AllocateWorkspaceId();
+        var second = secondTarget.AllocateWorkspaceId();
 
-        first.Should().Be("workspace-1");
-        second.Should().Be("workspace-2");
+        first.Should().NotBe(Guid.Empty);
+        second.Should().NotBe(Guid.Empty);
+        first.Should().NotBe(second);
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_ValidationFailure_WHEN_AddingWorkspace_THEN_ShouldReturnErrorWithoutMutatingSnapshot()
     {
         var target = CreateStore();
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var error = new WorkspaceOperationError
         {
             Code = "Code",
@@ -128,111 +130,111 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_ValidSession_WHEN_AddingAndReadingWorkspace_THEN_ShouldReturnAddedSession()
     {
         var target = CreateStore();
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var validate = new Mock<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>();
         validate.Setup(item => item(It.IsAny<WorkspaceHostSnapshot>())).Returns((WorkspaceOperationError?)null);
 
         var error = target.TryAddWorkspace(session, validate.Object);
-        var result = target.ReadSession("WorkspaceId");
+        var result = target.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         error.Should().BeNull();
         result.Should().BeSameAs(session);
-        target.ReadSession("UnknownWorkspaceId").Should().BeNull();
+        target.ReadSession(Guid.Parse("44444444-4444-4444-4444-444444444444")).Should().BeNull();
     }
 
     [Fact]
     public void GIVEN_UnknownWorkspace_WHEN_Removing_THEN_ShouldReturnNullWithoutChangingSnapshot()
     {
-        var target = CreateStoreWithSession(CreateSession("WorkspaceId", "Alias"));
+        var target = CreateStoreWithSession(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias"));
         var snapshot = target.ReadSnapshot();
 
-        var result = target.RemoveWorkspace("UnknownWorkspaceId");
+        var result = target.RemoveWorkspace(Guid.Parse("44444444-4444-4444-4444-444444444444"));
 
         result.Should().BeNull();
         target.ReadSnapshot().Should().BeSameAs(snapshot);
-        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
     public void GIVEN_OwnerWorkspace_WHEN_Removing_THEN_ShouldRemoveSessionAndClearOwner()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
-        target.ReplaceSessionAndSetTransactionOwner(session, "WorkspaceId");
+        target.ReplaceSessionAndSetTransactionOwner(session, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
-        var result = target.RemoveWorkspace("WorkspaceId");
+        var result = target.RemoveWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         result.Should().BeSameAs(session);
         target.ReadSnapshot().Workspaces.Should().BeEmpty();
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().BeNull();
-        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
+        _queryCache.Verify(item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
         _lifecycleObserver.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId", 1),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1),
             Times.Once);
     }
 
     [Fact]
     public void GIVEN_NonOwnerWorkspace_WHEN_Removing_THEN_ShouldPreserveDifferentOwner()
     {
-        var firstSession = CreateSession("FirstWorkspaceId", "FirstAlias");
-        var secondSession = CreateSession("SecondWorkspaceId", "SecondAlias");
+        var firstSession = CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias");
+        var secondSession = CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias");
         var target = CreateStoreWithSession(firstSession);
         AddSession(target, secondSession);
-        target.ReplaceSessionAndSetTransactionOwner(firstSession, "FirstWorkspaceId");
+        target.ReplaceSessionAndSetTransactionOwner(firstSession, Guid.Parse("55555555-5555-5555-5555-555555555555"));
 
-        var result = target.RemoveWorkspace("SecondWorkspaceId");
+        var result = target.RemoveWorkspace(Guid.Parse("66666666-6666-6666-6666-666666666666"));
 
         result.Should().BeSameAs(secondSession);
-        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("FirstWorkspaceId");
-        target.ReadSession("FirstWorkspaceId").Should().BeSameAs(firstSession);
-        _queryCache.Verify(item => item.InvalidateWorkspace("SecondWorkspaceId"), Times.Once);
+        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be(Guid.Parse("55555555-5555-5555-5555-555555555555"));
+        target.ReadSession(Guid.Parse("55555555-5555-5555-5555-555555555555")).Should().BeSameAs(firstSession);
+        _queryCache.Verify(item => item.InvalidateWorkspace(Guid.Parse("66666666-6666-6666-6666-666666666666")), Times.Once);
         _lifecycleObserver.Verify(
-            item => item.InvalidateWorkspace("SecondWorkspaceId", 1),
+            item => item.InvalidateWorkspace(Guid.Parse("66666666-6666-6666-6666-666666666666"), 1),
             Times.Once);
     }
 
     [Fact]
     public void GIVEN_ReplacementSession_WHEN_Replacing_THEN_ShouldUpdateOnlyMatchingWorkspace()
     {
-        var firstSession = CreateSession("FirstWorkspaceId", "FirstAlias");
-        var secondSession = CreateSession("SecondWorkspaceId", "SecondAlias");
+        var firstSession = CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias");
+        var secondSession = CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias");
         var target = CreateStoreWithSession(firstSession);
         AddSession(target, secondSession);
-        var replacement = CreateSession("FirstWorkspaceId", "ReplacementAlias");
+        var replacement = CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "ReplacementAlias");
 
         target.ReplaceSession(replacement);
 
-        target.ReadSession("FirstWorkspaceId").Should().BeSameAs(replacement);
-        target.ReadSession("SecondWorkspaceId").Should().BeSameAs(secondSession);
-        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
+        target.ReadSession(Guid.Parse("55555555-5555-5555-5555-555555555555")).Should().BeSameAs(replacement);
+        target.ReadSession(Guid.Parse("66666666-6666-6666-6666-666666666666")).Should().BeSameAs(secondSession);
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
     public void GIVEN_ReplacementAndOwner_WHEN_ReplacingAndSettingOwner_THEN_ShouldUpdateBothValues()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
-        var replacement = CreateSession("WorkspaceId", "ReplacementAlias");
+        var replacement = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ReplacementAlias");
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
+        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
-        target.ReadSession("WorkspaceId").Should().BeSameAs(replacement);
-        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("WorkspaceId");
-        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
+        target.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111")).Should().BeSameAs(replacement);
+        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
     public void GIVEN_ReplacementWithNewSolution_WHEN_Replacing_THEN_ShouldInvalidateWorkspaceCache()
     {
         using var workspace = new AdhocWorkspace();
-        var session = CreateSession("WorkspaceId", "Alias", workspace.CurrentSolution);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", workspace.CurrentSolution);
         var target = CreateStoreWithSession(session);
         var changedSolution = workspace.CurrentSolution.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
-        var replacement = CreateSession("WorkspaceId", "Alias", changedSolution);
+        var replacement = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", changedSolution);
 
         target.ReplaceSession(replacement);
 
-        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
+        _queryCache.Verify(item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
     }
 
     [Theory]
@@ -242,7 +244,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         WorkspaceLifecycleState state)
     {
         using var workspace = new AdhocWorkspace();
-        var session = CreateSession("WorkspaceId", "Alias", workspace.CurrentSolution);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", workspace.CurrentSolution);
         var target = CreateStoreWithSession(session);
         var replacement = session with
         {
@@ -251,13 +253,13 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         target.ReplaceSession(replacement);
 
-        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
+        _queryCache.Verify(item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
     }
 
     [Fact]
     public void GIVEN_ReadySession_WHEN_BecomingOutOfDate_THEN_ShouldInvalidateCurrentSnapshot()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var replacement = session with
         {
@@ -276,7 +278,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_ActiveTransaction_WHEN_BecomingConflicted_THEN_ShouldInvalidateTransaction()
     {
         var transaction = CreateTransaction();
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var replacement = session with
         {
@@ -287,7 +289,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 transaction.TransactionId),
             Times.Once);
@@ -296,22 +298,22 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     [Fact]
     public void GIVEN_PreviousSnapshot_WHEN_StoreChanges_THEN_ShouldRemainUnchanged()
     {
-        var firstSession = CreateSession("FirstWorkspaceId", "FirstAlias");
+        var firstSession = CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias");
         var target = CreateStoreWithSession(firstSession);
         var previousSnapshot = target.ReadSnapshot();
-        var secondSession = CreateSession("SecondWorkspaceId", "SecondAlias");
+        var secondSession = CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias");
 
         AddSession(target, secondSession);
 
         previousSnapshot.Workspaces.Should().ContainSingle();
-        previousSnapshot.Workspaces.Should().ContainKey("FirstWorkspaceId");
+        previousSnapshot.Workspaces.Should().ContainKey(Guid.Parse("55555555-5555-5555-5555-555555555555"));
         target.ReadSnapshot().Workspaces.Should().HaveCount(2);
     }
 
     [Fact]
     public void GIVEN_CommittedSession_WHEN_StartingTransaction_THEN_ShouldInvalidatePreviousCommittedSnapshot()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var transaction = CreateTransaction() with
         {
@@ -328,7 +330,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
+        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _lifecycleObserver.Verify(
             item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
@@ -337,7 +339,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<long>(),
                 It.IsAny<WorkspaceTransactionId>()),
             Times.Never);
@@ -346,7 +348,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     [Fact]
     public void GIVEN_UnchangedSolution_WHEN_StartingTransaction_THEN_ShouldRetainWorkspaceQueryCache()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var transaction = CreateTransaction() with
         {
@@ -364,10 +366,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
+        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace(It.IsAny<string>()),
+            item => item.InvalidateWorkspace(It.IsAny<Guid>()),
             Times.Never);
     }
 
@@ -375,7 +377,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_ActiveTransaction_WHEN_CommittingOrRollingBack_THEN_ShouldInvalidateTransaction()
     {
         var transaction = CreateTransaction();
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var committedSnapshotId = new WorkspaceSnapshotId(2);
         var replacement = session with
@@ -393,7 +395,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 transaction.TransactionId),
             Times.Once);
@@ -410,7 +412,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             currentRevision: 1,
             firstRevisionSolution: changedSolution);
 
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var committedSnapshotId = new WorkspaceSnapshotId(2);
         var replacement = session with
@@ -427,7 +429,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         target.ReplaceSessionAndSetTransactionOwner(replacement, null);
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace(It.IsAny<string>()),
+            item => item.InvalidateWorkspace(It.IsAny<Guid>()),
             Times.Never);
     }
 
@@ -439,7 +441,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             Revisions = [],
         };
 
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var changedSolution = _workspace.CurrentSolution
             .AddProject("Project", "Project", LanguageNames.CSharp)
@@ -468,7 +470,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             appendResult.DiscardedSnapshotIds);
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId"),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Times.Once);
     }
 
@@ -492,7 +494,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             firstRevisionSolution: firstRevisionSolution,
             secondRevisionSolution: secondRevisionSolution);
 
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var movedTransaction = transaction.MoveHistory(direction);
 
@@ -507,7 +509,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         });
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId"),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Times.Once);
     }
 
@@ -524,7 +526,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             baselineSolution: baselineSolution,
             firstRevisionSolution: changedSolution);
 
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var replacement = session with
         {
@@ -540,7 +542,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         target.ReplaceSessionAndSetTransactionOwner(replacement, null);
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId"),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Times.Once);
     }
 
@@ -548,7 +550,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_ReachableTransactionHistory_WHEN_MovingCurrentRevision_THEN_ShouldNotInvalidateReferences()
     {
         var transaction = CreateTransaction(currentRevision: 2);
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var movedTransaction = transaction.MoveHistory(TransactionHistoryDirection.Undo);
         var replacement = session with
@@ -568,7 +570,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<long>(),
                 It.IsAny<WorkspaceTransactionId>()),
             Times.Never);
@@ -578,7 +580,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     public void GIVEN_DiscardedRedoBranch_WHEN_ReplacingAfterStaging_THEN_ShouldInvalidateDiscardedSnapshots()
     {
         var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
         var replacementTransaction = transaction with
         {
@@ -610,7 +612,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             [new WorkspaceSnapshotId(3)]);
 
         var expectedIdentity = new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             new WorkspaceSnapshotId(3),
             transaction.TransactionId);
@@ -624,10 +626,10 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     [Fact]
     public void GIVEN_NewWorkspaceEpoch_WHEN_ReplacingSession_THEN_ShouldInvalidateSupersededInstance()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var replacement = CreateSession(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "Alias",
             workspaceEpoch: 2,
             committedSnapshotId: 2);
@@ -635,17 +637,17 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         target.ReplaceSession(replacement);
 
         _lifecycleObserver.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId", 1),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1),
             Times.Once);
     }
 
     [Fact]
     public void GIVEN_NewWorkspaceEpoch_WHEN_ReplacingSession_THEN_ShouldInvalidateWorkspaceQueryCache()
     {
-        var session = CreateSession("WorkspaceId", "Alias");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var replacement = CreateSession(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "Alias",
             workspaceEpoch: 2,
             committedSnapshotId: 2);
@@ -653,7 +655,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         target.ReplaceSession(replacement);
 
         _queryCache.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId"),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Times.Once);
     }
 
@@ -684,7 +686,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     }
 
     private WorkspaceSessionSnapshot CreateSession(
-        string workspaceId,
+        Guid workspaceId,
         string alias,
         Solution? solution = null,
         long workspaceEpoch = 1,

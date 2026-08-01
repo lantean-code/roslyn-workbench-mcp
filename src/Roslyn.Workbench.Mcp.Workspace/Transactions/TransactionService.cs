@@ -39,7 +39,7 @@ internal sealed class TransactionService : ITransactionService
         _instanceStatusPublisher = instanceStatusPublisher;
     }
 
-    public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -64,9 +64,9 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var ownerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
-        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, acquisition.Selection.WorkspaceId, StringComparison.Ordinal))
+        if (ownerWorkspaceId is not null && ownerWorkspaceId != acquisition.Selection.WorkspaceId)
         {
-            var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
+            var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId.Value);
             return _resultFactory.Rejected<TransactionStartOutcome>(
                 WorkspaceErrorCodes.TransactionOwner,
                 $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before starting a transaction on this workspace.",
@@ -124,7 +124,7 @@ internal sealed class TransactionService : ITransactionService
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         DocumentSelector? document,
@@ -235,7 +235,7 @@ internal sealed class TransactionService : ITransactionService
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveHistoryAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         TransactionHistoryDirection direction,
@@ -318,7 +318,7 @@ internal sealed class TransactionService : ITransactionService
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         SnapshotPrecondition? expectedSnapshot,
@@ -337,7 +337,7 @@ internal sealed class TransactionService : ITransactionService
         return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken);
     }
 
-    public async ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -407,10 +407,10 @@ internal sealed class TransactionService : ITransactionService
 
         return session.Workspace.Alias
             ?? session.Workspace.LoadedPath
-            ?? session.Workspace.WorkspaceId;
+            ?? session.Workspace.WorkspaceId.ToString();
     }
 
-    private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
+    private static WorkspaceSelector? CreateWorkspaceSelector(Guid? workspaceId, string? alias, string? path)
     {
         if (workspaceId is null && alias is null && path is null)
         {

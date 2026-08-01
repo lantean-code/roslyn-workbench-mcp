@@ -98,7 +98,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         var session = CreateSession(gate.Object);
         SetupSelection(session);
         SetupLease(gate, lease.Object, exclusive);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
 
         var result = Acquire(exclusive);
 
@@ -120,14 +120,14 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         var refreshedSession = selectedSession with { State = WorkspaceLifecycleState.TransactionActive };
         SetupSelection(selectedSession);
         SetupLease(gate, lease.Object, exclusive);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(refreshedSession);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(refreshedSession);
 
         var result = Acquire(exclusive);
 
         result.HasError.Should().BeFalse();
         result.Error.Should().BeNull();
         var selection = result.Selection.Should().BeOfType<WorkspaceSelection>().Which;
-        selection.WorkspaceId.Should().Be("WorkspaceId");
+        selection.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         selection.Session.Should().BeSameAs(refreshedSession);
         result.Session.Should().BeSameAs(refreshedSession);
         result.ContextSession.Should().BeSameAs(refreshedSession);
@@ -150,7 +150,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
         _workspaceSelector.Setup(item => item.Select(snapshot, null)).Returns(WorkspaceSelectionResult.Success(new WorkspaceSelection
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Session = session,
         }));
     }
@@ -171,7 +171,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
     {
         return new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot> { ["WorkspaceId"] = session },
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot> { [Guid.Parse("11111111-1111-1111-1111-111111111111")] = session },
         };
     }
 
@@ -181,7 +181,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "LoadedPath",
         };
 

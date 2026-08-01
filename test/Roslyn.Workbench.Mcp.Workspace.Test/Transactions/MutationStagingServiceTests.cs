@@ -85,7 +85,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReadSession(It.IsAny<string>()), Times.Never);
+        _sessionStore.Verify(item => item.ReadSession(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
@@ -202,10 +202,10 @@ public sealed class MutationStagingServiceTests : IDisposable
         var expected = CreateRejectedResult("TransactionRequired");
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot
         {
-            TransactionOwnerWorkspaceId = "WorkspaceId",
+            TransactionOwnerWorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
         });
 
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         SetupTransactionRequiredResult(expected);
 
         var result = await _target.StageAsync(
@@ -322,10 +322,10 @@ public sealed class MutationStagingServiceTests : IDisposable
     {
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot
         {
-            TransactionOwnerWorkspaceId = "WorkspaceId",
+            TransactionOwnerWorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
         });
 
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
     }
 
     private void SetupTransactionRequiredResult(WorkspaceOperationResult<MutationStagingOutcome> result)
@@ -392,7 +392,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "LoadedPath",
         };
 

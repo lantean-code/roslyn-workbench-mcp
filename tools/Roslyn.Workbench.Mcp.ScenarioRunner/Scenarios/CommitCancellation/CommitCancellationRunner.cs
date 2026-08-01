@@ -19,13 +19,13 @@ internal sealed class CommitCancellationRunner
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;
     private readonly string _stateDirectory;
-    private readonly string _workspaceId;
+    private readonly Guid _workspaceId;
 
     public bool HasOpenTransaction { get; private set; }
 
     public CommitCancellationRunner(
         ScenarioHost host,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot,
         string stateDirectory)
     {

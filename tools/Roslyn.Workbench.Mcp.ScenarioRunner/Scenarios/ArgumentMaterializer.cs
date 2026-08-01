@@ -10,7 +10,7 @@ internal static class ArgumentMaterializer
 
     public static IReadOnlyDictionary<string, object?> Materialize(
         JsonElement arguments,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot,
         long workspaceEpoch)
     {
@@ -30,7 +30,7 @@ internal static class ArgumentMaterializer
 
     private static object? ConvertElement(
         JsonElement element,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot,
         long workspaceEpoch)
     {
@@ -64,9 +64,17 @@ internal static class ArgumentMaterializer
 
             case JsonValueKind.String:
                 var value = element.GetString() ?? string.Empty;
-                return string.Equals(value, _workspaceEpochToken, StringComparison.Ordinal)
-                    ? workspaceEpoch
-                    : ReplaceTokens(value, workspaceId, repositoryRoot);
+                if (string.Equals(value, _workspaceEpochToken, StringComparison.Ordinal))
+                {
+                    return workspaceEpoch;
+                }
+
+                if (string.Equals(value, _workspaceIdToken, StringComparison.Ordinal))
+                {
+                    return workspaceId;
+                }
+
+                return ReplaceTokens(value, workspaceId, repositoryRoot);
 
             case JsonValueKind.Number:
                 return element.TryGetInt64(out var integer) ? integer : element.GetDouble();
@@ -85,10 +93,10 @@ internal static class ArgumentMaterializer
         }
     }
 
-    private static string ReplaceTokens(string value, string workspaceId, string repositoryRoot)
+    private static string ReplaceTokens(string value, Guid workspaceId, string repositoryRoot)
     {
         return value
-            .Replace(_workspaceIdToken, workspaceId, StringComparison.Ordinal)
+            .Replace(_workspaceIdToken, workspaceId.ToString("D"), StringComparison.Ordinal)
             .Replace(_repositoryRootToken, repositoryRoot, StringComparison.Ordinal);
     }
 }

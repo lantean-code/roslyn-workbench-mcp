@@ -162,14 +162,15 @@ internal static class ScenarioApplication
                 stateDirectory,
                 cancellationToken,
                 options.PluginDirectory);
-            string? workspaceId = null;
+            Guid? workspaceId = null;
             ExceptionDispatchInfo? runFailure = null;
             var workspaceClosed = false;
 
             try
             {
-                workspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
-                var runner = new ToolInvocationRunner(host, workspaceId, repositoryRoot);
+                var openedWorkspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
+                workspaceId = openedWorkspaceId;
+                var runner = new ToolInvocationRunner(host, openedWorkspaceId, repositoryRoot);
 
                 if (options.Command == ScenarioCommand.Measure)
                 {
@@ -186,7 +187,7 @@ internal static class ScenarioApplication
                         repository,
                         scenarios,
                         host,
-                        workspaceId,
+                        openedWorkspaceId,
                         repositoryRoot,
                         environment,
                         outputDirectory,
@@ -203,11 +204,11 @@ internal static class ScenarioApplication
             }
             finally
             {
-                if (workspaceId is not null)
+                if (workspaceId is Guid openedWorkspaceId)
                 {
                     try
                     {
-                        await CloseWorkspaceAsync(host, workspaceId);
+                        await CloseWorkspaceAsync(host, openedWorkspaceId);
                         workspaceClosed = true;
                     }
                     catch (Exception exception)
@@ -356,7 +357,7 @@ internal static class ScenarioApplication
         RepositoryDefinition repository,
         IReadOnlyList<ScenarioDefinition> scenarios,
         ScenarioHost host,
-        string primaryWorkspaceId,
+        Guid primaryWorkspaceId,
         string repositoryRoot,
         RunEnvironmentInfo environment,
         string outputDirectory,
@@ -641,22 +642,23 @@ internal static class ScenarioApplication
             repositoryRoot,
             stateDirectory,
             cancellationToken);
-        string? workspaceId = null;
+        Guid? workspaceId = null;
         CommitCancellationRunner? runner = null;
         CommitCancellationExecution? execution = null;
         ExceptionDispatchInfo? runFailure = null;
 
         try
         {
-            workspaceId = await OpenWorkspaceAsync(
+            var openedWorkspaceId = await OpenWorkspaceAsync(
                 host,
                 workspacePath,
                 repositoryRoot,
                 cancellationToken);
+            workspaceId = openedWorkspaceId;
 
             runner = new CommitCancellationRunner(
                 host,
-                workspaceId,
+                openedWorkspaceId,
                 repositoryRoot,
                 stateDirectory);
 
@@ -683,11 +685,11 @@ internal static class ScenarioApplication
                 }
             }
 
-            if (workspaceId is not null)
+            if (workspaceId is Guid openedWorkspaceId)
             {
                 try
                 {
-                    await CloseWorkspaceAsync(host, workspaceId);
+                    await CloseWorkspaceAsync(host, openedWorkspaceId);
                 }
                 catch (Exception exception)
                 {
@@ -906,21 +908,22 @@ internal static class ScenarioApplication
             repositoryRoot,
             stateDirectory,
             cancellationToken);
-        string? workspaceId = null;
+        Guid? workspaceId = null;
         StateSequenceExecution? execution = null;
         ExceptionDispatchInfo? runFailure = null;
 
         try
         {
-            workspaceId = await OpenWorkspaceAsync(
+            var openedWorkspaceId = await OpenWorkspaceAsync(
                 host,
                 workspacePath,
                 repositoryRoot,
                 cancellationToken);
+            workspaceId = openedWorkspaceId;
 
             var runner = new StateSequenceRunner(
                 host,
-                workspaceId,
+                openedWorkspaceId,
                 repositoryRoot);
 
             execution = await runner.ExecuteAsync(scenario, cancellationToken);
@@ -931,11 +934,11 @@ internal static class ScenarioApplication
         }
         finally
         {
-            if (workspaceId is not null)
+            if (workspaceId is Guid openedWorkspaceId)
             {
                 try
                 {
-                    await CloseWorkspaceAsync(host, workspaceId);
+                    await CloseWorkspaceAsync(host, openedWorkspaceId);
                 }
                 catch (Exception exception)
                 {
@@ -1063,15 +1066,16 @@ internal static class ScenarioApplication
             repositoryRoot,
             stateDirectory,
             cancellationToken);
-        string? workspaceId = null;
+        Guid? workspaceId = null;
         DurableCommitRunner? runner = null;
         DurableCommitExecution? execution = null;
         ExceptionDispatchInfo? runFailure = null;
 
         try
         {
-            workspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
-            runner = new DurableCommitRunner(host, workspaceId, repositoryRoot);
+            var openedWorkspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
+            workspaceId = openedWorkspaceId;
+            runner = new DurableCommitRunner(host, openedWorkspaceId, repositoryRoot);
             if (collector is null || diagnosticArtifact is null)
             {
                 execution = await runner.ExecuteAsync(scenario, cancellationToken);
@@ -1130,11 +1134,11 @@ internal static class ScenarioApplication
                 }
             }
 
-            if (workspaceId is not null)
+            if (workspaceId is Guid openedWorkspaceId)
             {
                 try
                 {
-                    await CloseWorkspaceAsync(host, workspaceId);
+                    await CloseWorkspaceAsync(host, openedWorkspaceId);
                 }
                 catch (Exception exception)
                 {
@@ -1343,27 +1347,28 @@ internal static class ScenarioApplication
             repositoryRoot,
             stateDirectory,
             cancellationToken);
-        string? workspaceId = null;
+        Guid? workspaceId = null;
         ConflictExecution? execution = null;
         ExceptionDispatchInfo? runFailure = null;
 
         try
         {
-            workspaceId = await OpenWorkspaceAsync(
+            var openedWorkspaceId = await OpenWorkspaceAsync(
                 host,
                 workspacePath,
                 repositoryRoot,
                 cancellationToken);
+            workspaceId = openedWorkspaceId;
             var durableRunner = new DurableCommitRunner(
                 host,
-                workspaceId,
+                openedWorkspaceId,
                 repositoryRoot);
             var preparation = await durableRunner.PrepareAsync(
                 scenario,
                 cancellationToken);
             var conflictRunner = new ConflictRunner(
                 host,
-                workspaceId,
+                openedWorkspaceId,
                 repositoryRoot,
                 stateDirectory);
             execution = await conflictRunner.ExecuteAsync(
@@ -1377,12 +1382,12 @@ internal static class ScenarioApplication
         }
         finally
         {
-            if (workspaceId is not null
+            if (workspaceId is Guid openedWorkspaceId
                 && conflict.Mode == ConflictMode.PreWriteDrift)
             {
                 try
                 {
-                    await CloseWorkspaceAsync(host, workspaceId);
+                    await CloseWorkspaceAsync(host, openedWorkspaceId);
                 }
                 catch (Exception exception)
                 {
@@ -1594,7 +1599,7 @@ internal static class ScenarioApplication
         RepositoryChangeSet? filesAfterRecovery = null;
         RunValidationResult? validation = null;
         ExceptionDispatchInfo? runFailure = null;
-        string? recoveryWorkspaceId = null;
+        Guid? recoveryWorkspaceId = null;
         double recoveryStartupMilliseconds = 0;
         double workspaceReopenMilliseconds = 0;
 
@@ -1652,16 +1657,17 @@ internal static class ScenarioApplication
             recoveryStartupMilliseconds = recoveryStartupStopwatch.Elapsed.TotalMilliseconds;
 
             var workspaceReopenStopwatch = Stopwatch.StartNew();
-            recoveryWorkspaceId = await OpenWorkspaceAsync(
+            var openedRecoveryWorkspaceId = await OpenWorkspaceAsync(
                 recoveryHost,
                 workspacePath,
                 repositoryRoot,
                 cancellationToken);
+            recoveryWorkspaceId = openedRecoveryWorkspaceId;
 
             workspaceReopenStopwatch.Stop();
             workspaceReopenMilliseconds = workspaceReopenStopwatch.Elapsed.TotalMilliseconds;
 
-            await CloseWorkspaceAsync(recoveryHost, recoveryWorkspaceId);
+            await CloseWorkspaceAsync(recoveryHost, openedRecoveryWorkspaceId);
             recoveryWorkspaceId = null;
             await recoveryHost.DisposeAsync();
 
@@ -1683,11 +1689,11 @@ internal static class ScenarioApplication
         }
         finally
         {
-            if (recoveryWorkspaceId is not null && recoveryHost is not null)
+            if (recoveryWorkspaceId is Guid openedRecoveryWorkspaceId && recoveryHost is not null)
             {
                 try
                 {
-                    await CloseWorkspaceAsync(recoveryHost, recoveryWorkspaceId);
+                    await CloseWorkspaceAsync(recoveryHost, openedRecoveryWorkspaceId);
                 }
                 catch (Exception exception)
                 {
@@ -2128,7 +2134,7 @@ internal static class ScenarioApplication
         }
     }
 
-    private static async Task<string> OpenWorkspaceAsync(
+    private static async Task<Guid> OpenWorkspaceAsync(
         ScenarioHost host,
         string workspacePath,
         string repositoryRoot,
@@ -2157,8 +2163,11 @@ internal static class ScenarioApplication
             .GetProperty("workspace");
         var workspaceId = workspace
             .GetProperty("workspaceId")
-            .GetString()
-            ?? throw new InvalidDataException("workspace-open returned no workspaceId.");
+            .GetGuid();
+        if (workspaceId == Guid.Empty)
+        {
+            throw new InvalidDataException("workspace-open returned an empty workspaceId.");
+        }
         var workspaceEpoch = workspace
             .GetProperty("workspaceEpoch")
             .GetInt64();
@@ -2167,7 +2176,7 @@ internal static class ScenarioApplication
         return workspaceId;
     }
 
-    private static async Task CloseWorkspaceAsync(ScenarioHost host, string workspaceId)
+    private static async Task CloseWorkspaceAsync(ScenarioHost host, Guid workspaceId)
     {
         var result = await host.CallToolAsync(
             "workspace-close",

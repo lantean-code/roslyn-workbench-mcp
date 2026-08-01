@@ -56,7 +56,7 @@ public sealed class WorkspaceStateTransitionsTests
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "LoadedPath",
         };
 

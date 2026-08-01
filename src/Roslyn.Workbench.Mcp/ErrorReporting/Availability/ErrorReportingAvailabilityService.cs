@@ -16,7 +16,7 @@ internal sealed class ErrorReportingAvailabilityService : IErrorReportingAvailab
     }
 
     public ErrorReportingAvailability GetAvailability(
-        string? workspaceId,
+        Guid? workspaceId,
         long? workspaceEpoch,
         bool? supportsElicitation)
     {

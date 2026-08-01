@@ -19,7 +19,7 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
     }
 
     public ProjectTargetFrameworksResult Resolve(
-        string workspaceId,
+        Guid workspaceId,
         Project project,
         CancellationToken cancellationToken)
     {
@@ -57,7 +57,7 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
     }
 
     public IReadOnlyList<ProjectTargetFrameworksResult> Resolve(
-        string workspaceId,
+        Guid workspaceId,
         IReadOnlyList<Project> projects,
         CancellationToken cancellationToken)
     {

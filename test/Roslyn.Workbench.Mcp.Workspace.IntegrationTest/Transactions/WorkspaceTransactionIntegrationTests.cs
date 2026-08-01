@@ -67,6 +67,32 @@ public sealed class WorkspaceTransactionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_SnapshotFromPreviousServerInstance_WHEN_ValidatingTransaction_THEN_ShouldReturnSnapshotMismatch()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        SnapshotPrecondition previousSnapshot;
+        await using (var previousTarget = fixture.CreateWorkspace())
+        {
+            await previousTarget.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+            var previousTransaction = await previousTarget.StartTransactionAsync(TestContext.Current.CancellationToken);
+            previousSnapshot = CreateSnapshot(previousTransaction.Context);
+            await previousTarget.RollbackTransactionAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var currentTarget = fixture.CreateWorkspace();
+        await currentTarget.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await currentTarget.StartTransactionAsync(TestContext.Current.CancellationToken);
+
+        var result = await currentTarget.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Undo,
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: previousSnapshot);
+
+        result.Status.Should().Be(WorkspaceOperationStatus.Conflict);
+        result.Error!.Code.Should().Be("SnapshotMismatch");
+    }
+
+    [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingMutationTool_THEN_ShouldStageRevisionAndPreviewChanges()
     {
         using var fixture = TestWorkspaceFixture.Create();
@@ -101,22 +127,12 @@ public sealed class WorkspaceTransactionIntegrationTests
         var undo = await target.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Undo,
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new SnapshotPrecondition
-            {
-                WorkspaceId = preview.Context.WorkspaceId,
-                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.Context.TransactionRevision,
-            });
+            expectedSnapshot: CreateSnapshot(preview.Context));
 
         var redo = await target.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Redo,
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new SnapshotPrecondition
-            {
-                WorkspaceId = undo.Context.WorkspaceId,
-                WorkspaceEpoch = undo.Context.WorkspaceEpoch!.Value,
-                TransactionRevision = undo.Context.TransactionRevision,
-            });
+            expectedSnapshot: CreateSnapshot(undo.Context));
 
         undo.Data!.Transaction!.Revision.Should().Be(0);
         undo.Data.Transaction.CanRedo.Should().BeTrue();
@@ -152,12 +168,7 @@ public sealed class WorkspaceTransactionIntegrationTests
 
         var commit = await target.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new SnapshotPrecondition
-            {
-                WorkspaceId = preview.Context.WorkspaceId,
-                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.Context.TransactionRevision,
-            });
+            expectedSnapshot: CreateSnapshot(preview.Context));
 
         var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
@@ -212,12 +223,7 @@ public sealed class WorkspaceTransactionIntegrationTests
 
         var commit = await target.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new SnapshotPrecondition
-            {
-                WorkspaceId = preview.Context.WorkspaceId,
-                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.Context.TransactionRevision,
-            });
+            expectedSnapshot: CreateSnapshot(preview.Context));
 
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var bytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
@@ -254,6 +260,19 @@ public sealed class WorkspaceTransactionIntegrationTests
         await StageMutationAsync(target);
 
         return target;
+    }
+
+    private static SnapshotPrecondition CreateSnapshot(WorkspaceOperationContext context)
+    {
+        var workspaceId = context.WorkspaceId
+            ?? throw new InvalidOperationException("The workspace operation did not return a workspace identifier.");
+
+        return new SnapshotPrecondition
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = context.WorkspaceEpoch!.Value,
+            TransactionRevision = context.TransactionRevision,
+        };
     }
 
     private static async Task<PluginExecutionResult<MutationData>> StageMutationAsync(

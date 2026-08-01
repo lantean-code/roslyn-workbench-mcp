@@ -151,7 +151,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
     }
 
-    public WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(string workspaceId)
+    public WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(Guid workspaceId)
     {
         var session = _sessionStore.ReadSession(workspaceId);
         if (session is null)
@@ -194,16 +194,16 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     }
 
     private WorkspaceExecutionSessionValidation ValidateMutationSession(
-        string workspaceId,
+        Guid workspaceId,
         WorkspaceSessionSnapshot session,
         CancellationToken cancellationToken)
     {
         var snapshot = _sessionStore.ReadSnapshot();
         var ownerWorkspaceId = snapshot.TransactionOwnerWorkspaceId;
-        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId)
-            && !string.Equals(ownerWorkspaceId, workspaceId, StringComparison.Ordinal))
+        if (ownerWorkspaceId is not null
+            && ownerWorkspaceId != workspaceId)
         {
-            var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
+            var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId.Value);
             var failure = CreateFailure(
                 WorkspaceOperationStatus.Rejected,
                 WorkspaceErrorCodes.TransactionOwner,
@@ -301,7 +301,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         return session.Workspace.Alias
             ?? session.Workspace.LoadedPath
-            ?? session.Workspace.WorkspaceId;
+            ?? session.Workspace.WorkspaceId.ToString();
     }
 
     private static WorkspaceExecutionFailure CreateSelectionFailure(WorkspaceOperationError error)

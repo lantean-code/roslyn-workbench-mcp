@@ -578,7 +578,7 @@ public sealed class PrepareFixAllToolTests
             Scope = scope,
             MaxChanges = maxChanges,
             AffectedDocumentsLimit = affectedDocumentsLimit,
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
         };
     }
 }

@@ -45,7 +45,7 @@ public sealed class WorkspaceOpenToolTests
             {
                 Workspace = new WorkspaceIdentity
                 {
-                    WorkspaceId = "WorkspaceId",
+                    WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     Alias = "Alias",
                     WorkspaceEpoch = 3,
                     LoadedPath = "/workspace/Sample.csproj",
@@ -71,7 +71,7 @@ public sealed class WorkspaceOpenToolTests
 
         result.IsError.Should().BeFalse();
         var data = result.StructuredContent!.Value.GetProperty("data");
-        data.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
+        data.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("11111111-1111-1111-1111-111111111111");
         data.GetProperty("projectCount").GetInt32().Should().Be(2);
         data.GetProperty("documentCount").GetInt32().Should().Be(5);
         service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None), Times.Once);

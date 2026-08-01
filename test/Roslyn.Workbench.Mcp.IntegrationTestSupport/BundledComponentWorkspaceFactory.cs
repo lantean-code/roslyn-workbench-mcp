@@ -56,8 +56,12 @@ internal static class BundledComponentWorkspaceFactory
         WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         int? transactionRevision = null)
     {
+        var workspaceId = openResult.Context.WorkspaceId
+            ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier.");
+
         return new SnapshotPrecondition
         {
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
             TransactionRevision = transactionRevision,
         };

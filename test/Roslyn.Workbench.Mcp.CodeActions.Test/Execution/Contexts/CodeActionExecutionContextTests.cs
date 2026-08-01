@@ -46,11 +46,11 @@ public sealed class CodeActionExecutionContextTests
             solution,
             new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 WorkspaceEpoch = 1,
             },
             new WorkspaceSnapshotIdentity(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceSnapshotId(1),
                 new WorkspaceTransactionId(1)),

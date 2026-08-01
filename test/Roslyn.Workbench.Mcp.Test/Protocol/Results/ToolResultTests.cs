@@ -16,7 +16,7 @@ public sealed class ToolResultTests
                 DocumentCount = 2,
                 ReloadRequired = false,
             },
-            workspaceId: "workspace-42",
+            workspaceId: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             workspaceEpoch: 42,
             diagnostics:
             [
@@ -41,7 +41,7 @@ public sealed class ToolResultTests
 
         roundTripped.Should().NotBeNull();
         roundTripped!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        roundTripped.WorkspaceId.Should().Be("workspace-42");
+        roundTripped.WorkspaceId.Should().Be(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
         roundTripped.WorkspaceEpoch.Should().Be(42);
         roundTripped.Data.Should().NotBeNull();
         roundTripped.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
@@ -58,10 +58,10 @@ public sealed class ToolResultTests
                 Code = "Code",
                 Message = "Message",
             },
-            workspaceId: "workspace-42",
+            workspaceId: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             workspaceEpoch: 42);
 
-        result.WorkspaceId.Should().Be("workspace-42");
+        result.WorkspaceId.Should().Be(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
         result.WorkspaceEpoch.Should().Be(42);
     }
 

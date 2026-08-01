@@ -50,7 +50,7 @@ public sealed class PluginQueryMcpServerToolTests
                 It.Is<TestQueryRequest>(request =>
                     request.Name == "Name"
                     && request.Workspace != null
-                    && request.Workspace.WorkspaceId == "WorkspaceId"),
+                    && request.Workspace.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111")),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 CancellationToken.None))
@@ -74,7 +74,7 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
         result.StructuredContent.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Value");
         contextFactory.Verify(item => item.CreateQueryContext(
-            It.Is<TestQueryRequest>(request => request.Workspace!.WorkspaceId == "WorkspaceId"),
+            It.Is<TestQueryRequest>(request => request.Workspace!.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111")),
             It.IsAny<string>(),
             It.IsAny<string>(),
             CancellationToken.None), Times.Once);

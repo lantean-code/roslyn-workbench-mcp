@@ -16,7 +16,7 @@ internal static class McpServerToolTestData
         {
             arguments["workspace"] = JsonSerializer.SerializeToElement(new WorkspaceSelector
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             });
         }
 
@@ -26,7 +26,7 @@ internal static class McpServerToolTestData
     public static Dictionary<string, JsonElement> CreateMutationArguments()
     {
         var arguments = CreateArguments();
-        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
         return arguments;
     }
 

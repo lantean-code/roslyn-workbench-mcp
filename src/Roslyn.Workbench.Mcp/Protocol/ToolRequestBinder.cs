@@ -56,6 +56,15 @@ internal static class ToolRequestBinder
                 return false;
             }
 
+            if (RequestObjectGraphValidator.TryCreateInvalidDescendantsError(
+                request,
+                _serializerOptions,
+                out errorMessage))
+            {
+                request = null;
+                return false;
+            }
+
             errorMessage = null;
             return true;
         }

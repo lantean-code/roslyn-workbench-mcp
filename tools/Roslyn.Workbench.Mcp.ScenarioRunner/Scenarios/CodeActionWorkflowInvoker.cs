@@ -10,11 +10,11 @@ internal sealed class CodeActionWorkflowInvoker
     private readonly Dictionary<string, Guid> _capturedReferences = new(StringComparer.Ordinal);
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;
-    private readonly string _workspaceId;
+    private readonly Guid _workspaceId;
 
     public CodeActionWorkflowInvoker(
         ScenarioHost host,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot)
     {
         _host = host;

@@ -6,7 +6,7 @@ internal static class CodeActionExecutionTestFactory
     {
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch: 1,
             committedSnapshotId,
             transactionId: null);

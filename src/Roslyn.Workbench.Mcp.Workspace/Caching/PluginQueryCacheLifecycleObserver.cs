@@ -9,13 +9,13 @@ internal sealed class PluginQueryCacheLifecycleObserver : IWorkspaceSnapshotLife
         _state = state;
     }
 
-    public void InvalidateWorkspace(string workspaceId, long workspaceEpoch)
+    public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         _state.InvalidateWorkspace(workspaceId, workspaceEpoch);
     }
 
     public void InvalidateTransaction(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceTransactionId transactionId)
     {

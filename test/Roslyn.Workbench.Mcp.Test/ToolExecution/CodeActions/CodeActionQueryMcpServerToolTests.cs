@@ -69,7 +69,7 @@ public sealed class CodeActionQueryMcpServerToolTests
                 It.Is<TestQueryRequest>(request =>
                     request.Name == "Name"
                     && request.Workspace != null
-                    && request.Workspace.WorkspaceId == "WorkspaceId"),
+                    && request.Workspace.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111")),
                 CancellationToken.None))
             .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
 

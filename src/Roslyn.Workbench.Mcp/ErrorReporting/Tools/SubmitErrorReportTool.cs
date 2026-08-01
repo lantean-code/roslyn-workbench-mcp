@@ -205,7 +205,7 @@ internal sealed class SubmitErrorReportTool :
             case _allowWorkspace when submission.WorkspaceId is not null
                 && submission.WorkspaceEpoch is not null:
                 _consentService.AllowWorkspace(
-                    submission.WorkspaceId,
+                    submission.WorkspaceId.Value,
                     submission.WorkspaceEpoch.Value);
                 return null;
 

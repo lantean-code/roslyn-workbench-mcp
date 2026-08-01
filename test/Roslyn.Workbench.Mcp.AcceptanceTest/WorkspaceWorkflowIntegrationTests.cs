@@ -27,7 +27,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
             var workspaceIdentity = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
             var workspace = open.GetProperty("workspace");
 
-            workspaceIdentity.WorkspaceId.Should().NotBeNullOrWhiteSpace();
+            workspaceIdentity.WorkspaceId.Should().NotBe(Guid.Empty);
             workspace.GetProperty("loadedPath").GetString().Should().Be(projectPath);
             open.GetProperty("projectCount").GetInt32().Should().Be(1);
             open.GetProperty("documentCount").GetInt32().Should().BeGreaterThanOrEqualTo(1);

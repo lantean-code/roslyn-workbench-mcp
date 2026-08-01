@@ -71,20 +71,20 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
             cancellationToken);
     }
 
-    public void InvalidateWorkspace(string workspaceId, long workspaceEpoch)
+    public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         InvalidateMatching(snapshot =>
-            string.Equals(snapshot.WorkspaceId, workspaceId, StringComparison.Ordinal)
+            snapshot.WorkspaceId == workspaceId
             && snapshot.WorkspaceEpoch == workspaceEpoch);
     }
 
     public void InvalidateTransaction(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceTransactionId transactionId)
     {
         InvalidateMatching(snapshot =>
-            string.Equals(snapshot.WorkspaceId, workspaceId, StringComparison.Ordinal)
+            snapshot.WorkspaceId == workspaceId
             && snapshot.WorkspaceEpoch == workspaceEpoch
             && snapshot.TransactionId == transactionId);
     }

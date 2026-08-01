@@ -20,7 +20,7 @@ public sealed class WorkspaceReloadToolTests
             {
                 Workspace = new WorkspaceIdentity
                 {
-                    WorkspaceId = "WorkspaceId",
+                    WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     WorkspaceEpoch = 4,
                     LoadedPath = "/workspace/Sample.csproj",
                 },

@@ -11,6 +11,8 @@ public sealed class SemanticInspectionIntegrationTests
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
         var snapshot = new SnapshotPrecondition
         {
+            WorkspaceId = openResult.Context.WorkspaceId
+                ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
             WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
         };
 

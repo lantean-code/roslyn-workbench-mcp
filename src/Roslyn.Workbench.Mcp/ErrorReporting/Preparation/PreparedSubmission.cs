@@ -12,7 +12,7 @@ internal sealed record PreparedSubmission
 
     public required PreparedDispatchPayload Payload { get; init; }
 
-    public string? WorkspaceId { get; init; }
+    public Guid? WorkspaceId { get; init; }
 
     public long? WorkspaceEpoch { get; init; }
 

@@ -125,7 +125,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupRejectedResult(expected, error);
         SetupAcquisitionFailure(error);
 
-        var result = await _target.StartAsync("WorkspaceId", null, null, TestContext.Current.CancellationToken);
+        var result = await _target.StartAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
     }
@@ -134,7 +134,7 @@ public sealed class TransactionServiceTests : IDisposable
     [InlineData(null, "Alias", null)]
     [InlineData(null, null, "Path")]
     public async Task GIVEN_SelectorFields_WHEN_StartingTransaction_THEN_ShouldPassPopulatedSelector(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path)
     {
@@ -178,7 +178,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -203,7 +203,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         SetupConflictResult(expected, WorkspaceErrorCodes.WorkspaceOutOfDate);
 
         var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -212,9 +212,9 @@ public sealed class TransactionServiceTests : IDisposable
     }
 
     [Theory]
-    [InlineData("OwnerAlias", "OwnerPath", "OwnerId", "OwnerAlias")]
-    [InlineData(null, "OwnerPath", "OwnerId", "OwnerPath")]
-    [InlineData(null, null, "OwnerId", "OwnerId")]
+    [InlineData("OwnerAlias", "OwnerPath", "22222222-2222-2222-2222-222222222222", "OwnerAlias")]
+    [InlineData(null, "OwnerPath", "22222222-2222-2222-2222-222222222222", "OwnerPath")]
+    [InlineData(null, null, "22222222-2222-2222-2222-222222222222", "22222222-2222-2222-2222-222222222222")]
     public async Task GIVEN_DifferentTransactionOwner_WHEN_StartingTransaction_THEN_ShouldIdentifyOwner(
         string? ownerAlias,
         string? ownerPath,
@@ -228,7 +228,7 @@ public sealed class TransactionServiceTests : IDisposable
         {
             Workspace = new WorkspaceIdentity
             {
-                WorkspaceId = ownerId,
+                WorkspaceId = Guid.Parse(ownerId),
                 Alias = ownerAlias,
                 LoadedPath = ownerPath!,
             },
@@ -237,11 +237,11 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _sessionStore.Setup(item => item.ReadSnapshot())
-            .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = "OwnerId" });
+            .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222") });
 
-        _sessionStore.Setup(item => item.ReadSession("OwnerId")).Returns(ownerSession);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("22222222-2222-2222-2222-222222222222"))).Returns(ownerSession);
         _resultFactory.Setup(item => item.Rejected<TransactionStartOutcome>(
             WorkspaceErrorCodes.TransactionOwner,
             It.Is<string>(message => message.Contains(expectedDisplayName, StringComparison.Ordinal)),
@@ -264,11 +264,11 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _sessionStore.Setup(item => item.ReadSnapshot())
-            .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = "OwnerId" });
+            .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222") });
 
-        _sessionStore.Setup(item => item.ReadSession("OwnerId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("22222222-2222-2222-2222-222222222222"))).Returns((WorkspaceSessionSnapshot?)null);
         _resultFactory.Setup(item => item.Rejected<TransactionStartOutcome>(
             WorkspaceErrorCodes.TransactionOwner,
             It.Is<string>(message => message.Contains("unknown", StringComparison.Ordinal)),
@@ -291,7 +291,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionAlreadyActive);
 
         var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -308,7 +308,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.Ready, WorkspaceTrigger.TransactionStarted))
             .Returns(WorkspaceLifecycleState.TransactionActive);
 
@@ -329,7 +329,7 @@ public sealed class TransactionServiceTests : IDisposable
                 && updated.Transaction.MaxRevisions == 5
                 && updated.CurrentSnapshotIdentity.TransactionId == new WorkspaceTransactionId(7)
                 && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId),
-            "WorkspaceId"), Times.Once);
+            Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
     }
 
     [Fact]
@@ -380,7 +380,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupAcquisitionFailure(error);
 
         var result = await _target.PreviewAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             null,
             null,
             null,
@@ -422,7 +422,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
 
         var result = await _target.PreviewAsync(
@@ -447,7 +447,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -482,7 +482,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resolverFactory.Setup(item => item.Create(transaction.CurrentSolution, session.Workspace, transaction.CurrentRevision))
             .Returns(_resolver.Object);
 
@@ -727,7 +727,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionHistoryOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
 
         var result = await _target.MoveHistoryAsync(
@@ -750,7 +750,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionHistoryOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -788,7 +788,7 @@ public sealed class TransactionServiceTests : IDisposable
             null,
             null,
             TransactionHistoryDirection.Undo,
-            new SnapshotPrecondition(),
+            new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
@@ -930,12 +930,12 @@ public sealed class TransactionServiceTests : IDisposable
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
-        var expectedSnapshot = new SnapshotPrecondition();
+        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
         var expected = CreateResult<TransactionCommitOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _commitService.Setup(item => item.CommitAsync(
-            It.Is<WorkspaceSelection>(selection => selection.WorkspaceId == "WorkspaceId"),
+            It.Is<WorkspaceSelection>(selection => selection.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111")),
             expectedSnapshot,
             TestContext.Current.CancellationToken)).ReturnsAsync(expected);
 
@@ -1002,7 +1002,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionRollbackOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
 
         var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -1019,7 +1019,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionRollbackOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -1049,7 +1049,7 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionRollbackOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _stateTransitions.Setup(item => item.Fire(state, trigger)).Returns(WorkspaceLifecycleState.Ready);
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<TransactionRollbackOutcome>(outcome => outcome.State == expectedState),
@@ -1150,7 +1150,7 @@ public sealed class TransactionServiceTests : IDisposable
     {
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resolverFactory.Setup(item => item.Create(transaction.CurrentSolution, session.Workspace, transaction.CurrentRevision))
             .Returns(_resolver.Object);
 
@@ -1179,7 +1179,7 @@ public sealed class TransactionServiceTests : IDisposable
     {
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
     }
 
     private void SetupRejectedResult<TOutcome>(WorkspaceOperationResult<TOutcome> result, string code)
@@ -1220,7 +1220,7 @@ public sealed class TransactionServiceTests : IDisposable
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
             LoadedPath = "LoadedPath",
         };
@@ -1282,9 +1282,9 @@ public sealed class TransactionServiceTests : IDisposable
     {
         return new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
             {
-                ["WorkspaceId"] = session,
+                [Guid.Parse("11111111-1111-1111-1111-111111111111")] = session,
             },
         };
     }

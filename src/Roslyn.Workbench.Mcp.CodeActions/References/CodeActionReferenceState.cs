@@ -152,14 +152,14 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
             && reference.Recipe.PreparedFixAllScope is not null;
     }
 
-    public void InvalidateWorkspace(string workspaceId, long workspaceEpoch)
+    public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         var workspaceKey = new WorkspaceInstanceCacheKey(workspaceId, workspaceEpoch);
         RemoveIndexedReferences(_workspaceIndex, workspaceKey);
     }
 
     public void InvalidateTransaction(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceTransactionId transactionId)
     {
@@ -185,7 +185,7 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
             + recipe.ProviderId.Length
             + recipe.Title.Length
             + (recipe.EquivalenceKey?.Length ?? 0)
-            + recipe.SnapshotIdentity.WorkspaceId.Length
+            + 16
             + recipe.DocumentPath.Length
             + recipe.ProjectId.Length
             + recipe.ActionPath.Count
@@ -408,11 +408,11 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
 
     private sealed record WorkspaceInstanceCacheKey
     {
-        public string WorkspaceId { get; }
+        public Guid WorkspaceId { get; }
 
         public long WorkspaceEpoch { get; }
 
-        public WorkspaceInstanceCacheKey(string workspaceId, long workspaceEpoch)
+        public WorkspaceInstanceCacheKey(Guid workspaceId, long workspaceEpoch)
         {
             WorkspaceId = workspaceId;
             WorkspaceEpoch = workspaceEpoch;
@@ -421,14 +421,14 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
 
     private sealed record WorkspaceTransactionCacheKey
     {
-        public string WorkspaceId { get; }
+        public Guid WorkspaceId { get; }
 
         public long WorkspaceEpoch { get; }
 
         public WorkspaceTransactionId TransactionId { get; }
 
         public WorkspaceTransactionCacheKey(
-            string workspaceId,
+            Guid workspaceId,
             long workspaceEpoch,
             WorkspaceTransactionId transactionId)
         {

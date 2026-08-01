@@ -168,6 +168,7 @@ public sealed class FindCalleesToolTests
             Location = new LocationSelector(),
             ExpectedSnapshot = new SnapshotPrecondition
             {
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 WorkspaceEpoch = 1,
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);

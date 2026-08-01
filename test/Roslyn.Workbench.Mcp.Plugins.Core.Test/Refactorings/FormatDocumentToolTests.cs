@@ -14,7 +14,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Document = new DocumentSelector(),
         };
 
@@ -45,7 +45,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Document = new DocumentSelector(),
         };
 
@@ -71,7 +71,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Document = new DocumentSelector(),
         };
 
@@ -102,7 +102,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Document = new DocumentSelector(),
             Range = new TextSpanSelector
             {
@@ -139,7 +139,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
             Document = new DocumentSelector(),
             Range = new TextSpanSelector
             {

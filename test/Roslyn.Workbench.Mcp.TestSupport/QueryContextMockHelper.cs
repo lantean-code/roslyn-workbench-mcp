@@ -26,7 +26,7 @@ public static class QueryContextMockHelper
 
         referenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<Solution>(),
                 It.IsAny<ISymbol>(),
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -79,7 +79,7 @@ public static class QueryContextMockHelper
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             });
 
         return new QueryContextMockGraph(

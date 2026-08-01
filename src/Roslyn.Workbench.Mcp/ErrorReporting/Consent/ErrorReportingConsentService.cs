@@ -9,12 +9,12 @@ internal sealed class ErrorReportingConsentService : IErrorReportingConsentServi
         _store = store;
     }
 
-    public ErrorReportingConsentState GetState(string? workspaceId, long? workspaceEpoch)
+    public ErrorReportingConsentState GetState(Guid? workspaceId, long? workspaceEpoch)
     {
         return _store.GetState(workspaceId, workspaceEpoch);
     }
 
-    public void AllowWorkspace(string workspaceId, long workspaceEpoch)
+    public void AllowWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         _store.AllowWorkspace(workspaceId, workspaceEpoch);
     }

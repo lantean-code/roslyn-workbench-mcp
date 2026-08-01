@@ -10,7 +10,7 @@ internal sealed class WorkspaceQueryCacheScopeFactory : IWorkspaceQueryCacheScop
     }
 
     public IWorkspaceQueryCacheScope CreateScope(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         string componentIdentity)
     {

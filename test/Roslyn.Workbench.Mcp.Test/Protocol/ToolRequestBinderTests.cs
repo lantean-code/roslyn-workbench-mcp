@@ -230,6 +230,63 @@ public sealed class ToolRequestBinderTests
         errorMessage.Should().Be("Invalid value for tool argument: 'value'.");
     }
 
+    [Fact]
+    public void GIVEN_NestedValidationAttributesFail_WHEN_Binding_THEN_ShouldReturnNestedArgumentPaths()
+    {
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["item"] = JsonSerializer.SerializeToElement(new { limit = -1 }),
+            ["items"] = JsonSerializer.SerializeToElement(new[] { new { kind = 999 } }),
+        };
+
+        var result = ToolRequestBinder.TryBind<NestedValidationRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid values for tool arguments: 'item.limit', 'items[0].kind'.");
+    }
+
+    [Fact]
+    public void GIVEN_EmptyNestedWorkspaceId_WHEN_Binding_THEN_ShouldReturnNestedArgumentPath()
+    {
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId = Guid.Empty }),
+        };
+
+        var result = ToolRequestBinder.TryBind<NestedWorkspaceRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Invalid value for tool argument: 'workspace.workspaceId'.");
+    }
+
+    [Fact]
+    public void GIVEN_ValidNestedWorkspaceId_WHEN_Binding_THEN_ShouldPreserveWorkspaceId()
+    {
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId }),
+        };
+
+        var result = ToolRequestBinder.TryBind<NestedWorkspaceRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        request.Workspace.WorkspaceId.Should().Be(workspaceId);
+        errorMessage.Should().BeNull();
+    }
+
     [Theory]
     [InlineData(null, 25)]
     [InlineData(0, 0)]
@@ -369,6 +426,38 @@ public sealed class ToolRequestBinderTests
     {
         [Required]
         public string Value { get; init; } = "Value";
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record NestedValidationRequest
+    {
+        public NestedValidationValue Item { get; init; } = new();
+
+        public IReadOnlyList<NestedValidationValue> Items { get; init; } = [];
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the value through the request deserialisation path exercised by this test.")]
+    private sealed record NestedValidationValue
+    {
+        [Range(0, int.MaxValue)]
+        public int Limit { get; init; }
+
+        public TestEnum Kind { get; init; }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record NestedWorkspaceRequest
+    {
+        public WorkspaceSelector Workspace { get; init; } = new();
     }
 
     private enum TestEnum

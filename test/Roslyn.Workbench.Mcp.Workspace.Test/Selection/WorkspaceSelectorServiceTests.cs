@@ -34,14 +34,14 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_OneLoadedWorkspaceAndNoSelector_WHEN_SelectingWorkspace_THEN_ShouldSelectOnlyWorkspace()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "WorkspacePath");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath");
         var hostSnapshot = CreateHostSnapshot(session);
 
         var result = _target.Select(hostSnapshot, selector: null);
 
         result.HasError.Should().BeFalse();
         result.Error.Should().BeNull();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
@@ -49,8 +49,8 @@ public sealed class WorkspaceSelectorServiceTests
     public void GIVEN_MultipleLoadedWorkspacesAndNoSelector_WHEN_SelectingWorkspace_THEN_ShouldRequireSelector()
     {
         var hostSnapshot = CreateHostSnapshot(
-            CreateSession("FirstWorkspaceId", "FirstAlias", "FirstPath"),
-            CreateSession("SecondWorkspaceId", "SecondAlias", "SecondPath"));
+            CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias", "FirstPath"),
+            CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias", "SecondPath"));
 
         var result = _target.Select(hostSnapshot, selector: null);
 
@@ -64,27 +64,27 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_MatchingWorkspaceId_WHEN_SelectingWorkspace_THEN_ShouldReturnMatchingSession()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "WorkspacePath");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath");
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
         };
 
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
     [Fact]
     public void GIVEN_UnknownWorkspaceId_WHEN_SelectingWorkspace_THEN_ShouldReturnNotFoundError()
     {
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", "WorkspacePath"));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath"));
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "UnknownWorkspaceId",
+            WorkspaceId = Guid.Parse("44444444-4444-4444-4444-444444444444"),
         };
 
         var result = _target.Select(hostSnapshot, selector);
@@ -98,7 +98,7 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_MatchingAlias_WHEN_SelectingWorkspace_THEN_ShouldReturnMatchingSession()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "WorkspacePath");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath");
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
@@ -108,14 +108,14 @@ public sealed class WorkspaceSelectorServiceTests
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
     [Fact]
     public void GIVEN_AliasWithDifferentCase_WHEN_SelectingWorkspace_THEN_ShouldReturnNotFoundError()
     {
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", "WorkspacePath"));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath"));
         var selector = new WorkspaceSelector
         {
             Alias = "alias",
@@ -132,7 +132,7 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_MatchingRelativePath_WHEN_SelectingWorkspace_THEN_ShouldReturnMatchingSession()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "relative/Workspace.sln");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "relative/Workspace.sln");
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
@@ -142,7 +142,7 @@ public sealed class WorkspaceSelectorServiceTests
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
@@ -152,7 +152,7 @@ public sealed class WorkspaceSelectorServiceTests
         var workspaceDirectory = Path.Combine(Path.GetTempPath(), "WorkspaceDirectory");
         var loadedPath = Path.Combine(workspaceDirectory, "Workspace.sln");
         var selectorPath = Path.Combine(workspaceDirectory, "NestedDirectory", "..", "Workspace.sln");
-        var session = CreateSession("WorkspaceId", "Alias", loadedPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", loadedPath);
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
@@ -162,7 +162,7 @@ public sealed class WorkspaceSelectorServiceTests
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
@@ -171,7 +171,7 @@ public sealed class WorkspaceSelectorServiceTests
     {
         var loadedPath = Path.Combine(Path.GetTempPath(), "WorkspaceDirectory", "Workspace.sln");
         var selectorPath = Path.Combine(Path.GetTempPath(), "workspaceDirectory", "Workspace.sln");
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", loadedPath));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", loadedPath));
         var selector = new WorkspaceSelector
         {
             Path = selectorPath,
@@ -190,7 +190,7 @@ public sealed class WorkspaceSelectorServiceTests
     {
         var loadedPath = Path.Combine(Path.GetTempPath(), "WorkspaceDirectory", "Workspace.sln");
         var selectorPath = Path.Combine(Path.GetTempPath(), "workspaceDirectory", "Workspace.sln");
-        var session = CreateSession("WorkspaceId", "Alias", loadedPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", loadedPath);
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
@@ -204,14 +204,14 @@ public sealed class WorkspaceSelectorServiceTests
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
     [Fact]
     public void GIVEN_UnknownPath_WHEN_SelectingWorkspace_THEN_ShouldReturnNotFoundError()
     {
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", "relative/Workspace.sln"));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "relative/Workspace.sln"));
         var selector = new WorkspaceSelector
         {
             Path = "relative/UnknownWorkspace.sln",
@@ -228,7 +228,7 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_SelectorWithoutPopulatedFields_WHEN_SelectingWorkspace_THEN_ShouldReturnNotFoundError()
     {
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", "WorkspacePath"));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath"));
 
         var result = _target.Select(hostSnapshot, new WorkspaceSelector());
 
@@ -241,10 +241,10 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_SelectorWithWhitespaceFields_WHEN_SelectingWorkspace_THEN_ShouldReturnNotFoundError()
     {
-        var hostSnapshot = CreateHostSnapshot(CreateSession("WorkspaceId", "Alias", "WorkspacePath"));
+        var hostSnapshot = CreateHostSnapshot(CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath"));
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "   ",
+            WorkspaceId = Guid.Empty,
             Alias = "   ",
             Path = "   ",
         };
@@ -260,29 +260,29 @@ public sealed class WorkspaceSelectorServiceTests
     [Fact]
     public void GIVEN_IdAndAliasResolveToSameWorkspace_WHEN_SelectingWorkspace_THEN_ShouldReturnMatchingSession()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "WorkspacePath");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "WorkspacePath");
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Alias = "Alias",
         };
 
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
     [Fact]
     public void GIVEN_AllSelectorFieldsResolveToSameWorkspace_WHEN_SelectingWorkspace_THEN_ShouldReturnMatchingSession()
     {
-        var session = CreateSession("WorkspaceId", "Alias", "relative/Workspace.sln");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", "relative/Workspace.sln");
         var hostSnapshot = CreateHostSnapshot(session);
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Alias = "Alias",
             Path = "relative/Workspace.sln",
         };
@@ -290,7 +290,7 @@ public sealed class WorkspaceSelectorServiceTests
         var result = _target.Select(hostSnapshot, selector);
 
         result.HasError.Should().BeFalse();
-        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Selection.Session.Should().BeSameAs(session);
     }
 
@@ -298,12 +298,12 @@ public sealed class WorkspaceSelectorServiceTests
     public void GIVEN_IdAndAliasResolveToDifferentWorkspaces_WHEN_SelectingWorkspace_THEN_ShouldReturnMismatchError()
     {
         var hostSnapshot = CreateHostSnapshot(
-            CreateSession("FirstWorkspaceId", "FirstAlias", "FirstPath"),
-            CreateSession("SecondWorkspaceId", "SecondAlias", "SecondPath"));
+            CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias", "FirstPath"),
+            CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias", "SecondPath"));
 
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "FirstWorkspaceId",
+            WorkspaceId = Guid.Parse("55555555-5555-5555-5555-555555555555"),
             Alias = "SecondAlias",
         };
 
@@ -319,8 +319,8 @@ public sealed class WorkspaceSelectorServiceTests
     public void GIVEN_AliasAndPathResolveToDifferentWorkspaces_WHEN_SelectingWorkspace_THEN_ShouldReturnMismatchError()
     {
         var hostSnapshot = CreateHostSnapshot(
-            CreateSession("FirstWorkspaceId", "FirstAlias", "FirstPath"),
-            CreateSession("SecondWorkspaceId", "SecondAlias", "SecondPath"));
+            CreateSession(Guid.Parse("55555555-5555-5555-5555-555555555555"), "FirstAlias", "FirstPath"),
+            CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias", "SecondPath"));
 
         var selector = new WorkspaceSelector
         {
@@ -340,14 +340,12 @@ public sealed class WorkspaceSelectorServiceTests
     {
         return new WorkspaceHostSnapshot
         {
-            Workspaces = sessions.ToDictionary(
-                session => session.Workspace.WorkspaceId,
-                StringComparer.Ordinal),
+            Workspaces = sessions.ToDictionary(session => session.Workspace.WorkspaceId),
         };
     }
 
     private static WorkspaceSessionSnapshot CreateSession(
-        string workspaceId,
+        Guid workspaceId,
         string? alias,
         string loadedPath)
     {

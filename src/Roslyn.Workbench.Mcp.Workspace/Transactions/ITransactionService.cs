@@ -13,7 +13,7 @@ internal interface ITransactionService
     /// <param name="path">The optional workspace path.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transaction start result.</returns>
-    ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
+    ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 
     /// <summary>
     /// Previews the active transaction.
@@ -27,7 +27,7 @@ internal interface ITransactionService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transaction preview result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         DocumentSelector? document,
@@ -46,7 +46,7 @@ internal interface ITransactionService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transaction history result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveHistoryAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         TransactionHistoryDirection direction,
@@ -63,7 +63,7 @@ internal interface ITransactionService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transaction commit result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         SnapshotPrecondition? expectedSnapshot,
@@ -77,5 +77,5 @@ internal interface ITransactionService
     /// <param name="path">The optional workspace path.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transaction rollback result.</returns>
-    ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
+    ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 }

@@ -54,7 +54,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         };
 
         var expected = CreateResult(WorkspaceOperationStatus.Rejected);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionRequired, It.IsAny<string>(), RequiredAction.StartTransaction, null, null, null)).Returns(expected);
 
@@ -68,7 +68,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var selection = CreateSelection(CreateSession());
         var expected = CreateResult(WorkspaceOperationStatus.Rejected);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionRequired, It.IsAny<string>(), RequiredAction.StartTransaction, null, null, null)).Returns(expected);
 
@@ -83,11 +83,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var session = CreateSession();
         var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Mismatch" };
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(mismatch);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(mismatch, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
-        var result = await _target.CommitAsync(CreateSelection(session), new SnapshotPrecondition(), TestContext.Current.CancellationToken);
+        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var result = await _target.CommitAsync(CreateSelection(session), expectedSnapshot, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
         _lockManager.Verify(item => item.Acquire(It.IsAny<string>()), Times.Never);
@@ -98,7 +99,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var session = CreateSession() with { State = WorkspaceLifecycleState.TransactionConflicted };
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted, It.IsAny<string>(), RequiredAction.RollbackTransaction,
             It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
@@ -124,7 +125,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         };
 
         var expected = CreateResult(WorkspaceOperationStatus.NoChange);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resultFactory.Setup(item => item.NoChange(
             It.IsAny<WorkspaceOperationContext>(), It.Is<TransactionCommitOutcome>(outcome => !outcome.Committed), null, null)).Returns(expected);
 
@@ -139,7 +140,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var session = CreateSession();
         var conflicted = session with { State = WorkspaceLifecycleState.TransactionConflicted };
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, It.IsAny<CancellationToken>())).Returns(true);
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflicted);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
@@ -163,7 +164,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var session = CreateSession();
         var expected = CreateResult(WorkspaceOperationStatus.Rejected);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(CreateLockAcquisition(lockAvailable: false));
         _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
             WorkspaceErrorCodes.WorkspaceBusy,
@@ -184,7 +185,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var session = CreateSession();
         var expected = CreateResult(WorkspaceOperationStatus.Faulted);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(WorkspaceCommitLockAcquisition.Failed("failure"));
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitLockFailed",
@@ -216,7 +217,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
         using var inputManifest = new WorkspaceInputManifest();
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(WorkspaceCommitLockAcquisition.Acquired(commitLock.Object));
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(), "/workspace/solution.slnx", "/workspace", transaction.BaselineSolution, transaction.CurrentSolution, TestContext.Current.CancellationToken))
@@ -321,7 +322,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var manifest = CreateManifest();
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         var expected = CreateResult(WorkspaceOperationStatus.Faulted);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(CreateLockAcquisition(lockAvailable: true));
         _planner.Setup(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitPlanResult.Succeeded(plan));
@@ -356,7 +357,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var transaction = session.Transaction ?? throw new InvalidOperationException("The transaction was not created.");
         var conflictedSession = session with { State = WorkspaceLifecycleState.TransactionConflicted };
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(CreateLockAcquisition(lockAvailable: true));
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(),
@@ -626,7 +627,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<string?>()), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<Guid?>()), Times.Never);
         _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
     }
 
@@ -702,7 +703,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     public async Task GIVEN_CancellationDuringPlanning_WHEN_Committing_THEN_ShouldPropagateWithoutRestoration()
     {
         var session = CreateSession();
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(CreateLockAcquisition(lockAvailable: true));
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(),
@@ -751,7 +752,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "/workspace/solution.slnx",
             WorkspaceRoot = "/workspace",
         };
@@ -777,7 +778,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         return new()
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Session = session,
         };
     }
@@ -836,7 +837,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         Justification = "The manifest is transferred through the change-detector mock to the commit service, which either disposes it or installs it as session-owned state.")]
     private void SetupProtocol(WorkspaceSessionSnapshot session, WorkspaceCommitPlan plan)
     {
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(CreateLockAcquisition(lockAvailable: true));
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))

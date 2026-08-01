@@ -42,7 +42,12 @@ public sealed class SchemaGenerationTests
         properties.TryGetProperty("document", out _).Should().BeTrue();
         properties.TryGetProperty("location", out _).Should().BeTrue();
         properties.TryGetProperty("scope", out _).Should().BeTrue();
-        properties.TryGetProperty("expectedSnapshot", out _).Should().BeTrue();
+        properties.TryGetProperty("expectedSnapshot", out var expectedSnapshot).Should().BeTrue();
+        expectedSnapshot.GetProperty("required").EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should().Contain("workspaceId");
+        expectedSnapshot.GetProperty("properties").GetProperty("workspaceId")
+            .GetProperty("format").GetString().Should().Be("uuid");
     }
 
     [Fact]

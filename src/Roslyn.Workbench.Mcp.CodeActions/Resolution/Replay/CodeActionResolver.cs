@@ -128,7 +128,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         WorkspaceSnapshotIdentity referenceIdentity,
         WorkspaceSnapshotIdentity contextIdentity)
     {
-        return string.Equals(referenceIdentity.WorkspaceId, contextIdentity.WorkspaceId, StringComparison.Ordinal)
+        return referenceIdentity.WorkspaceId == contextIdentity.WorkspaceId
             && referenceIdentity.WorkspaceEpoch == contextIdentity.WorkspaceEpoch;
     }
 

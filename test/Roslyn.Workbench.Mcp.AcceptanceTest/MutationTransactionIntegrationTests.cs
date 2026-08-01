@@ -195,7 +195,7 @@ public sealed class MutationTransactionIntegrationTests
                 "workspace-list",
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken));
-            firstList.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be(first.WorkspaceId);
+            firstList.GetProperty("transactionOwnerWorkspaceId").GetGuid().Should().Be(first.WorkspaceId);
 
             var blockedStart = await target.CallToolAsync(
                 "transaction-start",
@@ -214,7 +214,7 @@ public sealed class MutationTransactionIntegrationTests
                 "workspace-list",
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken));
-            secondList.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be(second.WorkspaceId);
+            secondList.GetProperty("transactionOwnerWorkspaceId").GetGuid().Should().Be(second.WorkspaceId);
         }
         catch
         {

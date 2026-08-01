@@ -14,9 +14,9 @@ public sealed class ErrorReportingConsentLifecycleObserverTests
     [Fact]
     public void GIVEN_WorkspaceSnapshot_WHEN_InvalidatingWorkspace_THEN_ShouldInvalidateWorkspaceGrant()
     {
-        _target.InvalidateWorkspace("WorkspaceId", 5);
+        _target.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
 
-        _store.Verify(item => item.InvalidateWorkspace("WorkspaceId", 5), Times.Once);
+        _store.Verify(item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5), Times.Once);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed class ErrorReportingConsentLifecycleObserverTests
     {
         var transactionId = new WorkspaceTransactionId(1);
 
-        _target.InvalidateTransaction("WorkspaceId", 5, transactionId);
+        _target.InvalidateTransaction(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5, transactionId);
 
         _store.VerifyNoOtherCalls();
     }

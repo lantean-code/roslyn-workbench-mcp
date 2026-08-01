@@ -38,7 +38,7 @@ public sealed class ExternalErrorReportProjectorTests
             ],
             Workspace = new CapturedWorkspaceContext
             {
-                WorkspaceId = "workspace-private",
+                WorkspaceId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                 WorkspaceEpoch = 7,
                 LifecycleState = "Ready",
                 ProjectCount = 3,
@@ -62,7 +62,7 @@ public sealed class ExternalErrorReportProjectorTests
         result.Workspace!.WorkspaceEpoch.Should().Be(7);
         var serialized = JsonSerializer.Serialize(result);
         serialized.Should().NotContain("11111111-1111-1111-1111-111111111111");
-        serialized.Should().NotContain("workspace-private");
+        serialized.Should().NotContain("cccccccc-cccc-cccc-cccc-cccccccccccc");
         serialized.Should().NotContain("private-company-tool");
         serialized.Should().NotContain("token=secret");
         serialized.Should().NotContain("/home/user");

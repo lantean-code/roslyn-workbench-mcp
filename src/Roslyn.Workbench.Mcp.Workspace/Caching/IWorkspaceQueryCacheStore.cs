@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Caching;
 internal interface IWorkspaceQueryCacheStore
 {
     QueryCacheScopeIdentity CreateScope(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         string componentIdentity);
 

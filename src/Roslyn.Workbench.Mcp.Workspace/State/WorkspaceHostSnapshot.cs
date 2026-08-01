@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal sealed record WorkspaceHostSnapshot
 {
-    public IReadOnlyDictionary<string, WorkspaceSessionSnapshot> Workspaces { get; init; } = new Dictionary<string, WorkspaceSessionSnapshot>(StringComparer.Ordinal);
+    public IReadOnlyDictionary<Guid, WorkspaceSessionSnapshot> Workspaces { get; init; } = new Dictionary<Guid, WorkspaceSessionSnapshot>();
 
-    public string? TransactionOwnerWorkspaceId { get; init; }
+    public Guid? TransactionOwnerWorkspaceId { get; init; }
 }

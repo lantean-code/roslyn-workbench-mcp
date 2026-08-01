@@ -89,8 +89,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }
 
-        if (!string.IsNullOrWhiteSpace(precondition.WorkspaceId)
-            && !string.Equals(precondition.WorkspaceId, _workspaceIdentity.WorkspaceId, StringComparison.Ordinal))
+        if (precondition.WorkspaceId != _workspaceIdentity.WorkspaceId)
         {
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }

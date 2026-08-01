@@ -7,12 +7,12 @@ public sealed class ErrorReportingConsentServiceTests
     {
         var store = new Mock<IErrorReportingConsentStore>();
         store
-            .Setup(item => item.GetState("WorkspaceId", 5))
+            .Setup(item => item.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5))
             .Returns(ErrorReportingConsentState.AllowedForWorkspace);
 
         var target = new ErrorReportingConsentService(store.Object);
 
-        var result = target.GetState("WorkspaceId", 5);
+        var result = target.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
 
         result.Should().Be(ErrorReportingConsentState.AllowedForWorkspace);
     }
@@ -23,9 +23,9 @@ public sealed class ErrorReportingConsentServiceTests
         var store = new Mock<IErrorReportingConsentStore>();
         var target = new ErrorReportingConsentService(store.Object);
 
-        target.AllowWorkspace("WorkspaceId", 5);
+        target.AllowWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
 
-        store.Verify(item => item.AllowWorkspace("WorkspaceId", 5), Times.Once);
+        store.Verify(item => item.AllowWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5), Times.Once);
     }
 
     [Fact]

@@ -48,9 +48,10 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         WorkspaceHostSnapshot hostSnapshot,
         WorkspaceSelector selector)
     {
-        string? resolvedWorkspaceId = null;
+        Guid? resolvedWorkspaceId = null;
+        var hasMismatch = false;
 
-        void MatchWorkspaceId(string candidateWorkspaceId)
+        void MatchWorkspaceId(Guid candidateWorkspaceId)
         {
             if (resolvedWorkspaceId is null)
             {
@@ -58,21 +59,21 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
                 return;
             }
 
-            if (!string.Equals(resolvedWorkspaceId, candidateWorkspaceId, StringComparison.Ordinal))
+            if (resolvedWorkspaceId != candidateWorkspaceId)
             {
-                resolvedWorkspaceId = string.Empty;
+                hasMismatch = true;
             }
         }
 
         var selectorWorkspaceId = selector.WorkspaceId;
-        if (!string.IsNullOrWhiteSpace(selectorWorkspaceId))
+        if (selectorWorkspaceId is not null)
         {
-            if (!hostSnapshot.Workspaces.ContainsKey(selectorWorkspaceId))
+            if (!hostSnapshot.Workspaces.ContainsKey(selectorWorkspaceId.Value))
             {
                 return CreateNotFoundResult();
             }
 
-            MatchWorkspaceId(selectorWorkspaceId);
+            MatchWorkspaceId(selectorWorkspaceId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(selector.Alias))
@@ -80,7 +81,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             var aliasMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
                 string.Equals(pair.Value.Workspace.Alias, selector.Alias, StringComparison.Ordinal));
 
-            if (string.IsNullOrEmpty(aliasMatch.Key))
+            if (aliasMatch.Value is null)
             {
                 return CreateNotFoundResult();
             }
@@ -95,7 +96,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
                 PathsEqual(pair.Value.Workspace.LoadedPath, normalizedPath));
 
-            if (string.IsNullOrEmpty(pathMatch.Key))
+            if (pathMatch.Value is null)
             {
                 return CreateNotFoundResult();
             }
@@ -108,7 +109,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             return CreateNotFoundResult();
         }
 
-        if (resolvedWorkspaceId.Length == 0)
+        if (hasMismatch)
         {
             var error = CreateError(
                 _workspaceSelectorMismatchCode,
@@ -118,10 +119,10 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             return WorkspaceSelectionResult.Failure(error);
         }
 
-        return CreateSuccess(resolvedWorkspaceId, hostSnapshot.Workspaces[resolvedWorkspaceId]);
+        return CreateSuccess(resolvedWorkspaceId.Value, hostSnapshot.Workspaces[resolvedWorkspaceId.Value]);
     }
 
-    private static WorkspaceSelectionResult CreateSuccess(string workspaceId, WorkspaceSessionSnapshot session)
+    private static WorkspaceSelectionResult CreateSuccess(Guid workspaceId, WorkspaceSessionSnapshot session)
     {
         var selection = new WorkspaceSelection
         {

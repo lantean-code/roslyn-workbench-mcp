@@ -11,7 +11,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
-    private readonly Dictionary<string, WorkspaceInstanceStatusHandle> _handles = new(StringComparer.Ordinal);
+    private readonly Dictionary<Guid, WorkspaceInstanceStatusHandle> _handles = [];
     private readonly Channel<WorkspaceInstanceStatusUpdate> _updates;
     private readonly Task _updateWorker;
     private readonly Lock _updateSync = new();
@@ -43,7 +43,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     }
 
     public async ValueTask<WorkspaceInstanceStatusResult> OpenAsync(
-        string workspaceId,
+        Guid workspaceId,
         string workspaceRoot,
         string loadedPath,
         WorkspaceLifecycleState state,
@@ -129,7 +129,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     }
 
     public ValueTask UpdateAsync(
-        string workspaceId,
+        Guid workspaceId,
         WorkspaceLifecycleState state,
         long? transactionRevision,
         string? commitId,
@@ -154,7 +154,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     }
 
     public void QueueUpdate(
-        string workspaceId,
+        Guid workspaceId,
         WorkspaceLifecycleState state,
         long? transactionRevision,
         string? commitId,
@@ -172,7 +172,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    public async ValueTask CloseAsync(string workspaceId)
+    public async ValueTask CloseAsync(Guid workspaceId)
     {
         await _gate.WaitAsync();
         try
@@ -288,7 +288,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     }
 
     private static WorkspaceInstanceStatusUpdate CreateUpdate(
-        string workspaceId,
+        Guid workspaceId,
         WorkspaceLifecycleState state,
         long? transactionRevision,
         string? commitId,
@@ -324,7 +324,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     }
 
     private WorkspaceInstanceStatusHandle CreateHandle(
-        string workspaceId,
+        Guid workspaceId,
         string canonicalWorkspaceRoot,
         string loadedPath,
         WorkspaceLifecycleState state,

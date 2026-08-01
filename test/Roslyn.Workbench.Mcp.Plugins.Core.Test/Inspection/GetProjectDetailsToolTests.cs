@@ -52,7 +52,7 @@ public sealed class GetProjectDetailsToolTests
             .Returns<string>(item => item);
 
         queryContextMocks.ProjectTargetFrameworkResolver
-            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
+            .Setup(item => item.Resolve(Guid.Parse("11111111-1111-1111-1111-111111111111"), project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["TargetFramework"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -207,7 +207,7 @@ public sealed class GetProjectDetailsToolTests
             });
 
         queryContextMocks.ProjectTargetFrameworkResolver
-            .Setup(item => item.Resolve("WorkspaceId", mainProject, It.IsAny<CancellationToken>()))
+            .Setup(item => item.Resolve(Guid.Parse("11111111-1111-1111-1111-111111111111"), mainProject, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0", "net9.0"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -292,7 +292,7 @@ public sealed class GetProjectDetailsToolTests
             .Returns((DocumentReference?)null);
 
         queryContextMocks.ProjectTargetFrameworkResolver
-            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
+            .Setup(item => item.Resolve(Guid.Parse("11111111-1111-1111-1111-111111111111"), project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded([]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -338,7 +338,7 @@ public sealed class GetProjectDetailsToolTests
             .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
         queryContextMocks.ProjectTargetFrameworkResolver
-            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
+            .Setup(item => item.Resolve(Guid.Parse("11111111-1111-1111-1111-111111111111"), project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
 
         var result = await target.ExecuteAsync(

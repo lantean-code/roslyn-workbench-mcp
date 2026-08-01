@@ -8,13 +8,13 @@ public sealed class ErrorReportingConsentStoreTests
     public void GIVEN_WorkspaceGrant_WHEN_WorkspaceEpochIsInvalidated_THEN_ShouldRequirePromptAgain()
     {
         var target = CreateTarget(ErrorReportingConsentMode.Prompt);
-        target.AllowWorkspace("WorkspaceId", 5);
+        target.AllowWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.AllowedForWorkspace);
+        target.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5).Should().Be(ErrorReportingConsentState.AllowedForWorkspace);
 
-        target.InvalidateWorkspace("WorkspaceId", 5);
+        target.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.PromptRequired);
+        target.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5).Should().Be(ErrorReportingConsentState.PromptRequired);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed class ErrorReportingConsentStoreTests
 
         target.AllowSession();
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.AllowedForSession);
+        target.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5).Should().Be(ErrorReportingConsentState.AllowedForSession);
         target.GetState(null, null).Should().Be(ErrorReportingConsentState.AllowedForSession);
     }
 
@@ -32,12 +32,12 @@ public sealed class ErrorReportingConsentStoreTests
     public void GIVEN_SessionSuppression_WHEN_PreviousGrantsExist_THEN_ShouldSuppressEveryScope()
     {
         var target = CreateTarget(ErrorReportingConsentMode.Prompt);
-        target.AllowWorkspace("WorkspaceId", 5);
+        target.AllowWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5);
         target.AllowSession();
 
         target.SuppressSession();
 
-        target.GetState("WorkspaceId", 5).Should().Be(ErrorReportingConsentState.SuppressedForSession);
+        target.GetState(Guid.Parse("11111111-1111-1111-1111-111111111111"), 5).Should().Be(ErrorReportingConsentState.SuppressedForSession);
     }
 
     [Fact]

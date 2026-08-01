@@ -13,7 +13,7 @@ public interface IProjectTargetFrameworkResolver
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The target-framework evaluation result.</returns>
     ProjectTargetFrameworksResult Resolve(
-        string workspaceId,
+        Guid workspaceId,
         Project project,
         CancellationToken cancellationToken);
 
@@ -25,7 +25,7 @@ public interface IProjectTargetFrameworkResolver
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The target-framework evaluation results in the same order as <paramref name="projects"/>.</returns>
     IReadOnlyList<ProjectTargetFrameworksResult> Resolve(
-        string workspaceId,
+        Guid workspaceId,
         IReadOnlyList<Project> projects,
         CancellationToken cancellationToken);
 }

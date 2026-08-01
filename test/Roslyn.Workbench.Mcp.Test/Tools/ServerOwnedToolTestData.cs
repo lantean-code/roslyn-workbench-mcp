@@ -8,7 +8,7 @@ internal static class ServerOwnedToolTestData
     {
         return new WorkspaceSelector
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Alias = "Alias",
             Path = "/workspace/Sample.csproj",
         };
@@ -25,9 +25,9 @@ internal static class ServerOwnedToolTestData
         return arguments;
     }
 
-    public static string? GetWorkspaceId(bool includeWorkspace)
+    public static Guid? GetWorkspaceId(bool includeWorkspace)
     {
-        return includeWorkspace ? "WorkspaceId" : null;
+        return includeWorkspace ? Guid.Parse("11111111-1111-1111-1111-111111111111") : null;
     }
 
     public static string? GetWorkspaceAlias(bool includeWorkspace)

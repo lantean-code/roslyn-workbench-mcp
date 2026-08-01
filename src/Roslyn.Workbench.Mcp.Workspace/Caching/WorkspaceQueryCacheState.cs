@@ -21,7 +21,7 @@ internal sealed class WorkspaceQueryCacheState : IWorkspaceQueryCacheState, IDis
     }
 
     public QueryCacheScopeIdentity CreateScope(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         string componentIdentity)
     {
@@ -110,7 +110,7 @@ internal sealed class WorkspaceQueryCacheState : IWorkspaceQueryCacheState, IDis
         _core.Store(scopeIdentity, key, value, sizeCalculator);
     }
 
-    public void InvalidateWorkspace(string workspaceId)
+    public void InvalidateWorkspace(Guid workspaceId)
     {
         _core.InvalidatePartition(workspaceId);
     }

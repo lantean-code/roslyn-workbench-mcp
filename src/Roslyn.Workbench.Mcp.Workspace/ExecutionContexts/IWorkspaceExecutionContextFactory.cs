@@ -10,5 +10,5 @@ internal interface IWorkspaceExecutionContextFactory
         WorkspaceSelector? workspace,
         CancellationToken cancellationToken);
 
-    WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(string workspaceId);
+    WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(Guid workspaceId);
 }

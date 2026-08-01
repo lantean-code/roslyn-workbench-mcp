@@ -32,7 +32,7 @@ public sealed class TransactionCommitToolTests
         var target = new TransactionCommitTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
-        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

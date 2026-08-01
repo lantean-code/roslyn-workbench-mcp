@@ -46,14 +46,14 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _recoveryStore = new Mock<ICommitRecoveryStore>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
-        _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
+        _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(17));
 
         _instanceStatusPublisher
             .Setup(item => item.OpenAsync(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<WorkspaceLifecycleState>(),
@@ -102,7 +102,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", _workspace.CurrentSolution, loadedWorkspace);
         _instanceStatusPublisher.Setup(item => item.OpenAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
@@ -112,7 +112,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
         _sessionStore.Verify(item => item.TryAddWorkspace(
             It.IsAny<WorkspaceSessionSnapshot>(),
@@ -199,16 +199,16 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_WorkspaceCapacityReached_WHEN_OpeningWorkspace_THEN_ShouldReturnRejection()
     {
-        var existing = CreateSession("ExistingId", "ExistingPath", alias: null, transaction: null);
-        var second = CreateSession("SecondId", "SecondPath", alias: null, transaction: null);
+        var existing = CreateSession(Guid.Parse("88888888-8888-8888-8888-888888888888"), "ExistingPath", alias: null, transaction: null);
+        var second = CreateSession(Guid.Parse("99999999-9999-9999-9999-999999999999"), "SecondPath", alias: null, transaction: null);
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenNormalization("/workspace/New.sln", alias: null);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
             {
-                ["ExistingId"] = existing,
-                ["SecondId"] = second,
+                [Guid.Parse("88888888-8888-8888-8888-888888888888")] = existing,
+                [Guid.Parse("99999999-9999-9999-9999-999999999999")] = second,
             },
         });
 
@@ -228,7 +228,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         string existingPath,
         string? existingAlias)
     {
-        var existing = CreateSession("ExistingId", existingPath, existingAlias, transaction: null);
+        var existing = CreateSession(Guid.Parse("88888888-8888-8888-8888-888888888888"), existingPath, existingAlias, transaction: null);
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenNormalization(normalizedPath, alias);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(existing));
@@ -242,7 +242,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_CaseInsensitiveDuplicateWorkspacePath_WHEN_OpeningWorkspace_THEN_ShouldReturnAlreadyOpen()
     {
-        var existing = CreateSession("ExistingId", "/workspace/existing.sln", alias: null, transaction: null);
+        var existing = CreateSession(Guid.Parse("88888888-8888-8888-8888-888888888888"), "/workspace/existing.sln", alias: null, transaction: null);
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenNormalization("/workspace/Existing.sln", alias: null);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(existing));
@@ -459,7 +459,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", "Alias");
         _workspaceLoader.Setup(item => item.NormalizeAlias(" Alias ")).Returns("Alias");
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
+        _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(2);
         _sessionStore.Setup(item => item.TryAddWorkspace(
             It.IsAny<WorkspaceSessionSnapshot>(),
@@ -467,7 +467,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
-                outcome.Workspace.WorkspaceId == "WorkspaceId" && outcome.ProjectCount == 1),
+                outcome.Workspace.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111") && outcome.ProjectCount == 1),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);
@@ -493,7 +493,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _instanceStatusPublisher.Setup(item => item.OpenAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
@@ -529,7 +529,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _instanceStatusPublisher.Setup(item => item.OpenAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
@@ -611,13 +611,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
 
         _instanceStatusPublisher.Verify(item => item.OpenAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken), Times.Once);
 
-        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
     }
 
     [Fact]
@@ -633,7 +633,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Failure");
-        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
         _sessionStore.Verify(item => item.TryAddWorkspace(
             It.IsAny<WorkspaceSessionSnapshot>(),
@@ -643,23 +643,27 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_Workspaces_WHEN_Listing_THEN_ShouldReturnDeterministicOrderAndOwner()
     {
-        var second = CreateSession("2", "/workspace/Second.sln", alias: null, transaction: null);
-        var first = CreateSession("1", "/workspace/First.sln", alias: null, transaction: null);
+        var second = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "/workspace/Second.sln", alias: null, transaction: null);
+        var first = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/First.sln", alias: null, transaction: null);
         var expected = CreateResult<WorkspaceListOutcome>();
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
             {
-                ["2"] = second,
-                ["1"] = first,
+                [Guid.Parse("22222222-2222-2222-2222-222222222222")] = second,
+                [Guid.Parse("11111111-1111-1111-1111-111111111111")] = first,
             },
-            TransactionOwnerWorkspaceId = "2",
+            TransactionOwnerWorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
         });
 
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceListOutcome>(outcome =>
-                outcome.Workspaces.Select(workspace => workspace.WorkspaceId).SequenceEqual(new[] { "1", "2" })
-                && outcome.TransactionOwnerWorkspaceId == "2"),
+            outcome.Workspaces.Select(workspace => workspace.WorkspaceId).SequenceEqual(new[]
+            {
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            })
+            && outcome.TransactionOwnerWorkspaceId == Guid.Parse("22222222-2222-2222-2222-222222222222")),
             null,
             null,
             null)).Returns(expected);
@@ -684,13 +688,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectorFailure_WHEN_Closing_THEN_ShouldReturnSelectionError()
     {
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null);
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelectionFailure(session, error);
         SetupRejectedErrorResult(expected, "Code");
 
-        var result = await _target.CloseAsync("WorkspaceId", null, null, TestContext.Current.CancellationToken);
+        var result = await _target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
     }
@@ -699,7 +703,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_BusyWorkspace_WHEN_Closing_THEN_ShouldReturnWorkspaceBusy()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
@@ -715,11 +719,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -737,7 +741,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, CreateTransaction()) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, CreateTransaction()) with
         {
             OperationGate = gate.Object,
             State = state,
@@ -757,10 +761,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _sessionStore.Setup(item => item.RemoveWorkspace("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.RemoveWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -774,7 +778,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
-        var session = CreateSession("WorkspaceId", "ClosedPath", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ClosedPath", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = loadedWorkspace.Object,
@@ -782,7 +786,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _sessionStore.Setup(item => item.RemoveWorkspace("WorkspaceId")).Returns(session);
+        _sessionStore.Setup(item => item.RemoveWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceCloseOutcome>(outcome => outcome.ClosedPath == "ClosedPath"),
             It.IsAny<WorkspaceOperationContext>(),
@@ -810,7 +814,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectorFailure_WHEN_GettingStatus_THEN_ShouldReturnSelectionError()
     {
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null);
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelectionFailure(session, error);
@@ -825,7 +829,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_BusyWorkspace_WHEN_GettingStatus_THEN_ShouldReturnWorkspaceBusy()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns((IWorkspaceOperationLease?)null);
@@ -841,11 +845,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -872,7 +876,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             transaction = CreateTransaction();
         }
 
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction) with
         {
             OperationGate = gate.Object,
             State = state,
@@ -927,7 +931,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             LoadDiagnostics = [new DiagnosticInfo { Message = "Message" }],
@@ -951,7 +955,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var instance = new WorkspaceInstanceInfo
         {
             InstanceId = "other-instance",
@@ -988,7 +992,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: false);
         _instanceStatusPublisher
@@ -1032,7 +1036,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectorFailure_WHEN_Reloading_THEN_ShouldReturnSelectionError()
     {
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null);
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectionFailure(session, error);
@@ -1047,7 +1051,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_BusyWorkspace_WHEN_Reloading_THEN_ShouldReturnWorkspaceBusy()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
@@ -1063,11 +1067,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
 
@@ -1085,7 +1089,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, CreateTransaction()) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, CreateTransaction()) with
         {
             OperationGate = gate.Object,
             State = state,
@@ -1105,7 +1109,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupRejectedResult(expected, "WorkspaceReloadNotRequired");
@@ -1122,7 +1126,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "/workspace/Project.csproj", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Project.csproj", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1153,7 +1157,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "/workspace/Project.csproj", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Project.csproj", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1174,7 +1178,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1195,7 +1199,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
-        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1219,7 +1223,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolutionWithProject("/workspace/Project.csproj");
-        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", "Alias", transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", "Alias", transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = oldWorkspace.Object,
@@ -1234,10 +1238,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .Returns(manifest);
 
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(3);
-        _sessionStore.SetupSequence(item => item.ReadSession("WorkspaceId")).Returns(session).Returns(session);
+        _sessionStore.SetupSequence(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session).Returns(session);
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceReloadOutcome>(outcome =>
-                outcome.Workspace.WorkspaceId == "WorkspaceId" && outcome.Workspace.WorkspaceEpoch == 3),
+                outcome.Workspace.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111") && outcome.Workspace.WorkspaceEpoch == 3),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);
@@ -1261,7 +1265,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolutionWithProject("/workspace/Project.csproj");
-        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = oldWorkspace.Object,
@@ -1298,7 +1302,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
-        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1307,7 +1311,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
-        _sessionStore.SetupSequence(item => item.ReadSession("WorkspaceId"))
+        _sessionStore.SetupSequence(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111")))
             .Returns(session)
             .Returns((WorkspaceSessionSnapshot?)null);
 
@@ -1499,7 +1503,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     private WorkspaceSessionSnapshot CreateSession(
-        string workspaceId,
+        Guid workspaceId,
         string path,
         string? alias,
         WorkspaceTransaction? transaction)
@@ -1559,7 +1563,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         return new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
             {
                 [session.Workspace.WorkspaceId] = session,
             },
@@ -1569,19 +1573,19 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private WorkspaceHostSnapshot CreateRaceSnapshot(string raceKind)
     {
         var first = CreateSession(
-            "ExistingId",
+            Guid.Parse("88888888-8888-8888-8888-888888888888"),
             raceKind == "Path" ? "/workspace/New.sln" : "/workspace/Existing.sln",
             raceKind == "Alias" ? "Alias" : null,
             transaction: null);
 
-        var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
+        var workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
         {
-            ["ExistingId"] = first,
+            [Guid.Parse("88888888-8888-8888-8888-888888888888")] = first,
         };
 
         if (raceKind == "Capacity")
         {
-            workspaces["SecondId"] = CreateSession("SecondId", "/workspace/Second.sln", alias: null, transaction: null);
+            workspaces[Guid.Parse("99999999-9999-9999-9999-999999999999")] = CreateSession(Guid.Parse("99999999-9999-9999-9999-999999999999"), "/workspace/Second.sln", alias: null, transaction: null);
         }
 
         return new WorkspaceHostSnapshot { Workspaces = workspaces };

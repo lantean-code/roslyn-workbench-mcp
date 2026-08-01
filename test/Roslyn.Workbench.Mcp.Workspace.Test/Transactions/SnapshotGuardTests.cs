@@ -38,7 +38,7 @@ public sealed class SnapshotGuardTests : IDisposable
         var session = CreateSession(CreateTransaction());
         var expectedSnapshot = CreateExpectedSnapshot() with
         {
-            WorkspaceId = "DifferentWorkspaceId",
+            WorkspaceId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
         };
 
         var result = _target.Validate(session, expectedSnapshot);
@@ -79,17 +79,18 @@ public sealed class SnapshotGuardTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_BlankOptionalWorkspaceIdAndMatchingEpochAndRevision_WHEN_Validating_THEN_ShouldReturnNoError()
+    public void GIVEN_BlankWorkspaceIdAndMatchingEpochAndRevision_WHEN_Validating_THEN_ShouldReturnSnapshotMismatch()
     {
         var session = CreateSession(CreateTransaction());
         var expectedSnapshot = CreateExpectedSnapshot() with
         {
-            WorkspaceId = "   ",
+            WorkspaceId = Guid.Empty,
         };
 
         var result = _target.Validate(session, expectedSnapshot);
 
-        result.Should().BeNull();
+        result!.Code.Should().Be("SnapshotMismatch");
+        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
     [Fact]
@@ -119,7 +120,7 @@ public sealed class SnapshotGuardTests : IDisposable
 
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
             LoadedPath = "LoadedPath",
         };
@@ -167,7 +168,7 @@ public sealed class SnapshotGuardTests : IDisposable
     {
         return new SnapshotPrecondition
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
             TransactionRevision = 1,
         };

@@ -10,15 +10,15 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Concurrency;
 internal sealed class ConcurrencyRunner
 {
     private readonly ScenarioHost _host;
-    private readonly string _primaryWorkspaceId;
+    private readonly Guid _primaryWorkspaceId;
     private readonly string _repositoryRoot;
-    private readonly string _secondaryWorkspaceId;
-    private string? _transactionWorkspaceId;
+    private readonly Guid _secondaryWorkspaceId;
+    private Guid? _transactionWorkspaceId;
 
     public ConcurrencyRunner(
         ScenarioHost host,
-        string primaryWorkspaceId,
-        string secondaryWorkspaceId,
+        Guid primaryWorkspaceId,
+        Guid secondaryWorkspaceId,
         string repositoryRoot)
     {
         _host = host;
@@ -99,9 +99,9 @@ internal sealed class ConcurrencyRunner
         }
         catch
         {
-            if (_transactionWorkspaceId is not null)
+            if (_transactionWorkspaceId is Guid transactionWorkspaceId)
             {
-                await TryRollbackAsync(_transactionWorkspaceId);
+                await TryRollbackAsync(transactionWorkspaceId);
             }
 
             throw;
@@ -409,7 +409,7 @@ internal sealed class ConcurrencyRunner
 
     private IReadOnlyDictionary<string, object?> Materialize(
         ScenarioDefinition scenario,
-        string workspaceId)
+        Guid workspaceId)
     {
         return ArgumentMaterializer.Materialize(
             scenario.Arguments,
@@ -419,7 +419,7 @@ internal sealed class ConcurrencyRunner
     }
 
     private static Dictionary<string, object?> CreateWorkspaceArguments(
-        string workspaceId)
+        Guid workspaceId)
     {
         return new Dictionary<string, object?>
         {
@@ -493,7 +493,7 @@ internal sealed class ConcurrencyRunner
                 : null;
     }
 
-    private async Task TryRollbackAsync(string workspaceId)
+    private async Task TryRollbackAsync(Guid workspaceId)
     {
         await _host.CallToolAsync(
             "transaction-rollback",

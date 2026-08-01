@@ -15,7 +15,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
         _startupMode = options.Value.ConsentMode;
     }
 
-    public ErrorReportingConsentState GetState(string? workspaceId, long? workspaceEpoch)
+    public ErrorReportingConsentState GetState(Guid? workspaceId, long? workspaceEpoch)
     {
         lock (_gate)
         {
@@ -34,9 +34,9 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
                 return ErrorReportingConsentState.AllowedForSession;
             }
 
-            if (!string.IsNullOrWhiteSpace(workspaceId)
+            if (workspaceId is not null
                 && workspaceEpoch is not null
-                && _workspaceGrants.Contains(new WorkspaceConsentKey(workspaceId, workspaceEpoch.Value)))
+                && _workspaceGrants.Contains(new WorkspaceConsentKey(workspaceId.Value, workspaceEpoch.Value)))
             {
                 return ErrorReportingConsentState.AllowedForWorkspace;
             }
@@ -45,7 +45,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
         }
     }
 
-    public void AllowWorkspace(string workspaceId, long workspaceEpoch)
+    public void AllowWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         lock (_gate)
         {
@@ -71,7 +71,7 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
         }
     }
 
-    public void InvalidateWorkspace(string workspaceId, long workspaceEpoch)
+    public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         lock (_gate)
         {
@@ -81,11 +81,11 @@ internal sealed class ErrorReportingConsentStore : IErrorReportingConsentStore
 
     private readonly record struct WorkspaceConsentKey
     {
-        public string WorkspaceId { get; }
+        public Guid WorkspaceId { get; }
 
         public long WorkspaceEpoch { get; }
 
-        public WorkspaceConsentKey(string workspaceId, long workspaceEpoch)
+        public WorkspaceConsentKey(Guid workspaceId, long workspaceEpoch)
         {
             WorkspaceId = workspaceId;
             WorkspaceEpoch = workspaceEpoch;

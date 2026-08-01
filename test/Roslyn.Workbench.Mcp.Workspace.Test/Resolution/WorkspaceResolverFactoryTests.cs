@@ -23,7 +23,7 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
         var document = _workspace.AddDocument(project.Id, "Document.cs", SourceText.From("class C { }"));
         var identity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
             LoadedPath = "LoadedPath",
             WorkspaceRoot = "WorkspaceRoot",

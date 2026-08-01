@@ -24,7 +24,7 @@ public sealed class ResolveSymbolToolTests
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
             Location = new LocationSelector(),
-            ExpectedSnapshot = new SnapshotPrecondition(),
+            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);

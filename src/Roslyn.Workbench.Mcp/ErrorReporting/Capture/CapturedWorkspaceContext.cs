@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 internal sealed record CapturedWorkspaceContext
 {
-    public required string WorkspaceId { get; init; }
+    public required Guid WorkspaceId { get; init; }
 
     public required long WorkspaceEpoch { get; init; }
 

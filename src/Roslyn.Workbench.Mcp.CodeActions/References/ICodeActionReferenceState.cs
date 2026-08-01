@@ -17,10 +17,10 @@ internal interface ICodeActionReferenceState
 
     void Remove(Guid actionId);
 
-    void InvalidateWorkspace(string workspaceId, long workspaceEpoch);
+    void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch);
 
     void InvalidateTransaction(
-        string workspaceId,
+        Guid workspaceId,
         long workspaceEpoch,
         WorkspaceTransactionId transactionId);
 

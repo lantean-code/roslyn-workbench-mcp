@@ -50,7 +50,7 @@ public sealed class GetSolutionStructureToolTests
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
             });
 
@@ -89,10 +89,10 @@ public sealed class GetSolutionStructureToolTests
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<IReadOnlyList<Project>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
+            .Returns((Guid _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(project => targetFrameworksByProjectName[project.Name])
                 .ToArray());
 
@@ -155,7 +155,7 @@ public sealed class GetSolutionStructureToolTests
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
             });
 
@@ -186,10 +186,10 @@ public sealed class GetSolutionStructureToolTests
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<IReadOnlyList<Project>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
+            .Returns((Guid _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(static _ => ProjectTargetFrameworksResult.Succeeded())
                 .ToArray());
 
@@ -272,7 +272,7 @@ public sealed class GetSolutionStructureToolTests
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
             });
 
@@ -321,10 +321,10 @@ public sealed class GetSolutionStructureToolTests
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<IReadOnlyList<Project>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
+            .Returns((Guid _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(project => targetFrameworksByProject[project])
                 .ToArray());
 
@@ -356,7 +356,7 @@ public sealed class GetSolutionStructureToolTests
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
             });
 
@@ -374,7 +374,7 @@ public sealed class GetSolutionStructureToolTests
         result.Error.Message.Should().Be("Failure");
         result.RequiredAction.Should().Be(RequiredAction.Retry);
         queryContextMocks.ProjectTargetFrameworkResolver.Verify(item => item.Resolve(
-            It.IsAny<string>(),
+            It.IsAny<Guid>(),
             It.IsAny<IReadOnlyList<Project>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -413,7 +413,7 @@ public sealed class GetSolutionStructureToolTests
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
             });
 
@@ -427,7 +427,7 @@ public sealed class GetSolutionStructureToolTests
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 It.IsAny<IReadOnlyList<Project>>(),
                 It.IsAny<CancellationToken>()))
             .Returns([ProjectTargetFrameworksResult.Failed("Failure")]);

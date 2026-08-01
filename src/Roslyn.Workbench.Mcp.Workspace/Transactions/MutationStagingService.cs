@@ -34,12 +34,12 @@ internal sealed class MutationStagingService : IMutationStagingService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var transactionOwnerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
-        if (string.IsNullOrWhiteSpace(transactionOwnerWorkspaceId))
+        if (transactionOwnerWorkspaceId is null)
         {
             return CreateTransactionRequiredResult();
         }
 
-        var session = _sessionStore.ReadSession(transactionOwnerWorkspaceId);
+        var session = _sessionStore.ReadSession(transactionOwnerWorkspaceId.Value);
         var transaction = session?.Transaction;
         if (session is null || transaction is null)
         {

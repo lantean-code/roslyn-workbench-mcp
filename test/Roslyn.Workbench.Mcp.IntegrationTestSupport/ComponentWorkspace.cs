@@ -164,7 +164,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null)
     {
@@ -173,7 +173,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null,
         StatusDetailLevel detail = StatusDetailLevel.Standard)
@@ -188,7 +188,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null)
     {
@@ -197,7 +197,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartTransactionAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null)
     {
@@ -206,7 +206,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewTransactionAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null,
         DocumentSelector? document = null,
@@ -226,7 +226,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
     internal ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveTransactionHistoryAsync(
         TransactionHistoryDirection direction,
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null,
         SnapshotPrecondition? expectedSnapshot = null)
@@ -242,7 +242,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitTransactionAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null,
         SnapshotPrecondition? expectedSnapshot = null)
@@ -257,7 +257,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackTransactionAsync(
         CancellationToken cancellationToken,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         string? alias = null,
         string? path = null)
     {

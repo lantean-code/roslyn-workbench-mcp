@@ -16,7 +16,7 @@ public interface IReferenceDiscoveryService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The unique source occurrences within the selected documents.</returns>
     ValueTask<IReadOnlyList<ReferenceOccurrence>> FindReferencesAsync(
-        string workspaceId,
+        Guid workspaceId,
         Solution solution,
         ISymbol symbol,
         IReadOnlyList<Document> documents,

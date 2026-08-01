@@ -52,13 +52,13 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         await using var target = CreateTarget();
 
-        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
-        await target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
+        var result = await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
 
         result.Should().BeSameAs(WorkspaceInstanceStatusResult.Empty);
         Encoding.UTF8.GetString(stream.ToArray()).Should().Contain("\"transactionRevision\":2").And.Contain("\"commitPhase\":\"Applying\"");
-        await target.CloseAsync("workspace");
-        _file.Verify(item => item.Delete(It.Is<string>(path => path.EndsWith("-workspace.json", StringComparison.Ordinal))), Times.Once);
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        _file.Verify(item => item.Delete(It.Is<string>(path => path.EndsWith("-11111111-1111-1111-1111-111111111111.json", StringComparison.Ordinal))), Times.Once);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         await using var target = CreateTarget();
 
         var result = await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
@@ -104,7 +104,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         await using var target = CreateTarget();
 
-        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         result.HasOtherLiveInstance.Should().BeTrue();
         result.HasUnreadableLiveInstance.Should().BeTrue();
@@ -179,7 +179,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new IOException());
         await using var target = CreateTarget();
 
-        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
@@ -190,7 +190,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
         await using var target = CreateTarget();
 
-        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
@@ -222,8 +222,8 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     {
         await using var target = CreateTarget();
 
-        await target.UpdateAsync("workspace", WorkspaceLifecycleState.Ready, null, null, null);
-        await target.CloseAsync("workspace");
+        await target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.Ready, null, null, null);
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Never);
     }
@@ -244,11 +244,11 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream.Object, "/workspace/instance.json", false) { CallBase = true }.Object);
 
         await using var target = CreateTarget();
-        await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         stream.Setup(item => item.SetLength(0)).Throws(new IOException());
 
-        await target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
-        await target.CloseAsync("workspace");
+        await target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Once);
     }
@@ -263,14 +263,14 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         var target = CreateTarget();
         await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken);
 
         target.QueueUpdate(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceLifecycleState.WorkspaceOutOfDate,
             transactionRevision: null,
             commitId: null,
@@ -295,21 +295,21 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         await using var target = CreateTarget();
         await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken);
 
         target.QueueUpdate(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceLifecycleState.WorkspaceOutOfDate,
             transactionRevision: null,
             commitId: null,
             commitPhase: null);
 
         await target.UpdateAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceLifecycleState.Ready,
             transactionRevision: null,
             commitId: null,
@@ -338,11 +338,11 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream.Object, "/workspace/instance.json", false) { CallBase = true }.Object);
 
         await using var target = CreateTarget();
-        await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         stream.Setup(item => item.SetLength(0)).Throws(new UnauthorizedAccessException());
 
-        await target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
-        await target.CloseAsync("workspace");
+        await target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Once);
     }
@@ -357,9 +357,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         _file.Setup(item => item.Delete(It.IsAny<string>())).Throws(new IOException());
         await using var target = CreateTarget();
-        await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
-        await target.CloseAsync("workspace");
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         stream.CanRead.Should().BeFalse();
     }
@@ -374,9 +374,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         _file.Setup(item => item.Delete(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
         await using var target = CreateTarget();
-        await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
-        await target.CloseAsync("workspace");
+        await target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         stream.CanRead.Should().BeFalse();
     }
@@ -390,8 +390,8 @@ public sealed class WorkspaceInstanceStatusPublisherTests
                 new Mock<FileSystemStream>(new MemoryStream(), path, false) { CallBase = true }.Object);
 
         var target = CreateTarget();
-        await target.OpenAsync("workspace-one", "/workspace", "/workspace/one.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
-        await target.OpenAsync("workspace-two", "/workspace", "/workspace/two.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("22222222-2222-2222-2222-222222222222"), "/workspace", "/workspace/one.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("33333333-3333-3333-3333-333333333333"), "/workspace", "/workspace/two.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         await target.DisposeAsync();
 
@@ -409,7 +409,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         var opens = Enumerable.Range(0, 10)
             .Select(_ => target.OpenAsync(
-                "workspace",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 "/workspace",
                 "/workspace/solution.slnx",
                 WorkspaceLifecycleState.Ready,
@@ -448,15 +448,15 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         await using var target = CreateTarget();
         await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken);
 
-        var updateTask = target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying").AsTask();
+        var updateTask = target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying").AsTask();
         await updateStarted.Task;
-        var closeTask = target.CloseAsync("workspace").AsTask();
+        var closeTask = target.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111")).AsTask();
 
         closeTask.IsCompleted.Should().BeFalse();
         _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Never);
@@ -474,13 +474,13 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         await target.DisposeAsync();
 
         var result = await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken);
 
-        await target.UpdateAsync("workspace", WorkspaceLifecycleState.Ready, null, null, null);
+        await target.UpdateAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceLifecycleState.Ready, null, null, null);
         await target.DisposeAsync();
 
         result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
@@ -510,14 +510,14 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         var target = CreateTarget();
         await target.OpenAsync(
-            "workspace",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "/workspace",
             "/workspace/solution.slnx",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken);
 
         await target.OpenAsync(
-            "healthy-workspace",
+            Guid.Parse("44444444-4444-4444-4444-444444444444"),
             "/workspace",
             "/workspace/healthy.slnx",
             WorkspaceLifecycleState.Ready,
@@ -528,7 +528,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         await firstAction.Should().ThrowAsync<IOException>().WithMessage("failure");
         await target.DisposeAsync();
         _file.Verify(
-            item => item.Delete(It.Is<string>(path => path.EndsWith("-healthy-workspace.json", StringComparison.Ordinal))),
+            item => item.Delete(It.Is<string>(path => path.EndsWith("-44444444-4444-4444-4444-444444444444.json", StringComparison.Ordinal))),
             Times.Once);
     }
 
@@ -617,7 +617,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(statusStream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
         await using var target = CreateTarget();
-        await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        await target.OpenAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         var status = JsonSerializer.Deserialize<WorkspaceInstanceStatus>(statusStream.ToArray(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
         status.Should().NotBeNull();
         var path = $"/workspace/.vs/roslyn-workbench-mcp/instances/{status.InstanceId}-workspace.json";

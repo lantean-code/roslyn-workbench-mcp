@@ -19,7 +19,7 @@ public sealed class ReferenceDiscoveryServiceTests
         _queryCacheScopeFactory = new Mock<IWorkspaceQueryCacheScopeFactory>();
         _queryCacheScopeFactory
             .Setup(item => item.CreateScope(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<Solution>(),
                 It.IsAny<string>()))
             .Returns(_queryCacheScope.Object);
@@ -54,7 +54,7 @@ public sealed class ReferenceDiscoveryServiceTests
         await cancellationSource.CancelAsync();
 
         var action = async () => await _target.FindReferencesAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             document.Solution,
             symbol,
             [document.Document],
@@ -87,7 +87,7 @@ public sealed class ReferenceDiscoveryServiceTests
             .ReturnsAsync(cachedEntry);
 
         var result = await _target.FindReferencesAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             document.Solution,
             symbol,
             [document.Document],
@@ -113,7 +113,7 @@ public sealed class ReferenceDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         var result = await _target.FindReferencesAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             document.Solution,
             symbol,
             [document.Document],
@@ -178,7 +178,7 @@ public sealed class ReferenceDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         var result = await _target.FindReferencesAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             solution.Solution,
             symbol,
             [usageDocument],
@@ -267,7 +267,7 @@ public sealed class ReferenceDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         var result = await _target.FindReferencesAsync(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             solution.Solution,
             symbol,
             selectedDocuments,

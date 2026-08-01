@@ -80,9 +80,9 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
     {
         var workspaceId = TryGetWorkspaceId(arguments);
         WorkspaceSessionSnapshot? session = null;
-        if (!string.IsNullOrWhiteSpace(workspaceId))
+        if (workspaceId is not null)
         {
-            session = _workspaceSessionStore.ReadSession(workspaceId);
+            session = _workspaceSessionStore.ReadSession(workspaceId.Value);
         }
         else
         {
@@ -227,7 +227,7 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         return captured.MoveToImmutable();
     }
 
-    private static string? TryGetWorkspaceId(IDictionary<string, JsonElement>? arguments)
+    private static Guid? TryGetWorkspaceId(IDictionary<string, JsonElement>? arguments)
     {
         if (arguments is null
             || !arguments.TryGetValue("workspace", out var workspace)
@@ -238,7 +238,9 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
             return null;
         }
 
-        return workspaceId.GetString();
+        return Guid.TryParse(workspaceId.GetString(), out var parsedWorkspaceId)
+            ? parsedWorkspaceId
+            : null;
     }
 
     private static string GetOperatingSystemFamily()

@@ -185,7 +185,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         var committed = CreateReference(CreateRecipe(snapshotId: 1, transactionId: null));
 
         _target.InvalidateTransaction(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             new WorkspaceTransactionId(1));
 
@@ -201,7 +201,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         var first = CreateReference(CreateRecipe(workspaceEpoch: 1));
         var second = CreateReference(CreateRecipe(workspaceEpoch: 2));
 
-        _target.InvalidateWorkspace("WorkspaceId", 1);
+        _target.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1);
 
         _target.TryGet(first.ActionId, out _).Should().BeFalse();
         _target.TryGet(second.ActionId, out _).Should().BeTrue();
@@ -220,7 +220,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         _cache.Count.Should().Be(100);
 
         _target.InvalidateTransaction(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             new WorkspaceTransactionId(1));
 
@@ -241,9 +241,9 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         }
 
         Parallel.Invoke(
-            () => _target.InvalidateWorkspace("WorkspaceId", 1),
+            () => _target.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"), 1),
             () => _target.InvalidateTransaction(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceTransactionId(1)),
             () => _target.InvalidateSnapshots(
@@ -273,12 +273,12 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
                     out references[index]).Should().BeTrue();
             }),
             () => Parallel.For(0, 20, _ => _target.InvalidateTransaction(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceTransactionId(1))));
 
         _target.InvalidateTransaction(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             new WorkspaceTransactionId(1));
 
@@ -301,7 +301,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
             }
 
             _target.InvalidateTransaction(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
                 new WorkspaceTransactionId(1));
 
@@ -347,7 +347,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         }
 
         return new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch,
             new WorkspaceSnapshotId(snapshotId),
             typedTransactionId);

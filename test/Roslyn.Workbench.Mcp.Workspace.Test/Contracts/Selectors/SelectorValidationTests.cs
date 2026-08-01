@@ -148,7 +148,7 @@ public sealed class SelectorValidationTests
     {
         var selector = new WorkspaceSelector
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
         };
 
         var errors = WorkspaceContractValidator.Validate(selector);

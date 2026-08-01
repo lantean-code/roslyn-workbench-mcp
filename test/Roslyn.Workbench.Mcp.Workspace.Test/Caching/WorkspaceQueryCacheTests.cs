@@ -16,10 +16,10 @@ public sealed class WorkspaceQueryCacheTests
     [Fact]
     public void GIVEN_WorkspaceId_WHEN_InvalidatingWorkspace_THEN_ShouldDelegateToState()
     {
-        _target.InvalidateWorkspace("WorkspaceId");
+        _target.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _workspaceState.Verify(
-            item => item.InvalidateWorkspace("WorkspaceId"),
+            item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Times.Once);
     }
 }

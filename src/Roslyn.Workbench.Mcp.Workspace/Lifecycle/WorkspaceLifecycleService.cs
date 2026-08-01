@@ -179,7 +179,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         var snapshot = _sessionStore.ReadSnapshot();
         var workspaces = snapshot.Workspaces.Values
-            .OrderBy(static session => session.Workspace.WorkspaceId, StringComparer.Ordinal)
+            .OrderBy(static session => session.Workspace.WorkspaceId)
             .Select(static session => session.Workspace)
             .ToArray();
 
@@ -194,7 +194,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return ValueTask.FromResult(result);
     }
 
-    public async ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -240,7 +240,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         StatusDetailLevel detail,
@@ -278,7 +278,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instanceStatus), CreateContext(session));
     }
 
-    public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -482,7 +482,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     }
 
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
-        string workspaceId,
+        Guid workspaceId,
         string? alias,
         ILoadedWorkspace workspace,
         Solution solution,
@@ -663,7 +663,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return string.Equals(first, second, _workspacePathComparison.GetComparison(first));
     }
 
-    private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
+    private static WorkspaceSelector? CreateWorkspaceSelector(Guid? workspaceId, string? alias, string? path)
     {
         if (workspaceId is null && alias is null && path is null)
         {

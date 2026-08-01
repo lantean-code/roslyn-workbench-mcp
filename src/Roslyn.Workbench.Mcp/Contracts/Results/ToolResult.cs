@@ -14,7 +14,7 @@ internal sealed record ToolResult<TData>
     /// <summary>
     /// Gets the effective workspace identifier, when available.
     /// </summary>
-    public string? WorkspaceId { get; init; }
+    public Guid? WorkspaceId { get; init; }
 
     /// <summary>
     /// Gets the current workspace epoch, when available.
@@ -75,7 +75,7 @@ internal static class ToolResult
     /// <returns>A successful tool result.</returns>
     public static ToolResult<TData> Succeeded<TData>(
         TData data,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         ChangeSummary? changes = null,
@@ -106,7 +106,7 @@ internal static class ToolResult
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A no-change tool result.</returns>
     public static ToolResult<TData> NoChange<TData>(
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         TData? data = default,
@@ -139,7 +139,7 @@ internal static class ToolResult
     public static ToolResult<TData> Rejected<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -172,7 +172,7 @@ internal static class ToolResult
     public static ToolResult<TData> Conflict<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -205,7 +205,7 @@ internal static class ToolResult
     public static ToolResult<TData> Faulted<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        string? workspaceId = null,
+        Guid? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,

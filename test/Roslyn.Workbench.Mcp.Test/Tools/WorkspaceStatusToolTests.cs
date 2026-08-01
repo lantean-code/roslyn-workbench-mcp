@@ -25,7 +25,7 @@ public sealed class WorkspaceStatusToolTests
                 State = WorkspaceLifecycleState.Ready,
                 Workspace = new WorkspaceIdentity
                 {
-                    WorkspaceId = "WorkspaceId",
+                    WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     WorkspaceEpoch = 5,
                     LoadedPath = "/workspace/Sample.csproj",
                 },

@@ -27,6 +27,8 @@ public sealed class SelectorAndSnapshotIntegrationTests
                 },
                 ExpectedSnapshot = new SnapshotPrecondition
                 {
+                    WorkspaceId = openResult.Context.WorkspaceId
+                        ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
                     WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
                 },
             }, TestContext.Current.CancellationToken);
@@ -50,6 +52,8 @@ public sealed class SelectorAndSnapshotIntegrationTests
                 Location = fixture.GetLocation("ToUpperInvariant"),
                 ExpectedSnapshot = new SnapshotPrecondition
                 {
+                    WorkspaceId = openResult.Context.WorkspaceId
+                        ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
                     WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
                 },
             }, TestContext.Current.CancellationToken);

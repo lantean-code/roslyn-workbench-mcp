@@ -9,7 +9,7 @@ public sealed class WorkspaceSelectionResultTests
     {
         var selection = new WorkspaceSelection
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Session = null!,
         };
 

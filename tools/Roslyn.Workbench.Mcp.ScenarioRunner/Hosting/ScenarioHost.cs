@@ -15,7 +15,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
     private readonly Process _process;
     private readonly StringBuilder _standardError = new();
     private readonly object _terminationLock = new();
-    private readonly Dictionary<string, long> _workspaceEpochs = new(StringComparer.Ordinal);
+    private readonly Dictionary<Guid, long> _workspaceEpochs = [];
     private McpClient? _client;
     private int? _exitCode;
     private long _lastCancellationRequestId;
@@ -29,7 +29,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
         _process = process;
     }
 
-    public long GetWorkspaceEpoch(string workspaceId)
+    public long GetWorkspaceEpoch(Guid workspaceId)
     {
         return _workspaceEpochs.TryGetValue(workspaceId, out var workspaceEpoch)
             ? workspaceEpoch
@@ -37,7 +37,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
                 $"Workspace '{workspaceId}' has no recorded epoch.");
     }
 
-    public void RegisterWorkspace(string workspaceId, long workspaceEpoch)
+    public void RegisterWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         _workspaceEpochs[workspaceId] = workspaceEpoch;
     }

@@ -14,11 +14,11 @@ internal sealed class StateSequenceRunner
     private readonly ScenarioHost _host;
     private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _repositoryRoot;
-    private readonly string _workspaceId;
+    private readonly Guid _workspaceId;
 
     public StateSequenceRunner(
         ScenarioHost host,
-        string workspaceId,
+        Guid workspaceId,
         string repositoryRoot)
     {
         _host = host;

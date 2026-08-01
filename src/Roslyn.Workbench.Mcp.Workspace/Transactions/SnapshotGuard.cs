@@ -11,7 +11,7 @@ internal sealed class SnapshotGuard : ISnapshotGuard
             return null;
         }
 
-        if ((!string.IsNullOrWhiteSpace(expectedSnapshot.WorkspaceId) && !string.Equals(expectedSnapshot.WorkspaceId, session.Workspace.WorkspaceId, StringComparison.Ordinal))
+        if (expectedSnapshot.WorkspaceId != session.Workspace.WorkspaceId
             || expectedSnapshot.WorkspaceEpoch != session.Workspace.WorkspaceEpoch
             || expectedSnapshot.TransactionRevision != session.Transaction.CurrentRevision)
         {

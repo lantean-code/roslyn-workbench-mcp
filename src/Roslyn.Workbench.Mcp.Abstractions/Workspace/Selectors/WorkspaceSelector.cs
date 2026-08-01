@@ -8,7 +8,8 @@ public sealed record WorkspaceSelector
     /// <summary>
     /// Gets the server-generated workspace identifier.
     /// </summary>
-    public string? WorkspaceId { get; init; }
+    [NonEmptyGuid]
+    public Guid? WorkspaceId { get; init; }
 
     /// <summary>
     /// Gets the optional caller-friendly workspace alias.

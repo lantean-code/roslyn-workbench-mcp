@@ -172,7 +172,7 @@ public sealed class FindReferencesToolTests
 
         queryContextMocks.ReferenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 solution.Solution,
                 symbol,
                 documents,
@@ -322,7 +322,7 @@ public sealed class FindReferencesToolTests
 
         queryContextMocks.ReferenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 solution.Solution,
                 symbol,
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -445,7 +445,7 @@ public sealed class FindReferencesToolTests
 
         queryContextMocks.ReferenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 solution.Solution,
                 symbol,
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -599,7 +599,7 @@ public sealed class FindReferencesToolTests
 
         queryContextMocks.ReferenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 solution.Solution,
                 symbol,
                 selectedDocuments,
@@ -821,7 +821,7 @@ public sealed class FindReferencesToolTests
 
         queryContextMocks.ReferenceDiscoveryService
             .Setup(item => item.FindReferencesAsync(
-                "WorkspaceId",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 solution.Solution,
                 symbol,
                 It.IsAny<IReadOnlyList<Document>>(),

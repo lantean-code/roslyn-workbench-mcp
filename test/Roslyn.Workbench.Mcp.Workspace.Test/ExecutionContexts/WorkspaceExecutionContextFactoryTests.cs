@@ -331,10 +331,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     [Fact]
     public void GIVEN_MissingWorkspace_WHEN_DetectingChange_THEN_ShouldRequireOpenWorkspace()
     {
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId"))
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111")))
             .Returns((WorkspaceSessionSnapshot?)null);
 
-        var result = _target.DetectUnexpectedWorkspaceChange("WorkspaceId");
+        var result = _target.DetectUnexpectedWorkspaceChange(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         result!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceNotOpen);
         result.Error.RequiredAction.Should().Be(RequiredAction.OpenWorkspace);
@@ -428,7 +428,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     [Theory]
     [InlineData("OwnerAlias", "OwnerPath", "OwnerAlias")]
     [InlineData(null, "OwnerPath", "OwnerPath")]
-    [InlineData(null, null, "OwnerWorkspaceId")]
+    [InlineData(null, null, "77777777-7777-7777-7777-777777777777")]
     public void GIVEN_DifferentTransactionOwner_WHEN_CreatingMutationContext_THEN_ShouldIdentifyOwner(
         string? ownerAlias,
         string? ownerPath,
@@ -441,13 +441,13 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         {
             Workspace = new WorkspaceIdentity
             {
-                WorkspaceId = "OwnerWorkspaceId",
+                WorkspaceId = Guid.Parse("77777777-7777-7777-7777-777777777777"),
                 Alias = ownerAlias,
                 LoadedPath = ownerPath!,
             },
         };
 
-        SetupSelection(session, ownerWorkspaceId: "OwnerWorkspaceId", ownerSession: ownerSession);
+        SetupSelection(session, ownerWorkspaceId: Guid.Parse("77777777-7777-7777-7777-777777777777"), ownerSession: ownerSession);
 
         var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
 
@@ -486,7 +486,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var gate = new Mock<IWorkspaceOperationGate>();
         gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
-        SetupSelection(session, ownerWorkspaceId: "OwnerWorkspaceId", ownerSession: null);
+        SetupSelection(session, ownerWorkspaceId: Guid.Parse("77777777-7777-7777-7777-777777777777"), ownerSession: null);
 
         var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
 
@@ -562,7 +562,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     private void SetupSelection(
         WorkspaceSessionSnapshot selectedSession,
         bool sessionRemains = true,
-        string? ownerWorkspaceId = null,
+        Guid? ownerWorkspaceId = null,
         WorkspaceSessionSnapshot? ownerSession = null)
     {
         var snapshot = CreateHostSnapshot(selectedSession, ownerWorkspaceId);
@@ -573,7 +573,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
 
         if (ownerWorkspaceId is not null)
         {
-            _sessionStore.Setup(item => item.ReadSession(ownerWorkspaceId)).Returns(ownerSession);
+            _sessionStore.Setup(item => item.ReadSession(ownerWorkspaceId.Value)).Returns(ownerSession);
         }
 
         _sessionAcquirer.Setup(item => item.AcquireShared(null)).Returns(() => CreateAcquisition(selectedSession, sessionRemains, exclusive: false));
@@ -647,7 +647,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var committedSnapshotId = new WorkspaceSnapshotId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
             Alias = "Alias",
             LoadedPath = "LoadedPath",
@@ -695,11 +695,11 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         };
     }
 
-    private static WorkspaceHostSnapshot CreateHostSnapshot(WorkspaceSessionSnapshot session, string? ownerWorkspaceId = null)
+    private static WorkspaceHostSnapshot CreateHostSnapshot(WorkspaceSessionSnapshot session, Guid? ownerWorkspaceId = null)
     {
         return new WorkspaceHostSnapshot
         {
-            Workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(StringComparer.Ordinal)
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
             {
                 [session.Workspace.WorkspaceId] = session,
             },

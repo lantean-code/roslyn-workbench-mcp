@@ -229,7 +229,7 @@ public sealed class QueryResultCacheScopeTests
     {
         var typedSnapshotId = new WorkspaceSnapshotId(snapshotId);
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
-            "WorkspaceId",
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
             typedSnapshotId,
             transactionId: null);

@@ -9,7 +9,7 @@ internal sealed class WorkspaceQueryCache : IWorkspaceQueryCache
         _workspaceState = workspaceState;
     }
 
-    public void InvalidateWorkspace(string workspaceId)
+    public void InvalidateWorkspace(Guid workspaceId)
     {
         _workspaceState.InvalidateWorkspace(workspaceId);
     }

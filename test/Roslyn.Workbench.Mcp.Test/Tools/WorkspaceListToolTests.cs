@@ -22,13 +22,13 @@ public sealed class WorkspaceListToolTests
                     [
                         new WorkspaceIdentity
                         {
-                            WorkspaceId = "WorkspaceId",
+                            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                             Alias = "Alias",
                             WorkspaceEpoch = 7,
                             LoadedPath = "/workspace/Sample.csproj",
                         },
                     ],
-                TransactionOwnerWorkspaceId = "WorkspaceId",
+                TransactionOwnerWorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             }));
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(target, "workspace-list", cancellationToken: CancellationToken.None);
@@ -37,9 +37,9 @@ public sealed class WorkspaceListToolTests
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
         var data = result.StructuredContent.Value.GetProperty("data");
         data.GetProperty("workspaces").GetArrayLength().Should().Be(1);
-        data.GetProperty("workspaces")[0].GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
+        data.GetProperty("workspaces")[0].GetProperty("workspaceId").GetString().Should().Be("11111111-1111-1111-1111-111111111111");
         data.GetProperty("workspaces")[0].GetProperty("alias").GetString().Should().Be("Alias");
-        data.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be("WorkspaceId");
+        data.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be("11111111-1111-1111-1111-111111111111");
         workspaceLifecycleService.Verify(service => service.ListAsync(CancellationToken.None), Times.Once);
     }
 }

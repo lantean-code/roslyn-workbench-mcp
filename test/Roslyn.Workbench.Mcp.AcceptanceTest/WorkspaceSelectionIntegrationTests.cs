@@ -27,7 +27,7 @@ public sealed class WorkspaceSelectionIntegrationTests
                 AcceptanceProtocol.GetSuccessData(status)
                     .GetProperty("workspace")
                     .GetProperty("workspaceId")
-                    .GetString()
+                    .GetGuid()
                     .Should()
                     .Be(identity.WorkspaceId);
             }
@@ -36,7 +36,7 @@ public sealed class WorkspaceSelectionIntegrationTests
             AcceptanceProtocol.GetSuccessData(implicitStatus)
                 .GetProperty("workspace")
                 .GetProperty("workspaceId")
-                .GetString()
+                .GetGuid()
                 .Should()
                 .Be(identity.WorkspaceId);
         }

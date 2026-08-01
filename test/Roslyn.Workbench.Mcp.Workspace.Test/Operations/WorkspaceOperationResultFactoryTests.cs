@@ -155,7 +155,7 @@ public sealed class WorkspaceOperationResultFactoryTests
     {
         return new WorkspaceOperationContext
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
         };
     }
 

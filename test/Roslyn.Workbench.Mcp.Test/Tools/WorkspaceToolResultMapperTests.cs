@@ -22,7 +22,7 @@ public sealed class WorkspaceToolResultMapperTests
         });
 
         mapped.Outcome.Should().Be(expectedOutcome);
-        mapped.WorkspaceId.Should().Be("WorkspaceId");
+        mapped.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         mapped.WorkspaceEpoch.Should().Be(2);
         mapped.TransactionRevision.Should().Be(3);
         mapped.Diagnostics.Should().ContainSingle().Which.Id.Should().Be("Id");
@@ -57,7 +57,7 @@ public sealed class WorkspaceToolResultMapperTests
     {
         var context = new WorkspaceOperationContext
         {
-            WorkspaceId = "WorkspaceId",
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
             TransactionRevision = 3,
         };

@@ -46,7 +46,7 @@ internal interface IWorkspaceLifecycleService
     /// <param name="path">The optional workspace path.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The close result.</returns>
-    ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
+    ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the selected workspace status.
@@ -58,7 +58,7 @@ internal interface IWorkspaceLifecycleService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The workspace status.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
-        string? workspaceId,
+        Guid? workspaceId,
         string? alias,
         string? path,
         StatusDetailLevel detail,
@@ -72,5 +72,5 @@ internal interface IWorkspaceLifecycleService
     /// <param name="path">The optional workspace path.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The reload result.</returns>
-    ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
+    ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 }

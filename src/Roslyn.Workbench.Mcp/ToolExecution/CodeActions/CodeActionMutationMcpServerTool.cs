@@ -17,12 +17,14 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         ICodeActionExecutionContextFactory contextFactory,
         ICodeActionReferenceStore referenceStore,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IOptions<StartupOptions> options)
         : base(protocolFactory.CreateCodeActionTool<TRequest>(
             registration.Metadata,
             registration.Kind,
             registration.ResponseType,
-            options.Value.ToolOutputSchemaMode))
+            options.Value.ToolOutputSchemaMode),
+            requestBinder)
     {
         _metadata = registration.Metadata;
         _handler = handler;

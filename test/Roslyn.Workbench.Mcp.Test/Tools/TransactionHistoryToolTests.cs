@@ -29,7 +29,29 @@ public sealed class TransactionHistoryToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var expectedSnapshot = new SnapshotPrecondition
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        };
+        var boundRequest = new TransactionHistoryRequest
+        {
+            Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
+            Direction = TransactionHistoryDirection.Undo,
+            ExpectedSnapshot = expectedSnapshot,
+        };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new TransactionHistoryTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
         arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });

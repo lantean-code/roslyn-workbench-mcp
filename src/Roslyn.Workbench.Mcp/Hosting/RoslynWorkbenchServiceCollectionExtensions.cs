@@ -110,6 +110,12 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
+        services.AddSingleton<IWorkspaceContractValidator<DocumentSelector>, DocumentSelectorValidator>();
+        services.AddSingleton<IWorkspaceContractValidator<LocationSelector>, LocationSelectorValidator>();
+        services.AddSingleton<IWorkspaceContractValidator<ProjectSelector>, ProjectSelectorValidator>();
+        services.AddSingleton<IWorkspaceContractValidator<ScopeSelector>, ScopeSelectorValidator>();
+        services.AddSingleton<IWorkspaceContractValidator<SymbolSelector>, SymbolSelectorValidator>();
+        services.AddSingleton<IWorkspaceContractValidator<WorkspaceSelector>, WorkspaceSelectorValidator>();
         services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
         services.AddSingleton<ITypeHierarchyService, TypeHierarchyService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
@@ -190,6 +196,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
         services.AddSingleton<ToolSchemaFactory>();
         services.AddSingleton<IMcpToolProtocolFactory, McpToolProtocolFactory>();
+        services.AddSingleton<IRequestObjectGraphValidator, RequestObjectGraphValidator>();
+        services.AddSingleton<IToolRequestBinder, ToolRequestBinder>();
         services.AddSingleton<UnhandledToolExceptionFilter>();
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();

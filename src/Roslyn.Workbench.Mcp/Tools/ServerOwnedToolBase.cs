@@ -10,6 +10,7 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
     protected ServerOwnedToolBase(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         string name,
         string title,
         string description,
@@ -28,7 +29,8 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
             destructive,
             resultSummary,
             idempotent,
-            openWorld))
+            openWorld),
+            requestBinder)
     {
     }
 

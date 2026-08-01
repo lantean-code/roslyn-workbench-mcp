@@ -9,10 +9,12 @@ internal sealed class WorkspaceListTool : ServerOwnedToolBase<WorkspaceListReque
     public WorkspaceListTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceListName,
             title: "Workspace List",
             description: "Lists the currently loaded workspaces.",

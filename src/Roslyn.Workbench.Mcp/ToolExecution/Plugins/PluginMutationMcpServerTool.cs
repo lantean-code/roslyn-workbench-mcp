@@ -13,10 +13,12 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
         PluginMutationRegistration<TRequest> registration,
         IToolExecutionContextFactory contextFactory,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IOptions<StartupOptions> options)
         : base(protocolFactory.CreatePluginTool<TRequest>(
             registration.Tool,
-            options.Value.ToolOutputSchemaMode))
+            options.Value.ToolOutputSchemaMode),
+            requestBinder)
     {
         _tool = registration.Tool;
         _handler = registration.Handler;

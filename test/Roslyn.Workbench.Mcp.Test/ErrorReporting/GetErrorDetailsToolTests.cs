@@ -17,9 +17,19 @@ public sealed class GetErrorDetailsToolTests
             .Setup(item => item.TryGet(correlationId, out storedRecord))
             .Returns(true);
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var boundRequest = new GetErrorDetailsRequest { CorrelationId = correlationId };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new GetErrorDetailsTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             store.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
@@ -48,9 +58,19 @@ public sealed class GetErrorDetailsToolTests
             .Setup(item => item.TryGet(correlationId, out storedRecord))
             .Returns(false);
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var boundRequest = new GetErrorDetailsRequest { CorrelationId = correlationId };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new GetErrorDetailsTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             store.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
@@ -76,9 +96,19 @@ public sealed class GetErrorDetailsToolTests
     {
         var store = new Mock<ICapturedErrorStore>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        GetErrorDetailsRequest? boundRequest = null;
+        var errorMessage = "Missing required tool argument: 'correlationId'.";
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(false);
         var target = new GetErrorDetailsTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             store.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(

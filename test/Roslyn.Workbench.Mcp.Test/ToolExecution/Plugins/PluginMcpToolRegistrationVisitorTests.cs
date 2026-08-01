@@ -71,6 +71,8 @@ public sealed class PluginMcpToolRegistrationVisitorTests
     {
         services.AddSingleton(contextFactory);
         services.AddSingleton(protocolFactory);
+        var requestBinder = new Mock<IToolRequestBinder>();
+        services.AddSingleton(requestBinder.Object);
         services.AddSingleton(Options.Create(new StartupOptions()));
     }
 

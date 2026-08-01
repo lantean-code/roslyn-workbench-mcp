@@ -7,10 +7,18 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolRequestBinderTests
 {
+    private readonly Mock<IRequestObjectGraphValidator> _requestObjectGraphValidator;
+    private readonly ToolRequestBinder _target;
+    public ToolRequestBinderTests()
+    {
+        _requestObjectGraphValidator = new Mock<IRequestObjectGraphValidator>();
+        _target = new ToolRequestBinder(_requestObjectGraphValidator.Object);
+    }
+
     [Fact]
     public void GIVEN_Arguments_WHEN_Binding_THEN_ShouldDeserializeWebNamedProperties()
     {
-        var result = ToolRequestBinder.TryBind<TestRequest>(
+        var result = _target.TryBind<TestRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["value"] = JsonSerializer.SerializeToElement("Value"),
@@ -22,12 +30,38 @@ public sealed class ToolRequestBinderTests
         request.Should().NotBeNull();
         request.Value.Should().Be("Value");
         errorMessage.Should().BeNull();
+        _requestObjectGraphValidator.Verify(item => item.TryCreateInvalidRequestError(
+            It.Is<TestRequest>(requestValue => requestValue.Value == "Value"),
+            It.IsAny<JsonSerializerOptions>(),
+            out It.Ref<string?>.IsAny), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_GraphValidationFailure_WHEN_Binding_THEN_ShouldReturnGraphError()
+    {
+        var graphError = "Invalid tool argument graph.";
+        _requestObjectGraphValidator
+            .Setup(item => item.TryCreateInvalidRequestError(
+                It.IsAny<object>(),
+                It.IsAny<JsonSerializerOptions>(),
+                out graphError))
+            .Returns(true);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["value"] = JsonSerializer.SerializeToElement("Value"),
+        };
+
+        var result = _target.TryBind<TestRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be(graphError);
     }
 
     [Fact]
     public void GIVEN_ConverterReturnsNull_WHEN_Binding_THEN_ShouldReturnContractError()
     {
-        var result = ToolRequestBinder.TryBind<NullRequest>(
+        var result = _target.TryBind<NullRequest>(
             new Dictionary<string, JsonElement>(),
             out var request,
             out var errorMessage);
@@ -40,7 +74,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_ExplicitNullForNonNullableProperty_WHEN_Binding_THEN_ShouldReturnContractError()
     {
-        var result = ToolRequestBinder.TryBind<TestRequest>(
+        var result = _target.TryBind<TestRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["value"] = JsonSerializer.SerializeToElement((string?)null),
@@ -61,7 +95,7 @@ public sealed class ToolRequestBinderTests
             ["scope"] = JsonSerializer.SerializeToElement("Scope"),
         };
 
-        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+        var result = _target.TryBind<RequiredRequest>(
             arguments,
             out var request,
             out var errorMessage);
@@ -74,7 +108,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_MultipleRequiredPropertiesAreMissing_WHEN_ValidatingRequiredArguments_THEN_ShouldReturnOrderedNamedError()
     {
-        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+        var result = _target.TryBind<RequiredRequest>(
             new Dictionary<string, JsonElement>(),
             out var request,
             out var errorMessage);
@@ -93,7 +127,7 @@ public sealed class ToolRequestBinderTests
             ["Scope"] = JsonSerializer.SerializeToElement("Scope"),
         };
 
-        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+        var result = _target.TryBind<RequiredRequest>(
             arguments,
             out var request,
             out var errorMessage);
@@ -108,7 +142,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_RequiredEnumArgumentIsUndefined_WHEN_Binding_THEN_ShouldReturnNamedError()
     {
-        var result = ToolRequestBinder.TryBind<RequiredEnumRequest>(
+        var result = _target.TryBind<RequiredEnumRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["value"] = JsonSerializer.SerializeToElement(999),
@@ -137,7 +171,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_FlagsArgumentContainsUndefinedBits_WHEN_Binding_THEN_ShouldReturnNamedError()
     {
-        var result = ToolRequestBinder.TryBind<EnumRequest>(
+        var result = _target.TryBind<EnumRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["signedFlags"] = JsonSerializer.SerializeToElement((TestSignedFlags)4),
@@ -155,7 +189,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_NegativeRangedArgument_WHEN_Binding_THEN_ShouldReturnNamedError()
     {
-        var result = ToolRequestBinder.TryBind<RangedRequest>(
+        var result = _target.TryBind<RangedRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["limit"] = JsonSerializer.SerializeToElement(-1),
@@ -171,7 +205,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_MultipleInvalidRangedArguments_WHEN_Binding_THEN_ShouldReturnOrderedNamedError()
     {
-        var result = ToolRequestBinder.TryBind<MultipleRangedRequest>(
+        var result = _target.TryBind<MultipleRangedRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["secondLimit"] = JsonSerializer.SerializeToElement(-1),
@@ -188,7 +222,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_RequiredStringIsWhitespace_WHEN_Binding_THEN_ShouldReturnNamedValueError()
     {
-        var result = ToolRequestBinder.TryBind<MeaningfulStringRequest>(
+        var result = _target.TryBind<MeaningfulStringRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["value"] = JsonSerializer.SerializeToElement(" "),
@@ -204,7 +238,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_DataAnnotatedRequiredStringIsOmitted_WHEN_Binding_THEN_ShouldReturnNamedMissingArgumentError()
     {
-        var result = ToolRequestBinder.TryBind<DataAnnotatedRequiredRequest>(
+        var result = _target.TryBind<DataAnnotatedRequiredRequest>(
             new Dictionary<string, JsonElement>(),
             out var request,
             out var errorMessage);
@@ -217,7 +251,7 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_StringIsNotAnAllowedValue_WHEN_Binding_THEN_ShouldReturnNamedValueError()
     {
-        var result = ToolRequestBinder.TryBind<AllowedValueRequest>(
+        var result = _target.TryBind<AllowedValueRequest>(
             new Dictionary<string, JsonElement>
             {
                 ["value"] = JsonSerializer.SerializeToElement("Third"),
@@ -228,63 +262,6 @@ public sealed class ToolRequestBinderTests
         result.Should().BeFalse();
         request.Should().BeNull();
         errorMessage.Should().Be("Invalid value for tool argument: 'value'.");
-    }
-
-    [Fact]
-    public void GIVEN_NestedValidationAttributesFail_WHEN_Binding_THEN_ShouldReturnNestedArgumentPaths()
-    {
-        var arguments = new Dictionary<string, JsonElement>
-        {
-            ["item"] = JsonSerializer.SerializeToElement(new { limit = -1 }),
-            ["items"] = JsonSerializer.SerializeToElement(new[] { new { kind = 999 } }),
-        };
-
-        var result = ToolRequestBinder.TryBind<NestedValidationRequest>(
-            arguments,
-            out var request,
-            out var errorMessage);
-
-        result.Should().BeFalse();
-        request.Should().BeNull();
-        errorMessage.Should().Be("Invalid values for tool arguments: 'item.limit', 'items[0].kind'.");
-    }
-
-    [Fact]
-    public void GIVEN_EmptyNestedWorkspaceId_WHEN_Binding_THEN_ShouldReturnNestedArgumentPath()
-    {
-        var arguments = new Dictionary<string, JsonElement>
-        {
-            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId = Guid.Empty }),
-        };
-
-        var result = ToolRequestBinder.TryBind<NestedWorkspaceRequest>(
-            arguments,
-            out var request,
-            out var errorMessage);
-
-        result.Should().BeFalse();
-        request.Should().BeNull();
-        errorMessage.Should().Be("Invalid value for tool argument: 'workspace.workspaceId'.");
-    }
-
-    [Fact]
-    public void GIVEN_ValidNestedWorkspaceId_WHEN_Binding_THEN_ShouldPreserveWorkspaceId()
-    {
-        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var arguments = new Dictionary<string, JsonElement>
-        {
-            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId }),
-        };
-
-        var result = ToolRequestBinder.TryBind<NestedWorkspaceRequest>(
-            arguments,
-            out var request,
-            out var errorMessage);
-
-        result.Should().BeTrue();
-        request.Should().NotBeNull();
-        request.Workspace.WorkspaceId.Should().Be(workspaceId);
-        errorMessage.Should().BeNull();
     }
 
     [Theory]
@@ -301,7 +278,7 @@ public sealed class ToolRequestBinderTests
             arguments["limit"] = JsonSerializer.SerializeToElement(requestedLimit);
         }
 
-        var result = ToolRequestBinder.TryBind<RangedRequest>(
+        var result = _target.TryBind<RangedRequest>(
             arguments,
             out var request,
             out var errorMessage);
@@ -312,9 +289,9 @@ public sealed class ToolRequestBinderTests
         errorMessage.Should().BeNull();
     }
 
-    private static void AssertEnumRequestBinds(IDictionary<string, JsonElement> arguments)
+    private void AssertEnumRequestBinds(IDictionary<string, JsonElement> arguments)
     {
-        var result = ToolRequestBinder.TryBind<EnumRequest>(
+        var result = _target.TryBind<EnumRequest>(
             arguments,
             out var request,
             out var errorMessage);
@@ -428,37 +405,6 @@ public sealed class ToolRequestBinderTests
         public string Value { get; init; } = "Value";
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
-    private sealed record NestedValidationRequest
-    {
-        public NestedValidationValue Item { get; init; } = new();
-
-        public IReadOnlyList<NestedValidationValue> Items { get; init; } = [];
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "System.Text.Json creates the value through the request deserialisation path exercised by this test.")]
-    private sealed record NestedValidationValue
-    {
-        [Range(0, int.MaxValue)]
-        public int Limit { get; init; }
-
-        public TestEnum Kind { get; init; }
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
-    private sealed record NestedWorkspaceRequest
-    {
-        public WorkspaceSelector Workspace { get; init; } = new();
-    }
 
     private enum TestEnum
     {
@@ -505,4 +451,5 @@ public sealed class ToolRequestBinderTests
             writer.WriteEndObject();
         }
     }
+
 }

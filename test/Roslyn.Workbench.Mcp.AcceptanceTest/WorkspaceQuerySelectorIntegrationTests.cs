@@ -3,6 +3,51 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 public sealed class WorkspaceQuerySelectorIntegrationTests
 {
     [Fact]
+    public async Task GIVEN_ContradictoryDocumentSelector_WHEN_CallingPublishedTool_THEN_ShouldRejectBeforeResolution()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspaceSelector = AcceptanceWorkspaceIdentity.FromOpenResult(openResult).CreateSelector();
+            var result = await target.CallToolAsync(
+                "get-document-outline",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["document"] = new Dictionary<string, object?>
+                    {
+                        ["path"] = "Class1.cs",
+                        ["documentId"] = "DifferentDocumentId",
+                    },
+                },
+                TestContext.Current.CancellationToken);
+
+            result.IsError.Should().BeTrue();
+            var error = AcceptanceProtocol.GetError(result);
+            error.GetProperty("code").GetString().Should().Be("InvalidRequest");
+            error.GetProperty("message").GetString().Should().Contain(
+                "DocumentSelector must provide exactly one of Path or DocumentId.");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_LinkedMultiTargetDocument_WHEN_UsingProjectDocumentSpanAndCopiedSelection_THEN_ShouldResolveDeterministically()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(

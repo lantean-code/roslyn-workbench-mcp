@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -9,9 +10,19 @@ public sealed class WorkspaceListToolTests
     {
         var workspaceLifecycleService = new Mock<IWorkspaceLifecycleService>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var boundRequest = new WorkspaceListRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             workspaceLifecycleService.Object);
 
         workspaceLifecycleService

@@ -31,6 +31,7 @@ internal sealed class PrepareErrorReportTool :
         IOptions<StartupOptions> startupOptions,
         IOptions<ErrorReportingOptions> errorReportingOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         ICapturedErrorStore capturedErrorStore,
         IPreparedSubmissionStore preparedSubmissionStore,
         IExternalErrorReportProjector projector,
@@ -40,6 +41,7 @@ internal sealed class PrepareErrorReportTool :
         : base(
             startupOptions,
             protocolFactory,
+            requestBinder,
             ServerOwnedToolRegistration.PrepareErrorReportName,
             "Prepare Error Report",
             "Creates the complete sanitised external payload without network activity. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required.",

@@ -11,7 +11,20 @@ public sealed class WorkspaceOpenToolTests
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        WorkspaceOpenRequest? boundRequest = null;
+        var errorMessage = "Invalid value for tool argument: 'path'.";
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(false);
+        var target = new WorkspaceOpenTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -56,7 +69,25 @@ public sealed class WorkspaceOpenToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var boundRequest = new WorkspaceOpenRequest
+        {
+            Path = "/workspace/Sample.csproj",
+            Alias = "Alias",
+            WorkspaceRoot = "/workspace",
+        };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new WorkspaceOpenTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

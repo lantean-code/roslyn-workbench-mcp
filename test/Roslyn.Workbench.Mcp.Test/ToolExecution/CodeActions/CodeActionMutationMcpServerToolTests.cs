@@ -8,11 +8,42 @@ public sealed class CodeActionMutationMcpServerToolTests
 {
     private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
+    private readonly Mock<IToolRequestBinder> _requestBinder;
 
     public CodeActionMutationMcpServerToolTests()
     {
         _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
+        _requestBinder = new Mock<IToolRequestBinder>();
+        var expectedSnapshot = new SnapshotPrecondition
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        };
+        var request = new TestMutationRequest
+        {
+            Name = "Name",
+            ExpectedSnapshot = expectedSnapshot,
+        };
+        string? errorMessage = null;
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(true);
+
+        var referencedRequest = new TestReferencedMutationRequest
+        {
+            ActionId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Name = "Name",
+            ExpectedSnapshot = expectedSnapshot,
+        };
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out referencedRequest,
+                out errorMessage))
+            .Returns(true);
     }
 
     [Fact]
@@ -508,6 +539,14 @@ public sealed class CodeActionMutationMcpServerToolTests
     {
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        TestMutationRequest? request = null;
+        var errorMessage = "The tool arguments did not match the request contract.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
@@ -541,6 +580,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             contextFactory,
             _referenceStore.Object,
             _protocolFactory.Object,
+            _requestBinder.Object,
             Options.Create(new StartupOptions()));
 
         return target;

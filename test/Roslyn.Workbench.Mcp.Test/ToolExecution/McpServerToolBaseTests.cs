@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Roslyn.Workbench.Mcp.Test.Tools;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
@@ -13,10 +14,12 @@ public sealed class McpServerToolBaseTests
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler.Object, "test-query");
         var protocolFactory = McpServerToolTestData.CreateProtocolFactory(protocolTool);
+        var requestBinder = new Mock<IToolRequestBinder>();
         var target = new PluginQueryMcpServerTool<TestRequest, TestResponse>(
             registration,
             contextFactory.Object,
             protocolFactory.Object,
+            requestBinder.Object,
             McpServerToolTestData.CreateOptions());
 
         target.ProtocolTool.Should().BeSameAs(protocolTool);
@@ -50,11 +53,21 @@ public sealed class McpServerToolBaseTests
         var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler.Object, "test-query");
         var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
             McpServerToolTestData.CreateProtocolTool("test-query"));
+        var boundRequest = new TestRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
 
         var target = new PluginQueryMcpServerTool<TestRequest, TestResponse>(
             registration,
             contextFactory.Object,
             protocolFactory.Object,
+            requestBinder.Object,
             McpServerToolTestData.CreateOptions());
 
         var server = ServerOwnedToolTestSupport.CreateServer();

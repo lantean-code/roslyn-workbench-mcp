@@ -14,10 +14,12 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         PluginQueryRegistration<TRequest, TResponse> registration,
         IToolExecutionContextFactory contextFactory,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IOptions<StartupOptions> options)
         : base(protocolFactory.CreatePluginTool<TRequest>(
             registration.Tool,
-            options.Value.ToolOutputSchemaMode))
+            options.Value.ToolOutputSchemaMode),
+            requestBinder)
     {
         _handler = registration.Handler;
         _contextFactory = contextFactory;

@@ -9,10 +9,12 @@ internal sealed class TransactionRollbackTool : ServerOwnedToolBase<TransactionR
     public TransactionRollbackTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionRollbackName,
             title: "Transaction Rollback",
             description: "Rolls back the current staged transaction.",

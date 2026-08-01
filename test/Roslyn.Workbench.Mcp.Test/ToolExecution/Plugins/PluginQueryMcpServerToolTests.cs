@@ -5,6 +5,26 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution.Plugins;
 
 public sealed class PluginQueryMcpServerToolTests
 {
+    private readonly Mock<IToolRequestBinder> _requestBinder;
+
+    public PluginQueryMcpServerToolTests()
+    {
+        _requestBinder = new Mock<IToolRequestBinder>();
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var request = new TestQueryRequest
+        {
+            Name = "Name",
+            Workspace = new WorkspaceSelector { WorkspaceId = workspaceId },
+        };
+        string? errorMessage = null;
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(true);
+    }
+
     [Fact]
     public async Task GIVEN_ContextAcquisitionFailure_WHEN_InvokingQuery_THEN_ShouldPublishFailureWithoutCallingHandlerAndDisposeLease()
     {
@@ -248,6 +268,14 @@ public sealed class PluginQueryMcpServerToolTests
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        TestQueryRequest? request = null;
+        var errorMessage = "The tool arguments did not match the request contract.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
@@ -275,6 +303,14 @@ public sealed class PluginQueryMcpServerToolTests
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        TestQueryRequest? request = null;
+        var errorMessage = "Missing required tool argument: 'name'.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(
@@ -284,6 +320,46 @@ public sealed class PluginQueryMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         result.StructuredContent.Value.GetProperty("error").GetProperty("message").GetString().Should().Be("Missing required tool argument: 'name'.");
+        contextFactory.Verify(item => item.CreateQueryContext(
+            It.IsAny<WorkspaceBoundRequest>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        handler.Verify(item => item.ExecuteAsync(
+            It.IsAny<TestQueryRequest>(),
+            It.IsAny<IQueryContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ContradictorySelector_WHEN_InvokingQuery_THEN_ShouldRejectWithoutAcquiringContext()
+    {
+        var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        TestQueryRequest? request = null;
+        var errorMessage = "DocumentSelector must provide exactly one of Path or DocumentId.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["name"] = JsonSerializer.SerializeToElement("Name"),
+            ["document"] = JsonSerializer.SerializeToElement(new
+            {
+                path = "Document.cs",
+                documentId = "DocumentId",
+            }),
+        };
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<string>(),
@@ -313,7 +389,7 @@ public sealed class PluginQueryMcpServerToolTests
         };
     }
 
-    private static PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
+    private PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
         IQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         IToolExecutionContextFactory contextFactory)
     {
@@ -325,6 +401,7 @@ public sealed class PluginQueryMcpServerToolTests
             registration,
             contextFactory,
             protocolFactory.Object,
+            _requestBinder.Object,
             McpServerToolTestData.CreateOptions());
     }
 
@@ -332,6 +409,8 @@ public sealed class PluginQueryMcpServerToolTests
     public sealed record TestQueryRequest : WorkspaceBoundRequest
     {
         public required string Name { get; init; }
+
+        public DocumentSelector? Document { get; init; }
     }
 
     public sealed record TestQueryResponse

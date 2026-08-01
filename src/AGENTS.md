@@ -103,7 +103,8 @@
 ### Design
 
 - Use constructor injection only unless a framework API requires otherwise.
-- Dependency-injection registration methods must not use factory delegate overloads. Register implementation types or instances directly so construction remains container-visible and validation can inspect the dependency graph. When one stateful concern must support multiple service contracts, split the contract responsibilities into focused services and share a separately registered state collaborator instead of resolving and aliasing a concrete service through an `IServiceProvider` delegate.
+- Production services must depend on narrow interfaces for injected application and runtime collaborators, including internal collaborators that currently have only one implementation. Register these dependencies as interface-to-implementation mappings. Concrete constructor dependencies are permitted only for passive configuration or state objects with no operational service responsibility, immutable data objects, or types whose construction is controlled by a framework API.
+- Dependency-injection registration methods must not use factory delegate overloads. Register interface-to-implementation mappings, implementation types, or instances directly so construction remains container-visible and validation can inspect the dependency graph. Registering an implementation type directly does not permit another production service to depend on that concrete operational service. When one stateful concern must support multiple service contracts, split the contract responsibilities into focused services and share a separately registered state collaborator instead of resolving and aliasing a concrete service through an `IServiceProvider` delegate.
 - Static methods and classes are acceptable when they are truly stateless.
 - Avoid partial classes in user code unless generated code or a framework requires them.
 - Use `record` for data-only objects when value semantics are useful.
@@ -152,6 +153,7 @@
 - [ ] LINQ is used for simple operations; loops are used where they improve clarity or performance.
 - [ ] No exceptions are used for flow control.
 - [ ] Design follows DI, SOLID, DRY, and avoids security pitfalls.
+- [ ] Every injected application or runtime service is interface-typed unless it is an explicitly permitted passive object or framework-controlled type.
 - [ ] Positional records and record structs are not used; state-bearing classes and structs do not use primary constructors; explicit properties, fields and constructor bodies are used and constructor parameters are camelCase.
 - [ ] Query and mutation tools are kept in plugin projects, not server-owned lifecycle projects.
 - [ ] The SDK `latest-all` .NET analyzer set has been run and applicable diagnostics in changed source files are fixed or explicitly justified.

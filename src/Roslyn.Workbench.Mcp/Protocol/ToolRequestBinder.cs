@@ -7,11 +7,17 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
-internal static class ToolRequestBinder
+internal sealed class ToolRequestBinder : IToolRequestBinder
 {
     private static readonly JsonSerializerOptions _serializerOptions = CreateSerializerOptions();
+    private readonly IRequestObjectGraphValidator _requestObjectGraphValidator;
 
-    public static bool TryBind<TRequest>(
+    public ToolRequestBinder(IRequestObjectGraphValidator requestObjectGraphValidator)
+    {
+        _requestObjectGraphValidator = requestObjectGraphValidator;
+    }
+
+    public bool TryBind<TRequest>(
         IDictionary<string, JsonElement> arguments,
         [NotNullWhen(true)] out TRequest? request,
         [NotNullWhen(false)] out string? errorMessage)
@@ -56,7 +62,7 @@ internal static class ToolRequestBinder
                 return false;
             }
 
-            if (RequestObjectGraphValidator.TryCreateInvalidDescendantsError(
+            if (_requestObjectGraphValidator.TryCreateInvalidRequestError(
                 request,
                 _serializerOptions,
                 out errorMessage))

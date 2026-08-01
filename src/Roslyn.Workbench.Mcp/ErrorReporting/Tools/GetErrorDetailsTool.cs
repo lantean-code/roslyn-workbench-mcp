@@ -11,10 +11,12 @@ internal sealed class GetErrorDetailsTool :
     public GetErrorDetailsTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         ICapturedErrorStore store)
         : base(
             startupOptions,
             protocolFactory,
+            requestBinder,
             ServerOwnedToolRegistration.GetErrorDetailsName,
             "Get Error Details",
             "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",

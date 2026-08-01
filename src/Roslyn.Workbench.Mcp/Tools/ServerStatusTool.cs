@@ -9,10 +9,12 @@ internal sealed class ServerStatusTool : ServerOwnedToolBase<ServerStatusRequest
     public ServerStatusTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IServerStatusService serverStatusService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.ServerStatusName,
             title: "Server Status",
             description: "Returns server diagnostics without requiring a loaded workspace.",

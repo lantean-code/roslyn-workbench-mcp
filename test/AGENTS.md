@@ -159,6 +159,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - [ ] Methods follow `GIVEN_..._WHEN_..._THEN_...` naming.
 - [ ] For unit tests, `_target` is used only when one shared constructor setup serves most tests in the class; otherwise the system under test is created per test in a local `target`.
 - [ ] All mocks use explicit `new Mock<T>()` construction; shared mocks are readonly fields and local mocks are method-local variables.
+- [ ] Every production collaborator other than the system under test is represented by a visible mock; no concrete runtime service is used as a convenient transitive test harness.
 - [ ] Strings use property names as values; dates use `2000-01-01 00:00` with correct `DateTimeKind`; numbers are sensible.
 - [ ] No expression-bodied members; braces are always present.
 - [ ] No reflection invokes implementation code or locks an internal runtime shape; any deliberate public-surface metadata lock is a Contract test.

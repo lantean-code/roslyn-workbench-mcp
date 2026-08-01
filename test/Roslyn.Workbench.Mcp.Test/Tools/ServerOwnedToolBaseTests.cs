@@ -27,9 +27,11 @@ public sealed class ServerOwnedToolBaseTests
             .Returns(protocolTool);
 
         var service = new Mock<IWorkspaceLifecycleService>();
+        var requestBinder = new Mock<IToolRequestBinder>();
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             service.Object);
 
         target.ProtocolTool.Should().BeSameAs(protocolTool);
@@ -42,9 +44,11 @@ public sealed class ServerOwnedToolBaseTests
     {
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var service = new Mock<ITransactionService>();
+        var requestBinder = new Mock<IToolRequestBinder>();
         var target = new TransactionCommitTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             service.Object);
 
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionCommitRequest, TransactionCommitData>(
@@ -106,7 +110,20 @@ public sealed class ServerOwnedToolBaseTests
             .ReturnsAsync(serviceResult);
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var boundRequest = new WorkspaceListRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new WorkspaceListTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -132,7 +149,20 @@ public sealed class ServerOwnedToolBaseTests
             .Returns(() => ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var boundRequest = new WorkspaceListRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new WorkspaceListTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -147,7 +177,20 @@ public sealed class ServerOwnedToolBaseTests
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        WorkspaceOpenRequest? boundRequest = null;
+        var errorMessage = "The tool arguments did not match the request contract.";
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(false);
+        var target = new WorkspaceOpenTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -177,7 +220,20 @@ public sealed class ServerOwnedToolBaseTests
             .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceListOutcome()));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var boundRequest = new WorkspaceListRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new WorkspaceListTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
         var server = ServerOwnedToolTestSupport.CreateServer();
         await using var serverDisposal = server;
         var requestContext = new RequestContext<CallToolRequestParams>(

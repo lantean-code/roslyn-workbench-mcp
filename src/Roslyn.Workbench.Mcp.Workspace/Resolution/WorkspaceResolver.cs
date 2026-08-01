@@ -398,7 +398,9 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         var document = documentResolution.Value;
         var sourceText = await document.GetTextAsync(cancellationToken);
-        if (!WorkspaceContractValidator.IsWithinDocument(selector, sourceText.Length))
+        if (selector.Start < 0
+            || selector.Length < 0
+            || selector.Start > sourceText.Length - selector.Length)
         {
             return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }

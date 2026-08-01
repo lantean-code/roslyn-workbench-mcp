@@ -17,9 +17,19 @@ public sealed class ServerStatusToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var boundRequest = new ServerStatusRequest { Detail = StatusDetailLevel.Full };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new ServerStatusTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(

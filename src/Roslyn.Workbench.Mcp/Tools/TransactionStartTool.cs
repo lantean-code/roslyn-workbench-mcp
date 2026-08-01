@@ -9,10 +9,12 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
     public TransactionStartTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionStartName,
             title: "Transaction Start",
             description: "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",

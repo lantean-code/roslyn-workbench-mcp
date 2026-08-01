@@ -8,10 +8,25 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
 public sealed class CodeActionQueryMcpServerToolTests
 {
     private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
+    private readonly Mock<IToolRequestBinder> _requestBinder;
 
     public CodeActionQueryMcpServerToolTests()
     {
         _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        _requestBinder = new Mock<IToolRequestBinder>();
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var request = new TestQueryRequest
+        {
+            Name = "Name",
+            Workspace = new WorkspaceSelector { WorkspaceId = workspaceId },
+        };
+        string? errorMessage = null;
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(true);
     }
 
     [Fact]
@@ -203,6 +218,14 @@ public sealed class CodeActionQueryMcpServerToolTests
     {
         var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        TestQueryRequest? request = null;
+        var errorMessage = "The tool arguments did not match the request contract.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
@@ -222,6 +245,14 @@ public sealed class CodeActionQueryMcpServerToolTests
     {
         var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        TestQueryRequest? request = null;
+        var errorMessage = "Invalid value for tool argument: 'limit'.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
         var arguments = McpServerToolTestData.CreateArguments();
         arguments["limit"] = JsonSerializer.SerializeToElement(-1);
@@ -252,6 +283,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             handler,
             contextFactory,
             _protocolFactory.Object,
+            _requestBinder.Object,
             Options.Create(new StartupOptions()));
     }
 

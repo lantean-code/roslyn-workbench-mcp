@@ -57,9 +57,23 @@ public sealed class WorkspaceStatusToolTests
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var consentService = new Mock<IErrorReportingConsentService>();
+        var boundRequest = new WorkspaceStatusRequest
+        {
+            Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
+            Detail = StatusDetailLevel.Full,
+        };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new WorkspaceStatusTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             service.Object,
             consentService.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
@@ -126,9 +140,19 @@ public sealed class WorkspaceStatusToolTests
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var consentService = new Mock<IErrorReportingConsentService>();
+        var boundRequest = new WorkspaceStatusRequest { Detail = StatusDetailLevel.Full };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new WorkspaceStatusTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            requestBinder.Object,
             service.Object,
             consentService.Object);
 

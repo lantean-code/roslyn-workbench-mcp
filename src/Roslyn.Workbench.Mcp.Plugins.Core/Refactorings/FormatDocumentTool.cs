@@ -31,7 +31,9 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         }
         else
         {
-            if (!WorkspaceContractValidator.IsWithinDocument(request.Range, originalText.Length))
+            if (request.Range.Start < 0
+                || request.Range.Length < 0
+                || request.Range.Start > originalText.Length - request.Range.Length)
             {
                 return PluginExecutionResult.Rejected<MutationCandidate>(
                     "InvalidRequest",

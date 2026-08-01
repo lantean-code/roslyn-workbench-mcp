@@ -10,11 +10,13 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
     public WorkspaceStatusTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IWorkspaceLifecycleService workspaceLifecycleService,
         IErrorReportingConsentService errorReportingConsentService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceStatusName,
             title: "Workspace Status",
             description: "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",

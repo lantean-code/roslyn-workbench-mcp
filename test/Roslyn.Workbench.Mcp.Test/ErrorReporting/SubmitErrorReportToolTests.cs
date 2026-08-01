@@ -8,6 +8,21 @@ namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
 
 public sealed class SubmitErrorReportToolTests
 {
+    private readonly Mock<IToolRequestBinder> _requestBinder;
+
+    public SubmitErrorReportToolTests()
+    {
+        _requestBinder = new Mock<IToolRequestBinder>();
+        var request = new SubmitErrorReportRequest { SubmissionHandle = "Handle" };
+        string? errorMessage = null;
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(true);
+    }
+
     [Fact]
     public async Task GIVEN_AlwaysApprovedPreparedReport_WHEN_Submitting_THEN_ShouldDispatchStoredPayloadAndPersistReceipt()
     {
@@ -40,6 +55,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);
@@ -94,6 +110,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);
@@ -152,6 +169,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);
@@ -186,6 +204,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);
@@ -223,6 +242,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);
@@ -275,6 +295,7 @@ public sealed class SubmitErrorReportToolTests
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
+            _requestBinder.Object,
             store.Object,
             consentService.Object,
             dispatcher.Object);

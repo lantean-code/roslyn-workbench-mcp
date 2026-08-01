@@ -14,12 +14,14 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         THandler handler,
         ICodeActionExecutionContextFactory contextFactory,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IOptions<StartupOptions> options)
         : base(protocolFactory.CreateCodeActionTool<TRequest>(
             registration.Metadata,
             registration.Kind,
             registration.ResponseType,
-            options.Value.ToolOutputSchemaMode))
+            options.Value.ToolOutputSchemaMode),
+            requestBinder)
     {
         _handler = handler;
         _contextFactory = contextFactory;

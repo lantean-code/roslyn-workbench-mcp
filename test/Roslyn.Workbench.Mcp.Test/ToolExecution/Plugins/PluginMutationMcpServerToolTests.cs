@@ -5,6 +5,28 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution.Plugins;
 
 public sealed class PluginMutationMcpServerToolTests
 {
+    private readonly Mock<IToolRequestBinder> _requestBinder;
+
+    public PluginMutationMcpServerToolTests()
+    {
+        _requestBinder = new Mock<IToolRequestBinder>();
+        var request = new TestMutationRequest
+        {
+            Name = "Name",
+            ExpectedSnapshot = new SnapshotPrecondition
+            {
+                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            },
+        };
+        string? errorMessage = null;
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(true);
+    }
+
     [Fact]
     public async Task GIVEN_ContextAcquisitionFailure_WHEN_InvokingMutation_THEN_ShouldPublishFailureWithoutCallingHandlerAndDisposeLease()
     {
@@ -440,6 +462,14 @@ public sealed class PluginMutationMcpServerToolTests
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        TestMutationRequest? request = null;
+        var errorMessage = "The tool arguments did not match the request contract.";
+        _requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out request,
+                out errorMessage))
+            .Returns(false);
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
@@ -459,7 +489,7 @@ public sealed class PluginMutationMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
+    private PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
         IMutationToolHandler<TestMutationRequest> handler,
         IToolExecutionContextFactory contextFactory)
     {
@@ -471,6 +501,7 @@ public sealed class PluginMutationMcpServerToolTests
             registration,
             contextFactory,
             protocolFactory.Object,
+            _requestBinder.Object,
             McpServerToolTestData.CreateOptions());
     }
 

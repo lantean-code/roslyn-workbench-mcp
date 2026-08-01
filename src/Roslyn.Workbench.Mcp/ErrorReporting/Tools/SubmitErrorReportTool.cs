@@ -23,12 +23,14 @@ internal sealed class SubmitErrorReportTool :
     public SubmitErrorReportTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         IPreparedSubmissionStore store,
         IErrorReportingConsentService consentService,
         IErrorReportDispatcher dispatcher)
         : base(
             startupOptions,
             protocolFactory,
+            requestBinder,
             ServerOwnedToolRegistration.SubmitErrorReportName,
             "Submit Error Report",
             "After applying the configured consent policy, submits one previously prepared immutable external error report to its reviewed destination.",

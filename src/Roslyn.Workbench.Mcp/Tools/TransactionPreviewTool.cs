@@ -9,10 +9,12 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
     public TransactionPreviewTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
+        IToolRequestBinder requestBinder,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
             protocolFactory: protocolFactory,
+            requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionPreviewName,
             title: "Transaction Preview",
             description: "Previews the current staged transaction.",

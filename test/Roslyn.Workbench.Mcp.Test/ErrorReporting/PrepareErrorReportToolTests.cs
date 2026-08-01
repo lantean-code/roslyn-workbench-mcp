@@ -61,10 +61,20 @@ public sealed class PrepareErrorReportToolTests
             ConsentMode = ErrorReportingConsentMode.Prompt,
             MaximumPayloadBytes = 8 * 1024,
         };
+        var boundRequest = new PrepareErrorReportRequest { CorrelationId = correlationId };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
         var target = new PrepareErrorReportTool(
             Options.Create(new StartupOptions()),
             Options.Create(options),
             protocolFactory.Object,
+            requestBinder.Object,
             capturedErrorStore.Object,
             preparedSubmissionStore.Object,
             projector.Object,

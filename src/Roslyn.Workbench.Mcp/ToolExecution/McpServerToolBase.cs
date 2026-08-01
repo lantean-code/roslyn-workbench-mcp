@@ -7,10 +7,12 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
     where TRequest : class
 {
     private readonly Tool _protocolTool;
+    private readonly IToolRequestBinder _requestBinder;
 
-    protected McpServerToolBase(Tool protocolTool)
+    protected McpServerToolBase(Tool protocolTool, IToolRequestBinder requestBinder)
     {
         _protocolTool = protocolTool;
+        _requestBinder = requestBinder;
     }
 
     public override Tool ProtocolTool => _protocolTool;
@@ -87,12 +89,12 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
         };
     }
 
-    private static bool TryBindRequest(
+    private bool TryBindRequest(
         IDictionary<string, JsonElement> arguments,
         [NotNullWhen(true)] out TRequest? request,
         [NotNullWhen(false)] out CallToolResult? rejection)
     {
-        if (!ToolRequestBinder.TryBind(arguments, out request, out var errorMessage))
+        if (!_requestBinder.TryBind(arguments, out request, out var errorMessage))
         {
             rejection = CreateBindingRejection(errorMessage);
             return false;

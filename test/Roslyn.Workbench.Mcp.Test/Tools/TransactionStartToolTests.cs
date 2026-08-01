@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -25,7 +26,23 @@ public sealed class TransactionStartToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new TransactionStartTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var boundRequest = new TransactionStartRequest
+        {
+            Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
+        };
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+        var target = new TransactionStartTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

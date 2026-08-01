@@ -3,6 +3,10 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 /// <summary>
 /// Represents a document selector for workspace-local document resolution.
 /// </summary>
+[RequiresExactlyOne(
+    nameof(Path),
+    nameof(DocumentId),
+    ErrorMessage = "DocumentSelector must provide exactly one of Path or DocumentId.")]
 public sealed record DocumentSelector
 {
     /// <summary>

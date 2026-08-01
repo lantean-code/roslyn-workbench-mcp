@@ -48,7 +48,7 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void GIVEN_PresenceAndNullabilityContracts_WHEN_ExportingInputSchema_THEN_ShouldPublishPresenceButLoseNullabilityState()
+    public void GIVEN_PresenceAndNullabilityContracts_WHEN_ExportingInputSchema_THEN_ShouldPublishPresenceAndNullabilityState()
     {
         var result = _target.GetInputSchema<PresenceRequest>();
 
@@ -64,22 +64,23 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
         var properties = result.GetProperty("properties");
         AllowsNull(properties.GetProperty("dataAnnotatedRequired")).Should().BeTrue();
-        AllowsNull(properties.GetProperty("requiredNonNullable")).Should().BeTrue();
+        AllowsNull(properties.GetProperty("requiredNonNullable")).Should().BeFalse();
         AllowsNull(properties.GetProperty("requiredNullable")).Should().BeTrue();
         AllowsNull(properties.GetProperty("notNullAnnotated")).Should().BeTrue();
     }
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void GIVEN_PropertyDefaultValueAttribute_WHEN_ExportingInputSchema_THEN_ShouldNotPublishPropertyDefault()
+    public void GIVEN_PropertyDefaultValueAttribute_WHEN_ExportingInputSchema_THEN_ShouldPublishPropertyDefault()
     {
         var result = _target.GetInputSchema<DefaultedRequest>();
 
         result.GetProperty("properties")
             .GetProperty("limit")
-            .TryGetProperty("default", out _)
+            .GetProperty("default")
+            .GetInt32()
             .Should()
-            .BeFalse();
+            .Be(25);
     }
 
     [Fact]

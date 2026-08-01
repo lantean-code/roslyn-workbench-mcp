@@ -4,6 +4,10 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 /// Represents a symbol selector backed by a source location or documentation comment identifier,
 /// optionally constrained to a project.
 /// </summary>
+[RequiresExactlyOne(
+    nameof(Location),
+    nameof(DocumentationCommentId),
+    ErrorMessage = "SymbolSelector must provide exactly one of Location or DocumentationCommentId.")]
 public sealed record SymbolSelector
 {
     /// <summary>

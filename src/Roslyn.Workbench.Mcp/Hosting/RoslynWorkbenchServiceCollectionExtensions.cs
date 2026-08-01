@@ -110,12 +110,6 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
-        services.AddSingleton<IWorkspaceContractValidator<DocumentSelector>, DocumentSelectorValidator>();
-        services.AddSingleton<IWorkspaceContractValidator<LocationSelector>, LocationSelectorValidator>();
-        services.AddSingleton<IWorkspaceContractValidator<ProjectSelector>, ProjectSelectorValidator>();
-        services.AddSingleton<IWorkspaceContractValidator<ScopeSelector>, ScopeSelectorValidator>();
-        services.AddSingleton<IWorkspaceContractValidator<SymbolSelector>, SymbolSelectorValidator>();
-        services.AddSingleton<IWorkspaceContractValidator<WorkspaceSelector>, WorkspaceSelectorValidator>();
         services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
         services.AddSingleton<ITypeHierarchyService, TypeHierarchyService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();

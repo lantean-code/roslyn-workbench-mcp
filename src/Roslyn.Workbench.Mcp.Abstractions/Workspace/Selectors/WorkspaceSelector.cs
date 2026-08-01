@@ -3,6 +3,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 /// <summary>
 /// Identifies one loaded workspace for a routed tool invocation.
 /// </summary>
+[RequiresAtLeastOne(
+    nameof(WorkspaceId),
+    nameof(Alias),
+    nameof(Path),
+    ErrorMessage = "WorkspaceSelector must provide at least one of WorkspaceId, Alias, or Path.")]
 public sealed record WorkspaceSelector
 {
     /// <summary>

@@ -10,4 +10,10 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

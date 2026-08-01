@@ -3,54 +3,30 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
-using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
 {
-    private readonly IWorkspaceContractValidator<DocumentSelector> _documentSelectorValidator;
-    private readonly IWorkspaceContractValidator<LocationSelector> _locationSelectorValidator;
-    private readonly IWorkspaceContractValidator<ProjectSelector> _projectSelectorValidator;
-    private readonly IWorkspaceContractValidator<ScopeSelector> _scopeSelectorValidator;
-    private readonly IWorkspaceContractValidator<SymbolSelector> _symbolSelectorValidator;
-    private readonly IWorkspaceContractValidator<WorkspaceSelector> _workspaceSelectorValidator;
-
-    public RequestObjectGraphValidator(
-        IWorkspaceContractValidator<DocumentSelector> documentSelectorValidator,
-        IWorkspaceContractValidator<LocationSelector> locationSelectorValidator,
-        IWorkspaceContractValidator<ProjectSelector> projectSelectorValidator,
-        IWorkspaceContractValidator<ScopeSelector> scopeSelectorValidator,
-        IWorkspaceContractValidator<SymbolSelector> symbolSelectorValidator,
-        IWorkspaceContractValidator<WorkspaceSelector> workspaceSelectorValidator)
-    {
-        _documentSelectorValidator = documentSelectorValidator;
-        _locationSelectorValidator = locationSelectorValidator;
-        _projectSelectorValidator = projectSelectorValidator;
-        _scopeSelectorValidator = scopeSelectorValidator;
-        _symbolSelectorValidator = symbolSelectorValidator;
-        _workspaceSelectorValidator = workspaceSelectorValidator;
-    }
-
     public bool TryCreateInvalidRequestError(
         object request,
         JsonSerializerOptions serializerOptions,
         [NotNullWhen(true)] out string? errorMessage)
     {
         var invalidPaths = new HashSet<string>(StringComparer.Ordinal);
-        var selectorFailures = new List<SelectorFailure>();
+        var validationFailures = new List<RequestValidationFailure>();
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        ValidateNode(request, string.Empty, serializerOptions, visited, invalidPaths, selectorFailures);
+        ValidateNode(request, string.Empty, serializerOptions, visited, invalidPaths, validationFailures);
 
-        if (invalidPaths.Count == 0 && selectorFailures.Count == 0)
+        if (invalidPaths.Count == 0 && validationFailures.Count == 0)
         {
             errorMessage = null;
             return false;
         }
 
-        if (selectorFailures.Count > 0)
+        if (validationFailures.Count > 0)
         {
-            errorMessage = CreateSelectorFailureError(invalidPaths, selectorFailures);
+            errorMessage = CreateValidationFailureError(invalidPaths, validationFailures);
             return true;
         }
 
@@ -73,9 +49,9 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
         return $"Invalid {valueLabel} for tool {argumentLabel}: '{argumentNames}'.";
     }
 
-    private static string CreateSelectorFailureError(
+    private static string CreateValidationFailureError(
         HashSet<string> invalidPaths,
-        List<SelectorFailure> selectorFailures)
+        List<RequestValidationFailure> validationFailures)
     {
         var details = new List<string>();
         foreach (var invalidPath in invalidPaths.Order(StringComparer.Ordinal))
@@ -83,7 +59,7 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
             details.Add($"'{invalidPath}' is invalid");
         }
 
-        foreach (var failure in selectorFailures
+        foreach (var failure in validationFailures
             .OrderBy(static item => item.Paths[0], StringComparer.Ordinal)
             .ThenBy(static item => item.Message, StringComparer.Ordinal))
         {
@@ -91,16 +67,17 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
             details.Add($"'{paths}': {failure.Message}");
         }
 
-        return $"Invalid tool arguments: {string.Join("; ", details)}.";
+        var joinedDetails = string.Join("; ", details).TrimEnd('.');
+        return $"Invalid tool arguments: {joinedDetails}.";
     }
 
-    private void ValidateNode(
+    private static void ValidateNode(
         object? value,
         string path,
         JsonSerializerOptions serializerOptions,
         HashSet<object> visited,
         HashSet<string> invalidPaths,
-        List<SelectorFailure> selectorFailures)
+        List<RequestValidationFailure> validationFailures)
     {
         if (value is null)
         {
@@ -139,15 +116,14 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
                     serializerOptions,
                     visited,
                     invalidPaths,
-                    selectorFailures);
+                    validationFailures);
                 index++;
             }
 
             return;
         }
 
-        ValidateObject(value, path, serializerOptions, invalidPaths);
-        ValidateSelector(value, path, serializerOptions, selectorFailures);
+        ValidateObject(value, path, serializerOptions, validationFailures);
 
         var typeInfo = serializerOptions.GetTypeInfo(type);
         foreach (var property in typeInfo.Properties)
@@ -168,67 +144,7 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
                 serializerOptions,
                 visited,
                 invalidPaths,
-                selectorFailures);
-        }
-    }
-
-    private void ValidateSelector(
-        object value,
-        string path,
-        JsonSerializerOptions serializerOptions,
-        List<SelectorFailure> selectorFailures)
-    {
-        switch (value)
-        {
-            case DocumentSelector selector:
-                AddSelectorFailures(_documentSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-
-            case LocationSelector selector:
-                AddSelectorFailures(_locationSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-
-            case ProjectSelector selector:
-                AddSelectorFailures(_projectSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-
-            case ScopeSelector selector:
-                AddSelectorFailures(_scopeSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-
-            case SymbolSelector selector:
-                AddSelectorFailures(_symbolSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-
-            case WorkspaceSelector selector:
-                AddSelectorFailures(_workspaceSelectorValidator, selector, path, serializerOptions, selectorFailures);
-                break;
-        }
-    }
-
-    private static void AddSelectorFailures<TSelector>(
-        IWorkspaceContractValidator<TSelector> validator,
-        TSelector selector,
-        string path,
-        JsonSerializerOptions serializerOptions,
-        List<SelectorFailure> selectorFailures)
-        where TSelector : class
-    {
-        var validationResult = validator.Validate(selector);
-        if (validationResult.IsValid)
-        {
-            return;
-        }
-
-        foreach (var failure in validationResult.Failures)
-        {
-            var paths = failure.MemberNames
-                .Select(memberName => GetJsonMemberName(typeof(TSelector), memberName, serializerOptions))
-                .Select(memberName => string.IsNullOrEmpty(path) ? memberName : $"{path}.{memberName}")
-                .Order(StringComparer.Ordinal)
-                .ToArray();
-
-            selectorFailures.Add(new SelectorFailure(paths, failure.Message));
+                validationFailures);
         }
     }
 
@@ -236,7 +152,7 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
         object value,
         string path,
         JsonSerializerOptions serializerOptions,
-        HashSet<string> invalidPaths)
+        List<RequestValidationFailure> validationFailures)
     {
         var validationResults = new List<ValidationResult>();
         var validationContext = new ValidationContext(value);
@@ -251,10 +167,14 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
             var memberNames = validationResult.MemberNames.ToArray();
             if (memberNames.Length == 0)
             {
-                invalidPaths.Add(string.IsNullOrEmpty(path) ? "request" : path);
+                var objectPath = string.IsNullOrEmpty(path) ? "request" : path;
+                var message = validationResult.ErrorMessage ?? "The value is invalid.";
+                validationFailures.Add(new RequestValidationFailure([objectPath], message));
                 continue;
             }
 
+            var memberPaths = new string[memberNames.Length];
+            var memberIndex = 0;
             foreach (var memberName in memberNames)
             {
                 var jsonMemberName = GetJsonMemberName(value.GetType(), memberName, serializerOptions);
@@ -262,8 +182,13 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
                     ? jsonMemberName
                     : $"{path}.{jsonMemberName}";
 
-                invalidPaths.Add(memberPath);
+                memberPaths[memberIndex] = memberPath;
+                memberIndex++;
             }
+
+            Array.Sort(memberPaths, StringComparer.Ordinal);
+            var failureMessage = validationResult.ErrorMessage ?? "The value is invalid.";
+            validationFailures.Add(new RequestValidationFailure(memberPaths, failureMessage));
         }
     }
 
@@ -335,13 +260,13 @@ internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
         return Convert.ToUInt64(value, CultureInfo.InvariantCulture);
     }
 
-    private sealed record SelectorFailure
+    private sealed record RequestValidationFailure
     {
         public IReadOnlyList<string> Paths { get; }
 
         public string Message { get; }
 
-        public SelectorFailure(IReadOnlyList<string> paths, string message)
+        public RequestValidationFailure(IReadOnlyList<string> paths, string message)
         {
             Paths = paths;
             Message = message;

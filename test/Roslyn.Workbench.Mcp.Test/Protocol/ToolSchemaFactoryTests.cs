@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
@@ -6,8 +5,6 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 #pragma warning disable CA2263 // These tests verify runtime response-type dispatch through the non-generic schema-provider overload.
 public sealed class ToolSchemaFactoryTests
 {
-    private static readonly string[] _nullableIntegerTypes = ["integer", "null"];
-
     private readonly Mock<IMcpSdkSchemaProvider> _schemaProvider;
     private readonly ToolSchemaFactory _target;
 
@@ -37,31 +34,6 @@ public sealed class ToolSchemaFactoryTests
 
         result.GetRawText().Should().Be(expected.GetRawText());
         _schemaProvider.Verify(item => item.GetInputSchema<TestRequest>(), Times.Once);
-    }
-
-    [Fact]
-    public void GIVEN_DefaultedInputContract_WHEN_CreatingInputSchema_THEN_ShouldPublishDefault()
-    {
-        var providerSchema = JsonSerializer.SerializeToElement(new
-        {
-            type = "object",
-            properties = new Dictionary<string, object>
-            {
-                ["limit"] = new
-                {
-                    type = _nullableIntegerTypes,
-                },
-            },
-        });
-
-        _schemaProvider
-            .Setup(item => item.GetInputSchema<DefaultedRequest>())
-            .Returns(providerSchema);
-
-        var result = _target.CreateInputSchema<DefaultedRequest>();
-        var limit = result.GetProperty("properties").GetProperty("limit");
-
-        limit.GetProperty("default").GetInt32().Should().Be(25);
     }
 
     [Fact]
@@ -172,11 +144,6 @@ public sealed class ToolSchemaFactoryTests
         public string Value { get; init; } = string.Empty;
     }
 
-    private sealed record DefaultedRequest
-    {
-        [DefaultValue(25)]
-        public int? Limit { get; init; } = 25;
-    }
 #pragma warning restore CA1812
 }
 #pragma warning restore CA2263

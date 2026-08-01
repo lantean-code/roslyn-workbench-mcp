@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using Microsoft.Extensions.AI;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
@@ -12,6 +13,13 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         RespectNullableAnnotations = true,
         TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
     };
+
+    private static readonly AIJsonSchemaCreateOptions _inputSchemaCreateOptions = new()
+    {
+        TransformSchemaNode = InputContractSchemaTransformer.Transform,
+    };
+
+    private static readonly AIJsonSchemaCreateOptions _valueSchemaCreateOptions = new();
 
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _valueSchemaCache = [];
@@ -39,6 +47,7 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
             target: null,
             new McpServerToolCreateOptions
             {
+                SchemaCreateOptions = _inputSchemaCreateOptions,
                 SerializerOptions = _serializerOptions,
             });
 
@@ -76,6 +85,7 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
             target: null,
             new McpServerToolCreateOptions
             {
+                SchemaCreateOptions = _valueSchemaCreateOptions,
                 SerializerOptions = _serializerOptions,
             });
 

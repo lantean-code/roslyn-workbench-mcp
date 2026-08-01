@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Validation;
 /// Validates that a supplied GUID is not empty.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property)]
-internal sealed class NonEmptyGuidAttribute : ValidationAttribute
+public sealed class NonEmptyGuidAttribute : ValidationAttribute
 {
     /// <summary>
     /// Initialises a new instance of the <see cref="NonEmptyGuidAttribute"/> class.

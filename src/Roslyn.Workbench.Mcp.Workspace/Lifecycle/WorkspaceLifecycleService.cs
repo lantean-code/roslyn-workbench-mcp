@@ -380,8 +380,16 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         var oldSession = _sessionStore.ReadSession(acquisition.Selection.WorkspaceId);
         _sessionStore.ReplaceSession(reloadedSession);
+
         oldSession?.InputManifest.Dispose();
         oldSession?.LoadedWorkspace.Dispose();
+
+        await _instanceStatusPublisher.UpdateAsync(
+            reloadedSession.Workspace.WorkspaceId,
+            reloadedSession.State,
+            transactionRevision: null,
+            commitId: null,
+            commitPhase: null);
 
         var outcome = new WorkspaceReloadOutcome
         {

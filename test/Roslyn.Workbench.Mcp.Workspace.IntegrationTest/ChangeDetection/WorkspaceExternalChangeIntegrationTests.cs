@@ -77,18 +77,28 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldTransitionBackToReady()
+    public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldTransitionAndRepublishReady()
     {
         using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await using var observer = fixture.CreateWorkspace();
+        await observer.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
         await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        var observedOutOfDateState = await ObserveOtherInstanceStateAsync(
+            observer,
+            WorkspaceLifecycleState.WorkspaceOutOfDate);
 
         var result = await target.ReloadAsync(TestContext.Current.CancellationToken);
+        var observedReadyState = await ObserveOtherInstanceStateAsync(
+            observer,
+            WorkspaceLifecycleState.Ready);
 
         result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.Workspace.Should().NotBeNull();
+        observedOutOfDateState.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
+        observedReadyState.Should().Be(WorkspaceLifecycleState.Ready);
 
         var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
@@ -126,7 +136,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
         {
             var result = await observer.GetStatusAsync(TestContext.Current.CancellationToken);
             observedState = result.Data?.Instances
-                .Select(static instance => instance.WorkspaceState)
+                .Select(static instance => (WorkspaceLifecycleState?)instance.WorkspaceState)
                 .FirstOrDefault(state => state == expectedState);
 
             await Task.Yield();

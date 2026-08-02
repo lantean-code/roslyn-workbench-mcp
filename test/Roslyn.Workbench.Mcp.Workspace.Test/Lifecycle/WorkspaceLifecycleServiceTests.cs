@@ -1234,6 +1234,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        _instanceStatusPublisher.Verify(item => item.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.Ready,
+            null,
+            null,
+            null), Times.Never);
     }
 
     [Fact]
@@ -1297,6 +1303,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             && replacement.OperationGate == gate.Object
             && replacement.Workspace.Alias == "Alias"
             && replacement.CommittedSnapshotId == new WorkspaceSnapshotId(17))), Times.Once);
+
+        _instanceStatusPublisher.Verify(item => item.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.Ready,
+            null,
+            null,
+            null), Times.Once);
     }
 
     [Fact]
@@ -1339,6 +1352,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         newWorkspace.Verify(item => item.Dispose(), Times.Once);
         oldWorkspace.Verify(item => item.Dispose(), Times.Never);
         _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
+        _instanceStatusPublisher.Verify(item => item.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.Ready,
+            null,
+            null,
+            null), Times.Never);
     }
 
     [Fact]

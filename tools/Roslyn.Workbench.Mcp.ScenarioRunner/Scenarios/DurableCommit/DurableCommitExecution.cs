@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
+
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.DurableCommit;
 
 internal sealed record DurableCommitExecution
@@ -13,6 +15,8 @@ internal sealed record DurableCommitExecution
     public required long WorkingSetBytes { get; init; }
 
     public required long PeakWorkingSetBytes { get; init; }
+
+    public required HostMemoryMeasurement CommitMemory { get; init; }
 
     public required int CommitResponseBytes { get; init; }
 

@@ -97,7 +97,7 @@ GitHub and publication preparation own `PRR-F023`. Pin every reusable GitHub Act
 Validate the candidate without publishing it:
 
 1. Restore, build, test and pack from the release tag in one controlled workflow.
-2. Confirm every artifact carries the GitVersion-derived release version.
+2. Pass the exact source tag as the `RoslynWorkbenchSourceTag` build property and confirm every artifact carries the GitVersion-derived release version and tag-specific agent-guide link.
 3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
 4. Run each standalone executable on its target operating system without relying on repository build output.
 5. Inspect the Plugins package and generated `.nuspec`; verify that it contains the Plugins and Abstractions assemblies and analyser without publishing Workspace as an authoring dependency, then deliberately approve its direct dependency ranges.

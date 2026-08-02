@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
@@ -35,6 +36,10 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 
     private static void AddRoslynWorkbenchMcpServer(this IServiceCollection services)
     {
+        services.AddSingleton<
+            IConfigureOptions<McpServerOptions>,
+            RoslynWorkbenchMcpServerOptionsConfiguration>();
+
         services
             .AddMcpServer()
             .WithRequestFilters(static requestFilters =>

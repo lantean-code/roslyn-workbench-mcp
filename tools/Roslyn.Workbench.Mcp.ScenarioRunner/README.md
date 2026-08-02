@@ -31,7 +31,7 @@ Code Action scenarios use one focused workflow facility. A selection can match o
 
 `commit-cancellation` validates both sides of the durable application boundary using the selected mutation scenario. It sends a real MCP cancellation notification after the Host publishes `Staging`, requiring cancellation with the staged transaction still previewable and no source changes. A fresh execution sends cancellation after `Applying`, requiring the Host to ignore cancellation and reach a successful durable commit. Each boundary uses a fresh Host, restores the checkout and validates recovery, Workspace and shutdown state. Results are written to `commit-cancellation.json`, `commit-cancellation.md` and `validation.json`.
 
-`commit` starts a fresh Host for each iteration, starts a transaction, stages one selected mutation, previews it and performs a real durable commit. It records staging, preview, commit and repository-restoration timings plus the changed file set, operations and byte volume. After the Host shuts down, the runner restores only the tracked paths and new files recorded for that iteration, removes coordination files created by that Host and verifies the pinned checkout is clean. `--capture-trace` attaches the phase provider immediately before `transaction-commit`, keeping potentially long mutation staging outside the diagnostic capture. Results are written to `commit.json`, `commit.md` and `validation.json`.
+`commit` starts a fresh Host for each iteration, starts a transaction, stages one selected mutation, previews it and performs a real durable commit. It records staging, preview, commit and repository-restoration timings plus the changed file set, operations and byte volume. During `transaction-commit`, it samples the Host working set and private memory every 10 milliseconds and reports the sampled peaks and increases from the post-staging, post-preview baseline. These operating-system process measurements capture transient recovery-plan pressure without conflating it with mutation staging, but they are not managed-heap attribution. After the Host shuts down, the runner restores only the tracked paths and new files recorded for that iteration, removes coordination files created by that Host and verifies the pinned checkout is clean. `--capture-trace` attaches the phase provider immediately before `transaction-commit`, keeping potentially long mutation staging outside the diagnostic capture. Results are written to `commit.json`, `commit.md` and `validation.json`.
 
 `conflict` exercises a checked-in controlled-conflict definition. `PreWriteDrift` changes a selected input after staging and proves commit validation rejects before recovery persistence. `DuringApplication` waits for the durable manifest to enter `Applying`, changes the final replacement target while earlier files are being written, then proves recovery restores every server-written file without overwriting or reverting the external edit. Recovery evidence is inspected before the disposable state and checkout are restored. Results are written to `conflict.json`, `conflict.md` and `validation.json`.
 
@@ -90,6 +90,14 @@ Run the complete small-repository measurement suite:
 
 The first run clones the pinned repository and restores its dependencies automatically. Subsequent runs reuse the operating-system-local temporary cache; add `--skip-prepare` when no dependency refresh is required.
 
+Measure peak Host memory while committing a broad EF Core mutation:
+
+```powershell
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  commit --repository efcore --scenario rename-dbcontext-durable `
+  --iterations 3 --warmups 0 --skip-prepare
+```
+
 For WSL or direct Linux, the wrapper publishes both the Host and scenario runner in Release mode, restores the pinned diagnostic tools and injects the published Host path. With no arguments it lists the available repositories and scenarios:
 
 ```bash
@@ -147,6 +155,14 @@ Measure and trace a real medium multi-file commit:
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   commit --repository serilog --scenario rename-ilogger-durable \
   --iterations 1 --warmups 0 --capture-trace --duration 00:00:05 --skip-prepare
+```
+
+Measure peak Host memory while committing a broad large-repository mutation:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  commit --repository efcore --scenario rename-dbcontext-durable \
+  --iterations 3 --warmups 0 --skip-prepare
 ```
 
 Measure a real Code Action that creates a source file and updates its original document:

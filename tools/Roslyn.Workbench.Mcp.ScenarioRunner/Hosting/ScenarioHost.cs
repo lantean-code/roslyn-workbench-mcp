@@ -104,6 +104,11 @@ internal sealed class ScenarioHost : IAsyncDisposable
         };
     }
 
+    public HostMemorySampler StartMemorySampling()
+    {
+        return new HostMemorySampler(_process);
+    }
+
     public string GetStandardError()
     {
         lock (_standardError)

@@ -1223,6 +1223,7 @@ internal static class ScenarioApplication
             RestorationMilliseconds = restorationMilliseconds,
             WorkingSetBytes = completedExecution.WorkingSetBytes,
             PeakWorkingSetBytes = completedExecution.PeakWorkingSetBytes,
+            CommitMemory = completedExecution.CommitMemory,
             CommitResponseBytes = completedExecution.CommitResponseBytes,
             CommitResponseSha256 = completedExecution.CommitResponseSha256,
             PreviewDocumentCount = completedExecution.PreviewDocumentCount,

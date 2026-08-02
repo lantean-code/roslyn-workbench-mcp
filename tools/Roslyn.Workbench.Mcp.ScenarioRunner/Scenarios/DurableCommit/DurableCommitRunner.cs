@@ -78,12 +78,14 @@ internal sealed class DurableCommitRunner
     {
         var workspaceArguments = CreateMutationArguments(transactionRevision: 1);
         var before = _host.CaptureSnapshot();
+        await using var memorySampler = _host.StartMemorySampling();
         var commitStopwatch = Stopwatch.StartNew();
         var commitResult = await InvokeRequiredAsync(
             "transaction-commit",
             workspaceArguments,
             cancellationToken);
         commitStopwatch.Stop();
+        var commitMemory = await memorySampler.CompleteAsync();
         var after = _host.CaptureSnapshot();
 
         EnsureCommitted(commitResult);
@@ -96,6 +98,7 @@ internal sealed class DurableCommitRunner
             CommitHostCpuMilliseconds = (after.CpuTime - before.CpuTime).TotalMilliseconds,
             WorkingSetBytes = after.WorkingSetBytes,
             PeakWorkingSetBytes = after.PeakWorkingSetBytes,
+            CommitMemory = commitMemory,
             CommitResponseBytes = commitObservation.Bytes,
             CommitResponseSha256 = commitObservation.Sha256,
             PreviewDocumentCount = preparation.PreviewDocumentCount,

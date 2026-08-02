@@ -40,4 +40,13 @@
     </AssemblyAttribute>
   </ItemGroup>
 
+  <Target Name="AddRoslynWorkbenchSourceTagMetadata" BeforeTargets="GetAssemblyAttributes">
+    <PropertyGroup>
+      <RoslynWorkbenchSourceTag Condition="'$(RoslynWorkbenchSourceTag)' == ''">v$(Version)</RoslynWorkbenchSourceTag>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyMetadata Include="RoslynWorkbenchSourceTag" Value="$(RoslynWorkbenchSourceTag)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

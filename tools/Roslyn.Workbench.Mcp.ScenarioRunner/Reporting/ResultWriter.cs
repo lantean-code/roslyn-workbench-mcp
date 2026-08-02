@@ -214,6 +214,22 @@ internal static class ResultWriter
             .Select(static item => item.RestorationMilliseconds)
             .Order()
             .ToArray();
+        var peakWorkingSetIncreases = result.Measurements
+            .Select(static item => item.CommitMemory.PeakWorkingSetIncreaseBytes)
+            .Order()
+            .ToArray();
+        var peakPrivateMemoryIncreases = result.Measurements
+            .Select(static item => item.CommitMemory.PeakPrivateMemoryIncreaseBytes)
+            .Order()
+            .ToArray();
+        var sampledPeakWorkingSets = result.Measurements
+            .Select(static item => item.CommitMemory.PeakWorkingSetBytes)
+            .Order()
+            .ToArray();
+        var sampledPeakPrivateMemory = result.Measurements
+            .Select(static item => item.CommitMemory.PeakPrivateMemoryBytes)
+            .Order()
+            .ToArray();
         var first = result.Measurements[0];
         var stableFileSet = HasStableFileSet(result.Measurements);
         var builder = new StringBuilder()
@@ -247,6 +263,31 @@ internal static class ResultWriter
             .Append("| Repository restoration | ")
             .Append(Percentile(restorationTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
             .Append(Percentile(restorationTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |");
+
+        builder
+            .AppendLine()
+            .AppendLine("## Host memory during durable commit")
+            .AppendLine()
+            .Append("Sampling interval: ")
+            .Append(first.CommitMemory.SamplingIntervalMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" ms")
+            .AppendLine()
+            .AppendLine("The sampled peak is scoped to `transaction-commit`; the increase is relative to the post-staging, post-preview baseline immediately before that call.")
+            .AppendLine()
+            .AppendLine("| Metric | Median | P95 |")
+            .AppendLine("|---|---:|---:|")
+            .Append("| Sampled peak working set | ")
+            .Append(FormatBytes(Percentile(sampledPeakWorkingSets, 0.5))).Append(" | ")
+            .Append(FormatBytes(Percentile(sampledPeakWorkingSets, 0.95))).AppendLine(" |")
+            .Append("| Peak working-set increase | ")
+            .Append(FormatBytes(Percentile(peakWorkingSetIncreases, 0.5))).Append(" | ")
+            .Append(FormatBytes(Percentile(peakWorkingSetIncreases, 0.95))).AppendLine(" |")
+            .Append("| Sampled peak private memory | ")
+            .Append(FormatBytes(Percentile(sampledPeakPrivateMemory, 0.5))).Append(" | ")
+            .Append(FormatBytes(Percentile(sampledPeakPrivateMemory, 0.95))).AppendLine(" |")
+            .Append("| Peak private-memory increase | ")
+            .Append(FormatBytes(Percentile(peakPrivateMemoryIncreases, 0.5))).Append(" | ")
+            .Append(FormatBytes(Percentile(peakPrivateMemoryIncreases, 0.95))).AppendLine(" |");
 
         AppendDurableCommitPhases(builder, first.PhaseSummary);
 
@@ -937,6 +978,17 @@ internal static class ResultWriter
     }
 
     private static double Percentile(double[] orderedValues, double percentile)
+    {
+        if (orderedValues.Length == 0)
+        {
+            return 0;
+        }
+
+        var index = (int)Math.Ceiling(percentile * orderedValues.Length) - 1;
+        return orderedValues[Math.Max(0, index)];
+    }
+
+    private static long Percentile(long[] orderedValues, double percentile)
     {
         if (orderedValues.Length == 0)
         {

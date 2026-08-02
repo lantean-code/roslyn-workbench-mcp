@@ -54,6 +54,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     public string PluginRoot { get; }
 
+    public string? ServerInstructions
+    {
+        get
+        {
+            return GetClient().ServerInstructions;
+        }
+    }
+
     public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(
         CancellationToken cancellationToken,
         AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,

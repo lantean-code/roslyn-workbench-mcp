@@ -11,6 +11,8 @@ Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# work
 5. Review the boundary for [local diagnostics and user-approved external error reporting](ErrorReporting.md).
 6. Use the final [Code Action discovery, Fix All and staging workflow](CodeActions.md).
 
+Agents that need more detail than the MCP initialisation instructions provide should use the version-specific [agent guide](AgentGuide.md).
+
 ## Extend the server
 
 [Third-party plugin authoring](PluginAuthoring.md) describes the trusted in-process plugin API, package layout, validation and deployment rules. [Plugin authoring diagnostics](PluginAuthoringDiagnostics.md) documents the build-time guidance supplied by the Plugins package.

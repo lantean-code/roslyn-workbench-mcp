@@ -23,6 +23,8 @@ internal sealed record DurableCommitMeasurement
 
     public required long PeakWorkingSetBytes { get; init; }
 
+    public required HostMemoryMeasurement CommitMemory { get; init; }
+
     public required int CommitResponseBytes { get; init; }
 
     public required string CommitResponseSha256 { get; init; }

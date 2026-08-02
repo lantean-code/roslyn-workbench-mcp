@@ -45,6 +45,8 @@ Only one loaded workspace may own the server's active transaction slot.
 4. Use `transaction-preview` and `transaction-history` to inspect, undo or redo staged revisions.
 5. Call `transaction-commit` to write the final staged source changes, or `transaction-rollback` to discard them.
 
+Keep each transaction scoped to one coherent mutation or a tightly related set of changes. Start it when ready to mutate, preview the resulting scope, then commit or roll it back promptly. Do not use an open transaction to accumulate unrelated work. Run queries outside a transaction unless they need to inspect its staged solution, and treat broad solution-wide operations such as symbol rename as their own transaction. If preview reveals an unexpectedly large or unrelated change set, roll back and reassess it before committing. This keeps recovery work proportional to the current task because durable commit temporarily processes the original and intended content of every changed source file.
+
 Queries run against the effective solution: the staged working solution while a transaction is active, otherwise the loaded baseline. Mutation, lifecycle and transaction operations require exclusive workspace access and may return `WorkspaceBusy` with a retry action instead of waiting in a server-side queue.
 
 For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the [three-tool Code Action workflow](CodeActions.md). After a successful stage advances the revision, rediscover any subsequent action against that new current revision.

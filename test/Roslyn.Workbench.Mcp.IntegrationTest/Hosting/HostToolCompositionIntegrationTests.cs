@@ -45,7 +45,20 @@ public sealed class HostToolCompositionIntegrationTests
             serviceProvider.GetRequiredService<ISentryClient>().Should().BeOfType<SentryClient>();
             serviceProvider.GetRequiredService<ISentryClient>().IsEnabled.Should().BeTrue();
         }
+
         mcpServerOptions.Filters.Request.CallToolFilters.Should().ContainSingle();
+        mcpServerOptions.ServerInstructions.Should().Contain(
+            "keep it to one coherent change or tightly related set");
+
+        mcpServerOptions.ServerInstructions.Should().Contain(
+            "transaction-commit or transaction-rollback promptly");
+
+        mcpServerOptions.ServerInstructions.Should().Contain(
+            "does not create a Git commit");
+
+        mcpServerOptions.ServerInstructions.Should().Contain(
+            "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/v1.0.0/docs/AgentGuide.md");
+
         startupConfiguration.Options.StateDirectory.Should().Be(Path.GetTempPath());
         serviceProvider.GetRequiredService<IWorkspaceLifecycleService>()
             .Should()

@@ -21,6 +21,34 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     public WorkspaceInputManifest BuildManifest(Solution solution, string loadedPath, string workspaceRoot)
     {
+        using var certification = BeginCertification(workspaceRoot);
+        return BuildManifest(solution, loadedPath, workspaceRoot, certification);
+    }
+
+    public IWorkspaceInputCertification BeginCertification(string workspaceRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
+
+        var changeMonitor = _changeMonitorFactory.Create(workspaceRoot);
+        try
+        {
+            return new WorkspaceInputCertification(
+                changeMonitor,
+                _pathComparison.GetComparer(workspaceRoot));
+        }
+        catch
+        {
+            changeMonitor.Dispose();
+            throw;
+        }
+    }
+
+    public WorkspaceInputManifest BuildManifest(
+        Solution solution,
+        string loadedPath,
+        string workspaceRoot,
+        IWorkspaceInputCertification certification)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(loadedPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
 
@@ -28,17 +56,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             "workspace-open",
             WorkbenchPerformanceEventSource.ManifestConstructionPhase);
 
-        var changeMonitor = _changeMonitorFactory.Create(workspaceRoot);
-
-        try
-        {
-            return BuildManifest(solution, loadedPath, workspaceRoot, changeMonitor);
-        }
-        catch
-        {
-            changeMonitor.Dispose();
-            throw;
-        }
+        using var manifest = CreateManifest(solution, loadedPath, workspaceRoot);
+        return certification.Complete(manifest);
     }
 
     public bool HasChanged(WorkspaceInputManifest manifest, CancellationToken cancellationToken)
@@ -73,6 +92,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         foreach (var directory in manifest.Directories)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (manifest.IgnoredPaths.Contains(directory.Path))
+            {
+                continue;
+            }
+
             var current = _fileSystem.DirectoryInfo.New(directory.Path);
             if (!current.Exists)
             {
@@ -89,6 +113,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         foreach (var file in manifest.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (manifest.IgnoredPaths.Contains(file.Path))
+            {
+                continue;
+            }
+
             var current = _fileSystem.FileInfo.New(file.Path);
             if (!current.Exists)
             {
@@ -116,11 +145,10 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         return false;
     }
 
-    private WorkspaceInputManifest BuildManifest(
+    private WorkspaceInputManifest CreateManifest(
         Solution solution,
         string loadedPath,
-        string workspaceRoot,
-        IWorkspaceInputChangeMonitor changeMonitor)
+        string workspaceRoot)
     {
         var pathComparer = _pathComparison.GetComparer(workspaceRoot);
         var files = new Dictionary<string, WorkspaceInputFileFingerprint>(pathComparer);
@@ -189,18 +217,13 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             }
         }
 
-        var manifest = new WorkspaceInputManifest
+        return new WorkspaceInputManifest
         {
-            ChangeMonitor = changeMonitor,
             Directories = directories.Values.ToArray(),
             EvaluationFailures = evaluationFailures,
             Files = files.Values.ToArray(),
             PathPolicy = pathPolicy,
         };
-
-        changeMonitor.Track(manifest);
-
-        return manifest;
     }
 
     private void AddFile(

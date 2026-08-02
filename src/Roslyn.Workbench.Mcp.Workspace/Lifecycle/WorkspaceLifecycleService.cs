@@ -78,6 +78,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.ResolveRecovery);
         }
 
+        using var inputCertification = _workspaceChangeDetector.BeginCertification(request.WorkspaceRoot);
         ValidatedWorkspaceLoadResult loadedWorkspace;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
             "workspace-open",
@@ -109,11 +110,21 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             inputManifest = _workspaceChangeDetector.BuildManifest(
                 loadedWorkspace.Solution,
                 request.LoadedPath,
-                request.WorkspaceRoot);
+                request.WorkspaceRoot,
+                inputCertification);
 
             if (!inputManifest.IsComplete)
             {
                 return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
+            }
+
+            var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
+                inputManifest,
+                cancellationToken);
+
+            if (workspaceInputsChanged)
+            {
+                return CreateInputCertificationFailureResult<WorkspaceOpenOutcome>();
             }
 
             var session = CreateSessionSnapshot(
@@ -310,6 +321,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 context: context);
         }
 
+        using var inputCertification = _workspaceChangeDetector.BeginCertification(
+            currentSession.Workspace.WorkspaceRoot);
         var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
             currentSession.Workspace.LoadedPath,
             currentSession.Workspace.WorkspaceRoot,
@@ -320,25 +333,37 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
         }
 
-        WorkspaceInputManifest inputManifest;
+        WorkspaceInputManifest? inputManifest = null;
         try
         {
             inputManifest = _workspaceChangeDetector.BuildManifest(
                 loadedWorkspace.Solution,
                 currentSession.Workspace.LoadedPath,
-                currentSession.Workspace.WorkspaceRoot);
+                currentSession.Workspace.WorkspaceRoot,
+                inputCertification);
+            if (!inputManifest.IsComplete)
+            {
+                inputManifest.Dispose();
+                loadedWorkspace.Workspace.Dispose();
+                return CreateInputEvaluationFailureResult<WorkspaceReloadOutcome>(inputManifest, context);
+            }
+
+            var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
+                inputManifest,
+                cancellationToken);
+
+            if (workspaceInputsChanged)
+            {
+                inputManifest.Dispose();
+                loadedWorkspace.Workspace.Dispose();
+                return CreateInputCertificationFailureResult<WorkspaceReloadOutcome>(context);
+            }
         }
         catch
         {
+            inputManifest?.Dispose();
             loadedWorkspace.Workspace.Dispose();
             throw;
-        }
-
-        if (!inputManifest.IsComplete)
-        {
-            inputManifest.Dispose();
-            loadedWorkspace.Workspace.Dispose();
-            return CreateInputEvaluationFailureResult<WorkspaceReloadOutcome>(inputManifest, context);
         }
 
         var reloadedSession = CreateSessionSnapshot(
@@ -737,6 +762,16 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             RequiredAction.Retry,
             context,
             WorkspaceInputEvaluationDiagnostics.Create(manifest.EvaluationFailures));
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateInputCertificationFailureResult<TOutcome>(
+        WorkspaceOperationContext? context = null)
+    {
+        return _resultFactory.Rejected<TOutcome>(
+            "WorkspaceChangedDuringLoad",
+            "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
+            RequiredAction.Retry,
+            context);
     }
 
     private static void DisposeFailedAcquisition(WorkspaceSessionAcquisition acquisition)

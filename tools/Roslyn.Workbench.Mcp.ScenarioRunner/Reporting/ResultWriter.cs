@@ -712,12 +712,26 @@ internal static class ResultWriter
                 .Append('/')
                 .AppendLine(first.WatcherStress.WritePasses.ToString(
                     CultureInfo.InvariantCulture))
-                .Append("Watcher stress elapsed: ")
+                .Append("Baseline/stressed reload: ")
+                .Append(first.WatcherStress.BaselineReloadMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .Append('/')
+                .Append(first.WatcherStress.StressedReloadMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Stressed reload delta: ")
+                .Append(first.WatcherStress.ReloadDeltaMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Watcher stress and concurrent reload elapsed: ")
                 .Append(first.WatcherStress.ElapsedMilliseconds.ToString(
                     "F2",
                     CultureInfo.InvariantCulture))
                 .AppendLine(" ms")
-                .Append("Host CPU during stress/settlement: ")
+                .Append("Host CPU during stress/reload/settlement: ")
                 .Append(first.WatcherStress.HostCpuMilliseconds.ToString(
                     "F2",
                     CultureInfo.InvariantCulture))

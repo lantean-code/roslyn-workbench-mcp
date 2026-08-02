@@ -26,8 +26,8 @@ function Invoke-DotNet
 }
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) 'roslyn-workbench-mcp\performance'
-$publishRoot = Join-Path $temporaryRoot "publish\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
+$temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) 'rwmcp'
+$publishRoot = Join-Path $temporaryRoot "p\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
 $hostOutput = Join-Path $publishRoot 'host'
 $runnerOutput = Join-Path $publishRoot 'runner'
 $pluginOutput = Join-Path $publishRoot 'plugins\host-query'

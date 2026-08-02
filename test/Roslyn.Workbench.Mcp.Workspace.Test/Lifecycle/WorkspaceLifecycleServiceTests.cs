@@ -20,6 +20,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private readonly Mock<IWorkspacePathComparison> _workspacePathComparison;
     private readonly Mock<IWorkspaceLoadWorkflow> _workspaceLoadWorkflow;
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
+    private readonly Mock<IWorkspaceInputCertification> _inputCertification;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
     private readonly Mock<ICommitRecoveryStore> _recoveryStore;
@@ -42,6 +43,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         _workspaceLoadWorkflow = new Mock<IWorkspaceLoadWorkflow>();
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
+        _inputCertification = new Mock<IWorkspaceInputCertification>();
+        _changeDetector
+            .Setup(item => item.BeginCertification(It.IsAny<string>()))
+            .Returns(_inputCertification.Object);
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _recoveryStore = new Mock<ICommitRecoveryStore>();
@@ -588,7 +593,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace"))
+            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Faulted<WorkspaceOpenOutcome>(
@@ -621,13 +626,50 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_WorkspaceInputsChangeDuringLoad_WHEN_OpeningWorkspace_THEN_ShouldDisposeAndRequireRetry()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        using var manifest = new WorkspaceInputManifest();
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _changeDetector
+            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
+            .Returns(manifest);
+
+        _changeDetector.Setup(item => item.HasChanged(manifest, TestContext.Current.CancellationToken))
+            .Returns(true);
+
+        _resultFactory.Setup(item => item.Rejected<WorkspaceOpenOutcome>(
+            "WorkspaceChangedDuringLoad",
+            "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
+            RequiredAction.Retry,
+            null,
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
+
+        _instanceStatusPublisher.Verify(
+            item => item.CloseAsync(Guid.Parse("11111111-1111-1111-1111-111111111111")),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_UnexpectedManifestFailure_WHEN_OpeningWorkspace_THEN_ShouldCleanUpAndPropagateFailure()
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolutionWithProject("/workspace/Project.csproj");
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace"))
+        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
             .Throws(new InvalidOperationException("Failure"));
 
         var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -1234,7 +1276,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
         using var manifest = new WorkspaceInputManifest();
-        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace"))
+        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
             .Returns(manifest);
 
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(3);
@@ -1258,6 +1300,48 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_WorkspaceInputsChangeDuringLoad_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndRequireRetry()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var oldWorkspace = new Mock<ILoadedWorkspace>();
+        var newWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
+        {
+            OperationGate = gate.Object,
+            LoadedWorkspace = oldWorkspace.Object,
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+
+        using var manifest = new WorkspaceInputManifest();
+        var expected = CreateResult<WorkspaceReloadOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
+        _changeDetector
+            .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
+            .Returns(manifest);
+
+        _changeDetector.Setup(item => item.HasChanged(manifest, TestContext.Current.CancellationToken))
+            .Returns(true);
+
+        _resultFactory.Setup(item => item.Rejected<WorkspaceReloadOutcome>(
+            "WorkspaceChangedDuringLoad",
+            "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
+            RequiredAction.Retry,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        newWorkspace.Verify(item => item.Dispose(), Times.Once);
+        oldWorkspace.Verify(item => item.Dispose(), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_ProjectInputsCannotBeEvaluated_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndReturnFault()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
@@ -1277,7 +1361,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace"))
+            .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Faulted<WorkspaceReloadOutcome>(
@@ -1317,7 +1401,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         SetupLoadedWorkspace("/workspace/Solution.sln", _workspace.CurrentSolution, newWorkspace);
         using var manifest = new WorkspaceInputManifest();
-        _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, "/workspace/Solution.sln", "/workspace"))
+        _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Succeeded(
@@ -1361,7 +1445,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
 
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, path, "/workspace"))
+            .Setup(item => item.BuildManifest(solution, path, "/workspace", _inputCertification.Object))
             .Returns(new WorkspaceInputManifest());
     }
 

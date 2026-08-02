@@ -14,16 +14,19 @@ internal sealed class StateSequenceRunner
     private readonly ScenarioHost _host;
     private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _repositoryRoot;
+    private readonly string _workspacePath;
     private readonly Guid _workspaceId;
 
     public StateSequenceRunner(
         ScenarioHost host,
         Guid workspaceId,
-        string repositoryRoot)
+        string repositoryRoot,
+        string workspacePath)
     {
         _host = host;
         _workspaceId = workspaceId;
         _repositoryRoot = repositoryRoot;
+        _workspacePath = workspacePath;
         _codeActionWorkflow = new CodeActionWorkflowInvoker(host, workspaceId, repositoryRoot);
     }
 
@@ -49,7 +52,7 @@ internal sealed class StateSequenceRunner
                 scenario,
                 definition,
                 cancellationToken),
-            StateSequenceKind.WatcherStress => ExecuteWatcherStressAsync(
+            StateSequenceKind.WatcherStress => ExecuteWatcherStressWithTimestampRestorationAsync(
                 scenario,
                 definition,
                 cancellationToken),
@@ -237,6 +240,22 @@ internal sealed class StateSequenceRunner
         };
     }
 
+    private async Task<StateSequenceExecution> ExecuteWatcherStressWithTimestampRestorationAsync(
+        ScenarioDefinition scenario,
+        StateSequenceDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        var originalTimestamp = File.GetLastWriteTimeUtc(_workspacePath);
+        try
+        {
+            return await ExecuteWatcherStressAsync(scenario, definition, cancellationToken);
+        }
+        finally
+        {
+            File.SetLastWriteTimeUtc(_workspacePath, originalTimestamp);
+        }
+    }
+
     private async Task<StateSequenceExecution> ExecuteWatcherStressAsync(
         ScenarioDefinition scenario,
         StateSequenceDefinition definition,
@@ -272,59 +291,82 @@ internal sealed class StateSequenceRunner
                 $"The Workspace was not ready before watcher stress. State: '{initialStatus.WorkspaceState ?? "unknown"}'.");
         }
 
-        var stressMeasurement = await RunWatcherStressAsync(
-            watcherStress,
+        var baselineStaleStatus = await MakeWorkspaceStaleAsync(
+            "pre-baseline-reload-stale-status",
             cancellationToken);
 
+        steps.Add(baselineStaleStatus);
+        var baselineReload = await InvokeRequiredAsync(
+            "baseline-reload",
+            "workspace-reload",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(baselineReload);
+        var baselineStatus = await InvokeRequiredAsync(
+            "post-baseline-reload-status",
+            "workspace-status",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(baselineStatus);
+        ValidateWorkspaceReady(baselineStatus, "after the baseline reload");
+
+        var stressedStaleStatus = await MakeWorkspaceStaleAsync(
+            "pre-stressed-reload-stale-status",
+            cancellationToken);
+
+        steps.Add(stressedStaleStatus);
+
+        var (stressMeasurement, reload) = await ReloadUnderWatcherStressAsync(
+            watcherStress,
+            baselineReload.ElapsedMilliseconds,
+            cancellationToken);
+
+        steps.Add(reload);
+        if (reload.IsError)
+        {
+            ValidateWatcherStressCertificationRetry(reload);
+            var retryReload = await InvokeRequiredAsync(
+                "post-stress-retry-reload",
+                "workspace-reload",
+                CreateWorkspaceArguments(),
+                cancellationToken);
+
+            steps.Add(retryReload);
+        }
+
         var status = await InvokeRequiredAsync(
-            "post-stress-status",
+            "post-reload-status",
             "workspace-status",
             CreateWorkspaceArguments(),
             cancellationToken);
 
         steps.Add(status);
-        if (string.Equals(
+        var workspaceIsReady = string.Equals(
             status.WorkspaceState,
             "Ready",
-            StringComparison.Ordinal))
+            StringComparison.Ordinal);
+
+        if (!workspaceIsReady)
         {
-            var postStress = await InvokeRequiredAsync(
-                "post-stress-query",
-                scenario.Tool,
-                queryArguments,
+            ValidateWatcherStressOverflow(status);
+            var recoveryReload = await InvokeRequiredAsync(
+                "post-overflow-reload",
+                "workspace-reload",
+                CreateWorkspaceArguments(),
                 cancellationToken);
 
-            steps.Add(postStress);
-            return new StateSequenceExecution
-            {
-                Steps = steps,
-                WatcherStress = stressMeasurement,
-            };
+            steps.Add(recoveryReload);
         }
 
-        ValidateWatcherStressOverflow(status);
-        var stale = await InvokeAsync(
-            "post-stress-stale-query",
+        var postStress = await InvokeRequiredAsync(
+            "post-stress-query",
             scenario.Tool,
             queryArguments,
             cancellationToken);
 
-        steps.Add(stale);
-        ValidateStaleQuery(stale);
-        var reload = await InvokeRequiredAsync(
-            "post-stress-reload",
-            "workspace-reload",
-            CreateWorkspaceArguments(),
-            cancellationToken);
-
-        steps.Add(reload);
-        var refreshed = await InvokeRequiredAsync(
-            "post-reload-query",
-            scenario.Tool,
-            queryArguments,
-            cancellationToken);
-
-        steps.Add(refreshed);
+        steps.Add(postStress);
 
         return new StateSequenceExecution
         {
@@ -641,8 +683,9 @@ internal sealed class StateSequenceRunner
         };
     }
 
-    private async Task<WatcherStressMeasurement> RunWatcherStressAsync(
+    private async Task<(WatcherStressMeasurement Stress, StateSequenceStepMeasurement Reload)> ReloadUnderWatcherStressAsync(
         WatcherStressDefinition definition,
+        double baselineReloadMilliseconds,
         CancellationToken cancellationToken)
     {
         if (definition.FileCount <= 0 || definition.WritePasses < 0)
@@ -665,6 +708,49 @@ internal sealed class StateSequenceRunner
 
         var before = _host.CaptureSnapshot();
         var stopwatch = Stopwatch.StartNew();
+        var reloadTask = InvokeAsync(
+            "reload-under-watcher-stress",
+            "workspace-reload",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        var stressTask = Task.Run(
+            () => RunWatcherStress(definition, stressRoot, artifactRoot, artifactRootExisted, parallelOptions),
+            cancellationToken);
+
+        await Task.WhenAll(reloadTask, stressTask);
+        var reload = await reloadTask;
+        stopwatch.Stop();
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+        var after = _host.CaptureSnapshot();
+
+        var measurement = new WatcherStressMeasurement
+        {
+            ArtifactPath = definition.ArtifactPath,
+            FileCount = definition.FileCount,
+            WritePasses = definition.WritePasses,
+            BaselineReloadMilliseconds = baselineReloadMilliseconds,
+            StressedReloadMilliseconds = reload.ElapsedMilliseconds,
+            ReloadDeltaMilliseconds = reload.ElapsedMilliseconds - baselineReloadMilliseconds,
+            ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+            HostCpuMilliseconds = (after.CpuTime - before.CpuTime).TotalMilliseconds,
+            HostWorkingSetBeforeBytes = before.WorkingSetBytes,
+            HostWorkingSetAfterBytes = after.WorkingSetBytes,
+            HostWorkingSetDeltaBytes = after.WorkingSetBytes - before.WorkingSetBytes,
+            HostPeakWorkingSetBytes = after.PeakWorkingSetBytes,
+        };
+
+        return (measurement, reload);
+    }
+
+    private static void RunWatcherStress(
+        WatcherStressDefinition definition,
+        string stressRoot,
+        string artifactRoot,
+        bool artifactRootExisted,
+        ParallelOptions parallelOptions)
+    {
         try
         {
             Directory.CreateDirectory(stressRoot);
@@ -702,31 +788,61 @@ internal sealed class StateSequenceRunner
                 Directory.Delete(stressRoot, recursive: true);
             }
 
-            if (!artifactRootExisted
-                && Directory.Exists(artifactRoot)
-                && !Directory.EnumerateFileSystemEntries(artifactRoot).Any())
+            var artifactRootWasCreated = !artifactRootExisted && Directory.Exists(artifactRoot);
+            var artifactRootIsEmpty = artifactRootWasCreated
+                && !Directory.EnumerateFileSystemEntries(artifactRoot).Any();
+            if (artifactRootIsEmpty)
             {
                 Directory.Delete(artifactRoot);
             }
         }
+    }
 
-        stopwatch.Stop();
-        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+    private void AdvanceWorkspaceTimestamp()
+    {
+        var currentTimestamp = File.GetLastWriteTimeUtc(_workspacePath);
+        File.SetLastWriteTimeUtc(_workspacePath, currentTimestamp.AddSeconds(1));
+    }
 
-        var after = _host.CaptureSnapshot();
+    private async Task<StateSequenceStepMeasurement> MakeWorkspaceStaleAsync(
+        string stepName,
+        CancellationToken cancellationToken)
+    {
+        AdvanceWorkspaceTimestamp();
+        var status = await InvokeRequiredAsync(
+            stepName,
+            "workspace-status",
+            CreateWorkspaceArguments(),
+            cancellationToken);
 
-        return new WatcherStressMeasurement
+        var workspaceIsOutOfDate = string.Equals(
+            status.WorkspaceState,
+            "WorkspaceOutOfDate",
+            StringComparison.Ordinal);
+
+        if (!workspaceIsOutOfDate)
         {
-            ArtifactPath = definition.ArtifactPath,
-            FileCount = definition.FileCount,
-            WritePasses = definition.WritePasses,
-            ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
-            HostCpuMilliseconds = (after.CpuTime - before.CpuTime).TotalMilliseconds,
-            HostWorkingSetBeforeBytes = before.WorkingSetBytes,
-            HostWorkingSetAfterBytes = after.WorkingSetBytes,
-            HostWorkingSetDeltaBytes = after.WorkingSetBytes - before.WorkingSetBytes,
-            HostPeakWorkingSetBytes = after.PeakWorkingSetBytes,
-        };
+            throw new InvalidOperationException(
+                $"The Workspace was not out of date before reload. State: '{status.WorkspaceState ?? "unknown"}'.");
+        }
+
+        return status;
+    }
+
+    private static void ValidateWorkspaceReady(
+        StateSequenceStepMeasurement status,
+        string operation)
+    {
+        var workspaceIsReady = string.Equals(
+            status.WorkspaceState,
+            "Ready",
+            StringComparison.Ordinal);
+
+        if (!workspaceIsReady)
+        {
+            throw new InvalidOperationException(
+                $"The Workspace was not ready {operation}. State: '{status.WorkspaceState ?? "unknown"}'.");
+        }
     }
 
     private string ResolveStressArtifactRoot(string artifactPath)
@@ -864,6 +980,26 @@ internal sealed class StateSequenceRunner
         {
             throw new InvalidOperationException(
                 $"Watcher stress entered unexpected state '{status.WorkspaceState ?? "unknown"}' with error '{externalChange?.ErrorCode ?? "none"}'.");
+        }
+    }
+
+    private static void ValidateWatcherStressCertificationRetry(
+        StateSequenceStepMeasurement reload)
+    {
+        var hasExpectedErrorCode = string.Equals(
+            reload.ErrorCode,
+            "WorkspaceChangedDuringLoad",
+            StringComparison.Ordinal);
+
+        var hasExpectedRequiredAction = string.Equals(
+            reload.RequiredAction,
+            "Retry",
+            StringComparison.Ordinal);
+
+        if (!hasExpectedErrorCode || !hasExpectedRequiredAction)
+        {
+            throw new InvalidOperationException(
+                $"Watcher-stress reload failed with unexpected error '{reload.ErrorCode ?? "unknown"}' and action '{reload.RequiredAction ?? "none"}'.");
         }
     }
 

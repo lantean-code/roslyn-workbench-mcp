@@ -1189,7 +1189,7 @@
         },
         {
           "id": "watcher-stress",
-          "description": "Generates a high-volume create, change and delete burst beneath EF Core's evaluated artifacts root while the Workspace remains open.",
+          "description": "Reloads EF Core while generating a high-volume create, change and delete burst beneath its evaluated artifacts root, measuring the pre-manifest watcher buffer and subsequent filtering.",
           "tool": "get-solution-structure",
           "stateSequence": {
             "kind": "WatcherStress",

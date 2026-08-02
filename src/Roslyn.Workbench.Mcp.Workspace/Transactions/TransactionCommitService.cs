@@ -67,6 +67,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             return validationFailure;
         }
 
+        using var applicationCertification = _workspaceChangeDetector.BeginCertification(
+            session.Workspace.WorkspaceRoot);
         var context = CreateContext(session);
         WorkspaceCommitLockAcquisition lockAcquisition;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -95,7 +97,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         using var commitLock = lockAcquisition.Lock;
 
-        var result = await CommitUnderLockAsync(session, transaction, context, cancellationToken);
+        var result = await CommitUnderLockAsync(
+            session,
+            transaction,
+            context,
+            applicationCertification,
+            cancellationToken);
         return result;
     }
 
@@ -157,6 +164,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction,
         WorkspaceOperationContext context,
+        IWorkspaceInputCertification applicationCertification,
         CancellationToken cancellationToken)
     {
         var commitId = Guid.NewGuid().ToString("n");
@@ -245,12 +253,98 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                     validationConflict: true);
             }
 
-            WorkspaceSessionSnapshot committedSession;
-            using (WorkbenchPerformanceEventSource.Log.StartPhase(
-                WorkbenchPerformanceEventSource.TransactionCommitOperation,
-                WorkbenchPerformanceEventSource.CommitWorkspacePromotionPhase))
+            using var promotionCertification = _workspaceChangeDetector.BeginCertification(
+                session.Workspace.WorkspaceRoot);
+            using var applicationInputManifest = applicationCertification.Complete(
+                session.InputManifest,
+                GetCommitOwnedPaths(manifest));
+            var appliedState = await _commitWriter.ValidateAppliedStateAsync(manifest);
+            if (!appliedState.IsValid)
             {
-                committedSession = CreateCommittedSession(session, transaction);
+                return await RecoverFailedCommitAsync(
+                    session,
+                    transaction,
+                    context,
+                    commitId,
+                    manifest,
+                    applicationStarted: true,
+                    failureMessage: appliedState.ErrorMessage,
+                    validationConflict: true);
+            }
+
+            var inputManifest = _workspaceChangeDetector.BuildManifest(
+                transaction.CurrentSolution,
+                session.Workspace.LoadedPath,
+                session.Workspace.WorkspaceRoot,
+                promotionCertification);
+
+            WorkspaceSessionSnapshot committedSession;
+            var inputManifestHandedOff = false;
+            try
+            {
+                var inputsChangedDuringPromotion = HasInputChangedDuringCommit(
+                    applicationInputManifest,
+                    inputManifest);
+
+                if (inputsChangedDuringPromotion)
+                {
+                    return await RecoverFailedCommitAsync(
+                        session,
+                        transaction,
+                        context,
+                        commitId,
+                        manifest,
+                        applicationStarted: true,
+                        failureMessage: "Workspace inputs changed during commit promotion.",
+                        validationConflict: true);
+                }
+
+                appliedState = await _commitWriter.ValidateAppliedStateAsync(manifest);
+                if (!appliedState.IsValid)
+                {
+                    return await RecoverFailedCommitAsync(
+                        session,
+                        transaction,
+                        context,
+                        commitId,
+                        manifest,
+                        applicationStarted: true,
+                        failureMessage: appliedState.ErrorMessage,
+                        validationConflict: true);
+                }
+
+                inputsChangedDuringPromotion = HasInputChangedDuringCommit(
+                    applicationInputManifest,
+                    inputManifest);
+
+                if (inputsChangedDuringPromotion)
+                {
+                    return await RecoverFailedCommitAsync(
+                        session,
+                        transaction,
+                        context,
+                        commitId,
+                        manifest,
+                        applicationStarted: true,
+                        failureMessage: "Workspace inputs changed during commit promotion.",
+                        validationConflict: true);
+                }
+
+                using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                    WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                    WorkbenchPerformanceEventSource.CommitWorkspacePromotionPhase))
+                {
+                    committedSession = CreateCommittedSession(session, transaction, inputManifest);
+                }
+
+                inputManifestHandedOff = true;
+            }
+            finally
+            {
+                if (!inputManifestHandedOff)
+                {
+                    inputManifest.Dispose();
+                }
             }
 
             using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -332,13 +426,9 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
     private WorkspaceSessionSnapshot CreateCommittedSession(
         WorkspaceSessionSnapshot session,
-        WorkspaceTransaction transaction)
+        WorkspaceTransaction transaction,
+        WorkspaceInputManifest inputManifest)
     {
-        var inputManifest = _workspaceChangeDetector.BuildManifest(
-            transaction.CurrentSolution,
-            session.Workspace.LoadedPath,
-            session.Workspace.WorkspaceRoot);
-
         var loadDiagnostics = session.LoadDiagnostics;
         if (!inputManifest.IsComplete)
         {
@@ -371,6 +461,29 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         }
 
         return _workspaceStateTransitions.ApplyExternalChangeDetected(committedSession);
+    }
+
+    private bool HasInputChangedDuringCommit(
+        WorkspaceInputManifest applicationInputManifest,
+        WorkspaceInputManifest promotionInputManifest)
+    {
+        var applicationInputsChanged = _workspaceChangeDetector.HasChanged(
+            applicationInputManifest,
+            CancellationToken.None);
+
+        if (applicationInputsChanged)
+        {
+            return true;
+        }
+
+        if (!promotionInputManifest.IsComplete)
+        {
+            return false;
+        }
+
+        return _workspaceChangeDetector.HasChanged(
+            promotionInputManifest,
+            CancellationToken.None);
     }
 
     private async ValueTask CompleteCommitAsync(
@@ -531,6 +644,30 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {
             return false;
+        }
+    }
+
+    private static List<string> GetCommitOwnedPaths(WorkspaceCommitManifest manifest)
+    {
+        var maximumPathCount = manifest.Entries.Count * 4 + manifest.CreatedDirectories.Count;
+        var paths = new List<string>(maximumPathCount);
+        paths.AddRange(manifest.CreatedDirectories);
+        foreach (var entry in manifest.Entries)
+        {
+            paths.Add(entry.TargetPath);
+            AddPathIfPresent(paths, entry.BackupPath);
+            AddPathIfPresent(paths, entry.StagedPath);
+            AddPathIfPresent(paths, entry.DeleteMarkerPath);
+        }
+
+        return paths;
+    }
+
+    private static void AddPathIfPresent(List<string> paths, string? path)
+    {
+        if (path is not null)
+        {
+            paths.Add(path);
         }
     }
 

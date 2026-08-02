@@ -223,8 +223,16 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
             var originalWriteTime = File.GetLastWriteTimeUtc(documentPath);
             using var workspace = new AdhocWorkspace();
             var projectId = ProjectId.CreateNewId();
+            var projectInfo = ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Sample",
+                "Sample",
+                LanguageNames.CSharp,
+                filePath: projectPath);
+
             var solution = workspace.CurrentSolution
-                .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp, filePath: projectPath))
+                .AddProject(projectInfo)
                 .AddDocument(DocumentId.CreateNewId(projectId), "Class1.cs", SourceText.From("class A { }"), filePath: documentPath);
 
             var fileSystem = new FileSystem();
@@ -240,6 +248,57 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             File.WriteAllText(documentPath, "class B { }");
             File.SetLastWriteTimeUtc(documentPath, originalWriteTime);
+
+            var hasChanged = SpinWait.SpinUntil(
+                () => target.HasChanged(manifest, TestContext.Current.CancellationToken),
+                TimeSpan.FromSeconds(5));
+
+            hasChanged.Should().BeTrue();
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_InputChangesAfterCertificationStarts_WHEN_ManifestIsBuilt_THEN_ShouldReplayBufferedWatcherChange()
+    {
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Sample.csproj");
+            var documentPath = Path.Combine(directoryPath, "Class1.cs");
+            File.WriteAllText(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            File.WriteAllText(documentPath, "class A { }");
+            var originalWriteTime = File.GetLastWriteTimeUtc(documentPath);
+            using var workspace = new AdhocWorkspace();
+            var projectId = ProjectId.CreateNewId();
+            var solution = workspace.CurrentSolution
+                .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp, filePath: projectPath))
+                .AddDocument(DocumentId.CreateNewId(projectId), "Class1.cs", SourceText.From("class A { }"), filePath: documentPath);
+
+            var fileSystem = new FileSystem();
+            var pathComparison = new WorkspacePathComparison();
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var target = new WorkspaceChangeDetector(
+                fileSystem,
+                new WorkspaceProjectInputResolver(pathComparison),
+                changeMonitorFactory,
+                pathComparison);
+
+            using var certification = target.BeginCertification(directoryPath);
+            File.WriteAllText(documentPath, "class B { }");
+            File.SetLastWriteTimeUtc(documentPath, originalWriteTime);
+            using var manifest = target.BuildManifest(solution, projectPath, directoryPath, certification);
 
             var hasChanged = SpinWait.SpinUntil(
                 () => target.HasChanged(manifest, TestContext.Current.CancellationToken),

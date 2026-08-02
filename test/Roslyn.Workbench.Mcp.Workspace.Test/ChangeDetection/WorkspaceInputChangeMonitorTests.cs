@@ -45,6 +45,92 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_NewMonitor_WHEN_StartedMultipleTimes_THEN_ShouldEnableWatcherOnce()
+    {
+        _target.Start();
+        _target.Start();
+
+        _watcher.VerifySet(item => item.EnableRaisingEvents = true, Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_StartedMonitorWithBufferedChange_WHEN_InputsAreTracked_THEN_ShouldReportRelevantChange()
+    {
+        _target.Start();
+        var args = new FileSystemEventArgs(WatcherChangeTypes.Changed, _workspaceRoot, "Document.cs");
+        _watcher.Raise(item => item.Changed += null, args);
+
+        TrackWorkspaceInputs();
+
+        WaitForChange();
+        _target.Change.Should().BeEquivalentTo(new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            Kind = WorkspaceInputChangeKind.Changed,
+            Path = Path.Combine(_workspaceRoot, "Document.cs"),
+        });
+    }
+
+    [Fact]
+    public void GIVEN_StartedMonitorWithBufferedRename_WHEN_InputsAreTracked_THEN_ShouldReportRelevantChange()
+    {
+        _target.Start();
+        var args = new RenamedEventArgs(
+            WatcherChangeTypes.Renamed,
+            _workspaceRoot,
+            "Renamed.cs",
+            "Document.cs");
+
+        _watcher.Raise(item => item.Renamed += null, args);
+        TrackWorkspaceInputs();
+
+        WaitForChange();
+        _target.Change.Should().BeEquivalentTo(new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            Kind = WorkspaceInputChangeKind.Renamed,
+            Path = Path.Combine(_workspaceRoot, "Renamed.cs"),
+            PreviousPath = Path.Combine(_workspaceRoot, "Document.cs"),
+        });
+    }
+
+    [Fact]
+    public void GIVEN_StartedMonitorWithBufferedIrrelevantChange_WHEN_InputsAreTracked_THEN_ShouldIgnoreChange()
+    {
+        _target.Start();
+        var args = new FileSystemEventArgs(WatcherChangeTypes.Changed, _workspaceRoot, "Untracked.cs");
+        _watcher.Raise(item => item.Changed += null, args);
+
+        TrackWorkspaceInputs();
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_CommitOwnedPaths_WHEN_BufferedEventsAreProcessed_THEN_ShouldIgnoreThosePaths()
+    {
+        var documentPath = Path.Combine(_workspaceRoot, "Document.cs");
+        var createdPath = Path.Combine(_workspaceRoot, "Project", "Created.cs");
+        var ignoredPaths = new HashSet<string>(StringComparer.Ordinal)
+        {
+            documentPath,
+            createdPath,
+        };
+
+        _target.Start();
+        var args = new FileSystemEventArgs(WatcherChangeTypes.Changed, _workspaceRoot, "Document.cs");
+        _watcher.Raise(item => item.Changed += null, args);
+
+        RaiseCreated(_workspaceRoot, ".Document.cs.11111111111111111111111111111111.tmp");
+        RaiseCreated(Path.Combine(_workspaceRoot, "Project"), "Created.cs");
+        TrackWorkspaceInputs(ignoredPaths);
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
     public void GIVEN_UnconfiguredMonitor_WHEN_PathIsCreated_THEN_ShouldIgnoreChange()
     {
         RaiseCreated(_workspaceRoot, "Document.cs");
@@ -214,6 +300,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     [Fact]
     public void GIVEN_WatcherError_WHEN_Raised_THEN_ShouldReportChange()
     {
+        TrackWorkspaceInputs();
         _watcher.Raise(
             item => item.Error += null,
             new ErrorEventArgs(new InternalBufferOverflowException()));
@@ -230,6 +317,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     [Fact]
     public void GIVEN_UnexpectedWatcherError_WHEN_Raised_THEN_ShouldReportGenericFailure()
     {
+        TrackWorkspaceInputs();
         _watcher.Raise(
             item => item.Error += null,
             new ErrorEventArgs(new IOException()));
@@ -273,7 +361,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _target.Dispose();
     }
 
-    private void TrackWorkspaceInputs()
+    private void TrackWorkspaceInputs(IReadOnlySet<string>? ignoredPaths = null)
     {
         using var manifest = new WorkspaceInputManifest
         {
@@ -291,6 +379,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
                     Path = Path.Combine(_workspaceRoot, "Document.cs"),
                 },
             ],
+            IgnoredPaths = ignoredPaths ?? new HashSet<string>(),
         };
 
         _target.Track(manifest);

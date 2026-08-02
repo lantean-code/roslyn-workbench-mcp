@@ -91,6 +91,55 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return WorkspaceCommitValidationResult.Valid();
     }
 
+    public async ValueTask<WorkspaceCommitValidationResult> ValidateAppliedStateAsync(
+        WorkspaceCommitManifest manifest)
+    {
+        foreach (var entry in manifest.Entries)
+        {
+            var hasSafeRecoveryPaths = HasSafeRecoveryPaths(manifest, entry);
+            if (!hasSafeRecoveryPaths)
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The target '{entry.TargetPath}' resolves outside the workspace root.");
+            }
+
+            var targetExists = _fileSystem.File.Exists(entry.TargetPath);
+            if (entry.Operation == WorkspaceFileOperation.Delete)
+            {
+                var deleteMarkerPath = entry.GetRequiredDeleteMarkerPath();
+                var deleteMarkerExists = _fileSystem.File.Exists(deleteMarkerPath);
+                var appliedDeleteIsValid = !targetExists && deleteMarkerExists;
+                if (!appliedDeleteIsValid)
+                {
+                    return WorkspaceCommitValidationResult.Invalid(
+                        $"The target '{entry.TargetPath}' changed after commit application.");
+                }
+
+                continue;
+            }
+
+            if (!targetExists)
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The target '{entry.TargetPath}' changed after commit application.");
+            }
+
+            var targetHash = await HashFileAsync(entry.TargetPath, CancellationToken.None);
+            var appliedContentsAreValid = string.Equals(
+                targetHash,
+                entry.IntendedHash,
+                StringComparison.Ordinal);
+
+            if (!appliedContentsAreValid)
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The target '{entry.TargetPath}' changed after commit application.");
+            }
+        }
+
+        return WorkspaceCommitValidationResult.Valid();
+    }
+
     public ValueTask<bool> CompleteAsync(WorkspaceCommitManifest manifest)
     {
         try

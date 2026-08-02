@@ -8,6 +8,12 @@ internal sealed record WatcherStressMeasurement
 
     public required int WritePasses { get; init; }
 
+    public required double BaselineReloadMilliseconds { get; init; }
+
+    public required double StressedReloadMilliseconds { get; init; }
+
+    public required double ReloadDeltaMilliseconds { get; init; }
+
     public required double ElapsedMilliseconds { get; init; }
 
     public required double HostCpuMilliseconds { get; init; }

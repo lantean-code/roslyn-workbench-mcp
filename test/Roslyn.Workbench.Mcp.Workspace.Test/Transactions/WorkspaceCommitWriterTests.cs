@@ -134,6 +134,93 @@ public sealed class WorkspaceCommitWriterTests
         result.ErrorMessage.Should().Contain("delete marker");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task GIVEN_IntendedCreateOrReplaceState_WHEN_ValidatingAppliedState_THEN_ShouldComplete(
+        int operationValue)
+    {
+        var operation = (WorkspaceFileOperation)operationValue;
+        var intended = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(operation, "ORIGINAL", Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None))
+            .ReturnsAsync(intended);
+
+        var manifest = CreateManifest(entry);
+        var result = await _target.ValidateAppliedStateAsync(manifest);
+
+        result.IsValid.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public async Task GIVEN_IntendedDeleteState_WHEN_ValidatingAppliedState_THEN_ShouldRequireMarkerOnly(
+        bool targetExists,
+        bool markerExists)
+    {
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, "ORIGINAL", null);
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(targetExists);
+        _file.Setup(item => item.Exists(entry.GetRequiredDeleteMarkerPath())).Returns(markerExists);
+
+        var manifest = CreateManifest(entry);
+        var result = await _target.ValidateAppliedStateAsync(manifest);
+
+        var expectedValidity = !targetExists && markerExists;
+        result.IsValid.Should().Be(expectedValidity);
+        if (result.IsValid)
+        {
+            result.ErrorMessage.Should().BeNull();
+        }
+        else
+        {
+            result.ErrorMessage.Should().Contain("changed after commit application");
+        }
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task GIVEN_CreateOrReplaceStateDrift_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit(
+        bool targetExists,
+        bool hashMatches)
+    {
+        var intended = new byte[] { 1, 2, 3 };
+        var actual = hashMatches ? intended : new byte[] { 4, 5, 6 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, "ORIGINAL", Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(targetExists);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None))
+            .ReturnsAsync(actual);
+
+        var manifest = CreateManifest(entry);
+        var result = await _target.ValidateAppliedStateAsync(manifest);
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("changed after commit application");
+    }
+
+    [Fact]
+    public async Task GIVEN_TargetPhysicallyEscapesWorkspace_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit()
+    {
+        var entry = CreateEntry(WorkspaceFileOperation.Create, null, "INTENDED");
+        var manifest = CreateManifest(entry);
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                entry.TargetPath,
+                out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = await _target.ValidateAppliedStateAsync(manifest);
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the workspace root");
+        _file.Verify(item => item.Exists(It.IsAny<string>()), Times.Never);
+    }
+
     [Fact]
     public async Task GIVEN_CreateReplaceAndDelete_WHEN_Applying_THEN_ShouldUseDurableArtifactsWithoutCancellation()
     {

@@ -10,13 +10,16 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     private readonly StringComparer _pathComparer;
     private readonly Channel<WorkspaceInputWatcherEvent> _events;
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly TaskCompletionSource _trackingStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Task _eventProcessingTask;
     private WorkspaceInputChange? _change;
+    private IReadOnlySet<string> _ignoredPaths;
     private WorkspaceInputPathPolicy _pathPolicy = WorkspaceInputPathPolicy.TrackAll;
     private IReadOnlySet<string>? _trackedDirectories;
     private IReadOnlySet<string>? _trackedFiles;
     private int _disposeState;
     private int _pendingEventCount;
+    private int _startState;
 
     public WorkspaceInputChange? Change => Volatile.Read(ref _change);
 
@@ -26,6 +29,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         string workspaceRoot)
     {
         _pathComparer = pathComparison.GetComparer(workspaceRoot);
+        _ignoredPaths = new HashSet<string>(_pathComparer);
         _watcher = fileSystem.FileSystemWatcher.New(workspaceRoot);
         _watcher.IncludeSubdirectories = true;
         _watcher.InternalBufferSize = _maximumWatcherBufferSize;
@@ -52,6 +56,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     public void Track(WorkspaceInputManifest manifest)
     {
+        _ignoredPaths = manifest.IgnoredPaths;
         _pathPolicy = manifest.PathPolicy;
         _trackedDirectories = manifest.Directories
             .Select(static directory => directory.Path)
@@ -61,7 +66,17 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
             .Select(static file => file.Path)
             .ToHashSet(_pathComparer);
 
-        _watcher.EnableRaisingEvents = true;
+        Start();
+        _trackingStarted.TrySetResult();
+    }
+
+    public void Start()
+    {
+        var previousStartState = Interlocked.Exchange(ref _startState, 1);
+        if (previousStartState == 0)
+        {
+            _watcher.EnableRaisingEvents = true;
+        }
     }
 
     public void Dispose()
@@ -98,21 +113,11 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     private void OnChanged(object sender, FileSystemEventArgs args)
     {
-        if (_trackedFiles is null)
-        {
-            return;
-        }
-
         Enqueue(WorkspaceInputWatcherEvent.Changed(args.FullPath));
     }
 
     private void OnCreatedOrDeleted(object sender, FileSystemEventArgs args)
     {
-        if (_trackedFiles is null)
-        {
-            return;
-        }
-
         WorkspaceInputWatcherEvent watcherEvent;
         if (args.ChangeType == WatcherChangeTypes.Created)
         {
@@ -128,11 +133,6 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     private void OnRenamed(object sender, RenamedEventArgs args)
     {
-        if (_trackedFiles is null)
-        {
-            return;
-        }
-
         var watcherEvent = WorkspaceInputWatcherEvent.Renamed(
             args.FullPath,
             args.OldFullPath);
@@ -149,6 +149,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     {
         try
         {
+            await _trackingStarted.Task.WaitAsync(cancellationToken);
             await foreach (var watcherEvent in _events.Reader.ReadAllAsync(cancellationToken))
             {
                 if (!TryRecordChange(watcherEvent))
@@ -247,7 +248,9 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     private bool ShouldTrackChangedPath(string? path)
     {
         var trackedFiles = _trackedFiles;
+        var pathIsIgnored = path is not null && IsIgnoredPath(path);
         return path is not null
+            && !pathIsIgnored
             && trackedFiles is not null
             && trackedFiles.Contains(path);
     }
@@ -257,6 +260,12 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         var trackedFiles = _trackedFiles;
         var trackedDirectories = _trackedDirectories;
         if (path is null || trackedFiles is null || trackedDirectories is null)
+        {
+            return false;
+        }
+
+        var pathIsIgnored = IsIgnoredPath(path);
+        if (pathIsIgnored)
         {
             return false;
         }
@@ -273,6 +282,45 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
         var parent = Path.GetDirectoryName(path);
         return parent is not null && trackedDirectories.Contains(parent);
+    }
+
+    private bool IsIgnoredPath(string path)
+    {
+        if (_ignoredPaths.Contains(path))
+        {
+            return true;
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        var fileName = Path.GetFileName(path);
+        foreach (var ignoredPath in _ignoredPaths)
+        {
+            var ignoredDirectory = Path.GetDirectoryName(ignoredPath);
+            var hasSameDirectory = _pathComparer.Equals(directory, ignoredDirectory);
+            if (!hasSameDirectory)
+            {
+                continue;
+            }
+
+            var ignoredFileName = Path.GetFileName(ignoredPath);
+            var prefix = $".{ignoredFileName}.";
+            var hasExpectedPrefix = fileName.StartsWith(prefix, StringComparison.Ordinal);
+            var hasExpectedSuffix = fileName.EndsWith(".tmp", StringComparison.Ordinal);
+            var hasExpectedLength = fileName.Length == prefix.Length + 32 + ".tmp".Length;
+            if (!hasExpectedPrefix || !hasExpectedSuffix || !hasExpectedLength)
+            {
+                continue;
+            }
+
+            var identifier = fileName.Substring(prefix.Length, 32);
+            var hasExpectedIdentifier = Guid.TryParseExact(identifier, "N", out _);
+            if (hasExpectedIdentifier)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void RecordChange(

@@ -924,7 +924,8 @@ internal static class ScenarioApplication
             var runner = new StateSequenceRunner(
                 host,
                 openedWorkspaceId,
-                repositoryRoot);
+                repositoryRoot,
+                workspacePath);
 
             execution = await runner.ExecuteAsync(scenario, cancellationToken);
         }
@@ -2287,6 +2288,11 @@ internal static class ScenarioApplication
             return Path.GetFullPath(value);
         }
 
+        if (OperatingSystem.IsWindows())
+        {
+            return Path.Combine(Path.GetTempPath(), "rwmcp", "r");
+        }
+
         return Path.Combine(
             Path.GetTempPath(),
             "roslyn-workbench-mcp",
@@ -2311,12 +2317,25 @@ internal static class ScenarioApplication
 
     private static string CreateExecutionDirectory(string repositoryId)
     {
-        var path = Path.Combine(
-            Path.GetTempPath(),
-            "roslyn-workbench-mcp",
-            "performance",
-            "execution",
-            $"{repositoryId}-{Guid.NewGuid():N}");
+        string path;
+        if (OperatingSystem.IsWindows())
+        {
+            path = Path.Combine(
+                Path.GetTempPath(),
+                "rwmcp",
+                "x",
+                $"{repositoryId}-{Guid.NewGuid():N}");
+        }
+        else
+        {
+            path = Path.Combine(
+                Path.GetTempPath(),
+                "roslyn-workbench-mcp",
+                "performance",
+                "execution",
+                $"{repositoryId}-{Guid.NewGuid():N}");
+        }
+
         Directory.CreateDirectory(path);
         return path;
     }

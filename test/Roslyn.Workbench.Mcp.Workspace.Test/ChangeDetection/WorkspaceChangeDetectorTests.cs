@@ -120,6 +120,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         result.Directories.Select(item => item.Path).Should().NotContain(root + "/Project/bin", root + "/Project/obj");
         result.Files.Select(item => item.Path).Should().NotContain(generatedPath);
         _changeMonitorFactory.Verify(item => item.Create(root), Times.Once);
+        _changeMonitor.Verify(item => item.Start(), Times.Once);
         _changeMonitor.Verify(item => item.Track(result), Times.Once);
     }
 
@@ -137,6 +138,44 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
 
         action.Should().Throw<IOException>();
         _changeMonitor.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_MonitorCannotStart_WHEN_BeginningCertification_THEN_ShouldDisposeMonitorAndPropagateFailure()
+    {
+        _changeMonitor.Setup(item => item.Start()).Throws(new IOException("Watcher failed."));
+
+        var action = () => _target.BeginCertification("/Workspace");
+
+        action.Should().Throw<IOException>().WithMessage("Watcher failed.");
+        _changeMonitor.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_IgnoredInputsAreUnavailable_WHEN_CheckingForChanges_THEN_ShouldSkipThoseInputs()
+    {
+        const string directoryPath = "/Workspace/Project";
+        const string filePath = "/Workspace/Project/Document.cs";
+        var directory = new WorkspaceInputDirectoryFingerprint { Path = directoryPath };
+        var file = new WorkspaceInputFileFingerprint { Path = filePath };
+        var ignoredPaths = new HashSet<string>(StringComparer.Ordinal)
+        {
+            directoryPath,
+            filePath,
+        };
+
+        using var manifest = new WorkspaceInputManifest
+        {
+            Directories = [directory],
+            Files = [file],
+            IgnoredPaths = ignoredPaths,
+        };
+
+        var result = _target.HasChanged(manifest, CancellationToken.None);
+
+        result.Should().BeFalse();
+        _directoryInfoFactory.Verify(item => item.New(It.IsAny<string>()), Times.Never);
+        _fileInfoFactory.Verify(item => item.New(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

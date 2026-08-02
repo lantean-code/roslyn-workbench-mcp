@@ -14,6 +14,8 @@ internal sealed record WorkspaceInputManifest : IDisposable
 
     public IReadOnlyList<WorkspaceInputFileFingerprint> Files { get; init; } = [];
 
+    public IReadOnlySet<string> IgnoredPaths { get; init; } = new HashSet<string>();
+
     public WorkspaceInputPathPolicy PathPolicy { get; init; } = WorkspaceInputPathPolicy.TrackAll;
 
     public bool IsComplete => EvaluationFailures.Count == 0;

@@ -10,6 +10,7 @@ public sealed class WorkspaceRootResolverTests
     private readonly Mock<IPath> _path;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
+    private readonly Mock<IWorkspacePathNormalizer> _pathNormalizer;
     private readonly WorkspaceRootResolver _target;
 
     public WorkspaceRootResolverTests()
@@ -20,6 +21,7 @@ public sealed class WorkspaceRootResolverTests
         _path = new Mock<IPath>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathContainment = new Mock<IPhysicalPathContainment>();
+        _pathNormalizer = new Mock<IWorkspacePathNormalizer>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -33,6 +35,22 @@ public sealed class WorkspaceRootResolverTests
         _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns(Path.AltDirectorySeparatorChar);
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string path, out string fullPath) =>
+            {
+                try
+                {
+                    fullPath = Path.GetFullPath(path);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    fullPath = string.Empty;
+                    return false;
+                }
+            });
+
         _pathContainment
             .Setup(item => item.TryGetContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
             .Returns((string root, string path, out string containedPath) =>
@@ -41,7 +59,11 @@ public sealed class WorkspaceRootResolverTests
                 return Path.GetFullPath(path).StartsWith(Path.GetFullPath(root), StringComparison.Ordinal);
             });
 
-        _target = new WorkspaceRootResolver(_fileSystem.Object, _pathComparison.Object, _pathContainment.Object);
+        _target = new WorkspaceRootResolver(
+            _fileSystem.Object,
+            _pathComparison.Object,
+            _pathContainment.Object,
+            _pathNormalizer.Object);
     }
 
     [Theory]
@@ -52,6 +74,23 @@ public sealed class WorkspaceRootResolverTests
         var result = _target.Resolve(loadedPath, requestedRoot: null);
 
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_MalformedExplicitRoot_WHEN_Resolving_THEN_ShouldRejectIt()
+    {
+        var loadedPath = Path.Combine(Path.GetTempPath(), "Workspace", "Project.csproj");
+        var malformedRoot = Path.GetPathRoot(Path.GetTempPath()) + "\0Workspace";
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(malformedRoot, out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = _target.Resolve(loadedPath, malformedRoot);
+
+        result.Should().BeNull();
+        _pathContainment.Verify(
+            item => item.TryGetContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny),
+            Times.Never);
     }
 
     [Fact]

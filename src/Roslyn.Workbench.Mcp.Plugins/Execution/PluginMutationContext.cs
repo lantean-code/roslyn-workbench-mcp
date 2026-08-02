@@ -10,6 +10,7 @@ internal sealed class PluginMutationContext : IMutationContext
         WorkspaceIdentity = workspaceContext.WorkspaceIdentity;
         TransactionRevision = workspaceContext.TransactionRevision;
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
+        WorkspacePathService = workspaceContext.WorkspacePathService;
         WorkspaceResolver = workspaceContext.WorkspaceResolver;
         ToolExecutionServices = toolExecutionServices;
     }
@@ -21,6 +22,8 @@ internal sealed class PluginMutationContext : IMutationContext
     public int? TransactionRevision { get; }
 
     public int DefaultMaxResults { get; }
+
+    public IWorkspacePathService WorkspacePathService { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 

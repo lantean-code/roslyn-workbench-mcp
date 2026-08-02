@@ -8,6 +8,7 @@ internal sealed class WorkspaceExecutionContext : IWorkspaceExecutionContext
         WorkspaceSnapshotIdentity snapshotIdentity,
         int? transactionRevision,
         int defaultMaxResults,
+        IWorkspacePathService workspacePathService,
         IWorkspaceResolver workspaceResolver)
     {
         CurrentSolution = currentSolution;
@@ -15,6 +16,7 @@ internal sealed class WorkspaceExecutionContext : IWorkspaceExecutionContext
         SnapshotIdentity = snapshotIdentity;
         TransactionRevision = transactionRevision;
         DefaultMaxResults = defaultMaxResults;
+        WorkspacePathService = workspacePathService;
         WorkspaceResolver = workspaceResolver;
     }
 
@@ -27,6 +29,8 @@ internal sealed class WorkspaceExecutionContext : IWorkspaceExecutionContext
     public int? TransactionRevision { get; }
 
     public int DefaultMaxResults { get; }
+
+    public IWorkspacePathService WorkspacePathService { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 }

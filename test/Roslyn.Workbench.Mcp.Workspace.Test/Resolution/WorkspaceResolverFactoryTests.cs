@@ -12,8 +12,15 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
         pathComparison
             .Setup(item => item.GetComparison(It.IsAny<string>()))
             .Returns(StringComparison.Ordinal);
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var pathServiceFactory = new Mock<IWorkspacePathServiceFactory>();
+        pathServiceFactory
+            .Setup(item => item.Create(It.IsAny<WorkspaceIdentity>()))
+            .Returns(workspacePathService.Object);
 
-        _target = new WorkspaceResolverFactory(pathComparison.Object);
+        _target = new WorkspaceResolverFactory(
+            pathComparison.Object,
+            pathServiceFactory.Object);
     }
 
     [Fact]

@@ -5,33 +5,38 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
+    private readonly IWorkspacePathNormalizer _pathNormalizer;
 
     public WorkspaceRootResolver(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
-        IPhysicalPathContainment pathContainment)
+        IPhysicalPathContainment pathContainment,
+        IWorkspacePathNormalizer pathNormalizer)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
         _pathContainment = pathContainment;
+        _pathNormalizer = pathNormalizer;
     }
 
     public string? Resolve(string loadedPath, string? requestedRoot)
     {
-        if (string.IsNullOrWhiteSpace(loadedPath) || !_fileSystem.Path.IsPathFullyQualified(loadedPath))
+        if (string.IsNullOrWhiteSpace(loadedPath)
+            || !_fileSystem.Path.IsPathFullyQualified(loadedPath)
+            || !_pathNormalizer.TryGetFullPath(loadedPath, out var canonicalLoadedPath))
         {
             return null;
         }
 
-        var canonicalLoadedPath = _fileSystem.Path.GetFullPath(loadedPath);
         if (requestedRoot is not null)
         {
-            if (string.IsNullOrWhiteSpace(requestedRoot) || !_fileSystem.Path.IsPathFullyQualified(requestedRoot))
+            if (string.IsNullOrWhiteSpace(requestedRoot)
+                || !_fileSystem.Path.IsPathFullyQualified(requestedRoot)
+                || !_pathNormalizer.TryGetFullPath(requestedRoot, out var canonicalRequestedRoot))
             {
                 return null;
             }
 
-            var canonicalRequestedRoot = _fileSystem.Path.GetFullPath(requestedRoot);
             return _fileSystem.Directory.Exists(canonicalRequestedRoot)
                 && Contains(canonicalRequestedRoot, canonicalLoadedPath)
                 ? canonicalRequestedRoot

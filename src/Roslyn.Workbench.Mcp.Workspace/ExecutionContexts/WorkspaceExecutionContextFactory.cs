@@ -10,6 +10,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceMutationStager _mutationStager;
+    private readonly IWorkspacePathServiceFactory _pathServiceFactory;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
@@ -20,6 +21,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IMutationStagingService mutationStagingService,
+        IWorkspacePathServiceFactory pathServiceFactory,
         IWorkspaceResolverFactory resolverFactory,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
@@ -29,6 +31,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _mutationStager = new WorkspaceMutationStager(mutationStagingService);
+        _pathServiceFactory = pathServiceFactory;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
     }
@@ -169,6 +172,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)
     {
+        var workspacePathService = _pathServiceFactory.Create(session.Workspace);
         var resolver = _resolverFactory.Create(
             session.CurrentSolution,
             session.Workspace,
@@ -180,6 +184,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             session.CurrentSnapshotIdentity,
             session.Transaction?.CurrentRevision,
             _options.DefaultMaxResults,
+            workspacePathService,
             resolver);
     }
 

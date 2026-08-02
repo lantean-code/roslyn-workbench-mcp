@@ -12,7 +12,9 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         SolutionHierarchyResult hierarchy;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.SolutionHierarchyPhase))
         {
-            hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken);
+            hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(
+                context.WorkspaceIdentity,
+                cancellationToken);
         }
 
         if (!hierarchy.IsSucceeded)
@@ -37,22 +39,39 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
             }
         }
 
-        var selectedProjects = new List<Project>();
+        var selectedProjectEntries = new List<(Project Project, string Path)>();
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectSelectionPhase))
         {
-            var orderedProjects = context.CurrentSolution.Projects
-                .OrderBy(project => context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal);
-
-            foreach (var project in orderedProjects)
+            var projectEntries = new List<(Project Project, string Path)>();
+            foreach (var project in context.CurrentSolution.Projects)
             {
-                if (selectedProjects.Count == request.EffectiveProjectsLimit)
+                if (!context.WorkspacePathService.TryNormalizePath(project.FilePath ?? project.Name, out var projectPath))
+                {
+                    return PluginExecutionResult.Rejected<SolutionStructureData>(
+                        "ProjectStructureUnavailable",
+                        "A loaded project's path could not be normalized relative to the workspace root.",
+                        RequiredAction.ReloadWorkspace);
+                }
+
+                projectEntries.Add((project, projectPath));
+            }
+
+            projectEntries.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
+
+            foreach (var projectEntry in projectEntries)
+            {
+                if (selectedProjectEntries.Count == request.EffectiveProjectsLimit)
                 {
                     break;
                 }
 
-                selectedProjects.Add(project);
+                selectedProjectEntries.Add(projectEntry);
             }
         }
+
+        var selectedProjects = selectedProjectEntries
+            .Select(static entry => entry.Project)
+            .ToArray();
 
         IReadOnlyList<ProjectTargetFrameworksResult> targetFrameworkResults;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.TargetFrameworkEvaluationPhase))
@@ -66,9 +85,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         var projectStructures = new List<ProjectStructureInfo>();
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectProjectionPhase))
         {
-            for (var index = 0; index < selectedProjects.Count; index++)
+            for (var index = 0; index < selectedProjects.Length; index++)
             {
-                var project = selectedProjects[index];
+                var projectEntry = selectedProjectEntries[index];
+                var project = projectEntry.Project;
                 var targetFrameworks = targetFrameworkResults[index];
 
                 if (!targetFrameworks.IsSucceeded)
@@ -79,7 +99,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                         RequiredAction.Retry);
                 }
 
-                var projectPath = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name);
+                var projectPath = projectEntry.Path;
                 var solutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(projectPath, out var folderPath)
                     ? folderPath
                     : null;
@@ -91,9 +111,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                     foreach (var reference in project.ProjectReferences)
                     {
                         var referencedProject = context.CurrentSolution.GetProject(reference.ProjectId);
-                        if (referencedProject is not null)
+                        if (referencedProject is not null
+                            && context.WorkspacePathService.TryNormalizePath(referencedProject.FilePath ?? referencedProject.Name, out var referencedProjectPath))
                         {
-                            projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver));
+                            projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, referencedProjectPath));
                         }
                     }
 
@@ -107,12 +128,8 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 {
                     using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DocumentProjectionPhase))
                     {
-                        var orderedDocuments = project.Documents
-                            .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
-                            .ToArray();
-
                         var projectedDocuments = new List<DocumentReference>();
-                        foreach (var document in orderedDocuments)
+                        foreach (var document in project.Documents)
                         {
                             var documentReference = context.WorkspaceResolver.CreateDocumentReference(document);
                             if (documentReference is not null)
@@ -121,7 +138,9 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                             }
                         }
 
-                        documents = projectedDocuments;
+                        documents = projectedDocuments
+                            .OrderBy(static document => document.Path, StringComparer.Ordinal)
+                            .ToArray();
                     }
                 }
 

@@ -12,5 +12,7 @@ internal interface IWorkspaceExecutionContext
 
     int DefaultMaxResults { get; }
 
+    IWorkspacePathService WorkspacePathService { get; }
+
     IWorkspaceResolver WorkspaceResolver { get; }
 }

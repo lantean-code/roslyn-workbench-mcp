@@ -19,4 +19,9 @@ public enum SelectorResolveStatus
     /// More than one match was found.
     /// </summary>
     Ambiguous,
+
+    /// <summary>
+    /// The selector contains a value that cannot be resolved safely.
+    /// </summary>
+    Invalid,
 }

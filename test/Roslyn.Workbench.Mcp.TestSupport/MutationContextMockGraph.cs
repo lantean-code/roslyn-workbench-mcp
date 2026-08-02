@@ -16,6 +16,11 @@ public sealed record MutationContextMockGraph
     public Mock<IWorkspaceResolver> WorkspaceResolver { get; }
 
     /// <summary>
+    /// Gets the workspace path service mock.
+    /// </summary>
+    public Mock<IWorkspacePathService> WorkspacePathService { get; }
+
+    /// <summary>
     /// Gets the tool execution services mock.
     /// </summary>
     public Mock<IToolExecutionServices> ToolExecutionServices { get; }
@@ -30,16 +35,19 @@ public sealed record MutationContextMockGraph
     /// </summary>
     /// <param name="mutationContext">The mutation context mock.</param>
     /// <param name="workspaceResolver">The workspace resolver mock.</param>
+    /// <param name="workspacePathService">The workspace path service mock.</param>
     /// <param name="toolExecutionServices">The tool execution services mock.</param>
     /// <param name="requestResolver">The tool request resolver mock.</param>
     public MutationContextMockGraph(
         Mock<IMutationContext> mutationContext,
         Mock<IWorkspaceResolver> workspaceResolver,
+        Mock<IWorkspacePathService> workspacePathService,
         Mock<IToolExecutionServices> toolExecutionServices,
         Mock<IToolRequestResolver> requestResolver)
     {
         MutationContext = mutationContext;
         WorkspaceResolver = workspaceResolver;
+        WorkspacePathService = workspacePathService;
         ToolExecutionServices = toolExecutionServices;
         RequestResolver = requestResolver;
     }

@@ -5,7 +5,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     [Fact]
     public void GIVEN_TargetFrameworksImportedFromProps_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValues()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -43,7 +43,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     [Fact]
     public void GIVEN_MissingProjectFile_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var projectPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n"), "Missing.csproj");
 
         var result = target.GetTargetFrameworks(projectPath);
@@ -55,7 +55,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     [Fact]
     public void GIVEN_MalformedProject_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -77,7 +77,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     [Fact]
     public void GIVEN_ProjectWithoutTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnSuccessfulEmptyResult()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -99,7 +99,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     [Fact]
     public void GIVEN_ProjectWithSingleTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValue()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -123,7 +123,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     {
         using var workspace = new AdhocWorkspace();
         var project = workspace.AddProject("Project", LanguageNames.CSharp);
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
 
         var result = target.GetTargetFrameworks(project);
 
@@ -135,7 +135,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
     public void GIVEN_ProjectBatchContainsDuplicateAndMissingPaths_WHEN_GettingTargetFrameworks_THEN_ShouldPreserveInputOrder()
     {
         using var workspace = new AdhocWorkspace();
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -181,6 +181,15 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             filePath: filePath);
 
         return workspace.AddProject(projectInfo);
+    }
+
+    private static ProjectStructureService CreateTarget()
+    {
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+
+        return new ProjectStructureService(pathComparison, pathNormalizer);
     }
 
     private static string CreateDirectoryPath()

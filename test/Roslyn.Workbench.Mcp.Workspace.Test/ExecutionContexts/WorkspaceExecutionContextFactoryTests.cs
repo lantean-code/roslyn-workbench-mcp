@@ -16,6 +16,8 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IMutationStagingService> _stagingService;
+    private readonly Mock<IWorkspacePathServiceFactory> _pathServiceFactory;
+    private readonly Mock<IWorkspacePathService> _workspacePathService;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<ILoadedWorkspace> _loadedWorkspace;
@@ -31,12 +33,16 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _stagingService = new Mock<IMutationStagingService>();
+        _pathServiceFactory = new Mock<IWorkspacePathServiceFactory>();
+        _workspacePathService = new Mock<IWorkspacePathService>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
         _loadedWorkspace = new Mock<ILoadedWorkspace>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
             .Returns(_resolver.Object);
+        _pathServiceFactory.Setup(item => item.Create(It.IsAny<WorkspaceIdentity>()))
+            .Returns(_workspacePathService.Object);
 
         _target = new WorkspaceExecutionContextFactory(
             Options.Create(new WorkspaceOptions { DefaultMaxResults = 25 }),
@@ -45,6 +51,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             _changeDetector.Object,
             _stateTransitions.Object,
             _stagingService.Object,
+            _pathServiceFactory.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object);
     }
@@ -371,6 +378,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Context.SnapshotIdentity.Should().Be(session.CurrentSnapshotIdentity);
         result.Context.TransactionRevision.Should().Be(1);
         result.Context.DefaultMaxResults.Should().Be(25);
+        result.Context.WorkspacePathService.Should().BeSameAs(_workspacePathService.Object);
         result.Context.WorkspaceResolver.Should().BeSameAs(_resolver.Object);
     }
 

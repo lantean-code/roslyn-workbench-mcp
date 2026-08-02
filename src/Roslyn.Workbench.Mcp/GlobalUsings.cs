@@ -57,6 +57,7 @@ global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
 global using Roslyn.Workbench.Mcp.Workspace.Recovery;
 global using Roslyn.Workbench.Mcp.Workspace.References;

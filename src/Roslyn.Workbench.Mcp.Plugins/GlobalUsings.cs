@@ -14,6 +14,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.Workspace.Caching;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;

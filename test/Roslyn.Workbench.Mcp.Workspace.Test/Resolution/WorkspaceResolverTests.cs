@@ -5,35 +5,48 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 public sealed class WorkspaceResolverTests
 {
     [Fact]
-    public void GIVEN_WorkspaceRelativeAndAbsolutePaths_WHEN_Normalizing_THEN_ShouldReturnWorkspaceRelativeSlashPaths()
+    public void GIVEN_MalformedProjectPath_WHEN_Resolving_THEN_ShouldReturnInvalid()
     {
-        using var workspace = new AdhocWorkspace();
-        var root = Path.Combine(Path.GetTempPath(), "WorkspaceRoot");
-        var target = CreateTarget(workspace.CurrentSolution, root);
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
 
-        var relativeResult = target.NormalizeDocumentPath(Path.Combine("Folder", "Document.cs"));
-        var absoluteResult = target.NormalizeProjectPath(Path.Combine(root, "Project", "Project.csproj"));
+        var result = target.ResolveProject(new ProjectSelector { Path = "\0Project.csproj" });
 
-        relativeResult.Should().Be("Folder/Document.cs");
-        absoluteResult.Should().Be("Project/Project.csproj");
+        result.Status.Should().Be(SelectorResolveStatus.Invalid);
+        result.Value.Should().BeNull();
     }
 
     [Fact]
-    public void GIVEN_EmptyPathAndNoWorkspaceIdentity_WHEN_Normalizing_THEN_ShouldReturnEmptyAndAbsolutePaths()
+    public void GIVEN_MalformedDocumentPath_WHEN_Resolving_THEN_ShouldReturnInvalid()
     {
-        using var workspace = new AdhocWorkspace();
-        var target = new WorkspaceResolver(
-            workspace.CurrentSolution,
-            workspaceIdentity: null,
-            transactionRevision: null,
-            CreatePathComparison().Object);
-        var relativePath = Path.Combine("Folder", "Document.cs");
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
 
-        var emptyResult = target.NormalizeDocumentPath("   ");
-        var pathResult = target.NormalizeDocumentPath(relativePath);
+        var result = target.ResolveDocument(new DocumentSelector { Path = "\0Document.cs" });
 
-        emptyResult.Should().BeEmpty();
-        pathResult.Should().Be(Path.GetFullPath(relativePath).Replace(Path.DirectorySeparatorChar, '/'));
+        result.Status.Should().Be(SelectorResolveStatus.Invalid);
+        result.Value.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_MalformedNestedDocumentPath_WHEN_ResolvingLocation_THEN_ShouldReturnInvalid()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new LocationSelector
+        {
+            Span = new TextSpanSelector
+            {
+                Document = new DocumentSelector { Path = "\0Document.cs" },
+                Start = 0,
+                Length = 1,
+            },
+        };
+
+        var result = await target.ResolveLocationAsync(selector, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Invalid);
+        result.Value.Should().BeNull();
     }
 
     [Fact]
@@ -45,6 +58,8 @@ public sealed class WorkspaceResolverTests
         var documentPath = Path.Combine(workspaceRoot, "src", "Project", "Document.cs");
         var document = AddDocument(workspace, project, "Document.cs", "class C { }", documentPath);
         var pathComparison = CreatePathComparison();
+        var pathNormalizer = CreatePathNormalizer();
+        var workspacePathService = new WorkspacePathService(workspaceRoot, pathNormalizer.Object);
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
             new WorkspaceIdentity
@@ -55,11 +70,13 @@ public sealed class WorkspaceResolverTests
                 WorkspaceRoot = workspaceRoot,
             },
             transactionRevision: null,
-            pathComparison.Object);
+            pathComparison.Object,
+            workspacePathService);
 
-        var normalizedPath = target.NormalizeDocumentPath(documentPath);
+        var normalized = workspacePathService.TryNormalizePath(documentPath, out var normalizedPath);
         var result = target.ResolveDocument(new DocumentSelector { Path = normalizedPath });
 
+        normalized.Should().BeTrue();
         normalizedPath.Should().Be("src/Project/Document.cs");
         result.IsResolved.Should().BeTrue();
         result.Value.Should().BeSameAs(document);
@@ -80,7 +97,7 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_DocumentWithoutFilePath_WHEN_CreatingReference_THEN_ShouldUseEmptyPath()
+    public void GIVEN_DocumentWithoutFilePath_WHEN_CreatingReference_THEN_ShouldReturnNull()
     {
         using var workspace = new AdhocWorkspace();
         var project = workspace.AddProject("Project", LanguageNames.CSharp);
@@ -89,7 +106,7 @@ public sealed class WorkspaceResolverTests
 
         var result = target.CreateDocumentReference(document);
 
-        result!.Path.Should().BeEmpty();
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -118,11 +135,14 @@ public sealed class WorkspaceResolverTests
     {
         using var workspace = new AdhocWorkspace();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var pathComparison = CreatePathComparison();
+        var pathNormalizer = CreatePathNormalizer();
         var targetWithoutIdentity = new WorkspaceResolver(
             workspace.CurrentSolution,
             workspaceIdentity: null,
             transactionRevision: null,
-            CreatePathComparison().Object);
+            pathComparison.Object,
+            new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
         var nonSourceResult = target.CreateResolvedLocation(Location.None);
         var missingIdentityResult = targetWithoutIdentity.CreateResolvedLocation(Location.None);
@@ -160,11 +180,14 @@ public sealed class WorkspaceResolverTests
     public void GIVEN_MissingWorkspaceIdentity_WHEN_ValidatingSnapshot_THEN_ShouldReturnWorkspaceEpochMismatch()
     {
         using var workspace = new AdhocWorkspace();
+        var pathComparison = CreatePathComparison();
+        var pathNormalizer = CreatePathNormalizer();
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
             workspaceIdentity: null,
             transactionRevision: null,
-            CreatePathComparison().Object);
+            pathComparison.Object,
+            new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
         var result = target.ValidateSnapshot(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
 
@@ -1241,6 +1264,9 @@ public sealed class WorkspaceResolverTests
         int? transactionRevision = null,
         StringComparison pathComparison = StringComparison.Ordinal)
     {
+        var comparison = CreatePathComparison(pathComparison);
+        var pathNormalizer = CreatePathNormalizer();
+
         return new WorkspaceResolver(
             solution,
             new WorkspaceIdentity
@@ -1251,7 +1277,40 @@ public sealed class WorkspaceResolverTests
                 WorkspaceRoot = workspaceRoot,
             },
             transactionRevision,
-            CreatePathComparison(pathComparison).Object);
+            comparison.Object,
+            new WorkspacePathService(workspaceRoot, pathNormalizer.Object));
+    }
+
+    private static Mock<IWorkspacePathNormalizer> CreatePathNormalizer()
+    {
+        var pathNormalizer = new Mock<IWorkspacePathNormalizer>();
+        pathNormalizer
+            .Setup(item => item.TryGetWorkspaceRelativePath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string workspaceRoot, string path, out string relativePath) =>
+            {
+                try
+                {
+                    var fullPath = string.IsNullOrWhiteSpace(workspaceRoot)
+                        ? Path.GetFullPath(path)
+                        : Path.GetFullPath(path, workspaceRoot);
+
+                    relativePath = string.IsNullOrWhiteSpace(workspaceRoot)
+                        ? fullPath.Replace('\\', '/')
+                        : Path.GetRelativePath(workspaceRoot, fullPath).Replace('\\', '/');
+
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    relativePath = string.Empty;
+                    return false;
+                }
+            });
+
+        return pathNormalizer;
     }
 
     private static Mock<IWorkspacePathComparison> CreatePathComparison(

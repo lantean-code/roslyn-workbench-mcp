@@ -47,9 +47,10 @@ public sealed class GetProjectDetailsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
-            .Returns<string>(item => item);
+        string? projectPath = project.FilePath;
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(project.FilePath!, out projectPath))
+            .Returns(true);
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(Guid.Parse("11111111-1111-1111-1111-111111111111"), project, It.IsAny<CancellationToken>()))
@@ -169,9 +170,12 @@ public sealed class GetProjectDetailsToolTests
                 .AddMetadataReference(mainProject.Id, metadataReferenceWithoutPath)
                 .AddAnalyzerReference(mainProject.Id, analyzerReferenceOne.Object)
                 .AddAnalyzerReference(mainProject.Id, analyzerReferenceTwo.Object)
-                .AddAnalyzerReference(mainProject.Id, analyzerReferenceThree.Object));
+                .AddAnalyzerReference(mainProject.Id, analyzerReferenceThree.Object)
+                .AddProjectReference(mainProject.Id, new ProjectReference(ProjectId.CreateNewId())));
 
         mainProject = solution.Workspace.CurrentSolution.Projects.Single(item => item.Name == "Main");
+        var anotherReferencedProject = solution.Workspace.CurrentSolution.Projects.Single(item => item.Name == "AnotherReferenced");
+        var referencedProject = solution.Workspace.CurrentSolution.Projects.Single(item => item.Name == "Referenced");
 
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
@@ -189,13 +193,28 @@ public sealed class GetProjectDetailsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(mainProject));
 
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
-            .Returns<string>(item => Path.GetFileNameWithoutExtension(item));
+        string? mainProjectPath = "Main";
+        string? anotherReferencedProjectPath = "AnotherReferenced";
+        string? referencedProjectPath = "Referenced";
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(mainProject.FilePath!, out mainProjectPath))
+            .Returns(true);
 
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
-            .Returns<string>(item => Path.GetFileName(item));
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(anotherReferencedProject.FilePath!, out anotherReferencedProjectPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(referencedProject.FilePath!, out referencedProjectPath))
+            .Returns(true);
+
+        foreach (var document in mainProject.Documents)
+        {
+            string? documentPath = Path.GetFileName(document.FilePath);
+            queryContextMocks.WorkspacePathService
+                .Setup(item => item.TryNormalizePath(document.FilePath!, out documentPath))
+                .Returns(true);
+        }
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
@@ -237,7 +256,7 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Analyzers.Items[0].DisplayName.Should().Be("AAnalyzer");
         result.Data.Analyzers.HasMore.Should().BeTrue();
         result.Data.Analyzers.TotalCount.Should().Be(3);
-        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateDocumentReference(It.IsAny<Document>()), Times.Exactly(2));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateDocumentReference(It.IsAny<Document>()), Times.Once);
     }
 
     [Fact]
@@ -279,13 +298,15 @@ public sealed class GetProjectDetailsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
-            .Returns<string>(item => item);
+        string? projectPath = project.FilePath;
+        string? documentPath = project.Documents.Single().FilePath;
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(project.FilePath!, out projectPath))
+            .Returns(true);
 
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
-            .Returns<string>(item => item);
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(project.Documents.Single().FilePath!, out documentPath))
+            .Returns(true);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
@@ -307,6 +328,72 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Documents.HasMore.Should().BeFalse();
         result.Data.MetadataReferences.Items.Should().BeEmpty();
         result.Data.MetadataReferences.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_ReferencedProjectPathCannotBeNormalized_WHEN_CallingExecuteAsync_THEN_ShouldOmitReference()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Referenced",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Referenced.cs",
+                        Source = "public class ReferencedType { }",
+                    },
+                ],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Main",
+                ProjectReferences = ["Referenced"],
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Main.cs",
+                        Source = "public class MainType { }",
+                    },
+                ],
+            },
+        ]);
+
+        var target = new GetProjectDetailsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var mainProject = solution.Solution.Projects.Single(item => item.Name == "Main");
+        var referencedProject = solution.Solution.Projects.Single(item => item.Name == "Referenced");
+        string? mainProjectPath = "Main";
+        string? referencedProjectPath = null;
+        queryContextMocks.QueryContext.SetupGet(item => item.CurrentSolution).Returns(solution.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProject<ProjectDetailsData>(
+                It.IsAny<ProjectSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(mainProject));
+
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(It.IsAny<Guid>(), mainProject, It.IsAny<CancellationToken>()))
+            .Returns(ProjectTargetFrameworksResult.Succeeded());
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(mainProject.FilePath!, out mainProjectPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(referencedProject.FilePath!, out referencedProjectPath))
+            .Returns(false);
+
+        var result = await target.ExecuteAsync(
+            new GetProjectDetailsRequest { Project = new ProjectSelector() },
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.ProjectReferences.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -353,5 +440,52 @@ public sealed class GetProjectDetailsToolTests
         result.Error!.Code.Should().Be("ProjectStructureUnavailable");
         result.Error.Message.Should().Be("Failure");
         result.RequiredAction.Should().Be(RequiredAction.Retry);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedProjectPathCannotBeNormalized_WHEN_CallingExecuteAsync_THEN_ShouldReturnReloadRejection()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Project.cs",
+                        Source = "public class ProjectType { }",
+                    },
+                ],
+            },
+        ]);
+
+        var target = new GetProjectDetailsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var project = solution.Solution.Projects.Single();
+        string? normalizedPath = null;
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProject<ProjectDetailsData>(
+                It.IsAny<ProjectSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
+
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(It.IsAny<Guid>(), project, It.IsAny<CancellationToken>()))
+            .Returns(ProjectTargetFrameworksResult.Succeeded());
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(project.FilePath!, out normalizedPath))
+            .Returns(false);
+
+        var result = await target.ExecuteAsync(
+            new GetProjectDetailsRequest { Project = new ProjectSelector() },
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ProjectStructureUnavailable");
+        result.RequiredAction.Should().Be(RequiredAction.ReloadWorkspace);
     }
 }

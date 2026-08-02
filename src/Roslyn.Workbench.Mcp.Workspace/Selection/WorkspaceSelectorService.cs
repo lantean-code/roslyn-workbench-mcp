@@ -5,11 +5,16 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
     private const string _workspaceSelectorRequiredCode = "WorkspaceSelectorRequired";
     private const string _workspaceSelectorNotFoundCode = "WorkspaceSelectorNotFound";
     private const string _workspaceSelectorMismatchCode = "WorkspaceSelectorMismatch";
+    private const string _workspaceSelectorInvalidCode = "WorkspaceSelectorInvalid";
     private readonly IWorkspacePathComparison _workspacePathComparison;
+    private readonly IWorkspacePathNormalizer _pathNormalizer;
 
-    public WorkspaceSelectorService(IWorkspacePathComparison workspacePathComparison)
+    public WorkspaceSelectorService(
+        IWorkspacePathComparison workspacePathComparison,
+        IWorkspacePathNormalizer pathNormalizer)
     {
         _workspacePathComparison = workspacePathComparison;
+        _pathNormalizer = pathNormalizer;
     }
 
     public WorkspaceSelectionResult Select(WorkspaceHostSnapshot hostSnapshot, WorkspaceSelector? selector)
@@ -92,7 +97,12 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         var selectorPath = selector.Path;
         if (!string.IsNullOrWhiteSpace(selectorPath))
         {
-            var normalizedPath = NormalizeSelectorPath(selectorPath);
+            if (!Path.IsPathFullyQualified(selectorPath)
+                || !_pathNormalizer.TryGetFullPath(selectorPath, out var normalizedPath))
+            {
+                return CreateInvalidPathResult();
+            }
+
             var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
                 PathsEqual(pair.Value.Workspace.LoadedPath, normalizedPath));
 
@@ -143,9 +153,14 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         return WorkspaceSelectionResult.Failure(error);
     }
 
-    private static string NormalizeSelectorPath(string path)
+    private static WorkspaceSelectionResult CreateInvalidPathResult()
     {
-        return Path.IsPathRooted(path) ? Path.GetFullPath(path) : path;
+        var error = CreateError(
+            _workspaceSelectorInvalidCode,
+            "The workspace selector path must be a valid absolute path.",
+            RequiredAction.ResolveTargetAgain);
+
+        return WorkspaceSelectionResult.Failure(error);
     }
 
     private bool PathsEqual(string first, string second)

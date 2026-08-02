@@ -11,6 +11,7 @@ public static class QueryContextMockHelper
         using var workspace = new AdhocWorkspace();
         var queryContext = new Mock<IQueryContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var requestResolver = new Mock<IToolRequestResolver>();
         var projectTargetFrameworkResolver = new Mock<IProjectTargetFrameworkResolver>();
@@ -64,6 +65,10 @@ public static class QueryContextMockHelper
             .Returns(workspaceResolver.Object);
 
         queryContext
+            .SetupGet(item => item.WorkspacePathService)
+            .Returns(workspacePathService.Object);
+
+        queryContext
             .SetupGet(item => item.ToolExecutionServices)
             .Returns(toolExecutionServices.Object);
 
@@ -85,6 +90,7 @@ public static class QueryContextMockHelper
         return new QueryContextMockGraph(
             queryContext,
             workspaceResolver,
+            workspacePathService,
             toolExecutionServices,
             requestResolver,
             projectTargetFrameworkResolver,

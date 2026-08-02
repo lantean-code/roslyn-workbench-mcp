@@ -21,6 +21,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Tools;
 global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;

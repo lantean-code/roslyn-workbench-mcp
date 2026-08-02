@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Results;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Projects;
 
 /// <summary>
@@ -27,12 +29,12 @@ public interface IProjectStructureService
     IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(IReadOnlyList<Project> projects);
 
     /// <summary>
-    /// Loads solution-folder hierarchy and project membership information for the supplied solution path.
+    /// Loads solution-folder hierarchy and project membership information for the supplied workspace.
     /// </summary>
-    /// <param name="loadedPath">The loaded solution path.</param>
+    /// <param name="workspace">The loaded workspace identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The solution hierarchy-loading result.</returns>
     Task<SolutionHierarchyResult> GetSolutionHierarchyAsync(
-        string? loadedPath,
+        WorkspaceIdentity workspace,
         CancellationToken cancellationToken);
 }

@@ -2,6 +2,17 @@ namespace Roslyn.Workbench.Mcp.Workspace.Projects;
 
 internal sealed class ProjectStructureService : IProjectStructureService
 {
+    private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IWorkspacePathNormalizer _pathNormalizer;
+
+    public ProjectStructureService(
+        IWorkspacePathComparison pathComparison,
+        IWorkspacePathNormalizer pathNormalizer)
+    {
+        _pathComparison = pathComparison;
+        _pathNormalizer = pathNormalizer;
+    }
+
     public ProjectTargetFrameworksResult GetTargetFrameworks(Project project)
     {
         return GetTargetFrameworks(project.FilePath);
@@ -98,14 +109,22 @@ internal sealed class ProjectStructureService : IProjectStructureService
     }
 
     public async Task<SolutionHierarchyResult> GetSolutionHierarchyAsync(
-        string? loadedPath,
+        WorkspaceIdentity workspace,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(loadedPath))
+        var requestedLoadedPath = workspace.LoadedPath;
+        if (string.IsNullOrWhiteSpace(requestedLoadedPath))
         {
             return SolutionHierarchyResult.Succeeded();
+        }
+
+        if (!_pathNormalizer.TryGetFullPath(requestedLoadedPath, out var loadedPath)
+            || !_pathNormalizer.TryGetFullPath(workspace.WorkspaceRoot, out var workspaceRoot))
+        {
+            return SolutionHierarchyResult.Failed(
+                "Could not load solution hierarchy because the workspace paths are invalid.");
         }
 
         if (!File.Exists(loadedPath))
@@ -128,10 +147,33 @@ internal sealed class ProjectStructureService : IProjectStructureService
                 .OrderBy(static folder => folder.Path, StringComparer.Ordinal)
                 .ToArray();
 
-            var projectFolderPaths = model.SolutionProjects.ToDictionary(
-                static project => NormalizeRelativeProjectPath(project.FilePath),
-                static project => project.Parent is not null ? NormalizeFolderPath(project.Parent.Path) : null,
-                StringComparer.Ordinal);
+            var solutionDirectory = Path.GetDirectoryName(loadedPath.AsSpan()).ToString();
+
+            var projectFolderPaths = new Dictionary<string, string?>(
+                _pathComparison.GetComparer(workspaceRoot));
+
+            foreach (var project in model.SolutionProjects)
+            {
+                if (!_pathNormalizer.TryGetFullPath(project.FilePath, solutionDirectory, out var fullProjectPath)
+                    || !_pathNormalizer.TryGetWorkspaceRelativePath(
+                        workspaceRoot,
+                        fullProjectPath,
+                        out var normalizedProjectPath))
+                {
+                    return SolutionHierarchyResult.Failed(
+                        $"Could not normalize project path '{project.FilePath}' from workspace file '{loadedPath}'.");
+                }
+
+                var folderPath = project.Parent is not null
+                    ? NormalizeFolderPath(project.Parent.Path)
+                    : null;
+
+                if (!projectFolderPaths.TryAdd(normalizedProjectPath, folderPath))
+                {
+                    return SolutionHierarchyResult.Failed(
+                        $"Workspace file '{loadedPath}' contains duplicate project path '{normalizedProjectPath}'.");
+                }
+            }
 
             return SolutionHierarchyResult.Succeeded(folders, projectFolderPaths);
         }
@@ -156,11 +198,6 @@ internal sealed class ProjectStructureService : IProjectStructureService
     private static string NormalizeFolderPath(string path)
     {
         return path.Replace('\\', '/').Trim('/').Trim();
-    }
-
-    private static string NormalizeRelativeProjectPath(string path)
-    {
-        return path.Replace('\\', '/').Trim();
     }
 
     private static string GetFolderName(string folderPath)

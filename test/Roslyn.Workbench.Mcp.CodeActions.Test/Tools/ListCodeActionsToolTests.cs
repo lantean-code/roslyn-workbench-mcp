@@ -67,6 +67,7 @@ public sealed class ListCodeActionsToolTests
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound, "DocumentNotFound")]
     [InlineData(SelectorResolveStatus.Ambiguous, "DocumentAmbiguous")]
+    [InlineData(SelectorResolveStatus.Invalid, "DocumentSelectorInvalid")]
     public async Task GIVEN_DocumentDoesNotResolve_WHEN_Executing_THEN_ShouldReturnResolutionRejection(
         SelectorResolveStatus status,
         string expectedCode)

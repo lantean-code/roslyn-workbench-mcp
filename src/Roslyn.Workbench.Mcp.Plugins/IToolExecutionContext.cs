@@ -26,6 +26,11 @@ public interface IToolExecutionContext
     int DefaultMaxResults { get; }
 
     /// <summary>
+    /// Gets the workspace-bound path services for this invocation.
+    /// </summary>
+    IWorkspacePathService WorkspacePathService { get; }
+
+    /// <summary>
     /// Gets the host-owned workspace resolution services for this invocation.
     /// </summary>
     IWorkspaceResolver WorkspaceResolver { get; }

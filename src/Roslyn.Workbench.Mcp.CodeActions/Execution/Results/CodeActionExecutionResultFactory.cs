@@ -31,6 +31,9 @@ internal static class CodeActionExecutionResultFactory
             SelectorResolveStatus.Ambiguous => (
                 $"{targetCode}Ambiguous",
                 $"The {targetDisplayName} selector matched multiple results."),
+            SelectorResolveStatus.Invalid => (
+                $"{targetCode}SelectorInvalid",
+                $"The {targetDisplayName} selector contains an invalid path."),
             _ => (
                 $"{targetCode}NotFound",
                 $"The {targetDisplayName} selector did not match any result."),

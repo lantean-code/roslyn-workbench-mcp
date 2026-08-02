@@ -13,6 +13,7 @@ public static class MutationContextMockHelper
     {
         var mutationContext = new Mock<IMutationContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var requestResolver = new Mock<IToolRequestResolver>();
 
@@ -25,12 +26,17 @@ public static class MutationContextMockHelper
             .Returns(workspaceResolver.Object);
 
         mutationContext
+            .SetupGet(item => item.WorkspacePathService)
+            .Returns(workspacePathService.Object);
+
+        mutationContext
             .SetupGet(item => item.ToolExecutionServices)
             .Returns(toolExecutionServices.Object);
 
         return new MutationContextMockGraph(
             mutationContext,
             workspaceResolver,
+            workspacePathService,
             toolExecutionServices,
             requestResolver);
     }

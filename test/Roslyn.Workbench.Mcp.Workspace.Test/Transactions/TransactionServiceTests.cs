@@ -542,6 +542,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound, WorkspaceErrorCodes.DocumentNotFound)]
     [InlineData(SelectorResolveStatus.Ambiguous, WorkspaceErrorCodes.DocumentAmbiguous)]
+    [InlineData(SelectorResolveStatus.Invalid, WorkspaceErrorCodes.InvalidRequest)]
     public async Task GIVEN_UnresolvedDocument_WHEN_PreviewingWithDiff_THEN_ShouldRejectRequest(
         SelectorResolveStatus status,
         string expectedErrorCode)
@@ -553,16 +554,7 @@ public sealed class TransactionServiceTests : IDisposable
         var selector = new DocumentSelector { DocumentId = "DocumentId" };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupPreview(session, transaction, gate, operationLease);
-        SelectorResolveResult<Document> resolution;
-        if (status == SelectorResolveStatus.Ambiguous)
-        {
-            resolution = SelectorResolveResult.Ambiguous<Document>();
-        }
-        else
-        {
-            resolution = SelectorResolveResult.NotFound<Document>();
-        }
-
+        var resolution = SelectorTestFactory.CreateUnresolvedResult<Document>(status);
         _resolver.Setup(item => item.ResolveDocument(selector)).Returns(resolution);
         SetupRejectedResult(expected, expectedErrorCode);
 

@@ -19,6 +19,11 @@ public sealed record QueryContextMockGraph
     public Mock<IWorkspaceResolver> WorkspaceResolver { get; }
 
     /// <summary>
+    /// Gets the workspace path service mock.
+    /// </summary>
+    public Mock<IWorkspacePathService> WorkspacePathService { get; }
+
+    /// <summary>
     /// Gets the tool execution services mock.
     /// </summary>
     public Mock<IToolExecutionServices> ToolExecutionServices { get; }
@@ -58,6 +63,7 @@ public sealed record QueryContextMockGraph
     /// </summary>
     /// <param name="queryContext">The query context mock.</param>
     /// <param name="workspaceResolver">The workspace resolver mock.</param>
+    /// <param name="workspacePathService">The workspace path service mock.</param>
     /// <param name="toolExecutionServices">The tool execution services mock.</param>
     /// <param name="requestResolver">The tool request resolver mock.</param>
     /// <param name="projectTargetFrameworkResolver">The project target-framework resolver mock.</param>
@@ -68,6 +74,7 @@ public sealed record QueryContextMockGraph
     public QueryContextMockGraph(
         Mock<IQueryContext> queryContext,
         Mock<IWorkspaceResolver> workspaceResolver,
+        Mock<IWorkspacePathService> workspacePathService,
         Mock<IToolExecutionServices> toolExecutionServices,
         Mock<IToolRequestResolver> requestResolver,
         Mock<IProjectTargetFrameworkResolver> projectTargetFrameworkResolver,
@@ -78,6 +85,7 @@ public sealed record QueryContextMockGraph
     {
         QueryContext = queryContext;
         WorkspaceResolver = workspaceResolver;
+        WorkspacePathService = workspacePathService;
         ToolExecutionServices = toolExecutionServices;
         RequestResolver = requestResolver;
         ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;

@@ -16,6 +16,7 @@ global using Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Recovery;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;

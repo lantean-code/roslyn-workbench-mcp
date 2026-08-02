@@ -6,15 +6,34 @@ public sealed class WorkspaceLoaderTests
 {
     private readonly Mock<IWorkspaceProjectCompatibilityInspector> _compatibilityInspector;
     private readonly Mock<IMsBuildWorkspaceFactory> _workspaceFactory;
+    private readonly Mock<IWorkspacePathNormalizer> _pathNormalizer;
     private readonly WorkspaceLoader _target;
 
     public WorkspaceLoaderTests()
     {
         _compatibilityInspector = new Mock<IWorkspaceProjectCompatibilityInspector>();
         _workspaceFactory = new Mock<IMsBuildWorkspaceFactory>();
+        _pathNormalizer = new Mock<IWorkspacePathNormalizer>();
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string path, out string fullPath) =>
+            {
+                try
+                {
+                    fullPath = Path.GetFullPath(path);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    fullPath = string.Empty;
+                    return false;
+                }
+            });
+
         _target = new WorkspaceLoader(
             _workspaceFactory.Object,
-            _compatibilityInspector.Object);
+            _compatibilityInspector.Object,
+            _pathNormalizer.Object);
     }
 
     [Theory]

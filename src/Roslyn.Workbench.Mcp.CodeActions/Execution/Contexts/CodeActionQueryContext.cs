@@ -9,6 +9,7 @@ internal sealed class CodeActionQueryContext : ICodeActionQueryContext
         SnapshotIdentity = workspaceContext.SnapshotIdentity;
         TransactionRevision = workspaceContext.TransactionRevision;
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
+        WorkspacePathService = workspaceContext.WorkspacePathService;
         WorkspaceResolver = workspaceContext.WorkspaceResolver;
     }
 
@@ -21,6 +22,8 @@ internal sealed class CodeActionQueryContext : ICodeActionQueryContext
     public int? TransactionRevision { get; }
 
     public int DefaultMaxResults { get; }
+
+    public IWorkspacePathService WorkspacePathService { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 }

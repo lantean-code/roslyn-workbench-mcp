@@ -6,36 +6,33 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
     private readonly IMsBuildWorkspaceFactory _workspaceFactory;
     private readonly IWorkspaceProjectCompatibilityInspector _compatibilityInspector;
+    private readonly IWorkspacePathNormalizer _pathNormalizer;
 
     public WorkspaceLoader(
         IMsBuildWorkspaceFactory workspaceFactory,
-        IWorkspaceProjectCompatibilityInspector compatibilityInspector)
+        IWorkspaceProjectCompatibilityInspector compatibilityInspector,
+        IWorkspacePathNormalizer pathNormalizer)
     {
         _workspaceFactory = workspaceFactory;
         _compatibilityInspector = compatibilityInspector;
+        _pathNormalizer = pathNormalizer;
     }
 
     public string? NormalizeOpenPath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path))
+        if (string.IsNullOrWhiteSpace(path)
+            || !Path.IsPathFullyQualified(path)
+            || !_pathNormalizer.TryGetFullPath(path, out var normalizedPath))
         {
             return null;
         }
 
-        try
-        {
-            var normalizedPath = Path.GetFullPath(path);
-            var extension = Path.GetExtension(normalizedPath);
-            return string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".csproj", StringComparison.OrdinalIgnoreCase)
-                ? normalizedPath
-                : null;
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
+        var extension = Path.GetExtension(normalizedPath);
+        return string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".csproj", StringComparison.OrdinalIgnoreCase)
+            ? normalizedPath
+            : null;
     }
 
     public string? NormalizeAlias(string? alias)

@@ -38,6 +38,7 @@ public sealed class PluginExecutionContextTests
         target.WorkspaceIdentity.Should().BeSameAs(workspaceContext.WorkspaceIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
+        target.WorkspacePathService.Should().BeSameAs(workspaceContext.WorkspacePathService);
         target.WorkspaceResolver.Should().BeSameAs(workspaceContext.WorkspaceResolver);
         target.ToolExecutionServices.Should().BeSameAs(services.Object);
         target.QueryResultCache.Should().BeSameAs(queryResultCache.Object);
@@ -153,6 +154,9 @@ public sealed class PluginExecutionContextTests
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(Microsoft.CodeAnalysis.Solution solution)
     {
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+
         return new WorkspaceExecutionContext(
             solution,
             new WorkspaceIdentity
@@ -167,6 +171,7 @@ public sealed class PluginExecutionContextTests
                 new WorkspaceTransactionId(1)),
             transactionRevision: 2,
             defaultMaxResults: 100,
-            new Mock<IWorkspaceResolver>().Object);
+            workspacePathService.Object,
+            workspaceResolver.Object);
     }
 }

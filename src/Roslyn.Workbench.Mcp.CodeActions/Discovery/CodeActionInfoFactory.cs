@@ -35,7 +35,12 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         }
 
         var documentPath = document.FilePath ?? document.Name;
-        var normalizedDocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(documentPath);
+        if (!context.WorkspacePathService.TryNormalizePath(documentPath, out var normalizedDocumentPath))
+        {
+            item = null;
+            return false;
+        }
+
         var recipe = new CodeActionReplayRecipe
         {
             Kind = action.Kind,

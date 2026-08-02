@@ -17,6 +17,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Core.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Projections;
 global using Roslyn.Workbench.Mcp.Plugins.Resolution;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
 global using Roslyn.Workbench.Mcp.Workspace.References;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;

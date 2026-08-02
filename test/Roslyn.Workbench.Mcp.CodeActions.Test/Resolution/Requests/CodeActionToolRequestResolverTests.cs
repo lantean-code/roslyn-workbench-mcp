@@ -62,6 +62,7 @@ public sealed class CodeActionToolRequestResolverTests
     [Theory]
     [InlineData(1, "SymbolNotFound")]
     [InlineData(2, "SymbolAmbiguous")]
+    [InlineData(3, "SymbolSelectorInvalid")]
     public async Task GIVEN_SymbolDoesNotResolve_WHEN_Resolving_THEN_ShouldMapResolutionStatus(
         int statusValue,
         string expectedCode)

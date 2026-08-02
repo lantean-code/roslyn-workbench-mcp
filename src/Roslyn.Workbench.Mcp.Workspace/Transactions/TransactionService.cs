@@ -178,13 +178,18 @@ internal sealed class TransactionService : ITransactionService
             var resolution = resolver.ResolveDocument(document);
             if (!resolution.IsResolved)
             {
-                var errorCode = resolution.Status == SelectorResolveStatus.Ambiguous
-                    ? WorkspaceErrorCodes.DocumentAmbiguous
-                    : WorkspaceErrorCodes.DocumentNotFound;
-
-                var message = resolution.Status == SelectorResolveStatus.Ambiguous
-                    ? "The document selector matched multiple results."
-                    : "The document selector did not match any result.";
+                var (errorCode, message) = resolution.Status switch
+                {
+                    SelectorResolveStatus.Ambiguous => (
+                        WorkspaceErrorCodes.DocumentAmbiguous,
+                        "The document selector matched multiple results."),
+                    SelectorResolveStatus.Invalid => (
+                        WorkspaceErrorCodes.InvalidRequest,
+                        "The document selector contains an invalid path."),
+                    _ => (
+                        WorkspaceErrorCodes.DocumentNotFound,
+                        "The document selector did not match any result."),
+                };
 
                 return _resultFactory.Rejected<TransactionPreviewOutcome>(
                     errorCode,

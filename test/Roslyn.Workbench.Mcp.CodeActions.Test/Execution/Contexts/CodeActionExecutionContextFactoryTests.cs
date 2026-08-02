@@ -159,6 +159,8 @@ public sealed class CodeActionExecutionContextFactoryTests
         Solution solution,
         IWorkspaceResolver resolver)
     {
+        var workspacePathService = new Mock<IWorkspacePathService>();
+
         return new WorkspaceExecutionContext(
             solution,
             new WorkspaceIdentity
@@ -173,6 +175,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                 transactionId: null),
             transactionRevision: null,
             defaultMaxResults: 100,
+            workspacePathService.Object,
             resolver);
     }
 }

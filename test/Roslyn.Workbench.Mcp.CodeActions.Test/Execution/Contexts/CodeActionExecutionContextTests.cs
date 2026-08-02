@@ -7,7 +7,8 @@ public sealed class CodeActionExecutionContextTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var resolver = new Mock<IWorkspaceResolver>();
-        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, resolver.Object);
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, workspacePathService.Object, resolver.Object);
 
         var target = new CodeActionQueryContext(workspaceContext);
 
@@ -16,6 +17,7 @@ public sealed class CodeActionExecutionContextTests
         target.SnapshotIdentity.Should().Be(workspaceContext.SnapshotIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
+        target.WorkspacePathService.Should().BeSameAs(workspacePathService.Object);
         target.WorkspaceResolver.Should().BeSameAs(resolver.Object);
         ((object)target).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
     }
@@ -25,7 +27,8 @@ public sealed class CodeActionExecutionContextTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var resolver = new Mock<IWorkspaceResolver>();
-        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, resolver.Object);
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, workspacePathService.Object, resolver.Object);
 
         var target = new CodeActionMutationContext(workspaceContext);
 
@@ -34,12 +37,14 @@ public sealed class CodeActionExecutionContextTests
         target.SnapshotIdentity.Should().Be(workspaceContext.SnapshotIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
+        target.WorkspacePathService.Should().BeSameAs(workspacePathService.Object);
         target.WorkspaceResolver.Should().BeSameAs(resolver.Object);
         ((object)target).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
     }
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(
         Solution solution,
+        IWorkspacePathService workspacePathService,
         IWorkspaceResolver resolver)
     {
         return new WorkspaceExecutionContext(
@@ -56,6 +61,7 @@ public sealed class CodeActionExecutionContextTests
                 new WorkspaceTransactionId(1)),
             transactionRevision: 2,
             defaultMaxResults: 100,
+            workspacePathService,
             resolver);
     }
 }

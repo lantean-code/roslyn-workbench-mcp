@@ -77,4 +77,15 @@ public static class SelectorResolveResult
     {
         return new SelectorResolveResult<T>(SelectorResolveStatus.Ambiguous, value: null);
     }
+
+    /// <summary>
+    /// Creates an invalid-selector outcome.
+    /// </summary>
+    /// <typeparam name="T">The resolved value type.</typeparam>
+    /// <returns>The resolution result.</returns>
+    public static SelectorResolveResult<T> Invalid<T>()
+        where T : class
+    {
+        return new SelectorResolveResult<T>(SelectorResolveStatus.Invalid, value: null);
+    }
 }

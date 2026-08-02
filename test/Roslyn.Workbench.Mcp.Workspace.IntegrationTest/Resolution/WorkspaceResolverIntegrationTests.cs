@@ -18,7 +18,10 @@ public sealed class WorkspaceResolverIntegrationTests
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
-        contextLease.Context.WorkspaceResolver.NormalizeProjectPath(resolution.Value!.FilePath!).Should().Be("Sample.csproj");
+        var normalized = contextLease.Context.WorkspacePathService.TryNormalizePath(resolution.Value!.FilePath!, out var normalizedPath);
+
+        normalized.Should().BeTrue();
+        normalizedPath.Should().Be("Sample.csproj");
         fixture.WorkspaceRoot.Should().Be(Path.GetDirectoryName(fixture.ProjectPath));
         Directory.Exists(fixture.StateRoot).Should().BeTrue();
         (await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken)).Should().Equal(originalDocumentBytes);

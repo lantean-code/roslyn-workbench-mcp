@@ -6,20 +6,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 public interface IWorkspaceResolver
 {
     /// <summary>
-    /// Normalizes a document path to its workspace-relative form.
-    /// </summary>
-    /// <param name="path">The path to normalize.</param>
-    /// <returns>The normalized workspace-relative path.</returns>
-    string NormalizeDocumentPath(string path);
-
-    /// <summary>
-    /// Normalizes a project path to its workspace-relative form.
-    /// </summary>
-    /// <param name="path">The path to normalize.</param>
-    /// <returns>The normalized workspace-relative path.</returns>
-    string NormalizeProjectPath(string path);
-
-    /// <summary>
     /// Resolves a document selector against the current solution.
     /// </summary>
     /// <param name="selector">The selector to resolve.</param>

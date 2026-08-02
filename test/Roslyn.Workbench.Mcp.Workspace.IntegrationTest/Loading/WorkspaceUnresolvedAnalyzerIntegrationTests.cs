@@ -38,9 +38,11 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
         workspaceFactory.Setup(item => item.Create()).Returns(MSBuildWorkspace.Create());
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
-        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment);
-        var loader = new WorkspaceLoader(workspaceFactory.Object, new WorkspaceProjectCompatibilityInspector());
+        var compatibilityInspector = new WorkspaceProjectCompatibilityInspector();
+        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer);
+        var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathNormalizer);
         var target = new WorkspaceLoadWorkflow(loader, rootResolver);
 
         var result = await target.LoadAsync(

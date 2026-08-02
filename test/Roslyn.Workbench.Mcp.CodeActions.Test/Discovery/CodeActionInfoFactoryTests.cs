@@ -18,7 +18,7 @@ public sealed class CodeActionInfoFactoryTests
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
-        var resolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         var diagnostic = new CodeActionDiagnosticIdentity
         {
             Id = "DiagnosticId",
@@ -37,10 +37,11 @@ public sealed class CodeActionInfoFactoryTests
         var expiresAt = _utcNow.AddMinutes(5);
         var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
         CodeActionReference? reference = new(_actionId, recipe, expiresAt);
+        var normalizedDocumentPath = "DocumentPath";
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        resolver
-            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
-            .Returns("DocumentPath");
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(true);
 
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
@@ -50,7 +51,7 @@ public sealed class CodeActionInfoFactoryTests
 
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
-        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(
                 It.Is<CodeActionReplayRecipe>(recipe =>
@@ -113,7 +114,7 @@ public sealed class CodeActionInfoFactoryTests
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
-        var resolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         var diagnostics = Enumerable.Range(1, 3)
             .Select(index => new CodeActionDiagnosticIdentity
             {
@@ -132,14 +133,15 @@ public sealed class CodeActionInfoFactoryTests
         var expiresAt = _utcNow.AddMinutes(5);
         var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
         CodeActionReference? reference = new(_actionId, recipe, expiresAt);
+        var normalizedDocumentPath = "DocumentPath";
 
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        resolver
-            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
-            .Returns("DocumentPath");
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(true);
 
         context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
-        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(
                 It.IsAny<CodeActionReplayRecipe>(),
@@ -181,16 +183,19 @@ public sealed class CodeActionInfoFactoryTests
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
-        var resolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         var action = CreateAction(workspace.CurrentSolution, DiscoveredActionKind.Refactoring);
         var expiresAt = _utcNow.AddMinutes(5);
         var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
         CodeActionReference? reference = new(_actionId, recipe, expiresAt);
+        var normalizedDocumentPath = "NormalizedDocumentName";
 
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        resolver.Setup(item => item.NormalizeDocumentPath("DocumentName.cs")).Returns("NormalizedDocumentName");
+        workspacePathService
+            .Setup(item => item.TryNormalizePath("DocumentName.cs", out normalizedDocumentPath))
+            .Returns(true);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
-        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(
                 It.Is<CodeActionReplayRecipe>(recipe => recipe.DocumentPath == "NormalizedDocumentName"),
@@ -212,7 +217,7 @@ public sealed class CodeActionInfoFactoryTests
         item.Kind.Should().Be(CodeActionKind.Refactoring);
         item.Diagnostics.Should().BeNull();
         item.FixAllScopes.Should().BeNull();
-        resolver.Verify(item => item.NormalizeDocumentPath("DocumentName.cs"), Times.Once);
+        workspacePathService.Verify(item => item.TryNormalizePath("DocumentName.cs", out normalizedDocumentPath), Times.Once);
     }
 
     [Fact]
@@ -222,15 +227,16 @@ public sealed class CodeActionInfoFactoryTests
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
-        var resolver = new Mock<IWorkspaceResolver>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
         CodeActionReference? rejectedReference = null;
+        var normalizedDocumentPath = "DocumentPath";
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        resolver
-            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
-            .Returns("DocumentPath");
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(true);
 
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
-        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(
                 It.IsAny<CodeActionReplayRecipe>(),
@@ -249,6 +255,37 @@ public sealed class CodeActionInfoFactoryTests
 
         created.Should().BeFalse();
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_DocumentPathCannotBeNormalized_WHEN_CreatingItem_THEN_ShouldNotStoreReference()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var referenceStore = new Mock<ICodeActionReferenceStore>();
+        var timeProvider = new Mock<TimeProvider>();
+        var context = new Mock<ICodeActionExecutionContext>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        string? normalizedDocumentPath = null;
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(false);
+
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
+
+        var created = target.TryCreate(
+            CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
+            context.Object,
+            roslyn.Document,
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            out var result);
+
+        created.Should().BeFalse();
+        result.Should().BeNull();
+        referenceStore.Verify(item => item.TryCreate(
+            It.IsAny<CodeActionReplayRecipe>(),
+            It.IsAny<DateTimeOffset>(),
+            out It.Ref<CodeActionReference?>.IsAny), Times.Never);
     }
 
     [Fact]

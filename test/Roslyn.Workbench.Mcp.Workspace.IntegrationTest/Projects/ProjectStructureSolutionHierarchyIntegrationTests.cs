@@ -1,3 +1,5 @@
+using Moq;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
 
 public sealed class ProjectStructureSolutionHierarchyIntegrationTests
@@ -5,9 +7,11 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_MissingSolutionPath_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
 
-        var result = await target.GetSolutionHierarchyAsync(null, TestContext.Current.CancellationToken);
+        var workspace = CreateWorkspaceIdentity(loadedPath: null);
+
+        var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeTrue();
         result.Folders.Should().BeEmpty();
@@ -17,7 +21,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_UnsupportedSolutionExtension_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -25,7 +29,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.txt");
             await File.WriteAllTextAsync(solutionPath, "content", TestContext.Current.CancellationToken);
 
-            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEmpty();
@@ -40,7 +46,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_InvalidSolutionContent_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -48,7 +54,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, "<Solution>", TestContext.Current.CancellationToken);
 
-            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeFalse();
             result.ErrorMessage.Should().Contain(solutionPath);
@@ -62,7 +70,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_SlnHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -70,7 +78,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.sln");
             await File.WriteAllTextAsync(solutionPath, CreateSlnContent().Replace("\n", Environment.NewLine, StringComparison.Ordinal), TestContext.Current.CancellationToken);
 
-            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEquivalentTo(
@@ -91,7 +101,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_SlnxHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -99,7 +109,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, CreateSlnxContent().Replace("\n", Environment.NewLine, StringComparison.Ordinal), TestContext.Current.CancellationToken);
 
-            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEquivalentTo(
@@ -118,15 +130,212 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_MalformedLoadedPath_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
+    {
+        var target = CreateTarget();
+        var workspace = CreateWorkspaceIdentity("\0Sample.slnx", Path.GetTempPath());
+
+        var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("workspace paths are invalid");
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_MalformedWorkspaceRoot_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
+    {
+        var target = CreateTarget();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath, "\0WorkspaceRoot");
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain("workspace paths are invalid");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Theory]
+    [InlineData(".sln")]
+    [InlineData(".slnx")]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_SolutionBelowWorkspaceRoot_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnWorkspaceRelativeProjectPaths(string extension)
+    {
+        var target = CreateTarget();
+        var workspaceRoot = CreateDirectoryPath();
+
+        try
+        {
+            var solutionDirectory = Path.Combine(workspaceRoot, "src", "Product");
+            Directory.CreateDirectory(solutionDirectory);
+            var solutionPath = Path.Combine(solutionDirectory, $"Sample{extension}");
+            var solutionContent = extension == ".sln"
+                ? CreateSlnContent()
+                : CreateSlnxContent();
+
+            await File.WriteAllTextAsync(
+                solutionPath,
+                solutionContent.Replace("\n", Environment.NewLine, StringComparison.Ordinal),
+                TestContext.Current.CancellationToken);
+
+            var workspace = CreateWorkspaceIdentity(solutionPath, workspaceRoot);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.ProjectFolderPaths.Should().Contain(
+                new KeyValuePair<string, string?>("src/Product/Lib/Lib.csproj", "src/core"));
+            result.ProjectFolderPaths.Should().Contain(
+                new KeyValuePair<string, string?>("src/Product/Root/Root.csproj", null));
+        }
+        finally
+        {
+            DeleteDirectory(workspaceRoot);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CaseInsensitiveWorkspaceComparer_WHEN_GettingSolutionHierarchy_THEN_ShouldPreserveComparerForProjectLookup()
+    {
+        var pathComparison = new Mock<IWorkspacePathComparison>();
+        var fileSystem = new FileSystem();
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+        var target = new ProjectStructureService(pathComparison.Object, pathNormalizer);
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
+            pathComparison
+                .Setup(item => item.GetComparer(directoryPath))
+                .Returns(StringComparer.OrdinalIgnoreCase);
+
+            var workspace = CreateWorkspaceIdentity(solutionPath, directoryPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.ProjectFolderPaths.TryGetValue("lib/LIB.CSPROJ", out var folderPath).Should().BeTrue();
+            folderPath.Should().Be("src/core");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ProjectPathCannotBeNormalized_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure(bool fullPathSucceeds)
+    {
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var pathNormalizer = new Mock<IWorkspacePathNormalizer>();
+        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object);
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
+            var canonicalSolutionPath = solutionPath;
+            var canonicalWorkspaceRoot = directoryPath;
+            var fullProjectPath = Path.Combine(directoryPath, "Lib", "Lib.csproj");
+            string failedPath = string.Empty;
+            pathNormalizer.Setup(item => item.TryGetFullPath(solutionPath, out canonicalSolutionPath)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath(directoryPath, out canonicalWorkspaceRoot)).Returns(true);
+            pathNormalizer
+                .Setup(item => item.TryGetFullPath("Lib/Lib.csproj", directoryPath, out fullProjectPath))
+                .Returns(fullPathSucceeds);
+
+            pathNormalizer
+                .Setup(item => item.TryGetWorkspaceRelativePath(directoryPath, fullProjectPath, out failedPath))
+                .Returns(false);
+
+            var workspace = CreateWorkspaceIdentity(solutionPath, directoryPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain("Could not normalize project path");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ProjectPathsNormalizeToSameIdentity_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnDuplicateFailure()
+    {
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var pathNormalizer = new Mock<IWorkspacePathNormalizer>();
+        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object);
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
+            var canonicalSolutionPath = solutionPath;
+            var canonicalWorkspaceRoot = directoryPath;
+            var libFullPath = Path.Combine(directoryPath, "Lib", "Lib.csproj");
+            var rootFullPath = Path.Combine(directoryPath, "Root", "Root.csproj");
+            var duplicateProjectPath = "Duplicate.csproj";
+            pathNormalizer.Setup(item => item.TryGetFullPath(solutionPath, out canonicalSolutionPath)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath(directoryPath, out canonicalWorkspaceRoot)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath("Lib/Lib.csproj", directoryPath, out libFullPath)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath("Root/Root.csproj", directoryPath, out rootFullPath)).Returns(true);
+            pathNormalizer
+                .Setup(item => item.TryGetWorkspaceRelativePath(directoryPath, libFullPath, out duplicateProjectPath))
+                .Returns(true);
+
+            pathNormalizer
+                .Setup(item => item.TryGetWorkspaceRelativePath(directoryPath, rootFullPath, out duplicateProjectPath))
+                .Returns(true);
+
+            var workspace = CreateWorkspaceIdentity(solutionPath, directoryPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain("duplicate project path");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_MissingSolutionFile_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
         var solutionPath = Path.Combine(directoryPath, "Missing.slnx");
 
         try
         {
-            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var workspace = CreateWorkspaceIdentity(solutionPath);
+
+            var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeFalse();
             result.ErrorMessage.Should().Contain(solutionPath);
@@ -140,7 +349,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
     [Fact]
     public async Task GIVEN_CancelledToken_WHEN_GettingSolutionHierarchy_THEN_ShouldPropagateCancellation()
     {
-        var target = new ProjectStructureService();
+        var target = CreateTarget();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -149,8 +358,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
             using var cancellationSource = new CancellationTokenSource();
             await cancellationSource.CancelAsync();
+            var workspace = CreateWorkspaceIdentity(solutionPath);
 
-            var action = async () => await target.GetSolutionHierarchyAsync(solutionPath, cancellationSource.Token);
+            var action = async () => await target.GetSolutionHierarchyAsync(workspace, cancellationSource.Token);
 
             await action.Should().ThrowAsync<OperationCanceledException>();
         }
@@ -158,6 +368,30 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
         {
             DeleteDirectory(directoryPath);
         }
+    }
+
+    private static ProjectStructureService CreateTarget()
+    {
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+
+        return new ProjectStructureService(pathComparison, pathNormalizer);
+    }
+
+    private static WorkspaceIdentity CreateWorkspaceIdentity(string? loadedPath, string? workspaceRoot = null)
+    {
+        var effectiveLoadedPath = loadedPath ?? string.Empty;
+        var effectiveWorkspaceRoot = workspaceRoot
+            ?? Path.GetDirectoryName(effectiveLoadedPath)
+            ?? string.Empty;
+
+        return new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            LoadedPath = effectiveLoadedPath,
+            WorkspaceRoot = effectiveWorkspaceRoot,
+        };
     }
 
     private static string CreateDirectoryPath()

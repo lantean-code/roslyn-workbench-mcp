@@ -9,7 +9,7 @@ public static class SelectorTestFactory
     /// Creates an unresolved selector result for tests that vary the unsuccessful status.
     /// </summary>
     /// <typeparam name="T">The unresolved value type.</typeparam>
-    /// <param name="status">The not-found or ambiguous status.</param>
+    /// <param name="status">The not-found, ambiguous or invalid status.</param>
     /// <returns>The unresolved selector result.</returns>
     public static SelectorResolveResult<T> CreateUnresolvedResult<T>(SelectorResolveStatus status)
         where T : class
@@ -22,6 +22,11 @@ public static class SelectorTestFactory
         if (status == SelectorResolveStatus.Ambiguous)
         {
             return SelectorResolveResult.Ambiguous<T>();
+        }
+
+        if (status == SelectorResolveStatus.Invalid)
+        {
+            return SelectorResolveResult.Invalid<T>();
         }
 
         throw new ArgumentOutOfRangeException(nameof(status), status, "An unresolved selector status is required.");

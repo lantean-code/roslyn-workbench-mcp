@@ -11,6 +11,7 @@ public sealed class PluginPublicApiContractTests
     [
         "Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService",
         "Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch",
+        "Roslyn.Workbench.Mcp.Workspace.Paths.IWorkspacePathService",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService",
         "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver",
         "Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult",
@@ -53,6 +54,11 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Validation.NonEmptyGuidAttribute",
+        "Roslyn.Workbench.Mcp.Workspace.Validation.ProhibitedUnlessAttribute",
+        "Roslyn.Workbench.Mcp.Workspace.Validation.RequiredWhenAttribute",
+        "Roslyn.Workbench.Mcp.Workspace.Validation.RequiresAtLeastOneAttribute",
+        "Roslyn.Workbench.Mcp.Workspace.Validation.RequiresExactlyOneAttribute",
     ];
 
     private static readonly string[] _expectedExportedTypes =
@@ -171,6 +177,7 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionContext.ToolExecutionServices),
             nameof(IToolExecutionContext.TransactionRevision),
             nameof(IToolExecutionContext.WorkspaceIdentity),
+            nameof(IToolExecutionContext.WorkspacePathService),
             nameof(IToolExecutionContext.WorkspaceResolver),
         ]);
 

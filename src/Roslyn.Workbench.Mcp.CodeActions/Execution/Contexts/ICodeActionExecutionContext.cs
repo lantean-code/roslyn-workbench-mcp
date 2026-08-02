@@ -12,5 +12,7 @@ internal interface ICodeActionExecutionContext
 
     int DefaultMaxResults { get; }
 
+    IWorkspacePathService WorkspacePathService { get; }
+
     IWorkspaceResolver WorkspaceResolver { get; }
 }

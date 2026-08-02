@@ -5,6 +5,7 @@ global using Microsoft.CodeAnalysis.Text;
 global using Moq;
 global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;

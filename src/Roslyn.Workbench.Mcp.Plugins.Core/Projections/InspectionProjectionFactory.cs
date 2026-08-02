@@ -181,26 +181,26 @@ internal static class InspectionProjectionFactory
         };
     }
 
-    public static ContractProjectInfo CreateProjectInfo(Project project, IWorkspaceResolver resolver, IReadOnlyList<string> targetFrameworks)
+    public static ContractProjectInfo CreateProjectInfo(Project project, string normalizedPath, IReadOnlyList<string> targetFrameworks)
     {
         return new ContractProjectInfo
         {
             ProjectId = project.Id.Id.ToString(),
             Name = project.Name,
-            Path = resolver.NormalizeProjectPath(project.FilePath ?? project.Name),
+            Path = normalizedPath,
             AssemblyName = project.AssemblyName ?? string.Empty,
             Language = project.Language,
             TargetFrameworks = targetFrameworks,
         };
     }
 
-    public static ProjectReferenceInfo CreateProjectReferenceInfo(Project project, IWorkspaceResolver resolver)
+    public static ProjectReferenceInfo CreateProjectReferenceInfo(Project project, string normalizedPath)
     {
         return new ProjectReferenceInfo
         {
             ProjectId = project.Id.Id.ToString(),
             Name = project.Name,
-            Path = resolver.NormalizeProjectPath(project.FilePath ?? project.Name),
+            Path = normalizedPath,
         };
     }
 

@@ -260,6 +260,9 @@ public sealed class PluginExecutionContextFactoryTests
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(Microsoft.CodeAnalysis.Solution solution)
     {
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+
         return new WorkspaceExecutionContext(
             solution,
             new WorkspaceIdentity
@@ -274,6 +277,7 @@ public sealed class PluginExecutionContextFactoryTests
                 transactionId: null),
             transactionRevision: null,
             defaultMaxResults: 100,
-            new Mock<IWorkspaceResolver>().Object);
+            workspacePathService.Object,
+            workspaceResolver.Object);
     }
 }

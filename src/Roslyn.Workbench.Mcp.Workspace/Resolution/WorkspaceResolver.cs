@@ -5,21 +5,20 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly Solution _solution;
     private readonly WorkspaceIdentity? _workspaceIdentity;
     private readonly int? _transactionRevision;
-    private readonly string _workspaceRoot;
     private readonly StringComparison _pathComparison;
+    private readonly IWorkspacePathService _workspacePathService;
 
     public WorkspaceResolver(
         Solution solution,
         WorkspaceIdentity? workspaceIdentity,
         int? transactionRevision,
-        IWorkspacePathComparison workspacePathComparison)
+        IWorkspacePathComparison workspacePathComparison,
+        IWorkspacePathService workspacePathService)
     {
         _solution = solution;
         _workspaceIdentity = workspaceIdentity;
         _transactionRevision = transactionRevision;
-        _workspaceRoot = workspaceIdentity is null
-            ? string.Empty
-            : workspaceIdentity.WorkspaceRoot;
+        _workspacePathService = workspacePathService;
 
         _pathComparison = workspaceIdentity is null
             ? StringComparison.Ordinal
@@ -56,11 +55,16 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public DocumentReference? CreateDocumentReference(Document document)
     {
+        if (!_workspacePathService.TryNormalizePath(document.FilePath ?? string.Empty, out var normalizedPath))
+        {
+            return null;
+        }
+
         return new DocumentReference
         {
             DocumentId = document.Id.Id.ToString(),
             ProjectId = document.Project.Id.Id.ToString(),
-            Path = NormalizeDocumentPath(document.FilePath ?? string.Empty),
+            Path = normalizedPath,
         };
     }
 
@@ -107,16 +111,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         return SnapshotMatchResult.Matched();
     }
 
-    public string NormalizeDocumentPath(string path)
-    {
-        return NormalizePath(path);
-    }
-
-    public string NormalizeProjectPath(string path)
-    {
-        return NormalizePath(path);
-    }
-
     public SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector)
     {
         return ResolveDocument(selector, project: null);
@@ -143,7 +137,18 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SelectorResolveResult<Project> ResolveProject(ProjectSelector selector)
     {
-        var matches = _solution.Projects.Where(project => MatchesProjectSelector(project, selector)).ToArray();
+        string? normalizedSelectorPath = null;
+        if (!string.IsNullOrWhiteSpace(selector.Path))
+        {
+            if (!_workspacePathService.TryNormalizePath(selector.Path, out normalizedSelectorPath))
+            {
+                return SelectorResolveResult.Invalid<Project>();
+            }
+        }
+
+        var matches = _solution.Projects
+            .Where(project => MatchesProjectSelector(project, selector, normalizedSelectorPath))
+            .ToArray();
         return matches.Length switch
         {
             1 => SelectorResolveResult.Resolved(matches[0]),
@@ -264,14 +269,18 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SelectorResolveResult.NotFound<Document>();
         }
 
-        var normalizedPath = NormalizeDocumentPath(selector.Path);
+        if (!_workspacePathService.TryNormalizePath(selector.Path, out var normalizedPath))
+        {
+            return SelectorResolveResult.Invalid<Document>();
+        }
+
         var matches = new List<Document>();
         foreach (var candidateProject in projects)
         {
             foreach (var document in candidateProject.Documents)
             {
-                var documentPath = NormalizeDocumentPath(document.FilePath ?? string.Empty);
-                if (string.Equals(documentPath, normalizedPath, _pathComparison))
+                if (_workspacePathService.TryNormalizePath(document.FilePath ?? string.Empty, out var documentPath)
+                    && string.Equals(documentPath, normalizedPath, _pathComparison))
                 {
                     matches.Add(document);
                 }
@@ -286,7 +295,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
-    private bool MatchesProjectSelector(Project project, ProjectSelector selector)
+    private bool MatchesProjectSelector(
+        Project project,
+        ProjectSelector selector,
+        string? normalizedSelectorPath)
     {
         var idMatches = string.IsNullOrWhiteSpace(selector.ProjectId)
             || string.Equals(project.Id.Id.ToString(), selector.ProjectId, StringComparison.OrdinalIgnoreCase);
@@ -294,11 +306,12 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var nameMatches = string.IsNullOrWhiteSpace(selector.Name)
             || string.Equals(project.Name, selector.Name, StringComparison.Ordinal);
 
-        var pathMatches = string.IsNullOrWhiteSpace(selector.Path)
-            || string.Equals(
-                NormalizeProjectPath(project.FilePath ?? string.Empty),
-                NormalizeProjectPath(selector.Path),
-                _pathComparison);
+        var pathMatches = normalizedSelectorPath is null;
+        if (normalizedSelectorPath is not null
+            && _workspacePathService.TryNormalizePath(project.FilePath ?? string.Empty, out var normalizedProjectPath))
+        {
+            pathMatches = string.Equals(normalizedProjectPath, normalizedSelectorPath, _pathComparison);
+        }
 
         var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
 
@@ -460,29 +473,17 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
-    private string NormalizePath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return string.Empty;
-        }
-
-        var fullPath = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(_workspaceRoot, path));
-
-        if (string.IsNullOrWhiteSpace(_workspaceRoot))
-        {
-            return fullPath.Replace('\\', '/');
-        }
-
-        return Path.GetRelativePath(_workspaceRoot, fullPath).Replace('\\', '/');
-    }
-
     private static SelectorResolveResult<T> CreateUnresolvedResult<T>(SelectorResolveStatus status)
         where T : class
     {
         if (status == SelectorResolveStatus.Ambiguous)
         {
             return SelectorResolveResult.Ambiguous<T>();
+        }
+
+        if (status == SelectorResolveStatus.Invalid)
+        {
+            return SelectorResolveResult.Invalid<T>();
         }
 
         return SelectorResolveResult.NotFound<T>();

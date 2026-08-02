@@ -15,6 +15,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Registration;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.TestSupport;
+global using Roslyn.Workbench.Mcp.Workspace.Paths;
 global using Roslyn.Workbench.Mcp.Workspace.Projects;
 global using Roslyn.Workbench.Mcp.Workspace.References;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;

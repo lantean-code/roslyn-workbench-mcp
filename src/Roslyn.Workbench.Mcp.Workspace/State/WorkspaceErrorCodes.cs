@@ -2,22 +2,23 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal static class WorkspaceErrorCodes
 {
-    internal const string WorkspaceBusy = "WorkspaceBusy";
-    internal const string WorkspaceNotOpen = "WorkspaceNotOpen";
-    internal const string WorkspaceAlreadyOpen = "WorkspaceAlreadyOpen";
-    internal const string WorkspaceNotSupported = "WorkspaceNotSupported";
-    internal const string WorkspaceOutOfDate = "WorkspaceOutOfDate";
-    internal const string WorkspaceLoadFailed = "WorkspaceLoadFailed";
-    internal const string WorkspaceCapacityReached = "WorkspaceCapacityReached";
-    internal const string InvalidRequest = "InvalidRequest";
-    internal const string DocumentNotFound = "DocumentNotFound";
-    internal const string DocumentAmbiguous = "DocumentAmbiguous";
-    internal const string TransactionRequired = "NoActiveTransaction";
-    internal const string TransactionAlreadyActive = "TransactionAlreadyActive";
-    internal const string TransactionConflicted = "TransactionConflicted";
-    internal const string TransactionOwner = "TransactionOwnedByWorkspace";
-    internal const string TransactionHistoryUnavailable = "TransactionHistoryUnavailable";
-    internal const string TransactionCapacity = "RevisionCapacityReached";
-    internal const string LinkedDocumentConflict = "LinkedDocumentConflict";
-    internal const string SnapshotMismatch = "SnapshotMismatch";
+    public const string WorkspaceBusy = "WorkspaceBusy";
+    public const string WorkspaceNotOpen = "WorkspaceNotOpen";
+    public const string WorkspaceAlreadyOpen = "WorkspaceAlreadyOpen";
+    public const string WorkspaceNotSupported = "WorkspaceNotSupported";
+    public const string WorkspaceOutOfDate = "WorkspaceOutOfDate";
+    public const string WorkspaceLoadFailed = "WorkspaceLoadFailed";
+    public const string WorkspaceCapacityReached = "WorkspaceCapacityReached";
+    public const string InvalidRequest = "InvalidRequest";
+    public const string DocumentNotFound = "DocumentNotFound";
+    public const string DocumentAmbiguous = "DocumentAmbiguous";
+    public const string TransactionRequired = "NoActiveTransaction";
+    public const string TransactionAlreadyActive = "TransactionAlreadyActive";
+    public const string TransactionConflicted = "TransactionConflicted";
+    public const string TransactionOwner = "TransactionOwnedByWorkspace";
+    public const string TransactionHistoryUnavailable = "TransactionHistoryUnavailable";
+    public const string TransactionCapacity = "RevisionCapacityReached";
+    public const string CommitRecoveryCapacity = "CommitRecoveryCapacityReached";
+    public const string LinkedDocumentConflict = "LinkedDocumentConflict";
+    public const string SnapshotMismatch = "SnapshotMismatch";
 }

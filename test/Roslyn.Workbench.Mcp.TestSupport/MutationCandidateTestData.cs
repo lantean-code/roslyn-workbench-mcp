@@ -6,9 +6,9 @@ internal static class MutationCandidateTestData
 {
     private static readonly AdhocWorkspace _workspace = new();
 
-    internal static Solution Solution { get; } = _workspace.CurrentSolution;
+    public static Solution Solution { get; } = _workspace.CurrentSolution;
 
-    internal static WorkspaceMutationCandidate CreateWorkspaceCandidate()
+    public static WorkspaceMutationCandidate CreateWorkspaceCandidate()
     {
         return new WorkspaceMutationCandidate
         {
@@ -16,7 +16,7 @@ internal static class MutationCandidateTestData
         };
     }
 
-    internal static MutationCandidate CreatePluginCandidate()
+    public static MutationCandidate CreatePluginCandidate()
     {
         return new MutationCandidate
         {

@@ -73,6 +73,7 @@
 - Do not use the null-forgiving operator (`!`) in production code as a routine way to silence nullable analysis. Express the invariant in the type system instead: validate inputs, use required members or constructors, retain a checked local, pattern-match nullable values, or annotate state relationships with attributes such as `MemberNotNull`, `MemberNotNullWhen`, and `NotNullWhen`.
 - A production null-forgiving operator is permitted only when the invariant cannot be expressed or observed by the compiler, no safer API shape is practical, and the reason is exceptional and explicitly documented next to the use. Reflection and framework boundary code must still validate the runtime result before relying on it.
 - Always specify access modifiers, even when the default applies.
+- On an internal type, declare members that form the type's normal usable surface as public; do not repeat `internal` merely because the containing type is internal. Use internal member accessibility only when it expresses a deliberately narrower boundary, such as a reflection-hidden helper, controlled construction seam, or cross-type coordination method.
 - Use `async` only when needed.
 - Async methods should follow normal .NET naming and generally end with `Async`, except for well-known event handlers or framework-required signatures.
 - Do not use `ConfigureAwait(false)`. Production code in this repository executes within the console-hosted application, which does not install a synchronization context; await tasks directly.

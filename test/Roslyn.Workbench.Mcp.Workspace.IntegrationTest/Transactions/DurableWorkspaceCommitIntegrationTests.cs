@@ -41,7 +41,8 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             new WorkspacePathComparison(),
             _pathContainment,
             stateDirectory,
-            stateDirectorySecurity);
+            stateDirectorySecurity,
+            CommitRecoveryLimits.Default);
 
         _writer = new WorkspaceCommitWriter(
             _fileSystem,
@@ -329,7 +330,8 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             new WorkspacePathComparison(),
             pathContainment,
             stateDirectory,
-            stateDirectorySecurity);
+            stateDirectorySecurity,
+            CommitRecoveryLimits.Default);
 
         var writer = new WorkspaceCommitWriter(
             fileSystem,

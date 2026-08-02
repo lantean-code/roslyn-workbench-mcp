@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 internal static class BundledComponentWorkspaceFactory
 {
-    internal static ComponentWorkspace CreateInspectionWorkspace(int defaultMaxResults = 100)
+    public static ComponentWorkspace CreateInspectionWorkspace(int defaultMaxResults = 100)
     {
         var options = new ComponentWorkspaceOptions
         {
@@ -13,7 +13,7 @@ internal static class BundledComponentWorkspaceFactory
         return ComponentWorkspace.Create(options);
     }
 
-    internal static ComponentWorkspace CreateBuiltInCodeActionWorkspace()
+    public static ComponentWorkspace CreateBuiltInCodeActionWorkspace()
     {
         var composition = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
@@ -23,7 +23,7 @@ internal static class BundledComponentWorkspaceFactory
         return CreateCodeActionWorkspace(composition);
     }
 
-    internal static ICodeActionComposition CreateTestCodeActionComposition()
+    public static ICodeActionComposition CreateTestCodeActionComposition()
     {
         var options = new CodeActionCompositionOptions
         {
@@ -37,7 +37,7 @@ internal static class BundledComponentWorkspaceFactory
         return CodeActionCompositionFactory.Create(options);
     }
 
-    internal static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
+    public static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
     {
         return CreateCodeActionWorkspace(composition);
     }
@@ -52,7 +52,7 @@ internal static class BundledComponentWorkspaceFactory
         return ComponentWorkspace.Create(options, composition);
     }
 
-    internal static SnapshotPrecondition CreateSnapshot(
+    public static SnapshotPrecondition CreateSnapshot(
         WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         int? transactionRevision = null)
     {

@@ -123,7 +123,7 @@ internal sealed class RepositoryManager
             $"Command '{fileName}' failed with exit code {result.ExitCode}.{Environment.NewLine}{result.StandardError}{result.StandardOutput}");
     }
 
-    internal static string GetNuGetPackagesDirectory(string repositoryRoot)
+    public static string GetNuGetPackagesDirectory(string repositoryRoot)
     {
         return Path.Combine(repositoryRoot, ".performance", "nuget-packages");
     }

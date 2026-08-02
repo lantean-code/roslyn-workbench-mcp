@@ -24,7 +24,7 @@ internal sealed class CodeActionPolicy : ICodeActionPolicy
 
         if (action is CodeActionWithOptions)
         {
-            return CodeActionPolicyDecision.Excluded(CodeActionExclusions._optionsRequired);
+            return CodeActionPolicyDecision.Excluded(CodeActionExclusions.OptionsRequired);
         }
 
         return CodeActionPolicyDecision.Allowed();

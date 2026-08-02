@@ -75,6 +75,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 
 ## Coverage and access
 
+- On an internal test helper type, declare members that form the helper's normal reusable surface as public; do not repeat `internal` merely because the containing type is internal. Retain internal accessibility only for a deliberately narrower seam. Test assets whose purpose is to model source-code accessibility are exempt because changing their modifiers changes the scenario under test.
 - Tests must cover 100% of the lines and branches of the implementation under test unless the user explicitly relaxes that rule.
 - Approved exception: defensive null-guard branches that protect Roslyn-owned APIs may remain below 100% when all of the following are true:
   - the branch cannot be reached through the real public execution flow of the tool

@@ -92,13 +92,7 @@ public sealed class CommitRecoveryStoreTests
             });
 
         _stateDirectory.SetupGet(item => item.RecoveryDirectory).Returns(_recoveryDirectory);
-        _target = new CommitRecoveryStore(
-            _fileSystem.Object,
-            _atomicFileWriter.Object,
-            _pathComparison.Object,
-            _pathContainment.Object,
-            _stateDirectory.Object,
-            _stateDirectorySecurity.Object);
+        _target = CreateTarget(CommitRecoveryLimits.Default);
     }
 
     [Fact]
@@ -349,8 +343,10 @@ public sealed class CommitRecoveryStoreTests
             .Callback((string path, ReadOnlyMemory<byte> _, AtomicFileAccess _, CancellationToken _) => operations.Add(path))
             .Returns(ValueTask.CompletedTask);
 
-        await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+        var result = await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
 
+        result.IsPersisted.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
         operations.Should().Equal(
             _recoveryDirectory + "/CommitId/owner.json",
             _recoveryDirectory + "/CommitId/staged/File.bin",
@@ -363,6 +359,80 @@ public sealed class CommitRecoveryStoreTests
         _stateDirectorySecurity.Verify(
             item => item.EnsureDirectory(_recoveryDirectory + "/CommitId/staged"),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedOwnerRecord_WHEN_PersistingPlan_THEN_ShouldRejectBeforeWriting()
+    {
+        var limits = new CommitRecoveryLimits(
+            maximumOwnerBytes: 1,
+            maximumLegacyStatusBytes: long.MaxValue,
+            maximumManifestBytes: long.MaxValue,
+            maximumArtifactBytes: long.MaxValue);
+
+        var target = CreateTarget(limits);
+        var plan = new WorkspaceCommitPlan(
+            CreateManifest(),
+            new Dictionary<string, ReadOnlyMemory<byte>>());
+
+        var result = await target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+
+        result.IsPersisted.Should().BeFalse();
+        result.ErrorMessage.Should().StartWith("The recovery owner record requires ");
+        result.ErrorMessage.Should().EndWith(" bytes, exceeding the supported maximum of 1 bytes.");
+        VerifyPlanWasNotWritten();
+    }
+
+    [Fact]
+    public async Task GIVEN_CommittedManifestExceedsCapacity_WHEN_PersistingPlan_THEN_ShouldRejectBeforeWriting()
+    {
+        var manifest = CreateManifest();
+        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var preparedJson = JsonSerializer.Serialize(manifest, serializerOptions);
+        var preparedBytes = Encoding.UTF8.GetByteCount(preparedJson);
+        var limits = new CommitRecoveryLimits(
+            maximumOwnerBytes: long.MaxValue,
+            maximumLegacyStatusBytes: long.MaxValue,
+            maximumManifestBytes: preparedBytes,
+            maximumArtifactBytes: long.MaxValue);
+
+        var target = CreateTarget(limits);
+        var plan = new WorkspaceCommitPlan(
+            manifest,
+            new Dictionary<string, ReadOnlyMemory<byte>>());
+
+        var result = await target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+
+        result.IsPersisted.Should().BeFalse();
+        result.ErrorMessage.Should().StartWith("The recovery manifest requires ");
+        result.ErrorMessage.Should().EndWith(
+            $" bytes, exceeding the supported maximum of {preparedBytes} bytes.");
+
+        VerifyPlanWasNotWritten();
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedArtifact_WHEN_PersistingPlan_THEN_ShouldRejectBeforeWriting()
+    {
+        var limits = new CommitRecoveryLimits(
+            maximumOwnerBytes: long.MaxValue,
+            maximumLegacyStatusBytes: long.MaxValue,
+            maximumManifestBytes: long.MaxValue,
+            maximumArtifactBytes: 1);
+
+        var target = CreateTarget(limits);
+        var plan = new WorkspaceCommitPlan(CreateManifest(), new Dictionary<string, ReadOnlyMemory<byte>>
+        {
+            ["staged/File.bin"] = new byte[] { 1, 2 },
+        });
+
+        var result = await target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+
+        result.IsPersisted.Should().BeFalse();
+        result.ErrorMessage.Should().Be(
+            "The recovery artifact 'staged/File.bin' requires 2 bytes, exceeding the supported maximum of 1 bytes.");
+
+        VerifyPlanWasNotWritten();
     }
 
     [Fact]
@@ -897,6 +967,38 @@ public sealed class CommitRecoveryStoreTests
         }
 
         _file.Verify(item => item.Delete(path), expectedDeletes);
+    }
+
+    private CommitRecoveryStore CreateTarget(CommitRecoveryLimits limits)
+    {
+        return new CommitRecoveryStore(
+            _fileSystem.Object,
+            _atomicFileWriter.Object,
+            _pathComparison.Object,
+            _pathContainment.Object,
+            _stateDirectory.Object,
+            _stateDirectorySecurity.Object,
+            limits);
+    }
+
+    private void VerifyPlanWasNotWritten()
+    {
+        _stateDirectorySecurity.Verify(
+            item => item.EnsureDirectory(It.IsAny<string>()),
+            Times.Never);
+
+        _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Encoding>(),
+            It.IsAny<AtomicFileAccess>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        _atomicFileWriter.Verify(item => item.WriteAllBytesAsync(
+            It.IsAny<string>(),
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<AtomicFileAccess>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static WorkspaceCommitManifest CreateInvalidManifest(string scenario)

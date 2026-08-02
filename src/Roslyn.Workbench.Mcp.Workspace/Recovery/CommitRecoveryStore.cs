@@ -6,10 +6,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
-    private const long _maximumOwnerBytes = 1024 * 1024;
-    private const long _maximumLegacyStatusBytes = 1024 * 1024;
-    private const long _maximumManifestBytes = 16 * 1024 * 1024;
-    private const long _maximumArtifactBytes = 128 * 1024 * 1024;
     private const string _manifestFileName = "manifest.json";
     private const string _ownerFileName = "owner.json";
 
@@ -21,6 +17,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspaceStateDirectorySecurity _stateDirectorySecurity;
+    private readonly CommitRecoveryLimits _limits;
     private readonly string _recoveryDirectory;
 
     public CommitRecoveryStore(
@@ -29,37 +26,45 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         IWorkspacePathComparison pathComparison,
         IPhysicalPathContainment pathContainment,
         IWorkspaceStateDirectory stateDirectory,
-        IWorkspaceStateDirectorySecurity stateDirectorySecurity)
+        IWorkspaceStateDirectorySecurity stateDirectorySecurity,
+        CommitRecoveryLimits limits)
     {
         _fileSystem = fileSystem;
         _atomicFileWriter = atomicFileWriter;
         _pathComparison = pathComparison;
         _pathContainment = pathContainment;
         _stateDirectorySecurity = stateDirectorySecurity;
+        _limits = limits;
         _recoveryDirectory = stateDirectory.RecoveryDirectory;
     }
 
-    public async ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
+    public async ValueTask<CommitRecoveryPlanPersistenceResult> PersistPlanAsync(
+        WorkspaceCommitPlan plan,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var commitDirectory = GetCommitDirectory(plan.Manifest.CommitId);
         var owner = CreateOwner(plan.Manifest);
-        var ownerJson = SerializeJson(
-            owner,
-            _maximumOwnerBytes,
-            "recovery owner record");
+        var ownerJson = JsonSerializer.Serialize(owner, _serializerOptions);
+        var manifestJson = JsonSerializer.Serialize(plan.Manifest, _serializerOptions);
+        var committedManifest = plan.Manifest with { State = RecoveryState.Committed };
+        var committedManifestJson = JsonSerializer.Serialize(committedManifest, _serializerOptions);
+        var capacity = ValidatePlanCapacity(
+            plan,
+            ownerJson,
+            manifestJson,
+            committedManifestJson);
 
-        var manifestJson = SerializeJson(
-            plan.Manifest,
-            _maximumManifestBytes,
-            "recovery manifest");
-
-        ValidateArtifactSizes(plan);
+        if (!capacity.IsPersisted)
+        {
+            return capacity;
+        }
 
         _stateDirectorySecurity.EnsureDirectory(commitDirectory);
         await WriteJsonAsync(GetOwnerPath(plan.Manifest.CommitId), ownerJson, cancellationToken);
         await WriteArtifactsAsync(plan, cancellationToken);
         await WriteJsonAsync(GetManifestPath(plan.Manifest.CommitId), manifestJson, cancellationToken);
+        return CommitRecoveryPlanPersistenceResult.Persisted();
     }
 
     public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
@@ -68,7 +73,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         var commitDirectory = GetCommitDirectory(manifest.CommitId);
         var json = SerializeJson(
             manifest,
-            _maximumManifestBytes,
+            _limits.MaximumManifestBytes,
             "recovery manifest");
 
         _stateDirectorySecurity.EnsureDirectory(commitDirectory);
@@ -107,7 +112,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 _stateDirectorySecurity.ValidateFile(path);
                 ValidateFileSize(
                     path,
-                    _maximumManifestBytes,
+                    _limits.MaximumManifestBytes,
                     "recovery manifest");
 
                 var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
@@ -212,7 +217,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         var path = GetLegacyStatusPath(status.CommitId);
         var json = SerializeJson(
             status,
-            _maximumLegacyStatusBytes,
+            _limits.MaximumLegacyStatusBytes,
             "legacy recovery status");
 
         return WriteJsonAsync(path, json, cancellationToken);
@@ -224,7 +229,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         _stateDirectorySecurity.ValidateFile(path);
         ValidateFileSize(
             path,
-            _maximumArtifactBytes,
+            _limits.MaximumArtifactBytes,
             "recovery artifact");
 
         return await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
@@ -284,7 +289,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 _stateDirectorySecurity.ValidateFile(ownerPath);
                 ValidateFileSize(
                     ownerPath,
-                    _maximumOwnerBytes,
+                    _limits.MaximumOwnerBytes,
                     "recovery owner record");
 
                 var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
@@ -334,7 +339,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             _stateDirectorySecurity.ValidateFile(path);
             ValidateFileSize(
                 path,
-                _maximumLegacyStatusBytes,
+                _limits.MaximumLegacyStatusBytes,
                 "legacy recovery status");
 
             var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
@@ -729,16 +734,54 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         }
     }
 
-    private static void ValidateArtifactSizes(WorkspaceCommitPlan plan)
+    private CommitRecoveryPlanPersistenceResult ValidatePlanCapacity(
+        WorkspaceCommitPlan plan,
+        string ownerJson,
+        string manifestJson,
+        string committedManifestJson)
     {
+        var ownerBytes = _encoding.GetByteCount(ownerJson);
+        if (ownerBytes > _limits.MaximumOwnerBytes)
+        {
+            return CreateCapacityExceededResult(
+                "recovery owner record",
+                ownerBytes,
+                _limits.MaximumOwnerBytes);
+        }
+
+        var manifestBytes = Math.Max(
+            _encoding.GetByteCount(manifestJson),
+            _encoding.GetByteCount(committedManifestJson));
+
+        if (manifestBytes > _limits.MaximumManifestBytes)
+        {
+            return CreateCapacityExceededResult(
+                "recovery manifest",
+                manifestBytes,
+                _limits.MaximumManifestBytes);
+        }
+
         foreach (var artifact in plan.Artifacts)
         {
-            if (artifact.Value.Length > _maximumArtifactBytes)
+            if (artifact.Value.Length > _limits.MaximumArtifactBytes)
             {
-                throw new InvalidDataException(
-                    $"The recovery artifact '{artifact.Key}' exceeds the supported maximum size.");
+                return CreateCapacityExceededResult(
+                    $"recovery artifact '{artifact.Key}'",
+                    artifact.Value.Length,
+                    _limits.MaximumArtifactBytes);
             }
         }
+
+        return CommitRecoveryPlanPersistenceResult.Persisted();
+    }
+
+    private static CommitRecoveryPlanPersistenceResult CreateCapacityExceededResult(
+        string description,
+        long actualBytes,
+        long maximumBytes)
+    {
+        return CommitRecoveryPlanPersistenceResult.CapacityExceeded(
+            $"The {description} requires {actualBytes} bytes, exceeding the supported maximum of {maximumBytes} bytes.");
     }
 
     private static string SerializeJson<T>(T value, long maximumBytes, string description)

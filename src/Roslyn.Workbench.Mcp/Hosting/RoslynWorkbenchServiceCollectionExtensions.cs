@@ -96,6 +96,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();
         services.AddSingleton<IWorkspaceStateDirectorySecurity, WorkspaceStateDirectorySecurity>();
         services.AddSingleton<IWorkspaceStateDirectory, WorkspaceStateDirectory>();
+        services.AddSingleton(CommitRecoveryLimits.Default);
         services.AddSingleton<ICommitRecoveryStore, CommitRecoveryStore>();
         services.AddSingleton<IWorkspaceCommitPlanner, WorkspaceCommitPlanner>();
         services.AddSingleton<IWorkspaceFileLockProvider, FileStreamWorkspaceFileLockProvider>();
@@ -246,7 +247,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         });
     }
 
-    internal static void AddErrorReportDispatcher(
+    public static void AddErrorReportDispatcher(
         IServiceCollection services,
         SentryProviderConfiguration? sentryConfiguration)
     {

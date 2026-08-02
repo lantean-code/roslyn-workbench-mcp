@@ -48,7 +48,7 @@ public sealed class BuiltInCodeActionCodeFixCompatibilityTests
 
 internal static class BuiltInCodeActionCompatibilityAssertion
 {
-    internal static TheoryData<string, string?, string?> GetProviderIds(BuiltInCodeActionAuditKind kind)
+    public static TheoryData<string, string?, string?> GetProviderIds(BuiltInCodeActionAuditKind kind)
     {
         var data = new TheoryData<string, string?, string?>();
 
@@ -60,7 +60,7 @@ internal static class BuiltInCodeActionCompatibilityAssertion
         return data;
     }
 
-    internal static async Task VerifyAsync(
+    public static async Task VerifyAsync(
         string providerId,
         string? diagnosticId,
         string? title,

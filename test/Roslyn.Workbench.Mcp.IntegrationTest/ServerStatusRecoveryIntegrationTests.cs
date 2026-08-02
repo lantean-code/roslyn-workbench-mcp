@@ -23,7 +23,8 @@ public sealed class ServerStatusRecoveryIntegrationTests
             pathComparison,
             new PhysicalPathContainment(fileSystem, pathComparison),
             workspaceStateDirectory,
-            stateDirectorySecurity);
+            stateDirectorySecurity,
+            CommitRecoveryLimits.Default);
 
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {

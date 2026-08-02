@@ -9,7 +9,7 @@ internal static class SentrySdkPolicy
 
     public static TimeSpan ShutdownTimeout { get; } = TimeSpan.FromSeconds(10);
 
-    internal static SentryProviderConfiguration CreateConfiguration(string dsn)
+    public static SentryProviderConfiguration CreateConfiguration(string dsn)
     {
         if (!Uri.TryCreate(dsn, UriKind.Absolute, out var uri)
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)

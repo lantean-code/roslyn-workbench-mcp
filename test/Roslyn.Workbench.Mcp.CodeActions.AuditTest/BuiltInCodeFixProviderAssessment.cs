@@ -112,7 +112,7 @@ internal static class BuiltInCodeFixProviderAssessment
         "Microsoft.CodeAnalysis.CSharp.UpgradeProject.CSharpUpgradeProjectCodeFixProvider",
     };
 
-    internal static IReadOnlyList<string> ProviderIds { get; } =
+    public static IReadOnlyList<string> ProviderIds { get; } =
     [
         "Microsoft.CodeAnalysis.AddRequiredParentheses.AddRequiredParenthesesCodeFixProvider",
         "Microsoft.CodeAnalysis.CSharp.AddAnonymousTypeMemberName.CSharpAddAnonymousTypeMemberNameCodeFixProvider",
@@ -267,7 +267,7 @@ internal static class BuiltInCodeFixProviderAssessment
         "Microsoft.CodeAnalysis.UseSystemHashCode.UseSystemHashCodeCodeFixProvider",
     ];
 
-    internal static BuiltInCodeActionAuditStatus GetAuditStatus(string providerId)
+    public static BuiltInCodeActionAuditStatus GetAuditStatus(string providerId)
     {
         if (_validatedSupportedProviderIds.Contains(providerId))
         {

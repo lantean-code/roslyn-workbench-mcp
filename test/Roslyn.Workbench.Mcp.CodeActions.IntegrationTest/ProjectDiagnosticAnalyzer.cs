@@ -15,12 +15,12 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 #pragma warning disable RS1028 // The integration fixture intentionally uses the test project's Roslyn references.
 internal sealed class ProjectDiagnosticAnalyzer : DiagnosticAnalyzer
 {
-    internal const string _diagnosticId = "PROJECT9000";
+    public const string DiagnosticId = "PROJECT9000";
 
     private static readonly DiagnosticDescriptor _descriptor = new(
-        _diagnosticId,
-        _diagnosticId,
-        _diagnosticId,
+        DiagnosticId,
+        DiagnosticId,
+        DiagnosticId,
         "Category",
         Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

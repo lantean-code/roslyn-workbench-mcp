@@ -95,7 +95,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             cancellationToken);
     }
 
-    internal static Task<AcceptanceProcessFixture> StartCommandAsync(
+    public static Task<AcceptanceProcessFixture> StartCommandAsync(
         string command,
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)

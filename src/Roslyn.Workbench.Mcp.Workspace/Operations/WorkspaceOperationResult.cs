@@ -41,7 +41,7 @@ internal sealed class WorkspaceOperationResult<TOutcome>
 
 internal static class WorkspaceOperationResult
 {
-    internal static WorkspaceOperationResult<TOutcome> Succeeded<TOutcome>(
+    public static WorkspaceOperationResult<TOutcome> Succeeded<TOutcome>(
         TOutcome data,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -56,7 +56,7 @@ internal static class WorkspaceOperationResult
             warnings ?? []);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> NoChange<TOutcome>(
+    public static WorkspaceOperationResult<TOutcome> NoChange<TOutcome>(
         TOutcome? data = default,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -71,7 +71,7 @@ internal static class WorkspaceOperationResult
             warnings ?? []);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Rejected<TOutcome>(
+    public static WorkspaceOperationResult<TOutcome> Rejected<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -80,7 +80,7 @@ internal static class WorkspaceOperationResult
         return Failed<TOutcome>(WorkspaceOperationStatus.Rejected, error, context, diagnostics, warnings);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Conflict<TOutcome>(
+    public static WorkspaceOperationResult<TOutcome> Conflict<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -89,7 +89,7 @@ internal static class WorkspaceOperationResult
         return Failed<TOutcome>(WorkspaceOperationStatus.Conflict, error, context, diagnostics, warnings);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Faulted<TOutcome>(
+    public static WorkspaceOperationResult<TOutcome> Faulted<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,

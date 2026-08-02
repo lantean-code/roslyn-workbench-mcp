@@ -23,19 +23,19 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         _ownedStateDirectory = ownedStateDirectory;
     }
 
-    internal string StateDirectory { get; }
+    public string StateDirectory { get; }
 
-    internal IToolExecutionContextFactory PluginContextFactory
+    public IToolExecutionContextFactory PluginContextFactory
     {
         get { return _host.Services.GetRequiredService<IToolExecutionContextFactory>(); }
     }
 
-    internal ICodeActionExecutionContextFactory CodeActionContextFactory
+    public ICodeActionExecutionContextFactory CodeActionContextFactory
     {
         get { return _host.Services.GetRequiredService<ICodeActionExecutionContextFactory>(); }
     }
 
-    internal static ComponentWorkspace Create(
+    public static ComponentWorkspace Create(
         ComponentWorkspaceOptions? options = null,
         ICodeActionComposition? codeActionComposition = null)
     {
@@ -120,31 +120,31 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         }
     }
 
-    internal T GetRequiredService<T>() where T : notnull
+    public T GetRequiredService<T>() where T : notnull
     {
         return _host.Services.GetRequiredService<T>();
     }
 
-    internal T CreateInstance<T>() where T : notnull
+    public T CreateInstance<T>() where T : notnull
     {
         return ActivatorUtilities.CreateInstance<T>(_host.Services);
     }
 
-    internal ToolExecutionContextLease<IQueryContext> CreateQueryContext(
+    public ToolExecutionContextLease<IQueryContext> CreateQueryContext(
         WorkspaceBoundRequest request,
         CancellationToken cancellationToken)
     {
         return PluginContextFactory.CreateQueryContext(request, cancellationToken);
     }
 
-    internal PluginMutationExecutionLease CreateMutationContext(
+    public PluginMutationExecutionLease CreateMutationContext(
         WorkspaceBoundRequest request,
         CancellationToken cancellationToken)
     {
         return PluginContextFactory.CreateMutationContext(request, cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
+    public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
         string path,
         CancellationToken cancellationToken,
         string? alias = null,
@@ -157,12 +157,12 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken)
+    public ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken)
     {
         return GetRequiredService<IWorkspaceLifecycleService>().ListAsync(cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(
+    public ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -171,7 +171,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         return GetRequiredService<IWorkspaceLifecycleService>().CloseAsync(workspaceId, alias, path, cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
+    public ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -186,7 +186,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(
+    public ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -195,7 +195,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         return GetRequiredService<IWorkspaceLifecycleService>().ReloadAsync(workspaceId, alias, path, cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartTransactionAsync(
+    public ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartTransactionAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -204,7 +204,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         return GetRequiredService<ITransactionService>().StartAsync(workspaceId, alias, path, cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewTransactionAsync(
+    public ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewTransactionAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -223,7 +223,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveTransactionHistoryAsync(
+    public ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveTransactionHistoryAsync(
         TransactionHistoryDirection direction,
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
@@ -240,7 +240,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitTransactionAsync(
+    public ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitTransactionAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,
@@ -255,7 +255,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             cancellationToken);
     }
 
-    internal ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackTransactionAsync(
+    public ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackTransactionAsync(
         CancellationToken cancellationToken,
         Guid? workspaceId = null,
         string? alias = null,

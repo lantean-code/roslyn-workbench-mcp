@@ -71,14 +71,14 @@ internal sealed class PluginMutationExecutionLease : IAsyncDisposable
         return _workspaceLease.DisposeAsync();
     }
 
-    internal static PluginMutationExecutionLease Acquired(
+    public static PluginMutationExecutionLease Acquired(
         WorkspaceMutationExecutionLease workspaceLease,
         IMutationContext context)
     {
         return new PluginMutationExecutionLease(workspaceLease, context, null);
     }
 
-    internal static PluginMutationExecutionLease Rejected(
+    public static PluginMutationExecutionLease Rejected(
         WorkspaceMutationExecutionLease workspaceLease,
         ToolExecutionFailureResult failure,
         IMutationContext? context = null)

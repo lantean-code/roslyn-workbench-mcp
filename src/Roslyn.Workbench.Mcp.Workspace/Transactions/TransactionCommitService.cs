@@ -198,7 +198,23 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 WorkbenchPerformanceEventSource.TransactionCommitOperation,
                 WorkbenchPerformanceEventSource.CommitPlanPersistencePhase))
             {
-                await StageCommitAsync(session, transaction, commitId, plan, cancellationToken);
+                var persistence = await StageCommitAsync(
+                    session,
+                    transaction,
+                    commitId,
+                    plan,
+                    cancellationToken);
+
+                if (!persistence.IsPersisted)
+                {
+                    await ClearCommitPhaseAsync(session, transaction.CurrentRevision);
+                    var message = CreateRecoveryCapacityMessage(persistence.ErrorMessage);
+                    return _resultFactory.Rejected<TransactionCommitOutcome>(
+                        WorkspaceErrorCodes.CommitRecoveryCapacity,
+                        message,
+                        RequiredAction.RollbackTransaction,
+                        context);
+                }
             }
 
             WorkspaceCommitValidationResult revalidation;
@@ -400,7 +416,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             cancellationToken);
     }
 
-    private async ValueTask StageCommitAsync(
+    private async ValueTask<CommitRecoveryPlanPersistenceResult> StageCommitAsync(
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction,
         string commitId,
@@ -408,7 +424,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         CancellationToken cancellationToken)
     {
         await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, "Staging");
-        await _recoveryStore.PersistPlanAsync(plan, cancellationToken);
+        return await _recoveryStore.PersistPlanAsync(plan, cancellationToken);
     }
 
     private async ValueTask<WorkspaceCommitManifest> BeginApplyingAsync(
@@ -634,6 +650,18 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitPhase);
     }
 
+    private ValueTask ClearCommitPhaseAsync(
+        WorkspaceSessionSnapshot session,
+        long transactionRevision)
+    {
+        return _instanceStatusPublisher.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            session.State,
+            transactionRevision,
+            commitId: null,
+            commitPhase: null);
+    }
+
     private async ValueTask<bool> TryWriteManifestAsync(WorkspaceCommitManifest manifest)
     {
         try
@@ -693,6 +721,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         return ReferenceEquals(exception, underlyingException)
             ? exception.Message
             : $"{exception.Message} {underlyingException.Message}";
+    }
+
+    private static string CreateRecoveryCapacityMessage(string capacityMessage)
+    {
+        return $"The transaction cannot be committed because its recovery data exceeds a supported size limit. Roll back this transaction and stage a smaller change. {capacityMessage}";
     }
 
     private static bool IsRecoverableFileSystemException(Exception exception)

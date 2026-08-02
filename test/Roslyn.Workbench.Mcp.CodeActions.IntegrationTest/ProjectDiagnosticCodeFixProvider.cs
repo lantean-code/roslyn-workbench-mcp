@@ -9,7 +9,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ProjectDiagnosticCodeFixProvider))]
 internal sealed class ProjectDiagnosticCodeFixProvider : CodeFixProvider
 {
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = [ProjectDiagnosticAnalyzer._diagnosticId];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = [ProjectDiagnosticAnalyzer.DiagnosticId];
 
     public override FixAllProvider? GetFixAllProvider()
     {

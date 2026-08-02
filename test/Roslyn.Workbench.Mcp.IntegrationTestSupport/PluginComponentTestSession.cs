@@ -5,13 +5,13 @@ internal sealed class PluginComponentTestSession
     private readonly ComponentWorkspace _workspace;
     private readonly PluginToolCatalogue _catalogue;
 
-    internal PluginComponentTestSession(ComponentWorkspace workspace, PluginToolCatalogue catalogue)
+    public PluginComponentTestSession(ComponentWorkspace workspace, PluginToolCatalogue catalogue)
     {
         _workspace = workspace;
         _catalogue = catalogue;
     }
 
-    internal ValueTask<PluginExecutionResult<TResponse>> ExecuteQueryAsync<TRequest, TResponse>(
+    public ValueTask<PluginExecutionResult<TResponse>> ExecuteQueryAsync<TRequest, TResponse>(
         string toolName,
         TRequest request,
         CancellationToken cancellationToken)
@@ -21,7 +21,7 @@ internal sealed class PluginComponentTestSession
         return tool.Accept(new QueryVisitor<TRequest, TResponse>(this, request, cancellationToken));
     }
 
-    internal ValueTask<PluginExecutionResult<MutationData>> ExecuteMutationAsync<TRequest>(
+    public ValueTask<PluginExecutionResult<MutationData>> ExecuteMutationAsync<TRequest>(
         string toolName,
         TRequest request,
         CancellationToken cancellationToken)
@@ -108,7 +108,7 @@ internal sealed class PluginComponentTestSession
         private readonly TExpectedRequest _request;
         private readonly CancellationToken _cancellationToken;
 
-        internal QueryVisitor(
+        public QueryVisitor(
             PluginComponentTestSession session,
             TExpectedRequest request,
             CancellationToken cancellationToken)
@@ -147,7 +147,7 @@ internal sealed class PluginComponentTestSession
         private readonly TExpectedRequest _request;
         private readonly CancellationToken _cancellationToken;
 
-        internal MutationVisitor(
+        public MutationVisitor(
             PluginComponentTestSession session,
             TExpectedRequest request,
             CancellationToken cancellationToken)

@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 internal static class BuiltInCodeActionProviderAssessment
 {
-    internal static IReadOnlyList<BuiltInCodeActionProviderAssessmentEntry> Entries { get; } =
+    public static IReadOnlyList<BuiltInCodeActionProviderAssessmentEntry> Entries { get; } =
     [
         CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider",

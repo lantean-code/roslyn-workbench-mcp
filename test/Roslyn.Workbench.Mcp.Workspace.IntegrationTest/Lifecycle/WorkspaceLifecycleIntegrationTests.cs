@@ -204,7 +204,8 @@ public sealed class WorkspaceLifecycleIntegrationTests
             pathComparison,
             new PhysicalPathContainment(fileSystem, pathComparison),
             workspaceStateDirectory,
-            stateDirectorySecurity);
+            stateDirectorySecurity,
+            CommitRecoveryLimits.Default);
 
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {

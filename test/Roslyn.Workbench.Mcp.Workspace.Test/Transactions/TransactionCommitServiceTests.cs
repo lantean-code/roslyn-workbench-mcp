@@ -41,6 +41,11 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(3));
+        _recoveryStore
+            .Setup(item => item.PersistPlanAsync(
+                It.IsAny<WorkspaceCommitPlan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CommitRecoveryPlanPersistenceResult.Persisted());
 
         _target = new TransactionCommitService(
             _sessionStore.Object,
@@ -53,6 +58,63 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _planner.Object,
             _lockManager.Object,
             _statusPublisher.Object);
+    }
+
+    [Fact]
+    public async Task GIVEN_RecoveryPayloadCapacityExceeded_WHEN_Committing_THEN_ShouldRejectWithoutRecovery()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("The test session must have an active transaction.");
+
+        SetupProtocol(session, plan);
+        _recoveryStore
+            .Setup(item => item.PersistPlanAsync(plan, TestContext.Current.CancellationToken))
+            .ReturnsAsync(CommitRecoveryPlanPersistenceResult.CapacityExceeded(
+                "The recovery artifact 'staged/File.bin' requires 3 bytes, exceeding the supported maximum of 2 bytes."));
+
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.CommitRecoveryCapacity,
+            "The transaction cannot be committed because its recovery data exceeds a supported size limit. Roll back this transaction and stage a smaller change. The recovery artifact 'staged/File.bin' requires 3 bytes, exceeding the supported maximum of 2 bytes.",
+            RequiredAction.RollbackTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.CommitAsync(
+            CreateSelection(session),
+            expectedSnapshot: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _statusPublisher.Verify(item => item.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            session.State,
+            transaction.CurrentRevision,
+            It.IsAny<string>(),
+            "Staging"), Times.Once);
+
+        _statusPublisher.Verify(item => item.UpdateAsync(
+            session.Workspace.WorkspaceId,
+            session.State,
+            transaction.CurrentRevision,
+            null,
+            null), Times.Once);
+
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        _commitWriter.Verify(item => item.RevalidateAsync(It.IsAny<WorkspaceCommitManifest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _commitWriter.Verify(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        _recoveryStore.Verify(item => item.WriteManifestAsync(
+            It.IsAny<WorkspaceCommitManifest>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]

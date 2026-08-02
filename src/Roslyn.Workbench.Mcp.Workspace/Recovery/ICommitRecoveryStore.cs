@@ -8,7 +8,9 @@ internal interface ICommitRecoveryStore
 
     void DeleteStatus(string commitId);
 
-    ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken);
+    ValueTask<CommitRecoveryPlanPersistenceResult> PersistPlanAsync(
+        WorkspaceCommitPlan plan,
+        CancellationToken cancellationToken);
 
     ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken);
 

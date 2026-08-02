@@ -5,7 +5,7 @@ internal sealed class MiniWorkspace : IDisposable
     private readonly AdhocWorkspace _workspace;
     private readonly IReadOnlyDictionary<string, DocumentId> _documentIdsByPath;
 
-    internal MiniWorkspace(
+    public MiniWorkspace(
         AdhocWorkspace workspace,
         Solution solution,
         IReadOnlyDictionary<string, DocumentId> documentIdsByPath)

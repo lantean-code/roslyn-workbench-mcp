@@ -7,26 +7,26 @@ internal sealed class CodeActionComponentTestSession
 {
     private readonly ComponentWorkspace _workspace;
 
-    internal CodeActionComponentTestSession(ComponentWorkspace workspace)
+    public CodeActionComponentTestSession(ComponentWorkspace workspace)
     {
         _workspace = workspace;
     }
 
-    internal ValueTask<CodeActionExecutionResult<CodeActionListData>> ListAsync(
+    public ValueTask<CodeActionExecutionResult<CodeActionListData>> ListAsync(
         ListCodeActionsRequest request,
         CancellationToken cancellationToken)
     {
         return ExecuteQueryAsync<ListCodeActionsTool, ListCodeActionsRequest, CodeActionListData>(request, cancellationToken);
     }
 
-    internal ValueTask<CodeActionExecutionResult<PrepareFixAllData>> PrepareFixAllAsync(
+    public ValueTask<CodeActionExecutionResult<PrepareFixAllData>> PrepareFixAllAsync(
         PrepareFixAllRequest request,
         CancellationToken cancellationToken)
     {
         return ExecuteQueryAsync<PrepareFixAllTool, PrepareFixAllRequest, PrepareFixAllData>(request, cancellationToken);
     }
 
-    internal ValueTask<CodeActionExecutionResult<MutationData>> StageCodeActionAsync(
+    public ValueTask<CodeActionExecutionResult<MutationData>> StageCodeActionAsync(
         StageCodeActionRequest request,
         CancellationToken cancellationToken)
     {
@@ -49,7 +49,7 @@ internal sealed class CodeActionComponentTestSession
         return await handler.ExecuteAsync(request, lease.Context, cancellationToken);
     }
 
-    internal async ValueTask<CodeActionExecutionResult<MutationData>> ExecuteMutationAsync<THandler, TRequest>(
+    public async ValueTask<CodeActionExecutionResult<MutationData>> ExecuteMutationAsync<THandler, TRequest>(
         string operationName,
         TRequest request,
         CancellationToken cancellationToken)

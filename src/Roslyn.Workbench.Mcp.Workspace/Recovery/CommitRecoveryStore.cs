@@ -290,7 +290,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
                 var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
                 if (owner is not null
-                    && owner.Version == 2
+                    && owner.Version == 1
                     && string.Equals(
                         owner.CommitId,
                         _fileSystem.Path.GetFileName(containedDirectory),
@@ -448,7 +448,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
     {
-        if (manifest.Version != 2
+        if (manifest.Version != 1
             || string.IsNullOrWhiteSpace(manifest.CommitId)
             || string.IsNullOrWhiteSpace(manifest.LoadedPath)
             || string.IsNullOrWhiteSpace(manifest.WorkspaceRoot)
@@ -511,19 +511,25 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
         return entry.Operation switch
         {
-            WorkspaceFileOperation.Create => !entry.OriginalExists
+            WorkspaceFileOperation.Create => HasValidUnixFileMode(manifest, entry, requiresMode: false)
+                && !entry.OriginalExists
                 && entry.OriginalHash is null
                 && IsValidHash(entry.IntendedHash)
                 && entry.BackupPath is null
                 && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
                 && entry.DeleteMarkerPath is null,
-            WorkspaceFileOperation.Replace => entry.OriginalExists
+            WorkspaceFileOperation.Replace => HasValidUnixFileMode(
+                    manifest,
+                    entry,
+                    requiresMode: !OperatingSystem.IsWindows())
+                && entry.OriginalExists
                 && IsValidHash(entry.OriginalHash)
                 && IsValidHash(entry.IntendedHash)
                 && HasRequiredArtifactPath(manifest.CommitId, entry.BackupPath)
                 && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
                 && entry.DeleteMarkerPath is null,
-            WorkspaceFileOperation.Delete => entry.OriginalExists
+            WorkspaceFileOperation.Delete => HasValidUnixFileMode(manifest, entry, requiresMode: false)
+                && entry.OriginalExists
                 && IsValidHash(entry.OriginalHash)
                 && entry.IntendedHash is null
                 && HasRequiredArtifactPath(manifest.CommitId, entry.BackupPath)
@@ -531,6 +537,37 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 && IsValidDeleteMarker(manifest, entry),
             _ => false,
         };
+    }
+
+    private static bool HasValidUnixFileMode(
+        WorkspaceCommitManifest manifest,
+        WorkspaceCommitEntry entry,
+        bool requiresMode)
+    {
+        if (!requiresMode)
+        {
+            return entry.OriginalUnixFileMode is null;
+        }
+
+        if (entry.OriginalUnixFileMode is not { } mode)
+        {
+            return false;
+        }
+
+        const UnixFileMode validModes = UnixFileMode.UserRead
+            | UnixFileMode.UserWrite
+            | UnixFileMode.UserExecute
+            | UnixFileMode.GroupRead
+            | UnixFileMode.GroupWrite
+            | UnixFileMode.GroupExecute
+            | UnixFileMode.OtherRead
+            | UnixFileMode.OtherWrite
+            | UnixFileMode.OtherExecute
+            | UnixFileMode.SetUser
+            | UnixFileMode.SetGroup
+            | UnixFileMode.StickyBit;
+
+        return (mode & ~validModes) == 0;
     }
 
     private bool IsValidDeleteMarker(WorkspaceCommitManifest manifest, WorkspaceCommitEntry entry)

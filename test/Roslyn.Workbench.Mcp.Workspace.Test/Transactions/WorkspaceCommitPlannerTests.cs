@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
@@ -71,6 +72,11 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _file.Setup(item => item.Exists(addedPath)).Returns(false);
         _file.Setup(item => item.ReadAllBytesAsync(changedPath, It.IsAny<CancellationToken>())).ReturnsAsync([1, 2]);
         _file.Setup(item => item.ReadAllBytesAsync(removedPath, It.IsAny<CancellationToken>())).ReturnsAsync([3, 4]);
+        var expectedMode = UnixFileMode.UserRead | UnixFileMode.UserExecute | UnixFileMode.GroupRead;
+        if (!OperatingSystem.IsWindows())
+        {
+            ConfigureUnixFileMode(changedPath, expectedMode);
+        }
 
         var result = await _target.CreateAsync("commit", "/workspace/solution.slnx", "/workspace", baseline, current, TestContext.Current.CancellationToken);
         var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
@@ -84,6 +90,9 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         plan.Artifacts["staged/000000.bin"].ToArray().Should().Equal(Encode(Encoding.Unicode, "new"));
         plan.Artifacts["staged/000001.bin"].ToArray().Should().Equal(Encode(Encoding.UTF8, "add"));
         plan.Artifacts["backup/000002.bin"].ToArray().Should().Equal(3, 4);
+        plan.Manifest.Version.Should().Be(1);
+        plan.Manifest.Entries[0].OriginalUnixFileMode.Should().Be(
+            OperatingSystem.IsWindows() ? null : expectedMode);
     }
 
     [Fact]
@@ -491,6 +500,12 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     public void Dispose()
     {
         _workspace.Dispose();
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private void ConfigureUnixFileMode(string path, UnixFileMode mode)
+    {
+        _file.Setup(item => item.GetUnixFileMode(path)).Returns(mode);
     }
 
     private static bool IsContained(string root, string path, bool allowRoot)

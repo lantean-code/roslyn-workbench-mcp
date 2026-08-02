@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
 {
+    private const UnixFileMode _replaceUnixFileMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite
+        | UnixFileMode.UserExecute
+        | UnixFileMode.GroupRead;
+
     private static readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(10);
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
     private readonly string _stateDirectory;
@@ -63,6 +68,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
 
         (await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.ReplaceOriginal);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.GetUnixFileMode(transaction.ReplacePath).Should().Be(_replaceUnixFileMode);
+        }
+
         File.Exists(transaction.CreatePath).Should().BeFalse();
         (await File.ReadAllBytesAsync(transaction.DeletePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.DeleteOriginal);
         Directory.Exists(transaction.CreatedDirectory).Should().BeFalse();
@@ -78,6 +88,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
 
         (await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.ReplaceIntended);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.GetUnixFileMode(transaction.ReplacePath).Should().Be(_replaceUnixFileMode);
+        }
+
         (await File.ReadAllBytesAsync(transaction.CreatePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.CreateIntended);
         File.Exists(transaction.DeletePath).Should().BeFalse();
         File.Exists(transaction.DeleteMarkerPath).Should().BeFalse();
@@ -111,8 +126,14 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                 It.IsAny<string>(),
                 It.IsAny<ReadOnlyMemory<byte>>(),
                 It.IsAny<AtomicFileAccess>(),
+                It.IsAny<UnixFileMode?>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((string path, ReadOnlyMemory<byte> contents, AtomicFileAccess access, CancellationToken cancellationToken) =>
+            .Returns((
+                string path,
+                ReadOnlyMemory<byte> contents,
+                AtomicFileAccess access,
+                UnixFileMode? unixFileMode,
+                CancellationToken cancellationToken) =>
             {
                 writes++;
                 if (writes == 2)
@@ -120,7 +141,12 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     return ValueTask.FromException(new IOException("Injected second-target failure."));
                 }
 
-                return _atomicWriter.WriteAllBytesAsync(path, contents, access, cancellationToken);
+                return _atomicWriter.WriteAllBytesAsync(
+                    path,
+                    contents,
+                    access,
+                    unixFileMode,
+                    cancellationToken);
             });
 
         var writer = new WorkspaceCommitWriter(
@@ -412,6 +438,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var deleteOriginal = new byte[] { 7, 6, 5, 0, 4 };
         await File.WriteAllBytesAsync(replacePath, replaceOriginal, TestContext.Current.CancellationToken);
         await File.WriteAllBytesAsync(deletePath, deleteOriginal, TestContext.Current.CancellationToken);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(replacePath, _replaceUnixFileMode);
+        }
+
         var manifest = new WorkspaceCommitManifest
         {
             CommitId = "commit",
@@ -428,6 +459,9 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     OriginalExists = true,
                     OriginalHash = Hash(replaceOriginal),
                     IntendedHash = Hash(replaceIntended),
+                    OriginalUnixFileMode = OperatingSystem.IsWindows()
+                        ? null
+                        : _replaceUnixFileMode,
                     BackupPath = "backup/replace.bin",
                     StagedPath = "staged/replace.bin",
                 },

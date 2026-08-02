@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
@@ -180,6 +181,55 @@ public sealed class AtomicFileWriterTests : IDisposable
         _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
     }
 
+    [Fact]
+    public async Task GIVEN_ExplicitUnixFileMode_WHEN_WritingBytes_THEN_ShouldCreateTemporaryFileWithThatMode()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var expectedMode = UnixFileMode.UserRead
+            | UnixFileMode.UserWrite
+            | UnixFileMode.UserExecute
+            | UnixFileMode.GroupRead;
+
+        await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.Default,
+            expectedMode,
+            TestContext.Current.CancellationToken);
+
+        _fileStreamFactory.Verify(item => item.New(
+            It.IsAny<string>(),
+            It.Is<FileStreamOptions>(options => options.UnixCreateMode == expectedMode)),
+            Times.Once);
+
+        VerifyUnixFileModeSet(expectedMode);
+    }
+
+    [Fact]
+    public async Task GIVEN_ExplicitUnixFileModeAndOwnerOnlyAccess_WHEN_WritingBytes_THEN_ShouldRejectCombination()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var action = async () => await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.OwnerOnly,
+            UnixFileMode.UserRead,
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<ArgumentException>();
+        _fileStreamFactory.Verify(
+            item => item.New(It.IsAny<string>(), It.IsAny<FileStreamOptions>()),
+            Times.Never);
+    }
+
     [Theory]
     [InlineData("missing")]
     [InlineData("delete")]
@@ -233,5 +283,13 @@ public sealed class AtomicFileWriterTests : IDisposable
         _fileStreamFactory.Verify(
             item => item.New(It.IsAny<string>(), It.IsAny<FileStreamOptions>()),
             Times.Never);
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private void VerifyUnixFileModeSet(UnixFileMode expectedMode)
+    {
+        _file.Verify(item => item.SetUnixFileMode(
+            It.Is<string>(path => path.StartsWith("/Directory/.File.txt.", StringComparison.Ordinal)),
+            expectedMode), Times.Once);
     }
 }

@@ -31,6 +31,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
             destinationPath,
             encoding.GetBytes(contents),
             access,
+            unixFileMode: null,
             cancellationToken);
     }
 
@@ -40,7 +41,27 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         AtomicFileAccess access,
         CancellationToken cancellationToken)
     {
-        return WriteAllBytesCoreAsync(destinationPath, contents, access, cancellationToken);
+        return WriteAllBytesCoreAsync(
+            destinationPath,
+            contents,
+            access,
+            unixFileMode: null,
+            cancellationToken);
+    }
+
+    public ValueTask WriteAllBytesAsync(
+        string destinationPath,
+        ReadOnlyMemory<byte> contents,
+        AtomicFileAccess access,
+        UnixFileMode? unixFileMode,
+        CancellationToken cancellationToken)
+    {
+        return WriteAllBytesCoreAsync(
+            destinationPath,
+            contents,
+            access,
+            unixFileMode,
+            cancellationToken);
     }
 
     [SuppressMessage(
@@ -51,12 +72,25 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         string destinationPath,
         ReadOnlyMemory<byte> contents,
         AtomicFileAccess access,
+        UnixFileMode? unixFileMode,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         if (access is not AtomicFileAccess.Default and not AtomicFileAccess.OwnerOnly)
         {
             throw new ArgumentOutOfRangeException(nameof(access), access, "The atomic file access policy is not supported.");
+        }
+
+        if (unixFileMode is not null && OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Unix file permissions cannot be applied on Windows.");
+        }
+
+        if (unixFileMode is not null && access == AtomicFileAccess.OwnerOnly)
+        {
+            throw new ArgumentException(
+                "Explicit Unix file permissions cannot be combined with owner-only access.",
+                nameof(unixFileMode));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -78,13 +112,22 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                 Share = FileShare.None,
             };
 
-            if (access == AtomicFileAccess.OwnerOnly && !OperatingSystem.IsWindows())
+            if (unixFileMode is not null)
+            {
+                options.UnixCreateMode = unixFileMode;
+            }
+            else if (access == AtomicFileAccess.OwnerOnly && !OperatingSystem.IsWindows())
             {
                 options.UnixCreateMode = _ownerOnlyFileMode;
             }
 
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))
             {
+                if (unixFileMode is { } exactUnixFileMode)
+                {
+                    _fileSystem.File.SetUnixFileMode(temporaryPath, exactUnixFileMode);
+                }
+
                 await stream.WriteAsync(contents, cancellationToken);
                 await stream.FlushAsync(cancellationToken);
                 stream.Flush(flushToDisk: true);

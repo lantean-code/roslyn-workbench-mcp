@@ -90,6 +90,85 @@ public sealed class AtomicFileWriterIntegrationTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ExistingUnixDestination_WHEN_ReplacingWithExplicitMode_THEN_ShouldPreserveMode()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directoryPath = Path.Combine(
+            Path.GetTempPath(),
+            "roslyn-workbench-mcp-atomic-writer-tests",
+            Guid.NewGuid().ToString("n"));
+
+        var destinationPath = Path.Combine(directoryPath, "Executable.sh");
+        var expectedMode = UnixFileMode.UserRead
+            | UnixFileMode.UserWrite
+            | UnixFileMode.UserExecute
+            | UnixFileMode.GroupRead;
+
+        Directory.CreateDirectory(directoryPath);
+        await File.WriteAllBytesAsync(destinationPath, [0x00], TestContext.Current.CancellationToken);
+        File.SetUnixFileMode(destinationPath, expectedMode);
+        var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
+
+        try
+        {
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                new byte[] { 0x01 },
+                AtomicFileAccess.Default,
+                expectedMode,
+                TestContext.Current.CancellationToken);
+
+            File.GetUnixFileMode(destinationPath).Should().Be(expectedMode);
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ExistingWindowsDestination_WHEN_Replacing_THEN_ShouldPreserveCreationTime()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directoryPath = Path.Combine(
+            Path.GetTempPath(),
+            "roslyn-workbench-mcp-atomic-writer-tests",
+            Guid.NewGuid().ToString("n"));
+
+        var destinationPath = Path.Combine(directoryPath, "Source.cs");
+        var expectedCreationTime = new DateTime(2020, 1, 2, 3, 4, 6, DateTimeKind.Utc);
+        Directory.CreateDirectory(directoryPath);
+        await File.WriteAllBytesAsync(destinationPath, [0x00], TestContext.Current.CancellationToken);
+        File.SetCreationTimeUtc(destinationPath, expectedCreationTime);
+        var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
+
+        try
+        {
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                new byte[] { 0x01 },
+                AtomicFileAccess.Default,
+                TestContext.Current.CancellationToken);
+
+            File.GetCreationTimeUtc(destinationPath).Should().Be(expectedCreationTime);
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_TemporaryPathExceedsWindowsMaxPath_WHEN_WritingAtomically_THEN_ShouldReplaceExactBytes()
     {
         var rootDirectoryPath = Path.Combine(

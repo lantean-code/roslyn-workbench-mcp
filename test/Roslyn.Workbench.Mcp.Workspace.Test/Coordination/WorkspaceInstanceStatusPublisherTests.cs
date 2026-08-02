@@ -551,9 +551,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     {
         var statuses = new Dictionary<string, WorkspaceInstanceStatus>
         {
-            ["/workspace/b.json"] = CreateStatus("b-instance", "/workspace", 2),
-            ["/workspace/a.json"] = CreateStatus("a-instance", "/WORKSPACE", 2),
-            ["/workspace/legacy.json"] = CreateStatus("legacy-instance", "/workspace", 1),
+            ["/workspace/b.json"] = CreateStatus("b-instance", "/workspace", 1),
+            ["/workspace/a.json"] = CreateStatus("a-instance", "/WORKSPACE", 1),
+            ["/workspace/unsupported.json"] = CreateStatus("unsupported-instance", "/workspace", 2),
         };
 
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.OrdinalIgnoreCase);

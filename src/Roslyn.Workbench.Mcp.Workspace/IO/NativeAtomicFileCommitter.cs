@@ -21,11 +21,18 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 
         if (OperatingSystem.IsWindows())
         {
-            MoveWindows(
-                temporaryPath,
-                destinationPath,
-                _moveFileReplaceExisting | _moveFileWriteThrough,
-                $"The atomic replacement of '{destinationPath}' failed.");
+            if (File.Exists(destinationPath))
+            {
+                ReplaceWindows(temporaryPath, destinationPath);
+            }
+            else
+            {
+                MoveWindows(
+                    temporaryPath,
+                    destinationPath,
+                    _moveFileReplaceExisting | _moveFileWriteThrough,
+                    $"The atomic creation of '{destinationPath}' failed.");
+            }
 
             return;
         }
@@ -60,6 +67,25 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         if (MoveFileEx(extendedSourcePath, extendedDestinationPath, flags) == 0)
         {
             throw new IOException(failureMessage, new Win32Exception(Marshal.GetLastPInvokeError()));
+        }
+    }
+
+    private static void ReplaceWindows(string replacementPath, string destinationPath)
+    {
+        var extendedReplacementPath = GetExtendedWindowsPath(replacementPath);
+        var extendedDestinationPath = GetExtendedWindowsPath(destinationPath);
+
+        if (ReplaceFile(
+            extendedDestinationPath,
+            extendedReplacementPath,
+            backupFileName: null,
+            replaceFlags: 0,
+            exclude: 0,
+            reserved: 0) == 0)
+        {
+            throw new IOException(
+                $"The atomic replacement of '{destinationPath}' failed.",
+                new Win32Exception(Marshal.GetLastPInvokeError()));
         }
     }
 
@@ -130,6 +156,16 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("kernel32", EntryPoint = "MoveFileExW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
     private static partial int MoveFileEx(string existingFileName, string newFileName, uint flags);
+
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [LibraryImport("kernel32", EntryPoint = "ReplaceFileW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+    private static partial int ReplaceFile(
+        string replacedFileName,
+        string replacementFileName,
+        string? backupFileName,
+        uint replaceFlags,
+        nint exclude,
+        nint reserved);
 
     [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
     [LibraryImport("libc", EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]

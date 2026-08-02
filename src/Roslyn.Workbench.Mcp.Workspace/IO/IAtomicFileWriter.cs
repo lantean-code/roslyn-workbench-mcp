@@ -10,6 +10,13 @@ internal interface IAtomicFileWriter
         AtomicFileAccess access,
         CancellationToken cancellationToken);
 
+    ValueTask WriteAllBytesAsync(
+        string destinationPath,
+        ReadOnlyMemory<byte> contents,
+        AtomicFileAccess access,
+        UnixFileMode? unixFileMode,
+        CancellationToken cancellationToken);
+
     ValueTask WriteAllTextAsync(
         string destinationPath,
         string contents,

@@ -3,6 +3,10 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 public sealed class DurableMutationIntegrationTests
 {
     private const int _refactoringKind = 2;
+    private const UnixFileMode _preservedUnixFileMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite
+        | UnixFileMode.UserExecute
+        | UnixFileMode.GroupRead;
 
     [Fact]
     public async Task GIVEN_DiscoveredCreateAndReplaceCodeAction_WHEN_CommittingAndRestarting_THEN_ShouldPromoteCleanDurableState()
@@ -88,6 +92,56 @@ public sealed class DurableMutationIntegrationTests
             var reopenedWorkspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
             var searchResult = await SearchSymbolsAsync(target, reopenedWorkspace.CreateSelector(), "AlphaCycle");
             GetSymbolItems(searchResult).Should().ContainSingle();
+            await AssertNoRecoveryAsync(target);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_UnixSourceWithDistinctivePermissions_WHEN_PublishedHostCommitsRename_THEN_ShouldPreservePermissions()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken);
+
+        try
+        {
+            var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+            File.SetUnixFileMode(documentPath, _preservedUnixFileMode);
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
+
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+            var renameResult = await RenameAsync(
+                target,
+                workspaceSelector,
+                "T:Sample.Class1",
+                "PermissionPreservedClass",
+                workspace.CreateSnapshot(transactionRevision: 0));
+
+            renameResult.IsError.Should().NotBeTrue();
+            var commitResult = await CommitAsync(
+                target,
+                workspaceSelector,
+                workspace.CreateSnapshot(transactionRevision: 1));
+
+            commitResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
+            (await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken))
+                .Should()
+                .Contain("PermissionPreservedClass");
+
+            File.GetUnixFileMode(documentPath).Should().Be(_preservedUnixFileMode);
             await AssertNoRecoveryAsync(target);
         }
         catch

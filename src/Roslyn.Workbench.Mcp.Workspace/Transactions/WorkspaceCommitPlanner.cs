@@ -190,6 +190,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken)
             : null;
 
+        UnixFileMode? originalUnixFileMode = operation == WorkspaceFileOperation.Replace && !OperatingSystem.IsWindows()
+            ? _fileSystem.File.GetUnixFileMode(path)
+            : null;
+
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
         var stagedPath = $"staged/{artifactIndex}.bin";
@@ -208,6 +212,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             OriginalExists = originalExists,
             OriginalHash = originalContents is null ? null : Hash(originalContents),
             IntendedHash = intendedHash,
+            OriginalUnixFileMode = originalUnixFileMode,
             BackupPath = backupPath,
             StagedPath = stagedPath,
         };

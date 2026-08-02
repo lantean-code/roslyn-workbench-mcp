@@ -456,7 +456,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
     private bool IsValidStatus(WorkspaceInstanceStatus status, string canonicalWorkspaceRoot)
     {
-        return status.Version == 2
+        return status.Version == 1
             && string.Equals(
                 status.WorkspaceRoot,
                 canonicalWorkspaceRoot,

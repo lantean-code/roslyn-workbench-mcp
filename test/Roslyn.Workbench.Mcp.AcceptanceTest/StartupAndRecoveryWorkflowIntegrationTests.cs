@@ -45,7 +45,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                 JsonSerializer.Serialize(
                     new
                     {
-                        version = 2,
+                        version = 1,
                         commitId,
                         loadedPath,
                         workspaceRoot = target.WorkspaceRoot,

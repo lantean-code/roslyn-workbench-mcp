@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 internal sealed record WorkspaceInstanceStatus
 {
-    public int Version { get; init; } = 2;
+    public int Version { get; init; } = 1;
 
     public required string InstanceId { get; init; }
 

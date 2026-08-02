@@ -452,6 +452,32 @@ public sealed class CommitRecoveryStoreTests
         result.Should().ContainSingle().Which.CommitId.Should().Be("CommitId");
     }
 
+    [Fact]
+    public async Task GIVEN_VersionThreeUnixReplacementWithoutMode_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var manifest = CreateManifest() with
+        {
+            Entries = [CreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = null }],
+        };
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -565,6 +591,8 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("replaceBackupMissing")]
     [InlineData("replaceStagedMissing")]
     [InlineData("replaceMarker")]
+    [InlineData("replaceModeInvalid")]
+    [InlineData("createMode")]
     [InlineData("deleteOriginalExists")]
     [InlineData("deleteOriginalHash")]
     [InlineData("deleteIntendedHash")]
@@ -733,7 +761,7 @@ public sealed class CommitRecoveryStoreTests
             CommitId = scenario == "commit" ? "OtherCommitId" : "CommitId",
             LoadedPath = scenario == "loaded" ? "Workspace.sln" : "/Workspace/Workspace.sln",
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
-            Version = scenario == "version" ? 1 : 2,
+            Version = scenario == "version" ? 2 : 1,
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -773,7 +801,7 @@ public sealed class CommitRecoveryStoreTests
             CommitId = scenario == "commit" ? "OtherCommitId" : "CommitId",
             LoadedPath = scenario == "loaded" ? "Workspace.sln" : "/Workspace/Workspace.sln",
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
-            Version = scenario == "version" ? 1 : 2,
+            Version = scenario == "version" ? 2 : 1,
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -876,7 +904,7 @@ public sealed class CommitRecoveryStoreTests
         var manifest = CreateManifest();
         return scenario switch
         {
-            "version" => manifest with { Version = 1 },
+            "version" => manifest with { Version = 2 },
             "commit" => manifest with { CommitId = "OtherCommitId" },
             "loaded" => manifest with { LoadedPath = "Workspace.sln" },
             "root" => manifest with { WorkspaceRoot = "Workspace" },
@@ -911,6 +939,8 @@ public sealed class CommitRecoveryStoreTests
             "replaceBackupMissing" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = null }], },
             "replaceStagedMissing" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = null }], },
             "replaceMarker" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/File.cs.CommitId.delete" }], },
+            "replaceModeInvalid" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = (UnixFileMode)(1 << 20) }], },
+            "createMode" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = UnixFileMode.UserRead }], },
             "deleteOriginalExists" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalExists = false }], },
             "deleteOriginalHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalHash = null }], },
             "deleteIntendedHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { IntendedHash = new string('B', 64) }], },
@@ -960,6 +990,9 @@ public sealed class CommitRecoveryStoreTests
             IntendedHash = new string('B', 64),
             BackupPath = "backup/File.bin",
             StagedPath = "staged/File.bin",
+            OriginalUnixFileMode = OperatingSystem.IsWindows()
+                ? null
+                : UnixFileMode.UserRead | UnixFileMode.UserWrite,
         };
     }
 

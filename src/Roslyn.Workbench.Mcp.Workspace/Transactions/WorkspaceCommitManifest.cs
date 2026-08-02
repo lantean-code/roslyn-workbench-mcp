@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed record WorkspaceCommitManifest
 {
-    public int Version { get; init; } = 2;
+    public int Version { get; init; } = 1;
 
     public required string CommitId { get; init; }
 

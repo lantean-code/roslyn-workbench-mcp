@@ -175,7 +175,9 @@ public sealed class WorkspaceTransactionIntegrationTests
         using var pristineFixture = TestWorkspaceFixture.Create();
         var pristineDocumentBytes = await File.ReadAllBytesAsync(pristineFixture.DocumentPath, TestContext.Current.CancellationToken);
 
-        commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        commit.Status.Should().Be(
+            WorkspaceOperationStatus.Succeeded,
+            commit.Error?.Message);
         commit.Data!.Committed.Should().BeTrue();
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         text.Should().Contain("TransactionMarker");

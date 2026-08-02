@@ -12,6 +12,8 @@ internal sealed record WorkspaceCommitEntry
 
     public string? IntendedHash { get; init; }
 
+    public UnixFileMode? OriginalUnixFileMode { get; init; }
+
     public string? BackupPath { get; init; }
 
     public string? StagedPath { get; init; }

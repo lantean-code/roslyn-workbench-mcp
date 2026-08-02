@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
@@ -5,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class WorkspaceCommitWriterTests
 {
+    private const UnixFileMode _originalUnixFileMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite
+        | UnixFileMode.UserExecute
+        | UnixFileMode.GroupRead;
+
     private readonly Mock<IFileSystem> _fileSystem = new();
     private readonly Mock<IFile> _file = new();
     private readonly Mock<IDirectory> _directory = new();
@@ -21,6 +27,11 @@ public sealed class WorkspaceCommitWriterTests
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns("/workspace");
+        if (!OperatingSystem.IsWindows())
+        {
+            ConfigureUnixFileMode(_originalUnixFileMode);
+        }
+
         _pathContainment
             .Setup(item => item.TryGetStrictlyContainedPath(
                 It.IsAny<string>(),
@@ -89,6 +100,28 @@ public sealed class WorkspaceCommitWriterTests
 
         result.IsValid.Should().BeFalse();
         result.ErrorMessage.Should().Contain("changed before commit application");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnixPermissionsChanged_WHEN_Revalidating_THEN_ShouldRejectCommit()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var original = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, Hash(original), "INTENDED");
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, It.IsAny<CancellationToken>())).ReturnsAsync(original);
+        ConfigureUnixFileMode(entry.TargetPath, UnixFileMode.UserRead);
+
+        var result = await _target.RevalidateAsync(
+            CreateManifest(entry),
+            TestContext.Current.CancellationToken);
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("permissions");
     }
 
     [Fact]
@@ -203,6 +236,26 @@ public sealed class WorkspaceCommitWriterTests
     }
 
     [Fact]
+    public async Task GIVEN_AppliedReplacementPermissionsDrift_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var intended = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, "ORIGINAL", Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
+        ConfigureUnixFileMode(entry.TargetPath, UnixFileMode.UserRead);
+
+        var result = await _target.ValidateAppliedStateAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("permissions");
+    }
+
+    [Fact]
     public async Task GIVEN_TargetPhysicallyEscapesWorkspace_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit()
     {
         var entry = CreateEntry(WorkspaceFileOperation.Create, null, "INTENDED");
@@ -251,12 +304,14 @@ public sealed class WorkspaceCommitWriterTests
             "/workspace/a.cs",
             It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 1),
             AtomicFileAccess.Default,
+            null,
             CancellationToken.None), Times.Once);
 
         _atomicWriter.Verify(item => item.WriteAllBytesAsync(
             "/workspace/b.cs",
             It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 2),
             AtomicFileAccess.Default,
+            OperatingSystem.IsWindows() ? null : _originalUnixFileMode,
             CancellationToken.None), Times.Once);
         _fileCommitter.Verify(item => item.Move("/workspace/d.cs", "/workspace/d.cs.delete"), Times.Once);
     }
@@ -295,6 +350,7 @@ public sealed class WorkspaceCommitWriterTests
                 It.IsAny<string>(),
                 It.IsAny<ReadOnlyMemory<byte>>(),
                 It.IsAny<AtomicFileAccess>(),
+                It.IsAny<UnixFileMode?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -324,6 +380,7 @@ public sealed class WorkspaceCommitWriterTests
             "/workspace/b.cs",
             It.IsAny<ReadOnlyMemory<byte>>(),
             AtomicFileAccess.Default,
+            OperatingSystem.IsWindows() ? null : _originalUnixFileMode,
             CancellationToken.None), Times.Once);
         _file.Verify(item => item.Delete("/workspace/a.cs"), Times.Once);
         _directory.Verify(item => item.Delete("/workspace/new"), Times.Once);
@@ -444,6 +501,31 @@ public sealed class WorkspaceCommitWriterTests
         await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
+    [Fact]
+    public async Task GIVEN_AppliedReplacementPermissionsDrift_WHEN_Restoring_THEN_ShouldPreserveTargetAndReportConflict()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var intended = new byte[] { 8 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, "ORIGINAL", Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
+        ConfigureUnixFileMode(entry.TargetPath, UnixFileMode.UserRead);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _atomicWriter.Verify(item => item.WriteAllBytesAsync(
+            It.IsAny<string>(),
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<AtomicFileAccess>(),
+            It.IsAny<UnixFileMode?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Theory]
     [InlineData("missing")]
     [InlineData("nonempty")]
@@ -526,6 +608,18 @@ public sealed class WorkspaceCommitWriterTests
         };
     }
 
+    [UnsupportedOSPlatform("windows")]
+    private void ConfigureUnixFileMode(UnixFileMode mode)
+    {
+        _file.Setup(item => item.GetUnixFileMode(It.IsAny<string>())).Returns(mode);
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private void ConfigureUnixFileMode(string path, UnixFileMode mode)
+    {
+        _file.Setup(item => item.GetUnixFileMode(path)).Returns(mode);
+    }
+
     private static WorkspaceCommitEntry CreateEntry(
         WorkspaceFileOperation operation,
         string? originalHash,
@@ -541,6 +635,9 @@ public sealed class WorkspaceCommitWriterTests
             OriginalExists = operation != WorkspaceFileOperation.Create,
             OriginalHash = originalHash,
             IntendedHash = intendedHash,
+            OriginalUnixFileMode = operation == WorkspaceFileOperation.Replace && !OperatingSystem.IsWindows()
+                ? _originalUnixFileMode
+                : null,
             StagedPath = staged,
             BackupPath = backup,
             DeleteMarkerPath = operation == WorkspaceFileOperation.Delete ? $"{target}.delete" : null,

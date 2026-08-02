@@ -73,6 +73,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         entry.TargetPath,
                         contents,
                         AtomicFileAccess.Default,
+                        GetOriginalUnixFileMode(entry),
                         CancellationToken.None);
                     break;
 
@@ -134,6 +135,12 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             {
                 return WorkspaceCommitValidationResult.Invalid(
                     $"The target '{entry.TargetPath}' changed after commit application.");
+            }
+
+            if (!HasExpectedUnixFileMode(entry))
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The permissions for target '{entry.TargetPath}' changed after commit application.");
             }
         }
 
@@ -214,12 +221,18 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         continue;
                     }
 
-                    if (exists && string.Equals(currentHash, entry.OriginalHash, StringComparison.Ordinal))
+                    var hasOriginalContents = exists
+                        && string.Equals(currentHash, entry.OriginalHash, StringComparison.Ordinal);
+
+                    if (hasOriginalContents && HasExpectedUnixFileMode(entry))
                     {
                         continue;
                     }
 
-                    var isApplied = exists && string.Equals(currentHash, entry.IntendedHash, StringComparison.Ordinal);
+                    var isApplied = exists
+                        && string.Equals(currentHash, entry.IntendedHash, StringComparison.Ordinal)
+                        && HasExpectedUnixFileMode(entry);
+
                     if (!isApplied)
                     {
                         conflict = true;
@@ -235,6 +248,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         entry.TargetPath,
                         backup,
                         AtomicFileAccess.Default,
+                        GetOriginalUnixFileMode(entry),
                         CancellationToken.None);
                 }
                 else if (exists)
@@ -310,13 +324,20 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 $"The target '{entry.TargetPath}' changed before commit application.");
         }
 
-        if (entry.OriginalExists && !string.Equals(
-            await HashFileAsync(entry.TargetPath, cancellationToken),
-            entry.OriginalHash,
-            StringComparison.Ordinal))
+        if (entry.OriginalExists)
         {
-            return WorkspaceCommitValidationResult.Invalid(
-                $"The target '{entry.TargetPath}' changed before commit application.");
+            var currentHash = await HashFileAsync(entry.TargetPath, cancellationToken);
+            if (!string.Equals(currentHash, entry.OriginalHash, StringComparison.Ordinal))
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The target '{entry.TargetPath}' changed before commit application.");
+            }
+
+            if (!HasExpectedUnixFileMode(entry))
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The permissions for target '{entry.TargetPath}' changed before commit application.");
+            }
         }
 
         return WorkspaceCommitValidationResult.Valid();
@@ -337,5 +358,24 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 manifest.WorkspaceRoot,
                 entry.DeleteMarkerPath,
                 out _);
+    }
+
+    private bool HasExpectedUnixFileMode(WorkspaceCommitEntry entry)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        var expectedMode = GetOriginalUnixFileMode(entry);
+        return expectedMode is null
+            || _fileSystem.File.GetUnixFileMode(entry.TargetPath) == expectedMode;
+    }
+
+    private static UnixFileMode? GetOriginalUnixFileMode(WorkspaceCommitEntry entry)
+    {
+        return !OperatingSystem.IsWindows()
+            ? entry.OriginalUnixFileMode
+            : null;
     }
 }

@@ -37,10 +37,7 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             _cacheComponentIdentity);
 
         var cacheKey = new ProjectTargetFrameworkCacheKey(projectPath);
-        var result = cacheScope.GetOrCreateProjected<
-            ProjectTargetFrameworkCacheKey,
-            ProjectTargetFrameworkCacheEntry,
-            ProjectTargetFrameworksResult>(
+        var result = cacheScope.GetOrCreateProjected(
             cacheKey,
             factoryCancellationToken =>
             {
@@ -107,7 +104,10 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             .Select(static miss => miss.Project)
             .ToArray();
 
-        var evaluatedResults = _projectStructureService.GetTargetFrameworks(projectsToEvaluate);
+        var evaluatedResults = _projectStructureService.GetTargetFrameworks(
+            projectsToEvaluate,
+            cancellationToken);
+
         cancellationToken.ThrowIfCancellationRequested();
 
         for (var index = 0; index < cacheMisses.Count; index++)

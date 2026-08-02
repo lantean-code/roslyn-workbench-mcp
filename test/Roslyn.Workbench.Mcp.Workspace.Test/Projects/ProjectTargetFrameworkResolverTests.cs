@@ -201,7 +201,8 @@ public sealed class ProjectTargetFrameworkResolverTests
                 It.Is<IReadOnlyList<Project>>(items =>
                     items.Count == 2
                     && items[0] == firstMiss
-                    && items[1] == secondMiss)))
+                    && items[1] == secondMiss),
+                TestContext.Current.CancellationToken))
             .Returns(evaluatedResults);
 
         var target = new ProjectTargetFrameworkResolver(
@@ -216,6 +217,13 @@ public sealed class ProjectTargetFrameworkResolverTests
         results[0].TargetFrameworks.Should().Equal("net8.0");
         results[1].TargetFrameworks.Should().Equal("net9.0");
         results[2].TargetFrameworks.Should().Equal("net10.0");
+        projectStructureService.Verify(item => item.GetTargetFrameworks(
+            It.Is<IReadOnlyList<Project>>(items =>
+                items.Count == 2
+                && items[0] == firstMiss
+                && items[1] == secondMiss),
+            TestContext.Current.CancellationToken), Times.Once);
+
         projectStructureService.Verify(
             item => item.GetTargetFrameworks(It.IsAny<Project>()),
             Times.Never);
@@ -259,7 +267,9 @@ public sealed class ProjectTargetFrameworkResolverTests
             .Returns(false);
 
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+            .Setup(item => item.GetTargetFrameworks(
+                It.IsAny<IReadOnlyList<Project>>(),
+                TestContext.Current.CancellationToken))
             .Returns(evaluatedResults);
 
         var target = new ProjectTargetFrameworkResolver(
@@ -314,7 +324,9 @@ public sealed class ProjectTargetFrameworkResolverTests
         results.Should().ContainSingle()
             .Which.TargetFrameworks.Should().Equal("net10.0");
         projectStructureService.Verify(
-            item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()),
+            item => item.GetTargetFrameworks(
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

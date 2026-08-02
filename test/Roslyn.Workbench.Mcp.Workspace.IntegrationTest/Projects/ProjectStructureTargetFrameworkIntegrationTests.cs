@@ -156,7 +156,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
                 pathlessProject,
                 sharedProjectB,
                 otherProject,
-            ]);
+            ], TestContext.Current.CancellationToken);
 
             results.Should().HaveCount(4);
             results[0].TargetFrameworks.Should().Equal("net10.0");
@@ -168,6 +168,24 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
         {
             DeleteDirectory(directoryPath);
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_CancelledToken_WHEN_GettingBatchTargetFrameworks_THEN_ShouldCancelBeforeEvaluation()
+    {
+        using var workspace = new AdhocWorkspace();
+        var target = CreateTarget();
+        var project = AddProject(workspace, "Project", "Project.csproj");
+        Project[] projects = [project];
+        using var cancellationSource = new CancellationTokenSource();
+        var cancellationToken = cancellationSource.Token;
+        cancellationSource.Cancel();
+
+        var action = () => target.GetTargetFrameworks(projects, cancellationToken);
+
+        action.Should().Throw<OperationCanceledException>()
+            .Where(exception => exception.CancellationToken == cancellationToken);
     }
 
     private static Project AddProject(AdhocWorkspace workspace, string name, string? filePath)

@@ -23,7 +23,7 @@ internal sealed class ProjectStructureService : IProjectStructureService
         using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
         try
         {
-            return GetTargetFrameworks(projectPath, projectCollection);
+            return EvaluateProjectTargetFrameworks(projectPath, projectCollection);
         }
         finally
         {
@@ -31,8 +31,12 @@ internal sealed class ProjectStructureService : IProjectStructureService
         }
     }
 
-    public IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(IReadOnlyList<Project> projects)
+    public IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(
+        IReadOnlyList<Project> projects,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var results = new ProjectTargetFrameworksResult[projects.Count];
         var resultsByPath = new Dictionary<string, ProjectTargetFrameworksResult>(StringComparer.Ordinal);
         using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
@@ -41,7 +45,10 @@ internal sealed class ProjectStructureService : IProjectStructureService
         {
             for (var index = 0; index < projects.Count; index++)
             {
-                var projectPath = projects[index].FilePath;
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var project = projects[index];
+                var projectPath = project.FilePath;
                 if (string.IsNullOrWhiteSpace(projectPath))
                 {
                     results[index] = ProjectTargetFrameworksResult.Succeeded();
@@ -50,61 +57,21 @@ internal sealed class ProjectStructureService : IProjectStructureService
 
                 if (!resultsByPath.TryGetValue(projectPath, out var result))
                 {
-                    result = GetTargetFrameworks(projectPath, projectCollection);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    result = EvaluateProjectTargetFrameworks(projectPath, projectCollection);
+                    cancellationToken.ThrowIfCancellationRequested();
                     resultsByPath.Add(projectPath, result);
                 }
 
                 results[index] = result;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return results;
         }
         finally
         {
             projectCollection.UnloadAllProjects();
-        }
-    }
-
-    private static ProjectTargetFrameworksResult GetTargetFrameworks(
-        string? projectPath,
-        Microsoft.Build.Evaluation.ProjectCollection projectCollection)
-    {
-        if (string.IsNullOrWhiteSpace(projectPath))
-        {
-            return ProjectTargetFrameworksResult.Succeeded();
-        }
-
-        if (!File.Exists(projectPath))
-        {
-            return ProjectTargetFrameworksResult.Failed(
-                $"Could not evaluate target frameworks because project file '{projectPath}' does not exist.");
-        }
-
-        try
-        {
-            var project = projectCollection.LoadProject(projectPath);
-            var multipleTargetFrameworks = project.GetPropertyValue("TargetFrameworks");
-            if (!string.IsNullOrWhiteSpace(multipleTargetFrameworks))
-            {
-                var evaluatedMultipleTargetFrameworks = multipleTargetFrameworks
-                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Where(static value => !string.IsNullOrWhiteSpace(value))
-                    .ToArray();
-
-                return ProjectTargetFrameworksResult.Succeeded(evaluatedMultipleTargetFrameworks);
-            }
-
-            var singleTargetFramework = project.GetPropertyValue("TargetFramework");
-            var evaluatedSingleTargetFramework = string.IsNullOrWhiteSpace(singleTargetFramework)
-                ? []
-                : new[] { singleTargetFramework.Trim() };
-
-            return ProjectTargetFrameworksResult.Succeeded(evaluatedSingleTargetFramework);
-        }
-        catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
-        {
-            return ProjectTargetFrameworksResult.Failed(
-                $"Could not evaluate target frameworks for '{projectPath}': {exception.Message}");
         }
     }
 
@@ -181,6 +148,49 @@ internal sealed class ProjectStructureService : IProjectStructureService
         {
             return SolutionHierarchyResult.Failed(
                 $"Could not load solution hierarchy for '{loadedPath}': {exception.Message}");
+        }
+    }
+
+    private static ProjectTargetFrameworksResult EvaluateProjectTargetFrameworks(
+        string? projectPath,
+        Microsoft.Build.Evaluation.ProjectCollection projectCollection)
+    {
+        if (string.IsNullOrWhiteSpace(projectPath))
+        {
+            return ProjectTargetFrameworksResult.Succeeded();
+        }
+
+        if (!File.Exists(projectPath))
+        {
+            return ProjectTargetFrameworksResult.Failed(
+                $"Could not evaluate target frameworks because project file '{projectPath}' does not exist.");
+        }
+
+        try
+        {
+            var project = projectCollection.LoadProject(projectPath);
+            var multipleTargetFrameworks = project.GetPropertyValue("TargetFrameworks");
+            if (!string.IsNullOrWhiteSpace(multipleTargetFrameworks))
+            {
+                var evaluatedMultipleTargetFrameworks = multipleTargetFrameworks
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(static value => !string.IsNullOrWhiteSpace(value))
+                    .ToArray();
+
+                return ProjectTargetFrameworksResult.Succeeded(evaluatedMultipleTargetFrameworks);
+            }
+
+            var singleTargetFramework = project.GetPropertyValue("TargetFramework");
+            var evaluatedSingleTargetFramework = string.IsNullOrWhiteSpace(singleTargetFramework)
+                ? []
+                : new[] { singleTargetFramework.Trim() };
+
+            return ProjectTargetFrameworksResult.Succeeded(evaluatedSingleTargetFramework);
+        }
+        catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
+        {
+            return ProjectTargetFrameworksResult.Failed(
+                $"Could not evaluate target frameworks for '{projectPath}': {exception.Message}");
         }
     }
 

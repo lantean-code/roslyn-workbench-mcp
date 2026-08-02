@@ -25,8 +25,11 @@ public interface IProjectStructureService
     /// Gets the target frameworks declared by the supplied projects using one request-scoped evaluation batch.
     /// </summary>
     /// <param name="projects">The projects, in result order.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The target-framework evaluation results in the same order as <paramref name="projects"/>.</returns>
-    IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(IReadOnlyList<Project> projects);
+    IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(
+        IReadOnlyList<Project> projects,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Loads solution-folder hierarchy and project membership information for the supplied workspace.

@@ -10,7 +10,7 @@ internal static class ToolSchemaBuilder
         JsonElement errorSchema,
         JsonElement nextSchema)
     {
-        var successSchema = CreateSuccessSchema(ParseNode(valueSchema));
+        var successSchema = CreateNullableSuccessSchema(valueSchema);
         return CreateResponseSchema(successSchema, [valueSchema], errorSchema, nextSchema);
     }
 
@@ -135,6 +135,11 @@ internal static class ToolSchemaBuilder
         {
             ["type"] = allowedTypes,
         };
+    }
+
+    public static JsonObject CreateNullableSuccessSchema(JsonElement dataSchema)
+    {
+        return CreateSuccessSchema(AllowNull(dataSchema));
     }
 
     public static JsonElement NormalizeExportedSchema(JsonElement schemaNode, JsonElement root)

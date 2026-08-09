@@ -344,6 +344,28 @@ public sealed class ToolSchemaFactoryIntegrationTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_FullOutputSchemas_WHEN_ExportingResponseContracts_THEN_ShouldMatchSupportedDataNullability()
+    {
+        var target = CreateTarget();
+
+        var directSchema = target.CreateDirectOutputSchema(typeof(SolutionStructureData));
+        var querySchema = target.CreateOutputSchema(PublishedToolKind.Query, typeof(SolutionStructureData));
+        var mutationSchema = target.CreateOutputSchema(PublishedToolKind.Mutation, typeof(MutationData));
+
+        var directData = GetSuccessDataSchema(directSchema);
+        var queryData = GetSuccessDataSchema(querySchema);
+        var mutationData = GetSuccessDataSchema(mutationSchema);
+
+        AllowsNull(directData).Should().BeTrue();
+        AllowsNull(queryData).Should().BeTrue();
+        AllowsNull(mutationData).Should().BeFalse();
+        directData.GetRawText().Should().ContainAll("folders", "projects");
+        queryData.GetRawText().Should().ContainAll("folders", "projects");
+        mutationData.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
+    }
+
     private static ToolSchemaFactory CreateTarget()
     {
         var schemaProvider = new McpSdkSchemaProvider();
@@ -445,5 +467,20 @@ public sealed class ToolSchemaFactoryIntegrationTests
     private static JsonElement GetProperty(JsonElement schema, string propertyName)
     {
         return schema.GetProperty("properties").GetProperty(propertyName);
+    }
+
+    private static JsonElement GetSuccessDataSchema(JsonElement schema)
+    {
+        var successSchema = schema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(static candidate => candidate.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+
+        successSchema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Contain("data");
+
+        return successSchema.GetProperty("properties").GetProperty("data");
     }
 }

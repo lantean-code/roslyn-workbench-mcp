@@ -52,7 +52,9 @@ public sealed class ToolSchemaFactoryTests
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
-        successVariant.GetProperty("properties").GetProperty("data").GetRawText().Should().Contain("value");
+        var dataSchema = successVariant.GetProperty("properties").GetProperty("data");
+        dataSchema.GetRawText().Should().Contain("value");
+        AllowsNull(dataSchema).Should().BeTrue();
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);
         _schemaProvider.Verify(item => item.GetValueSchema<ToolError>(), Times.Once);
         _schemaProvider.Verify(item => item.GetValueSchema<RequiredAction>(), Times.Once);
@@ -71,7 +73,9 @@ public sealed class ToolSchemaFactoryTests
         var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
-        successVariant.GetProperty("properties").GetProperty("data").GetRawText().Should().Contain("value");
+        var dataSchema = successVariant.GetProperty("properties").GetProperty("data");
+        dataSchema.GetRawText().Should().Contain("value");
+        AllowsNull(dataSchema).Should().BeTrue();
         failureVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "error"]);
         AllowsNull(failureVariant.GetProperty("properties").GetProperty("next")).Should().BeTrue();
     }
@@ -89,6 +93,7 @@ public sealed class ToolSchemaFactoryTests
         data.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("summary", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
+        AllowsNull(data).Should().BeFalse();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(MutationData)), Times.Never);

@@ -46,8 +46,7 @@ internal sealed class ToolSchemaFactory
     private JsonElement CreateQueryResponseSchema(Type responseType)
     {
         var valueSchema = _schemaProvider.GetValueSchema(responseType);
-        var dataSchema = JsonNode.Parse(valueSchema.GetRawText());
-        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(dataSchema);
+        var successSchema = ToolSchemaBuilder.CreateNullableSuccessSchema(valueSchema);
 
         return CreateResponseSchema(successSchema, [valueSchema]);
     }

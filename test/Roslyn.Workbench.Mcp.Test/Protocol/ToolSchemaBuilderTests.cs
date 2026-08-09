@@ -98,6 +98,7 @@ public sealed class ToolSchemaBuilderTests
         var data = success.GetProperty("properties").GetProperty("data");
         data.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
         data.GetProperty("properties").GetProperty("optional").ValueKind.Should().Be(JsonValueKind.Null);
+        AllowsNull(data).Should().BeTrue();
         success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Contain(["ok", "data"]);
     }
 
@@ -112,7 +113,9 @@ public sealed class ToolSchemaBuilderTests
         var success = GetSuccessVariant(result);
 
         success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data");
-        success.GetProperty("properties").GetProperty("data").GetProperty("type").GetString().Should().Be("string");
+        var data = success.GetProperty("properties").GetProperty("data");
+        AllowsNull(data).Should().BeTrue();
+        data.GetProperty("type").EnumerateArray().Select(static item => item.GetString()).Should().Equal("string", "null");
         success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Equal("ok", "data");
     }
 
@@ -239,6 +242,13 @@ public sealed class ToolSchemaBuilderTests
         return schema.GetProperty("oneOf")
             .EnumerateArray()
             .Single(item => item.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+    }
+
+    private static bool AllowsNull(JsonElement schema)
+    {
+        var type = schema.GetProperty("type");
+        return type.ValueKind == JsonValueKind.Array
+            && type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal));
     }
 
     private static JsonElement CreateObjectSchema(string propertyName)

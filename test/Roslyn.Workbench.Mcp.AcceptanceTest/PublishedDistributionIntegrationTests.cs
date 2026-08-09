@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class PublishedDistributionIntegrationTests
@@ -99,6 +101,26 @@ public sealed class PublishedDistributionIntegrationTests
                 fullTool.ProtocolTool.OutputSchema.Should().NotBeNull();
                 fullTool.ProtocolTool.OutputSchema!.Value.GetProperty("type").GetString().Should().Be("object");
             }
+
+            var nullableDataToolNames = new[]
+            {
+                "workspace-list",
+                "search-symbols",
+                "list-code-actions",
+                "host-valid-query",
+            };
+
+            foreach (var toolName in nullableDataToolNames)
+            {
+                var outputSchema = fullTools.Single(tool => tool.Name == toolName).ProtocolTool.OutputSchema!.Value;
+                AllowsNull(GetSuccessDataSchema(outputSchema)).Should().BeTrue();
+            }
+
+            foreach (var toolName in new[] { "rename-symbol", "host-valid-mutation" })
+            {
+                var outputSchema = fullTools.Single(tool => tool.Name == toolName).ProtocolTool.OutputSchema!.Value;
+                AllowsNull(GetSuccessDataSchema(outputSchema)).Should().BeFalse();
+            }
         }
         catch
         {
@@ -106,5 +128,27 @@ public sealed class PublishedDistributionIntegrationTests
             fullTarget.RetainRootOnFailure();
             throw;
         }
+    }
+
+    private static JsonElement GetSuccessDataSchema(JsonElement outputSchema)
+    {
+        var successSchema = outputSchema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(static candidate => candidate.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+
+        successSchema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Contain("data");
+
+        return successSchema.GetProperty("properties").GetProperty("data");
+    }
+
+    private static bool AllowsNull(JsonElement schema)
+    {
+        var type = schema.GetProperty("type");
+        return type.ValueKind == JsonValueKind.Array
+            && type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal));
     }
 }

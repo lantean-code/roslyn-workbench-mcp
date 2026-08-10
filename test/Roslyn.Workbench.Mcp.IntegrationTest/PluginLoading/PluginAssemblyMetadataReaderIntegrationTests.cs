@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Composition;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -7,29 +8,30 @@ namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class PluginAssemblyMetadataReaderIntegrationTests
 {
-    private readonly Mock<IFileSystem> _fileSystem;
-    private readonly Mock<IFile> _file;
+    private const long _largeAssemblyLength = 64L * 1024 * 1024;
+    private const long _maximumInspectionAllocation = 8L * 1024 * 1024;
+
     private readonly PluginAssemblyMetadataReader _target;
 
     public PluginAssemblyMetadataReaderIntegrationTests()
     {
-        _fileSystem = new Mock<IFileSystem>();
-        _file = new Mock<IFile>();
-        _fileSystem.SetupGet(static value => value.File).Returns(_file.Object);
-        _target = new PluginAssemblyMetadataReader(_fileSystem.Object);
+        var fileSystem = new FileSystem();
+        _target = new PluginAssemblyMetadataReader(fileSystem);
     }
 
     [Fact]
     public void GIVEN_SingleMarkedAssembly_WHEN_InspectingMetadata_THEN_ShouldReadIdentityAndInformationalVersionWithoutLoadingPlugin()
     {
         var assemblyPath = typeof(BundledCorePlugin).Assembly.Location;
-        _file.Setup(value => value.ReadAllBytes(assemblyPath)).Returns(() => File.ReadAllBytes(assemblyPath));
 
         var result = _target.Inspect(assemblyPath);
 
+        result.Succeeded.Should().BeTrue();
+        result.WasSkipped.Should().BeFalse();
+        result.Failed.Should().BeFalse();
         result.Error.Should().BeNull();
-        result.IsManagedAssembly.Should().BeTrue();
-        var entryPoint = result.EntryPoints.Should().ContainSingle().Subject;
+        var entryPoints = GetEntryPoints(result);
+        var entryPoint = entryPoints.Should().ContainSingle().Subject;
         entryPoint.PluginId.Should().Be("roslyn.workbench.core");
         entryPoint.DisplayName.Should().Be("Roslyn Workbench Core");
         entryPoint.SupportedApiVersion.Should().Be(PluginApiVersions.V1);
@@ -41,48 +43,60 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
     public void GIVEN_AssemblyWithMultipleMarkers_WHEN_InspectingMetadata_THEN_ShouldReturnEveryEntryPoint()
     {
         var assemblyPath = typeof(ValidQueryTestPlugin).Assembly.Location;
-        _file.Setup(value => value.ReadAllBytes(assemblyPath)).Returns(() => File.ReadAllBytes(assemblyPath));
 
         var result = _target.Inspect(assemblyPath);
 
+        result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
-        result.EntryPoints.Should().HaveCountGreaterThan(1);
-        result.EntryPoints.Should().Contain(static entryPoint => entryPoint.PluginId == "test.valid.query");
+        var entryPoints = GetEntryPoints(result);
+        entryPoints.Should().HaveCountGreaterThan(1);
+        entryPoints.Should().Contain(static entryPoint => entryPoint.PluginId == "test.valid.query");
     }
 
     [Fact]
-    public void GIVEN_ManagedAssemblyWithoutMarker_WHEN_InspectingMetadata_THEN_ShouldReturnNoEntryPoints()
+    public void GIVEN_ManagedAssemblyWithoutMarker_WHEN_InspectingMetadata_THEN_ShouldSkipAssembly()
     {
         var assemblyPath = typeof(PluginCatalogLoader).Assembly.Location;
-        _file.Setup(value => value.ReadAllBytes(assemblyPath)).Returns(() => File.ReadAllBytes(assemblyPath));
 
         var result = _target.Inspect(assemblyPath);
 
+        result.Succeeded.Should().BeFalse();
+        result.WasSkipped.Should().BeTrue();
+        result.Failed.Should().BeFalse();
         result.Error.Should().BeNull();
-        result.IsManagedAssembly.Should().BeTrue();
-        result.EntryPoints.Should().BeEmpty();
+        result.EntryPoints.Should().BeNull();
     }
 
     [Fact]
     public void GIVEN_MalformedAssembly_WHEN_InspectingMetadata_THEN_ShouldReturnDiagnosticInsteadOfThrowing()
     {
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns([1, 2, 3]);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WriteAssembly(directory, [1, 2, 3]);
 
-        var result = _target.Inspect("plugin.dll");
+        var result = _target.Inspect(assemblyPath);
 
-        result.IsManagedAssembly.Should().BeFalse();
-        result.EntryPoints.Should().BeEmpty();
+        result.Failed.Should().BeTrue();
+        result.WasSkipped.Should().BeFalse();
+        result.EntryPoints.Should().BeNull();
         result.Error.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
     public void GIVEN_MetadataReadFails_WHEN_InspectingMetadata_THEN_ShouldNotPublishExceptionDetails()
     {
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll"))
+        var fileSystem = new Mock<IFileSystem>();
+        var file = new Mock<IFile>();
+        fileSystem.SetupGet(static value => value.File).Returns(file.Object);
+        file.Setup(static value => value.OpenRead("plugin.dll"))
             .Throws(new IOException("Sensitive path"));
 
-        var result = _target.Inspect("plugin.dll");
+        var target = new PluginAssemblyMetadataReader(fileSystem.Object);
 
+        var result = target.Inspect("plugin.dll");
+
+        result.Failed.Should().BeTrue();
+        result.WasSkipped.Should().BeFalse();
+        result.EntryPoints.Should().BeNull();
         result.Error.Should().Contain(nameof(IOException)).And.NotContain("Sensitive path");
     }
 
@@ -101,12 +115,15 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             }
             """, [typeof(IRoslynPlugin).Assembly.Location, typeof(ExportAttribute).Assembly.Location]);
 
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WriteAssembly(directory, assemblyBytes);
 
-        var result = _target.Inspect("plugin.dll");
+        var result = _target.Inspect(assemblyPath);
 
-        result.EntryPoints.Should().ContainSingle().Which.Version.Should().BeEmpty();
-        result.EntryPoints.Single().EntryTypeName.Should().Be("Plugin");
+        result.Succeeded.Should().BeTrue();
+        var entryPoints = GetEntryPoints(result);
+        entryPoints.Should().ContainSingle().Which.Version.Should().BeEmpty();
+        entryPoints.Single().EntryTypeName.Should().Be("Plugin");
     }
 
     [Fact]
@@ -132,11 +149,14 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             }
             """, []);
 
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WriteAssembly(directory, assemblyBytes);
 
-        var result = _target.Inspect("plugin.dll");
+        var result = _target.Inspect(assemblyPath);
 
-        result.EntryPoints.Should().ContainSingle(entryPoint =>
+        result.Succeeded.Should().BeTrue();
+        var entryPoints = GetEntryPoints(result);
+        entryPoints.Should().ContainSingle(entryPoint =>
             entryPoint.PluginId == "PluginId"
             && entryPoint.DisplayName == "DisplayName"
             && entryPoint.SupportedApiVersion == "1.0");
@@ -155,12 +175,14 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             """, []);
 
         CorruptCustomAttributePrologue(assemblyBytes, "VersionMarker");
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WriteAssembly(directory, assemblyBytes);
 
-        var result = _target.Inspect("plugin.dll");
+        var result = _target.Inspect(assemblyPath);
 
-        result.IsManagedAssembly.Should().BeTrue();
-        result.EntryPoints.Should().BeEmpty();
+        result.Failed.Should().BeTrue();
+        result.WasSkipped.Should().BeFalse();
+        result.EntryPoints.Should().BeNull();
         result.Error.Should().Be("Custom attribute metadata has an invalid prologue.");
     }
 
@@ -179,13 +201,64 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             }
             """, [typeof(IRoslynPlugin).Assembly.Location, typeof(ExportAttribute).Assembly.Location]);
 
-        _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WriteAssembly(directory, assemblyBytes);
 
-        var result = _target.Inspect("plugin.dll");
+        var result = _target.Inspect(assemblyPath);
 
-        result.IsManagedAssembly.Should().BeTrue();
-        result.EntryPoints.Should().BeEmpty();
+        result.Failed.Should().BeTrue();
+        result.WasSkipped.Should().BeFalse();
+        result.EntryPoints.Should().BeNull();
         result.Error.Should().Be("Custom attribute metadata contains a null identity value.");
+    }
+
+    [Fact]
+    public void GIVEN_LargeManagedAssembly_WHEN_InspectingMetadata_THEN_ShouldNotAllocateTheCompleteFile()
+    {
+        var assemblyBytes = CompileAssembly("public sealed class Plugin { }", []);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WritePaddedAssembly(directory, assemblyBytes);
+
+        _target.Inspect(typeof(PluginCatalogLoader).Assembly.Location);
+        var allocationBeforeInspection = GC.GetAllocatedBytesForCurrentThread();
+
+        var result = _target.Inspect(assemblyPath);
+        var inspectionAllocation = GC.GetAllocatedBytesForCurrentThread() - allocationBeforeInspection;
+
+        result.Succeeded.Should().BeFalse();
+        result.WasSkipped.Should().BeTrue();
+        result.Failed.Should().BeFalse();
+        result.Error.Should().BeNull();
+        result.EntryPoints.Should().BeNull();
+        inspectionAllocation.Should().BeLessThan(_maximumInspectionAllocation);
+    }
+
+    [Fact]
+    public void GIVEN_LargePeWithoutManagedMetadata_WHEN_InspectingMetadata_THEN_ShouldNotAllocateTheCompleteFile()
+    {
+        var assemblyBytes = CompileAssembly("public sealed class Plugin { }", []);
+        RemoveCorHeaderDirectory(assemblyBytes);
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-metadata-tests");
+        var assemblyPath = WritePaddedAssembly(directory, assemblyBytes);
+
+        _target.Inspect(typeof(PluginCatalogLoader).Assembly.Location);
+        var allocationBeforeInspection = GC.GetAllocatedBytesForCurrentThread();
+
+        var result = _target.Inspect(assemblyPath);
+        var inspectionAllocation = GC.GetAllocatedBytesForCurrentThread() - allocationBeforeInspection;
+
+        result.Succeeded.Should().BeFalse();
+        result.WasSkipped.Should().BeTrue();
+        result.Failed.Should().BeFalse();
+        result.Error.Should().BeNull();
+        result.EntryPoints.Should().BeNull();
+        inspectionAllocation.Should().BeLessThan(_maximumInspectionAllocation);
+    }
+
+    private static IReadOnlyList<PluginEntryPointMetadata> GetEntryPoints(PluginAssemblyInspectionResult result)
+    {
+        return result.EntryPoints
+            ?? throw new InvalidOperationException("A successful assembly inspection did not provide its entry points.");
     }
 
     private static void CorruptCustomAttributePrologue(byte[] assemblyBytes, string serializedValue)
@@ -202,6 +275,48 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
         }
 
         assemblyBytes[prefixOffset] = 2;
+    }
+
+    private static void RemoveCorHeaderDirectory(byte[] assemblyBytes)
+    {
+        const int peHeaderPointerOffset = 0x3c;
+        const int peSignatureAndCoffHeaderLength = 24;
+        const int pe32DataDirectoriesOffset = 96;
+        const int pe32PlusDataDirectoriesOffset = 112;
+        const int corHeaderDirectoryIndex = 14;
+        const int dataDirectoryLength = 8;
+
+        var peHeaderOffset = BinaryPrimitives.ReadInt32LittleEndian(assemblyBytes.AsSpan(peHeaderPointerOffset));
+        var optionalHeaderOffset = peHeaderOffset + peSignatureAndCoffHeaderLength;
+        var optionalHeaderMagic = BinaryPrimitives.ReadUInt16LittleEndian(assemblyBytes.AsSpan(optionalHeaderOffset));
+        var dataDirectoriesOffset = optionalHeaderMagic switch
+        {
+            0x10b => pe32DataDirectoriesOffset,
+            0x20b => pe32PlusDataDirectoriesOffset,
+            _ => throw new InvalidOperationException("The test assembly does not contain a supported PE optional header."),
+        };
+
+        var corHeaderDirectoryOffset = optionalHeaderOffset
+            + dataDirectoriesOffset
+            + (corHeaderDirectoryIndex * dataDirectoryLength);
+
+        assemblyBytes.AsSpan(corHeaderDirectoryOffset, dataDirectoryLength).Clear();
+    }
+
+    private static string WriteAssembly(TemporaryDirectory directory, byte[] assemblyBytes)
+    {
+        var assemblyPath = Path.Combine(directory.DirectoryPath, "plugin.dll");
+        File.WriteAllBytes(assemblyPath, assemblyBytes);
+        return assemblyPath;
+    }
+
+    private static string WritePaddedAssembly(TemporaryDirectory directory, byte[] assemblyBytes)
+    {
+        var assemblyPath = Path.Combine(directory.DirectoryPath, "large-plugin.dll");
+        using var stream = new FileStream(assemblyPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        stream.Write(assemblyBytes);
+        stream.SetLength(_largeAssemblyLength);
+        return assemblyPath;
     }
 
     private static byte[] CompileAssembly(string source, IReadOnlyList<string> additionalReferencePaths)

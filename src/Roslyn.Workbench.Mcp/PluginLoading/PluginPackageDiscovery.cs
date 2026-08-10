@@ -79,9 +79,14 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
                 }
 
                 var inspection = _metadataReader.Inspect(containedAssemblyPath);
-                if (inspection.Error is not null)
+                if (inspection.Failed)
                 {
                     return Disabled(fallbackIdentity, $"Assembly '{_fileSystem.Path.GetFileName(containedAssemblyPath)}' has malformed metadata: {inspection.Error}");
+                }
+
+                if (!inspection.Succeeded)
+                {
+                    continue;
                 }
 
                 foreach (var entryPoint in inspection.EntryPoints)

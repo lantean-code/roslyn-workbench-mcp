@@ -2,5 +2,5 @@ namespace Roslyn.Workbench.Mcp.PluginLoading;
 
 internal interface IPluginAssemblyMetadataReader
 {
-    PluginAssemblyInspection Inspect(string assemblyPath);
+    PluginAssemblyInspectionResult Inspect(string assemblyPath);
 }

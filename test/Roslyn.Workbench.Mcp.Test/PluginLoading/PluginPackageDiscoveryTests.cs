@@ -66,12 +66,17 @@ public sealed class PluginPackageDiscoveryTests
         var entryPoints = Enumerable.Range(0, markerCount)
             .Select(index => CreateEntryPoint($"PluginId{index}"))
             .ToArray();
-
-        _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(new PluginAssemblyInspection
+        PluginAssemblyInspectionResult inspection;
+        if (markerCount == 0)
         {
-            IsManagedAssembly = true,
-            EntryPoints = entryPoints,
-        });
+            inspection = PluginAssemblyInspectionResult.Skipped();
+        }
+        else
+        {
+            inspection = PluginAssemblyInspectionResult.Success(entryPoints);
+        }
+
+        _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(inspection);
 
         var target = CreateTarget();
 
@@ -87,10 +92,8 @@ public sealed class PluginPackageDiscoveryTests
     public void GIVEN_MalformedDependencyMetadata_WHEN_Discovering_THEN_ShouldDisablePackage()
     {
         ConfigureSinglePackage();
-        _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(new PluginAssemblyInspection
-        {
-            Error = "Malformed",
-        });
+        var inspection = PluginAssemblyInspectionResult.Failure("Malformed");
+        _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(inspection);
 
         _path.Setup(static value => value.GetFileName("plugin.dll")).Returns("plugin.dll");
         var target = CreateTarget();
@@ -225,8 +228,9 @@ public sealed class PluginPackageDiscoveryTests
             .Returns(true);
 
         var sequence = new MockSequence();
-        _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("a.dll")).Returns(new PluginAssemblyInspection());
-        _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("z.dll")).Returns(new PluginAssemblyInspection());
+        var inspection = PluginAssemblyInspectionResult.Skipped();
+        _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("a.dll")).Returns(inspection);
+        _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("z.dll")).Returns(inspection);
         var target = CreateTarget();
 
         var result = target.Discover(["root"]);
@@ -262,13 +266,10 @@ public sealed class PluginPackageDiscoveryTests
             .Returns(true);
     }
 
-    private static PluginAssemblyInspection CreateInspection(string pluginId)
+    private static PluginAssemblyInspectionResult CreateInspection(string pluginId)
     {
-        return new PluginAssemblyInspection
-        {
-            IsManagedAssembly = true,
-            EntryPoints = [CreateEntryPoint(pluginId)],
-        };
+        var entryPoint = CreateEntryPoint(pluginId);
+        return PluginAssemblyInspectionResult.Success([entryPoint]);
     }
 
     private static PluginEntryPointMetadata CreateEntryPoint(string pluginId)

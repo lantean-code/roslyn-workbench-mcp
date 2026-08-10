@@ -59,11 +59,25 @@ public sealed class PluginCandidatePreparerTests
         string expectedMessage)
     {
         var assembly = typeof(BundledCorePlugin).Assembly;
-        _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(new PluginAssemblyInspection
+        var entryPoints = Enumerable.Range(0, entryPointCount)
+            .Select(index => CreateEntryPoint($"plugin-{index}"))
+            .ToArray();
+
+        PluginAssemblyInspectionResult inspection;
+        if (hasError)
         {
-            Error = hasError ? "Malformed" : null,
-            EntryPoints = Enumerable.Range(0, entryPointCount).Select(index => CreateEntryPoint($"plugin-{index}")).ToArray(),
-        });
+            inspection = PluginAssemblyInspectionResult.Failure("Malformed");
+        }
+        else if (entryPoints.Length == 0)
+        {
+            inspection = PluginAssemblyInspectionResult.Skipped();
+        }
+        else
+        {
+            inspection = PluginAssemblyInspectionResult.Success(entryPoints);
+        }
+
+        _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(inspection);
 
         var result = _target.PrepareBundled([assembly]);
 
@@ -88,7 +102,8 @@ public sealed class PluginCandidatePreparerTests
         var assembly = new Mock<Assembly>();
         assembly.SetupGet(static value => value.Location).Returns("AssemblyLocation");
         assembly.Setup(static value => value.GetName()).Returns(new AssemblyName());
-        _metadataReader.Setup(static value => value.Inspect("AssemblyLocation")).Returns(new PluginAssemblyInspection());
+        var inspection = PluginAssemblyInspectionResult.Skipped();
+        _metadataReader.Setup(static value => value.Inspect("AssemblyLocation")).Returns(inspection);
 
         var result = _target.PrepareBundled([assembly.Object]);
 
@@ -376,13 +391,9 @@ public sealed class PluginCandidatePreparerTests
         };
     }
 
-    private static PluginAssemblyInspection CreateInspection(PluginEntryPointMetadata entryPoint)
+    private static PluginAssemblyInspectionResult CreateInspection(PluginEntryPointMetadata entryPoint)
     {
-        return new PluginAssemblyInspection
-        {
-            IsManagedAssembly = true,
-            EntryPoints = [entryPoint],
-        };
+        return PluginAssemblyInspectionResult.Success([entryPoint]);
     }
 
     private static PluginEntryPointMetadata CreateEntryPoint(

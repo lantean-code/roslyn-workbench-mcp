@@ -71,16 +71,20 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         List<PluginStatus> statuses)
     {
         var inspection = _metadataReader.Inspect(assembly.Location);
-        if (inspection.Error is not null || inspection.EntryPoints.Count != 1)
+        if (!inspection.Succeeded || inspection.EntryPoints.Count != 1)
         {
             var identity = assembly.GetName().Name ?? "bundled-plugin";
+            var diagnostic = inspection.Failed
+                ? inspection.Error
+                : "Bundled plugin assembly must contain exactly one RoslynPlugin entry point.";
+
             statuses.Add(PluginCatalogStatusFactory.CreateDisabled(
                 identity,
                 identity,
                 string.Empty,
                 PluginApiVersions.V1,
                 PluginDiagnosticIds.Discovery,
-                inspection.Error ?? "Bundled plugin assembly must contain exactly one RoslynPlugin entry point."));
+                diagnostic));
 
             return;
         }

@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
@@ -16,33 +15,34 @@ internal sealed class PluginAssemblyMetadataReader : IPluginAssemblyMetadataRead
         _fileSystem = fileSystem;
     }
 
-    public PluginAssemblyInspection Inspect(string assemblyPath)
+    public PluginAssemblyInspectionResult Inspect(string assemblyPath)
     {
         try
         {
-            var assemblyBytes = _fileSystem.File.ReadAllBytes(assemblyPath);
-            using var peReader = new PEReader(ImmutableArray.Create(assemblyBytes));
+            using var assemblyStream = _fileSystem.File.OpenRead(assemblyPath);
+            using var peReader = new PEReader(assemblyStream, PEStreamOptions.LeaveOpen);
             if (!peReader.HasMetadata)
             {
-                return new PluginAssemblyInspection();
+                return PluginAssemblyInspectionResult.Skipped();
             }
 
             var reader = peReader.GetMetadataReader();
             if (!TryReadInformationalVersion(reader, out var version, out var versionError))
             {
-                return CreateMetadataError(versionError);
+                return PluginAssemblyInspectionResult.Failure(versionError);
             }
 
             if (!TryReadEntryPoints(reader, version, out var entryPoints, out var entryPointError))
             {
-                return CreateMetadataError(entryPointError);
+                return PluginAssemblyInspectionResult.Failure(entryPointError);
             }
 
-            return new PluginAssemblyInspection
+            if (entryPoints.Count == 0)
             {
-                IsManagedAssembly = true,
-                EntryPoints = entryPoints,
-            };
+                return PluginAssemblyInspectionResult.Skipped();
+            }
+
+            return PluginAssemblyInspectionResult.Success(entryPoints);
         }
         catch (Exception exception) when (exception is BadImageFormatException
             or IOException
@@ -50,10 +50,8 @@ internal sealed class PluginAssemblyMetadataReader : IPluginAssemblyMetadataRead
             or InvalidOperationException
             or ArgumentOutOfRangeException)
         {
-            return new PluginAssemblyInspection
-            {
-                Error = $"Assembly metadata could not be read because {exception.GetType().Name} was raised.",
-            };
+            var error = $"Assembly metadata could not be read because {exception.GetType().Name} was raised.";
+            return PluginAssemblyInspectionResult.Failure(error);
         }
     }
 
@@ -153,15 +151,6 @@ internal sealed class PluginAssemblyMetadataReader : IPluginAssemblyMetadataRead
         values = parsedValues;
         error = string.Empty;
         return true;
-    }
-
-    private static PluginAssemblyInspection CreateMetadataError(string error)
-    {
-        return new PluginAssemblyInspection
-        {
-            IsManagedAssembly = true,
-            Error = error,
-        };
     }
 
     private static string GetAttributeTypeName(MetadataReader reader, CustomAttribute attribute)

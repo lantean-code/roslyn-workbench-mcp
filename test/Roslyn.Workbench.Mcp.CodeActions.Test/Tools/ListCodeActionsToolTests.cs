@@ -14,6 +14,7 @@ public sealed class ListCodeActionsToolTests
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
     private readonly Mock<ICodeActionInfoFactory> _infoFactory;
+    private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly ListCodeActionsTool _target;
@@ -24,6 +25,7 @@ public sealed class ListCodeActionsToolTests
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _infoFactory = new Mock<ICodeActionInfoFactory>();
+        _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
 
@@ -39,6 +41,7 @@ public sealed class ListCodeActionsToolTests
             _discoveryService.Object,
             _diagnosticService.Object,
             _infoFactory.Object,
+            _referenceStore.Object,
             new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
 
@@ -154,6 +157,7 @@ public sealed class ListCodeActionsToolTests
         result.Data!.Actions.Items.Should().Equal(codeFixItem, refactoringItem);
         result.Data.Actions.HasMore.Should().BeFalse();
         result.Data.Actions.TotalCount.Should().Be(2);
+        _referenceStore.Verify(item => item.Remove(It.IsAny<Guid>()), Times.Never);
     }
 
     [Theory]
@@ -265,16 +269,15 @@ public sealed class ListCodeActionsToolTests
         result.Data!.Actions.Items.Should().ContainSingle().Which.Should().BeSameAs(firstItem);
         result.Data.Actions.HasMore.Should().BeTrue();
         result.Data.Actions.TotalCount.Should().Be(2);
-        _infoFactory.Verify(item => item.TryCreate(
+        _infoFactory.Verify(item => item.Create(
             second,
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
-            It.IsAny<ResolvedLocation>(),
-            out It.Ref<CodeActionListItem?>.IsAny), Times.Never);
+            It.IsAny<ResolvedLocation>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_ActionLocationCannotBeProjected_WHEN_Executing_THEN_ShouldOmitActionAndReference()
+    public async Task GIVEN_ActionLocationCannotBeProjected_WHEN_Executing_THEN_ShouldReturnFault()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = SetupDocument(roslyn.Document);
@@ -298,24 +301,71 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Items.Should().BeEmpty();
-        result.Data.Actions.TotalCount.Should().Be(0);
-        _infoFactory.Verify(item => item.TryCreate(
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Faulted);
+        result.Error!.Code.Should().Be("CodeActionLocationUnavailable");
+        _infoFactory.Verify(item => item.Create(
             It.IsAny<DiscoveredCodeAction>(),
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
-            It.IsAny<ResolvedLocation>(),
-            out It.Ref<CodeActionListItem?>.IsAny), Times.Never);
+            It.IsAny<ResolvedLocation>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_ActionReferenceCannotBeCreated_WHEN_Executing_THEN_ShouldExcludeActionFromBoundedMetadata()
+    public async Task GIVEN_ActionReferenceCapacityIsExceeded_WHEN_Executing_THEN_ShouldReturnActionableRejection()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = SetupDocument(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
         var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
-        CodeActionListItem? rejectedItem = null;
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([action]);
+
+        _infoFactory
+            .Setup(item => item.Create(
+                action,
+                _context.Object,
+                roslyn.Document,
+                It.IsAny<ResolvedLocation>()))
+            .Returns(CodeActionInfoCreationResult.ReferenceCapacityExceeded());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ActionReferenceCapacityExceeded");
+        result.Error.Message.Should().Contain("--code-action-reference-cache-size-limit");
+        _infoFactory.Verify(item => item.Create(
+            action,
+            _context.Object,
+            roslyn.Document,
+            It.IsAny<ResolvedLocation>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("LocationUnavailable", "CodeActionLocationUnavailable")]
+    [InlineData("DocumentPathUnavailable", "CodeActionDocumentPathUnavailable")]
+    public async Task GIVEN_ActionProjectionCannotBeCompleted_WHEN_Executing_THEN_ShouldReturnFault(
+        string failure,
+        string expectedCode)
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var creationResult = failure switch
+        {
+            "LocationUnavailable" => CodeActionInfoCreationResult.LocationUnavailable(),
+            "DocumentPathUnavailable" => CodeActionInfoCreationResult.DocumentPathUnavailable(),
+            _ => throw new InvalidOperationException("The test requires a projection failure status."),
+        };
 
         _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
@@ -327,28 +377,58 @@ public sealed class ListCodeActionsToolTests
             .ReturnsAsync([action]);
 
         _infoFactory
-            .Setup(item => item.TryCreate(
+            .Setup(item => item.Create(
                 action,
                 _context.Object,
                 roslyn.Document,
-                It.IsAny<ResolvedLocation>(),
-                out rejectedItem))
-            .Returns(false);
+                It.IsAny<ResolvedLocation>()))
+            .Returns(creationResult);
 
         var result = await _target.ExecuteAsync(
             CreateRequest(CodeActionKindSelection.Refactorings, selector),
             _context.Object,
             TestContext.Current.CancellationToken);
 
-        result.Data!.Actions.Items.Should().BeEmpty();
-        result.Data.Actions.HasMore.Should().BeFalse();
-        result.Data.Actions.TotalCount.Should().Be(0);
-        _infoFactory.Verify(item => item.TryCreate(
-            action,
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Faulted);
+        result.Error!.Code.Should().Be(expectedCode);
+    }
+
+    [Fact]
+    public async Task GIVEN_LaterActionExceedsReferenceCapacity_WHEN_Executing_THEN_ShouldRemoveEarlierRequestReferences()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var first = CreateAction(roslyn.Solution, "A", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var second = CreateAction(roslyn.Solution, "B", DiscoveredActionKind.Refactoring, new TextSpan(1, 1));
+        var firstItem = CreateItem("A", CodeActionKind.Refactoring, 0, 1);
+
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([first, second]);
+
+        SetupProjection(first, roslyn.Document, firstItem);
+        _infoFactory
+            .Setup(item => item.Create(
+                second,
+                _context.Object,
+                roslyn.Document,
+                It.IsAny<ResolvedLocation>()))
+            .Returns(CodeActionInfoCreationResult.ReferenceCapacityExceeded());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
             _context.Object,
-            roslyn.Document,
-            It.IsAny<ResolvedLocation>(),
-            out rejectedItem), Times.Once);
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ActionReferenceCapacityExceeded");
+        _referenceStore.Verify(item => item.Remove(firstItem.ActionId), Times.Once);
     }
 
     private DocumentSelector SetupDocument(Document document)
@@ -366,17 +446,15 @@ public sealed class ListCodeActionsToolTests
         Document document,
         CodeActionListItem item)
     {
-        CodeActionListItem? projectedItem = item;
         _infoFactory
-            .Setup(factory => factory.TryCreate(
+            .Setup(factory => factory.Create(
                 action,
                 _context.Object,
                 document,
                 It.Is<ResolvedLocation>(location =>
                     location.Span!.Start == action.TargetSpan.Start
-                    && location.Span.Length == action.TargetSpan.Length),
-                out projectedItem))
-            .Returns(true);
+                    && location.Span.Length == action.TargetSpan.Length)))
+            .Returns(CodeActionInfoCreationResult.Success(item));
     }
 
     private static ListCodeActionsRequest CreateRequest(

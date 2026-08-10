@@ -10,6 +10,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionInfoFactory _infoFactory;
+    private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
     public ListCodeActionsTool(
@@ -17,12 +18,14 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionInfoFactory infoFactory,
+        ICodeActionReferenceStore referenceStore,
         ICodeActionToolRequestResolver requestResolver)
     {
         _composition = composition;
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _infoFactory = infoFactory;
+        _referenceStore = referenceStore;
         _requestResolver = requestResolver;
     }
 
@@ -50,31 +53,25 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         var document = selectionResolution.Value.Document;
         var span = selectionResolution.Value.Span;
 
-        var (discovered, diagnosticWarnings) = await DiscoverActionsAsync(
+        var discoveryResult = await DiscoverActionsAsync(
             request,
             document,
             span,
             cancellationToken);
 
-        var boundedActions = await CreateBoundedActionsAsync(
+        var (discovered, diagnosticWarnings) = discoveryResult;
+        var result = await CreateResultAsync(
             discovered,
             document,
             request.EffectiveLimit,
             context,
+            diagnosticWarnings,
             cancellationToken);
 
-        var data = new CodeActionListData
-        {
-            Actions = boundedActions,
-        };
-
-        var warnings = CreateWarnings(diagnosticWarnings);
-        return CodeActionExecutionResult.Success(data, warnings: warnings);
+        return result;
     }
 
-    private async ValueTask<(
-        List<DiscoveredCodeAction> Actions,
-        IReadOnlyList<string> DiagnosticWarnings)> DiscoverActionsAsync(
+    private async ValueTask<(List<DiscoveredCodeAction> Actions, IReadOnlyList<string> DiagnosticWarnings)> DiscoverActionsAsync(
         ListCodeActionsRequest request,
         Document document,
         TextSpan span,
@@ -85,122 +82,276 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
         if (IncludesRefactorings(request.Kinds))
         {
-            using (WorkbenchPerformanceEventSource.Log.StartPhase(
-                _toolName,
-                WorkbenchPerformanceEventSource.RefactoringDiscoveryPhase))
-            {
-                var refactoringProviders = _discoveryService.GetMatchingRefactoringProviders(providerId: null);
-                foreach (var provider in refactoringProviders)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var discovered = await _discoveryService.DiscoverRefactoringsAsync(
-                        provider,
-                        document,
-                        span,
-                        cancellationToken);
-
-                    actions.AddRange(discovered);
-                }
-            }
+            await AddDiscoveredRefactoringsAsync(actions, document, span, cancellationToken);
         }
 
         if (IncludesCodeFixes(request.Kinds))
         {
-            var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
-            if (codeFixProviders.Count > 0)
-            {
-                var effectiveDiagnosticIds = GetEffectiveDiagnosticIds(
-                    codeFixProviders,
-                    request.DiagnosticIds);
-
-                if (effectiveDiagnosticIds.Count > 0)
-                {
-                    IReadOnlyList<Diagnostic> diagnostics = [];
-                    using (WorkbenchPerformanceEventSource.Log.StartPhase(
-                        _toolName,
-                        WorkbenchPerformanceEventSource.DiagnosticCollectionPhase))
-                    {
-                        var diagnosticCollection = await _diagnosticService.CollectDocumentDiagnosticsAsync(
-                            document,
-                            request.Range is null ? null : span,
-                            effectiveDiagnosticIds,
-                            cancellationToken);
-
-                        diagnostics = diagnosticCollection.Diagnostics;
-                        diagnosticWarnings = diagnosticCollection.Warnings;
-                    }
-
-                    using (WorkbenchPerformanceEventSource.Log.StartPhase(
-                        _toolName,
-                        WorkbenchPerformanceEventSource.CodeFixDiscoveryPhase))
-                    {
-                        foreach (var provider in codeFixProviders)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            var discovered = await _discoveryService.DiscoverCodeFixesAsync(
-                                provider,
-                                document,
-                                diagnostics,
-                                cancellationToken);
-
-                            actions.AddRange(discovered);
-                        }
-                    }
-                }
-            }
+            diagnosticWarnings = await AddDiscoveredCodeFixesAsync(
+                actions,
+                request,
+                document,
+                span,
+                cancellationToken);
         }
 
         return (actions, diagnosticWarnings);
     }
 
-    private async ValueTask<BoundedCollection<CodeActionListItem>> CreateBoundedActionsAsync(
+    private async ValueTask AddDiscoveredRefactoringsAsync(
+        List<DiscoveredCodeAction> actions,
+        Document document,
+        TextSpan span,
+        CancellationToken cancellationToken)
+    {
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            _toolName,
+            WorkbenchPerformanceEventSource.RefactoringDiscoveryPhase))
+        {
+            var providers = _discoveryService.GetMatchingRefactoringProviders(providerId: null);
+            foreach (var provider in providers)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var discovered = await _discoveryService.DiscoverRefactoringsAsync(
+                    provider,
+                    document,
+                    span,
+                    cancellationToken);
+
+                actions.AddRange(discovered);
+            }
+        }
+    }
+
+    private async ValueTask<IReadOnlyList<string>> AddDiscoveredCodeFixesAsync(
+        List<DiscoveredCodeAction> actions,
+        ListCodeActionsRequest request,
+        Document document,
+        TextSpan span,
+        CancellationToken cancellationToken)
+    {
+        var providers = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
+        if (providers.Count == 0)
+        {
+            return [];
+        }
+
+        var diagnosticIds = GetEffectiveDiagnosticIds(providers, request.DiagnosticIds);
+        if (diagnosticIds.Count == 0)
+        {
+            return [];
+        }
+
+        var diagnosticCollection = await CollectDiagnosticsAsync(
+            request,
+            document,
+            span,
+            diagnosticIds,
+            cancellationToken);
+
+        await AddCodeFixActionsAsync(
+            actions,
+            providers,
+            document,
+            diagnosticCollection.Diagnostics,
+            cancellationToken);
+
+        return diagnosticCollection.Warnings;
+    }
+
+    private async ValueTask<CodeActionDiagnosticCollection> CollectDiagnosticsAsync(
+        ListCodeActionsRequest request,
+        Document document,
+        TextSpan span,
+        IReadOnlyList<string> diagnosticIds,
+        CancellationToken cancellationToken)
+    {
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            _toolName,
+            WorkbenchPerformanceEventSource.DiagnosticCollectionPhase))
+        {
+            var diagnosticCollection = await _diagnosticService.CollectDocumentDiagnosticsAsync(
+                document,
+                request.Range is null ? null : span,
+                diagnosticIds,
+                cancellationToken);
+
+            return diagnosticCollection;
+        }
+    }
+
+    private async ValueTask AddCodeFixActionsAsync(
+        List<DiscoveredCodeAction> actions,
+        IReadOnlyList<CodeFixProvider> providers,
+        Document document,
+        IReadOnlyList<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            _toolName,
+            WorkbenchPerformanceEventSource.CodeFixDiscoveryPhase))
+        {
+            foreach (var provider in providers)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var discovered = await _discoveryService.DiscoverCodeFixesAsync(
+                    provider,
+                    document,
+                    diagnostics,
+                    cancellationToken);
+
+                actions.AddRange(discovered);
+            }
+        }
+    }
+
+    private async ValueTask<CodeActionExecutionResult<CodeActionListData>> CreateResultAsync(
         List<DiscoveredCodeAction> discovered,
         Document document,
         int limit,
         ICodeActionQueryContext context,
+        IReadOnlyList<string> diagnosticWarnings,
         CancellationToken cancellationToken)
     {
-        List<CodeActionListItem> actionItems;
-        var totalCount = 0;
+        var actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, limit));
+        CodeActionExecutionResult<CodeActionListData>? result = null;
+        try
+        {
+            var projection = await ProjectActionsAsync(
+                discovered,
+                document,
+                limit,
+                context,
+                actionItems,
+                cancellationToken);
+
+            var (totalCount, failure) = projection;
+            if (failure is not null)
+            {
+                result = failure;
+                return result;
+            }
+
+            result = CreateSuccessResult(actionItems, totalCount, diagnosticWarnings);
+            return result;
+        }
+        finally
+        {
+            if (result is null || !result.IsSucceeded)
+            {
+                RemovePublishedReferences(actionItems);
+            }
+        }
+    }
+
+    private async ValueTask<(int TotalCount, CodeActionExecutionResult<CodeActionListData>? Failure)> ProjectActionsAsync(
+        List<DiscoveredCodeAction> discovered,
+        Document document,
+        int limit,
+        ICodeActionQueryContext context,
+        List<CodeActionListItem> actionItems,
+        CancellationToken cancellationToken)
+    {
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
             _toolName,
             WorkbenchPerformanceEventSource.CodeActionProjectionPhase))
         {
             discovered.Sort(CompareActions);
-            actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, limit));
             var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
-            if (syntaxTree is not null)
+            if (syntaxTree is null)
             {
-                foreach (var action in discovered)
-                {
-                    var sourceLocation = syntaxTree.GetLocation(action.TargetSpan);
-                    var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
-                    if (resolvedLocation is null)
-                    {
-                        continue;
-                    }
-
-                    if (actionItems.Count == limit)
-                    {
-                        totalCount++;
-                        continue;
-                    }
-
-                    if (_infoFactory.TryCreate(
-                        action,
-                        context,
-                        document,
-                        resolvedLocation,
-                        out var actionItem))
-                    {
-                        actionItems.Add(actionItem);
-                        totalCount++;
-                    }
-                }
+                return (0, null);
             }
+
+            var totalCount = 0;
+            foreach (var action in discovered)
+            {
+                var failure = ProjectAction(action, document, limit, context, syntaxTree, actionItems);
+                if (failure is not null)
+                {
+                    return (totalCount, failure);
+                }
+
+                totalCount++;
+            }
+
+            return (totalCount, null);
+        }
+    }
+
+    private CodeActionExecutionResult<CodeActionListData>? ProjectAction(
+        DiscoveredCodeAction action,
+        Document document,
+        int limit,
+        ICodeActionQueryContext context,
+        SyntaxTree syntaxTree,
+        List<CodeActionListItem> actionItems)
+    {
+        var sourceLocation = syntaxTree.GetLocation(action.TargetSpan);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
+        if (resolvedLocation is null)
+        {
+            return CreateProjectionFault(
+                "CodeActionLocationUnavailable",
+                "A discovered Code Action location could not be projected into the workspace response.");
         }
 
-        return BoundedCollection.CreatePrebounded(actionItems, totalCount);
+        if (actionItems.Count == limit)
+        {
+            return null;
+        }
+
+        var creationResult = _infoFactory.Create(action, context, document, resolvedLocation);
+        if (!creationResult.IsSucceeded)
+        {
+            return CreateProjectionFailure(creationResult.Status);
+        }
+
+        actionItems.Add(creationResult.Item);
+        return null;
+    }
+
+    private void RemovePublishedReferences(IReadOnlyList<CodeActionListItem> actionItems)
+    {
+        foreach (var actionItem in actionItems)
+        {
+            _referenceStore.Remove(actionItem.ActionId);
+        }
+    }
+
+    private static CodeActionExecutionResult<CodeActionListData> CreateProjectionFailure(
+        CodeActionInfoCreationStatus status)
+    {
+        return status switch
+        {
+            CodeActionInfoCreationStatus.LocationUnavailable => CreateProjectionFault(
+                "CodeActionLocationUnavailable",
+                "A discovered Code Action location was incomplete and could not be published."),
+            CodeActionInfoCreationStatus.DocumentPathUnavailable => CreateProjectionFault(
+                "CodeActionDocumentPathUnavailable",
+                "A discovered Code Action document path could not be normalised for replay."),
+            CodeActionInfoCreationStatus.ReferenceCapacityExceeded => Rejected<CodeActionListData>(
+                "ActionReferenceCapacityExceeded",
+                "The Code Action reference cache has reached its configured capacity. Retry after existing references expire, request fewer actions, or increase --code-action-reference-cache-size-limit."),
+            _ => CreateProjectionFault(
+                "CodeActionProjectionFailed",
+                "A discovered Code Action could not be published because projection returned an unexpected result."),
+        };
+    }
+
+    private static CodeActionExecutionResult<CodeActionListData> CreateSuccessResult(
+        IReadOnlyList<CodeActionListItem> actionItems,
+        int totalCount,
+        IReadOnlyList<string> diagnosticWarnings)
+    {
+        var boundedActions = BoundedCollection.CreatePrebounded(actionItems, totalCount);
+        var data = new CodeActionListData
+        {
+            Actions = boundedActions,
+        };
+
+        var warnings = CreateWarnings(diagnosticWarnings);
+        return CodeActionExecutionResult.Success(data, warnings: warnings);
     }
 
     private static List<WarningInfo> CreateWarnings(
@@ -217,6 +368,19 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         }
 
         return warnings;
+    }
+
+    private static CodeActionExecutionResult<CodeActionListData> CreateProjectionFault(
+        string code,
+        string message)
+    {
+        var error = new CodeActionExecutionError
+        {
+            Code = code,
+            Message = message,
+        };
+
+        return CodeActionExecutionResult.Faulted<CodeActionListData>(error);
     }
 
     private static bool IncludesCodeFixes(CodeActionKindSelection kinds)
@@ -283,28 +447,38 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return equivalenceKeyComparison;
         }
 
-        var sharedPathLength = Math.Min(left.ActionPath.Count, right.ActionPath.Count);
+        var actionPathComparison = CompareActionPaths(left.ActionPath, right.ActionPath);
+        if (actionPathComparison != 0)
+        {
+            return actionPathComparison;
+        }
+
+        return CompareTargetSpans(left.TargetSpan, right.TargetSpan);
+    }
+
+    private static int CompareActionPaths(IReadOnlyList<int> left, IReadOnlyList<int> right)
+    {
+        var sharedPathLength = Math.Min(left.Count, right.Count);
         for (var index = 0; index < sharedPathLength; index++)
         {
-            var pathSegmentComparison = left.ActionPath[index].CompareTo(right.ActionPath[index]);
+            var pathSegmentComparison = left[index].CompareTo(right[index]);
             if (pathSegmentComparison != 0)
             {
                 return pathSegmentComparison;
             }
         }
 
-        var pathLengthComparison = left.ActionPath.Count.CompareTo(right.ActionPath.Count);
-        if (pathLengthComparison != 0)
-        {
-            return pathLengthComparison;
-        }
+        return left.Count.CompareTo(right.Count);
+    }
 
-        var spanStartComparison = left.TargetSpan.Start.CompareTo(right.TargetSpan.Start);
+    private static int CompareTargetSpans(TextSpan left, TextSpan right)
+    {
+        var spanStartComparison = left.Start.CompareTo(right.Start);
         if (spanStartComparison != 0)
         {
             return spanStartComparison;
         }
 
-        return left.TargetSpan.Length.CompareTo(right.TargetSpan.Length);
+        return left.Length.CompareTo(right.Length);
     }
 }

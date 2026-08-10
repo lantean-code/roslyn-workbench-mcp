@@ -73,15 +73,14 @@ public sealed class CodeActionInfoFactoryTests
 
         var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var created = target.TryCreate(
+        var result = target.Create(
             action,
             context.Object,
             roslyn.Document,
-            resolvedLocation,
-            out var result);
+            resolvedLocation);
 
-        created.Should().BeTrue();
-        var item = result.Should().BeOfType<CodeActionListItem>().Which;
+        result.IsSucceeded.Should().BeTrue();
+        var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
         item.ActionId.Should().Be(_actionId);
         item.Title.Should().Be("Title");
         item.Kind.Should().Be(CodeActionKind.CodeFix);
@@ -155,15 +154,14 @@ public sealed class CodeActionInfoFactoryTests
             TimeSpan.FromMinutes(5),
             maximumDiagnosticContextsPerAction: 2);
 
-        var created = target.TryCreate(
+        var result = target.Create(
             action,
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
-            out var result);
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
 
-        created.Should().BeTrue();
-        var item = result.Should().BeOfType<CodeActionListItem>().Which;
+        result.IsSucceeded.Should().BeTrue();
+        var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
         item.Diagnostics.Should().NotBeNull();
         item.Diagnostics!.Items.Select(static diagnostic => diagnostic.Id)
             .Should().Equal("Diagnostic1", "Diagnostic2");
@@ -205,15 +203,14 @@ public sealed class CodeActionInfoFactoryTests
 
         var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var created = target.TryCreate(
+        var result = target.Create(
             action,
             context.Object,
             document,
-            SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4),
-            out var result);
+            SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4));
 
-        created.Should().BeTrue();
-        var item = result.Should().BeOfType<CodeActionListItem>().Which;
+        result.IsSucceeded.Should().BeTrue();
+        var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
         item.Kind.Should().Be(CodeActionKind.Refactoring);
         item.Diagnostics.Should().BeNull();
         item.FixAllScopes.Should().BeNull();
@@ -246,15 +243,15 @@ public sealed class CodeActionInfoFactoryTests
 
         var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var created = target.TryCreate(
+        var result = target.Create(
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
-            out var result);
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
 
-        created.Should().BeFalse();
-        result.Should().BeNull();
+        result.IsSucceeded.Should().BeFalse();
+        result.Status.Should().Be(CodeActionInfoCreationStatus.ReferenceCapacityExceeded);
+        result.Item.Should().BeNull();
     }
 
     [Fact]
@@ -273,15 +270,15 @@ public sealed class CodeActionInfoFactoryTests
         context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var created = target.TryCreate(
+        var result = target.Create(
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
-            out var result);
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
 
-        created.Should().BeFalse();
-        result.Should().BeNull();
+        result.IsSucceeded.Should().BeFalse();
+        result.Status.Should().Be(CodeActionInfoCreationStatus.DocumentPathUnavailable);
+        result.Item.Should().BeNull();
         referenceStore.Verify(item => item.TryCreate(
             It.IsAny<CodeActionReplayRecipe>(),
             It.IsAny<DateTimeOffset>(),
@@ -296,15 +293,15 @@ public sealed class CodeActionInfoFactoryTests
         var timeProvider = new Mock<TimeProvider>();
         var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var created = target.TryCreate(
+        var result = target.Create(
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             new Mock<ICodeActionExecutionContext>().Object,
             roslyn.Document,
-            new ResolvedLocation(),
-            out var result);
+            new ResolvedLocation());
 
-        created.Should().BeFalse();
-        result.Should().BeNull();
+        result.IsSucceeded.Should().BeFalse();
+        result.Status.Should().Be(CodeActionInfoCreationStatus.LocationUnavailable);
+        result.Item.Should().BeNull();
         referenceStore.Verify(item => item.TryCreate(
             It.IsAny<CodeActionReplayRecipe>(),
             It.IsAny<DateTimeOffset>(),

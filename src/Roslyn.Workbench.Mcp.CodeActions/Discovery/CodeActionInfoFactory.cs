@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
@@ -21,24 +20,21 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
 
-    public bool TryCreate(
+    public CodeActionInfoCreationResult Create(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
-        ResolvedLocation location,
-        [NotNullWhen(true)] out CodeActionListItem? item)
+        ResolvedLocation location)
     {
         if (location.Document is null || location.Span is null)
         {
-            item = null;
-            return false;
+            return CodeActionInfoCreationResult.LocationUnavailable();
         }
 
         var documentPath = document.FilePath ?? document.Name;
         if (!context.WorkspacePathService.TryNormalizePath(documentPath, out var normalizedDocumentPath))
         {
-            item = null;
-            return false;
+            return CodeActionInfoCreationResult.DocumentPathUnavailable();
         }
 
         var recipe = new CodeActionReplayRecipe
@@ -60,8 +56,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
         if (!_referenceStore.TryCreate(recipe, expiresAt, out var reference))
         {
-            item = null;
-            return false;
+            return CodeActionInfoCreationResult.ReferenceCapacityExceeded();
         }
 
         var kind = CodeActionKind.CodeFix;
@@ -92,7 +87,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             fixAllScopes = action.FixAllScopes;
         }
 
-        item = new CodeActionListItem
+        var item = new CodeActionListItem
         {
             ActionId = reference.ActionId,
             Title = action.Title,
@@ -102,7 +97,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             FixAllScopes = fixAllScopes,
         };
 
-        return true;
+        return CodeActionInfoCreationResult.Success(item);
     }
 
     private static BoundedCollection<CodeActionDiagnosticContext> CreateDiagnosticContexts(

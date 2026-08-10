@@ -19,7 +19,13 @@ public sealed class HostToolCompositionIntegrationTests
             ValidateScopes = true,
         });
 
-        var pluginCatalog = serviceProvider.GetRequiredService<PluginCatalogSnapshot>();
+        var pluginCatalogState = serviceProvider.GetRequiredService<IPluginCatalogState>();
+        var pluginStartup = serviceProvider.GetServices<IHostedService>()
+            .OfType<PluginCatalogStartupLifecycleService>()
+            .Single();
+        await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
+
+        var pluginCatalog = pluginCatalogState.Current.Catalog;
         var codeActionCatalog = serviceProvider.GetRequiredService<CodeActionCatalogSnapshot>();
         var startupConfiguration = serviceProvider.GetRequiredService<StartupConfigurationSnapshot>();
         var mcpServerOptions = serviceProvider.GetRequiredService<IOptions<McpServerOptions>>().Value;
@@ -27,12 +33,15 @@ public sealed class HostToolCompositionIntegrationTests
         var tools = serviceProvider.GetServices<McpServerTool>().ToArray();
 
         tools.Should().HaveCount(
-            pluginCatalog.Tools.Count
-            + codeActionCatalog.Tools.Count
+            codeActionCatalog.Tools.Count
             + ServerOwnedToolRegistration.GetPublishedToolCount(
                 startupConfiguration.Options.ErrorReporting));
 
-        tools.Select(static tool => tool.ProtocolTool.Name).Should().OnlyHaveUniqueItems();
+        pluginCatalogState.Current.Tools.Should().HaveCount(pluginCatalog.Tools.Count);
+        tools.Select(static tool => tool.ProtocolTool.Name)
+            .Concat(pluginCatalogState.Current.Tools.Keys)
+            .Should()
+            .OnlyHaveUniqueItems();
         var dispatcher = serviceProvider.GetRequiredService<IErrorReportDispatcher>();
         if (SentrySdkPolicy.EmbeddedConfiguration is null)
         {
@@ -47,6 +56,8 @@ public sealed class HostToolCompositionIntegrationTests
         }
 
         mcpServerOptions.Filters.Request.CallToolFilters.Should().ContainSingle();
+        mcpServerOptions.Handlers.ListToolsHandler.Should().NotBeNull();
+        mcpServerOptions.Handlers.CallToolHandler.Should().NotBeNull();
         mcpServerOptions.ServerInstructions.Should().Contain(
             "keep it to one coherent change or tightly related set");
 

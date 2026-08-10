@@ -4,10 +4,11 @@ using System.Text.Json.Nodes;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
-internal sealed class ToolSchemaFactory
+internal sealed class ToolSchemaFactory : IToolSchemaFactory
 {
     private readonly ConcurrentDictionary<Type, JsonElement> _directOutputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
+    private readonly ConcurrentDictionary<(PublishedToolKind Kind, Type ResponseType), JsonElement> _outputSchemaCache = [];
     private readonly IMcpSdkSchemaProvider _schemaProvider;
 
     public ToolSchemaFactory(IMcpSdkSchemaProvider schemaProvider)
@@ -23,6 +24,14 @@ internal sealed class ToolSchemaFactory
             _schemaProvider);
     }
 
+    public JsonElement CreateInputSchemaForType(Type requestType)
+    {
+        return _inputSchemaCache.GetOrAdd(
+            requestType,
+            static (type, schemaProvider) => schemaProvider.GetInputSchemaForType(type),
+            _schemaProvider);
+    }
+
     public JsonElement CreateDirectOutputSchema(Type responseType)
     {
         return _directOutputSchemaCache.GetOrAdd(
@@ -34,6 +43,13 @@ internal sealed class ToolSchemaFactory
     }
 
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
+    {
+        return _outputSchemaCache.GetOrAdd(
+            (kind, responseType),
+            key => CreateOutputSchemaCore(key.Kind, key.ResponseType));
+    }
+
+    private JsonElement CreateOutputSchemaCore(PublishedToolKind kind, Type responseType)
     {
         if (kind == PublishedToolKind.Mutation)
         {

@@ -84,6 +84,44 @@ public sealed class ExternalPluginBoundaryIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_UnsupportedPluginTransportContracts_WHEN_StartingHost_THEN_ShouldDisablePluginWithoutAffectingCatalogue()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--tool-output-schema-mode", "Full"],
+            pluginAssets:
+            [
+                AcceptancePluginAsset.HostQuery,
+                AcceptancePluginAsset.UnsupportedSchema,
+            ]);
+
+        try
+        {
+            var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+            tools.Select(static tool => tool.Name).Should().Contain("host-valid-query");
+            tools.Select(static tool => tool.Name).Should().NotContain("unsupported-request-schema");
+            tools.Select(static tool => tool.Name).Should().NotContain("unsupported-response-schema");
+
+            var status = await GetFullStatusAsync(target);
+            var plugin = status
+                .GetProperty("plugins")
+                .EnumerateArray()
+                .Single(item => item.GetProperty("pluginId").GetString() == "test.unsupported.schema");
+            var diagnostics = plugin.GetProperty("diagnostics").GetRawText();
+
+            plugin.GetProperty("enabled").GetBoolean().Should().BeFalse();
+            diagnostics.Should().Contain("PluginToolSchema");
+            diagnostics.Should().Contain("request contract");
+            diagnostics.Should().Contain("response contract");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_PackageAddedAfterInitialisation_WHEN_RestartingHost_THEN_ShouldDiscoverItOnlyAfterRestart()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(

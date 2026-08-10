@@ -9,19 +9,18 @@ internal sealed class ServerStatusService : IServerStatusService
 
     private readonly StartupOptions _startupOptions;
     private readonly StartupConfigurationSnapshot _startupConfiguration;
-    private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
+    private readonly IPluginCatalogState _pluginCatalogState;
     private readonly CodeActionCatalogSnapshot _codeActionCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
     private readonly ICodeActionComposition _codeActionComposition;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly IErrorReportingConsentService _errorReportingConsentService;
     private readonly IErrorReportDispatcher _errorReportDispatcher;
-    private readonly int _toolCount;
 
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
         StartupConfigurationSnapshot startupConfiguration,
-        PluginCatalogSnapshot pluginCatalogSnapshot,
+        IPluginCatalogState pluginCatalogState,
         CodeActionCatalogSnapshot codeActionCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
         ICodeActionComposition codeActionComposition,
@@ -31,21 +30,23 @@ internal sealed class ServerStatusService : IServerStatusService
     {
         _startupOptions = startupOptions.Value;
         _startupConfiguration = startupConfiguration;
-        _pluginCatalogSnapshot = pluginCatalogSnapshot;
+        _pluginCatalogState = pluginCatalogState;
         _codeActionCatalogSnapshot = codeActionCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
         _codeActionComposition = codeActionComposition;
         _recoveryStore = recoveryStore;
         _errorReportingConsentService = errorReportingConsentService;
         _errorReportDispatcher = errorReportDispatcher;
-        _toolCount = _pluginCatalogSnapshot.Tools.Count
-            + _codeActionCatalogSnapshot.Tools.Count
-            + ServerOwnedToolRegistration.GetPublishedToolCount(_startupOptions.ErrorReporting);
     }
 
     public async ValueTask<ToolResult<ServerStatusData>> GetStatusAsync(StatusDetailLevel detail, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var pluginCatalog = _pluginCatalogState.Current.Catalog;
+        var toolCount = pluginCatalog.Tools.Count
+            + _codeActionCatalogSnapshot.Tools.Count
+            + ServerOwnedToolRegistration.GetPublishedToolCount(_startupOptions.ErrorReporting);
 
         var includeExpandedDetail = detail == StatusDetailLevel.Full;
         IReadOnlyList<RecoveryStatus>? recovery = null;
@@ -58,7 +59,7 @@ internal sealed class ServerStatusService : IServerStatusService
             recovery = await _recoveryStore.GetStatusesAsync(cancellationToken);
             configuration = GetConfiguration();
             startupWarnings = _startupConfiguration.Warnings;
-            plugins = _pluginCatalogSnapshot.Plugins;
+            plugins = pluginCatalog.Plugins;
         }
 
         var codeActions = new ComponentStatus
@@ -76,7 +77,7 @@ internal sealed class ServerStatusService : IServerStatusService
             CodeActions = codeActions,
             Configuration = configuration,
             StartupWarnings = startupWarnings,
-            ToolCount = _toolCount,
+            ToolCount = toolCount,
             Plugins = plugins,
             Recovery = recovery,
         };

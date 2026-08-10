@@ -1,4 +1,5 @@
 using System.Reflection;
+using Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -13,8 +14,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
             typeof(ValidQueryTestPlugin).Assembly);
 
         var startupOptions = CreateStartupOptions(pluginDirectory.DirectoryPath);
-        var bootstrap = new PluginCatalogBootstrap();
-        var snapshot = bootstrap.Load(startupOptions, []);
+        var snapshot = PluginCatalogLoaderTestFactory.Load(startupOptions, []);
 
         var tools = snapshot.Tools;
         var plugins = snapshot.Plugins;
@@ -34,9 +34,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     public void GIVEN_PluginToolCollidesWithReservedCodeActionName_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithDiagnostic()
     {
         using var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
-        var bootstrap = new PluginCatalogBootstrap();
-
-        var snapshot = bootstrap.Load(
+        var snapshot = PluginCatalogLoaderTestFactory.Load(
             CreateStartupOptions(pluginDirectory.DirectoryPath),
             [],
             ["host-valid-query"]);
@@ -57,9 +55,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
             typeof(HostValidQueryPlugin).Assembly,
             typeof(HostValidQueryPlugin).Assembly);
 
-        var bootstrap = new PluginCatalogBootstrap();
-
-        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
+        var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().HaveCount(2);
@@ -74,9 +70,9 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_NoExternalPluginDirectory_WHEN_LoadingBundledCore_THEN_ShouldComposeBundledCatalogueInDefaultContext()
     {
-        var bootstrap = new PluginCatalogBootstrap();
-
-        var snapshot = bootstrap.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+        var snapshot = PluginCatalogLoaderTestFactory.Load(
+            new StartupOptions(),
+            [typeof(BundledCorePlugin).Assembly]);
 
         snapshot.Tools.Should().HaveCount(40);
         snapshot.Plugins.Should().ContainSingle(status => status.PluginId == "roslyn.workbench.core" && status.Enabled);
@@ -87,9 +83,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     public void GIVEN_SingleExportPluginConfigureThrows_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithoutPublishingExceptionDetails()
     {
         using var pluginDirectory = CreatePluginDirectory(typeof(ThrowingConfigurationTestPlugin).Assembly);
-        var bootstrap = new PluginCatalogBootstrap();
-
-        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
+        var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().ContainSingle(status =>

@@ -28,6 +28,8 @@
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture\Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -136,6 +138,24 @@
       <ThrowingPluginPackageAsset Include="@(ThrowingPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
     </ItemGroup>
     <Copy SourceFiles="@(ThrowingPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/Throwing" />
+  </Target>
+
+  <Target Name="CopyUnsupportedSchemaPluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <UnsupportedSchemaPluginProject Include="@(ProjectReference)"
+                                      Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(UnsupportedSchemaPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="UnsupportedSchemaPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <UnsupportedSchemaPluginPackageAsset Include="@(UnsupportedSchemaPluginAssembly)" />
+      <UnsupportedSchemaPluginPackageAsset Include="@(UnsupportedSchemaPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(UnsupportedSchemaPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/UnsupportedSchema" />
   </Target>
 
 </Project>

@@ -2,9 +2,9 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
 {
-    private readonly ToolSchemaFactory _schemaFactory;
+    private readonly IToolSchemaFactory _schemaFactory;
 
-    public McpToolProtocolFactory(ToolSchemaFactory schemaFactory)
+    public McpToolProtocolFactory(IToolSchemaFactory schemaFactory)
     {
         _schemaFactory = schemaFactory;
     }

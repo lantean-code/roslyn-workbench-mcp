@@ -173,11 +173,17 @@ public sealed class ServerStatusServiceTests
         };
 
         codeActionSnapshot ??= new CodeActionCatalogSnapshot();
+        var pluginRuntimeCatalog = new PluginRuntimeCatalogSnapshot
+        {
+            Catalog = pluginSnapshot,
+        };
+        var pluginCatalogState = new Mock<IPluginCatalogState>();
+        pluginCatalogState.SetupGet(static state => state.Current).Returns(pluginRuntimeCatalog);
 
         return new ServerStatusService(
             Options.Create(options),
             configuration,
-            pluginSnapshot,
+            pluginCatalogState.Object,
             codeActionSnapshot,
             _msBuildRegistrationService.Object,
             _codeActionComposition.Object,

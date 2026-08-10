@@ -7,4 +7,5 @@ internal enum AcceptancePluginAsset
     HostMutation,
     Invalid,
     Throwing,
+    UnsupportedSchema,
 }

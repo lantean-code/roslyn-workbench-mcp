@@ -1,13 +1,13 @@
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
-public sealed class PluginCatalogBootstrapIntegrationTests
+public sealed class PluginCatalogLoaderIntegrationTests
 {
     [Fact]
     public void GIVEN_BundledPluginAssembly_WHEN_LoadingCatalogue_THEN_ShouldReturnConfiguredSnapshot()
     {
-        var target = new PluginCatalogBootstrap();
-
-        var result = target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+        var result = PluginCatalogLoaderTestFactory.Load(
+            new StartupOptions(),
+            [typeof(BundledCorePlugin).Assembly]);
 
         result.Tools.Should().HaveCount(40);
         result.Plugins.Should().ContainSingle(plugin => plugin.PluginId == "roslyn.workbench.core" && plugin.Enabled);

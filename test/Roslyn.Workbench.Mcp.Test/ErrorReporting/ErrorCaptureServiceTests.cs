@@ -192,11 +192,18 @@ public sealed class ErrorCaptureServiceTests
         PluginCatalogSnapshot pluginCatalog,
         CodeActionCatalogSnapshot codeActionCatalog)
     {
+        var pluginRuntimeCatalog = new PluginRuntimeCatalogSnapshot
+        {
+            Catalog = pluginCatalog,
+        };
+        var pluginCatalogState = new Mock<IPluginCatalogState>();
+        pluginCatalogState.SetupGet(static state => state.Current).Returns(pluginRuntimeCatalog);
+
         return new ErrorCaptureService(
             Options.Create(options),
             _timeProvider.Object,
             _workspaceSessionStore.Object,
-            pluginCatalog,
+            pluginCatalogState.Object,
             codeActionCatalog);
     }
 

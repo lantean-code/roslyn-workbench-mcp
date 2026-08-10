@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
-internal interface IPluginCatalogBootstrap
+internal interface IPluginCatalogLoader
 {
     PluginCatalogSnapshot Load(
         StartupOptions startupOptions,

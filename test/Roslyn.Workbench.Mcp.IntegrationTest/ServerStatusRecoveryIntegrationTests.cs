@@ -60,7 +60,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             {
                 Options = options,
             },
-            new PluginCatalogSnapshot(),
+            new PluginCatalogState(),
             new CodeActionCatalogSnapshot(),
             msBuildRegistrationService.Object,
             codeActionComposition.Object,

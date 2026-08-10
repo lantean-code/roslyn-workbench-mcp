@@ -26,7 +26,12 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 
     public JsonElement GetInputSchema<TRequest>()
     {
-        return _inputSchemaCache.GetOrAdd(typeof(TRequest), static _ => CreateInputSchemaCore<TRequest>());
+        return _inputSchemaCache.GetOrAdd(typeof(TRequest), CreateInputSchemaCore);
+    }
+
+    public JsonElement GetInputSchemaForType(Type requestType)
+    {
+        return _inputSchemaCache.GetOrAdd(requestType, CreateInputSchemaCore);
     }
 
     public JsonElement GetValueSchema<TValue>()
@@ -39,9 +44,10 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         return _valueSchemaCache.GetOrAdd(valueType, CreateValueSchemaCore);
     }
 
-    private static JsonElement CreateInputSchemaCore<TRequest>()
+    private static JsonElement CreateInputSchemaCore(Type requestType)
     {
-        var method = GetRequiredMethod(typeof(SchemaProbe<TRequest>), nameof(SchemaProbe<>.Invoke), BindingFlags.Public | BindingFlags.Static);
+        var probeType = typeof(SchemaProbe<>).MakeGenericType(requestType);
+        var method = GetRequiredMethod(probeType, nameof(SchemaProbe<>.Invoke), BindingFlags.Public | BindingFlags.Static);
         var tool = McpServerTool.Create(
             method,
             target: null,

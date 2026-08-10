@@ -70,7 +70,7 @@ public sealed class HostCompositionIntegrationTests
     }
 
     [Fact]
-    public void GIVEN_ConfiguredBuilder_WHEN_ComposingHost_THEN_ShouldRegisterHostServicesAndAllMcpTools()
+    public async Task GIVEN_ConfiguredBuilder_WHEN_ComposingHost_THEN_ShouldRegisterHostServicesAndAllMcpTools()
     {
         var builder = Host.CreateApplicationBuilder([]);
 
@@ -100,7 +100,13 @@ public sealed class HostCompositionIntegrationTests
 
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
-        var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
+        var pluginCatalogState = host.Services.GetRequiredService<IPluginCatalogState>();
+        var pluginStartup = host.Services.GetServices<IHostedService>()
+            .OfType<PluginCatalogStartupLifecycleService>()
+            .Single();
+        await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
+
+        var pluginCatalogSnapshot = pluginCatalogState.Current.Catalog;
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var toolExecutionServices = host.Services.GetRequiredService<IToolExecutionServices>();
         var referenceDiscoveryService = host.Services.GetRequiredService<IReferenceDiscoveryService>();
@@ -141,10 +147,14 @@ public sealed class HostCompositionIntegrationTests
         errorReportingConsentObserverRegistration.ImplementationType.Should().Be<ErrorReportingConsentLifecycleObserver>();
 
         mcpTools.Should().HaveCount(
-            pluginCatalogSnapshot.Tools.Count
-            + codeActionCatalogSnapshot.Tools.Count
+            codeActionCatalogSnapshot.Tools.Count
             + ServerOwnedToolRegistration.GetPublishedToolCount(
                 startupOptions.ErrorReporting));
+        pluginCatalogState.Current.Tools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count);
+        mcpTools.Select(static tool => tool.ProtocolTool.Name)
+            .Concat(pluginCatalogState.Current.Tools.Keys)
+            .Should()
+            .OnlyHaveUniqueItems();
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
             "server-status",
@@ -228,7 +238,13 @@ public sealed class HostCompositionIntegrationTests
         builder.AddRoslynWorkbench([]);
 
         using var host = builder.Build();
-        var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
+        var pluginCatalogState = host.Services.GetRequiredService<IPluginCatalogState>();
+        var pluginStartup = host.Services.GetServices<IHostedService>()
+            .OfType<PluginCatalogStartupLifecycleService>()
+            .Single();
+        await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
+
+        var pluginCatalogSnapshot = pluginCatalogState.Current.Catalog;
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var target = host.Services.GetRequiredService<IServerStatusService>();
 

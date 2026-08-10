@@ -24,20 +24,20 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
     private readonly ErrorReportingOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly IWorkspaceSessionStore _workspaceSessionStore;
-    private readonly PluginCatalogSnapshot _pluginCatalog;
+    private readonly IPluginCatalogState _pluginCatalogState;
     private readonly CodeActionCatalogSnapshot _codeActionCatalog;
 
     public ErrorCaptureService(
         IOptions<ErrorReportingOptions> options,
         TimeProvider timeProvider,
         IWorkspaceSessionStore workspaceSessionStore,
-        PluginCatalogSnapshot pluginCatalog,
+        IPluginCatalogState pluginCatalogState,
         CodeActionCatalogSnapshot codeActionCatalog)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
         _workspaceSessionStore = workspaceSessionStore;
-        _pluginCatalog = pluginCatalog;
+        _pluginCatalogState = pluginCatalogState;
         _codeActionCatalog = codeActionCatalog;
     }
 
@@ -122,7 +122,8 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
             return ("CodeAction", "Bundled");
         }
 
-        var pluginTool = _pluginCatalog.Tools.FirstOrDefault(tool =>
+        var pluginCatalog = _pluginCatalogState.Current.Catalog;
+        var pluginTool = pluginCatalog.Tools.FirstOrDefault(tool =>
             string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
         if (pluginTool is null)
         {
@@ -148,12 +149,12 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         }
 
         var exceptions = record.Exceptions
+            .Take(2)
             .Select(static item => item with
             {
                 Message = Truncate(item.Message, 128),
                 StackFrames = item.StackFrames.Take(2).ToImmutableArray(),
             })
-            .Take(2)
             .ToImmutableArray();
 
         var reduced = record with { Exceptions = exceptions };
@@ -163,16 +164,19 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
             return reduced;
         }
 
-        var minimalException = exceptions.IsDefaultOrEmpty
-            ? ImmutableArray<CapturedException>.Empty
-            :
-            [
-                exceptions[0] with
-                {
-                    Message = Truncate(exceptions[0].Message, 64),
-                    StackFrames = [],
-                },
-            ];
+        if (exceptions.IsDefaultOrEmpty)
+        {
+            return reduced;
+        }
+
+        ImmutableArray<CapturedException> minimalException =
+        [
+            exceptions[0] with
+            {
+                Message = Truncate(exceptions[0].Message, 64),
+                StackFrames = [],
+            },
+        ];
 
         return reduced with { Exceptions = minimalException };
     }

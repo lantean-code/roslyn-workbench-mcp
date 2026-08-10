@@ -6,7 +6,5 @@ internal sealed record HostStartupComposition
 
     public required CodeActionCatalogSnapshot CodeActions { get; init; }
 
-    public required PluginCatalogSnapshot Plugins { get; init; }
-
     public StartupOptions Options => Configuration.Options;
 }

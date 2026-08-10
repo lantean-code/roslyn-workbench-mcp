@@ -4,7 +4,7 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
-internal sealed class PluginCatalogLoader
+internal sealed class PluginCatalogLoader : IPluginCatalogLoader
 {
     private readonly IPluginCandidatePreparer _candidatePreparer;
     private readonly IPluginCatalogEntryMaterializer _entryMaterializer;

@@ -440,6 +440,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             AcceptancePluginAsset.HostMutation => "HostMutation",
             AcceptancePluginAsset.Invalid => "Invalid",
             AcceptancePluginAsset.Throwing => "Throwing",
+            AcceptancePluginAsset.UnsupportedSchema => "UnsupportedSchema",
             _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
         };
 
@@ -455,6 +456,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             AcceptancePluginAsset.HostMutation => "host-mutation",
             AcceptancePluginAsset.Invalid => "invalid",
             AcceptancePluginAsset.Throwing => "throwing",
+            AcceptancePluginAsset.UnsupportedSchema => "unsupported-schema",
             _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
         };
     }

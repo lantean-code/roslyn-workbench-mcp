@@ -7,25 +7,17 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
-        var pluginCatalogBootstrap = new PluginCatalogBootstrap();
-        var pathComparison = new WorkspacePathComparison();
-        var startupComposer = new HostStartupComposer(
-            pluginCatalogBootstrap,
-            pathComparison);
-
-        var composition = startupComposer.Compose(args);
+        var composition = HostStartupComposer.Compose(args);
 
         builder.Logging.ConfigureRoslynWorkbenchLogging();
         builder.Services.AddRoslynWorkbenchOptions(composition.Options);
         builder.Services.AddSingleton(composition.Configuration);
         builder.Services.AddSingleton(composition.CodeActions);
-        builder.Services.AddSingleton(composition.Plugins);
         builder.Services.AddWorkspaceServices();
         builder.Services.AddPluginServices();
         builder.Services.AddCodeActionServices();
         builder.Services.AddHostServices();
         builder.Services.AddMcpTools(
-            composition.Plugins,
             composition.CodeActions.Tools,
             composition.Options.ErrorReporting);
         builder.Services.AddStartupPrerequisites();

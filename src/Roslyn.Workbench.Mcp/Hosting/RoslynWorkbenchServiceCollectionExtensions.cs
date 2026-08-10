@@ -191,38 +191,30 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
         AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
-        services.AddSingleton<ToolSchemaFactory>();
+        services.AddSingleton<IToolSchemaFactory, ToolSchemaFactory>();
         services.AddSingleton<IMcpToolProtocolFactory, McpToolProtocolFactory>();
         services.AddSingleton<IRequestObjectGraphValidator, RequestObjectGraphValidator>();
         services.AddSingleton<IToolRequestBinder, ToolRequestBinder>();
         services.AddSingleton<UnhandledToolExceptionFilter>();
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
+        AddPluginCatalogServices(services);
     }
 
     public static void AddMcpTools(
         this IServiceCollection services,
-        PluginCatalogSnapshot pluginCatalogSnapshot,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools)
     {
         services.AddMcpTools(
-            pluginCatalogSnapshot,
             codeActionTools,
             new ErrorReportingOptions());
     }
 
     public static void AddMcpTools(
         this IServiceCollection services,
-        PluginCatalogSnapshot pluginCatalogSnapshot,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
         ErrorReportingOptions errorReportingOptions)
     {
-        var pluginVisitor = new PluginMcpToolRegistrationVisitor(services);
-        foreach (var registeredTool in pluginCatalogSnapshot.Tools)
-        {
-            registeredTool.Accept(pluginVisitor);
-        }
-
         var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in codeActionTools)
         {
@@ -236,6 +228,31 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     {
         services.AddHostedService<StartupConfigurationReporter>();
         services.AddHostedService<StartupPrerequisiteLifecycleService>();
+        services.AddHostedService<PluginCatalogStartupLifecycleService>();
+    }
+
+    private static void AddPluginCatalogServices(IServiceCollection services)
+    {
+        services.AddSingleton<IPluginHandlerTypeInspector, PluginHandlerTypeInspector>();
+        services.AddSingleton<IPluginHandlerContractResolver, PluginHandlerContractResolver>();
+        services.AddSingleton<IPluginHandlerWarningInspector, PluginHandlerWarningInspector>();
+        services.AddSingleton<IPluginConfigurationPreparer, PluginConfigurationPreparer>();
+        services.AddSingleton<IPluginToolRegistrationMaterializer, PluginToolRegistrationMaterializer>();
+        services.AddSingleton<IPluginComposer, MefPluginComposer>();
+        services.AddSingleton<ILoadedPluginPreparer, LoadedPluginPreparer>();
+        services.AddSingleton<IPluginEntryPointValidator, PluginEntryPointValidator>();
+        services.AddSingleton<IPluginPackagePathPolicy, PluginPackagePathPolicy>();
+        services.AddSingleton<IPluginAssemblyMetadataReader, PluginAssemblyMetadataReader>();
+        services.AddSingleton<IPluginLoadContextFactory, PluginLoadContextFactory>();
+        services.AddSingleton<IPluginCandidatePreparer, PluginCandidatePreparer>();
+        services.AddSingleton<IPluginTransportSchemaPreflight, PluginTransportSchemaPreflight>();
+        services.AddSingleton<IPluginCatalogEntryMaterializer, PluginCatalogEntryMaterializer>();
+        services.AddSingleton<IPluginPackageDiscovery, PluginPackageDiscovery>();
+        services.AddSingleton<IPluginCollisionPolicy, PluginCollisionPolicy>();
+        services.AddSingleton<IPluginCatalogLoader, PluginCatalogLoader>();
+        services.AddSingleton<IPluginMcpServerToolFactory, PluginMcpServerToolFactory>();
+        services.AddSingleton<IPluginCatalogState, PluginCatalogState>();
+        services.AddSingleton<IPluginMcpRequestHandler, PluginMcpRequestHandler>();
     }
 
     public static void ConfigureRoslynWorkbenchLogging(this ILoggingBuilder loggingBuilder)

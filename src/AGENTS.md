@@ -25,6 +25,7 @@
 - Internal Code Action tools must not be registered or executed through the plugin system.
 - Plugins must not directly own or mutate host-only concerns such as the `MSBuildWorkspace`, transaction coordinator, file writer, or commit journal.
 - Do not collapse host-owned lifecycle code into plugin projects, and do not move plugin tool logic into the executable host for convenience.
+- Reflection-based plugin discovery and generic materialisation are permitted only during Host startup. Plugin request execution must use prebuilt strongly typed adapters; do not use `MethodInfo.Invoke`, `Delegate.DynamicInvoke`, runtime generic construction, `Activator`, or runtime handler-interface inspection in a tool execution path.
 
 ## Coding standards
 

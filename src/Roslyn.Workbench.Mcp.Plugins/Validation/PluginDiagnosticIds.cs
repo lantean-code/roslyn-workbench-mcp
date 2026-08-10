@@ -35,4 +35,6 @@ internal static class PluginDiagnosticIds
     public const string ToolBehaviour = "PluginToolBehaviour";
 
     public const string ToolName = "PluginToolName";
+
+    public const string ToolSchema = "PluginToolSchema";
 }

@@ -1,14 +1,27 @@
+using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class PluginCatalogEntryMaterializerTests
 {
     private readonly Mock<IPluginToolRegistrationMaterializer> _toolRegistrationMaterializer;
+    private readonly Mock<IPluginTransportSchemaPreflight> _schemaPreflight;
     private readonly PluginCatalogEntryMaterializer _target;
 
     public PluginCatalogEntryMaterializerTests()
     {
         _toolRegistrationMaterializer = new Mock<IPluginToolRegistrationMaterializer>();
-        _target = new PluginCatalogEntryMaterializer(_toolRegistrationMaterializer.Object);
+        _schemaPreflight = new Mock<IPluginTransportSchemaPreflight>();
+        _schemaPreflight
+            .Setup(preflight => preflight.Preflight(
+                It.IsAny<IReadOnlyList<PreparedPluginTool>>(),
+                It.IsAny<ToolOutputSchemaMode>()))
+            .Returns(PluginTransportSchemaPreflightResult.Success());
+
+        _target = new PluginCatalogEntryMaterializer(
+            _toolRegistrationMaterializer.Object,
+            _schemaPreflight.Object,
+            Options.Create(new StartupOptions()));
     }
 
     [Fact]
@@ -56,6 +69,30 @@ public sealed class PluginCatalogEntryMaterializerTests
             diagnostic.Id == "PluginMaterialization"
             && diagnostic.Message.Contains(nameof(InvalidOperationException), StringComparison.Ordinal)
             && !diagnostic.Message.Contains("Construction failed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GIVEN_TransportSchemaCannotBePublished_WHEN_MaterializingEntry_THEN_ShouldDisablePluginBeforeConstructingHandlers()
+    {
+        var plugin = CreatePreparedPlugin();
+        var diagnostic = new DiagnosticInfo
+        {
+            Id = PluginDiagnosticIds.ToolSchema,
+            Severity = DiagnosticSeverity.Error,
+            Message = "Schema failed.",
+        };
+        _schemaPreflight
+            .Setup(preflight => preflight.Preflight(plugin.Preparation.Tools, ToolOutputSchemaMode.Omit))
+            .Returns(PluginTransportSchemaPreflightResult.Failure([diagnostic]));
+
+        var result = _target.Materialize(plugin);
+
+        result.Tools.Should().BeEmpty();
+        result.Status.Enabled.Should().BeFalse();
+        result.Status.Diagnostics.Should().ContainSingle().Which.Should().BeSameAs(diagnostic);
+        _toolRegistrationMaterializer.Verify(
+            materializer => materializer.Materialize(It.IsAny<PluginPreparationResult>()),
+            Times.Never);
     }
 
     private static PreparedCatalogPlugin CreatePreparedPlugin()

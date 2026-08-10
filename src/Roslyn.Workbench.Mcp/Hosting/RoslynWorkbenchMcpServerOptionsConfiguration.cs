@@ -8,10 +8,18 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
     private const string _agentGuideUrlPrefix = "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp";
     private const string _sourceTagMetadataKey = "RoslynWorkbenchSourceTag";
     private static readonly string _instructions = CreateInstructions();
+    private readonly IPluginMcpRequestHandler _pluginRequestHandler;
+
+    public RoslynWorkbenchMcpServerOptionsConfiguration(IPluginMcpRequestHandler pluginRequestHandler)
+    {
+        _pluginRequestHandler = pluginRequestHandler;
+    }
 
     public void Configure(McpServerOptions options)
     {
         options.ServerInstructions = _instructions;
+        options.Handlers.ListToolsHandler = _pluginRequestHandler.ListToolsAsync;
+        options.Handlers.CallToolHandler = _pluginRequestHandler.CallToolAsync;
     }
 
     private static string CreateInstructions()

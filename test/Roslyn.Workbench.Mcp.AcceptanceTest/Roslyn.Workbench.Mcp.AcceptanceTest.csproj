@@ -20,6 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ConsoleOutputPluginFixture\Roslyn.Workbench.Mcp.ConsoleOutputPluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj"
@@ -86,6 +88,24 @@
       <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly->'%(RootDir)%(Directory)NuGet.Versioning.dll')" />
     </ItemGroup>
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/HostQuery" />
+  </Target>
+
+  <Target Name="CopyConsoleOutputPluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <ConsoleOutputPluginProject Include="@(ProjectReference)"
+                                  Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.ConsoleOutputPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(ConsoleOutputPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="ConsoleOutputPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <ConsoleOutputPluginPackageAsset Include="@(ConsoleOutputPluginAssembly)" />
+      <ConsoleOutputPluginPackageAsset Include="@(ConsoleOutputPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ConsoleOutputPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/ConsoleOutput" />
   </Target>
 
   <Target Name="CopyHostMutationPluginPackageAssets" AfterTargets="Build">

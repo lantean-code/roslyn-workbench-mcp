@@ -4,6 +4,8 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
+        Console.SetOut(Console.Error);
+
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddRoslynWorkbench(args);
 

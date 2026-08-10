@@ -25,3 +25,4 @@
 | RWMCP019 | RoslynWorkbench.PluginAuthoring | Error | Tool metadata must decorate a handler. |
 | RWMCP020 | RoslynWorkbench.PluginAuthoring | Error | Use a dedicated immutable query-cache key. |
 | RWMCP021 | RoslynWorkbench.PluginAuthoring | Warning | Cached value may be unsafe to retain. |
+| RWMCP022 | RoslynWorkbench.PluginAuthoring | Error | Use a protocol-compatible MCP tool name. |

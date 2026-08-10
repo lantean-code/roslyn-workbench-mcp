@@ -84,6 +84,60 @@ public sealed class ExternalPluginBoundaryIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_PluginWritesToConsole_WHEN_UsingPublishedHost_THEN_ShouldRouteDiagnosticsWithoutCorruptingProtocol()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            workspaceAsset: AcceptanceWorkspaceAsset.SdkProject,
+            pluginAssets: [AcceptancePluginAsset.ConsoleOutput]);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var openArguments = new Dictionary<string, object?>
+            {
+                ["path"] = projectPath,
+                ["workspaceRoot"] = target.WorkspaceRoot,
+            };
+
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                openArguments,
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var pluginArguments = new Dictionary<string, object?>
+            {
+                ["workspace"] = workspace.CreateSelector(),
+                ["value"] = "Value",
+            };
+
+            var pluginResult = await target.CallToolAsync(
+                "test-console-output",
+                pluginArguments,
+                TestContext.Current.CancellationToken);
+
+            var status = await GetFullStatusAsync(target);
+            var standardError = target.GetStandardErrorSnapshot();
+
+            pluginResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(pluginResult).GetProperty("value").GetString().Should().Be("Value");
+            status.GetProperty("plugins").EnumerateArray().Should().ContainSingle(plugin =>
+                plugin.GetProperty("pluginId").GetString() == "test.console.output"
+                && plugin.GetProperty("enabled").GetBoolean());
+            standardError.Should().Contain("CONSOLE_OUTPUT_PLUGIN_CONSTRUCTED");
+            standardError.Should().Contain("CONSOLE_OUTPUT_PLUGIN_CONFIGURED");
+            standardError.Should().Contain("CONSOLE_OUTPUT_HANDLER_CONSTRUCTED");
+            standardError.Should().Contain("CONSOLE_OUTPUT_HANDLER_EXECUTED");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_PluginSuppressesInvalidToolNameDiagnostic_WHEN_StartingHost_THEN_ShouldDisableOnlyThatPlugin()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(

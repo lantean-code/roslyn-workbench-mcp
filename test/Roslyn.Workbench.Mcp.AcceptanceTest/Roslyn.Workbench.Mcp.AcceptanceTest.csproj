@@ -26,6 +26,8 @@
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture\Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture\Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture.csproj"
@@ -138,6 +140,24 @@
       <ThrowingPluginPackageAsset Include="@(ThrowingPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
     </ItemGroup>
     <Copy SourceFiles="@(ThrowingPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/Throwing" />
+  </Target>
+
+  <Target Name="CopyInvalidToolNamePluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <InvalidToolNamePluginProject Include="@(ProjectReference)"
+                                    Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(InvalidToolNamePluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="InvalidToolNamePluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <InvalidToolNamePluginPackageAsset Include="@(InvalidToolNamePluginAssembly)" />
+      <InvalidToolNamePluginPackageAsset Include="@(InvalidToolNamePluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(InvalidToolNamePluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/InvalidToolName" />
   </Target>
 
   <Target Name="CopyUnsupportedSchemaPluginPackageAssets" AfterTargets="Build">

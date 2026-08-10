@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Roslyn.Workbench.Mcp.Plugins.Validation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
@@ -28,7 +29,8 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
             PluginDiagnosticDescriptors.HandlerInstanceState,
             PluginDiagnosticDescriptors.MutableStaticHandlerState,
             PluginDiagnosticDescriptors.DisposableHandlerField,
-            PluginDiagnosticDescriptors.DestructiveQueryHandler);
+            PluginDiagnosticDescriptors.DestructiveQueryHandler,
+            PluginDiagnosticDescriptors.InvalidToolName);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -127,6 +129,27 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
         AnalyzeTransportContracts(context, handlerType, contracts, symbols);
         AnalyzeHandlerState(context, handlerType, symbols);
         AnalyzeDestructiveQueryMetadata(context, handlerType, contracts, symbols);
+        AnalyzeToolName(context, handlerType, symbols);
+    }
+
+    private static void AnalyzeToolName(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol handlerType,
+        PluginHandlerSymbols symbols)
+    {
+        foreach (var attribute in handlerType.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, symbols.RoslynToolAttribute)
+                || attribute.ConstructorArguments.Length == 0
+                || attribute.ConstructorArguments[0].Value is not string toolName
+                || PluginToolNamePolicy.IsValid(toolName))
+            {
+                continue;
+            }
+
+            var location = GetAttributeLocation(attribute, handlerType, context.CancellationToken);
+            Report(context, PluginDiagnosticDescriptors.InvalidToolName, location, toolName);
+        }
     }
 
     private static void AnalyzeContractShape(

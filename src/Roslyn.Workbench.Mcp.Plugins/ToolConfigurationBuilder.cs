@@ -31,7 +31,7 @@ public abstract class ToolConfigurationBuilder<TBuilder> : IToolConfigurationBui
     /// <summary>
     /// Overrides the MCP tool name.
     /// </summary>
-    /// <param name="name">The globally unique tool name.</param>
+    /// <param name="name">The globally unique tool name, containing 1 to 128 ASCII letters, digits, underscores, hyphens, or periods.</param>
     /// <returns>The same builder.</returns>
     public TBuilder WithName(string name)
     {

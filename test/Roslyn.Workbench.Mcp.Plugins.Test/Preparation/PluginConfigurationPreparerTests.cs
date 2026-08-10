@@ -98,9 +98,11 @@ public sealed class PluginConfigurationPreparerTests
             duplicate,
             PluginContractAccessibility.PublicOnly);
 
-        missingResult.Diagnostics.Should().ContainSingle(diagnostic =>
+        missingResult.Diagnostics.Should().Contain(diagnostic =>
             diagnostic.Id == "PluginToolMetadata"
             && diagnostic.Message.Contains("metadata must provide", StringComparison.Ordinal));
+        missingResult.Diagnostics.Should().Contain(diagnostic => diagnostic.Id == "PluginToolName");
+        missingResult.Diagnostics.Should().HaveCount(2);
 
         missingResult.Tools.Should().BeEmpty();
         duplicateResult.Diagnostics.Should().ContainSingle(diagnostic =>
@@ -108,6 +110,42 @@ public sealed class PluginConfigurationPreparerTests
             && diagnostic.Message.Contains("more than once", StringComparison.Ordinal));
 
         duplicateResult.Tools.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_AttributeNameIsNotProtocolCompatible_WHEN_Preparing_THEN_ShouldRejectPlugin()
+    {
+        var configuration = new PluginConfiguration();
+        configuration.AddQueryTool<InvalidNameQueryHandler>();
+        configuration.Freeze();
+        SetupContract(typeof(IQueryToolHandler<Request, Response>));
+
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
+
+        result.Tools.Should().BeEmpty();
+        result.Diagnostics.Should().ContainSingle(diagnostic =>
+            diagnostic.Id == "PluginToolName"
+            && diagnostic.Message.Contains("1 to 128", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GIVEN_FluentNameIsNotProtocolCompatible_WHEN_Preparing_THEN_ShouldRejectFinalMergedName()
+    {
+        var configuration = new PluginConfiguration();
+        configuration.AddQueryTool<AttributedQueryHandler>().WithName(new string('a', 129));
+        configuration.Freeze();
+        SetupContract(typeof(IQueryToolHandler<Request, Response>));
+
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
+
+        result.Tools.Should().BeEmpty();
+        result.Diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "PluginToolName");
     }
 
     [Fact]
@@ -174,9 +212,10 @@ public sealed class PluginConfigurationPreparerTests
             PluginContractAccessibility.PublicOnly);
 
         result.Tools.Should().BeEmpty();
-        result.Diagnostics.Should().HaveCount(2);
+        result.Diagnostics.Should().HaveCount(3);
         result.Diagnostics.Select(static diagnostic => diagnostic.Id).Should().Equal(
             "PluginToolMetadata",
+            "PluginToolName",
             "PluginToolBehaviour");
     }
 
@@ -210,6 +249,7 @@ public sealed class PluginConfigurationPreparerTests
             "PluginHandlerComposition",
             "PluginHandlerContract",
             "PluginToolMetadata",
+            "PluginToolName",
             "PluginHandlerState");
     }
 
@@ -296,6 +336,20 @@ public sealed class PluginConfigurationPreparerTests
 
     [RoslynTool("destructive-query", "Destructive Query", "Destructive query description", Destructive = true)]
     private sealed class DestructiveQueryHandler : IQueryToolHandler<Request, Response>
+    {
+        public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(
+            Request request,
+            IQueryContext context,
+            CancellationToken cancellationToken)
+        {
+            var response = new Response();
+            var result = PluginExecutionResult.Success(response);
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    [RoslynTool("invalid name", "Invalid Name", "Invalid name description")]
+    private sealed class InvalidNameQueryHandler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(
             Request request,

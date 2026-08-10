@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Plugins.Validation;
 using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Preparation;
@@ -43,12 +44,20 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
             }
 
             var metadata = PluginToolMetadataFactory.Create(definition);
-            var hasMetadata = HasRequiredMetadata(metadata);
-            if (!hasMetadata)
+            var hasDisplayMetadata = HasRequiredDisplayMetadata(metadata);
+            if (!hasDisplayMetadata)
             {
                 diagnostics.Add(CreateError(
                     PluginDiagnosticIds.ToolMetadata,
-                    $"Tool handler '{definition.HandlerType.FullName}' metadata must provide Name, Title, and Description through RoslynToolAttribute or fluent configuration."));
+                    $"Tool handler '{definition.HandlerType.FullName}' metadata must provide Title and Description through RoslynToolAttribute or fluent configuration."));
+            }
+
+            var hasValidName = PluginToolNamePolicy.IsValid(metadata.Name);
+            if (!hasValidName)
+            {
+                diagnostics.Add(CreateError(
+                    PluginDiagnosticIds.ToolName,
+                    $"Tool name '{metadata.Name}' must contain 1 to {PluginToolNamePolicy.MaximumLength} ASCII letters, digits, underscores, hyphens, or periods."));
             }
 
             if (definition.Kind == ToolKind.Query && metadata.Behavior.Destructive)
@@ -58,7 +67,7 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
                     $"Query handler '{definition.HandlerType.FullName}' cannot declare destructive behaviour."));
             }
 
-            if (hasMetadata && !names.Add(metadata.Name))
+            if (hasValidName && !names.Add(metadata.Name))
             {
                 diagnostics.Add(CreateError(
                     PluginDiagnosticIds.ToolName,
@@ -79,10 +88,9 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         };
     }
 
-    private static bool HasRequiredMetadata(ToolRegistrationMetadata metadata)
+    private static bool HasRequiredDisplayMetadata(ToolRegistrationMetadata metadata)
     {
-        return !string.IsNullOrWhiteSpace(metadata.Name)
-            && !string.IsNullOrWhiteSpace(metadata.Title)
+        return !string.IsNullOrWhiteSpace(metadata.Title)
             && !string.IsNullOrWhiteSpace(metadata.Description);
     }
 

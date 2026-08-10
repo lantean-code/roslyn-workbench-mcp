@@ -99,6 +99,10 @@ internal static class AnalyzerSourcePrelude
             public abstract class ToolConfigurationBuilder<TBuilder>
                 where TBuilder : ToolConfigurationBuilder<TBuilder>
             {
+                public TBuilder WithName(string name)
+                {
+                    return (TBuilder)this;
+                }
             }
 
             public sealed class QueryToolConfigurationBuilder :

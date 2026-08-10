@@ -38,6 +38,7 @@
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture/Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture.csproj" />
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture/Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture.csproj" />
   </Folder>

@@ -34,7 +34,7 @@ public sealed class RoslynToolAttribute : Attribute
     /// <summary>
     /// Initialises tool metadata.
     /// </summary>
-    /// <param name="name">The globally unique MCP tool name.</param>
+    /// <param name="name">The globally unique MCP tool name, containing 1 to 128 ASCII letters, digits, underscores, hyphens, or periods.</param>
     /// <param name="title">The title displayed to users.</param>
     /// <param name="description">The tool description.</param>
     public RoslynToolAttribute(string name, string title, string description)

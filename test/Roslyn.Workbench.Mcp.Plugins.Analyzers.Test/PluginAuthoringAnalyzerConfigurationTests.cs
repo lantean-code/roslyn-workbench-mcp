@@ -109,4 +109,41 @@ public sealed class PluginAuthoringAnalyzerConfigurationTests
 
         await AnalyzerVerifier.VerifyAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_ConstantFluentToolNameIsInvalid_WHEN_Analyzing_THEN_ShouldReportRwmcp022()
+    {
+        const string source = """
+            public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+            {
+                public void Configure(Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                {
+                    configuration.AddQueryTool<Plugin>().WithName({|RWMCP022:"invalid/name"|});
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_DynamicFluentToolName_WHEN_Analyzing_THEN_ShouldDeferValidationToRuntime()
+    {
+        const string source = """
+            public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+            {
+                public void Configure(Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                {
+                    configuration.AddQueryTool<Plugin>().WithName(GetName());
+                }
+
+                private static string GetName()
+                {
+                    return "invalid name";
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyAsync(source);
+    }
 }

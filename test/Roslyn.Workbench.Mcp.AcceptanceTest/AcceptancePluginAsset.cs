@@ -6,6 +6,7 @@ internal enum AcceptancePluginAsset
     HostQueryDuplicate,
     HostMutation,
     Invalid,
+    InvalidToolName,
     Throwing,
     UnsupportedSchema,
 }

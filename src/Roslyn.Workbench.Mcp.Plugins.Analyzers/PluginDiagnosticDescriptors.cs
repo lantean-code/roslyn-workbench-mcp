@@ -133,6 +133,12 @@ internal static class PluginDiagnosticDescriptors
         "Query-cache value type '{0}' is mutable, disposable or a result envelope and should not be retained without a specific justification",
         DiagnosticSeverity.Warning);
 
+    public static readonly DiagnosticDescriptor InvalidToolName = Create(
+        "RWMCP022",
+        "Use a protocol-compatible MCP tool name",
+        "Tool name '{0}' must contain 1 to 128 ASCII letters, digits, underscores, hyphens, or periods",
+        DiagnosticSeverity.Error);
+
     private static DiagnosticDescriptor Create(
         string id,
         LocalizableString title,

@@ -98,6 +98,26 @@ public sealed class PluginHandlerAnalyzerContractTests
     }
 
     [Fact]
+    public async Task GIVEN_AttributeToolNameIsInvalid_WHEN_Analyzing_THEN_ShouldReportRwmcp022()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response;
+
+            [{|RWMCP022:Roslyn.Workbench.Mcp.Plugins.RoslynTool(
+                "invalid name",
+                "Query",
+                "Queries the workspace.")|}]
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_ValidExternalQueryHandler_WHEN_Analyzing_THEN_ShouldNotReport()
     {
         const string source = """

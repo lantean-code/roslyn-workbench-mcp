@@ -31,6 +31,10 @@ public sealed class PluginAuthoringAnalyzerDescriptorTests
                 "RWMCP004",
                 "Do not retain startup configuration objects",
                 "Do not retain or escape the startup configuration object or a tool configuration builder"),
+            (
+                "RWMCP022",
+                "Use a protocol-compatible MCP tool name",
+                "Tool name '{0}' must contain 1 to 128 ASCII letters, digits, underscores, hyphens, or periods"),
         ];
 
         descriptors.Should().HaveCount(expected.Length);
@@ -101,6 +105,11 @@ public sealed class PluginAuthoringAnalyzerDescriptorTests
                 "RWMCP012",
                 "Query tools cannot declare destructive behaviour",
                 "Query handler '{0}' cannot declare destructive behaviour",
+                DiagnosticSeverity.Error),
+            (
+                "RWMCP022",
+                "Use a protocol-compatible MCP tool name",
+                "Tool name '{0}' must contain 1 to 128 ASCII letters, digits, underscores, hyphens, or periods",
                 DiagnosticSeverity.Error),
         ];
 

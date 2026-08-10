@@ -207,3 +207,11 @@ The analyser cannot determine whether every semantic input is present. Include e
 An `IQueryResultCache` value is clearly mutable, disposable, recursively contains an unsafe retained shape, or is a plugin result envelope whose transient failure state could become sticky. Cache only values that callers treat as immutable and that do not own resources.
 
 This warning is intentionally suppressible when static analysis cannot see a valid immutability or ownership invariant. Give every suppression a specific justification. The Host still refuses an actual `IDisposable` or `IAsyncDisposable` value at runtime.
+
+<a id="RWMCP022"></a>
+
+## RWMCP022
+
+### Use a protocol-compatible MCP tool name
+
+MCP tool names must contain between 1 and 128 ASCII letters, digits, underscores, hyphens, or periods. The analyser checks constant names supplied through `RoslynToolAttribute` and `WithName`. The Host applies the same rule to the final merged metadata at startup, so dynamically configured names cannot bypass it. Choose a valid name rather than sanitising one because changing a name can silently alter the tool's public identity.

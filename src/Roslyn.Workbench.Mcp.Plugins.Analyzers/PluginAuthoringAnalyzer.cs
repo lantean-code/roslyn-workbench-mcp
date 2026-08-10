@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+using Roslyn.Workbench.Mcp.Plugins.Validation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
@@ -21,7 +22,8 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
             PluginDiagnosticDescriptors.DirectWorkspaceMutation,
             PluginDiagnosticDescriptors.LiveWorkspaceSolution,
             PluginDiagnosticDescriptors.AsynchronousPluginConfiguration,
-            PluginDiagnosticDescriptors.RetainedPluginConfiguration);
+            PluginDiagnosticDescriptors.RetainedPluginConfiguration,
+            PluginDiagnosticDescriptors.InvalidToolName);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -94,6 +96,15 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeInvocation(OperationAnalysisContext context, PluginAuthoringSymbols symbols)
     {
         var invocation = (IInvocationOperation)context.Operation;
+        AnalyzeWorkspaceMutation(context, invocation, symbols);
+        AnalyzeConfiguredToolName(context, invocation, symbols);
+    }
+
+    private static void AnalyzeWorkspaceMutation(
+        OperationAnalysisContext context,
+        IInvocationOperation invocation,
+        PluginAuthoringSymbols symbols)
+    {
         var method = invocation.TargetMethod;
         if (!string.Equals(method.Name, "TryApplyChanges", StringComparison.Ordinal)
             || method.Parameters.Length != 1
@@ -107,6 +118,37 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
         var diagnostic = Diagnostic.Create(
             PluginDiagnosticDescriptors.DirectWorkspaceMutation,
             location);
+
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private static void AnalyzeConfiguredToolName(
+        OperationAnalysisContext context,
+        IInvocationOperation invocation,
+        PluginAuthoringSymbols symbols)
+    {
+        var method = invocation.TargetMethod;
+        if (!string.Equals(method.Name, "WithName", StringComparison.Ordinal)
+            || method.Parameters.Length != 1
+            || !SymbolEqualityComparer.Default.Equals(method.ContainingType.OriginalDefinition, symbols.BuilderType)
+            || invocation.Arguments.Length != 1)
+        {
+            return;
+        }
+
+        var nameArgument = invocation.Arguments[0];
+        var constant = nameArgument.Value.ConstantValue;
+        if (!constant.HasValue
+            || constant.Value is not string toolName
+            || PluginToolNamePolicy.IsValid(toolName))
+        {
+            return;
+        }
+
+        var diagnostic = Diagnostic.Create(
+            PluginDiagnosticDescriptors.InvalidToolName,
+            nameArgument.Syntax.GetLocation(),
+            toolName);
 
         context.ReportDiagnostic(diagnostic);
     }

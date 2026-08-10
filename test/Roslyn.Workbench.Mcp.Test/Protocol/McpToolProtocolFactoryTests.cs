@@ -156,14 +156,23 @@ public sealed class McpToolProtocolFactoryTests
         result.Annotations.OpenWorldHint.Should().BeFalse();
     }
 
-    [Fact]
-    public void GIVEN_CodeActionQuery_WHEN_CreatingProtocol_THEN_ShouldPublishQueryOutputSchema()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GIVEN_CodeActionQueryWithExplicitIdempotence_WHEN_CreatingProtocol_THEN_ShouldPublishIndependentAnnotations(
+        bool idempotent)
     {
+        var behavior = new CodeActionToolBehavior
+        {
+            Idempotent = idempotent,
+        };
+
         var metadata = new CodeActionToolMetadata
         {
             Name = "test-query",
             Title = "Test Query",
             Description = "Description",
+            Behavior = behavior,
         };
 
         var result = _target.CreateCodeActionTool<TestRequest>(
@@ -174,6 +183,8 @@ public sealed class McpToolProtocolFactoryTests
 
         result.OutputSchema.Should().NotBeNull();
         result.Annotations!.ReadOnlyHint.Should().BeTrue();
+        result.Annotations.IdempotentHint.Should().Be(idempotent);
+        result.Annotations.DestructiveHint.Should().BeFalse();
     }
 
     private static JsonElement CreateSchema(string type)

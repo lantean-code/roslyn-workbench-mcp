@@ -76,8 +76,9 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             tool.Metadata.ResultSummary,
             tool.Kind == ToolKind.Query ? PublishedToolKind.Query : PublishedToolKind.Mutation,
             tool.ResponseType,
-            tool.Metadata.Behavior.Destructive,
-            outputSchemaMode);
+            destructive: tool.Metadata.Behavior.Destructive,
+            idempotent: tool.Kind == ToolKind.Query,
+            outputSchemaMode: outputSchemaMode);
     }
 
     public Tool CreateCodeActionTool<TRequest>(
@@ -94,8 +95,9 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             metadata.ResultSummary,
             kind == CodeActionToolKind.Query ? PublishedToolKind.Query : PublishedToolKind.Mutation,
             responseType,
-            metadata.Behavior.Destructive,
-            outputSchemaMode);
+            destructive: metadata.Behavior.Destructive,
+            idempotent: metadata.Behavior.Idempotent,
+            outputSchemaMode: outputSchemaMode);
     }
 
     private Tool CreateCatalogueTool<TRequest>(
@@ -106,6 +108,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         PublishedToolKind kind,
         Type responseType,
         bool destructive,
+        bool idempotent,
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest
     {
@@ -115,7 +118,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         {
             Title = title,
             ReadOnlyHint = readOnly,
-            IdempotentHint = readOnly,
+            IdempotentHint = idempotent,
             OpenWorldHint = false,
             DestructiveHint = kind == PublishedToolKind.Mutation && destructive,
         };

@@ -25,7 +25,7 @@ Tools that were implemented from this catalogue used the following MCP metadata.
 | `outputSchema` | Optional. In the default agent-optimised mode the server omits it to reduce `tools/list` size. When the startup `ToolOutputSchemaMode` is `Full`, the published schema is the real family-specific structured-content schema for that tool's runtime response shape. |
 | `annotations.readOnlyHint` | `true` for query tools; `false` for lifecycle and staged-mutation tools. |
 | `annotations.destructiveHint` | Set from the tool's maximum effect. Any tool that can replace or remove staged source, discard staged work, or write source to disk is `true`. |
-| `annotations.idempotentHint` | `true` for queries; `false` for state-changing operations. |
+| `annotations.idempotentHint` | `true` for effect-free queries; `false` for state-changing operations and reference-producing Code Action queries. |
 | `annotations.openWorldHint` | `false` for every tool. They operate only on the loaded local workspace. |
 | Task support | `Forbidden` in v1. The client waits for the normal tool result and may cancel it. |
 
@@ -110,6 +110,7 @@ The `Behaviour` column in the tool tables maps to fixed MCP annotations:
 | Behaviour | `readOnly` | `destructive` | `idempotent` | Meaning |
 | --- | --: | --: | --: | --- |
 | `Q` | true | false | true | Query. It never changes workspace or transaction state. |
+| `QR` | true | false | false | Reference-producing Code Action query. It does not change source or transaction state, but every successful call creates new replay references. |
 | `S` | false | false | false | Server or workspace lifecycle operation. |
 | `M` | false | true | false | Transactional mutation. It can replace or remove staged source, though it never writes files directly. |
 | `C` | false | true | false | Commit or rollback. |
@@ -258,8 +259,8 @@ Structural tools explicitly state that the target SDK-style project must include
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 | --- | --- | --- | --- | --- | --- |
-| `list-code-actions` | Host-owned Code Action | Q | **List Code Actions**. Lists bounded Roslyn Code Fixes and refactorings for a document, selection or caret after exception-policy filtering. | `document: DocumentSelector`, `range?: TextSpanRange`, `kinds: CodeFixes \| Refactorings \| All`, `diagnosticIds?: string[]`, `limit?: int = 50`, `workspace?: WorkspaceSelector`. | `CodeActionListData { actions: BoundedCollection<CodeActionListItem> }` |
-| `prepare-fix-all` | Host-owned Code Action | Q | **Prepare Fix All**. Revalidates one discovered Code Fix and reports the bounded impact of one supported explicit scope without staging changes. | `actionId: UUID string`, `scope: Document \| Project \| Solution`, `maxChanges?: int = 50`, `affectedDocumentsLimit?: int = 20`, `expectedSnapshot: SnapshotPrecondition`, `workspace?: WorkspaceSelector`. | `PrepareFixAllData { actionId: string, scope, affectedDiagnosticCount?: int, affectedDocuments: BoundedCollection<DocumentReference> }` |
+| `list-code-actions` | Host-owned Code Action | QR | **List Code Actions**. Lists bounded Roslyn Code Fixes and refactorings for a document, selection or caret after exception-policy filtering. | `document: DocumentSelector`, `range?: TextSpanRange`, `kinds: CodeFixes \| Refactorings \| All`, `diagnosticIds?: string[]`, `limit?: int = 50`, `workspace?: WorkspaceSelector`. | `CodeActionListData { actions: BoundedCollection<CodeActionListItem> }` |
+| `prepare-fix-all` | Host-owned Code Action | QR | **Prepare Fix All**. Revalidates one discovered Code Fix and reports the bounded impact of one supported explicit scope without staging changes. | `actionId: UUID string`, `scope: Document \| Project \| Solution`, `maxChanges?: int = 50`, `affectedDocumentsLimit?: int = 20`, `expectedSnapshot: SnapshotPrecondition`, `workspace?: WorkspaceSelector`. | `PrepareFixAllData { actionId: string, scope, affectedDiagnosticCount?: int, affectedDocuments: BoundedCollection<DocumentReference> }` |
 | `stage-code-action` | Host-owned Code Action | M | **Stage Code Action**. Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction. | `actionId: UUID string`, `expectedSnapshot: SnapshotPrecondition`, `workspace?: WorkspaceSelector`. | `MutationData` |
 | `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution for one selected workspace and opens an empty staged revision journal. It rejects if another workspace already owns the global transaction slot. Check `workspace-status` first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. | `workspace?: WorkspaceSelector`. | `TransactionStartData { transaction: TransactionInfo }` |
 | `transaction-preview` | Replaces `get-change-set` | Q | **Preview Transaction**. Returns transaction summaries, or a detailed diff for one explicitly selected document. | `document?: DocumentSelector`, `includeDiff?: boolean = false`, `contextLines?: int = 3`. | `TransactionPreviewData { transaction: TransactionInfo, documents: DocumentChange[], diff?: DocumentDiff }` |

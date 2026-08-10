@@ -17,4 +17,17 @@ public sealed class BundledCodeActionCatalogTests
 
         tools.Select(static tool => tool.Metadata.Name).Should().OnlyHaveUniqueItems();
     }
+
+    [Fact]
+    public void GIVEN_BundledReferenceProducingQueries_WHEN_CreatingCatalog_THEN_ShouldMarkThemNonIdempotent()
+    {
+        var tools = BundledCodeActionCatalog.Create();
+
+        var referenceProducingQueries = tools
+            .Where(static tool => tool.Kind == CodeActionToolKind.Query)
+            .ToArray();
+
+        referenceProducingQueries.Should().HaveCount(2);
+        referenceProducingQueries.Should().OnlyContain(static tool => !tool.Metadata.Behavior.Idempotent);
+    }
 }

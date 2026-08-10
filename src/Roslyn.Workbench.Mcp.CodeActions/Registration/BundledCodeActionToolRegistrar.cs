@@ -5,13 +5,13 @@ internal static class BundledCodeActionToolRegistrar
     public static void RegisterAll(ICodeActionToolRegistry registry)
     {
         registry.RegisterQueryTool<ListCodeActionsTool, ListCodeActionsRequest, CodeActionListData>(
-            CreateMetadata(
+            CreateReferenceProducingQueryMetadata(
                 "list-code-actions",
                 "List Code Actions",
                 "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret."));
 
         registry.RegisterQueryTool<PrepareFixAllTool, PrepareFixAllRequest, PrepareFixAllData>(
-            CreateMetadata(
+            CreateReferenceProducingQueryMetadata(
                 "prepare-fix-all",
                 "Prepare Fix All",
                 "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes."));
@@ -23,13 +23,22 @@ internal static class BundledCodeActionToolRegistrar
                 "Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction."));
     }
 
-    private static CodeActionToolMetadata CreateMetadata(string name, string title, string description)
+    private static CodeActionToolMetadata CreateReferenceProducingQueryMetadata(
+        string name,
+        string title,
+        string description)
     {
+        var behavior = new CodeActionToolBehavior
+        {
+            Idempotent = false,
+        };
+
         return new CodeActionToolMetadata
         {
             Name = name,
             Title = title,
             Description = description,
+            Behavior = behavior,
         };
     }
 
@@ -38,6 +47,7 @@ internal static class BundledCodeActionToolRegistrar
         var behavior = new CodeActionToolBehavior
         {
             Destructive = true,
+            Idempotent = false,
         };
 
         return new CodeActionToolMetadata

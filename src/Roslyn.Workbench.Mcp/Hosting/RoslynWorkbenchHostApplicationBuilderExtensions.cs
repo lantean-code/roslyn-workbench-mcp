@@ -28,9 +28,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 
     private static void AddRoslynWorkbenchMcpServer(this IServiceCollection services)
     {
-        services.AddSingleton<
-            IConfigureOptions<McpServerOptions>,
-            RoslynWorkbenchMcpServerOptionsConfiguration>();
+        services.AddSingleton<IConfigureOptions<McpServerOptions>, RoslynWorkbenchMcpServerOptionsConfiguration>();
 
         services
             .AddMcpServer()

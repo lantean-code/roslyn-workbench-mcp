@@ -1,8 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 using Roslyn.Workbench.Mcp.CodeActions.References;
+using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
+using Roslyn.Workbench.Mcp.ErrorReporting.Preparation;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.State;
 using Sentry;
@@ -196,6 +199,42 @@ public sealed class HostCompositionIntegrationTests
         var statusService = host.Services.GetRequiredService<IServerStatusService>();
         var status = await statusService.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
         status.Data!.Configuration!.ErrorReporting!.Provider.Should().Be("CustomDispatcher");
+    }
+
+    [Fact]
+    public async Task GIVEN_ErrorReportingStores_WHEN_DisposingContainerAsynchronously_THEN_ShouldDisposeExpirationTimers()
+    {
+        var builder = Host.CreateApplicationBuilder([]);
+        builder.AddRoslynWorkbench([]);
+        var timeProvider = new Mock<TimeProvider>();
+        var capturedErrorTimer = new Mock<ITimer>();
+        var preparedSubmissionTimer = new Mock<ITimer>();
+        capturedErrorTimer
+            .Setup(item => item.DisposeAsync())
+            .Returns(ValueTask.CompletedTask);
+        preparedSubmissionTimer
+            .Setup(item => item.DisposeAsync())
+            .Returns(ValueTask.CompletedTask);
+        timeProvider
+            .SetupSequence(item => item.CreateTimer(
+                It.IsAny<TimerCallback>(),
+                It.IsAny<object?>(),
+                Timeout.InfiniteTimeSpan,
+                Timeout.InfiniteTimeSpan))
+            .Returns(capturedErrorTimer.Object)
+            .Returns(preparedSubmissionTimer.Object);
+        var timeProviderRegistration = ServiceDescriptor.Singleton(timeProvider.Object);
+        builder.Services.Replace(timeProviderRegistration);
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        _ = serviceProvider.GetRequiredService<ICapturedErrorStore>();
+        _ = serviceProvider.GetRequiredService<IPreparedSubmissionStore>();
+
+        await serviceProvider.DisposeAsync();
+
+        capturedErrorTimer.Verify(item => item.DisposeAsync(), Times.Once);
+        preparedSubmissionTimer.Verify(item => item.DisposeAsync(), Times.Once);
+        capturedErrorTimer.Verify(item => item.Dispose(), Times.Never);
+        preparedSubmissionTimer.Verify(item => item.Dispose(), Times.Never);
     }
 
     [Fact]

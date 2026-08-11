@@ -19,6 +19,7 @@ global using Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Preparation;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Projection;
+global using Roslyn.Workbench.Mcp.ErrorReporting.Retention;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Tools;
 global using Roslyn.Workbench.Mcp.Hosting;
 global using Roslyn.Workbench.Mcp.PluginLoading;

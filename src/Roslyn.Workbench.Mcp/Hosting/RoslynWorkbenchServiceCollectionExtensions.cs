@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.ErrorReporting.Retention;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
@@ -160,7 +161,6 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionReferenceState, CodeActionReferenceState>();
         services.AddSingleton<ICodeActionReferenceStore, CodeActionReferenceStore>();
         services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, CodeActionReferenceLifecycleObserver>();
-
         services.AddSingleton<ICodeActionInfoFactory, CodeActionInfoFactory>();
         services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();
         services.AddSingleton<ICodeActionPolicy, CodeActionPolicy>();
@@ -181,9 +181,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     public static void AddHostServices(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddBoundedExpiringStore<Guid, CapturedErrorRecord, CapturedErrorRetentionPolicy>();
         services.AddSingleton<ICapturedErrorStore, CapturedErrorStore>();
         services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
         services.AddSingleton<IExternalErrorReportProjector, ExternalErrorReportProjector>();
+        services.AddBoundedExpiringStore<string, PreparedSubmission, PreparedSubmissionRetentionPolicy>();
         services.AddSingleton<IPreparedSubmissionStore, PreparedSubmissionStore>();
         services.AddSingleton<IErrorReportingConsentStore, ErrorReportingConsentStore>();
         services.AddSingleton<IErrorReportingConsentService, ErrorReportingConsentService>();
@@ -199,6 +201,16 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
         AddPluginCatalogServices(services);
+    }
+
+    public static void AddBoundedExpiringStore<TKey, TValue, TPolicy>(
+        this IServiceCollection services)
+        where TKey : notnull
+        where TValue : class
+        where TPolicy : class, IBoundedExpiringStorePolicy<TKey, TValue>
+    {
+        services.AddSingleton<IBoundedExpiringStorePolicy<TKey, TValue>, TPolicy>();
+        services.AddSingleton<IBoundedExpiringStore<TKey, TValue>, BoundedExpiringStore<TKey, TValue>>();
     }
 
     public static void AddMcpTools(

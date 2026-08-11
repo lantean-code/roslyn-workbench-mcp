@@ -42,6 +42,7 @@
 
 - Braces on a new line and never omitted.
 - Use file-scoped namespaces by default. Use block-scoped namespaces only when the file structure genuinely requires them.
+- Keep generic type declarations, generic method declarations, generic method invocations and generic type argument lists on one physical line regardless of length. Never place generic type arguments on separate lines.
 - Use blank lines where appropriate to improve readability.
 - Insert a blank line after any statement that spans multiple lines before beginning the next statement.
 - Prefer expression-bodied syntax for simple get-only properties. Methods and all other members must use block bodies.

@@ -21,10 +21,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             .Returns(cacheScope.Object);
 
         cacheScope
-            .Setup(item => item.GetOrCreateProjected<
-                ProjectTargetFrameworkCacheKey,
-                ProjectTargetFrameworkCacheEntry,
-                ProjectTargetFrameworksResult>(
+            .Setup(item => item.GetOrCreateProjected<ProjectTargetFrameworkCacheKey, ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult>(
                 It.IsAny<ProjectTargetFrameworkCacheKey>(),
                 It.IsAny<Func<CancellationToken, ProjectTargetFrameworksResult>>(),
                 It.IsAny<Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?>>(),
@@ -110,10 +107,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             .Returns(cacheScope.Object);
 
         cacheScope
-            .Setup(item => item.GetOrCreateProjected<
-                ProjectTargetFrameworkCacheKey,
-                ProjectTargetFrameworkCacheEntry,
-                ProjectTargetFrameworksResult>(
+            .Setup(item => item.GetOrCreateProjected<ProjectTargetFrameworkCacheKey, ProjectTargetFrameworkCacheEntry, ProjectTargetFrameworksResult>(
                 It.IsAny<ProjectTargetFrameworkCacheKey>(),
                 It.IsAny<Func<CancellationToken, ProjectTargetFrameworksResult>>(),
                 It.IsAny<Func<ProjectTargetFrameworksResult, ProjectTargetFrameworkCacheEntry?>>(),

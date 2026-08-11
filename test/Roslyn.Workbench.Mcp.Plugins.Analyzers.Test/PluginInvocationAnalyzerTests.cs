@@ -81,10 +81,7 @@ public sealed class PluginInvocationAnalyzerTests
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public sealed class {|RWMCP014:Handler|} :
-                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<
-                    Request,
-                    System.Collections.Generic.IReadOnlyList<string>>
+            public sealed class {|RWMCP014:Handler|} : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, System.Collections.Generic.IReadOnlyList<string>>
             {
             }
             """;

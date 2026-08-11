@@ -206,8 +206,7 @@ internal sealed class ToolInvocationRunner
                     CancellationRequestedAfterMilliseconds = cancellationDelay.TotalMilliseconds,
                     ClientCancellationLatencyMilliseconds = 0,
                     ExclusiveLeaseRecoveryMilliseconds = 0,
-                    CompletedBeforeCancellation = true,
-                    OperationCanceled = false,
+                    Outcome = CancellationOutcome.CompletedBeforeNotification,
                 });
 
                 continue;
@@ -215,14 +214,15 @@ internal sealed class ToolInvocationRunner
 
             var cancellationStopwatch = Stopwatch.StartNew();
             await _host.CancelToolCallAsync(requestId, cancellationToken);
-            var operationCanceled = false;
+            var outcome = CancellationOutcome.CompletedAfterNotification;
+            CallToolResult? completionResult = null;
             try
             {
-                await invocation;
+                completionResult = await invocation;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                operationCanceled = true;
+                outcome = CancellationOutcome.CanceledAfterNotification;
             }
 
             cancellationStopwatch.Stop();
@@ -231,14 +231,18 @@ internal sealed class ToolInvocationRunner
             await VerifyExclusiveLeaseRecoveryAsync(cancellationToken);
             recoveryStopwatch.Stop();
 
+            if (completionResult is not null)
+            {
+                ThrowIfScenarioFailed(scenario.Id, completionResult);
+            }
+
             measurements.Add(new CancellationMeasurement
             {
                 Iteration = iteration,
                 CancellationRequestedAfterMilliseconds = cancellationDelay.TotalMilliseconds,
                 ClientCancellationLatencyMilliseconds = cancellationStopwatch.Elapsed.TotalMilliseconds,
                 ExclusiveLeaseRecoveryMilliseconds = recoveryStopwatch.Elapsed.TotalMilliseconds,
-                CompletedBeforeCancellation = false,
-                OperationCanceled = operationCanceled,
+                Outcome = outcome,
             });
         }
 

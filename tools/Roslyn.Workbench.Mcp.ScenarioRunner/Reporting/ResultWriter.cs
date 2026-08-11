@@ -411,8 +411,9 @@ internal static class ResultWriter
             .Select(static item => item.ExclusiveLeaseRecoveryMilliseconds)
             .Order()
             .ToArray();
-        var canceledCount = result.Measurements.Count(static item => item.OperationCanceled);
-        var completedCount = result.Measurements.Count(static item => item.CompletedBeforeCancellation);
+        var canceledCount = result.Measurements.Count(static item => item.Outcome == CancellationOutcome.CanceledAfterNotification);
+        var completedBeforeNotificationCount = result.Measurements.Count(static item => item.Outcome == CancellationOutcome.CompletedBeforeNotification);
+        var completedAfterNotificationCount = result.Measurements.Count(static item => item.Outcome == CancellationOutcome.CompletedAfterNotification);
         var builder = new StringBuilder();
         builder.AppendLine("# Roslyn Workbench cancellation summary");
         builder.AppendLine();
@@ -420,7 +421,8 @@ internal static class ResultWriter
         builder.Append("Scenario: ").AppendLine(result.Scenario);
         builder.Append("Cancellation delay: ").Append(result.CancellationDelay.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
         builder.Append("Cancelled invocations: ").Append(canceledCount.ToString(CultureInfo.InvariantCulture)).Append('/').AppendLine(result.Measurements.Count.ToString(CultureInfo.InvariantCulture));
-        builder.Append("Completed before cancellation: ").AppendLine(completedCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("Completed before notification: ").AppendLine(completedBeforeNotificationCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("Completed after notification: ").AppendLine(completedAfterNotificationCount.ToString(CultureInfo.InvariantCulture));
         builder.Append("Median client cancellation latency: ").Append(Percentile(clientLatency, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
         builder.Append("P95 client cancellation latency: ").Append(Percentile(clientLatency, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
         builder.Append("Median exclusive-lease recovery: ").Append(Percentile(recoveryLatency, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");

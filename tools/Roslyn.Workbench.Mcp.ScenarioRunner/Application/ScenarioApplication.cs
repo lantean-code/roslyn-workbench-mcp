@@ -350,6 +350,23 @@ internal static class ScenarioApplication
         };
 
         await ResultWriter.WriteCancellationAsync(outputDirectory, result, cancellationToken);
+        ValidateCancellationOutcomes(measurements);
+    }
+
+    private static void ValidateCancellationOutcomes(IReadOnlyList<CancellationMeasurement> measurements)
+    {
+        var ignoredIterations = measurements
+            .Where(static measurement => measurement.Outcome == CancellationOutcome.CompletedAfterNotification)
+            .Select(static measurement => measurement.Iteration)
+            .ToArray();
+
+        if (ignoredIterations.Length == 0)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"The Host ignored protocol cancellation for iteration(s): {string.Join(", ", ignoredIterations)}. Complete cancellation evidence was written before this failure.");
     }
 
     private static async Task MeasureConcurrencyAsync(

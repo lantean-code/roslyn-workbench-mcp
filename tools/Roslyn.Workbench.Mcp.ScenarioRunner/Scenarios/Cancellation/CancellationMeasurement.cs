@@ -10,7 +10,5 @@ internal sealed record CancellationMeasurement
 
     public required double ExclusiveLeaseRecoveryMilliseconds { get; init; }
 
-    public required bool CompletedBeforeCancellation { get; init; }
-
-    public required bool OperationCanceled { get; init; }
+    public required CancellationOutcome Outcome { get; init; }
 }

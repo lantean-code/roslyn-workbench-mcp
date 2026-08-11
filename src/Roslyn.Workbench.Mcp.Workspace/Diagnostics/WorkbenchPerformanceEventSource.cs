@@ -73,4 +73,10 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     {
         WriteEvent(2, family, metric, value);
     }
+
+    [Event(3, Level = EventLevel.Informational)]
+    public void AtomicFileCommitRetry(int retryNumber, int delayMilliseconds)
+    {
+        WriteEvent(3, retryNumber, delayMilliseconds);
+    }
 }

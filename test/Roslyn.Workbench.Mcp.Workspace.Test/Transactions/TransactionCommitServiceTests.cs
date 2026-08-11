@@ -581,6 +581,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var manifest = CreateManifest();
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         using var inputManifest = new WorkspaceInputManifest();
+        inputManifest.RecordChange(new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            ErrorCode = WorkspaceInputChangeErrorCode.WatcherBufferOverflow,
+            Kind = WorkspaceInputChangeKind.WatcherError,
+        });
+
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         SetupProtocol(session, plan);
         _changeDetector
@@ -600,7 +607,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
-            It.IsAny<string>(),
+            "Workspace inputs changed during commit promotion. Certification: Promotion. Detection source: FileSystemWatcher. Change kind: WatcherError. Error code: WatcherBufferOverflow.",
             RequiredAction.RollbackTransaction,
             It.IsAny<WorkspaceOperationContext>(),
             null,
@@ -611,6 +618,48 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         result.Should().BeSameAs(expected);
         _commitWriter.Verify(item => item.ValidateAppliedStateAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
+        _sessionStore.Verify(item => item.ReplaceSession(conflictedSession), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ChangedPromotionInputsWithoutRecordedDetails_WHEN_Committing_THEN_ShouldReportUnavailableDetails()
+    {
+        var session = CreateSession();
+        var transaction = session.Transaction ?? throw new InvalidOperationException("The transaction was not created.");
+        var conflictedSession = session with { State = WorkspaceLifecycleState.TransactionConflicted };
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        using var inputManifest = new WorkspaceInputManifest();
+        var expected = CreateResult(WorkspaceOperationStatus.Conflict);
+        SetupProtocol(session, plan);
+        _changeDetector
+            .Setup(item => item.BuildManifest(
+                transaction.CurrentSolution,
+                "/workspace/solution.slnx",
+                "/workspace",
+                _promotionCertification.Object))
+            .Returns(inputManifest);
+
+        _changeDetector.Setup(item => item.HasChanged(inputManifest, CancellationToken.None))
+            .Returns(true);
+
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()))
+            .ReturnsAsync(RecoveryState.Restored);
+
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
+        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionConflicted,
+            "Workspace inputs changed during commit promotion. Certification: Promotion. Detection details were unavailable.",
+            RequiredAction.RollbackTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var selection = CreateSelection(session);
+        var result = await _target.CommitAsync(selection, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
         _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
         _sessionStore.Verify(item => item.ReplaceSession(conflictedSession), Times.Once);
     }
@@ -638,6 +687,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         SetupProtocol(session, plan);
+        _applicationInputManifest.RecordChange(new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            Kind = WorkspaceInputChangeKind.Renamed,
+            Path = "/workspace/Renamed.cs",
+            PreviousPath = "/workspace/Document.cs",
+        });
+
         _changeDetector.Setup(item => item.HasChanged(_applicationInputManifest, CancellationToken.None))
             .Returns(true);
 
@@ -647,7 +704,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
-            It.IsAny<string>(),
+            "Workspace inputs changed during commit promotion. Certification: Application. Detection source: FileSystemWatcher. Change kind: Renamed. Path: /workspace/Renamed.cs. Previous path: /workspace/Document.cs.",
             RequiredAction.RollbackTransaction,
             It.IsAny<WorkspaceOperationContext>(),
             null,

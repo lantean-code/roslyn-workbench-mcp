@@ -268,6 +268,90 @@ public sealed class AtomicFileWriterTests : IDisposable
         }
 
         _file.Verify(item => item.Delete(It.IsAny<string>()), expectedDeletes);
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_RetryableCommitFailure_WHEN_SubsequentAttemptSucceeds_THEN_ShouldCommitWithoutDeletingTemporaryFile()
+    {
+        var transientFailure = CreateCommitFailure(isRetryable: true);
+        _fileCommitter
+            .SetupSequence(item => item.Commit(It.IsAny<string>(), _destinationPath))
+            .Throws(transientFailure)
+            .Pass();
+
+        await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.Default,
+            TestContext.Current.CancellationToken);
+
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Exactly(2));
+        _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RetryableCommitFailure_WHEN_AllAttemptsFail_THEN_ShouldPreserveLastFailureAndDeleteTemporaryFile()
+    {
+        var expected = CreateCommitFailure(isRetryable: true);
+        _fileCommitter
+            .Setup(item => item.Commit(It.IsAny<string>(), _destinationPath))
+            .Throws(expected);
+
+        _file.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
+
+        var action = async () => await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.Default,
+            TestContext.Current.CancellationToken);
+
+        var exception = await action.Should().ThrowAsync<AtomicFileCommitException>();
+        exception.Which.Should().BeSameAs(expected);
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Exactly(4));
+        _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_NonRetryableCommitFailure_WHEN_Writing_THEN_ShouldAttemptCommitOnce()
+    {
+        var expected = CreateCommitFailure(isRetryable: false);
+        _fileCommitter
+            .Setup(item => item.Commit(It.IsAny<string>(), _destinationPath))
+            .Throws(expected);
+
+        var action = async () => await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.Default,
+            TestContext.Current.CancellationToken);
+
+        var exception = await action.Should().ThrowAsync<AtomicFileCommitException>();
+        exception.Which.Should().BeSameAs(expected);
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CancellationDuringCommitRetry_WHEN_Writing_THEN_ShouldStopRetryingAndDeleteTemporaryFile()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        var transientFailure = CreateCommitFailure(isRetryable: true);
+        _fileCommitter
+            .Setup(item => item.Commit(It.IsAny<string>(), _destinationPath))
+            .Callback(cancellationSource.Cancel)
+            .Throws(transientFailure);
+
+        _file.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
+
+        var action = async () => await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            AtomicFileAccess.Default,
+            cancellationSource.Token);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
+        _file.Verify(item => item.Delete(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -291,5 +375,13 @@ public sealed class AtomicFileWriterTests : IDisposable
         _file.Verify(item => item.SetUnixFileMode(
             It.Is<string>(path => path.StartsWith("/Directory/.File.txt.", StringComparison.Ordinal)),
             expectedMode), Times.Once);
+    }
+
+    private static AtomicFileCommitException CreateCommitFailure(bool isRetryable)
+    {
+        return new AtomicFileCommitException(
+            "CommitFailure",
+            isRetryable,
+            new IOException("NativeFailure"));
     }
 }

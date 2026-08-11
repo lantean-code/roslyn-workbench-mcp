@@ -6,6 +6,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 {
     private const int _maximumWatcherBufferSize = 64 * 1024;
 
+    private readonly IFileSystem _fileSystem;
     private readonly IFileSystemWatcher _watcher;
     private readonly StringComparer _pathComparer;
     private readonly Channel<WorkspaceInputWatcherEvent> _events;
@@ -28,6 +29,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         IWorkspacePathComparison pathComparison,
         string workspaceRoot)
     {
+        _fileSystem = fileSystem;
         _pathComparer = pathComparison.GetComparer(workspaceRoot);
         _ignoredPaths = new HashSet<string>(_pathComparer);
         _watcher = fileSystem.FileSystemWatcher.New(workspaceRoot);
@@ -198,7 +200,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Created:
-                if (!ShouldTrackCreatedOrDeletedPath(watcherEvent.Path))
+                if (!ShouldTrackCreatedPath(watcherEvent.Path))
                 {
                     return false;
                 }
@@ -207,7 +209,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Deleted:
-                if (!ShouldTrackCreatedOrDeletedPath(watcherEvent.Path))
+                if (!ShouldTrackDeletedPath(watcherEvent.Path))
                 {
                     return false;
                 }
@@ -216,8 +218,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Renamed:
-                if (!ShouldTrackCreatedOrDeletedPath(watcherEvent.PreviousPath)
-                    && !ShouldTrackCreatedOrDeletedPath(watcherEvent.Path))
+                if (!ShouldTrackRenamedPath(watcherEvent.Path, watcherEvent.PreviousPath))
                 {
                     return false;
                 }
@@ -255,7 +256,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
             && trackedFiles.Contains(path);
     }
 
-    private bool ShouldTrackCreatedOrDeletedPath(string? path)
+    private bool ShouldTrackCreatedPath(string? path)
     {
         var trackedFiles = _trackedFiles;
         var trackedDirectories = _trackedDirectories;
@@ -275,13 +276,67 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
             return true;
         }
 
+        return IsPersistentUntrackedPath(path, trackedDirectories);
+    }
+
+    private bool ShouldTrackDeletedPath(string? path)
+    {
+        var trackedFiles = _trackedFiles;
+        var trackedDirectories = _trackedDirectories;
+        if (path is null || trackedFiles is null || trackedDirectories is null || IsIgnoredPath(path))
+        {
+            return false;
+        }
+
+        return trackedFiles.Contains(path) || trackedDirectories.Contains(path);
+    }
+
+    private bool ShouldTrackRenamedPath(string? path, string? previousPath)
+    {
+        var trackedFiles = _trackedFiles;
+        var trackedDirectories = _trackedDirectories;
+        if (trackedFiles is null || trackedDirectories is null)
+        {
+            return false;
+        }
+
+        var previousPathWasTracked = previousPath is not null
+            && !IsIgnoredPath(previousPath)
+            && (trackedFiles.Contains(previousPath) || trackedDirectories.Contains(previousPath));
+
+        if (previousPathWasTracked)
+        {
+            return true;
+        }
+
+        if (path is null || IsIgnoredPath(path))
+        {
+            return false;
+        }
+
+        if (trackedFiles.Contains(path) || trackedDirectories.Contains(path))
+        {
+            return true;
+        }
+
+        return IsPersistentUntrackedPath(path, trackedDirectories);
+    }
+
+    private bool IsPersistentUntrackedPath(string path, IReadOnlySet<string> trackedDirectories)
+    {
         if (!_pathPolicy.ShouldTrack(path))
         {
             return false;
         }
 
         var parent = Path.GetDirectoryName(path);
-        return parent is not null && trackedDirectories.Contains(parent);
+        var belongsToTrackedDirectory = parent is not null && trackedDirectories.Contains(parent);
+        if (!belongsToTrackedDirectory)
+        {
+            return false;
+        }
+
+        return _fileSystem.File.Exists(path) || _fileSystem.Directory.Exists(path);
     }
 
     private bool IsIgnoredPath(string path)

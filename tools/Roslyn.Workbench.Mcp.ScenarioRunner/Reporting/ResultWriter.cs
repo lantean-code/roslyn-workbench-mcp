@@ -290,6 +290,7 @@ internal static class ResultWriter
             .Append(FormatBytes(Percentile(peakPrivateMemoryIncreases, 0.95))).AppendLine(" |");
 
         AppendDurableCommitPhases(builder, first.PhaseSummary);
+        AppendAtomicFileCommitRetries(builder, result.Measurements);
 
         await File.WriteAllTextAsync(
             Path.Combine(outputDirectory, "commit.md"),
@@ -361,6 +362,33 @@ internal static class ResultWriter
                 .Append(" | ").Append(phase.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
                 .AppendLine(" |");
         }
+    }
+
+    private static void AppendAtomicFileCommitRetries(
+        StringBuilder builder,
+        IReadOnlyList<DurableCommitMeasurement> measurements)
+    {
+        var summaries = measurements
+            .Select(static measurement => measurement.AtomicFileCommitRetries)
+            .OfType<AtomicFileCommitRetrySummary>()
+            .ToArray();
+
+        if (summaries.Length == 0)
+        {
+            return;
+        }
+
+        builder
+            .AppendLine()
+            .AppendLine("## Atomic file replacement retries")
+            .AppendLine()
+            .AppendLine("Retry metrics are captured only while commit tracing is enabled. They contain counts and planned backoff time, not filesystem paths.")
+            .AppendLine()
+            .Append("Measured commits: ").AppendLine(summaries.Length.ToString(CultureInfo.InvariantCulture))
+            .Append("Total retry attempts: ").AppendLine(summaries.Sum(static item => item.TotalRetryAttempts).ToString(CultureInfo.InvariantCulture))
+            .Append("Atomic operations requiring retry: ").AppendLine(summaries.Sum(static item => item.RetriedOperationCount).ToString(CultureInfo.InvariantCulture))
+            .Append("Highest retry count for one operation: ").AppendLine(summaries.Max(static item => item.MaximumRetriesForOneOperation).ToString(CultureInfo.InvariantCulture))
+            .Append("Total planned backoff: ").Append(summaries.Sum(static item => item.TotalDelayMilliseconds).ToString(CultureInfo.InvariantCulture)).AppendLine(" ms");
     }
 
     public static async Task WriteCancellationAsync(

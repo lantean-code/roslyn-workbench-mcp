@@ -1,12 +1,21 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
+using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
 internal sealed class AtomicFileWriter : IAtomicFileWriter
 {
     private const UnixFileMode _ownerOnlyFileMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
+    private static readonly TimeSpan[] _commitRetryDelays =
+    [
+        TimeSpan.FromMilliseconds(25),
+        TimeSpan.FromMilliseconds(50),
+        TimeSpan.FromMilliseconds(100),
+    ];
 
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileCommitter _fileCommitter;
@@ -133,12 +142,36 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                 stream.Flush(flushToDisk: true);
             }
 
-            _fileCommitter.Commit(temporaryPath, destinationPath);
+            await CommitWithRetryAsync(temporaryPath, destinationPath, cancellationToken);
         }
         catch
         {
             TryDeleteTemporaryFile(temporaryPath);
             throw;
+        }
+    }
+
+    private async ValueTask CommitWithRetryAsync(
+        string temporaryPath,
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                _fileCommitter.Commit(temporaryPath, destinationPath);
+                return;
+            }
+            catch (AtomicFileCommitException exception) when (exception.IsRetryable && attempt < _commitRetryDelays.Length)
+            {
+                var retryDelay = _commitRetryDelays[attempt];
+                WorkbenchPerformanceEventSource.Log.AtomicFileCommitRetry(
+                    retryNumber: attempt + 1,
+                    delayMilliseconds: (int)retryDelay.TotalMilliseconds);
+
+                await Task.Delay(retryDelay, cancellationToken);
+            }
         }
     }
 

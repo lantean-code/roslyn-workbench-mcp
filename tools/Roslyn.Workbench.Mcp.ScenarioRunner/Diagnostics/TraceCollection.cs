@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Tracing;
+using System.Runtime.ExceptionServices;
 
 using Microsoft.Diagnostics.NETCore.Client;
 using Microsoft.Diagnostics.Tracing.Parsers;
@@ -12,7 +14,8 @@ internal sealed class TraceCollection : IAsyncDisposable
     private readonly EventPipeSession _session;
     private readonly FileStream _output;
     private readonly Task _copyTask;
-    private bool _stopped;
+    private bool _disposed;
+    private bool _stopRequested;
 
     private TraceCollection(
         EventPipeSession session,
@@ -79,26 +82,70 @@ internal sealed class TraceCollection : IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_stopped)
+        RequestStop();
+        await _copyTask.WaitAsync(cancellationToken);
+        await _output.FlushAsync(cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Trace disposal must attempt stream and EventPipe-session cleanup while retaining every finalisation failure.")]
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
         {
             return;
         }
 
-        _session.Stop();
-        await _copyTask.WaitAsync(cancellationToken);
-        await _output.FlushAsync(cancellationToken);
-        _stopped = true;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (!_stopped)
+        _disposed = true;
+        ExceptionDispatchInfo? failure = null;
+        try
         {
-            _session.Stop();
+            RequestStop();
             await _copyTask;
         }
+        catch (Exception exception)
+        {
+            failure = CaptureFailure(failure, exception);
+        }
 
-        await _output.DisposeAsync();
-        _session.Dispose();
+        try
+        {
+            await _output.DisposeAsync();
+        }
+        catch (Exception exception)
+        {
+            failure = CaptureFailure(failure, exception);
+        }
+
+        try
+        {
+            _session.Dispose();
+        }
+        catch (Exception exception)
+        {
+            failure = CaptureFailure(failure, exception);
+        }
+
+        failure?.Throw();
+    }
+
+    private void RequestStop()
+    {
+        if (_stopRequested)
+        {
+            return;
+        }
+
+        _stopRequested = true;
+        _session.Stop();
+    }
+
+    private static ExceptionDispatchInfo CaptureFailure(ExceptionDispatchInfo? current, Exception next)
+    {
+        return current is null
+            ? ExceptionDispatchInfo.Capture(next)
+            : ExceptionDispatchInfo.Capture(new AggregateException(current.SourceException, next));
     }
 }

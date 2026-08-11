@@ -312,6 +312,84 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task GIVEN_WindowsAtomicReplacements_WHEN_CommitInputsAreCertified_THEN_ShouldIgnoreNativeTransientPaths()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectDirectoryPath = Path.Combine(directoryPath, "Project");
+            Directory.CreateDirectory(projectDirectoryPath);
+            var destinationPaths = Enumerable.Range(0, 32)
+                .Select(index => Path.Combine(projectDirectoryPath, $"Document{index}.cs"))
+                .ToArray();
+
+            foreach (var destinationPath in destinationPaths)
+            {
+                await File.WriteAllTextAsync(
+                    destinationPath,
+                    "class Original { }",
+                    TestContext.Current.CancellationToken);
+            }
+
+            var fileSystem = new FileSystem();
+            var pathComparison = new WorkspacePathComparison();
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var target = new WorkspaceChangeDetector(
+                fileSystem,
+                new WorkspaceProjectInputResolver(pathComparison),
+                changeMonitorFactory,
+                pathComparison);
+
+            var atomicFileCommitter = new NativeAtomicFileCommitter();
+            var atomicFileWriter = new AtomicFileWriter(fileSystem, atomicFileCommitter);
+            using var certification = target.BeginCertification(directoryPath);
+
+            foreach (var destinationPath in destinationPaths)
+            {
+                await atomicFileWriter.WriteAllBytesAsync(
+                    destinationPath,
+                    "class Replacement { }"u8.ToArray(),
+                    AtomicFileAccess.Default,
+                    TestContext.Current.CancellationToken);
+            }
+
+            using var originalManifest = new WorkspaceInputManifest
+            {
+                Directories =
+                [
+                    new WorkspaceInputDirectoryFingerprint
+                    {
+                        Path = projectDirectoryPath,
+                    },
+                ],
+                Files = destinationPaths
+                    .Select(static path => new WorkspaceInputFileFingerprint
+                    {
+                        Path = path,
+                    })
+                    .ToArray(),
+            };
+
+            using var completedManifest = certification.Complete(originalManifest, destinationPaths);
+            var detectedChange = SpinWait.SpinUntil(
+                () => target.HasChanged(completedManifest, TestContext.Current.CancellationToken),
+                TimeSpan.FromSeconds(1));
+
+            detectedChange.Should().BeFalse();
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
     private static string CreateDirectoryPath()
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-manifest-tests", Guid.NewGuid().ToString("n"));

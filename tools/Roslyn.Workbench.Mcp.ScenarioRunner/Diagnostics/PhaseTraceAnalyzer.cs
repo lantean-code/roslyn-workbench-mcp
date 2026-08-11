@@ -7,6 +7,7 @@ internal static class PhaseTraceAnalyzer
     private const string _performanceProviderName = "Roslyn-Workbench-Mcp";
     private const string _phaseCompletedEventName = "PhaseCompleted";
     private const string _cacheMetricEventName = "CacheMetric";
+    private const string _atomicFileCommitRetryEventName = "AtomicFileCommitRetry";
     private const string _toolTotalPhase = "tool-total";
 
     public static IReadOnlyList<PhaseTraceSummary> Analyze(string tracePath)
@@ -63,6 +64,41 @@ internal static class PhaseTraceAnalyzer
             .ToArray();
 
         return summaries;
+    }
+
+    public static AtomicFileCommitRetrySummary AnalyzeAtomicFileCommitRetries(string tracePath)
+    {
+        var observations = new List<AtomicFileCommitRetryObservation>();
+        using var source = new EventPipeEventSource(tracePath);
+        source.Dynamic.All += traceEvent =>
+        {
+            if (!string.Equals(traceEvent.ProviderName, _performanceProviderName, StringComparison.Ordinal)
+                || !string.Equals(traceEvent.EventName, _atomicFileCommitRetryEventName, StringComparison.Ordinal)
+                || traceEvent.PayloadByName("retryNumber") is not int retryNumber
+                || traceEvent.PayloadByName("delayMilliseconds") is not int delayMilliseconds)
+            {
+                return;
+            }
+
+            var observation = new AtomicFileCommitRetryObservation
+            {
+                RetryNumber = retryNumber,
+                DelayMilliseconds = delayMilliseconds,
+            };
+
+            observations.Add(observation);
+        };
+
+        source.Process();
+        return new AtomicFileCommitRetrySummary
+        {
+            TotalRetryAttempts = observations.Count,
+            RetriedOperationCount = observations.Count(static item => item.RetryNumber == 1),
+            MaximumRetriesForOneOperation = observations.Count == 0
+                ? 0
+                : observations.Max(static item => item.RetryNumber),
+            TotalDelayMilliseconds = observations.Sum(static item => item.DelayMilliseconds),
+        };
     }
 
     private static CacheMetricSummary CreateCacheMetricSummary(

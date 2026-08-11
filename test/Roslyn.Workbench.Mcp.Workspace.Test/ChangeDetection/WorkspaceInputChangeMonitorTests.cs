@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 public sealed class WorkspaceInputChangeMonitorTests : IDisposable
 {
     private readonly Mock<IFileSystem> _fileSystem;
+    private readonly Mock<IFile> _file;
+    private readonly Mock<IDirectory> _directory;
     private readonly Mock<IFileSystemWatcherFactory> _watcherFactory;
     private readonly Mock<IFileSystemWatcher> _watcher;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
@@ -14,10 +16,14 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     public WorkspaceInputChangeMonitorTests()
     {
         _fileSystem = new Mock<IFileSystem>();
+        _file = new Mock<IFile>();
+        _directory = new Mock<IDirectory>();
         _watcherFactory = new Mock<IFileSystemWatcherFactory>();
         _watcher = new Mock<IFileSystemWatcher>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _workspaceRoot = Path.Combine(Path.GetTempPath(), "Workspace");
+        _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
+        _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.FileSystemWatcher).Returns(_watcherFactory.Object);
         _watcherFactory.Setup(item => item.New(_workspaceRoot)).Returns(_watcher.Object);
         _pathComparison
@@ -125,6 +131,52 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         RaiseCreated(_workspaceRoot, ".Document.cs.11111111111111111111111111111111.tmp");
         RaiseCreated(Path.Combine(_workspaceRoot, "Project"), "Created.cs");
         TrackWorkspaceInputs(ignoredPaths);
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_TransientUntrackedPath_WHEN_BufferedCreateIsProcessed_THEN_ShouldIgnoreChange()
+    {
+        var projectDirectory = Path.Combine(_workspaceRoot, "Project");
+        _target.Start();
+        RaiseCreated(projectDirectory, "Document.cs~temporary", pathExists: false);
+
+        TrackWorkspaceInputs();
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_PersistentUntrackedPath_WHEN_BufferedCreateIsProcessed_THEN_ShouldReportChange()
+    {
+        var projectDirectory = Path.Combine(_workspaceRoot, "Project");
+        var createdPath = Path.Combine(projectDirectory, "Created.cs");
+        _file.Setup(item => item.Exists(createdPath)).Returns(true);
+        _target.Start();
+        RaiseCreated(projectDirectory, "Created.cs");
+
+        TrackWorkspaceInputs();
+
+        WaitForChange();
+        _target.Change.Should().BeEquivalentTo(new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            Kind = WorkspaceInputChangeKind.Created,
+            Path = createdPath,
+        });
+    }
+
+    [Fact]
+    public void GIVEN_TransientUntrackedPath_WHEN_BufferedDeleteIsProcessed_THEN_ShouldIgnoreChange()
+    {
+        var projectDirectory = Path.Combine(_workspaceRoot, "Project");
+        _target.Start();
+        RaiseDeleted(projectDirectory, "Document.cs~temporary");
+
+        TrackWorkspaceInputs();
 
         _target.WaitForPendingEvents(CancellationToken.None);
         _target.Change.Should().BeNull();
@@ -278,6 +330,24 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_TransientUntrackedRename_WHEN_BufferedEventIsProcessed_THEN_ShouldIgnoreChange()
+    {
+        var projectDirectory = Path.Combine(_workspaceRoot, "Project");
+        var args = new RenamedEventArgs(
+            WatcherChangeTypes.Renamed,
+            projectDirectory,
+            "Document.cs~temporary",
+            "Document.cs~original");
+
+        _target.Start();
+        _watcher.Raise(item => item.Renamed += null, args);
+        TrackWorkspaceInputs();
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
     public void GIVEN_ConfiguredMonitor_WHEN_TrackedPathIsDeleted_THEN_ShouldReportChange()
     {
         TrackWorkspaceInputs();
@@ -386,11 +456,20 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _watcher.VerifySet(item => item.EnableRaisingEvents = true, Times.Once);
     }
 
-    private void RaiseCreated(string directory, string name)
+    private void RaiseCreated(string directory, string name, bool pathExists = true)
     {
+        var path = Path.Combine(directory, name);
+        _file.Setup(item => item.Exists(path)).Returns(pathExists);
         _watcher.Raise(
             item => item.Created += null,
             new FileSystemEventArgs(WatcherChangeTypes.Created, directory, name));
+    }
+
+    private void RaiseDeleted(string directory, string name)
+    {
+        _watcher.Raise(
+            item => item.Deleted += null,
+            new FileSystemEventArgs(WatcherChangeTypes.Deleted, directory, name));
     }
 
     private void WaitForChange()

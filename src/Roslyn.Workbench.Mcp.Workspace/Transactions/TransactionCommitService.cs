@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionCommitService : ITransactionCommitService
@@ -298,11 +300,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             var inputManifestHandedOff = false;
             try
             {
-                var inputsChangedDuringPromotion = HasInputChangedDuringCommit(
+                var inputChangeFailureMessage = DetectInputChangeFailureMessage(
                     applicationInputManifest,
                     inputManifest);
 
-                if (inputsChangedDuringPromotion)
+                if (inputChangeFailureMessage is not null)
                 {
                     return await RecoverFailedCommitAsync(
                         session,
@@ -311,7 +313,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                         commitId,
                         manifest,
                         applicationStarted: true,
-                        failureMessage: "Workspace inputs changed during commit promotion.",
+                        failureMessage: inputChangeFailureMessage,
                         validationConflict: true);
                 }
 
@@ -329,11 +331,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                         validationConflict: true);
                 }
 
-                inputsChangedDuringPromotion = HasInputChangedDuringCommit(
+                inputChangeFailureMessage = DetectInputChangeFailureMessage(
                     applicationInputManifest,
                     inputManifest);
 
-                if (inputsChangedDuringPromotion)
+                if (inputChangeFailureMessage is not null)
                 {
                     return await RecoverFailedCommitAsync(
                         session,
@@ -342,7 +344,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                         commitId,
                         manifest,
                         applicationStarted: true,
-                        failureMessage: "Workspace inputs changed during commit promotion.",
+                        failureMessage: inputChangeFailureMessage,
                         validationConflict: true);
                 }
 
@@ -479,7 +481,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         return _workspaceStateTransitions.ApplyExternalChangeDetected(committedSession);
     }
 
-    private bool HasInputChangedDuringCommit(
+    private string? DetectInputChangeFailureMessage(
         WorkspaceInputManifest applicationInputManifest,
         WorkspaceInputManifest promotionInputManifest)
     {
@@ -489,17 +491,69 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         if (applicationInputsChanged)
         {
-            return true;
+            return CreateInputChangeFailureMessage(
+                "Application",
+                applicationInputManifest.Change);
         }
 
         if (!promotionInputManifest.IsComplete)
         {
-            return false;
+            return null;
         }
 
-        return _workspaceChangeDetector.HasChanged(
+        var promotionInputsChanged = _workspaceChangeDetector.HasChanged(
             promotionInputManifest,
             CancellationToken.None);
+
+        if (!promotionInputsChanged)
+        {
+            return null;
+        }
+
+        return CreateInputChangeFailureMessage("Promotion", promotionInputManifest.Change);
+    }
+
+    private static string CreateInputChangeFailureMessage(
+        string certification,
+        WorkspaceInputChange? change)
+    {
+        var message = new StringBuilder();
+        message.Append("Workspace inputs changed during commit promotion. Certification: ");
+        message.Append(certification);
+        message.Append('.');
+        if (change is null)
+        {
+            message.Append(" Detection details were unavailable.");
+            return message.ToString();
+        }
+
+        message.Append(" Detection source: ");
+        message.Append(change.DetectionSource);
+        message.Append(". Change kind: ");
+        message.Append(change.Kind);
+        message.Append('.');
+        if (change.ErrorCode is { } errorCode)
+        {
+            message.Append(" Error code: ");
+            message.Append(errorCode);
+            message.Append('.');
+        }
+
+        if (change.Path is { } path)
+        {
+            message.Append(" Path: ");
+            message.Append(path);
+            message.Append('.');
+        }
+
+        if (change.PreviousPath is { } previousPath)
+        {
+            message.Append(" Previous path: ");
+            message.Append(previousPath);
+            message.Append('.');
+        }
+
+        return message.ToString();
     }
 
     private async ValueTask CompleteCommitAsync(

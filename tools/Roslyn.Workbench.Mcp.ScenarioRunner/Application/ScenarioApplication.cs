@@ -76,7 +76,6 @@ internal static class ScenarioApplication
                     hostPath,
                     repositoryRoot,
                     environment,
-                    frameworkRoot,
                     executionDirectory,
                     outputDirectory,
                     cancellationToken);
@@ -436,7 +435,6 @@ internal static class ScenarioApplication
         string hostPath,
         string repositoryRoot,
         RunEnvironmentInfo environment,
-        string frameworkRoot,
         string executionDirectory,
         string outputDirectory,
         CancellationToken cancellationToken)
@@ -453,13 +451,6 @@ internal static class ScenarioApplication
             repository.Commit,
             cancellationToken);
         var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(repositoryRoot);
-        DiagnosticCollector? collector = null;
-        if (options.CaptureTrace)
-        {
-            await DiagnosticCollector.EnsureToolsRestoredAsync(frameworkRoot, cancellationToken);
-            collector = new DiagnosticCollector(frameworkRoot);
-        }
-
         var startedAtUtc = DateTimeOffset.UtcNow;
 
         for (var warmup = 1; warmup <= options.Warmups; warmup++)
@@ -476,9 +467,7 @@ internal static class ScenarioApplication
                 initialWorkspaceStateFiles,
                 restorer,
                 iteration: 0,
-                collector: null,
                 diagnosticArtifact: null,
-                options.ProfileDuration,
                 cancellationToken);
         }
 
@@ -497,11 +486,9 @@ internal static class ScenarioApplication
                 initialWorkspaceStateFiles,
                 restorer,
                 iteration,
-                collector,
-                collector is null
-                    ? null
-                    : Path.Combine(outputDirectory, $"commit-iteration-{iteration}.nettrace"),
-                options.ProfileDuration,
+                options.CaptureTrace
+                    ? Path.Combine(outputDirectory, $"commit-iteration-{iteration}.nettrace")
+                    : null,
                 cancellationToken);
 
             measurements.Add(measurement);
@@ -1058,9 +1045,7 @@ internal static class ScenarioApplication
         IReadOnlySet<string> initialWorkspaceStateFiles,
         RepositoryRestorer restorer,
         int iteration,
-        DiagnosticCollector? collector,
         string? diagnosticArtifact,
-        TimeSpan profileDuration,
         CancellationToken cancellationToken)
     {
         await using var host = await ScenarioHost.StartAsync(
@@ -1078,7 +1063,7 @@ internal static class ScenarioApplication
             var openedWorkspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
             workspaceId = openedWorkspaceId;
             runner = new DurableCommitRunner(host, openedWorkspaceId, repositoryRoot);
-            if (collector is null || diagnosticArtifact is null)
+            if (diagnosticArtifact is null)
             {
                 execution = await runner.ExecuteAsync(scenario, cancellationToken);
             }
@@ -1086,35 +1071,25 @@ internal static class ScenarioApplication
             {
                 var preparation = await runner.PrepareAsync(scenario, cancellationToken);
                 Directory.CreateDirectory(Path.GetDirectoryName(diagnosticArtifact)!);
-                using var diagnosticProcess = collector.StartDurationProfile(
-                    ProfileKind.Trace,
-                    host.ProcessId,
-                    profileDuration,
-                    diagnosticArtifact);
-                var standardOutput = diagnosticProcess.StandardOutput.ReadToEndAsync(cancellationToken);
-                var standardError = diagnosticProcess.StandardError.ReadToEndAsync(cancellationToken);
-
                 try
                 {
-                    await DiagnosticCollector.WaitForCollectionStartAsync(
-                        diagnosticProcess,
+                    await using var traceCollection = await TraceCollection.StartAsync(
+                        host.ProcessId,
+                        diagnosticArtifact,
                         cancellationToken);
 
-                    execution = await runner.CommitAsync(preparation, cancellationToken);
-                    await diagnosticProcess.WaitForExitAsync(cancellationToken);
-                    if (diagnosticProcess.ExitCode != 0)
+                    try
                     {
-                        throw new InvalidOperationException(
-                            $"Diagnostic collection failed with exit code {diagnosticProcess.ExitCode}.{Environment.NewLine}{await standardError}{await standardOutput}");
+                        execution = await runner.CommitAsync(preparation, cancellationToken);
+                    }
+                    catch (Exception exception)
+                    {
+                        runFailure = CombineFailures(runFailure, exception);
                     }
                 }
-                finally
+                catch (Exception exception)
                 {
-                    if (!diagnosticProcess.HasExited)
-                    {
-                        diagnosticProcess.Kill(entireProcessTree: true);
-                        await diagnosticProcess.WaitForExitAsync(CancellationToken.None);
-                    }
+                    runFailure = CombineFailures(runFailure, exception);
                 }
             }
         }
@@ -1235,6 +1210,9 @@ internal static class ScenarioApplication
             PhaseSummary = diagnosticArtifact is not null && File.Exists(diagnosticArtifact)
                 ? PhaseTraceAnalyzer.Analyze(diagnosticArtifact)
                 : [],
+            AtomicFileCommitRetries = diagnosticArtifact is not null && File.Exists(diagnosticArtifact)
+                ? PhaseTraceAnalyzer.AnalyzeAtomicFileCommitRetries(diagnosticArtifact)
+                : null,
         };
     }
 
@@ -2420,7 +2398,7 @@ internal static class ScenarioApplication
               list
               prepare --repository <id> [--cache <path>] [--framework-root <path>]
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
-              commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--duration 00:00:30] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--output <path>] [--framework-root <path>] [--skip-prepare]
               commit-cancellation --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               crash-recovery --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]

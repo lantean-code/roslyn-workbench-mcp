@@ -30,6 +30,20 @@ public sealed class WorkbenchPerformanceEventSourceTests
         payload[2].Should().Be("Phase");
     }
 
+    [Fact]
+    public void GIVEN_EnabledListener_WHEN_AtomicCommitRetryIsRecorded_THEN_ShouldWriteCountsWithoutPathData()
+    {
+        var eventSource = WorkbenchPerformanceEventSource.Log;
+        using var listener = new WorkbenchPerformanceEventListener(eventSource);
+
+        eventSource.AtomicFileCommitRetry(retryNumber: 2, delayMilliseconds: 50);
+
+        eventSource.ConstructionException.Should().BeNull();
+        var retryEvent = listener.Events.Should().ContainSingle(item => item.EventName == "AtomicFileCommitRetry").Which;
+        retryEvent.PayloadNames.Should().Equal("retryNumber", "delayMilliseconds");
+        retryEvent.Payload.Should().Equal(2, 50);
+    }
+
     private static bool IsExpectedTraceEvent(EventWrittenEventArgs traceEvent)
     {
         return traceEvent.EventName == "PhaseCompleted"

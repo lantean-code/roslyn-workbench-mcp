@@ -13,6 +13,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     private const string _uncPathPrefix = @"\\";
     private const uint _moveFileReplaceExisting = 0x1;
     private const uint _moveFileWriteThrough = 0x8;
+    private const int _unableToRemoveReplacedErrorCode = 1175;
 
     public void Commit(string temporaryPath, string destinationPath)
     {
@@ -83,9 +84,12 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
             exclude: 0,
             reserved: 0) == 0)
         {
-            throw new IOException(
+            var nativeErrorCode = Marshal.GetLastPInvokeError();
+            var nativeException = new Win32Exception(nativeErrorCode);
+            throw new AtomicFileCommitException(
                 $"The atomic replacement of '{destinationPath}' failed.",
-                new Win32Exception(Marshal.GetLastPInvokeError()));
+                nativeErrorCode == _unableToRemoveReplacedErrorCode,
+                nativeException);
         }
     }
 

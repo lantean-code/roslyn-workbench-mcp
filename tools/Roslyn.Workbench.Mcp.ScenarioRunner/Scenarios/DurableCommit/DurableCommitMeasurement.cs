@@ -41,6 +41,8 @@ internal sealed record DurableCommitMeasurement
 
     public IReadOnlyList<PhaseTraceSummary> PhaseSummary { get; init; } = [];
 
+    public AtomicFileCommitRetrySummary? AtomicFileCommitRetries { get; init; }
+
     public int ChangedFileCount => Files.Count;
 
     public int CreatedFileCount => Files.Count(static file => file.Operation == DurableCommitFileOperation.Create);

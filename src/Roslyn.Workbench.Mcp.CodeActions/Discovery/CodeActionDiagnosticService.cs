@@ -16,38 +16,43 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         _builtInAnalyzerIndex = builtInAnalyzerIndex;
     }
 
+    public async Task<CodeActionProjectDiagnosticCollection> CollectProjectDiagnosticsAsync(
+        Project project,
+        IReadOnlyList<string>? diagnosticIds,
+        CancellationToken cancellationToken)
+    {
+        var compilation = await project.GetCompilationAsync(cancellationToken);
+        if (compilation is null)
+        {
+            var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>();
+
+            return new CodeActionProjectDiagnosticCollection([], [], diagnosticsBySyntaxTree, []);
+        }
+
+        var collection = await GetCompilationDiagnosticsAsync(
+            project,
+            compilation,
+            diagnosticIds,
+            cancellationToken);
+
+        return CodeActionProjectDiagnosticCollection.Create(project, collection);
+    }
+
     public async Task<CodeActionDiagnosticCollection> CollectDocumentDiagnosticsAsync(
         Document document,
         TextSpan? span,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
-        if (compilation is null)
-        {
-            return new CodeActionDiagnosticCollection([], []);
-        }
-
-        var collection = await GetCompilationDiagnosticsAsync(
+        var collection = await CollectProjectDiagnosticsAsync(
             document.Project,
-            compilation,
             diagnosticIds,
             cancellationToken);
 
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
-        var documentDiagnostics = new List<Diagnostic>();
-        foreach (var diagnostic in collection.Diagnostics)
-        {
-            if (!diagnostic.Location.IsInSource || diagnostic.Location.SourceTree != syntaxTree)
-            {
-                continue;
-            }
-
-            if (span is null || diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
-            {
-                documentDiagnostics.Add(diagnostic);
-            }
-        }
+        var documentDiagnostics = syntaxTree is null
+            ? []
+            : collection.GetDocumentDiagnostics(syntaxTree, span);
 
         return new CodeActionDiagnosticCollection(documentDiagnostics, collection.Warnings);
     }
@@ -86,23 +91,12 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var compilation = await project.GetCompilationAsync(cancellationToken);
-        if (compilation is null)
-        {
-            return [];
-        }
+        var collection = await CollectProjectDiagnosticsAsync(
+            project,
+            diagnosticIds,
+            cancellationToken);
 
-        var collection = await GetCompilationDiagnosticsAsync(project, compilation, diagnosticIds, cancellationToken);
-        var projectDiagnostics = new List<Diagnostic>();
-        foreach (var diagnostic in collection.Diagnostics)
-        {
-            if (!diagnostic.Location.IsInSource)
-            {
-                projectDiagnostics.Add(diagnostic);
-            }
-        }
-
-        return projectDiagnostics;
+        return collection.ProjectDiagnostics;
     }
 
     private async Task<CodeActionDiagnosticCollection> GetCompilationDiagnosticsAsync(
@@ -116,13 +110,6 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         {
             diagnosticIdSet = new HashSet<string>(diagnosticIds, StringComparer.Ordinal);
         }
-
-        var diagnosticsByIdentity = new Dictionary<string, Diagnostic>(StringComparer.Ordinal);
-        AddMatchingDiagnostics(
-            diagnosticsByIdentity,
-            project,
-            compilation.GetDiagnostics(cancellationToken),
-            diagnosticIdSet);
 
         var analyzers = ImmutableArray.CreateBuilder<DiagnosticAnalyzer>();
         var analyzerTypes = new HashSet<Type>();
@@ -174,8 +161,12 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 
         if (analyzers.Count == 0)
         {
+            var compilerDiagnostics = compilation.GetDiagnostics(cancellationToken);
+            var compilerDiagnosticsByIdentity = new Dictionary<string, Diagnostic>(StringComparer.Ordinal);
+            AddMatchingDiagnostics(compilerDiagnosticsByIdentity, project, compilerDiagnostics, diagnosticIdSet);
+
             return CreateCollection(
-                diagnosticsByIdentity,
+                compilerDiagnosticsByIdentity,
                 warnings,
                 includeBuiltInWarnings: diagnosticIdSet is not null);
         }
@@ -194,13 +185,16 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             logAnalyzerExecutionTime: false,
             reportSuppressedDiagnostics: false);
 
-        var analyzerDiagnostics = await compilation
-            .WithAnalyzers(analyzers.ToImmutable(), analysisOptions)
-            .GetAnalyzerDiagnosticsAsync(cancellationToken);
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            analyzers.ToImmutable(),
+            analysisOptions);
 
-        AddMatchingDiagnostics(diagnosticsByIdentity, project, analyzerDiagnostics, diagnosticIdSet);
+        var allDiagnostics = await compilationWithAnalyzers.GetAllDiagnosticsAsync(cancellationToken);
+        var allDiagnosticsByIdentity = new Dictionary<string, Diagnostic>(StringComparer.Ordinal);
+        AddMatchingDiagnostics(allDiagnosticsByIdentity, project, allDiagnostics, diagnosticIdSet);
+
         return CreateCollection(
-            diagnosticsByIdentity,
+            allDiagnosticsByIdentity,
             warnings,
             includeBuiltInWarnings: diagnosticIdSet is not null);
     }

@@ -58,6 +58,71 @@ public sealed class CodeActionSolutionChangeCounterTests
     }
 
     [Fact]
+    public async Task GIVEN_LargeProjectHasOneTextChange_WHEN_GettingChanges_THEN_ShouldReturnOnlyChangedDocument()
+    {
+        const int documentCount = 512;
+        var documents = Enumerable.Range(0, documentCount)
+            .Select(index => new InMemoryRoslynDocumentDefinition
+            {
+                Name = $"Document{index}.cs",
+                Source = $"class Document{index} {{ }}",
+            })
+            .ToArray();
+
+        using var roslyn = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "LargeProject",
+                Documents = documents,
+            },
+        ]);
+
+        var changedDocument = roslyn.GetDocument("Document256.cs");
+        var updatedText = SourceText.From("class Document256Changed { }");
+        var updatedSolution = roslyn.Solution.WithDocumentText(changedDocument.Id, updatedText);
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Id.Should().Be(changedDocument.Id);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentTextVersionChangesWithoutContentChange_WHEN_GettingChanges_THEN_ShouldReturnEmpty()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var document = roslyn.GetDocument("First.cs");
+        var originalText = await document.GetTextAsync(TestContext.Current.CancellationToken);
+        var equivalentText = SourceText.From(originalText.ToString());
+        var updatedSolution = roslyn.Solution.WithDocumentText(document.Id, equivalentText);
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_OnlyDocumentMetadataChanges_WHEN_GettingChanges_THEN_ShouldReturnEmpty()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var document = roslyn.GetDocument("First.cs");
+        var updatedSolution = roslyn.Solution.WithDocumentFilePath(document.Id, "/workspace/Renamed.cs");
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GIVEN_DocumentIsMissingFromCandidate_WHEN_CountingChanges_THEN_ShouldCountRemovedDocument()
     {
         using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
@@ -89,6 +154,40 @@ public sealed class CodeActionSolutionChangeCounterTests
             TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle().Which.Id.Should().Be(documentId);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectIsAddedToCandidate_WHEN_GettingChanges_THEN_ShouldReturnItsDocuments()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var addedProject = roslyn.Solution.AddProject("AddedProject", "AddedProject", LanguageNames.CSharp);
+        var documentId = DocumentId.CreateNewId(addedProject.Id);
+        var updatedSolution = addedProject.Solution.AddDocument(
+            documentId,
+            "Added.cs",
+            SourceText.From("class Added { }"));
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Id.Should().Be(documentId);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectIsRemovedFromCandidate_WHEN_GettingChanges_THEN_ShouldReturnItsDocuments()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var removedProject = roslyn.Solution.Projects.First();
+        var updatedSolution = roslyn.Solution.RemoveProject(removedProject.Id);
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            roslyn.Solution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Select(static document => document.Id).Should().Equal(removedProject.DocumentIds);
     }
 
     [Fact]

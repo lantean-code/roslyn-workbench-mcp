@@ -45,6 +45,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -71,6 +75,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -104,6 +112,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -137,6 +149,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -170,6 +186,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -224,6 +244,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -257,6 +281,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -295,6 +323,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -344,6 +376,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -396,6 +432,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -412,10 +452,16 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
 
+        var projectSelector = new ProjectSelector { Name = "Project" };
         var result = await target.ExecuteAsync(new SearchSymbolsRequest
         {
             MetadataName = "Format",
             Accessibilities = ["Internal"],
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = projectSelector,
+            },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -430,6 +476,10 @@ public sealed class SearchSymbolsToolTests
 
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext

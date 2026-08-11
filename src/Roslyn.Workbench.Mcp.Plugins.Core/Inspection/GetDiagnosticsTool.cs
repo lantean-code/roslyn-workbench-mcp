@@ -74,18 +74,22 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
             return [];
         }
 
-        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToList();
         var analyzers = project.AnalyzerReferences
             .SelectMany(reference => reference.GetAnalyzers(project.Language))
             .ToImmutableArray();
 
-        if (!analyzers.IsDefaultOrEmpty)
+        ImmutableArray<Diagnostic> diagnostics;
+        if (analyzers.IsDefaultOrEmpty)
         {
-            var analyzerDiagnostics = await compilation
-                .WithAnalyzers(analyzers, project.AnalyzerOptions)
-                .GetAnalyzerDiagnosticsAsync(cancellationToken);
+            diagnostics = compilation.GetDiagnostics(cancellationToken);
+        }
+        else
+        {
+            var compilationWithAnalyzers = compilation.WithAnalyzers(
+                analyzers,
+                project.AnalyzerOptions);
 
-            diagnostics.AddRange(analyzerDiagnostics);
+            diagnostics = await compilationWithAnalyzers.GetAllDiagnosticsAsync(cancellationToken);
         }
 
         var uniqueDiagnostics = new HashSet<Diagnostic>(DiagnosticComparer.Instance);

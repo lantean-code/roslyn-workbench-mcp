@@ -4,6 +4,8 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
 {
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly IReadOnlyList<string> _diagnosticIds;
+    private readonly object _projectDiagnosticTasksLock = new();
+    private readonly Dictionary<ProjectId, Task<CodeActionProjectDiagnosticCollection>> _projectDiagnosticTasks = [];
 
     public WorkspaceFixAllDiagnosticProvider(
         ICodeActionDiagnosticService diagnosticService,
@@ -15,43 +17,51 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
 
     public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
     {
-        var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
-            document,
-            _diagnosticIds,
-            cancellationToken);
+        var diagnosticTask = GetOrCreateProjectDiagnosticTask(document.Project, cancellationToken);
+        var collection = await diagnosticTask.WaitAsync(cancellationToken);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
+        if (syntaxTree is null)
+        {
+            return [];
+        }
 
-        return diagnostics;
+        return collection.GetDocumentDiagnostics(syntaxTree, span: null);
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
-        var diagnostics = await _diagnosticService.GetProjectDiagnosticsAsync(
-            project,
-            _diagnosticIds,
-            cancellationToken);
+        var diagnosticTask = GetOrCreateProjectDiagnosticTask(project, cancellationToken);
+        var collection = await diagnosticTask.WaitAsync(cancellationToken);
 
-        return diagnostics;
+        return collection.ProjectDiagnostics;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
-        var documentDiagnostics = new List<Diagnostic>();
-        foreach (var document in project.Documents)
+        var diagnosticTask = GetOrCreateProjectDiagnosticTask(project, cancellationToken);
+        var collection = await diagnosticTask.WaitAsync(cancellationToken);
+
+        return collection.Diagnostics;
+    }
+
+    private Task<CodeActionProjectDiagnosticCollection> GetOrCreateProjectDiagnosticTask(
+        Project project,
+        CancellationToken cancellationToken)
+    {
+        lock (_projectDiagnosticTasksLock)
         {
-            var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
-                document,
+            if (_projectDiagnosticTasks.TryGetValue(project.Id, out var diagnosticTask))
+            {
+                return diagnosticTask;
+            }
+
+            diagnosticTask = _diagnosticService.CollectProjectDiagnosticsAsync(
+                project,
                 _diagnosticIds,
                 cancellationToken);
 
-            documentDiagnostics.AddRange(diagnostics);
+            _projectDiagnosticTasks.Add(project.Id, diagnosticTask);
+            return diagnosticTask;
         }
-
-        var projectDiagnostics = await _diagnosticService.GetProjectDiagnosticsAsync(
-            project,
-            _diagnosticIds,
-            cancellationToken);
-
-        documentDiagnostics.AddRange(projectDiagnostics);
-        return documentDiagnostics;
     }
 }

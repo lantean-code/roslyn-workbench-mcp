@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
 using Roslyn.Workbench.Mcp.CodeActions.Discovery;
+using Roslyn.Workbench.Mcp.CodeActions.Execution.FixAll;
 using Roslyn.Workbench.Mcp.CodeActions.Policy;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
@@ -126,6 +127,53 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ManyDocumentsAndConcurrentFixAllCallbacks_WHEN_CollectingDiagnostics_THEN_ShouldAnalyzeProjectOnce()
+    {
+        const int documentCount = 128;
+        var composition = CreateComposition();
+        var analyzer = new ProjectDiagnosticAnalyzer();
+        var sources = Enumerable.Range(0, documentCount)
+            .Select(index => $"class Sample{index} {{ }}")
+            .ToArray();
+
+        using var workspace = CreateMultiDocumentWorkspace(
+            composition,
+            sources,
+            editorConfig: null,
+            analyzer);
+
+        var project = workspace.CurrentSolution.Projects.Single();
+        var firstDocument = project.Documents.First();
+        var diagnosticService = CreateDiagnosticService();
+        var target = new WorkspaceFixAllDiagnosticProvider(
+            diagnosticService,
+            [ProjectDiagnosticAnalyzer.DiagnosticId]);
+
+        var allDiagnosticsTask = target.GetAllDiagnosticsAsync(
+            project,
+            TestContext.Current.CancellationToken);
+
+        var documentDiagnosticsTask = target.GetDocumentDiagnosticsAsync(
+            firstDocument,
+            TestContext.Current.CancellationToken);
+
+        var projectDiagnosticsTask = target.GetProjectDiagnosticsAsync(
+            project,
+            TestContext.Current.CancellationToken);
+
+        await Task.WhenAll(allDiagnosticsTask, documentDiagnosticsTask, projectDiagnosticsTask);
+
+        var allDiagnostics = await allDiagnosticsTask;
+        var documentDiagnostics = await documentDiagnosticsTask;
+        var projectDiagnostics = await projectDiagnosticsTask;
+        allDiagnostics.Should().HaveCount(documentCount);
+        documentDiagnostics.Should().ContainSingle();
+        projectDiagnostics.Should().BeEmpty();
+        analyzer.ExecutionCount.Should().Be(documentCount);
+    }
+
     private static ICodeActionComposition CreateComposition()
     {
         var options = new CodeActionCompositionOptions
@@ -155,28 +203,46 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
         string? editorConfig,
         DiagnosticAnalyzer? analyzer)
     {
+        return CreateMultiDocumentWorkspace(
+            composition,
+            [source],
+            editorConfig,
+            analyzer);
+    }
+
+    private static AdhocWorkspace CreateMultiDocumentWorkspace(
+        ICodeActionComposition composition,
+        string[] sources,
+        string? editorConfig,
+        DiagnosticAnalyzer? analyzer)
+    {
         var hostServices = composition.WorkspaceHostServices
             ?? throw new InvalidOperationException("Code Action composition did not provide Workspace host services.");
 
         var workspace = new AdhocWorkspace(hostServices);
         var projectId = ProjectId.CreateNewId("Project");
-        var documentId = DocumentId.CreateNewId(projectId, "Code.cs");
-        var solution = workspace.CurrentSolution
-            .AddProject(ProjectInfo.Create(
-                projectId,
-                VersionStamp.Create(),
-                "Project",
-                "Project",
-                LanguageNames.CSharp,
-                filePath: "/workspace/Project/Project.csproj",
-                metadataReferences: CreateMetadataReferences(),
-                compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
-                parseOptions: new CSharpParseOptions(LanguageVersion.Preview)))
-            .AddDocument(
+        var projectInfo = ProjectInfo.Create(
+            projectId,
+            VersionStamp.Create(),
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: "/workspace/Project/Project.csproj",
+            metadataReferences: CreateMetadataReferences(),
+            compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+            parseOptions: new CSharpParseOptions(LanguageVersion.Preview));
+
+        var solution = workspace.CurrentSolution.AddProject(projectInfo);
+        for (var index = 0; index < sources.Length; index++)
+        {
+            var documentName = index == 0 ? "Code.cs" : $"Code{index}.cs";
+            var documentId = DocumentId.CreateNewId(projectId, documentName);
+            solution = solution.AddDocument(
                 documentId,
-                "Code.cs",
-                SourceText.From(source),
-                filePath: "/workspace/Project/Code.cs");
+                documentName,
+                SourceText.From(sources[index]),
+                filePath: $"/workspace/Project/{documentName}");
+        }
 
         if (editorConfig is not null)
         {

@@ -14,11 +14,19 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
         [
             new InMemoryRoslynProjectDefinition
             {
-                Name = "Project",
+                Name = "FirstProject",
                 Documents =
                 [
                     new InMemoryRoslynDocumentDefinition { Name = "First.cs", Source = "class First { }" },
                     new InMemoryRoslynDocumentDefinition { Name = "Second.cs", Source = "class Second { }" },
+                ],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "SecondProject",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition { Name = "Third.cs", Source = "class Third { }" },
                 ],
             },
         ]);
@@ -28,89 +36,157 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_Document_WHEN_GettingDocumentDiagnostics_THEN_ShouldDelegateDocumentRequest()
+    public async Task GIVEN_ProjectCallbacksShareOneProvider_WHEN_GettingDiagnostics_THEN_ShouldCollectAndPartitionOnce()
     {
+        var project = _roslyn.GetProject("FirstProject");
         var document = _roslyn.GetDocument("First.cs");
-        IReadOnlyList<Diagnostic> expected = [CreateDiagnostic("DiagnosticId")];
+        var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("The test document did not provide a syntax tree.");
+
+        var sourceDiagnostic = RoslynTestFactory.CreateDiagnostic("SourceDiagnosticId", syntaxTree, 0, 1);
+        var projectDiagnostic = CreateProjectDiagnostic("ProjectDiagnosticId");
+        var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>
+        {
+            [syntaxTree] = [sourceDiagnostic],
+        };
+
+        var collection = new CodeActionProjectDiagnosticCollection(
+            [sourceDiagnostic, projectDiagnostic],
+            [projectDiagnostic],
+            diagnosticsBySyntaxTree,
+            []);
+
         _diagnosticService
-            .Setup(item => item.GetDocumentDiagnosticsAsync(
-                document,
+            .Setup(item => item.CollectProjectDiagnosticsAsync(
+                project,
                 _diagnosticIds,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(expected);
+            .ReturnsAsync(collection);
 
-        var result = await _target.GetDocumentDiagnosticsAsync(document, TestContext.Current.CancellationToken);
-
-        result.Should().Equal(expected);
-        _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
+        var documentDiagnostics = await _target.GetDocumentDiagnosticsAsync(
             document,
-            _diagnosticIds,
-            TestContext.Current.CancellationToken), Times.Once);
-    }
+            TestContext.Current.CancellationToken);
 
-    [Fact]
-    public async Task GIVEN_Project_WHEN_GettingProjectDiagnostics_THEN_ShouldDelegateProjectRequest()
-    {
-        var project = _roslyn.GetProject("Project");
-        IReadOnlyList<Diagnostic> expected = [CreateDiagnostic("DiagnosticId")];
-        _diagnosticService
-            .Setup(item => item.GetProjectDiagnosticsAsync(
-                project,
-                _diagnosticIds,
-                TestContext.Current.CancellationToken))
-            .ReturnsAsync(expected);
+        var projectDiagnostics = await _target.GetProjectDiagnosticsAsync(
+            project,
+            TestContext.Current.CancellationToken);
 
-        var result = await _target.GetProjectDiagnosticsAsync(project, TestContext.Current.CancellationToken);
+        var allDiagnostics = await _target.GetAllDiagnosticsAsync(
+            project,
+            TestContext.Current.CancellationToken);
 
-        result.Should().Equal(expected);
-        _diagnosticService.Verify(item => item.GetProjectDiagnosticsAsync(
+        documentDiagnostics.Should().Equal(sourceDiagnostic);
+        projectDiagnostics.Should().Equal(projectDiagnostic);
+        allDiagnostics.Should().Equal(sourceDiagnostic, projectDiagnostic);
+        _diagnosticService.Verify(item => item.CollectProjectDiagnosticsAsync(
             project,
             _diagnosticIds,
             TestContext.Current.CancellationToken), Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_MultipleDocumentsAndProjectDiagnostics_WHEN_GettingAllDiagnostics_THEN_ShouldAggregateInProjectOrder()
+    public async Task GIVEN_ConcurrentCallbacks_WHEN_GettingSameProjectDiagnostics_THEN_ShouldShareInFlightCollection()
     {
-        var project = _roslyn.GetProject("Project");
-        var firstDocument = _roslyn.GetDocument("First.cs");
-        var secondDocument = _roslyn.GetDocument("Second.cs");
-        var firstDiagnostic = CreateDiagnostic("FirstDiagnosticId");
-        var secondDiagnostic = CreateDiagnostic("SecondDiagnosticId");
-        var projectDiagnostic = CreateDiagnostic("ProjectDiagnosticId");
+        var project = _roslyn.GetProject("FirstProject");
+        var completion = new TaskCompletionSource<CodeActionProjectDiagnosticCollection>(TaskCreationOptions.RunContinuationsAsynchronously);
         _diagnosticService
-            .Setup(item => item.GetDocumentDiagnosticsAsync(
-                firstDocument,
-                _diagnosticIds,
-                TestContext.Current.CancellationToken))
-            .ReturnsAsync([firstDiagnostic]);
-
-        _diagnosticService
-            .Setup(item => item.GetDocumentDiagnosticsAsync(
-                secondDocument,
-                _diagnosticIds,
-                TestContext.Current.CancellationToken))
-            .ReturnsAsync([secondDiagnostic]);
-
-        _diagnosticService
-            .Setup(item => item.GetProjectDiagnosticsAsync(
+            .Setup(item => item.CollectProjectDiagnosticsAsync(
                 project,
                 _diagnosticIds,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([projectDiagnostic]);
+            .Returns(completion.Task);
 
-        var result = await _target.GetAllDiagnosticsAsync(project, TestContext.Current.CancellationToken);
+        var firstRequest = _target.GetAllDiagnosticsAsync(project, TestContext.Current.CancellationToken);
+        var secondRequest = _target.GetProjectDiagnosticsAsync(project, TestContext.Current.CancellationToken);
+        var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>();
+        var collection = new CodeActionProjectDiagnosticCollection([], [], diagnosticsBySyntaxTree, []);
+        completion.SetResult(collection);
 
-        result.Should().Equal(firstDiagnostic, secondDiagnostic, projectDiagnostic);
-        _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
-            It.IsAny<Document>(),
-            _diagnosticIds,
-            TestContext.Current.CancellationToken), Times.Exactly(2));
+        await Task.WhenAll(firstRequest, secondRequest);
 
-        _diagnosticService.Verify(item => item.GetProjectDiagnosticsAsync(
+        _diagnosticService.Verify(item => item.CollectProjectDiagnosticsAsync(
             project,
             _diagnosticIds,
             TestContext.Current.CancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CachedCollectionIsInFlight_WHEN_ASecondCallbackIsCancelled_THEN_ShouldCancelOnlyThatWait()
+    {
+        var project = _roslyn.GetProject("FirstProject");
+        var completion = new TaskCompletionSource<CodeActionProjectDiagnosticCollection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _diagnosticService
+            .Setup(item => item.CollectProjectDiagnosticsAsync(
+                project,
+                _diagnosticIds,
+                TestContext.Current.CancellationToken))
+            .Returns(completion.Task);
+
+        var firstRequest = _target.GetAllDiagnosticsAsync(project, TestContext.Current.CancellationToken);
+        var cancelledToken = new CancellationToken(canceled: true);
+        Func<Task> cancelledRequest = async () => await _target.GetProjectDiagnosticsAsync(
+            project,
+            cancelledToken);
+
+        await cancelledRequest.Should().ThrowAsync<OperationCanceledException>();
+
+        var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>();
+        var collection = new CodeActionProjectDiagnosticCollection([], [], diagnosticsBySyntaxTree, []);
+        completion.SetResult(collection);
+        await firstRequest;
+
+        _diagnosticService.Verify(item => item.CollectProjectDiagnosticsAsync(
+            project,
+            _diagnosticIds,
+            TestContext.Current.CancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_DifferentProjects_WHEN_GettingAllDiagnostics_THEN_ShouldCollectEachProject()
+    {
+        var firstProject = _roslyn.GetProject("FirstProject");
+        var secondProject = _roslyn.GetProject("SecondProject");
+        var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>();
+        var collection = new CodeActionProjectDiagnosticCollection([], [], diagnosticsBySyntaxTree, []);
+        _diagnosticService
+            .Setup(item => item.CollectProjectDiagnosticsAsync(
+                It.IsAny<Project>(),
+                _diagnosticIds,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(collection);
+
+        await _target.GetAllDiagnosticsAsync(firstProject, TestContext.Current.CancellationToken);
+        await _target.GetAllDiagnosticsAsync(secondProject, TestContext.Current.CancellationToken);
+
+        _diagnosticService.Verify(item => item.CollectProjectDiagnosticsAsync(
+            firstProject,
+            _diagnosticIds,
+            TestContext.Current.CancellationToken), Times.Once);
+
+        _diagnosticService.Verify(item => item.CollectProjectDiagnosticsAsync(
+            secondProject,
+            _diagnosticIds,
+            TestContext.Current.CancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentHasNoSyntaxTree_WHEN_GettingDocumentDiagnostics_THEN_ShouldReturnEmpty()
+    {
+        using var unsupported = RoslynTestFactory.CreateUnsupportedDocument();
+        var diagnosticsBySyntaxTree = new Dictionary<SyntaxTree, IReadOnlyList<Diagnostic>>();
+        var collection = new CodeActionProjectDiagnosticCollection([], [], diagnosticsBySyntaxTree, []);
+        _diagnosticService
+            .Setup(item => item.CollectProjectDiagnosticsAsync(
+                unsupported.Document.Project,
+                _diagnosticIds,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(collection);
+
+        var result = await _target.GetDocumentDiagnosticsAsync(
+            unsupported.Document,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeEmpty();
     }
 
     public void Dispose()
@@ -118,7 +194,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
         _roslyn.Dispose();
     }
 
-    private static Diagnostic CreateDiagnostic(string diagnosticId)
+    private static Diagnostic CreateProjectDiagnostic(string diagnosticId)
     {
         var descriptor = new DiagnosticDescriptor(
             diagnosticId,

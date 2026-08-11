@@ -188,6 +188,97 @@ public sealed class CodeActionDiagnosticServiceTests
     }
 
     [Fact]
+    public async Task GIVEN_CompilerAndAnalyzerDiagnostics_WHEN_CollectingProjectDiagnostics_THEN_ShouldReturnPartitionedAggregate()
+    {
+        using var roslyn = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "First.cs",
+                        Source = "class First { MissingType Value; }",
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Second.cs",
+                        Source = "class Second { }",
+                    },
+                ],
+            },
+        ]);
+
+        var analyzer = CreateCompilationAnalyzer("SOURCE001", "PROJECT001");
+        var analyzerReference = CreateAnalyzerReference(analyzer.Object);
+        var project = roslyn.GetProject("Project");
+        var updatedSolution = roslyn.Solution.AddAnalyzerReference(project.Id, analyzerReference.Object);
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var updatedProject = roslyn.Workspace.CurrentSolution.GetProject(project.Id)
+            ?? throw new InvalidOperationException("The updated test project could not be resolved.");
+
+        var firstDocument = updatedProject.Documents.Single(document => document.Name == "First.cs");
+        var firstSyntaxTree = await firstDocument.GetSyntaxTreeAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("The test document did not provide a syntax tree.");
+
+        var result = await _target.CollectProjectDiagnosticsAsync(
+            updatedProject,
+            ["CS0246", "SOURCE001", "PROJECT001"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().HaveCount(4);
+        result.Diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "CS0246");
+        result.Diagnostics.Should().Contain(diagnostic => diagnostic.Id == "SOURCE001");
+        result.ProjectDiagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "PROJECT001");
+        result.GetDocumentDiagnostics(firstSyntaxTree, span: null).Should().HaveCount(2);
+        analyzerReference.Verify(item => item.GetAnalyzers(LanguageNames.CSharp), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_AnalyzerReportsExternalLocation_WHEN_CollectingProjectDiagnostics_THEN_ShouldTreatItAsProjectDiagnostic()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
+        var descriptor = CreateDescriptor("EXTERNAL001");
+        var externalLocation = Location.Create(
+            "/external/Generated.cs",
+            new TextSpan(0, 1),
+            new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 1)));
+
+        var analyzer = new Mock<DiagnosticAnalyzer>();
+        analyzer
+            .SetupGet(item => item.SupportedDiagnostics)
+            .Returns([descriptor]);
+
+        analyzer
+            .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
+            .Callback<AnalysisContext>(context =>
+            {
+                context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+                context.RegisterCompilationAction(compilationContext =>
+                    compilationContext.ReportDiagnostic(Diagnostic.Create(descriptor, externalLocation)));
+            });
+
+        var analyzerReference = CreateAnalyzerReference(analyzer.Object);
+        var updatedSolution = roslyn.Solution.AddAnalyzerReference(
+            roslyn.Document.Project.Id,
+            analyzerReference.Object);
+
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var updatedProject = roslyn.Workspace.CurrentSolution.GetProject(roslyn.Document.Project.Id)
+            ?? throw new InvalidOperationException("The updated test project could not be resolved.");
+
+        var result = await _target.CollectProjectDiagnosticsAsync(
+            updatedProject,
+            ["EXTERNAL001"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "EXTERNAL001");
+        result.ProjectDiagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "EXTERNAL001");
+    }
+
+    [Fact]
     public async Task GIVEN_ProjectAnalyzers_WHEN_GettingFilteredDiagnostics_THEN_ShouldExecuteOnlySupportingAnalyzers()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");

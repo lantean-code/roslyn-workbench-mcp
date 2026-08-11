@@ -7,6 +7,9 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
         Solution after,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var candidateDocumentIds = GetCandidateDocumentIds(before, after);
         var changedDocuments = new List<Document>();
         var beforeDocumentIds = before.Projects
             .SelectMany(static project => project.DocumentIds)
@@ -24,6 +27,11 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
         foreach (var documentId in documentIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!candidateDocumentIds.Contains(documentId))
+            {
+                continue;
+            }
+
             var originalDocument = before.GetDocument(documentId);
             var updatedDocument = after.GetDocument(documentId);
             if (originalDocument is null || updatedDocument is null)
@@ -59,5 +67,29 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
             cancellationToken);
 
         return changedDocuments.Count;
+    }
+
+    private static HashSet<DocumentId> GetCandidateDocumentIds(Solution before, Solution after)
+    {
+        var candidateDocumentIds = new HashSet<DocumentId>();
+        var solutionChanges = after.GetChanges(before);
+        foreach (var projectChanges in solutionChanges.GetProjectChanges())
+        {
+            candidateDocumentIds.UnionWith(projectChanges.GetAddedDocuments());
+            candidateDocumentIds.UnionWith(projectChanges.GetRemovedDocuments());
+            candidateDocumentIds.UnionWith(projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true));
+        }
+
+        foreach (var project in solutionChanges.GetAddedProjects())
+        {
+            candidateDocumentIds.UnionWith(project.DocumentIds);
+        }
+
+        foreach (var project in solutionChanges.GetRemovedProjects())
+        {
+            candidateDocumentIds.UnionWith(project.DocumentIds);
+        }
+
+        return candidateDocumentIds;
     }
 }

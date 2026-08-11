@@ -25,14 +25,19 @@ internal sealed class ProjectDiagnosticAnalyzer : DiagnosticAnalyzer
         Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private int _executionCount;
+
+    public int ExecutionCount => Volatile.Read(ref _executionCount);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [_descriptor];
 
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSyntaxTreeAction(static syntaxTreeContext =>
+        context.RegisterSyntaxTreeAction(syntaxTreeContext =>
         {
+            Interlocked.Increment(ref _executionCount);
             syntaxTreeContext.ReportDiagnostic(Diagnostic.Create(
                 _descriptor,
                 syntaxTreeContext.Tree.GetLocation(new TextSpan(0, 1))));

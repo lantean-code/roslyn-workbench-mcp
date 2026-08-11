@@ -35,15 +35,37 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         var matchedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DiscoveryPhase))
         {
-            foreach (var project in scopeResolution.Value)
+            if (request.Scope is null || request.Scope.Kind == ScopeKind.Solution)
             {
-                var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken);
-                foreach (var symbol in declarations)
+                var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(
+                    context.CurrentSolution,
+                    pattern,
+                    SymbolFilter.TypeAndMember,
+                    cancellationToken);
+
+                AddMatchingSymbols(
+                    declarations,
+                    request,
+                    requestedKinds,
+                    requestedAccessibilities,
+                    matchedSymbols);
+            }
+            else
+            {
+                foreach (var project in scopeResolution.Value)
                 {
-                    if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
-                    {
-                        matchedSymbols.Add(symbol);
-                    }
+                    var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(
+                        project,
+                        pattern,
+                        SymbolFilter.TypeAndMember,
+                        cancellationToken);
+
+                    AddMatchingSymbols(
+                        declarations,
+                        request,
+                        requestedKinds,
+                        requestedAccessibilities,
+                        matchedSymbols);
                 }
             }
         }
@@ -83,6 +105,22 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static void AddMatchingSymbols(
+        IEnumerable<ISymbol> declarations,
+        SearchSymbolsRequest request,
+        HashSet<string>? requestedKinds,
+        HashSet<string>? requestedAccessibilities,
+        HashSet<ISymbol> matchedSymbols)
+    {
+        foreach (var symbol in declarations)
+        {
+            if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
+            {
+                matchedSymbols.Add(symbol);
+            }
+        }
     }
 
     private static bool MatchesSymbolFilters(

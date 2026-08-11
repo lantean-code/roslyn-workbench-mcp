@@ -43,26 +43,11 @@ internal sealed class RepositoryManager
                 cancellationToken);
         }
 
-        var head = await GitCommand.RunAsync(
-            ["rev-parse", "HEAD"],
+        await ValidatePinnedCheckoutAsync(
             repositoryRoot,
+            repository.Commit,
+            "before preparation",
             cancellationToken);
-        var actualCommit = head.StandardOutput.Trim();
-        if (head.ExitCode != 0 || !string.Equals(actualCommit, repository.Commit, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                $"Repository cache '{repositoryRoot}' is at '{actualCommit}', not pinned commit '{repository.Commit}'. Remove that cache directory explicitly before retrying.");
-        }
-
-        var status = await GitCommand.RunAsync(
-            ["status", "--porcelain", "--untracked-files=no"],
-            repositoryRoot,
-            cancellationToken);
-        if (status.ExitCode != 0 || !string.IsNullOrWhiteSpace(status.StandardOutput))
-        {
-            throw new InvalidOperationException(
-                $"Repository cache '{repositoryRoot}' contains tracked changes. Use a clean cache so the pinned scenario inputs remain reproducible.");
-        }
 
         if (runPreparation)
         {
@@ -87,6 +72,12 @@ internal sealed class RepositoryManager
                     cancellationToken,
                     environment);
             }
+
+            await ValidatePinnedCheckoutAsync(
+                repositoryRoot,
+                repository.Commit,
+                "after preparation",
+                cancellationToken);
         }
 
         return repositoryRoot;
@@ -121,6 +112,47 @@ internal sealed class RepositoryManager
 
         throw new InvalidOperationException(
             $"Command '{fileName}' failed with exit code {result.ExitCode}.{Environment.NewLine}{result.StandardError}{result.StandardOutput}");
+    }
+
+    private static async Task ValidatePinnedCheckoutAsync(
+        string repositoryRoot,
+        string expectedCommit,
+        string validationPoint,
+        CancellationToken cancellationToken)
+    {
+        var head = await GitCommand.RunAsync(
+            ["rev-parse", "HEAD"],
+            repositoryRoot,
+            cancellationToken);
+        if (head.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Unable to inspect repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{head.StandardError}");
+        }
+
+        var actualCommit = head.StandardOutput.Trim();
+        if (!string.Equals(actualCommit, expectedCommit, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Repository cache '{repositoryRoot}' is at '{actualCommit}' {validationPoint}, not pinned commit '{expectedCommit}'. Remove that cache directory explicitly before retrying.");
+        }
+
+        var status = await GitCommand.RunAsync(
+            ["status", "--porcelain", "--untracked-files=no"],
+            repositoryRoot,
+            cancellationToken);
+        if (status.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Unable to inspect tracked changes in repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{status.StandardError}");
+        }
+
+        var trackedChanges = status.StandardOutput.Trim();
+        if (!string.IsNullOrWhiteSpace(trackedChanges))
+        {
+            throw new InvalidOperationException(
+                $"Repository cache '{repositoryRoot}' contains tracked changes {validationPoint}. Use a clean cache so the pinned scenario inputs remain reproducible.{Environment.NewLine}{trackedChanges}");
+        }
     }
 
     public static string GetNuGetPackagesDirectory(string repositoryRoot)

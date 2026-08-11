@@ -28,16 +28,6 @@ When a task is completed, remove it from this document rather than retaining a c
 
 ## Phase 1 — Foundation
 
-### Make external-repository preparation clean and repeatable
-
-**Status:** Not started
-
-Make scenario-runner repository preparation preserve the pinned tracked state across repeated native Windows and Linux/WSL runs without requiring manual cache repair. The Batch 7 Windows EF Core run exposed a mismatch: repository preparation could remove the pinned commit's three zero-byte tracked sentinel files, causing the next cache reuse to fail its deliberate tracked-cleanliness guard even though no source mutation occurred.
-
-Retain the guard against silently concealing real source mutations, failed durable restoration or recovery defects. Do not introduce a blanket reset or clean. Instead, identify preparation side effects at the preparation boundary, fail with the exact affected paths, and either isolate generated preparation output from the checkout or support explicitly declared, pinned-content restoration for known repository-owned preparation effects. Add repeat-preparation and cache-reuse coverage for EF Core on Windows and representative Linux/WSL coverage.
-
-Source: [Code Action Batch 7 Validation](CodeActionBatch7Validation-2026-07-30.md#external-repository-preparation-follow-up)
-
 ### Harden the plugin query-cache boundary
 
 **Status:** Not started

@@ -1119,6 +1119,18 @@
           "arguments": [ "restore.sh", "-p:NuGetAudit=false" ],
           "windowsFileName": "cmd.exe",
           "windowsArguments": [ "/d", "/c", "restore.cmd", "/p:NuGetAudit=false" ]
+        },
+        {
+          "fileName": "git",
+          "arguments": [
+            "restore",
+            "--source=HEAD",
+            "--worktree",
+            "--",
+            "src/EFCore.Analyzers/AnalyzerReleases.Unshipped.md",
+            "src/EFCore.Sqlite/lib/net10.0/_._",
+            "src/Microsoft.Data.Sqlite/lib/netstandard2.0/_._"
+          ]
         }
       ],
       "scenarios": [

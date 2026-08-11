@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Reflection.Emit;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Test.Validation;
 
 public sealed class PluginHandlerWarningInspectorTests
@@ -32,6 +35,22 @@ public sealed class PluginHandlerWarningInspectorTests
     }
 
     [Fact]
+    public void GIVEN_ReadonlyInjectedInstanceField_WHEN_Inspecting_THEN_ShouldReturnNoWarnings()
+    {
+        var result = _target.Inspect(typeof(ReadonlyInjectedHandler));
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_ReadonlyInjectedAutoProperty_WHEN_Inspecting_THEN_ShouldReturnNoWarnings()
+    {
+        var result = _target.Inspect(typeof(ReadonlyInjectedPropertyHandler));
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GIVEN_HandlerInheritsInstanceState_WHEN_Inspecting_THEN_ShouldPublishStateWarning()
     {
         var result = _target.Inspect(typeof(InheritedStateHandler));
@@ -44,7 +63,47 @@ public sealed class PluginHandlerWarningInspectorTests
     {
         var result = _target.Inspect(typeof(DisposableFieldHandler));
 
-        result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerDisposableField");
+        result.Select(static diagnostic => diagnostic.Id).Should().Equal(
+            "PluginHandlerInstanceState",
+            "PluginHandlerDisposableField");
+    }
+
+    [Fact]
+    public void GIVEN_HandlerOwnsDisposableAutoProperty_WHEN_Inspecting_THEN_ShouldPublishDisposableFieldWarning()
+    {
+        var result = _target.Inspect(typeof(DisposablePropertyHandler));
+
+        result.Select(static diagnostic => diagnostic.Id).Should().Equal(
+            "PluginHandlerInstanceState",
+            "PluginHandlerDisposableField");
+    }
+
+    [Fact]
+    public void GIVEN_HandlerOwnsReadonlyMutableCollection_WHEN_Inspecting_THEN_ShouldPublishStateWarning()
+    {
+        var result = _target.Inspect(typeof(ReadonlyCollectionHandler));
+
+        result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerInstanceState");
+    }
+
+    [Fact]
+    public void GIVEN_ReadonlyFieldHasMalformedGeneratedName_WHEN_Inspecting_THEN_ShouldPublishStateWarning()
+    {
+        var assemblyName = new AssemblyName("AssemblyName");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule("ModuleName");
+        var typeBuilder = moduleBuilder.DefineType("HandlerType");
+        _ = typeBuilder.DefineField(
+            "<FieldName",
+            typeof(object),
+            FieldAttributes.Private | FieldAttributes.InitOnly);
+
+        _ = typeBuilder.DefineDefaultConstructor(MethodAttributes.Public);
+        var handlerType = typeBuilder.CreateType();
+
+        var result = _target.Inspect(handlerType);
+
+        result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerInstanceState");
     }
 
     [Fact]
@@ -128,6 +187,47 @@ public sealed class PluginHandlerWarningInspectorTests
     }
 
 #pragma warning restore CA1001
+
+#pragma warning disable CA1001 // This fixture deliberately models unsupported disposable property ownership.
+
+    private sealed class DisposablePropertyHandler
+    {
+        public MemoryStream Stream { get; } = new();
+    }
+
+#pragma warning restore CA1001
+
+    private sealed class ReadonlyCollectionHandler
+    {
+        private readonly List<string> _values = [];
+
+        public int Count => _values.Count;
+    }
+
+    private sealed class ReadonlyInjectedHandler
+    {
+        private readonly RegisterMethodHandler _dependency;
+
+        public ReadonlyInjectedHandler(RegisterMethodHandler dependency)
+        {
+            _dependency = dependency;
+        }
+
+        public void UseDependency()
+        {
+            _ = _dependency;
+        }
+    }
+
+    private sealed class ReadonlyInjectedPropertyHandler
+    {
+        public RegisterMethodHandler Dependency { get; }
+
+        public ReadonlyInjectedPropertyHandler(RegisterMethodHandler dependency)
+        {
+            Dependency = dependency;
+        }
+    }
 
     private sealed class RegisterMethodHandler
     {

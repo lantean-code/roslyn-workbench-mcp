@@ -281,17 +281,17 @@ Measure cancellation and Workspace lease recovery for a large scan:
   --cancel-after 00:00:00.050 --iterations 5 --skip-prepare
 ```
 
-Measure the representative relationship, source-scan, whole-project and deep-projection query families:
+Measure the representative relationship, whole-project and deep-projection query families:
 
 ```bash
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   measure --repository serilog \
-  --scenario change-impact-low-limit,change-impact-high-limit,code-metrics-low-limit,code-metrics-high-limit,duplicate-code,operation-tree,control-flow-shallow,control-flow-deep \
+  --scenario async-analysis,change-impact-low-limit,change-impact-high-limit,duplicate-code,operation-tree,control-flow-shallow,control-flow-deep \
   --iterations 5 --warmups 2 --skip-prepare
 
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   measure --repository efcore \
-  --scenario code-metrics-low-limit,duplicate-code \
+  --scenario async-analysis,duplicate-code \
   --iterations 5 --warmups 3 --skip-prepare
 ```
 

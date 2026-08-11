@@ -1,27 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 /// <summary>
-/// Represents one async analysis finding.
+/// Represents one compiler-backed async analysis finding.
 /// </summary>
 internal sealed record AsyncFinding
 {
     /// <summary>
-    /// Gets the finding kind.
+    /// Gets the compiler diagnostic.
     /// </summary>
-    public string Kind { get; init; } = string.Empty;
-
-    /// <summary>
-    /// Gets the associated symbol.
-    /// </summary>
-    public SymbolReference? Symbol { get; init; }
-
-    /// <summary>
-    /// Gets the finding location.
-    /// </summary>
-    public ResolvedLocation? Location { get; init; }
-
-    /// <summary>
-    /// Gets the finding message.
-    /// </summary>
-    public string Message { get; init; } = string.Empty;
+    public DiagnosticInfo? Diagnostic { get; init; }
 }

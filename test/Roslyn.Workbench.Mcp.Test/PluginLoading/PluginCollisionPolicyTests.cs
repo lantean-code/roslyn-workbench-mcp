@@ -96,7 +96,6 @@ public sealed class PluginCollisionPolicyTests
                     {
                         HandlerType = typeof(object),
                         HandlerContract = typeof(object),
-                        HandlerFactory = static () => new object(),
                         Tool = new RegisteredTool
                         {
                             Metadata = new ToolRegistrationMetadata

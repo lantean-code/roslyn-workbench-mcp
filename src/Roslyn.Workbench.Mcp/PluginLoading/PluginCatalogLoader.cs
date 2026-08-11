@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -23,6 +24,10 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         _packageDiscovery = packageDiscovery;
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Catalogue loading must retain both the original loading failure and any failure while releasing plugin providers materialized by an earlier phase.")]
     public PluginCatalogSnapshot Load(
         StartupOptions startupOptions,
         IReadOnlyList<Assembly> bundledAssemblies,
@@ -31,24 +36,69 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         var tools = new List<IRegisteredPluginTool>();
         var statuses = new List<PluginStatus>();
         var loadContexts = new List<AssemblyLoadContext>();
+        var serviceProviderLifetimes = new List<IDisposable>();
         var protectedToolNames = new HashSet<string>(reservedToolNames ?? [], StringComparer.Ordinal);
 
-        LoadBundledPlugins(bundledAssemblies, protectedToolNames, tools, statuses);
-        LoadExternalPlugins(startupOptions, protectedToolNames, tools, statuses, loadContexts);
-
-        return new PluginCatalogSnapshot
+        try
         {
-            Tools = tools.ToImmutableArray(),
-            Plugins = statuses.ToImmutableArray(),
-            LoadContexts = loadContexts.ToImmutableArray(),
+            LoadBundledPlugins(
+                bundledAssemblies,
+                protectedToolNames,
+                tools,
+                statuses,
+                serviceProviderLifetimes);
+
+            LoadExternalPlugins(
+                startupOptions,
+                protectedToolNames,
+                tools,
+                statuses,
+                loadContexts,
+                serviceProviderLifetimes);
+
+            return new PluginCatalogSnapshot
+            {
+                Tools = tools.ToImmutableArray(),
+                Plugins = statuses.ToImmutableArray(),
+                LoadContexts = loadContexts.ToImmutableArray(),
+                ServiceProviderLifetimes = serviceProviderLifetimes.ToImmutableArray(),
+            };
+        }
+        catch (Exception loadingException)
+        {
+            DisposeMaterializedProviders(serviceProviderLifetimes, loadingException);
+            throw;
+        }
+    }
+
+    private static void DisposeMaterializedProviders(
+        IReadOnlyList<IDisposable> serviceProviderLifetimes,
+        Exception loadingException)
+    {
+        var partialCatalog = new PluginCatalogSnapshot
+        {
+            ServiceProviderLifetimes = serviceProviderLifetimes,
         };
+
+        try
+        {
+            partialCatalog.Dispose();
+        }
+        catch (Exception disposalException)
+        {
+            throw new AggregateException(
+                "Plugin catalogue loading failed and one or more materialized plugin service providers also failed during disposal.",
+                loadingException,
+                disposalException);
+        }
     }
 
     private void LoadBundledPlugins(
         IReadOnlyList<Assembly> bundledAssemblies,
         HashSet<string> protectedToolNames,
         ICollection<IRegisteredPluginTool> tools,
-        ICollection<PluginStatus> statuses)
+        ICollection<PluginStatus> statuses,
+        ICollection<IDisposable> serviceProviderLifetimes)
     {
         var preparation = _candidatePreparer.PrepareBundled(bundledAssemblies);
         AddStatuses(preparation.Statuses, statuses);
@@ -66,7 +116,7 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
 
         foreach (var plugin in preparation.Plugins)
         {
-            AddMaterializedPlugin(plugin, tools, statuses);
+            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes);
         }
     }
 
@@ -75,7 +125,8 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         IReadOnlySet<string> protectedToolNames,
         ICollection<IRegisteredPluginTool> tools,
         List<PluginStatus> statuses,
-        ICollection<AssemblyLoadContext> loadContexts)
+        ICollection<AssemblyLoadContext> loadContexts,
+        ICollection<IDisposable> serviceProviderLifetimes)
     {
         var discoveryResults = _packageDiscovery.Discover(startupOptions.PluginDirectories);
         var duplicateIds = _collisionPolicy.FindDuplicateExternalPluginIds(discoveryResults);
@@ -96,19 +147,25 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
                 continue;
             }
 
-            AddMaterializedPlugin(plugin, tools, statuses);
+            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes);
         }
     }
 
     private void AddMaterializedPlugin(
         PreparedCatalogPlugin plugin,
         ICollection<IRegisteredPluginTool> tools,
-        ICollection<PluginStatus> statuses)
+        ICollection<PluginStatus> statuses,
+        ICollection<IDisposable> serviceProviderLifetimes)
     {
         var materialization = _entryMaterializer.Materialize(plugin);
         foreach (var tool in materialization.Tools)
         {
             tools.Add(tool);
+        }
+
+        if (materialization.ServiceProviderLifetime is not null)
+        {
+            serviceProviderLifetimes.Add(materialization.ServiceProviderLifetime);
         }
 
         statuses.Add(materialization.Status);

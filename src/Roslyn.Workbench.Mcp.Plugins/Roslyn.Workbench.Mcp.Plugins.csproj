@@ -17,6 +17,7 @@
     <Compile Include="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Shared\PluginToolNamePolicy.cs"
              Link="Validation\PluginToolNamePolicy.cs" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="System.Composition" />
   </ItemGroup>
 

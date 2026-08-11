@@ -25,6 +25,7 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         Justification = "Tool materialization executes third-party plugin configuration; any plugin-defined failure must disable only that plugin and be reported through catalogue diagnostics.")]
     public PluginCatalogEntryMaterialization Materialize(PreparedCatalogPlugin plugin)
     {
+        PluginMaterializationResult? materialization = null;
         try
         {
             var schemaPreflight = _schemaPreflight.Preflight(plugin.Preparation.Tools, _outputSchemaMode);
@@ -38,28 +39,61 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
                 };
             }
 
-            var result = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
-            var diagnostics = CreateDiagnostics(result);
+            materialization = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
+            var diagnostics = CreateDiagnostics(materialization);
             var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, diagnostics);
 
             return new PluginCatalogEntryMaterialization
             {
-                Tools = result.Tools,
+                Tools = materialization.Tools,
                 Status = status,
+                ServiceProviderLifetime = materialization.ServiceProviderLifetime,
             };
         }
         catch (Exception exception)
         {
+            var disposalException = TryDispose(materialization?.ServiceProviderLifetime);
+            var failureMessage = CreateMaterializationFailureMessage(exception, disposalException);
             var status = PluginCatalogStatusFactory.CreateDisabled(
                 plugin.Metadata,
                 PluginDiagnosticIds.Materialization,
-                $"Plugin tool materialization failed because {exception.GetType().Name} was raised.");
+                failureMessage);
 
             return new PluginCatalogEntryMaterialization
             {
                 Status = status,
             };
         }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "A plugin-owned disposal failure must remain within the per-plugin materialization failure boundary.")]
+    private static Exception? TryDispose(IDisposable? lifetime)
+    {
+        try
+        {
+            lifetime?.Dispose();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return exception;
+        }
+    }
+
+    private static string CreateMaterializationFailureMessage(
+        Exception materializationException,
+        Exception? disposalException)
+    {
+        var message = $"Plugin tool materialization failed because {materializationException.GetType().Name} was raised.";
+        if (disposalException is null)
+        {
+            return message;
+        }
+
+        return $"{message} Plugin service cleanup also failed because {disposalException.GetType().Name} was raised.";
     }
 
     private static DiagnosticInfo[] CreateDiagnostics(PluginMaterializationResult result)

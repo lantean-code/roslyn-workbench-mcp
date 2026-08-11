@@ -107,7 +107,6 @@ public sealed class PluginHandlerContractResolverTests
         return new ConfiguredToolDefinition
         {
             HandlerType = handlerType,
-            HandlerFactory = static () => new object(),
             Kind = kind,
             Builder = builder,
         };

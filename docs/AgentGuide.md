@@ -14,6 +14,8 @@ Use `tools/list` for the live tool inventory and schemas. Call `server-status` w
 
 Prefer queries before mutations. Resolve symbols, documents and projects from the current workspace state instead of guessing paths or source spans.
 
+Prefer standard compiler and analyzer diagnostics when assessing code quality. `analyze-async` is a focused view of the six bundled AsyncFixer diagnostics and compiler diagnostic CS4014; it runs independently of whether AsyncFixer is installed in the target solution while respecting the project's analyzer configuration. Use `get-diagnostics` when you need the wider configured diagnostic set. Roslyn Workbench does not publish its own code-metric scale, so use the repository's normal build or metrics workflow when a task requires Microsoft code metrics.
+
 ## Workspace state
 
 Workspace epochs, transaction revisions and structured next actions are authoritative. When a result says the workspace or selector is stale, reload or resolve the target again. Do not reuse source spans, symbol locations, opaque Code Action references or other snapshot-bound values against a newer state.

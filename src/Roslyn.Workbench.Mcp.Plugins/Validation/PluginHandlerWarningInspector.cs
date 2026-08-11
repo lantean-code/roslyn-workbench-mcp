@@ -21,12 +21,12 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
                 | BindingFlags.NonPublic
                 | BindingFlags.DeclaredOnly);
 
-            if (instanceFields.Length > 0)
+            if (instanceFields.Any(static field => !IsIgnoredInstanceField(field)))
             {
                 hasInstanceFields = true;
             }
 
-            if (ContainsDisposableField(instanceFields))
+            if (ContainsDisposableField(instanceFields, ignoreNonOwnedInstanceFields: true))
             {
                 hasDisposableFields = true;
             }
@@ -64,7 +64,7 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
                 hasMutableStaticFields = true;
             }
 
-            if (ContainsDisposableField(staticFields))
+            if (ContainsDisposableField(staticFields, ignoreNonOwnedInstanceFields: false))
             {
                 hasDisposableFields = true;
             }
@@ -124,10 +124,17 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
         return diagnostics;
     }
 
-    private static bool ContainsDisposableField(FieldInfo[] fields)
+    private static bool ContainsDisposableField(
+        FieldInfo[] fields,
+        bool ignoreNonOwnedInstanceFields)
     {
         foreach (var field in fields)
         {
+            if (ignoreNonOwnedInstanceFields && IsIgnoredInstanceField(field))
+            {
+                continue;
+            }
+
             var fieldType = field.FieldType;
             if (typeof(IDisposable).IsAssignableFrom(fieldType))
             {
@@ -141,6 +148,46 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
         }
 
         return false;
+    }
+
+    private static bool IsIgnoredInstanceField(FieldInfo field)
+    {
+        if (!field.IsInitOnly)
+        {
+            return false;
+        }
+
+        var fieldName = GetConstructorParameterName(field.Name);
+        var declaringType = field.DeclaringType;
+        if (declaringType is null)
+        {
+            return false;
+        }
+
+        var constructors = declaringType.GetConstructors(
+            BindingFlags.Instance
+            | BindingFlags.Public
+            | BindingFlags.NonPublic
+            | BindingFlags.DeclaredOnly);
+
+        return constructors.Length > 0
+            && constructors.All(constructor => constructor.GetParameters().Any(parameter =>
+                parameter.ParameterType == field.FieldType
+                && string.Equals(parameter.Name, fieldName, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string GetConstructorParameterName(string fieldName)
+    {
+        if (fieldName.StartsWith('<'))
+        {
+            var closingDelimiterIndex = fieldName.IndexOf('>', StringComparison.Ordinal);
+            if (closingDelimiterIndex > 1)
+            {
+                return fieldName[1..closingDelimiterIndex];
+            }
+        }
+
+        return fieldName.TrimStart('_');
     }
 
     private static bool ContainsWritableProperty(PropertyInfo[] properties)

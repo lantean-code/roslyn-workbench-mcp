@@ -6,6 +6,29 @@ public sealed class SemanticInspectionIntegrationTests
     public async Task GIVEN_LoadedSemanticWorkspace_WHEN_InspectingDiagnosticsOperationsAndFlow_THEN_ShouldReturnRoslynProjections()
     {
         using var fixture = InspectionSampleFixture.Create();
+        var asyncAnalysisPath = Path.Combine(fixture.WorkspaceRoot, "AsyncAnalysis.cs");
+        await File.WriteAllTextAsync(
+            asyncAnalysisPath,
+            """
+            using System.Threading.Tasks;
+
+            namespace Sample;
+
+            public static class AsyncAnalysisSamples
+            {
+                public static async Task DelayAsync()
+                {
+                    await Task.Delay(1);
+                }
+
+                public static async void FireAndForget()
+                {
+                    await Task.Delay(1);
+                }
+            }
+            """,
+            TestContext.Current.CancellationToken);
+
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
@@ -29,6 +52,20 @@ public sealed class SemanticInspectionIntegrationTests
                     },
                 },
                 Ids = ["CS0219"],
+            }, TestContext.Current.CancellationToken);
+
+        var asyncDiagnostics = await session.ExecuteQueryAsync<AnalyzeAsyncRequest, AsyncAnalysisData>(
+            "analyze-async",
+            new AnalyzeAsyncRequest
+            {
+                Scope = new ScopeSelector
+                {
+                    Kind = ScopeKind.Document,
+                    Document = new DocumentSelector
+                    {
+                        Path = "AsyncAnalysis.cs",
+                    },
+                },
             }, TestContext.Current.CancellationToken);
 
         var operation = await session.ExecuteQueryAsync<GetOperationTreeRequest, OperationTreeData>(
@@ -69,6 +106,8 @@ public sealed class SemanticInspectionIntegrationTests
             }, TestContext.Current.CancellationToken);
 
         diagnostics.Data!.Diagnostics.Items.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
+        asyncDiagnostics.Data!.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer01");
+        asyncDiagnostics.Data.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer03");
         operation.Data!.Root!.Kind.Should().Contain("Invocation");
         flow.Data!.Exits.Should().NotBeEmpty();
         exceptionalGraph.Data!.Regions.Select(static region => region.Kind).Should().Contain(static kind => kind.Contains("Try", StringComparison.Ordinal) || kind.Contains("Catch", StringComparison.Ordinal) || kind.Contains("Finally", StringComparison.Ordinal));

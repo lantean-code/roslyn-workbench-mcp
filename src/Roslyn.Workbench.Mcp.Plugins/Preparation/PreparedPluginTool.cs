@@ -6,7 +6,5 @@ internal sealed record PreparedPluginTool
 
     public required Type HandlerContract { get; init; }
 
-    public required Func<object> HandlerFactory { get; init; }
-
     public required RegisteredTool Tool { get; init; }
 }

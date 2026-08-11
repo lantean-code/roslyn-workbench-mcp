@@ -4,6 +4,14 @@
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
+    <PackageReference Include="AsyncFixer"
+                      GeneratePathProperty="true"
+                      PrivateAssets="all"
+                      ExcludeAssets="all" />
+    <Content Include="$(PkgAsyncFixer)\analyzers\dotnet\cs\AsyncFixer.dll"
+             Link="AsyncFixer.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

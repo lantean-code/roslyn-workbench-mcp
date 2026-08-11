@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 using Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 using Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
@@ -17,11 +18,14 @@ public sealed class BundledCorePlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        configuration.Services.AddSingleton<IAnalyzerDiagnosticService, AnalyzerDiagnosticService>();
+        configuration.Services.AddSingleton<IBundledAsyncAnalyzerProvider, BundledAsyncAnalyzerProvider>();
+        configuration.Services.AddSingleton<IAsyncAnalyzerDiagnosticService, AsyncAnalyzerDiagnosticService>();
+
         configuration.AddQueryTool<GetSolutionStructureTool>();
         configuration.AddQueryTool<GetProjectDetailsTool>();
         configuration.AddQueryTool<GetDocumentOptionsTool>();
         configuration.AddQueryTool<GetDocumentOutlineTool>();
-        configuration.AddQueryTool<GetCodeMetricsTool>();
         configuration.AddQueryTool<GetCodeContextTool>();
         configuration.AddQueryTool<SearchSymbolsTool>();
         configuration.AddQueryTool<ResolveSymbolTool>();

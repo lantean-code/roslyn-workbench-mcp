@@ -67,6 +67,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1",
         "Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration",
+        "Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration",
         "Roslyn.Workbench.Mcp.Plugins.IQueryContext",
         "Roslyn.Workbench.Mcp.Plugins.IQueryResultCache",
         "Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey",
@@ -230,6 +231,31 @@ public sealed class PluginPublicApiContractTests
 
         typeHierarchyMethods.Should().ContainSingle()
             .Which.Should().Be(nameof(ITypeHierarchyService.FindDerivedTypesAsync));
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_PluginConfiguration_WHEN_InspectingServiceRegistration_THEN_ShouldExposeOnlyTypedSingletonMappings()
+    {
+        var configurationProperties = typeof(IPluginConfiguration).GetProperties();
+        var serviceMethods = typeof(IPluginServiceConfiguration)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+        configurationProperties.Should().ContainSingle(static property =>
+            property.Name == nameof(IPluginConfiguration.Services)
+            && property.PropertyType == typeof(IPluginServiceConfiguration)
+            && property.SetMethod == null);
+
+        serviceMethods.Should().HaveCount(2);
+        serviceMethods.Should().OnlyContain(static method =>
+            method.Name == nameof(IPluginServiceConfiguration.AddSingleton)
+            && method.IsGenericMethodDefinition
+            && method.ReturnType == typeof(void));
+
+        serviceMethods
+            .Select(static method => method.GetGenericArguments().Length)
+            .Should()
+            .BeEquivalentTo([1, 2]);
     }
 
     [Fact]

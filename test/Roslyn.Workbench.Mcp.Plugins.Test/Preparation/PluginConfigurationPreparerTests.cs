@@ -36,6 +36,8 @@ public sealed class PluginConfigurationPreparerTests
             .WithDescription("Fluent description")
             .WithResultSummary("Fluent result");
 
+        configuration.Services.AddSingleton<IPluginService, PluginService>();
+
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
@@ -53,7 +55,10 @@ public sealed class PluginConfigurationPreparerTests
         tool.Kind.Should().Be(ToolKind.Query);
         tool.RequestType.Should().Be<Request>();
         tool.ResponseType.Should().Be<Response>();
-        result.Tools.Single().HandlerFactory().Should().BeOfType<AttributedQueryHandler>();
+        result.Tools.Single().HandlerType.Should().Be<AttributedQueryHandler>();
+        result.Services.Should().ContainSingle(service =>
+            service.ServiceType == typeof(IPluginService)
+            && service.ImplementationType == typeof(PluginService));
     }
 
     [Fact]
@@ -294,6 +299,14 @@ public sealed class PluginConfigurationPreparerTests
 #pragma warning restore CA1812
 
     private sealed record Response;
+
+    private interface IPluginService
+    {
+    }
+
+    private sealed class PluginService : IPluginService
+    {
+    }
 
     [RoslynTool("attribute-query", "Attribute Query", "Attribute query description", ResultSummary = "Attribute result")]
     private sealed class AttributedQueryHandler : IQueryToolHandler<Request, Response>

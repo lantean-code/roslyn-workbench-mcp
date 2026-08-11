@@ -25,7 +25,7 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
         };
         var tool = new Mock<McpServerTool>();
         tool.SetupGet(static value => value.ProtocolTool).Returns(protocolTool);
-        var catalogState = new PluginCatalogState();
+        using var catalogState = new PluginCatalogState();
         var tools = new Dictionary<string, McpServerTool>(StringComparer.Ordinal)
         {
             [protocolTool.Name] = tool.Object,

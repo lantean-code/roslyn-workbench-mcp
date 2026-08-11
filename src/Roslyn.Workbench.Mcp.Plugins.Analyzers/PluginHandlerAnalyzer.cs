@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslyn.Workbench.Mcp.Plugins.Validation;
 
@@ -440,7 +442,8 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
 
             var location = PluginSymbolFacts.FindSourceLocation(field);
             var fieldName = GetDisplayName(field);
-            if (!field.IsStatic)
+            var isConstructorInjected = IsConstructorInjectedField(context, field);
+            if (!field.IsStatic && !isConstructorInjected)
             {
                 ReportOrRememberMetadata(
                     context,
@@ -460,7 +463,8 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
                     ref hasMetadataStaticState);
             }
 
-            if (IsDisposableType(field.Type, symbols))
+            if ((field.IsStatic || !isConstructorInjected)
+                && IsDisposableType(field.Type, symbols))
             {
                 ReportOrRememberMetadata(
                     context,
@@ -470,6 +474,158 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
                     ref hasMetadataDisposableField);
             }
         }
+    }
+
+    private static bool IsConstructorInjectedField(
+        SymbolAnalysisContext context,
+        IFieldSymbol field)
+    {
+        if (field.IsStatic || !field.IsReadOnly)
+        {
+            return false;
+        }
+
+        if (IsPrimaryConstructorInjectedField(field, context.CancellationToken))
+        {
+            return true;
+        }
+
+        if (HasFieldInitializer(field, context.CancellationToken))
+        {
+            return false;
+        }
+
+        var constructors = field.ContainingType.InstanceConstructors
+            .Where(static constructor => !constructor.IsImplicitlyDeclared)
+            .ToArray();
+        if (constructors.Length == 0)
+        {
+            return false;
+        }
+
+        return constructors.All(constructor =>
+            ConstructorAssignsParameterToField(constructor, field, context.CancellationToken));
+    }
+
+    private static bool HasFieldInitializer(
+        IFieldSymbol field,
+        CancellationToken cancellationToken)
+    {
+        foreach (var syntaxReference in field.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax(cancellationToken) is VariableDeclaratorSyntax { Initializer: not null })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPrimaryConstructorInjectedField(
+        IFieldSymbol field,
+        CancellationToken cancellationToken)
+    {
+        foreach (var syntaxReference in field.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax(cancellationToken) is not VariableDeclaratorSyntax
+                {
+                    Initializer.Value: var initializer,
+                } declarator)
+            {
+                continue;
+            }
+
+            var sourceName = GetInjectedParameterName(initializer);
+            if (sourceName is null)
+            {
+                continue;
+            }
+
+            var declaringType = declarator.FirstAncestorOrSelf<TypeDeclarationSyntax>();
+            if (declaringType?.ParameterList?.Parameters.Any(parameter =>
+                parameter.Identifier.ValueText == sourceName) == true)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ConstructorAssignsParameterToField(
+        IMethodSymbol constructor,
+        IFieldSymbol field,
+        CancellationToken cancellationToken)
+    {
+        foreach (var syntaxReference in constructor.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax(cancellationToken) is not ConstructorDeclarationSyntax declaration)
+            {
+                continue;
+            }
+
+            foreach (var assignment in declaration.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            {
+                if (!IsFieldAssignmentTarget(assignment.Left, field.Name))
+                {
+                    continue;
+                }
+
+                var sourceName = GetInjectedParameterName(assignment.Right);
+                if (sourceName is not null
+                    && constructor.Parameters.Any(parameter => parameter.Name == sourceName))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string? GetInjectedParameterName(ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case IdentifierNameSyntax identifier:
+                    return identifier.Identifier.ValueText;
+                case ParenthesizedExpressionSyntax parenthesized:
+                    expression = parenthesized.Expression;
+                    break;
+                case CastExpressionSyntax cast:
+                    expression = cast.Expression;
+                    break;
+                case PostfixUnaryExpressionSyntax suppressNullableWarning
+                    when suppressNullableWarning.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                    expression = suppressNullableWarning.Operand;
+                    break;
+                case BinaryExpressionSyntax coalesce
+                    when coalesce.IsKind(SyntaxKind.CoalesceExpression)
+                        && coalesce.Right is ThrowExpressionSyntax:
+                    expression = coalesce.Left;
+                    break;
+                default:
+                    return null;
+            }
+        }
+    }
+
+    private static bool IsFieldAssignmentTarget(ExpressionSyntax expression, string fieldName)
+    {
+        if (expression is IdentifierNameSyntax identifier)
+        {
+            return identifier.Identifier.ValueText == fieldName;
+        }
+
+        return expression is MemberAccessExpressionSyntax
+        {
+            Expression: ThisExpressionSyntax,
+            Name: IdentifierNameSyntax memberName,
+        }
+        && memberName.Identifier.ValueText == fieldName;
     }
 
     private static void AnalyzePropertiesAndEvents(

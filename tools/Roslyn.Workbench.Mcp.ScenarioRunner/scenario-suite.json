@@ -711,6 +711,22 @@
           }
         },
         {
+          "id": "async-analysis",
+          "description": "Bundled AsyncFixer and compiler async diagnostic analysis for one project.",
+          "tool": "analyze-async",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "findingsLimit": 200
+          }
+        },
+        {
           "id": "dependency-graph",
           "description": "Type dependency discovery and bounded graph projection.",
           "tool": "get-dependency-graph",
@@ -772,40 +788,6 @@
               }
             },
             "locationsLimit": 100
-          }
-        },
-        {
-          "id": "code-metrics-low-limit",
-          "description": "Project-wide syntax and semantic metric scanning with a small result projection bound.",
-          "tool": "get-code-metrics",
-          "arguments": {
-            "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": {
-              "kind": "Project",
-              "project": {
-                "path": "src/Serilog/Serilog.csproj",
-                "targetFramework": "net10.0"
-              }
-            },
-            "includeChildren": true,
-            "metricsLimit": 5
-          }
-        },
-        {
-          "id": "code-metrics-high-limit",
-          "description": "The same project-wide metric scan with a larger result projection bound.",
-          "tool": "get-code-metrics",
-          "arguments": {
-            "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": {
-              "kind": "Project",
-              "project": {
-                "path": "src/Serilog/Serilog.csproj",
-                "targetFramework": "net10.0"
-              }
-            },
-            "includeChildren": true,
-            "metricsLimit": 100
           }
         },
         {
@@ -1433,6 +1415,22 @@
           }
         },
         {
+          "id": "async-analysis",
+          "description": "Bundled AsyncFixer and compiler async diagnostic analysis for one large project.",
+          "tool": "analyze-async",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "findingsLimit": 200
+          }
+        },
+        {
           "id": "dependency-graph",
           "description": "Type dependency discovery and bounded graph projection.",
           "tool": "get-dependency-graph",
@@ -1448,23 +1446,6 @@
             "granularity": "Type",
             "nodesLimit": 500,
             "edgesLimit": 1000
-          }
-        },
-        {
-          "id": "code-metrics-low-limit",
-          "description": "Large-project syntax and semantic metric scanning with a small result projection bound.",
-          "tool": "get-code-metrics",
-          "arguments": {
-            "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": {
-              "kind": "Project",
-              "project": {
-                "path": "src/EFCore/EFCore.csproj",
-                "targetFramework": "net10.0"
-              }
-            },
-            "includeChildren": true,
-            "metricsLimit": 5
           }
         },
         {

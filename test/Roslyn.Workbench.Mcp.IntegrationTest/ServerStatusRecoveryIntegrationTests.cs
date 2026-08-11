@@ -54,13 +54,14 @@ public sealed class ServerStatusRecoveryIntegrationTests
             .SetupGet(item => item.Status)
             .Returns(CodeActionCompositionStatus.Available());
 
+        using var pluginCatalogState = new PluginCatalogState();
         var service = new ServerStatusService(
             Options.Create(options),
             new StartupConfigurationSnapshot
             {
                 Options = options,
             },
-            new PluginCatalogState(),
+            pluginCatalogState,
             new CodeActionCatalogSnapshot(),
             msBuildRegistrationService.Object,
             codeActionComposition.Object,

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
-internal sealed class PluginCatalogState : IPluginCatalogState
+internal sealed class PluginCatalogState : IPluginCatalogState, IDisposable, IAsyncDisposable
 {
     private PluginRuntimeCatalogSnapshot _current = PluginRuntimeCatalogSnapshot.Empty;
 
@@ -22,5 +22,36 @@ internal sealed class PluginCatalogState : IPluginCatalogState
         {
             throw new InvalidOperationException("The plugin runtime catalogue has already been published for this Host instance.");
         }
+    }
+
+    public void Dispose()
+    {
+        var current = TakeCurrent();
+
+        if (ReferenceEquals(current, PluginRuntimeCatalogSnapshot.Empty))
+        {
+            return;
+        }
+
+        current.Catalog.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        var current = TakeCurrent();
+
+        if (ReferenceEquals(current, PluginRuntimeCatalogSnapshot.Empty))
+        {
+            return;
+        }
+
+        await current.Catalog.DisposeAsync();
+    }
+
+    private PluginRuntimeCatalogSnapshot TakeCurrent()
+    {
+        return Interlocked.Exchange(
+            ref _current,
+            PluginRuntimeCatalogSnapshot.Empty);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
@@ -27,6 +28,10 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
         _codeActionCatalog = codeActionCatalog;
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Startup must retain both the original startup failure and any failure while releasing provisional plugin providers.")]
     public Task StartingAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -38,25 +43,50 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
             [typeof(BundledCorePlugin).Assembly],
             reservedToolNames);
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var tools = new Dictionary<string, McpServerTool>(StringComparer.Ordinal);
-        foreach (var registration in catalog.Tools)
+        try
         {
-            var tool = registration.Accept(_toolFactory);
-            tools.Add(tool.ProtocolTool.Name, tool);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var tools = new Dictionary<string, McpServerTool>(StringComparer.Ordinal);
+            foreach (var registration in catalog.Tools)
+            {
+                var tool = registration.Accept(_toolFactory);
+                tools.Add(tool.ProtocolTool.Name, tool);
+            }
+
+            var publishedTools = tools.ToFrozenDictionary(StringComparer.Ordinal);
+            var runtimeCatalog = new PluginRuntimeCatalogSnapshot
+            {
+                Catalog = catalog,
+                Tools = publishedTools,
+            };
+
+            _catalogState.Publish(runtimeCatalog);
+        }
+        catch (Exception startupException)
+        {
+            DisposeProvisionalCatalog(catalog, startupException);
+            throw;
         }
 
-        var publishedTools = tools.ToFrozenDictionary(StringComparer.Ordinal);
-        var runtimeCatalog = new PluginRuntimeCatalogSnapshot
-        {
-            Catalog = catalog,
-            Tools = publishedTools,
-        };
-
-        _catalogState.Publish(runtimeCatalog);
-
         return Task.CompletedTask;
+    }
+
+    private static void DisposeProvisionalCatalog(
+        PluginCatalogSnapshot catalog,
+        Exception startupException)
+    {
+        try
+        {
+            catalog.Dispose();
+        }
+        catch (Exception disposalException)
+        {
+            throw new AggregateException(
+                "Plugin catalogue startup failed and one or more provisional plugin service providers also failed during disposal.",
+                startupException,
+                disposalException);
+        }
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

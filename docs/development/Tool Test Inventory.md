@@ -2,6 +2,8 @@
 
 Date: 2026-07-18
 
+> **Current note (2026-08-11):** The historical coverage ledgers below predate removal of `GetCodeMetricsTool` and replacement of `AnalyzeAsyncTool`'s custom heuristics with bundled AsyncFixer01–AsyncFixer06 analysis plus compiler diagnostic CS4014. Current async coverage is owned jointly by `AnalyzeAsyncToolTests`, `AnalyzerDiagnosticServiceTests`, `CompilerDiagnosticServiceTests` and `SemanticInspectionIntegrationTests`; retained metrics rows document the code that was tested before its removal.
+
 ## Purpose
 
 This inventory records current test ownership after the integration-test reorganisation. Unit projects own each tool's request handling, collaborator interaction, reachable branches and Roslyn algorithm behaviour. Integration projects prove shared runtime capabilities and boundaries; they do not provide a duplicate one-class-per-tool matrix.
@@ -64,7 +66,7 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Workspace projection | `WorkspaceProjectionIntegrationTests` | Solution structure, project details and document options through a real workspace |
 | Solution hierarchy | `SolutionHierarchyServiceIntegrationTests` | Real solution-persistence success, empty, malformed, missing and cancellation outcomes; consuming tool unit tests cover retryable failure mapping |
 | Project target frameworks | `ProjectTargetFrameworkServiceIntegrationTests` | Real MSBuild evaluation of imported, single, absent, malformed and missing target-framework inputs |
-| Semantic inspection | `SemanticInspectionIntegrationTests` | Diagnostics, operation trees and control-flow behaviour |
+| Semantic inspection | `SemanticInspectionIntegrationTests` | General and async compiler diagnostics, operation trees and control-flow behaviour |
 | Cross-project search | `SolutionSearchIntegrationTests` | Implementations, references, callers, derived types and dependency relationships |
 | Selector and snapshot semantics | `SelectorAndSnapshotIntegrationTests` | Resolution, search, metadata, bounded results and stale snapshots |
 | Mutation staging | `MutationPipelineIntegrationTests` | Rename, formatting, using changes, preview and transaction staging |

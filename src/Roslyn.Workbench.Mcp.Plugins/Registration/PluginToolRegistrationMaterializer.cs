@@ -6,28 +6,68 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
 {
     private static readonly MethodInfo _createQueryRegistrationMethod = GetMaterializationMethod(nameof(CreateQueryRegistration));
     private static readonly MethodInfo _createMutationRegistrationMethod = GetMaterializationMethod(nameof(CreateMutationRegistration));
+    private static readonly ServiceProviderOptions _serviceProviderOptions = new()
+    {
+        ValidateOnBuild = true,
+        ValidateScopes = true,
+    };
 
     public PluginMaterializationResult Materialize(PluginPreparationResult preparation)
     {
-        var tools = preparation.Tools.Select(CreateRegistration).ToArray();
-
-        return new PluginMaterializationResult
+        var services = new ServiceCollection();
+        foreach (var service in preparation.Services)
         {
-            Tools = tools,
-            Diagnostics = preparation.Diagnostics,
-        };
+            services.AddSingleton(service.ServiceType, service.ImplementationType);
+        }
+
+        foreach (var handlerType in preparation.Tools
+            .Select(static tool => tool.HandlerType)
+            .Distinct())
+        {
+            services.TryAddSingleton(handlerType);
+        }
+
+        var serviceProvider = services.BuildServiceProvider(_serviceProviderOptions);
+        var serviceProviderLifetime = new PluginServiceProviderLifetime(serviceProvider);
+        try
+        {
+            var tools = preparation.Tools
+                .Select(tool => CreateRegistration(tool, serviceProvider))
+                .ToArray();
+
+            return new PluginMaterializationResult
+            {
+                Tools = tools,
+                Diagnostics = preparation.Diagnostics,
+                ServiceProviderLifetime = serviceProviderLifetime,
+            };
+        }
+        catch (Exception materializationException)
+        {
+            try
+            {
+                serviceProviderLifetime.Dispose();
+            }
+            catch (Exception disposalException)
+            {
+                throw new AggregateException(
+                    "Plugin materialization and cleanup both failed.",
+                    materializationException,
+                    disposalException);
+            }
+
+            throw;
+        }
     }
 
-    private static IRegisteredPluginTool CreateRegistration(PreparedPluginTool preparedTool)
+    private static IRegisteredPluginTool CreateRegistration(
+        PreparedPluginTool preparedTool,
+        IServiceProvider serviceProvider)
     {
         object handler;
         try
         {
-            handler = preparedTool.HandlerFactory();
-        }
-        catch (TargetInvocationException exception) when (exception.InnerException is not null)
-        {
-            throw CreateConstructionException(preparedTool.HandlerType, exception.InnerException);
+            handler = serviceProvider.GetRequiredService(preparedTool.HandlerType);
         }
         catch (Exception exception)
         {

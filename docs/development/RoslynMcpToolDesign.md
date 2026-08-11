@@ -25,7 +25,6 @@ The current build now ships the following point 2 and point 3 items from this ca
 
 The following point 2 catalogue entries remain explicitly deferred from the current execution surface and must not be treated as registered tools in the current build:
 
-- `get-code-metrics`
 - `find-unused-symbols`
 - `find-duplicate-code`
 - `get-dependency-graph`
@@ -75,12 +74,12 @@ The target surface contains **98 tools**:
 | ------------------------------------------------ | ---------: |
 | Server and workspace context                     |          9 |
 | Semantic inspection and navigation               |         19 |
-| Analysis and architecture                        |         16 |
+| Analysis and architecture                        |         15 |
 | Specific refactorings, generation and formatting |         44 |
 | Roslyn code actions and transaction control      |         10 |
-| **Total**                                        |     **98** |
+| **Total**                                        |     **97** |
 
-The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target retains 40 of those operations, replaces `diagnose` with `workspace-status`, and adds 57 tools.
+The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target retains 39 of those operations, replaces `diagnose` with `workspace-status`, and adds 57 tools.
 
 The planned implementation source and dependency for each tool is recorded in [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md).
 
@@ -148,7 +147,6 @@ The existing registry contains the following 41 tools.
 | `go-to-definition` | Find source definitions | Retain |
 | `search-symbols` | Search symbol names | Retain |
 | `get-diagnostics` | Return compiler diagnostics | Retain |
-| `get-code-metrics` | Calculate selected code metrics | Retain |
 | `analyze-control-flow` | Analyse a selected region's control flow | Retain |
 | `analyze-data-flow` | Analyse a selected region's data flow | Retain |
 | `get-document-outline` | Return namespace/type/member hierarchy | Retain |
@@ -201,12 +199,11 @@ To keep `tools/list` usable for agents, the default server configuration omits p
 | `get-symbol-dependencies` | New | Return types, members and assemblies directly used by a symbol. |
 | `get-symbol-dependents` | New | Return symbols that directly depend on a specified symbol. |
 
-### Analysis and Architecture (16)
+### Analysis and Architecture (15)
 
 | Tool | Status | Purpose |
 | --- | --- | --- |
 | `get-diagnostics` | Existing | Return compiler and configured analyzer diagnostics, filtered by scope, severity and ID. |
-| `get-code-metrics` | Existing | Return projected logical lines, cyclomatic complexity, nesting depth, type coupling and a derived maintainability score for a symbol or scope. |
 | `analyze-control-flow` | Existing | Return reachability, exit paths and return behaviour for a selected executable region. |
 | `analyze-data-flow` | Existing | Return variables read/written, data in/out and captured variables. |
 | `get-operation-tree` | New | Return a compact, typed `IOperation` tree for a selected expression, statement or member. |
@@ -219,7 +216,7 @@ To keep `tools/list` usable for agents, the default server configuration omits p
 | `get-api-surface` | New | Describe exported API symbols for the selected solution, project, namespace or type. |
 | `get-test-impact` | New | Identify likely impacted tests using built-in test-like type and method naming conventions. |
 | `analyze-nullability` | New | Identify nullable-flow issues and unsafe dereferences from compiler nullability diagnostics. |
-| `analyze-async` | New | Identify supported async antipatterns such as async methods without `await` and unawaited task-returning invocations. |
+| `analyze-async` | New | Return bundled AsyncFixer01–AsyncFixer06 diagnostics plus compiler diagnostic CS4014 without requiring AsyncFixer in the target project. |
 | `analyze-disposables` | New | Identify candidate undisposed local `IDisposable` or `IAsyncDisposable` values. This is advisory only. |
 
 ### Specific Refactorings, Generation and Formatting (44)
@@ -347,7 +344,7 @@ Host reads managed PE metadata before loading plugin code. The marker supplies t
 
 Plugins may register only `Query` and `Mutation` tools. Workspace and transaction lifecycle tools are server-owned and cannot be replaced or extended by a plugin. A plugin receives an immutable Roslyn `Solution` and approved query services, but never the `MSBuildWorkspace`, transaction coordinator, state machine, file writer or commit journal.
 
-Each plugin entry point exposes only `Configure(IPluginConfiguration)`. `AddQueryTool<THandler>()` and `AddMutationTool<THandler>()` constrain handlers to the corresponding marker interface and public parameterless construction, capture a typed handler factory, and return concrete fluent metadata builders. `RoslynToolAttribute` provides handler metadata; fluent values override attribute values. Configuration and its builders freeze when `Configure` returns. Host validates every handler and all collisions before it constructs one handler per enabled tool. Handlers must be thread-safe and must not own disposable resources. External plugin request and response contract types must be public. Trusted bundled plugins use an explicit preparation path that permits internal contracts; that exception does not apply to packages loaded from configured plugin directories. Expected plugin-authoring validation failures accumulate as structured diagnostics with stable IDs. A plugin with any error is atomically disabled, while warnings are retained on an enabled plugin. Exceptions are reserved for unexpected loading, composition, construction and reflection failures rather than validation flow. Invocation-scoped services are available through the execution context. The registry uses reflection only at startup to discover the closed generic handler contract and materialise its corresponding closed registration; handler construction uses the captured typed factory. A `RegisteredTool` is the sole internal source of truth for a tool's plugin identity, name, description, behaviour, annotations, request and response CLR types, generated JSON schemas, and invocation delegate. Tool names are globally unique; invalid handler contracts, incompatible API versions and name collisions fail plugin loading.
+Each plugin entry point exposes only `Configure(IPluginConfiguration)`. `AddQueryTool<THandler>()` and `AddMutationTool<THandler>()` constrain handlers to the corresponding marker interface and return concrete fluent metadata builders. `IPluginConfiguration.Services` records plugin-owned singleton interface-to-implementation or concrete registrations without exposing the Host container, factory delegates or manually constructed instances. `RoslynToolAttribute` provides handler metadata; fluent values override attribute values. Configuration, service registrations and metadata builders freeze when `Configure` returns. Host validates every handler and all collisions before building one isolated provider per enabled plugin, validating its dependency graph and resolving one singleton handler per tool. Handlers and plugin services must be thread-safe; provider-owned services are disposed with the plugin catalogue. External plugin request and response contract types must be public. Trusted bundled plugins use an explicit preparation path that permits internal contracts; that exception does not apply to packages loaded from configured plugin directories. Expected plugin-authoring validation failures accumulate as structured diagnostics with stable IDs. A plugin with any error is atomically disabled, while warnings are retained on an enabled plugin. Exceptions are reserved for unexpected loading, composition, construction and reflection failures rather than validation flow. Host and Workspace capabilities remain invocation-scoped through the execution context and are not injected into plugin services. The registry uses reflection only at startup to discover the closed generic handler contract and materialise its corresponding closed registration; request execution uses the resolved strongly typed handler. A `RegisteredTool` is the sole internal source of truth for a tool's plugin identity, name, description, behaviour, annotations, request and response CLR types, generated JSON schemas, and invocation delegate. Tool names are globally unique; invalid handler contracts, incompatible API versions and name collisions fail plugin loading.
 
 Configured handlers declare their tool name and description through attributes or fluent metadata, while their implemented generic interface determines whether they are a query or mutation. The server does not automatically expose every attributed type in an assembly. This prevents helpers or unfinished handlers becoming public tools by accident.
 

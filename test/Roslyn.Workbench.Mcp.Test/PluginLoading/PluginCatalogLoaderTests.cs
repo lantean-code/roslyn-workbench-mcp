@@ -44,6 +44,18 @@ public sealed class PluginCatalogLoaderTests
         var externalStatus = CreateStatus("external-warning", false);
         var bundledMaterialization = CreateMaterialization(bundledPlugin, true);
         var externalMaterialization = CreateMaterialization(externalPlugin, true);
+        var bundledServiceProviderLifetime = new Mock<IDisposable>();
+        var externalServiceProviderLifetime = new Mock<IDisposable>();
+        bundledMaterialization = bundledMaterialization with
+        {
+            ServiceProviderLifetime = bundledServiceProviderLifetime.Object,
+        };
+
+        externalMaterialization = externalMaterialization with
+        {
+            ServiceProviderLifetime = externalServiceProviderLifetime.Object,
+        };
+
         var loadContext = new AssemblyLoadContext("external");
         var discoveryResults = new[] { new PluginPackageDiscoveryResult { FallbackIdentity = "external" } };
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
@@ -71,6 +83,9 @@ public sealed class PluginCatalogLoaderTests
         result.Tools.Should().HaveCount(2);
         result.Plugins.Should().BeEquivalentTo([bundledStatus, bundledMaterialization.Status, externalStatus, externalMaterialization.Status]);
         result.LoadContexts.Should().ContainSingle().Which.Should().BeSameAs(loadContext);
+        result.ServiceProviderLifetimes.Should().Equal(
+            bundledServiceProviderLifetime.Object,
+            externalServiceProviderLifetime.Object);
         _collisionPolicy.Verify(value => value.FindExternalToolCollisions(
             It.IsAny<IReadOnlyList<PreparedCatalogPlugin>>(),
             It.Is<IReadOnlySet<string>>(names => names.Count == 2 && names.Contains("reserved") && names.Contains("bundled-tool"))), Times.Once);
@@ -147,6 +162,57 @@ public sealed class PluginCatalogLoaderTests
         _entryMaterializer.Verify(static value => value.Materialize(It.IsAny<PreparedCatalogPlugin>()), Times.Never);
     }
 
+    [Fact]
+    public void GIVEN_LaterLoadingPhaseFails_WHEN_Loading_THEN_ShouldDisposeEarlierMaterializedPluginServices()
+    {
+        var bundledPlugin = CreatePreparedPlugin("bundled", "bundled-tool");
+        var serviceProviderLifetime = new Mock<IDisposable>();
+        var materialization = CreateMaterialization(bundledPlugin, true) with
+        {
+            ServiceProviderLifetime = serviceProviderLifetime.Object,
+        };
+        _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
+            .Returns(new PluginCandidatePreparation { Plugins = [bundledPlugin] });
+        _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(materialization);
+        _packageDiscovery
+            .Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>()))
+            .Throws(new InvalidOperationException("Discovery failed."));
+        var target = CreateTarget();
+
+        var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+
+        action.Should().Throw<InvalidOperationException>().WithMessage("Discovery failed.");
+        serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_LoadingAndCleanupFail_WHEN_Loading_THEN_ShouldRetainBothFailures()
+    {
+        var bundledPlugin = CreatePreparedPlugin("bundled", "bundled-tool");
+        var serviceProviderLifetime = new Mock<IDisposable>();
+        serviceProviderLifetime
+            .Setup(item => item.Dispose())
+            .Throws(new IOException("Cleanup failed."));
+        var materialization = CreateMaterialization(bundledPlugin, true) with
+        {
+            ServiceProviderLifetime = serviceProviderLifetime.Object,
+        };
+        _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
+            .Returns(new PluginCandidatePreparation { Plugins = [bundledPlugin] });
+        _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(materialization);
+        _packageDiscovery
+            .Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>()))
+            .Throws(new InvalidOperationException("Discovery failed."));
+        var target = CreateTarget();
+
+        var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+
+        var exception = action.Should().Throw<AggregateException>();
+        exception.Which.InnerExceptions.Should().ContainSingle(static item => item is InvalidOperationException);
+        exception.Which.InnerExceptions.Should().ContainSingle(static item => item is AggregateException);
+        serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
+    }
+
     private PluginCatalogLoader CreateTarget()
     {
         return new PluginCatalogLoader(
@@ -174,7 +240,6 @@ public sealed class PluginCatalogLoaderTests
         {
             HandlerType = typeof(object),
             HandlerContract = typeof(object),
-            HandlerFactory = static () => new object(),
             Tool = new RegisteredTool
             {
                 Plugin = CreateMetadata(pluginId),

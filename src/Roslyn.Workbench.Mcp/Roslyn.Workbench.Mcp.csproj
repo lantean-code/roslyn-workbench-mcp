@@ -23,6 +23,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\THIRD-PARTY-NOTICES.md"
+             Link="THIRD-PARTY-NOTICES.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD-PARTY-LICENSES\AsyncFixer.txt"
+             Link="THIRD-PARTY-LICENSES\AsyncFixer.txt"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AssemblyAttribute Include="Sentry.DsnAttribute" Condition="'$(ROSLYN_WORKBENCH_SENTRY_DSN)' != ''">
       <_Parameter1>$(ROSLYN_WORKBENCH_SENTRY_DSN)</_Parameter1>
     </AssemblyAttribute>

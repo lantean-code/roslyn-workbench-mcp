@@ -64,7 +64,6 @@ public sealed class PluginTransportSchemaPreflightTests
         {
             HandlerType = typeof(object),
             HandlerContract = typeof(object),
-            HandlerFactory = static () => new object(),
             Tool = new RegisteredTool
             {
                 Plugin = new PluginMetadata

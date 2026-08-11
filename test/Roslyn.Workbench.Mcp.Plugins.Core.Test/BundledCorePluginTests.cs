@@ -19,6 +19,14 @@ public sealed class BundledCorePluginTests
         var configuration = new PluginConfiguration();
         plugin.Configure(configuration);
         configuration.Freeze();
+        configuration.ServiceDefinitions.Should().HaveCount(3);
+        configuration.ServiceDefinitions.Select(static service => service.ServiceType).Should().BeEquivalentTo(
+        [
+            typeof(IAnalyzerDiagnosticService),
+            typeof(IBundledAsyncAnalyzerProvider),
+            typeof(IAsyncAnalyzerDiagnosticService),
+        ]);
+
         var metadata = new PluginMetadata
         {
             PluginId = "roslyn.workbench.core",
@@ -55,6 +63,9 @@ public sealed class BundledCorePluginTests
             .Select(static tool => tool.Tool.Metadata.Name)
             .Should()
             .BeEquivalentTo("rename-symbol", "format-document");
+
+        result.ServiceProviderLifetime.Should().NotBeNull();
+        result.ServiceProviderLifetime!.Dispose();
     }
 
     private static readonly IReadOnlyDictionary<string, string> ExpectedDescriptions = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -63,7 +74,6 @@ public sealed class BundledCorePluginTests
         ["get-project-details"] = "Returns project metadata, options and selected document details.",
         ["get-document-options"] = "Returns language, parse and analyzer-config options for a document.",
         ["get-document-outline"] = "Returns a semantic outline for one document.",
-        ["get-code-metrics"] = "Returns projected code metrics for a scope or symbol.",
         ["get-code-context"] = "Returns a bounded code window with the enclosing semantic context for a selected location.",
         ["search-symbols"] = "Searches declarations by name, metadata name and optional semantic filters.",
         ["resolve-symbol"] = "Resolves the symbol at a location or selection and returns its canonical selector.",
@@ -88,7 +98,7 @@ public sealed class BundledCorePluginTests
         ["find-duplicate-code"] = "Returns duplicate executable blocks that normalize to the same statement sequence.",
         ["get-diagnostics"] = "Returns compiler and analyzer diagnostics for a selected scope.",
         ["analyze-nullability"] = "Returns nullable-flow diagnostics for a selected scope or location.",
-        ["analyze-async"] = "Returns supported async antipattern findings for a selected scope.",
+        ["analyze-async"] = "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
         ["analyze-disposables"] = "Returns advisory findings for undisposed local disposable values.",
         ["analyze-control-flow"] = "Analyzes control flow for a selected executable region.",
         ["analyze-data-flow"] = "Analyzes data flow for a selected executable region.",

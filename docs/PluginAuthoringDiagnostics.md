@@ -88,7 +88,7 @@ This rule applies to external plugin assemblies. Bundled Host tools may use inte
 
 ### Handler instance state requires thread-safety review
 
-An explicit instance field, writable instance property or instance event introduces state on a handler that may serve concurrent invocations. Stateless handlers are the supported default.
+An instance field, writable instance property or instance event introduces state on a handler that may serve concurrent invocations. Readonly fields whose values come directly from constructor-injected plugin singleton services are supported; those services remain responsible for thread safety. Readonly state created or otherwise owned by the handler still requires review.
 
 Remove the state when possible. If it is intentional, ensure that access is thread-safe and suppress the warning with a specific justification.
 
@@ -106,7 +106,7 @@ Non-constant, non-readonly static fields are shared across every handler invocat
 
 ### Handler field may own a disposable resource
 
-A handler field has a type that implements `IDisposable` or `IAsyncDisposable`. This is a warning because field ownership cannot be inferred from its type, but catalogue-lifetime handlers must not retain resources that require an unsupported disposal lifecycle.
+A handler field has a type that implements `IDisposable` or `IAsyncDisposable` and may own the resource. Readonly fields sourced directly from constructor-injected plugin services are provider-owned and excluded; readonly resources created or otherwise owned by the handler still produce this warning.
 
 Prefer invocation-scoped ownership. Suppress the warning only when the field is demonstrably non-owning and safe for concurrent use.
 

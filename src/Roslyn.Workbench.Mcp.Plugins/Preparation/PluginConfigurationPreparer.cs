@@ -84,6 +84,7 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         return new PluginPreparationResult
         {
             Tools = HasErrors(diagnostics, 0) ? [] : tools.ToArray(),
+            Services = configuration.ServiceDefinitions,
             Diagnostics = diagnostics.ToArray(),
         };
     }
@@ -127,7 +128,6 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         {
             HandlerType = definition.HandlerType,
             HandlerContract = contract,
-            HandlerFactory = definition.HandlerFactory,
             Tool = new RegisteredTool
             {
                 Plugin = pluginMetadata,

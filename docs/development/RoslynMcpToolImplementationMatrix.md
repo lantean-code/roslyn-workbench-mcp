@@ -50,7 +50,6 @@ This matrix records the planned implementation source for every public tool. It 
 | Tool | Implementation source | Status |
 | --- | --- | --- |
 | `get-diagnostics` | Public compilation and analyzer diagnostics | Core |
-| `get-code-metrics` | Custom syntax/semantic metrics implementation | Custom |
 | `analyze-control-flow` | Public `SemanticModel.AnalyzeControlFlow` | Core |
 | `analyze-data-flow` | Public `SemanticModel.AnalyzeDataFlow` | Core |
 | `get-operation-tree` | Public `SemanticModel.GetOperation` projection | Core |
@@ -63,7 +62,7 @@ This matrix records the planned implementation source for every public tool. It 
 | `get-api-surface` | Custom projection of public symbol APIs | Custom |
 | `get-test-impact` | Custom test-convention and reference analysis | Custom |
 | `analyze-nullability` | Public nullable diagnostics plus custom projection | Custom |
-| `analyze-async` | Custom syntax and operation analysis | Custom |
+| `analyze-async` | Bundled AsyncFixer analyzers plus compiler diagnostic CS4014 | Core |
 | `analyze-disposables` | Custom operation and data-flow analysis | Custom |
 
 ## Specific Refactorings, Generation and Formatting

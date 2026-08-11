@@ -14,6 +14,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        configuration.Services.AddSingleton<IPrivateDependencyVersionProvider, PrivateDependencyVersionProvider>();
         configuration.AddQueryTool<Handler>();
         configuration.AddQueryTool<QueryCacheCalibrationHandler>();
     }
@@ -67,6 +68,13 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     [RoslynTool("host-valid-query", "Host Valid Query", "Returns a stable host test payload.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
+        private readonly IPrivateDependencyVersionProvider _privateDependencyVersionProvider;
+
+        public Handler(IPrivateDependencyVersionProvider privateDependencyVersionProvider)
+        {
+            _privateDependencyVersionProvider = privateDependencyVersionProvider;
+        }
+
         public async ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
@@ -78,13 +86,30 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
             var response = new Response
             {
                 Value = request.Name,
-                PrivateDependencyVersion = typeof(NuGetVersion).Assembly
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                    ?? string.Empty,
+                PrivateDependencyVersion = _privateDependencyVersionProvider.GetVersion(),
             };
 
             var result = PluginExecutionResult.Success(response);
             return result;
+        }
+    }
+
+    private interface IPrivateDependencyVersionProvider
+    {
+        string GetVersion();
+    }
+
+    private sealed class PrivateDependencyVersionProvider : IPrivateDependencyVersionProvider
+    {
+        public PrivateDependencyVersionProvider()
+        {
+        }
+
+        public string GetVersion()
+        {
+            return typeof(NuGetVersion).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? string.Empty;
         }
     }
 

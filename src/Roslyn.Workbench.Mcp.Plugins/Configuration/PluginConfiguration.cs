@@ -3,41 +3,31 @@ namespace Roslyn.Workbench.Mcp.Plugins.Configuration;
 internal sealed class PluginConfiguration : IPluginConfiguration
 {
     private readonly List<ConfiguredToolDefinition> _definitions = [];
+    private readonly PluginServiceConfiguration _services = new();
     private bool _isFrozen;
 
     public IReadOnlyList<ConfiguredToolDefinition> Definitions => _definitions;
 
+    public IPluginServiceConfiguration Services => _services;
+
+    public IReadOnlyList<PluginServiceDefinition> ServiceDefinitions => _services.Definitions;
+
     public QueryToolConfigurationBuilder AddQueryTool<THandler>()
-        where THandler : class, IQueryToolHandler, new()
+        where THandler : class, IQueryToolHandler
     {
         EnsureMutable();
         var builder = new QueryToolConfigurationBuilder();
-        AddTool(typeof(THandler), ToolKind.Query, static () => new THandler(), builder);
+        AddTool(typeof(THandler), ToolKind.Query, builder);
         return builder;
     }
 
     public MutationToolConfigurationBuilder AddMutationTool<THandler>()
-        where THandler : class, IMutationToolHandler, new()
+        where THandler : class, IMutationToolHandler
     {
         EnsureMutable();
         var builder = new MutationToolConfigurationBuilder();
-        AddTool(typeof(THandler), ToolKind.Mutation, static () => new THandler(), builder);
+        AddTool(typeof(THandler), ToolKind.Mutation, builder);
         return builder;
-    }
-
-    private void AddTool(
-        Type handlerType,
-        ToolKind kind,
-        Func<object> handlerFactory,
-        IToolConfigurationBuilderState builder)
-    {
-        _definitions.Add(new ConfiguredToolDefinition
-        {
-            HandlerType = handlerType,
-            HandlerFactory = handlerFactory,
-            Kind = kind,
-            Builder = builder,
-        });
     }
 
     public void Freeze()
@@ -47,7 +37,21 @@ internal sealed class PluginConfiguration : IPluginConfiguration
             definition.Builder.Freeze();
         }
 
+        _services.Freeze();
         _isFrozen = true;
+    }
+
+    private void AddTool(
+        Type handlerType,
+        ToolKind kind,
+        IToolConfigurationBuilderState builder)
+    {
+        _definitions.Add(new ConfiguredToolDefinition
+        {
+            HandlerType = handlerType,
+            Kind = kind,
+            Builder = builder,
+        });
     }
 
     private void EnsureMutable()

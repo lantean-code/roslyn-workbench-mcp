@@ -56,4 +56,93 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
 
         await AnalyzerVerifier.VerifyHandlerAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_HandlerHasReadonlyInjectedDisposableService_WHEN_Analyzing_THEN_ShouldNotReportStateOrOwnership()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly System.IO.MemoryStream _stream;
+
+                public Handler(System.IO.MemoryStream stream)
+                {
+                    _stream = stream;
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ConstructorInjectionUsesTransparentExpressions_WHEN_Analyzing_THEN_ShouldNotReportStateOrOwnership()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly System.IO.MemoryStream _guarded;
+                private readonly object _parenthesized;
+                private readonly object _cast;
+                private readonly object _suppressed;
+
+                public Handler(
+                    System.IO.MemoryStream guarded,
+                    object parenthesized,
+                    object cast,
+                    object suppressed)
+                {
+                    _guarded = guarded ?? throw new System.ArgumentNullException(nameof(guarded));
+                    _parenthesized = (parenthesized);
+                    _cast = (object)cast;
+                    _suppressed = suppressed!;
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PrimaryConstructorInjectsReadonlyDisposableService_WHEN_Analyzing_THEN_ShouldNotReportStateOrOwnership()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response;
+
+            public sealed class Handler(System.IO.MemoryStream stream) :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly System.IO.MemoryStream _stream = stream;
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PrimaryConstructorInjectionUsesGuard_WHEN_Analyzing_THEN_ShouldNotReportStateOrOwnership()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response;
+
+            public sealed class Handler(System.IO.MemoryStream stream) :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly System.IO.MemoryStream _stream =
+                    stream ?? throw new System.ArgumentNullException(nameof(stream));
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
 }

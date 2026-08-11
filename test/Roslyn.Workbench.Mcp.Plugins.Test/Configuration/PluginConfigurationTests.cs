@@ -20,11 +20,15 @@ public sealed class PluginConfigurationTests
             .WithResultSummary("Mutation result")
             .IsDestructive();
 
+        target.Services.AddSingleton<IPluginService, PluginService>();
+        target.Services.AddSingleton<PluginService>();
+
         queryBuilder.Should().BeOfType<QueryToolConfigurationBuilder>();
         mutationBuilder.Should().BeOfType<MutationToolConfigurationBuilder>();
         target.Definitions.Select(static definition => definition.HandlerType).Should().Equal(typeof(QueryHandler), typeof(MutationHandler));
         target.Definitions.Select(static definition => definition.Kind).Should().Equal(ToolKind.Query, ToolKind.Mutation);
-        target.Definitions.Select(static definition => definition.HandlerFactory().GetType()).Should().Equal(typeof(QueryHandler), typeof(MutationHandler));
+        target.ServiceDefinitions.Select(static definition => definition.ServiceType).Should().Equal(typeof(IPluginService), typeof(PluginService));
+        target.ServiceDefinitions.Select(static definition => definition.ImplementationType).Should().OnlyContain(static type => type == typeof(PluginService));
     }
 
     [Fact]
@@ -33,17 +37,20 @@ public sealed class PluginConfigurationTests
         var target = new PluginConfiguration();
         var queryBuilder = target.AddQueryTool<QueryHandler>();
         var mutationBuilder = target.AddMutationTool<MutationHandler>();
+        target.Services.AddSingleton<IPluginService, PluginService>();
         target.Freeze();
 
         var addQuery = () => target.AddQueryTool<QueryHandler>();
         var addMutation = () => target.AddMutationTool<MutationHandler>();
         var changeQuery = () => queryBuilder.WithName("query");
         var changeMutation = () => mutationBuilder.IsDestructive();
+        var addService = () => target.Services.AddSingleton<PluginService>();
 
         addQuery.Should().Throw<InvalidOperationException>();
         addMutation.Should().Throw<InvalidOperationException>();
         changeQuery.Should().Throw<InvalidOperationException>();
         changeMutation.Should().Throw<InvalidOperationException>();
+        addService.Should().Throw<InvalidOperationException>();
     }
 
 #pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
@@ -51,6 +58,14 @@ public sealed class PluginConfigurationTests
 #pragma warning restore CA1812
 
     private sealed record Response;
+
+    private interface IPluginService
+    {
+    }
+
+    private sealed class PluginService : IPluginService
+    {
+    }
 
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {

@@ -87,6 +87,32 @@ public sealed class CompilerDiagnosticServiceTests
         result.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
     }
 
+    [Fact]
+    public async Task GIVEN_DiscardedAsyncCall_WHEN_GettingCompilerDiagnostics_THEN_ShouldReturnStandardAsyncWarning()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
+            using System.Threading.Tasks;
+
+            namespace Sample;
+
+            public sealed class AsyncSamples
+            {
+                public async Task DiscardedCallAsync()
+                {
+                    Task.Delay(1);
+                    await Task.CompletedTask;
+                }
+            }
+            """);
+
+        var target = new CompilerDiagnosticService();
+        var document = workspace.Solution.Projects.Single().Documents.Single();
+
+        var result = await target.GetCompilerDiagnosticsAsync([document], TestContext.Current.CancellationToken);
+
+        result.Should().Contain(diagnostic => diagnostic.Id == "CS4014");
+    }
+
     private static AdhocWorkspace CreateLinkedDocumentWorkspace(string source)
     {
         var workspace = new AdhocWorkspace();

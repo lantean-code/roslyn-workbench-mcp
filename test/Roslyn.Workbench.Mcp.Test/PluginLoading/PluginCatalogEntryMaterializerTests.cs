@@ -29,6 +29,7 @@ public sealed class PluginCatalogEntryMaterializerTests
     {
         var plugin = CreatePreparedPlugin();
         var registration = new Mock<IRegisteredPluginTool>();
+        var serviceProviderLifetime = new Mock<IDisposable>();
         registration.SetupGet(static value => value.Tool).Returns(plugin.Preparation.Tools.Single().Tool);
         _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation)).Returns(new PluginMaterializationResult
         {
@@ -42,6 +43,7 @@ public sealed class PluginCatalogEntryMaterializerTests
                     Message = "Warning",
                 },
             ],
+            ServiceProviderLifetime = serviceProviderLifetime.Object,
         });
 
         var result = _target.Materialize(plugin);
@@ -52,6 +54,60 @@ public sealed class PluginCatalogEntryMaterializerTests
         result.Status.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginHandlerState"
             && diagnostic.Message == "Warning");
+        result.ServiceProviderLifetime.Should().BeSameAs(serviceProviderLifetime.Object);
+    }
+
+    [Fact]
+    public void GIVEN_PostMaterializationInspectionFails_WHEN_MaterializingEntry_THEN_ShouldDisposePluginServices()
+    {
+        var plugin = CreatePreparedPlugin();
+        var registration = new Mock<IRegisteredPluginTool>();
+        var serviceProviderLifetime = new Mock<IDisposable>();
+        registration
+            .SetupGet(static value => value.Tool)
+            .Throws(new InvalidOperationException("Inspection failed."));
+
+        _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation)).Returns(new PluginMaterializationResult
+        {
+            Tools = [registration.Object],
+            ServiceProviderLifetime = serviceProviderLifetime.Object,
+        });
+
+        var result = _target.Materialize(plugin);
+
+        result.Status.Enabled.Should().BeFalse();
+        result.ServiceProviderLifetime.Should().BeNull();
+        serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_InspectionAndCleanupFail_WHEN_MaterializingEntry_THEN_ShouldDisableOnlyThatPlugin()
+    {
+        var plugin = CreatePreparedPlugin();
+        var registration = new Mock<IRegisteredPluginTool>();
+        var serviceProviderLifetime = new Mock<IDisposable>();
+        registration
+            .SetupGet(static value => value.Tool)
+            .Throws(new InvalidOperationException("Inspection failed."));
+        serviceProviderLifetime
+            .Setup(item => item.Dispose())
+            .Throws(new IOException("Cleanup failed."));
+
+        _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation)).Returns(new PluginMaterializationResult
+        {
+            Tools = [registration.Object],
+            ServiceProviderLifetime = serviceProviderLifetime.Object,
+        });
+
+        var result = _target.Materialize(plugin);
+
+        result.Status.Enabled.Should().BeFalse();
+        result.Status.Diagnostics.Should().ContainSingle(diagnostic =>
+            diagnostic.Id == PluginDiagnosticIds.Materialization
+            && diagnostic.Message.Contains(nameof(InvalidOperationException), StringComparison.Ordinal)
+            && diagnostic.Message.Contains(nameof(IOException), StringComparison.Ordinal));
+        result.ServiceProviderLifetime.Should().BeNull();
+        serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -116,7 +172,6 @@ public sealed class PluginCatalogEntryMaterializerTests
                     {
                         HandlerType = typeof(object),
                         HandlerContract = typeof(object),
-                        HandlerFactory = static () => new object(),
                         Tool = new RegisteredTool
                         {
                             Plugin = metadata,

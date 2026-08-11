@@ -99,7 +99,9 @@ public sealed class PublishedDistributionIntegrationTests
                 defaultTools.Single(tool => tool.Name == toolName).ProtocolTool.OutputSchema.Should().BeNull();
                 var fullTool = fullTools.Single(tool => tool.Name == toolName);
                 fullTool.ProtocolTool.OutputSchema.Should().NotBeNull();
-                fullTool.ProtocolTool.OutputSchema!.Value.GetProperty("type").GetString().Should().Be("object");
+                var outputSchema = fullTool.ProtocolTool.OutputSchema!.Value;
+                outputSchema.GetProperty("type").GetString().Should().Be("object");
+                AssertContinuationSchema(outputSchema);
             }
 
             var nullableDataToolNames = new[]
@@ -143,6 +145,21 @@ public sealed class PublishedDistributionIntegrationTests
             .Contain("data");
 
         return successSchema.GetProperty("properties").GetProperty("data");
+    }
+
+    private static void AssertContinuationSchema(JsonElement outputSchema)
+    {
+        var failureSchema = outputSchema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(static candidate => !candidate.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+
+        var continuationSchema = failureSchema.GetProperty("properties").GetProperty("continuation");
+        var kinds = continuationSchema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Select(static variant => variant.GetProperty("properties").GetProperty("kind").GetProperty("const").GetString())
+            .ToArray();
+
+        kinds.Should().Equal("CallTool", "ChooseTool", "RetryRequest", "ReviseRequest", "ResolveExternally");
     }
 
     private static bool AllowsNull(JsonElement schema)

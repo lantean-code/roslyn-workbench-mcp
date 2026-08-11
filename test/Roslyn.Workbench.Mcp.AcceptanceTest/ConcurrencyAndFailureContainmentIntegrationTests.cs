@@ -480,7 +480,9 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
     {
         result.IsError.Should().BeTrue();
         AcceptanceProtocol.GetError(result).GetProperty("code").GetString().Should().Be("WorkspaceBusy");
-        result.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("Retry");
+        var continuation = AcceptanceProtocol.GetContinuation(result);
+        continuation.GetProperty("kind").GetString().Should().Be("RetryRequest");
+        continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     private static async Task<ModelContextProtocol.Protocol.CallToolResult> StartTransactionWhenAvailableAsync(

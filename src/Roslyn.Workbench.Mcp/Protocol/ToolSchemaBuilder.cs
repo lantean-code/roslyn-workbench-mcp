@@ -8,20 +8,20 @@ internal static class ToolSchemaBuilder
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
-        JsonElement nextSchema)
+        JsonElement continuationSchema)
     {
         var successSchema = CreateNullableSuccessSchema(valueSchema);
-        return CreateResponseSchema(successSchema, [valueSchema], errorSchema, nextSchema);
+        return CreateResponseSchema(successSchema, [valueSchema], errorSchema, continuationSchema);
     }
 
     public static JsonElement CreateResponseSchema(
         JsonObject successSchema,
         IReadOnlyList<JsonElement> componentSchemas,
         JsonElement errorSchema,
-        JsonElement nextSchema)
+        JsonElement continuationSchema)
     {
-        var mergedDefinitions = MergeDefinitions(componentSchemas.Concat([errorSchema, nextSchema]));
-        var failureSchema = CreateFailureSchema(errorSchema, nextSchema);
+        var mergedDefinitions = MergeDefinitions(componentSchemas.Concat([errorSchema, continuationSchema]));
+        var failureSchema = CreateFailureSchema(errorSchema, continuationSchema);
         var alternatives = new JsonArray
         {
             successSchema,
@@ -182,7 +182,7 @@ internal static class ToolSchemaBuilder
         };
     }
 
-    private static JsonObject CreateFailureSchema(JsonElement errorSchema, JsonElement nextSchema)
+    private static JsonObject CreateFailureSchema(JsonElement errorSchema, JsonElement continuationSchema)
     {
         var okSchema = new JsonObject
         {
@@ -193,7 +193,7 @@ internal static class ToolSchemaBuilder
         {
             ["ok"] = okSchema,
             ["error"] = ParseNode(errorSchema),
-            ["next"] = AllowNull(nextSchema),
+            ["continuation"] = ParseNode(continuationSchema),
         };
 
         var requiredProperties = new JsonArray("ok", "error");

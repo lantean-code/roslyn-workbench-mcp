@@ -37,7 +37,7 @@ Successful calls use a common structured envelope:
 }
 ```
 
-Failures return `ok: false`, a structured `error`, and an optional `next` action. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when it is disabled or suppressed. Agents should follow the returned action instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
+Failures return `ok: false`, a structured `error`, and an optional `continuation`. Its `kind` distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language `instruction`. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when it is disabled or suppressed. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
 
 ## Bounded collections
 

@@ -92,7 +92,9 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
 
             blockedOpenResult.IsError.Should().BeTrue();
             AcceptanceProtocol.GetError(blockedOpenResult).GetProperty("code").GetString().Should().Be("RecoveryPending");
-            blockedOpenResult.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("ResolveRecovery");
+            var continuation = AcceptanceProtocol.GetContinuation(blockedOpenResult);
+            continuation.GetProperty("kind").GetString().Should().Be("ResolveExternally");
+            continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
             File.Exists(manifestPath).Should().BeTrue();
 
             using var persistedManifest = JsonDocument.Parse(

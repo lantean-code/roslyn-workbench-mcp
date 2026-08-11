@@ -6,6 +6,8 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class ToolSchemaFactory : IToolSchemaFactory
 {
+    private static readonly JsonElement _continuationSchema = ToolContinuationSchema.Create();
+
     private readonly ConcurrentDictionary<Type, JsonElement> _directOutputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly ConcurrentDictionary<(PublishedToolKind Kind, Type ResponseType), JsonElement> _outputSchemaCache = [];
@@ -39,7 +41,7 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             type => ToolSchemaBuilder.CreateDirectOutputSchema(
                 _schemaProvider.GetValueSchema(type),
                 _schemaProvider.GetValueSchema<ToolError>(),
-                _schemaProvider.GetValueSchema<RequiredAction>()));
+                _continuationSchema));
     }
 
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
@@ -118,6 +120,6 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             successSchema,
             componentSchemas,
             _schemaProvider.GetValueSchema<ToolError>(),
-            _schemaProvider.GetValueSchema<RequiredAction>());
+            _continuationSchema);
     }
 }

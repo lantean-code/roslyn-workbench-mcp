@@ -65,4 +65,4 @@ Every successful tool response uses the same outer structured-content shape:
 }
 ```
 
-The object inside `data` remains specific to lifecycle, query or mutation tools. Failed tool responses use `ok: false`, `error` and optional `next` instead.
+The object inside `data` remains specific to lifecycle, query or mutation tools. Failed tool responses use `ok: false`, `error` and an optional structured `continuation` instead.

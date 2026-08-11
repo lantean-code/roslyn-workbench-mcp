@@ -133,7 +133,7 @@ public sealed class ServerOwnedToolBaseTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(statusName);
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
         result.StructuredContent.Value.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
         result.StructuredContent.Value.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
     }

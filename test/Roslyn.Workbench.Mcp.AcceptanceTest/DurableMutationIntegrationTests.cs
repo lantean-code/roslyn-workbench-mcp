@@ -300,8 +300,13 @@ public sealed class DurableMutationIntegrationTests
                 workspaceSelector,
                 workspace.CreateSnapshot(transactionRevision: 1));
             commitResult.IsError.Should().BeTrue();
-            AcceptanceProtocol.GetError(commitResult).GetProperty("code").GetString().Should().Be("TransactionConflicted");
-            commitResult.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("RollbackTransaction");
+            var error = AcceptanceProtocol.GetError(commitResult);
+            error.GetProperty("code").GetString().Should().Be("TransactionConflicted");
+            error.TryGetProperty("correlationId", out _).Should().BeFalse();
+            var continuation = AcceptanceProtocol.GetContinuation(commitResult);
+            continuation.GetProperty("kind").GetString().Should().Be("CallTool");
+            continuation.GetProperty("tool").GetString().Should().Be("transaction-rollback");
+            continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
             (await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken)).Should().Be(externalText);
 
             var rollbackResult = await target.CallToolAsync(

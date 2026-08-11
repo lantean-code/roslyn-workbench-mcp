@@ -875,13 +875,9 @@ public sealed class CodeActionWorkflowIntegrationTests
         result.IsError.Should().BeTrue();
         var error = AcceptanceProtocol.GetError(result);
         error.GetProperty("code").GetString().Should().Be("ActionExpired");
-        var content = result.StructuredContent;
-        content.Should().NotBeNull();
-        content.Value
-            .GetProperty("next")
-            .GetString()
-            .Should()
-            .Be("ResolveTargetAgain");
+        var continuation = AcceptanceProtocol.GetContinuation(result);
+        continuation.GetProperty("kind").GetString().Should().Be("ReviseRequest");
+        continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     private static void AssertStaleAction(CallToolResult result)
@@ -889,9 +885,9 @@ public sealed class CodeActionWorkflowIntegrationTests
         result.IsError.Should().BeTrue();
         var error = AcceptanceProtocol.GetError(result);
         error.GetProperty("code").GetString().Should().Be("SnapshotMismatch");
-        var content = result.StructuredContent;
-        content.Should().NotBeNull();
-        content.Value.GetProperty("next").GetString().Should().Be("ResolveTargetAgain");
+        var continuation = AcceptanceProtocol.GetContinuation(result);
+        continuation.GetProperty("kind").GetString().Should().Be("ReviseRequest");
+        continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     private static async Task WaitForTimerAsync(TimeSpan duration, CancellationToken cancellationToken)

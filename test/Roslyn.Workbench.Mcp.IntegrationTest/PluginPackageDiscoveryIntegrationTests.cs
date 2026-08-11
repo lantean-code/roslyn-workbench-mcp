@@ -74,7 +74,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
             new StartupOptions(),
             [typeof(BundledCorePlugin).Assembly]);
 
-        snapshot.Tools.Should().HaveCount(40);
+        snapshot.Tools.Should().HaveCount(PluginCatalogLoaderTestFactory.BundledCoreToolCount);
         snapshot.Plugins.Should().ContainSingle(status => status.PluginId == "roslyn.workbench.core" && status.Enabled);
         snapshot.LoadContexts.Should().BeEmpty();
     }

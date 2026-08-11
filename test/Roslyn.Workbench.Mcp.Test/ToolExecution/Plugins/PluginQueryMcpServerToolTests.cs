@@ -48,7 +48,7 @@ public sealed class PluginQueryMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceBusy");
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
         handler.Verify(item => item.ExecuteAsync(
             It.IsAny<TestQueryRequest>(),
             It.IsAny<IQueryContext>(),
@@ -168,7 +168,7 @@ public sealed class PluginQueryMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
             .Should().Be("WorkspaceOutOfDate");
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
     }
 
     [Theory]
@@ -201,7 +201,7 @@ public sealed class PluginQueryMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(code);
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
     }
 
     [Fact]

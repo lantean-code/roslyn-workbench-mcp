@@ -1,11 +1,9 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
-/// Represents a machine-readable continuation hint for the caller.
+/// Represents the semantic follow-up required after a failed Workspace operation.
+/// The Host translates this value into its published continuation contract.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<RequiredAction>))]
 public enum RequiredAction
 {
     /// <summary>

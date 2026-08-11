@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 internal static class PluginCatalogLoaderTestFactory
 {
+    public const int BundledCoreToolCount = 39;
+
     public static PluginCatalogSnapshot Load(
         StartupOptions startupOptions,
         IReadOnlyList<System.Reflection.Assembly> bundledAssemblies,

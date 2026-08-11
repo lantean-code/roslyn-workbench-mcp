@@ -139,7 +139,7 @@ public sealed class ToolSchemaBuilderTests
     {
         var component = CreateSchemaWithDefinitions("ComponentDefinition");
         var error = CreateSchemaWithDefinitions("ErrorDefinition");
-        var next = CreateSchemaWithDefinitions("NextDefinition");
+        var continuation = CreateSchemaWithDefinitions("ContinuationDefinition");
 
         var result = ToolSchemaBuilder.CreateResponseSchema(
             new JsonObject
@@ -148,12 +148,12 @@ public sealed class ToolSchemaBuilderTests
             },
             [component, CreatePrimitiveSchema("string")],
             error,
-            next);
+            continuation);
 
         var definitions = result.GetProperty("$defs");
         definitions.TryGetProperty("ComponentDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("ErrorDefinition", out _).Should().BeTrue();
-        definitions.TryGetProperty("NextDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("ContinuationDefinition", out _).Should().BeTrue();
     }
 
     [Fact]

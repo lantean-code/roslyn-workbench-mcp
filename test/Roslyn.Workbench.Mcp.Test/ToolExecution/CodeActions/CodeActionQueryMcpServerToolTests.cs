@@ -160,7 +160,7 @@ public sealed class CodeActionQueryMcpServerToolTests
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(outcomeName);
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
     }
 
     [Fact]

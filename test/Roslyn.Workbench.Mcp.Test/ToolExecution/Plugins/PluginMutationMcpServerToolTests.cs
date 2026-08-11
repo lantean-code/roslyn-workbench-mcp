@@ -98,7 +98,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("Rejected");
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+        result.StructuredContent.Value.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("RetryRequest");
         stager.Verify(item => item.StageAsync(
             It.IsAny<string>(),
             It.IsAny<WorkspaceMutationCandidate>(),
@@ -307,7 +307,11 @@ public sealed class PluginMutationMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("RevisionCapacityReached");
-        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("CommitOrRollback");
+        var continuation = result.StructuredContent.Value.GetProperty("continuation");
+        continuation.GetProperty("kind").GetString().Should().Be("ChooseTool");
+        continuation.GetProperty("tools").EnumerateArray().Select(static item => item.GetString()).Should().Equal(
+            "transaction-commit",
+            "transaction-rollback");
     }
 
     [Fact]

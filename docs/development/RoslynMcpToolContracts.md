@@ -48,7 +48,10 @@ Every tool shares the same minimal machine-readable failure and continuation bas
     "code": "SnapshotMismatch",
     "message": "The request snapshot does not match the current workspace snapshot."
   },
-  "next": "resolveTargetAgain"
+  "continuation": {
+    "kind": "ReviseRequest",
+    "instruction": "Resolve the target against the current workspace snapshot, replace the stale selector and snapshot precondition, then retry the request."
+  }
 }
 ```
 
@@ -58,7 +61,9 @@ Every successful result uses the same outer envelope and publishes its family-sp
 - Query tools: `{ ok: true, data: { ...response dto... } }`
 - Staged mutations: `{ ok: true, data: { staged: boolean, summary?: string, transaction?: { revision: int } } }`
 
-Clients therefore need only one boundary rule: inspect `ok`, then read `data` on success or `error` and optional `next` on failure. Payloads remain compact and family-specific within `data`; the host does not expose the richer internal `ToolResult<TData>` envelope.
+Clients therefore need only one boundary rule: inspect `ok`, then read `data` on success or `error` and optional `continuation` on failure. Payloads remain compact and family-specific within `data`; the host does not expose the richer internal `ToolResult<TData>` envelope.
+
+Every continuation contains a required natural-language `instruction` and exactly one of five closed machine-readable variants. `CallTool` requires the named registered tool as the next action. `ChooseTool` requires exactly one of the named registered tools. `RetryRequest` requires the same request to be repeated. `ReviseRequest` requires the caller to change the request as instructed before retrying. `ResolveExternally` identifies a condition that cannot be completed through a single MCP tool call. The Host maps internal `RequiredAction` values to this contract and is the sole owner of registered tool names.
 
 Top-level agent-facing query collections should use `BoundedCollection<TItem>` inside the response DTO. When `ToolOutputSchemaMode` is `Full`, `PluginMcpServerTool` publishes the real family-specific `oneOf` schema for the tool instead of a generic wrapper. Malformed MCP requests remain protocol-level failures rather than structured tool results.
 
@@ -76,7 +81,7 @@ Common fields used by the data shapes below:
 | `DiagnosticInfo` | `{ id: string, severity: Hidden \| Info \| Warning \| Error, message: string, location?: ResolvedLocation }` |
 | `WarningInfo` | `{ code: string, message: string }` |
 | `ToolError` | `{ code: string, message: string, correlationId?: string }` |
-| `RequiredAction` | `OpenWorkspace \| StartTransaction \| RollbackTransaction \| ReloadWorkspace \| ResolveTargetAgain \| CommitOrRollback \| ReduceTransactionHistory \| Retry \| ResolveRecovery \| NarrowRequest` |
+| `ToolContinuation` | `CallTool { tool, instruction } \| ChooseTool { tools, instruction } \| RetryRequest { instruction } \| ReviseRequest { instruction } \| ResolveExternally { instruction }` |
 | `RecoveryStatus` | `{ commitId: string, solutionPath: string, state: Prepared \| Applying \| Committed \| Restored \| RecoveryConflict \| RecoveryIncomplete, message?: string }` |
 
 ## Shared Request Components

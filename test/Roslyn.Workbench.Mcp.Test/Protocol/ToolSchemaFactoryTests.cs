@@ -15,10 +15,6 @@ public sealed class ToolSchemaFactoryTests
             .Setup(item => item.GetValueSchema<ToolError>())
             .Returns(CreateObjectSchema("code"));
 
-        _schemaProvider
-            .Setup(item => item.GetValueSchema<RequiredAction>())
-            .Returns(CreatePrimitiveSchema("string"));
-
         _target = new ToolSchemaFactory(_schemaProvider.Object);
     }
 
@@ -57,7 +53,6 @@ public sealed class ToolSchemaFactoryTests
         AllowsNull(dataSchema).Should().BeTrue();
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);
         _schemaProvider.Verify(item => item.GetValueSchema<ToolError>(), Times.Once);
-        _schemaProvider.Verify(item => item.GetValueSchema<RequiredAction>(), Times.Once);
     }
 
     [Fact]
@@ -77,7 +72,8 @@ public sealed class ToolSchemaFactoryTests
         dataSchema.GetRawText().Should().Contain("value");
         AllowsNull(dataSchema).Should().BeTrue();
         failureVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "error"]);
-        AllowsNull(failureVariant.GetProperty("properties").GetProperty("next")).Should().BeTrue();
+        var continuation = failureVariant.GetProperty("properties").GetProperty("continuation");
+        continuation.GetProperty("oneOf").EnumerateArray().Should().HaveCount(5);
     }
 
     [Fact]

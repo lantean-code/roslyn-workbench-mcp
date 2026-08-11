@@ -31,7 +31,10 @@ public sealed class WorkspaceReloadIntegrationTests
             var staleSearch = await SearchAsync(target, workspaceSelector, "Class1");
             staleSearch.IsError.Should().BeTrue();
             AcceptanceProtocol.GetError(staleSearch).GetProperty("code").GetString().Should().Be("WorkspaceOutOfDate");
-            staleSearch.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("ReloadWorkspace");
+            var continuation = AcceptanceProtocol.GetContinuation(staleSearch);
+            continuation.GetProperty("kind").GetString().Should().Be("CallTool");
+            continuation.GetProperty("tool").GetString().Should().Be("workspace-reload");
+            continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
 
             var statusResult = await target.CallToolAsync(
                 "workspace-status",

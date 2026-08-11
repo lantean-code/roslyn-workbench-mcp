@@ -99,10 +99,11 @@ internal static class ToolResultEnvelopeSerializer
                 JsonSerializer.Serialize(writer, error, _serializerOptions);
             }
 
-            if (requiredAction is not null)
+            var continuation = RequiredActionContinuationMapper.Map(requiredAction);
+            if (continuation is not null)
             {
-                writer.WritePropertyName("next");
-                JsonSerializer.Serialize(writer, requiredAction, _serializerOptions);
+                writer.WritePropertyName("continuation");
+                JsonSerializer.Serialize(writer, continuation, _serializerOptions);
             }
 
             if (diagnostics is { Count: > 0 })

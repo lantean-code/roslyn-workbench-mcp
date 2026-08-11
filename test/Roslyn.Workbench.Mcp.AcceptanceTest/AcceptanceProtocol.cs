@@ -75,4 +75,10 @@ internal static class AcceptanceProtocol
         return result.StructuredContent?.GetProperty("error")
             ?? throw new InvalidOperationException("The failed MCP result did not contain a structured error.");
     }
+
+    public static JsonElement GetContinuation(CallToolResult result)
+    {
+        return result.StructuredContent?.GetProperty("continuation")
+            ?? throw new InvalidOperationException("The failed MCP result did not contain a structured continuation.");
+    }
 }

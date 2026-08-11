@@ -400,7 +400,10 @@ All tools share the same minimal failure and continuation base:
     "code": "SnapshotMismatch",
     "message": "The request snapshot does not match the current workspace snapshot."
   },
-  "next": "resolveTargetAgain"
+  "continuation": {
+    "kind": "ReviseRequest",
+    "instruction": "Resolve the target against the current workspace snapshot, replace the stale selector and snapshot precondition, then retry the request."
+  }
 }
 ```
 
@@ -419,7 +422,9 @@ This keeps the default path compact:
 - status tools default to smaller projections and expose expanded detail on request
 - mutation success confirms staged state by default rather than returning a universal change envelope
 
-`next`, when present, is a machine-readable continuation hint such as `OpenWorkspace`, `StartTransaction`, `ReloadWorkspace`, `ResolveTargetAgain`, `CommitOrRollback`, `ReduceTransactionHistory` or `Retry`. It guides an agent without replacing the error code as the authoritative contract.
+`continuation`, when present, is a closed machine-readable instruction rather than a leaked implementation token. `CallTool` names one registered tool that must be called next, `ChooseTool` requires one of its registered tools, `RetryRequest` repeats the same request, `ReviseRequest` requires the request to be changed as instructed, and `ResolveExternally` identifies work that cannot be completed through one MCP tool call. Every variant also carries a required natural-language `instruction`; exact tool names are mapped centrally by the Host and never owned by Workspace or plugin abstractions.
+
+Handled domain failures omit `correlationId` because no server-side diagnostic record exists. Unexpected exception envelopes always publish a non-empty correlation identifier that can be supplied to the error-detail and reporting tools.
 
 Roslyn diagnostics use a common representation aligned with Roslyn's own model: diagnostic ID, severity, message, document identity and text span. Diagnostics are retrieved only through an explicit query such as `get-diagnostics`; mutation, preview and commit operations do not implicitly compile the solution.
 

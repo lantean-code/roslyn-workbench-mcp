@@ -80,7 +80,12 @@ public sealed class WorkspaceSelectionIntegrationTests
 
             closeResult.IsError.Should().BeTrue();
             AcceptanceProtocol.GetError(closeResult).GetProperty("code").GetString().Should().Be("TransactionOpen");
-            closeResult.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("CommitOrRollback");
+            var continuation = AcceptanceProtocol.GetContinuation(closeResult);
+            continuation.GetProperty("kind").GetString().Should().Be("ChooseTool");
+            continuation.GetProperty("tools").EnumerateArray().Select(static item => item.GetString()).Should().Equal(
+                "transaction-commit",
+                "transaction-rollback");
+            continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
         }
         catch
         {

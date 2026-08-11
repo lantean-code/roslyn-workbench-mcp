@@ -48,6 +48,7 @@ internal static class ScenarioApplication
             var repository = ResolveRepository(suite, options.Repository);
             var frameworkRoot = ResolveFrameworkRoot(options.FrameworkRoot);
             var cacheDirectory = ResolveCacheDirectory(options.CacheDirectory);
+            using var cacheLock = ScenarioCacheLock.Acquire(cacheDirectory);
             var manager = new RepositoryManager(cacheDirectory);
             var repositoryRoot = await manager.PrepareAsync(
                 repository,

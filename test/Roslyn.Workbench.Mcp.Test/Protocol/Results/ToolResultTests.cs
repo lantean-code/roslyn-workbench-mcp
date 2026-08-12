@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Roslyn.Workbench.Mcp.Protocol.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol.Results;
 

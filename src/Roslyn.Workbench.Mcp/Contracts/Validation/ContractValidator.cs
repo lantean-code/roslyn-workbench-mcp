@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Protocol.Validation;
+namespace Roslyn.Workbench.Mcp.Contracts.Validation;
 
 /// <summary>
 /// Provides non-throwing validation for Host-owned MCP result-envelope invariants.

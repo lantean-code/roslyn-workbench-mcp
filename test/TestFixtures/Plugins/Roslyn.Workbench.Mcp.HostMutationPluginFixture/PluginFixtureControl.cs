@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.HostMutationPluginFixture;
 
 internal static class PluginFixtureControl
 {

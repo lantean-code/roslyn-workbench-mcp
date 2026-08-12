@@ -5,7 +5,7 @@ using NuGet.Versioning;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.HostQueryPluginFixture;
 
 [RoslynPlugin("host.valid.query", "Host Valid Query Plugin", PluginApiVersions.V1)]
 public sealed class HostValidQueryPlugin : IRoslynPlugin

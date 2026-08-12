@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.InvalidPluginFixture;
 
 [RoslynPlugin("test.unsupported.api", "Unsupported API Test Plugin", "9.9")]
 public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin

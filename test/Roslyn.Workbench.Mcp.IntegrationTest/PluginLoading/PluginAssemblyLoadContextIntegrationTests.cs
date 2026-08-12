@@ -24,7 +24,10 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         created.Should().BeTrue();
         var loadContext = target ?? throw new InvalidOperationException("The plugin load context was not created.");
         var pluginAssembly = loadContext.LoadFromAssemblyPath(entryAssemblyPath);
-        var pluginType = pluginAssembly.GetType("Roslyn.Workbench.Mcp.TestSupport.HostValidQueryPlugin", true);
+        var pluginTypeName = typeof(HostValidQueryPlugin).FullName
+            ?? throw new InvalidOperationException("The plugin fixture type must have a fully qualified name.");
+
+        var pluginType = pluginAssembly.GetType(pluginTypeName, true);
 
         loadContext.Should().BeOfType<PluginAssemblyLoadContext>();
         loadContext.IsCollectible.Should().BeFalse();

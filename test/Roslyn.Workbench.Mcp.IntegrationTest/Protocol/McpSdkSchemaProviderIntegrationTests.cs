@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
+namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class McpSdkSchemaProviderIntegrationTests
 {

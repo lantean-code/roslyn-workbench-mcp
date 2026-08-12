@@ -5,9 +5,8 @@ using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Transaction.Contracts;
 
-namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
+namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaFactoryIntegrationTests
 {

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 
 /// <summary>
 /// Represents the structured payload returned when a transaction is committed.

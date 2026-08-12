@@ -1,6 +1,6 @@
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.ThrowingPluginFixture;
 
 [RoslynPlugin("test.throwing.configuration", "Throwing Configuration Test Plugin", PluginApiVersions.V1)]
 public sealed class ThrowingConfigurationTestPlugin : IRoslynPlugin

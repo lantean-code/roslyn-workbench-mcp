@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.InvalidPluginFixture;
 
 [RoslynPlugin("test.duplicate.tool", "Duplicate Tool Test Plugin", PluginApiVersions.V1)]
 public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin

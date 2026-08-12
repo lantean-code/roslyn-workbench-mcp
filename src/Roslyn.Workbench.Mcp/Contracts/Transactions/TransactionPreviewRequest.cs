@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 
 /// <summary>
 /// Represents a request to preview the current transaction.

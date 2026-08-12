@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.ConsoleOutputPluginFixture;
 
 #pragma warning disable CA1303 // Invariant marker strings are the observable output of this protocol-isolation fixture.
 

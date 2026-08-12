@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Roslyn.Workbench.Mcp.Server.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Server;
 
 /// <summary>
 /// Represents a request to load a writable workspace.

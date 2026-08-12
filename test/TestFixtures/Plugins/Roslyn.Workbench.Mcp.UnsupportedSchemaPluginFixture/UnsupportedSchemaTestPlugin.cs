@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.UnsupportedSchemaPluginFixture;
 
 [RoslynPlugin("test.unsupported.schema", "Unsupported Schema Test Plugin", PluginApiVersions.V1)]
 public sealed class UnsupportedSchemaTestPlugin : IRoslynPlugin

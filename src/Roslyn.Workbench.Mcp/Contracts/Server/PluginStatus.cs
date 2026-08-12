@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Server.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Server;
 
 /// <summary>
 /// Represents the load status of one plugin.

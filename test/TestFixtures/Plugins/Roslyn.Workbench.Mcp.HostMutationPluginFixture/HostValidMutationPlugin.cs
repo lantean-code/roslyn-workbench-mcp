@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Text;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.HostMutationPluginFixture;
 
 [RoslynPlugin("host.valid.mutation", "Host Valid Mutation Plugin", PluginApiVersions.V1)]
 public sealed class HostValidMutationPlugin : IRoslynPlugin

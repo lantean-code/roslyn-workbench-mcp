@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Roslyn.Workbench.Mcp.Server.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Server;
 
 /// <summary>
 /// Describes the first external Workspace input change detected for a loaded Workspace.

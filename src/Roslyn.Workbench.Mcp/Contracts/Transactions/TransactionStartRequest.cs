@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 
 /// <summary>
 /// Represents a request to start a transaction.

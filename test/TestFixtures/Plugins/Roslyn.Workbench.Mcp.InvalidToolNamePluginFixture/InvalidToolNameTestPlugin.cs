@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
-namespace Roslyn.Workbench.Mcp.PluginFixtures;
+namespace Roslyn.Workbench.Mcp.InvalidToolNamePluginFixture;
 
 [RoslynPlugin("test.invalid.tool.name", "Invalid Tool Name Test Plugin", PluginApiVersions.V1)]
 public sealed class InvalidToolNameTestPlugin : IRoslynPlugin

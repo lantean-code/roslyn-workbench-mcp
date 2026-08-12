@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Roslyn.Workbench.Mcp.Server.Contracts;
+namespace Roslyn.Workbench.Mcp.Contracts.Server;
 
 /// <summary>
 /// Controls how MCP tool output schemas are published in tool metadata.

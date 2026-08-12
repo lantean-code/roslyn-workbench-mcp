@@ -40,6 +40,7 @@ internal static class BuiltInCodeActionAuditHarness
             new ComponentWorkspaceOptions
             {
                 Boundary = ComponentWorkspaceBoundary.CodeActions,
+                IncludeBuiltInCodeActions = true,
             },
             composition);
 
@@ -79,10 +80,21 @@ internal static class BuiltInCodeActionAuditHarness
         ImmutableArray<Diagnostic> codeFixDiagnostics = [];
         if (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix)
         {
-            codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, TestContext.Current.CancellationToken);
-
             var provider = composition.CodeFixProviders.Single(
                 candidate => string.Equals(CodeActionProviderIdentity.GetId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
+
+            IReadOnlyList<string> requestedDiagnosticIds = provider.FixableDiagnosticIds;
+            if (auditCase.ExpectedDiagnosticId is not null)
+            {
+                requestedDiagnosticIds = [auditCase.ExpectedDiagnosticId];
+            }
+
+            var diagnosticService = coordinator.GetRequiredService<ICodeActionDiagnosticService>();
+            codeFixDiagnostics = (await diagnosticService.GetDocumentDiagnosticsAsync(
+                document,
+                resolution.Value.SourceSpan,
+                requestedDiagnosticIds,
+                TestContext.Current.CancellationToken)).ToImmutableArray();
 
             discovered = await DiscoverCodeFixesAsync(
                 provider,
@@ -261,37 +273,6 @@ internal static class BuiltInCodeActionAuditHarness
     {
         var context = new CodeFixContext(document, requestedSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
         await provider.RegisterCodeFixesAsync(context);
-    }
-
-    private static async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
-        Document document,
-        TextSpan span,
-        CancellationToken cancellationToken)
-    {
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
-        if (compilation is null)
-        {
-            return [];
-        }
-
-        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToList();
-        var analyzers = document.Project.AnalyzerReferences
-            .SelectMany(reference => reference.GetAnalyzers(document.Project.Language))
-            .ToImmutableArray();
-
-        if (!analyzers.IsDefaultOrEmpty)
-        {
-            diagnostics.AddRange(await compilation
-                .WithAnalyzers(analyzers, document.Project.AnalyzerOptions)
-                .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                );
-        }
-
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
-        return diagnostics
-            .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
-            .Where(diagnostic => diagnostic.Location.SourceSpan.IntersectsWith(span))
-            .ToImmutableArray();
     }
 
     private static List<DiscoveredAuditCodeAction> Flatten(

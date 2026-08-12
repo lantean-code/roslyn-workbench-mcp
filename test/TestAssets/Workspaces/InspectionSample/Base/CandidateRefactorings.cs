@@ -35,6 +35,7 @@ internal interface ICandidateFormatter
 
 internal sealed class InterfaceImplementationCandidate : ICandidateFormatter
 {
+
 }
 
 internal sealed class MethodPropertyCandidate

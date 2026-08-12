@@ -20,7 +20,7 @@ internal static class BundledComponentWorkspaceFactory
             IncludeBuiltInAssemblies = true,
         });
 
-        return CreateCodeActionWorkspace(composition);
+        return CreateCodeActionWorkspace(composition, includeBuiltInCodeActions: true);
     }
 
     public static ICodeActionComposition CreateTestCodeActionComposition()
@@ -39,14 +39,15 @@ internal static class BundledComponentWorkspaceFactory
 
     public static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
     {
-        return CreateCodeActionWorkspace(composition);
+        return CreateCodeActionWorkspace(composition, includeBuiltInCodeActions: false);
     }
 
-    private static ComponentWorkspace CreateCodeActionWorkspace(ICodeActionComposition composition)
+    private static ComponentWorkspace CreateCodeActionWorkspace(ICodeActionComposition composition, bool includeBuiltInCodeActions)
     {
         var options = new ComponentWorkspaceOptions
         {
             Boundary = ComponentWorkspaceBoundary.CodeActions,
+            IncludeBuiltInCodeActions = includeBuiltInCodeActions,
         };
 
         return ComponentWorkspace.Create(options, composition);

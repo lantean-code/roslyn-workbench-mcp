@@ -256,11 +256,12 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var canonicalSolutionPath = solutionPath;
             var canonicalWorkspaceRoot = directoryPath;
             var fullProjectPath = Path.Combine(directoryPath, "Lib", "Lib.csproj");
+            var projectPath = Path.Combine("Lib", "Lib.csproj");
             string failedPath = string.Empty;
             pathNormalizer.Setup(item => item.TryGetFullPath(solutionPath, out canonicalSolutionPath)).Returns(true);
             pathNormalizer.Setup(item => item.TryGetFullPath(directoryPath, out canonicalWorkspaceRoot)).Returns(true);
             pathNormalizer
-                .Setup(item => item.TryGetFullPath("Lib/Lib.csproj", directoryPath, out fullProjectPath))
+                .Setup(item => item.TryGetFullPath(projectPath, directoryPath, out fullProjectPath))
                 .Returns(fullPathSucceeds);
 
             pathNormalizer
@@ -298,11 +299,13 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var canonicalWorkspaceRoot = directoryPath;
             var libFullPath = Path.Combine(directoryPath, "Lib", "Lib.csproj");
             var rootFullPath = Path.Combine(directoryPath, "Root", "Root.csproj");
+            var libProjectPath = Path.Combine("Lib", "Lib.csproj");
+            var rootProjectPath = Path.Combine("Root", "Root.csproj");
             var duplicateProjectPath = "Duplicate.csproj";
             pathNormalizer.Setup(item => item.TryGetFullPath(solutionPath, out canonicalSolutionPath)).Returns(true);
             pathNormalizer.Setup(item => item.TryGetFullPath(directoryPath, out canonicalWorkspaceRoot)).Returns(true);
-            pathNormalizer.Setup(item => item.TryGetFullPath("Lib/Lib.csproj", directoryPath, out libFullPath)).Returns(true);
-            pathNormalizer.Setup(item => item.TryGetFullPath("Root/Root.csproj", directoryPath, out rootFullPath)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath(libProjectPath, directoryPath, out libFullPath)).Returns(true);
+            pathNormalizer.Setup(item => item.TryGetFullPath(rootProjectPath, directoryPath, out rootFullPath)).Returns(true);
             pathNormalizer
                 .Setup(item => item.TryGetWorkspaceRelativePath(directoryPath, libFullPath, out duplicateProjectPath))
                 .Returns(true);

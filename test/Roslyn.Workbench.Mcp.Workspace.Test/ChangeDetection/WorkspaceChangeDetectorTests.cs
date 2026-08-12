@@ -70,15 +70,17 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     [Fact]
     public void GIVEN_InMemorySolutionWithWorkspaceInputs_WHEN_BuildingManifest_THEN_ShouldCaptureDistinctTrackedInputs()
     {
-        const string root = "/Workspace";
-        const string projectPath = root + "/Project/Project.csproj";
-        const string sourcePath = root + "/Project/Document.cs";
-        const string additionalPath = root + "/Project/Additional.txt";
-        const string editorConfigPath = root + "/Project/.editorconfig";
-        const string generatedPath = root + "/Project/obj/Debug/Generated.cs";
-        const string analyzerPath = root + "/Analyzers/Analyzer.dll";
+        var root = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(root, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var sourcePath = Path.Combine(projectDirectory, "Document.cs");
+        var additionalPath = Path.Combine(projectDirectory, "Additional.txt");
+        var editorConfigPath = Path.Combine(projectDirectory, ".editorconfig");
+        var generatedPath = Path.Combine(projectDirectory, "obj", "Debug", "Generated.cs");
+        var analyzerPath = Path.Combine(root, "Analyzers", "Analyzer.dll");
         var referencePath = typeof(object).Assembly.Location;
-        const string importPath = root + "/Build/Imported.props";
+        var importPath = Path.Combine(root, "Build", "Imported.props");
+        var solutionPath = Path.Combine(root, "Workspace.sln");
         var projectId = ProjectId.CreateNewId();
         var analyzerReference = new Mock<AnalyzerReference>();
         analyzerReference.SetupGet(item => item.Display).Returns(analyzerPath);
@@ -91,23 +93,26 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .AddAnalyzerReference(projectId, analyzerReference.Object)
             .AddMetadataReference(projectId, MetadataReference.CreateFromFile(referencePath));
 
-        foreach (var filePath in new[] { root + "/Workspace.sln", projectPath, sourcePath, additionalPath, editorConfigPath, analyzerPath, referencePath, importPath })
+        foreach (var filePath in new[] { solutionPath, projectPath, sourcePath, additionalPath, editorConfigPath, analyzerPath, referencePath, importPath })
         {
             SetupFile(filePath);
             SetupDirectory(Path.GetDirectoryName(filePath)!);
         }
 
-        SetupDirectory(root + "/Project/Source");
+        var sourceDirectory = Path.Combine(projectDirectory, "Source");
+        var binDirectory = Path.Combine(projectDirectory, "bin");
+        var objDirectory = Path.Combine(projectDirectory, "obj");
+        SetupDirectory(sourceDirectory);
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded([importPath]));
 
-        _directory.Setup(item => item.EnumerateDirectories(root + "/Project", "*", SearchOption.AllDirectories)).Returns(
-            [root + "/Project/Source", root + "/Project/bin", root + "/Project/obj"]);
+        _directory.Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories)).Returns(
+            [sourceDirectory, binDirectory, objDirectory]);
 
-        var result = _target.BuildManifest(solution, root + "/Workspace.sln", root);
+        var result = _target.BuildManifest(solution, solutionPath, root);
 
         result.Files.Select(item => item.Path).Should().BeEquivalentTo(
-            root + "/Workspace.sln",
+            solutionPath,
             projectPath,
             sourcePath,
             additionalPath,
@@ -116,8 +121,8 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             referencePath,
             importPath);
 
-        result.Directories.Select(item => item.Path).Should().Contain(root + "/Project/Source");
-        result.Directories.Select(item => item.Path).Should().NotContain(root + "/Project/bin", root + "/Project/obj");
+        result.Directories.Select(item => item.Path).Should().Contain(sourceDirectory);
+        result.Directories.Select(item => item.Path).Should().NotContain(binDirectory, objDirectory);
         result.Files.Select(item => item.Path).Should().NotContain(generatedPath);
         _changeMonitorFactory.Verify(item => item.Create(root), Times.Once);
         _changeMonitor.Verify(item => item.Start(), Times.Once);
@@ -181,10 +186,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     [Fact]
     public void GIVEN_CustomArtifactRoots_WHEN_BuildingManifest_THEN_ShouldUseEvaluatedRootsRatherThanDirectoryNames()
     {
-        const string root = "/Workspace";
-        const string projectPath = root + "/Project/Project.csproj";
-        const string conventionalNamedSourcePath = root + "/Project/obj/Source.cs";
-        const string generatedPath = root + "/Project/custom-obj/Generated.cs";
+        var root = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(root, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var conventionalObjDirectory = Path.Combine(projectDirectory, "obj");
+        var customObjDirectory = Path.Combine(projectDirectory, "custom-obj");
+        var conventionalNamedSourcePath = Path.Combine(conventionalObjDirectory, "Source.cs");
+        var generatedPath = Path.Combine(customObjDirectory, "Generated.cs");
+        var solutionPath = Path.Combine(root, "Workspace.sln");
         var projectId = ProjectId.CreateNewId();
         var solution = _workspace.CurrentSolution
             .AddProject(ProjectInfo.Create(
@@ -205,33 +214,35 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
                 SourceText.From("class Generated { }"),
                 filePath: generatedPath);
 
-        foreach (var filePath in new[] { root + "/Workspace.sln", projectPath, conventionalNamedSourcePath, generatedPath })
+        foreach (var filePath in new[] { solutionPath, projectPath, conventionalNamedSourcePath, generatedPath })
         {
             SetupFile(filePath);
             SetupDirectory(Path.GetDirectoryName(filePath)!);
         }
 
         _directory
-            .Setup(item => item.EnumerateDirectories(root + "/Project", "*", SearchOption.AllDirectories))
-            .Returns([root + "/Project/obj", root + "/Project/custom-obj"]);
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Returns([conventionalObjDirectory, customObjDirectory]);
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(
-                artifactRoots: [root + "/Project/custom-bin", root + "/Project/custom-obj"]));
+                artifactRoots: [Path.Combine(projectDirectory, "custom-bin"), customObjDirectory]));
 
-        var result = _target.BuildManifest(solution, root + "/Workspace.sln", root);
+        var result = _target.BuildManifest(solution, solutionPath, root);
 
         result.Files.Select(static file => file.Path).Should().Contain(conventionalNamedSourcePath);
         result.Files.Select(static file => file.Path).Should().NotContain(generatedPath);
-        result.Directories.Select(static directory => directory.Path).Should().Contain(root + "/Project/obj");
-        result.Directories.Select(static directory => directory.Path).Should().NotContain(root + "/Project/custom-obj");
+        result.Directories.Select(static directory => directory.Path).Should().Contain(conventionalObjDirectory);
+        result.Directories.Select(static directory => directory.Path).Should().NotContain(customObjDirectory);
     }
 
     [Fact]
     public void GIVEN_MultipleTargetFrameworkProjects_WHEN_BuildingManifest_THEN_ShouldEvaluatePhysicalProjectOnce()
     {
-        const string root = "/Workspace";
-        const string projectPath = root + "/Project/Project.csproj";
+        var root = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(root, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var solutionPath = Path.Combine(root, "Workspace.sln");
         var firstProjectId = ProjectId.CreateNewId();
         var secondProjectId = ProjectId.CreateNewId();
         var solution = _workspace.CurrentSolution
@@ -250,19 +261,19 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
                 LanguageNames.CSharp,
                 filePath: projectPath));
 
-        SetupFile(root + "/Workspace.sln");
+        SetupFile(solutionPath);
         SetupFile(projectPath);
         SetupDirectory(root);
-        SetupDirectory(root + "/Project");
+        SetupDirectory(projectDirectory);
         _directory
-            .Setup(item => item.EnumerateDirectories(root + "/Project", "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
             .Returns([]);
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(
-                artifactRoots: [root + "/Project/bin", root + "/Project/obj"]));
+                artifactRoots: [Path.Combine(projectDirectory, "bin"), Path.Combine(projectDirectory, "obj")]));
 
-        using var result = _target.BuildManifest(solution, root + "/Workspace.sln", root);
+        using var result = _target.BuildManifest(solution, solutionPath, root);
 
         result.IsComplete.Should().BeTrue();
         _projectInputResolver.Verify(item => item.Resolve(projectPath), Times.Once);
@@ -295,7 +306,10 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     [Fact]
     public void GIVEN_ProjectWithoutExistingDirectory_WHEN_BuildingManifest_THEN_ShouldNotEnumerateDirectories()
     {
-        const string projectPath = "/Workspace/Project/Project.csproj";
+        var projectDirectory = Path.GetFullPath("/Workspace/Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var missingRoot = Path.GetFullPath("/Missing");
+        var missingSolutionPath = Path.Combine(missingRoot, "Workspace.sln");
         var projectId = ProjectId.CreateNewId();
         var solution = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId,
@@ -305,13 +319,13 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             LanguageNames.CSharp,
             filePath: projectPath));
 
-        SetupMissingFile("/Missing/Workspace.sln");
+        SetupMissingFile(missingSolutionPath);
         SetupFile(projectPath);
-        SetupMissingDirectory("/Workspace/Project");
+        SetupMissingDirectory(projectDirectory);
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        var result = _target.BuildManifest(solution, "/Missing/Workspace.sln", "/Missing");
+        var result = _target.BuildManifest(solution, missingSolutionPath, missingRoot);
 
         result.Files.Should().ContainSingle();
         result.Directories.Should().BeEmpty();
@@ -352,20 +366,24 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp))
             .AddDocument(DocumentId.CreateNewId(projectId), "Document.cs", SourceText.From("class Document { }"));
 
-        SetupFile("/Workspace/Workspace.sln");
-        SetupDirectory("/Workspace");
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        SetupFile(solutionPath);
+        SetupDirectory(workspaceRoot);
         _projectInputResolver.Setup(item => item.Resolve(null))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        var result = _target.BuildManifest(solution, "/Workspace/Workspace.sln", "/Workspace");
+        var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
 
-        result.Files.Should().ContainSingle().Which.Path.Should().Be("/Workspace/Workspace.sln");
+        result.Files.Should().ContainSingle().Which.Path.Should().Be(solutionPath);
     }
 
     [Fact]
     public void GIVEN_ProjectInputEvaluationFailure_WHEN_BuildingManifest_THEN_ShouldRetainFailureAndReportChange()
     {
-        const string projectPath = "/Workspace/Project.csproj";
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectPath = Path.Combine(workspaceRoot, "Project.csproj");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
         var projectId = ProjectId.CreateNewId();
         var solution = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId,
@@ -375,14 +393,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             LanguageNames.CSharp,
             filePath: projectPath));
 
-        SetupFile("/Workspace/Workspace.sln");
+        SetupFile(solutionPath);
         SetupFile(projectPath);
-        SetupDirectory("/Workspace");
-        _directory.Setup(item => item.EnumerateDirectories("/Workspace", "*", SearchOption.AllDirectories)).Returns([]);
+        SetupDirectory(workspaceRoot);
+        _directory.Setup(item => item.EnumerateDirectories(workspaceRoot, "*", SearchOption.AllDirectories)).Returns([]);
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Failed(projectPath, "Message"));
 
-        var manifest = _target.BuildManifest(solution, "/Workspace/Workspace.sln", "/Workspace");
+        var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
         var hasChanged = _target.HasChanged(manifest, TestContext.Current.CancellationToken);
 
         manifest.IsComplete.Should().BeFalse();

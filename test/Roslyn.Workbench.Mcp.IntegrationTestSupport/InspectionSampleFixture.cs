@@ -124,6 +124,20 @@ internal sealed class InspectionSampleFixture : IDisposable
         return CreateSelector(documentPath, text, occurrenceIndex, 0, offset);
     }
 
+    public LocationSelector GetCursorOnFollowingLineInDocument(string documentPath, string text, int occurrenceIndex, int lineCount)
+    {
+        var fullPath = Path.Combine(_directoryPath, documentPath);
+        var sourceText = File.ReadAllText(fullPath);
+        var start = FindWholeToken(sourceText, text, occurrenceIndex);
+        for (var index = 0; index < lineCount && start >= 0; index++)
+        {
+            var lineEnd = sourceText.IndexOf('\n', start);
+            start = lineEnd < 0 ? -1 : lineEnd + 1;
+        }
+
+        return CreateSelector(documentPath, start, length: 0);
+    }
+
     public LocationSelector GetSpanSelection(string startText, string endText)
     {
         var sourceText = File.ReadAllText(DocumentPath);
@@ -180,6 +194,11 @@ internal sealed class InspectionSampleFixture : IDisposable
         var sourceText = File.ReadAllText(fullPath);
         var start = FindWholeToken(sourceText, text, occurrenceIndex) + offset;
 
+        return CreateSelector(documentPath, start, length);
+    }
+
+    private static LocationSelector CreateSelector(string documentPath, int start, int length)
+    {
         return new LocationSelector
         {
             Span = new TextSpanSelector

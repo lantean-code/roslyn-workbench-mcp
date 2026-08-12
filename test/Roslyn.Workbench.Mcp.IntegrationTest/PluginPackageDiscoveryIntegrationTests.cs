@@ -1,4 +1,3 @@
-using System.Reflection;
 using Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -8,13 +7,8 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_PluginDirectoryAssemblies_WHEN_LoadingCatalog_THEN_ShouldKeepEnabledToolsAndDisabledDiagnostics()
     {
-        using var pluginDirectory = CreatePluginDirectory(
-            typeof(HostValidQueryPlugin).Assembly,
-            typeof(HostValidMutationPlugin).Assembly,
-            typeof(ValidQueryTestPlugin).Assembly);
-
-        var startupOptions = CreateStartupOptions(pluginDirectory.DirectoryPath);
-        var snapshot = PluginCatalogLoaderTestFactory.Load(startupOptions, []);
+        var startupOptions = CreateStartupOptions(GetPluginDirectory("Valid"));
+        using var snapshot = PluginCatalogLoaderTestFactory.Load(startupOptions, []);
 
         var tools = snapshot.Tools;
         var plugins = snapshot.Plugins;
@@ -33,9 +27,8 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_PluginToolCollidesWithReservedCodeActionName_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithDiagnostic()
     {
-        using var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
-        var snapshot = PluginCatalogLoaderTestFactory.Load(
-            CreateStartupOptions(pluginDirectory.DirectoryPath),
+        using var snapshot = PluginCatalogLoaderTestFactory.Load(
+            CreateStartupOptions(GetPluginDirectory("ReservedCollision")),
             [],
             ["host-valid-query"]);
 
@@ -51,11 +44,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_MultiplePackagesWithSamePluginId_WHEN_LoadingCatalog_THEN_ShouldDisableEveryPackageDeterministically()
     {
-        using var pluginDirectory = CreatePluginDirectory(
-            typeof(HostValidQueryPlugin).Assembly,
-            typeof(HostValidQueryPlugin).Assembly);
-
-        var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
+        using var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(GetPluginDirectory("Duplicate")), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().HaveCount(2);
@@ -70,7 +59,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_NoExternalPluginDirectory_WHEN_LoadingBundledCore_THEN_ShouldComposeBundledCatalogueInDefaultContext()
     {
-        var snapshot = PluginCatalogLoaderTestFactory.Load(
+        using var snapshot = PluginCatalogLoaderTestFactory.Load(
             new StartupOptions(),
             [typeof(BundledCorePlugin).Assembly]);
 
@@ -82,8 +71,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
     [Fact]
     public void GIVEN_SingleExportPluginConfigureThrows_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithoutPublishingExceptionDetails()
     {
-        using var pluginDirectory = CreatePluginDirectory(typeof(ThrowingConfigurationTestPlugin).Assembly);
-        var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
+        using var snapshot = PluginCatalogLoaderTestFactory.Load(CreateStartupOptions(GetPluginDirectory("Throwing")), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().ContainSingle(status =>
@@ -95,32 +83,9 @@ public sealed class PluginPackageDiscoveryIntegrationTests
                 && !diagnostic.Message.Contains("Configuration failed", StringComparison.Ordinal)));
     }
 
-    private static TemporaryDirectory CreatePluginDirectory(params Assembly[] assemblies)
+    private static string GetPluginDirectory(string scenario)
     {
-        var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-plugin-tests");
-        var searchRoot = directory.DirectoryPath;
-
-        for (var index = 0; index < assemblies.Length; index++)
-        {
-            var assembly = assemblies[index];
-            var packageName = assembly.GetName().Name ?? "plugin";
-            var packageDirectory = Path.Combine(searchRoot, $"{index:D2}-{packageName}");
-            Directory.CreateDirectory(packageDirectory);
-            if (assembly == typeof(HostValidQueryPlugin).Assembly)
-            {
-                var fixtureAssets = Path.Combine(AppContext.BaseDirectory, "PluginFixtureAssets", "HostQuery");
-                foreach (var assetPath in Directory.EnumerateFiles(fixtureAssets))
-                {
-                    File.Copy(assetPath, Path.Combine(packageDirectory, Path.GetFileName(assetPath)), overwrite: true);
-                }
-            }
-            else
-            {
-                File.Copy(assembly.Location, Path.Combine(packageDirectory, Path.GetFileName(assembly.Location)), overwrite: true);
-            }
-        }
-
-        return directory;
+        return Path.Combine(AppContext.BaseDirectory, "PluginFixtureAssets", "Catalog", scenario);
     }
 
     private static StartupOptions CreateStartupOptions(string pluginDirectory)

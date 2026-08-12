@@ -953,11 +953,11 @@ internal static class BuiltInCodeActionAuditCases
             SourceNote = "InterfaceImplementationCandidate empty body",
             ExpectedChangedText = "public string Format(int value)",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            LocationFactory = static fixture => fixture.GetCursorInDocument(
+            LocationFactory = static fixture => fixture.GetCursorOnFollowingLineInDocument(
                 "CandidateRefactorings.cs",
                 "InterfaceImplementationCandidate",
-                0,
-                "InterfaceImplementationCandidate : ICandidateFormatter\r\n{\r\n".Length),
+                occurrenceIndex: 0,
+                lineCount: 2),
         },
         new()
         {

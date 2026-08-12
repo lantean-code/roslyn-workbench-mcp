@@ -48,7 +48,8 @@
   <Target Name="IncludePluginAnalyzersInPackage">
     <MSBuild
       Projects="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
-      Targets="GetTargetPath">
+      Targets="GetTargetPath"
+      RemoveProperties="TargetFramework">
       <Output
         TaskParameter="TargetOutputs"
         ItemName="_PluginAnalyzerAssembly" />

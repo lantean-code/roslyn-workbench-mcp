@@ -118,7 +118,9 @@ public sealed class ExternalPluginBoundaryIntegrationTests
                 TestContext.Current.CancellationToken);
 
             var status = await GetFullStatusAsync(target);
-            var standardError = target.GetStandardErrorSnapshot();
+            var standardError = await target.WaitForStandardErrorAsync(
+                "CONSOLE_OUTPUT_HANDLER_EXECUTED",
+                TestContext.Current.CancellationToken);
 
             pluginResult.IsError.Should().NotBeTrue();
             AcceptanceProtocol.GetSuccessData(pluginResult).GetProperty("value").GetString().Should().Be("Value");

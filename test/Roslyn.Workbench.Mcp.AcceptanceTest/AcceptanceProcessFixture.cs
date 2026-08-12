@@ -25,6 +25,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private McpClient? _client;
     private Task<ClientCompletionDetails>? _completion;
     private ClientCompletionDetails? _completionDetails;
+    private TaskCompletionSource<bool> _standardErrorChanged = CreateStandardErrorChangedSource();
     private long _lastRequestId;
     private bool _retainRoot;
     private bool _disposed;
@@ -194,9 +195,38 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         _retainRoot = true;
     }
 
-    public string GetStandardErrorSnapshot()
+    public async Task<string> WaitForStandardErrorAsync(
+        string expected,
+        CancellationToken cancellationToken)
     {
-        return GetStandardError();
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+
+        try
+        {
+            while (true)
+            {
+                Task standardErrorChanged;
+                string standardError;
+
+                lock (_standardErrorLock)
+                {
+                    standardError = _standardError.ToString();
+                    if (standardError.Contains(expected, StringComparison.Ordinal))
+                    {
+                        return standardError;
+                    }
+
+                    standardErrorChanged = _standardErrorChanged.Task;
+                }
+
+                await standardErrorChanged.WaitAsync(timeoutSource.Token);
+            }
+        }
+        catch (Exception exception)
+        {
+            _retainRoot = true;
+            throw CreateDiagnosticException($"Standard error did not contain '{expected}'", exception);
+        }
     }
 
     public string CopyWorkspaceAsset(AcceptanceWorkspaceAsset workspaceAsset, string directoryName)
@@ -474,6 +504,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         return timeoutSource;
     }
 
+    private static TaskCompletionSource<bool> CreateStandardErrorChangedSource()
+    {
+        return new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
     private static void CopyDirectory(string sourceDirectory, string destinationDirectory, bool overwrite = false)
     {
         foreach (var sourcePath in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
@@ -492,10 +527,16 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     private void CaptureStandardError(string line)
     {
+        TaskCompletionSource<bool> standardErrorChanged;
+
         lock (_standardErrorLock)
         {
             _standardError.AppendLine(line);
+            standardErrorChanged = _standardErrorChanged;
+            _standardErrorChanged = CreateStandardErrorChangedSource();
         }
+
+        standardErrorChanged.TrySetResult(true);
     }
 
     private InvalidOperationException CreateDiagnosticException(string message, Exception? innerException = null)

@@ -12,6 +12,8 @@ internal sealed record ComponentWorkspaceOptions
 
     public int MaxLoadedWorkspaces { get; init; } = 4;
 
+    public bool IncludeBuiltInCodeActions { get; init; }
+
     public string? StateDirectory { get; init; }
 }
 

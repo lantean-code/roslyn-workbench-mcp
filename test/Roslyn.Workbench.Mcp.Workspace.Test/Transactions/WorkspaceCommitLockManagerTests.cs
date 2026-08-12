@@ -48,16 +48,15 @@ public sealed class WorkspaceCommitLockManagerTests
     [Fact]
     public void GIVEN_AvailableLock_WHEN_Acquiring_THEN_ShouldReturnOwnershipFromRepositoryCoordinationDirectory()
     {
-        var expectedRoot = OperatingSystem.IsWindows() ? "ROOT" : "Root";
         var ownership = new Mock<IWorkspaceCommitLock>();
-        _provider.Setup(item => item.TryAcquire($"{expectedRoot}/.vs/roslyn-workbench-mcp/locks/commit.lock"))
+        _provider.Setup(item => item.TryAcquire("Root/.vs/roslyn-workbench-mcp/locks/commit.lock"))
             .Returns(ownership.Object);
 
         var result = _target.Acquire("Root");
 
         result.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Acquired);
         result.Lock.Should().BeSameAs(ownership.Object);
-        _directory.Verify(item => item.CreateDirectory($"{expectedRoot}/.vs/roslyn-workbench-mcp/locks"), Times.Once);
+        _directory.Verify(item => item.CreateDirectory("Root/.vs/roslyn-workbench-mcp/locks"), Times.Once);
     }
 
     [Fact]

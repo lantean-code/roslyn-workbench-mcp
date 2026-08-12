@@ -71,7 +71,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 configured.MaxLoadedWorkspaces = options.MaxLoadedWorkspaces);
 
             services.Configure<CodeActionCompositionOptions>(configured =>
-                configured.IncludeBuiltInAssemblies = false);
+                configured.IncludeBuiltInAssemblies = options.IncludeBuiltInCodeActions);
 
             services.AddSingleton(TimeProvider.System);
             services.AddWorkspaceServices();

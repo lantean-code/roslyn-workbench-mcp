@@ -40,8 +40,11 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             ValidatePackageLayout(packagePath);
 
             var projectPath = CreateConsumerProject(consumerDirectory);
+            var nuGetConfigurationPath = CreateNuGetConfiguration(
+                consumerDirectory,
+                feedDirectory);
 
-            await RestoreConsumerAsync(projectPath, feedDirectory);
+            await RestoreConsumerAsync(projectPath, nuGetConfigurationPath);
             await ValidateAnalyzerActivationAsync(projectPath, consumerDirectory);
         }
         finally
@@ -193,7 +196,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
 
     private static async Task RestoreConsumerAsync(
         string projectPath,
-        string feedDirectory)
+        string nuGetConfigurationPath)
     {
         var consumerDirectory = Path.GetDirectoryName(projectPath);
         if (consumerDirectory is null)
@@ -205,10 +208,8 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         {
             "restore",
             projectPath,
-            "--source",
-            feedDirectory,
-            "--source",
-            _nuGetSource,
+            "--configfile",
+            nuGetConfigurationPath,
             "--packages",
             Path.Combine(consumerDirectory, "packages"),
             "-p:NuGetAudit=false",
@@ -224,6 +225,34 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         exitCode.Should().Be(
             0,
             $"restoring the clean package consumer should succeed:{Environment.NewLine}{output}");
+    }
+
+    private static string CreateNuGetConfiguration(
+        string consumerDirectory,
+        string feedDirectory)
+    {
+        var clearSources = new XElement("clear");
+
+        var testFeedSource = new XElement("add");
+        testFeedSource.SetAttributeValue("key", "PackageUnderTest");
+        testFeedSource.SetAttributeValue("value", feedDirectory);
+
+        var nuGetSource = new XElement("add");
+        nuGetSource.SetAttributeValue("key", "NuGetOrg");
+        nuGetSource.SetAttributeValue("value", _nuGetSource);
+        nuGetSource.SetAttributeValue("protocolVersion", "3");
+
+        var packageSources = new XElement(
+            "packageSources",
+            clearSources,
+            testFeedSource,
+            nuGetSource);
+
+        var configuration = new XElement("configuration", packageSources);
+        var document = new XDocument(configuration);
+        var configurationPath = Path.Combine(consumerDirectory, "NuGet.Config");
+        document.Save(configurationPath);
+        return configurationPath;
     }
 
     private static async Task ValidateAnalyzerActivationAsync(

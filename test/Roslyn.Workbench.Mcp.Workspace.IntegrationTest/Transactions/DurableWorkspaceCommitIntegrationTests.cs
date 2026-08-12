@@ -294,11 +294,23 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         try
         {
             manager.Acquire(_root).Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Contended);
-            process.Kill(entireProcessTree: true);
+            process.Kill();
             await WaitForExitAsync(process, TestContext.Current.CancellationToken);
 
-            using var recovered = manager.Acquire(_root).Lock;
+            WorkspaceCommitLockAcquisition? recovered = null;
+            var acquisitionCompleted = SpinWait.SpinUntil(
+                () =>
+                {
+                    recovered = manager.Acquire(_root);
+                    return !recovered.IsContended;
+                },
+                _processTimeout);
+
+            acquisitionCompleted.Should().BeTrue("the crashed process should release its commit lock within the process timeout");
             recovered.Should().NotBeNull();
+            recovered!.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Acquired, recovered.ErrorMessage);
+            using var recoveredLock = recovered.Lock;
+            recoveredLock.Should().NotBeNull();
         }
         finally
         {

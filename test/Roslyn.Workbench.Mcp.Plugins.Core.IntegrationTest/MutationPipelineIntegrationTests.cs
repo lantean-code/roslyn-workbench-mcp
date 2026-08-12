@@ -6,6 +6,30 @@ public sealed class MutationPipelineIntegrationTests
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingBundledMutations_THEN_ShouldStageRevisionsAndPreviewResultingContent()
     {
         using var fixture = InspectionSampleFixture.Create();
+        var usingsPath = Path.Combine(fixture.WorkspaceRoot, "Usings.cs");
+        var unformattedSource = """
+            using Sample;
+            using System.Text;
+            using System;
+
+            namespace Sample;
+
+            public static class UsingSamples
+            {
+            public static string BuildText()
+            {
+            StringBuilder builder = new();
+            builder.Append(nameof(FormatterBase));
+            return builder.ToString();
+            }
+            }
+            """.ReplaceLineEndings("\r\n");
+
+        await File.WriteAllTextAsync(
+            usingsPath,
+            unformattedSource,
+            TestContext.Current.CancellationToken);
+
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var startResult = await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);

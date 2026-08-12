@@ -7,43 +7,59 @@ public sealed class WorkspaceInputPathPolicyTests
     [Fact]
     public void GIVEN_ArtifactRoots_WHEN_CheckingPaths_THEN_ShouldExcludeOnlyThoseRoots()
     {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectRoot = Path.Combine(workspaceRoot, "Project");
+        var customBinRoot = Path.Combine(projectRoot, "custom-bin");
+        var customObjRoot = Path.Combine(projectRoot, "custom-obj");
+        var projectPath = Path.Combine(projectRoot, "Project.csproj");
         var target = WorkspaceInputPathPolicy.Create(
-            ["/Workspace/Project/custom-bin/", "/Workspace/Project/custom-obj"],
-            ["/Workspace/Project/Project.csproj"],
+            [customBinRoot + Path.DirectorySeparatorChar, customObjRoot],
+            [projectPath],
             StringComparison.Ordinal);
 
         target.ArtifactRoots.Should().BeEquivalentTo(
-            "/Workspace/Project/custom-bin",
-            "/Workspace/Project/custom-obj");
-        target.ShouldTrack("/Workspace/Project/custom-bin").Should().BeFalse();
-        target.ShouldTrack("/Workspace/Project/custom-obj/Debug/Generated.cs").Should().BeFalse();
-        target.ShouldTrack("/Workspace/Project/bin/Source.cs").Should().BeTrue();
-        target.ShouldTrack("/Workspace/Project/obj/Source.cs").Should().BeTrue();
+            customBinRoot,
+            customObjRoot);
+
+        target.ShouldTrack(customBinRoot).Should().BeFalse();
+        target.ShouldTrack(Path.Combine(customObjRoot, "Debug", "Generated.cs")).Should().BeFalse();
+        target.ShouldTrack(Path.Combine(projectRoot, "bin", "Source.cs")).Should().BeTrue();
+        target.ShouldTrack(Path.Combine(projectRoot, "obj", "Source.cs")).Should().BeTrue();
     }
 
     [Fact]
     public void GIVEN_ArtifactRootContainsProtectedInput_WHEN_CreatingPolicy_THEN_ShouldRetainProtectedTree()
     {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectRoot = Path.Combine(workspaceRoot, "Project");
+        var outputRoot = Path.Combine(projectRoot, "output");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var projectPath = Path.Combine(projectRoot, "Project.csproj");
         var target = WorkspaceInputPathPolicy.Create(
-            ["/Workspace", "/Workspace/Project", "/Workspace/Project/output"],
-            ["/Workspace/Workspace.sln", "/Workspace/Project/Project.csproj"],
+            [workspaceRoot, projectRoot, outputRoot],
+            [solutionPath, projectPath],
             StringComparison.Ordinal);
 
-        target.ArtifactRoots.Should().ContainSingle().Which.Should().Be("/Workspace/Project/output");
-        target.ShouldTrack("/Workspace/Project/Project.csproj").Should().BeTrue();
-        target.ShouldTrack("/Workspace/Project/output/Generated.cs").Should().BeFalse();
+        target.ArtifactRoots.Should().ContainSingle().Which.Should().Be(outputRoot);
+        target.ShouldTrack(projectPath).Should().BeTrue();
+        target.ShouldTrack(Path.Combine(outputRoot, "Generated.cs")).Should().BeFalse();
     }
 
     [Fact]
     public void GIVEN_CaseInsensitivePolicy_WHEN_RootsDifferOnlyByCase_THEN_ShouldDeduplicateAndMatchPaths()
     {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectRoot = Path.Combine(workspaceRoot, "Project");
+        var outputRoot = Path.Combine(projectRoot, "Output");
+        var upperCaseOutputRoot = outputRoot.ToUpperInvariant();
+        var projectPath = Path.Combine(projectRoot, "Project.csproj");
         var target = WorkspaceInputPathPolicy.Create(
-            ["/Workspace/Project/Output", "/workspace/project/output"],
-            ["/Workspace/Project/Project.csproj"],
+            [outputRoot, upperCaseOutputRoot],
+            [projectPath],
             StringComparison.OrdinalIgnoreCase);
 
         target.ArtifactRoots.Should().ContainSingle();
-        target.ShouldTrack("/WORKSPACE/PROJECT/OUTPUT/Generated.cs").Should().BeFalse();
+        target.ShouldTrack(Path.Combine(outputRoot.ToUpperInvariant(), "Generated.cs")).Should().BeFalse();
     }
 
     [Theory]
@@ -53,9 +69,11 @@ public sealed class WorkspaceInputPathPolicyTests
     [InlineData("\0")]
     public void GIVEN_UnusablePath_WHEN_CheckingPath_THEN_ShouldTrackConservatively(string? path)
     {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectRoot = Path.Combine(workspaceRoot, "Project");
         var target = WorkspaceInputPathPolicy.Create(
-            ["/Workspace/Project/output", "\0"],
-            ["/Workspace/Project/Project.csproj"],
+            [Path.Combine(projectRoot, "output"), "\0"],
+            [Path.Combine(projectRoot, "Project.csproj")],
             StringComparison.Ordinal);
 
         target.ShouldTrack(path).Should().BeTrue();

@@ -4,11 +4,15 @@ These tests launch a published Roslyn Workbench MCP executable through the offic
 
 The acceptance build also assembles deterministic external query and mutation fixture packages into `TestAssets/Plugins` using build-only project references with `ReferenceOutputAssembly=false`. The acceptance test assembly receives no production or plugin-fixture compile reference. The query package includes its entry assembly, dependency manifest and deliberately private `NuGet.Versioning` dependency. The mutation package includes its entry assembly and dependency manifest. Both packages can publish a file-based readiness signal and await an explicit release signal, which lets protocol cancellation and concurrency cases coordinate without sleeps.
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the absolute path of the exact Release-published executable being tested. The suite does not search build output or infer a configuration.
+An assembly fixture publishes the Release Host to a unique temporary directory before the first acceptance test, sets `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` for the test process and removes the published files after the assembly finishes. This makes the suite directly runnable from Visual Studio Test Explorer and `dotnet test` without a separate publish step.
 
 ## Run the suite
 
-The repository scripts publish the Release Host to a temporary directory, run the acceptance suite against that exact executable and remove the published files afterwards:
+Run the project directly or use the platform wrappers. The wrappers preserve platform-specific command handling and forward additional arguments, while the assembly fixture owns publishing and cleanup:
+
+```bash
+dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj --configuration Release
+```
 
 ### Linux and macOS
 
@@ -26,7 +30,7 @@ Additional arguments are passed to `dotnet test`. For example, append `--filter 
 
 ## Run against an existing publish
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` directly when the published executable must be retained or was produced separately.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. The assembly fixture validates and uses an explicitly configured executable without publishing or deleting it.
 
 ## Linux and macOS
 
@@ -52,7 +56,7 @@ dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.Accept
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal. Retained failure roots include `process.txt` and `server.stderr.log` alongside the scenario workspace and state.
 
-The repository wrappers publish the Host with an empty `ROSLYN_WORKBENCH_SENTRY_DSN` so published-process coverage deterministically exercises the stderr logging fallback and cannot contact Sentry.
+The assembly fixture clears `ROSLYN_WORKBENCH_SENTRY_DSN` for the duration of the acceptance assembly so published-process coverage deterministically exercises the stderr logging fallback and cannot contact Sentry. It restores the previous value during disposal.
 
 ## Published response envelope
 

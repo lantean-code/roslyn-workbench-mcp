@@ -265,12 +265,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_PendingRecovery_WHEN_OpeningWorkspace_THEN_ShouldRequireRecovery()
     {
+        var solutionPath = Path.GetFullPath("/workspace/New.sln");
         var expected = CreateResult<WorkspaceOpenOutcome>();
-        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupOpenPreflight(solutionPath, alias: null);
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus
             {
-                SolutionPath = "/workspace/New.sln",
+                SolutionPath = solutionPath,
                 State = RecoveryState.RecoveryIncomplete,
             },
         ]);
@@ -285,19 +286,21 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_CaseInsensitivePendingRecoveryPath_WHEN_OpeningWorkspace_THEN_ShouldRequireRecovery()
     {
+        var solutionPath = Path.GetFullPath("/workspace/New.sln");
+        var recoveryPath = Path.Combine(Path.GetDirectoryName(solutionPath)!, "new.sln");
         var expected = CreateResult<WorkspaceOpenOutcome>();
-        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupOpenPreflight(solutionPath, alias: null);
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync(
         [
             new RecoveryStatus
             {
-                SolutionPath = "/workspace/new.sln",
+                SolutionPath = recoveryPath,
                 State = RecoveryState.RecoveryIncomplete,
             },
         ]);
 
         _workspacePathComparison
-            .Setup(item => item.GetComparison("/workspace/new.sln"))
+            .Setup(item => item.GetComparison(recoveryPath))
             .Returns(StringComparison.OrdinalIgnoreCase);
 
         SetupRejectedResult(expected, "RecoveryPending");
@@ -1266,12 +1269,15 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldReplaceSessionAndDisposeOldWorkspace()
     {
+        var solutionPath = Path.GetFullPath("/workspace/Solution.sln");
+        var workspaceRoot = Path.GetDirectoryName(solutionPath)!;
+        var projectPath = Path.Combine(workspaceRoot, "Project.csproj");
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
-        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", "Alias", transaction: null) with
+        var solution = CreateSolutionWithProject(projectPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), solutionPath, "Alias", transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = oldWorkspace.Object,
@@ -1280,9 +1286,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
+        SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         using var manifest = new WorkspaceInputManifest();
-        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
+        _changeDetector.Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
             .Returns(manifest);
 
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(3);
@@ -1315,12 +1321,15 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_WorkspaceInputsChangeDuringLoad_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndRequireRetry()
     {
+        var solutionPath = Path.GetFullPath("/workspace/Solution.sln");
+        var workspaceRoot = Path.GetDirectoryName(solutionPath)!;
+        var projectPath = Path.Combine(workspaceRoot, "Project.csproj");
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
-        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
+        var solution = CreateSolutionWithProject(projectPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), solutionPath, alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = oldWorkspace.Object,
@@ -1330,9 +1339,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         using var manifest = new WorkspaceInputManifest();
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
+        SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
             .Returns(manifest);
 
         _changeDetector.Setup(item => item.HasChanged(manifest, TestContext.Current.CancellationToken))
@@ -1363,24 +1372,27 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ProjectInputsCannotBeEvaluated_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndReturnFault()
     {
+        var solutionPath = Path.GetFullPath("/workspace/Solution.sln");
+        var workspaceRoot = Path.GetDirectoryName(solutionPath)!;
+        var projectPath = Path.Combine(workspaceRoot, "Project.csproj");
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
-        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
+        var solution = CreateSolutionWithProject(projectPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), solutionPath, alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             LoadedWorkspace = oldWorkspace.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
 
-        using var manifest = CreateIncompleteManifest("/workspace/Project.csproj");
+        using var manifest = CreateIncompleteManifest(projectPath);
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
+        SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Faulted<WorkspaceReloadOutcome>(
@@ -1402,10 +1414,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OldSessionDisappearsAfterReload_WHEN_Reloading_THEN_ShouldStillStoreReloadedSession()
     {
+        var solutionPath = Path.GetFullPath("/workspace/Solution.sln");
+        var workspaceRoot = Path.GetDirectoryName(solutionPath)!;
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
-        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Solution.sln", alias: null, transaction: null) with
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), solutionPath, alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
@@ -1418,9 +1432,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .Returns(session)
             .Returns((WorkspaceSessionSnapshot?)null);
 
-        SetupLoadedWorkspace("/workspace/Solution.sln", _workspace.CurrentSolution, newWorkspace);
+        SetupLoadedWorkspace(solutionPath, _workspace.CurrentSolution, newWorkspace, workspaceRoot);
         using var manifest = new WorkspaceInputManifest();
-        _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, "/workspace/Solution.sln", "/workspace", _inputCertification.Object))
+        _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, solutionPath, workspaceRoot, _inputCertification.Object))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Succeeded(
@@ -1457,14 +1471,18 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "The manifest is transferred through the change-detector mock to the lifecycle service, which either disposes it or installs it as session-owned state.")]
-    private void SetupLoadedWorkspace(string path, Solution solution, Mock<ILoadedWorkspace> loadedWorkspace)
+    private void SetupLoadedWorkspace(
+        string path,
+        Solution solution,
+        Mock<ILoadedWorkspace> loadedWorkspace,
+        string workspaceRoot = "/workspace")
     {
         loadedWorkspace.SetupGet(item => item.CurrentSolution).Returns(solution);
         _workspaceLoadWorkflow.Setup(item => item.LoadAsync(path, It.IsAny<string>(), TestContext.Current.CancellationToken))
             .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
 
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, path, "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(solution, path, workspaceRoot, _inputCertification.Object))
             .Returns(new WorkspaceInputManifest());
     }
 

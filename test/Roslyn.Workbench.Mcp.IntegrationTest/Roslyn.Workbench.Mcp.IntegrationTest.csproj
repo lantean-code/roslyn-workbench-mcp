@@ -36,7 +36,7 @@
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </ItemGroup>
 
-  <Target Name="CopyHostQueryPluginPackageAssets" AfterTargets="Build">
+  <Target Name="CopyPluginPackageAssets" AfterTargets="Build">
     <ItemGroup>
       <HostQueryPluginAssembly Include="@(ReferenceCopyLocalPaths)"
                                Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.HostQueryPluginFixture' and '%(Extension)' == '.dll'" />
@@ -44,8 +44,21 @@
       <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
       <HostQueryPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
                                    Condition="'%(Filename)' == 'NuGet.Versioning'" />
+      <HostMutationPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
+                                      Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.HostMutationPluginFixture' and '%(Extension)' == '.dll'" />
+      <InvalidPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
+                                 Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.InvalidPluginFixture' and '%(Extension)' == '.dll'" />
+      <ThrowingPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
+                                  Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.ThrowingPluginFixture' and '%(Extension)' == '.dll'" />
     </ItemGroup>
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/HostQuery" />
+    <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/00-HostQuery" />
+    <Copy SourceFiles="@(HostMutationPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/01-HostMutation" />
+    <Copy SourceFiles="@(InvalidPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/02-Invalid" />
+    <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/ReservedCollision/00-HostQuery" />
+    <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Duplicate/00-HostQuery" />
+    <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Duplicate/01-HostQuery" />
+    <Copy SourceFiles="@(ThrowingPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Throwing/00-Throwing" />
   </Target>
 
 </Project>

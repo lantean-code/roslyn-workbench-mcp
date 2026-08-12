@@ -114,11 +114,6 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
-      - name: Publish Host
-        run: >-
-          dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj
-          --configuration Release --no-build --no-restore
-          --output .ci/publish
       - name: Test Windows durability
         if: runner.os == 'Windows'
         run: >-
@@ -138,8 +133,6 @@ jobs:
           TMP: ${{ runner.temp }}
           TEMP: ${{ runner.temp }}
         run: |
-          $executableName = if ($IsWindows) { 'Roslyn.Workbench.Mcp.exe' } else { 'Roslyn.Workbench.Mcp' }
-          $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path (Resolve-Path '.ci/publish') $executableName
           dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
             --configuration Release --no-build --no-restore `
             --logger "trx;LogFileName=acceptance.trx" `

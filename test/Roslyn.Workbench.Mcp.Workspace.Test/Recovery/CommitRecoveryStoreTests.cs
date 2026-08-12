@@ -41,18 +41,18 @@ public sealed class CommitRecoveryStoreTests
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _fileInfoFactory.Setup(item => item.New(It.IsAny<string>())).Returns(_fileInfo.Object);
         _fileInfo.SetupGet(item => item.Length).Returns(0);
-        _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
+        _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => NormalizeVirtualPath(path));
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
 
-        _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string path) => Path.IsPathRooted(path));
-        _path.Setup(item => item.IsPathFullyQualified(It.IsAny<string>())).Returns((string path) => Path.IsPathFullyQualified(path));
+        _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string path) => path.Length > 0 && path[0] == '/');
+        _path.Setup(item => item.IsPathFullyQualified(It.IsAny<string>())).Returns((string path) => path.Length > 0 && path[0] == '/');
         _path.Setup(item => item.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
         _path.Setup(item => item.GetFileNameWithoutExtension(It.IsAny<string>())).Returns((string path) => Path.GetFileNameWithoutExtension(path));
-        _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => Path.GetDirectoryName(path));
+        _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => GetVirtualDirectoryName(path));
         _path.Setup(item => item.GetInvalidFileNameChars()).Returns(['*', '/', '\\']);
-        _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
-        _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns(Path.AltDirectorySeparatorChar);
+        _path.SetupGet(item => item.DirectorySeparatorChar).Returns('/');
+        _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns('/');
         _path.Setup(item => item.Combine("/State", "recovery")).Returns(_recoveryDirectory);
         _path
             .Setup(item => item.Combine(_recoveryDirectory, It.IsAny<string>()))
@@ -63,7 +63,7 @@ public sealed class CommitRecoveryStoreTests
             .Returns((string directory, string fileName) => directory + "/" + fileName);
 
         _path.Setup(item => item.GetFullPath(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal))))
-            .Returns((string path) => Path.GetFullPath(path));
+            .Returns((string path) => NormalizeVirtualPath(path));
 
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
@@ -1066,6 +1066,48 @@ public sealed class CommitRecoveryStoreTests
         }
 
         return allowRoot || relativePath != ".";
+    }
+
+    private static string NormalizeVirtualPath(string path)
+    {
+        if (path.Length == 0 || path[0] != '/')
+        {
+            return path;
+        }
+
+        var segments = new List<string>();
+        foreach (var segment in path.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (segment == ".")
+            {
+                continue;
+            }
+
+            if (segment == "..")
+            {
+                if (segments.Count > 0)
+                {
+                    segments.RemoveAt(segments.Count - 1);
+                }
+
+                continue;
+            }
+
+            segments.Add(segment);
+        }
+
+        return "/" + string.Join('/', segments);
+    }
+
+    private static string? GetVirtualDirectoryName(string path)
+    {
+        var separatorIndex = path.LastIndexOf('/');
+        if (separatorIndex < 0)
+        {
+            return null;
+        }
+
+        return separatorIndex == 0 ? "/" : path[..separatorIndex];
     }
 
     private static WorkspaceCommitManifest CreateManifest()

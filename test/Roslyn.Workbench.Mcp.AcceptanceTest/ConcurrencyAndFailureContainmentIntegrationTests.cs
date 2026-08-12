@@ -388,8 +388,11 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
                 TestContext.Current.CancellationToken);
             statusResult.IsError.Should().NotBeTrue();
 
+            var standardError = await target.WaitForStandardErrorAsync(
+                "User-approved error report",
+                TestContext.Current.CancellationToken);
+
             await target.StopAsync();
-            var standardError = target.GetStandardErrorSnapshot();
             standardError.Should().Contain("User-approved error report");
             var approvedReportOffset = standardError.IndexOf("User-approved error report", StringComparison.Ordinal);
             var approvedReportLog = standardError[approvedReportOffset..];

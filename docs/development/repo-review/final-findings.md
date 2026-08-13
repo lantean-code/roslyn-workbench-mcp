@@ -12,17 +12,23 @@ Every one of the twenty ledger candidates was independently retraced against the
 
 The validated findings in this report are the authoritative RWMCP2 remediation worklist. Each finding must follow the approval-led process in [`DeepDiveReview.md`](../DeepDiveReview.md): current-source revalidation and explanation, proposed design, explicit approval, implementation, required executable validation, a first user code review and confirmation, an independent Review Agent pass over the complete proposed commit, correction and re-review of any substantiated feedback, a second user review and final confirmation, durable status update and then user commit. No finding is complete or ready to commit until its final Review Agent pass has no remaining actionable defects or regression gaps and the user has given the second confirmation; any material change after that pass requires another review.
 
+The repository-level assessment and finding narratives preserve the independent review baseline. Per-finding status and remediation-outcome records supersede that baseline as confirmed remediation proceeds.
+
 After all RWMCP2 items are confirmed, committed and validated through the complete release gate, the repository must receive the fresh post-remediation release-candidate review defined in [`DeepDiveReview.md`](../DeepDiveReview.md). That review must use a new agent and `RWMCP3-###` identifiers, exclude RWMCP2 artefacts, Git history and prior conversation context from its evidence, and specifically recheck remediation closure, interactions between fixes, end-to-end boundaries and the truthfulness of regression coverage before v1 release readiness is accepted.
 
 ## Validated findings
 
 ### RWMCP2-001 — Code Action ranges are not snapshot-bound
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Contracts/ListCodeActionsRequest.cs:8-20`; `src/Roslyn.Workbench.Mcp.CodeActions/Tools/ListCodeActionsTool.cs:32-46`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Requests/CodeActionToolRequestResolver.cs:57-101`; `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionInfoFactory.cs:40-54`
 
 A caller can retain a document range from epoch E or transaction revision R, allow the Workspace text to change before that range, and then list Code Actions using the stale coordinates. `ListCodeActionsRequest` has no expected snapshot, `ListCodeActionsTool` forwards the range, and `CodeActionToolRequestResolver` resolves the current document and validates only its current bounds. `CodeActionInfoFactory` then binds the action selected from those reinterpreted coordinates to the current snapshot. Replay snapshot validation therefore cannot prevent the error: it protects the newly selected action, not the caller's original coordinate meaning. A subsequent stage can validly mutate code different from that originally selected.
+
+**Remediation outcome:** `list-code-actions` now requires a non-null `expectedSnapshot` and validates it before resolving the document or interpreting the UTF-16 range. All repository callers, schemas, documentation and scenarios supply the originating snapshot, including implicit scenario-runner discovery. Unit, integration, Host schema, published-host acceptance and representative GuardClauses, Serilog and EF Core scenario coverage passed. The complete Code Action audit retained only the pre-existing `RWMCP2-012` failure. The independent Review Agent identified one stale Host schema assertion; after correction, the Host fast suite passed 481/481 and the repeated Review Agent pass returned no findings.
 
 ### RWMCP2-004 — Commit can overwrite drift captured during planning
 

@@ -45,10 +45,11 @@ internal static class BuiltInCodeActionAuditHarness
             composition);
 
         var session = new CodeActionComponentTestSession(coordinator);
-        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var expectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open);
         var location = auditCase.LocationFactory(fixture);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
-            CreateListRequest(location, auditCase.Kind),
+            CreateListRequest(location, auditCase.Kind, expectedSnapshot),
             TestContext.Current.CancellationToken);
 
         var queryContext = queryLease.Context!;
@@ -123,7 +124,7 @@ internal static class BuiltInCodeActionAuditHarness
             .ToArray();
 
         var visibilityResult = await session.ListAsync(
-            CreateListRequest(location, auditCase.Kind),
+            CreateListRequest(location, auditCase.Kind, expectedSnapshot),
             TestContext.Current.CancellationToken);
 
         if (matching.Length == 0)
@@ -407,7 +408,8 @@ internal static class BuiltInCodeActionAuditHarness
 
     private static ListCodeActionsRequest CreateListRequest(
         LocationSelector location,
-        BuiltInCodeActionAuditKind kind)
+        BuiltInCodeActionAuditKind kind,
+        SnapshotPrecondition expectedSnapshot)
     {
         var span = location.Span
             ?? throw new InvalidOperationException("The audit location must be span-backed.");
@@ -425,6 +427,7 @@ internal static class BuiltInCodeActionAuditHarness
         {
             Document = document,
             Range = range,
+            ExpectedSnapshot = expectedSnapshot,
             Kinds = kind == BuiltInCodeActionAuditKind.CodeFix
                 ? CodeActionKindSelection.CodeFixes
                 : CodeActionKindSelection.Refactorings,

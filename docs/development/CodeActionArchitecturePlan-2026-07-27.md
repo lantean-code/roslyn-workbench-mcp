@@ -117,11 +117,12 @@ The request shape is:
 | --- | --- | --- |
 | `Document` | Required | Project-aware `DocumentSelector` identifying the source document. |
 | `Range` | Optional | Selection or caret range within the document. Omission selects document mode. |
+| `ExpectedSnapshot` | Required | Workspace epoch and transaction revision against which the document and range were resolved. |
 | `Kinds` | Required | `CodeFixes`, `Refactorings` or `All`; no inferred default. |
 | `DiagnosticIds` | Optional | Narrows Code Fix discovery and analyser activation to requested diagnostic IDs. |
 | `Limit` | Optional with published curated default | Bounds returned action leaves. |
 
-Discovery always runs against the current solution held by the query execution lease. Each returned opaque reference records that actual immutable Workspace snapshot identity for later staging revalidation; the query does not accept a snapshot precondition.
+Discovery validates the caller's snapshot precondition before resolving the document or interpreting its range, then runs against the matching current solution held by the query execution lease. Each returned opaque reference records that actual immutable Workspace snapshot identity for later staging revalidation.
 
 The response is a bounded collection. Each action contains only:
 

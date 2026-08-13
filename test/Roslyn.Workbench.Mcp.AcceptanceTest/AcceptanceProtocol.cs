@@ -51,7 +51,7 @@ internal sealed record AcceptanceWorkspaceIdentity
         };
     }
 
-    public Dictionary<string, object?> CreateSnapshot(int transactionRevision)
+    public Dictionary<string, object?> CreateSnapshot(int? transactionRevision)
     {
         return new Dictionary<string, object?>
         {

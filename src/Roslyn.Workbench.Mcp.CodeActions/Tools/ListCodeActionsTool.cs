@@ -39,6 +39,15 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return CodeActionsUnavailable<CodeActionListData>();
         }
 
+        var snapshotRejection = _requestResolver.ValidateSnapshot<CodeActionListData>(
+            context,
+            request.ExpectedSnapshot);
+
+        if (snapshotRejection is not null)
+        {
+            return snapshotRejection;
+        }
+
         var selectionResolution = await _requestResolver.ResolveDocumentSelectionAsync<CodeActionListData>(
             request.Document,
             request.Range,

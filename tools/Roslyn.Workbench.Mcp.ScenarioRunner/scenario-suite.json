@@ -167,6 +167,11 @@
               "start": 6189,
               "length": 0
             },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": null
+            },
             "kinds": 3
           }
         },
@@ -178,6 +183,11 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "document": {
               "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+            },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": null
             },
             "kinds": 1
           }
@@ -215,6 +225,11 @@
                 "workspace": { "workspaceId": "${workspaceId}" },
                 "document": {
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                },
+                "expectedSnapshot": {
+                  "workspaceId": "${workspaceId}",
+                  "workspaceEpoch": "${workspaceEpoch}",
+                  "transactionRevision": 0
                 },
                 "kinds": 1,
                 "diagnosticIds": [ "IDE0058" ]
@@ -274,6 +289,11 @@
                 "workspace": { "workspaceId": "${workspaceId}" },
                 "document": {
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                },
+                "expectedSnapshot": {
+                  "workspaceId": "${workspaceId}",
+                  "workspaceEpoch": "${workspaceEpoch}",
+                  "transactionRevision": 0
                 },
                 "kinds": 1,
                 "diagnosticIds": [ "IDE0058" ]
@@ -629,6 +649,11 @@
                 "path": "src/Serilog/Serilog.csproj",
                 "targetFramework": "net10.0"
               }
+            },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": null
             },
             "kinds": 1
           }
@@ -1240,6 +1265,11 @@
                 "path": "src/EFCore/EFCore.csproj",
                 "targetFramework": "net10.0"
               }
+            },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": null
             },
             "kinds": 1
           }

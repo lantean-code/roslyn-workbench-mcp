@@ -20,6 +20,11 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     public TextSpanRange? Range { get; init; }
 
     /// <summary>
+    /// Gets the expected Workspace snapshot against which the document and range were resolved.
+    /// </summary>
+    public required SnapshotPrecondition ExpectedSnapshot { get; init; }
+
+    /// <summary>
     /// Gets the kinds of actions to discover.
     /// </summary>
     public required CodeActionKindSelection Kinds { get; init; }

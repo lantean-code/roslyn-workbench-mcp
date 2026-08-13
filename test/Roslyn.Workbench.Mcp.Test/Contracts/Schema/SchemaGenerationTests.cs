@@ -63,7 +63,8 @@ public sealed class SchemaGenerationTests
         properties.TryGetProperty("diagnosticIds", out _).Should().BeTrue();
         properties.TryGetProperty("limit", out _).Should().BeTrue();
         properties.TryGetProperty("workspace", out _).Should().BeTrue();
-        properties.TryGetProperty("expectedSnapshot", out _).Should().BeFalse();
+        properties.TryGetProperty("expectedSnapshot", out var expectedSnapshot).Should().BeTrue();
+        expectedSnapshot.GetProperty("type").GetString().Should().Be("object");
         kinds.GetRawText().Should().Contain("CodeFixes");
         kinds.GetRawText().Should().Contain("Refactorings");
         kinds.GetRawText().Should().Contain("All");
@@ -76,7 +77,7 @@ public sealed class SchemaGenerationTests
         limitDefault!.Value.Should().Be(50);
         requestSchema.GetProperty("required").EnumerateArray()
             .Select(static item => item.GetString())
-            .Should().Contain(["document", "kinds"]);
+            .Should().Contain(["document", "expectedSnapshot", "kinds"]);
     }
 
     [Fact]

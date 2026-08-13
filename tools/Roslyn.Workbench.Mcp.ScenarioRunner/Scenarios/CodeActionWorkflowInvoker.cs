@@ -68,7 +68,10 @@ internal sealed class CodeActionWorkflowInvoker
         ValidateDiscoverySelection(
             selection,
             requireCaptureName: string.Equals(tool, "prepare-fix-all", StringComparison.Ordinal));
-        arguments["actionId"] = await DiscoverActionIdAsync(selection, cancellationToken);
+        arguments["actionId"] = await DiscoverActionIdAsync(
+            selection,
+            arguments,
+            cancellationToken);
         var result = await _host.CallToolAsync(tool, arguments, cancellationToken);
         if (selection.CaptureAs is not null)
         {
@@ -80,11 +83,19 @@ internal sealed class CodeActionWorkflowInvoker
 
     private async Task<Guid> DiscoverActionIdAsync(
         CodeActionSelectionDefinition selection,
+        Dictionary<string, object?> operationArguments,
         CancellationToken cancellationToken)
     {
+        var discoveryArguments = Materialize(selection.Arguments);
+        if (!discoveryArguments.ContainsKey("expectedSnapshot")
+            && operationArguments.TryGetValue("expectedSnapshot", out var expectedSnapshot))
+        {
+            discoveryArguments["expectedSnapshot"] = expectedSnapshot;
+        }
+
         var listResult = await _host.CallToolAsync(
             "list-code-actions",
-            Materialize(selection.Arguments),
+            discoveryArguments,
             cancellationToken);
 
         return SelectActionId(listResult, selection);

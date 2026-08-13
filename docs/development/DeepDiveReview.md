@@ -259,7 +259,7 @@ The independent deep-dive review is complete when:
 
 ## Remediation and commit review gate
 
-**Status:** Not started — blocked until the validated RWMCP2 findings have been accepted as the remediation worklist.
+**Status:** In progress — `RWMCP2-001` is confirmed complete; the remaining validated RWMCP2 findings are incomplete.
 
 Each validated finding must be remediated as one independently confirmable work item unless the user explicitly approves a combined item. Use the following sequence for every item:
 

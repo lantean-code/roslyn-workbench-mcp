@@ -18,6 +18,7 @@ public sealed class ListCodeActionsToolTests
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly ListCodeActionsTool _target;
+    private readonly SnapshotPrecondition _snapshot;
 
     public ListCodeActionsToolTests()
     {
@@ -28,8 +29,14 @@ public sealed class ListCodeActionsToolTests
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
+        _snapshot = new SnapshotPrecondition
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            WorkspaceEpoch = 1,
+        };
 
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        _workspaceResolver.Setup(item => item.ValidateSnapshot(_snapshot)).Returns(SnapshotMatchResult.Matched());
         _workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
@@ -65,6 +72,24 @@ public sealed class ListCodeActionsToolTests
         var request = CreateRequest(limit: null);
 
         request.EffectiveLimit.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task GIVEN_ExpectedSnapshotDoesNotMatch_WHEN_Executing_THEN_ShouldRejectBeforeResolvingDocument()
+    {
+        _workspaceResolver
+            .Setup(item => item.ValidateSnapshot(_snapshot))
+            .Returns(SnapshotMatchResult.TransactionRevisionMismatch());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
+        result.Error!.Code.Should().Be("SnapshotMismatch");
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
+        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
 
     [Theory]
@@ -457,7 +482,7 @@ public sealed class ListCodeActionsToolTests
             .Returns(CodeActionInfoCreationResult.Success(item));
     }
 
-    private static ListCodeActionsRequest CreateRequest(
+    private ListCodeActionsRequest CreateRequest(
         CodeActionKindSelection kinds = CodeActionKindSelection.All,
         DocumentSelector? document = null,
         TextSpanRange? range = null,
@@ -470,6 +495,7 @@ public sealed class ListCodeActionsToolTests
         {
             Document = document,
             Range = range,
+            ExpectedSnapshot = _snapshot,
             Kinds = kinds,
             DiagnosticIds = diagnosticIds,
             Limit = limit,

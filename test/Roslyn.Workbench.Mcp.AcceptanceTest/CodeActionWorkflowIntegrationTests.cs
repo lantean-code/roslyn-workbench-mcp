@@ -59,6 +59,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                         ["start"] = stringLiteralStart,
                         ["length"] = 0,
                     },
+                    ["expectedSnapshot"] = snapshot,
                     ["kinds"] = _refactoringKind,
                 },
                 TestContext.Current.CancellationToken);
@@ -214,7 +215,8 @@ public sealed class CodeActionWorkflowIntegrationTests
                 target,
                 workspaceSelector,
                 documentPath,
-                broadRange);
+                broadRange,
+                workspace.CreateSnapshot(transactionRevision: 0));
 
             actions.Should().HaveCount(2);
             var actionStarts = new List<int>();
@@ -240,7 +242,8 @@ public sealed class CodeActionWorkflowIntegrationTests
                 target,
                 workspaceSelector,
                 documentPath,
-                broadRange);
+                broadRange,
+                workspace.CreateSnapshot(transactionRevision: 0));
             await AssertStagesExpectedCodeFixAsync(
                 target,
                 workspace,
@@ -353,11 +356,13 @@ public sealed class CodeActionWorkflowIntegrationTests
             var documentResult = await ListRefactoringsAsync(
                 target,
                 workspaceSelector,
-                "CandidateRefactorings.cs");
+                "CandidateRefactorings.cs",
+                workspace.CreateSnapshot(transactionRevision: null));
             var selectionResult = await ListRefactoringsAsync(
                 target,
                 workspaceSelector,
                 "CandidateRefactorings.cs",
+                workspace.CreateSnapshot(transactionRevision: null),
                 new Dictionary<string, object?>
                 {
                     ["start"] = typeStart,
@@ -367,6 +372,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 target,
                 workspaceSelector,
                 "CandidateRefactorings.cs",
+                workspace.CreateSnapshot(transactionRevision: null),
                 new Dictionary<string, object?>
                 {
                     ["start"] = methodStart,
@@ -437,6 +443,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 {
                     ["workspace"] = workspaceSelector,
                     ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("SimplifyThisOrMe.cs"),
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
                     ["kinds"] = _codeFixKind,
                     ["diagnosticIds"] = _builtInIdeDiagnosticIds,
                 },
@@ -585,11 +592,13 @@ public sealed class CodeActionWorkflowIntegrationTests
             var firstList = await ListRawStringActionsAsync(
                 target,
                 workspaceSelector,
-                stringLiteralStart);
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 0));
             var secondList = await ListRawStringActionsAsync(
                 target,
                 workspaceSelector,
-                stringLiteralStart);
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 0));
             var firstActionId = GetRawStringActionId(firstList);
             var staleActionId = GetRawStringActionId(secondList);
 
@@ -604,6 +613,21 @@ public sealed class CodeActionWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             firstStage.IsError.Should().NotBeTrue();
+            var staleList = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 0));
+
+            staleList.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(staleList).GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+            var currentList = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 1));
+
+            currentList.IsError.Should().NotBeTrue();
             var staleStage = await target.CallToolAsync(
                 "stage-code-action",
                 new Dictionary<string, object?>
@@ -628,7 +652,8 @@ public sealed class CodeActionWorkflowIntegrationTests
             var expiringList = await ListRawStringActionsAsync(
                 target,
                 workspaceSelector,
-                stringLiteralStart);
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 0));
             var expiringActionId = GetRawStringActionId(expiringList);
             await WaitForTimerAsync(TimeSpan.FromMilliseconds(5250), TestContext.Current.CancellationToken);
 
@@ -664,7 +689,8 @@ public sealed class CodeActionWorkflowIntegrationTests
         AcceptanceProcessFixture target,
         IReadOnlyDictionary<string, object?> workspaceSelector,
         string documentPath,
-        IReadOnlyDictionary<string, object?> range)
+        IReadOnlyDictionary<string, object?> range,
+        IReadOnlyDictionary<string, object?> expectedSnapshot)
     {
         var listResult = await target.CallToolAsync(
             "list-code-actions",
@@ -673,6 +699,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 ["workspace"] = workspaceSelector,
                 ["document"] = AcceptanceLocationSelectorFactory.CreateDocument(documentPath),
                 ["range"] = range,
+                ["expectedSnapshot"] = expectedSnapshot,
                 ["kinds"] = _codeFixKind,
                 ["diagnosticIds"] = _nullableReturnDiagnosticIds,
             },
@@ -773,12 +800,14 @@ public sealed class CodeActionWorkflowIntegrationTests
         AcceptanceProcessFixture target,
         IReadOnlyDictionary<string, object?> workspaceSelector,
         string documentPath,
+        IReadOnlyDictionary<string, object?> expectedSnapshot,
         IReadOnlyDictionary<string, object?>? range = null)
     {
         var arguments = new Dictionary<string, object?>
         {
             ["workspace"] = workspaceSelector,
             ["document"] = AcceptanceLocationSelectorFactory.CreateDocument(documentPath),
+            ["expectedSnapshot"] = expectedSnapshot,
             ["kinds"] = _refactoringKind,
         };
 
@@ -836,7 +865,8 @@ public sealed class CodeActionWorkflowIntegrationTests
     private static Task<CallToolResult> ListRawStringActionsAsync(
         AcceptanceProcessFixture target,
         IReadOnlyDictionary<string, object?> workspaceSelector,
-        int stringLiteralStart)
+        int stringLiteralStart,
+        IReadOnlyDictionary<string, object?> expectedSnapshot)
     {
         return target.CallToolAsync(
             "list-code-actions",
@@ -849,6 +879,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["start"] = stringLiteralStart,
                     ["length"] = 0,
                 },
+                ["expectedSnapshot"] = expectedSnapshot,
                 ["kinds"] = _refactoringKind,
             },
             TestContext.Current.CancellationToken);

@@ -36,6 +36,7 @@ public sealed class DurableMutationIntegrationTests
                         "Formatting.cs",
                         "public sealed class AlphaCycle",
                         "public sealed class AlphaCycle"),
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
                     ["kinds"] = _refactoringKind,
                 },
                 TestContext.Current.CancellationToken);

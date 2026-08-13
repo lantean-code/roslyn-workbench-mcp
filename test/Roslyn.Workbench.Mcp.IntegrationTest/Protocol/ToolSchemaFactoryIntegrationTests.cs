@@ -274,6 +274,22 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_ListCodeActionsRequest_WHEN_ExportingInputSchema_THEN_ShouldRequireSnapshotPrecondition()
+    {
+        var target = CreateTarget();
+
+        var schema = target.CreateInputSchema<ListCodeActionsRequest>();
+        var requiredProperties = schema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        requiredProperties.Should().Contain("expectedSnapshot");
+        AllowsNull(GetProperty(schema, "expectedSnapshot")).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_BuiltInToolRequests_WHEN_AuditingLimitProperties_THEN_EveryLimitShouldDeclareAndPublishItsDefault()
     {
         var target = CreateTarget();

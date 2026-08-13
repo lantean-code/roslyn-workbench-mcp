@@ -8,7 +8,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
         using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateBuiltInCodeActionWorkspace();
         var session = new CodeActionComponentTestSession(coordinator);
-        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
         var result = await session.ListAsync(new ListCodeActionsRequest
         {
@@ -16,6 +16,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             {
                 Path = "CandidateCodeFixes.cs",
             },
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open),
             Kinds = CodeActionKindSelection.CodeFixes,
             DiagnosticIds = ["CS0266"],
         }, TestContext.Current.CancellationToken);
@@ -47,6 +48,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             {
                 Path = "CandidateCodeFixes.cs",
             },
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
             Kinds = CodeActionKindSelection.CodeFixes,
             DiagnosticIds = ["CS0266"],
         }, TestContext.Current.CancellationToken);

@@ -31,6 +31,7 @@ Successful staging advances the transaction revision. Discover again before sele
 | `workspace` | Optional when exactly one workspace is loaded | Selects the loaded workspace. |
 | `document` | Required | Selects one source document by workspace-relative path or document ID, with an optional project selector for linked or multi-target documents. |
 | `range` | Optional | Omitted means complete-document discovery; a positive length means selection discovery; zero length means caret discovery. Positions are zero-based UTF-16 values. |
+| `expectedSnapshot` | Required | Identifies the Workspace epoch and transaction revision against which the document and range were resolved. |
 | `kinds` | Required | `1` discovers Code Fixes, `2` discovers refactorings and `3` discovers both. |
 | `diagnosticIds` | Optional | Narrows Code Fix discovery to the supplied diagnostic IDs. |
 | `limit` | Optional, default `50` | Bounds the returned action leaves. Zero returns no items. |
@@ -44,6 +45,11 @@ For example, this request discovers Code Fixes across one document:
   },
   "document": {
     "path": "src/Example.cs"
+  },
+  "expectedSnapshot": {
+    "workspaceId": "workspace-id",
+    "workspaceEpoch": 1,
+    "transactionRevision": 0
   },
   "kinds": 1,
   "diagnosticIds": [
@@ -115,7 +121,7 @@ Pass the new prepared `actionId`, not the originating action reference, to `stag
 
 ## Reference and snapshot rules
 
-Action references are process-local, bounded, temporary and tied to the exact Workspace snapshot from which they were created. Their lifetime defaults to five minutes and is configured with [`--code-action-reference-lifetime`](Configuration.md). Successful staging consumes a reference; merely listing or preparing does not change transaction state.
+`list-code-actions` validates `expectedSnapshot` before resolving its document or interpreting its UTF-16 range. A range copied from an earlier epoch or transaction revision is therefore rejected instead of being reinterpreted against different source text. Action references are process-local, bounded, temporary and tied to the exact Workspace snapshot from which they were created. Their lifetime defaults to five minutes and is configured with [`--code-action-reference-lifetime`](Configuration.md). Successful staging consumes a reference; merely listing or preparing does not change transaction state.
 
 If a reference is unknown, expired, evicted, already consumed, or no longer matches the selected snapshot, the Host returns a structured failure such as `ActionExpired`, `SnapshotMismatch` or `ActionAmbiguous` with `next: resolveTargetAgain`. Follow that recovery action: inspect the current Workspace state, then list and select the action again. Never edit an `actionId`, reconstruct one from response metadata, or reuse it against a different Workspace, epoch or transaction revision.
 

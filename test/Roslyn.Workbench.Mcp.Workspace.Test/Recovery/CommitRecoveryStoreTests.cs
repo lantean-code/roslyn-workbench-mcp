@@ -523,7 +523,7 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
-    public async Task GIVEN_VersionThreeUnixReplacementWithoutMode_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict()
+    public async Task GIVEN_UnixReplacementWithoutMode_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -535,6 +535,32 @@ public sealed class CommitRecoveryStoreTests
         var manifest = CreateManifest() with
         {
             Entries = [CreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = null }],
+        };
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnixDeleteWithoutMode_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var manifest = CreateManifest() with
+        {
+            Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalUnixFileMode = null }],
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -663,6 +689,7 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("replaceMarker")]
     [InlineData("replaceModeInvalid")]
     [InlineData("createMode")]
+    [InlineData("deleteModeInvalid")]
     [InlineData("deleteOriginalExists")]
     [InlineData("deleteOriginalHash")]
     [InlineData("deleteIntendedHash")]
@@ -1043,6 +1070,7 @@ public sealed class CommitRecoveryStoreTests
             "replaceMarker" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/File.cs.CommitId.delete" }], },
             "replaceModeInvalid" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = (UnixFileMode)(1 << 20) }], },
             "createMode" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = UnixFileMode.UserRead }], },
+            "deleteModeInvalid" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalUnixFileMode = (UnixFileMode)(1 << 20) }], },
             "deleteOriginalExists" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalExists = false }], },
             "deleteOriginalHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalHash = null }], },
             "deleteIntendedHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { IntendedHash = new string('B', 64) }], },
@@ -1160,6 +1188,9 @@ public sealed class CommitRecoveryStoreTests
             Operation = WorkspaceFileOperation.Delete,
             OriginalExists = true,
             OriginalHash = new string('A', 64),
+            OriginalUnixFileMode = OperatingSystem.IsWindows()
+                ? null
+                : UnixFileMode.UserRead | UnixFileMode.UserWrite,
             BackupPath = "backup/File.bin",
             DeleteMarkerPath = $"{targetPath}.CommitId.delete",
         };

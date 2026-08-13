@@ -44,11 +44,15 @@ If an editor changes a staged target after commit's baseline `HasChanged` check 
 
 ### RWMCP2-005 — Recovery does not verify artifact content before restoring source
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs:226-235,501-542`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitWriter.cs:43-77,182-252,284-293`; `src/Roslyn.Workbench.Mcp.Workspace/Recovery/WorkspaceCommitRecoveryService.cs:54-68`
 
 After an interrupted applying commit, a truncated or altered backup can remain path-valid and under the size limit. The recovery store validates containment, size and the manifest's hash syntax but does not compare artifact bytes with those hashes. `WorkspaceCommitWriter.RestoreAsync` confirms that the target is in the applied state and then writes the unchecked backup, or moves an unchecked delete marker, before returning `Restored`. `WorkspaceCommitRecoveryService` persists that terminal result and deletes the recovery evidence. No later target verification establishes that restored bytes equal `OriginalHash`, so corrupt bytes can replace source and the remaining recovery evidence can be removed.
+
+**Remediation outcome:** Commit application now authenticates staged artifact bytes against `IntendedHash` before writing them. Recovery authenticates replacement backups and delete-marker bytes against `OriginalHash` before consuming them, retains integrity mismatches as `RecoveryConflict`, and revalidates the complete original target existence, hash and Unix-mode state before returning `Restored` and permitting evidence cleanup. Delete planning and manifest validation now preserve and require the original Unix mode so permission-only marker corruption is also retained as a conflict. Unit and real-filesystem integration coverage exercises corrupted staged artifacts, backups, delete markers, final-state certification and Unix marker-mode changes. Workspace unit and integration suites passed 989/989 and 94/94, the solution and affected `latest-all` analyzer builds passed, and the repeated Review Agent pass returned no findings after its initial Unix delete-mode finding was corrected. The user gave final confirmation.
 
 ### RWMCP2-009 — Dependency-cycle traversal is unbounded, recursive and uncancellable
 

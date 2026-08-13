@@ -191,13 +191,16 @@ public sealed class WorkspaceCommitWriterTests
     [InlineData(false, true)]
     [InlineData(false, false)]
     [InlineData(true, false)]
-    public async Task GIVEN_IntendedDeleteState_WHEN_ValidatingAppliedState_THEN_ShouldRequireMarkerOnly(
+    public async Task GIVEN_IntendedDeleteState_WHEN_ValidatingAppliedState_THEN_ShouldRequireValidMarkerOnly(
         bool targetExists,
         bool markerExists)
     {
-        var entry = CreateEntry(WorkspaceFileOperation.Delete, "ORIGINAL", null);
+        var original = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
+        var markerPath = entry.GetRequiredDeleteMarkerPath();
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(targetExists);
-        _file.Setup(item => item.Exists(entry.GetRequiredDeleteMarkerPath())).Returns(markerExists);
+        _file.Setup(item => item.Exists(markerPath)).Returns(markerExists);
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync(original);
 
         var manifest = CreateManifest(entry);
         var result = await _target.ValidateAppliedStateAsync(manifest);
@@ -212,6 +215,44 @@ public sealed class WorkspaceCommitWriterTests
         {
             result.ErrorMessage.Should().Contain("changed after commit application");
         }
+    }
+
+    [Fact]
+    public async Task GIVEN_CorruptedDeleteMarker_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit()
+    {
+        var original = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
+        var markerPath = entry.GetRequiredDeleteMarkerPath();
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
+        _file.Setup(item => item.Exists(markerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync([9, 9, 9]);
+
+        var result = await _target.ValidateAppliedStateAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("delete marker");
+    }
+
+    [Fact]
+    public async Task GIVEN_DeleteMarkerPermissionsChanged_WHEN_ValidatingAppliedState_THEN_ShouldRejectCommit()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var original = new byte[] { 1, 2, 3 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
+        var markerPath = entry.GetRequiredDeleteMarkerPath();
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
+        _file.Setup(item => item.Exists(markerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync(original);
+        ConfigureUnixFileMode(markerPath, UnixFileMode.UserRead);
+
+        var result = await _target.ValidateAppliedStateAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("permissions");
     }
 
     [Theory]
@@ -281,8 +322,8 @@ public sealed class WorkspaceCommitWriterTests
         var beforeDelete = new byte[] { 5 };
         var entries = new[]
         {
-            CreateEntry(WorkspaceFileOperation.Create, null, "A", "/workspace/a.cs", "staged/a.bin"),
-            CreateEntry(WorkspaceFileOperation.Replace, Hash(beforeReplace), "C", "/workspace/b.cs", "staged/b.bin"),
+            CreateEntry(WorkspaceFileOperation.Create, null, Hash([1]), "/workspace/a.cs", "staged/a.bin"),
+            CreateEntry(WorkspaceFileOperation.Replace, Hash(beforeReplace), Hash([2]), "/workspace/b.cs", "staged/b.bin"),
             CreateEntry(WorkspaceFileOperation.Delete, Hash(beforeDelete), null, "/workspace/d.cs", null),
         };
 
@@ -314,6 +355,36 @@ public sealed class WorkspaceCommitWriterTests
             OperatingSystem.IsWindows() ? null : _originalUnixFileMode,
             CancellationToken.None), Times.Once);
         _fileCommitter.Verify(item => item.Move("/workspace/d.cs", "/workspace/d.cs.delete"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task GIVEN_CorruptedStagedArtifact_WHEN_ApplyingCreateOrReplace_THEN_ShouldRejectBeforeWriting(int operationValue)
+    {
+        var operation = (WorkspaceFileOperation)operationValue;
+        var original = new byte[] { 1 };
+        var entry = CreateEntry(
+            operation,
+            operation == WorkspaceFileOperation.Replace ? Hash(original) : null,
+            Hash([2]));
+
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(operation == WorkspaceFileOperation.Replace);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(original);
+        _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredStagedPath(), CancellationToken.None)).ReturnsAsync([9]);
+
+        var result = await _target.ApplyAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("staged recovery artifact");
+        _atomicWriter.Verify(
+            item => item.WriteAllBytesAsync(
+                It.IsAny<string>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<AtomicFileAccess>(),
+                It.IsAny<UnixFileMode?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -367,8 +438,19 @@ public sealed class WorkspaceCommitWriterTests
         };
 
         var manifest = CreateManifest(entries);
-        _file.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
-        _file.Setup(item => item.ReadAllBytesAsync(It.IsAny<string>(), CancellationToken.None)).ReturnsAsync(intended);
+        _file.SetupSequence(item => item.Exists("/workspace/a.cs"))
+            .Returns(true)
+            .Returns(false);
+
+        _file.SetupSequence(item => item.Exists("/workspace/b.cs"))
+            .Returns(true)
+            .Returns(true);
+
+        _file.Setup(item => item.ReadAllBytesAsync("/workspace/a.cs", CancellationToken.None)).ReturnsAsync(intended);
+        _file.SetupSequence(item => item.ReadAllBytesAsync("/workspace/b.cs", CancellationToken.None))
+            .ReturnsAsync(intended)
+            .ReturnsAsync(original);
+
         _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", "backup/b.bin", CancellationToken.None)).ReturnsAsync(original);
         _directory.Setup(item => item.Exists("/workspace/new")).Returns(true);
         _directory.Setup(item => item.EnumerateFileSystemEntries("/workspace/new")).Returns([]);
@@ -415,8 +497,31 @@ public sealed class WorkspaceCommitWriterTests
         var markerPath = entry.GetRequiredDeleteMarkerPath();
         var markerExists = scenario is "markerOnly" or "markerAndOriginal" or "divergent";
         var targetExists = scenario is "markerAndOriginal" or "originalOnly" or "divergent";
-        _file.Setup(item => item.Exists(markerPath)).Returns(markerExists);
-        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(targetExists);
+        if (scenario == "markerOnly")
+        {
+            _file.SetupSequence(item => item.Exists(markerPath))
+                .Returns(true)
+                .Returns(false);
+
+            _file.SetupSequence(item => item.Exists(entry.TargetPath))
+                .Returns(false)
+                .Returns(true);
+        }
+        else if (scenario == "markerAndOriginal")
+        {
+            _file.SetupSequence(item => item.Exists(markerPath))
+                .Returns(true)
+                .Returns(false);
+
+            _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        }
+        else
+        {
+            _file.Setup(item => item.Exists(markerPath)).Returns(markerExists);
+            _file.Setup(item => item.Exists(entry.TargetPath)).Returns(targetExists);
+        }
+
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync(original);
         _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None))
             .ReturnsAsync(scenario == "divergent" ? new byte[] { 9 } : original);
 
@@ -450,6 +555,91 @@ public sealed class WorkspaceCommitWriterTests
         _file.Verify(
             item => item.Delete(markerPath),
             expectedDeletes);
+    }
+
+    [Fact]
+    public async Task GIVEN_CorruptedDeleteMarker_WHEN_Restoring_THEN_ShouldRetainMarkerAndReportConflict()
+    {
+        var original = new byte[] { 1 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
+        var markerPath = entry.GetRequiredDeleteMarkerPath();
+        _file.Setup(item => item.Exists(markerPath)).Returns(true);
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync([9]);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _fileCommitter.Verify(item => item.Move(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _file.Verify(item => item.Delete(markerPath), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_DeleteMarkerPermissionsChanged_WHEN_Restoring_THEN_ShouldRetainMarkerAndReportConflict()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var original = new byte[] { 1 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
+        var markerPath = entry.GetRequiredDeleteMarkerPath();
+        _file.Setup(item => item.Exists(markerPath)).Returns(true);
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
+        _file.Setup(item => item.ReadAllBytesAsync(markerPath, CancellationToken.None)).ReturnsAsync(original);
+        ConfigureUnixFileMode(markerPath, UnixFileMode.UserRead);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _fileCommitter.Verify(item => item.Move(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CorruptedBackup_WHEN_RestoringAppliedReplacement_THEN_ShouldPreserveTargetAndReportConflict()
+    {
+        var original = new byte[] { 1 };
+        var intended = new byte[] { 2 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, Hash(original), Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
+        _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredBackupPath(), CancellationToken.None)).ReturnsAsync([9]);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _atomicWriter.Verify(
+            item => item.WriteAllBytesAsync(
+                It.IsAny<string>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<AtomicFileAccess>(),
+                It.IsAny<UnixFileMode?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RestoredReplacementCannotBeCertified_WHEN_Restoring_THEN_ShouldReportConflict()
+    {
+        var original = new byte[] { 1 };
+        var intended = new byte[] { 2 };
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, Hash(original), Hash(intended));
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
+        _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredBackupPath(), CancellationToken.None)).ReturnsAsync(original);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _atomicWriter.Verify(
+            item => item.WriteAllBytesAsync(
+                entry.TargetPath,
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                AtomicFileAccess.Default,
+                OperatingSystem.IsWindows() ? null : _originalUnixFileMode,
+                CancellationToken.None),
+            Times.Once);
     }
 
     [Theory]
@@ -489,11 +679,12 @@ public sealed class WorkspaceCommitWriterTests
     [Fact]
     public async Task GIVEN_AppliedReplacementWithoutParentDirectory_WHEN_Restoring_THEN_ShouldRejectInvalidTarget()
     {
+        var original = new byte[] { 1 };
         var intended = new byte[] { 8 };
-        var entry = CreateEntry(WorkspaceFileOperation.Replace, "ORIGINAL", Hash(intended), "File.cs");
+        var entry = CreateEntry(WorkspaceFileOperation.Replace, Hash(original), Hash(intended), "File.cs");
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
-        _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredBackupPath(), CancellationToken.None)).ReturnsAsync([1]);
+        _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredBackupPath(), CancellationToken.None)).ReturnsAsync(original);
         _path.Setup(item => item.GetDirectoryName(entry.TargetPath)).Returns((string?)null);
 
         var action = async () => await _target.RestoreAsync(CreateManifest(entry));
@@ -545,10 +736,12 @@ public sealed class WorkspaceCommitWriterTests
     [Fact]
     public async Task GIVEN_RestorationIoFailure_WHEN_Restoring_THEN_ShouldReportIncomplete()
     {
-        var entry = CreateEntry(WorkspaceFileOperation.Delete, "ORIGINAL", null);
+        var original = new byte[] { 1 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
-        _file.Setup(item => item.Exists(entry.DeleteMarkerPath!)).Returns(true);
-        _fileCommitter.Setup(item => item.Move(entry.DeleteMarkerPath!, entry.TargetPath)).Throws(new IOException());
+        _file.Setup(item => item.Exists(entry.GetRequiredDeleteMarkerPath())).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.GetRequiredDeleteMarkerPath(), CancellationToken.None)).ReturnsAsync(original);
+        _fileCommitter.Setup(item => item.Move(entry.GetRequiredDeleteMarkerPath(), entry.TargetPath)).Throws(new IOException());
 
         var result = await _target.RestoreAsync(CreateManifest(entry));
 
@@ -558,9 +751,11 @@ public sealed class WorkspaceCommitWriterTests
     [Fact]
     public async Task GIVEN_RestorationAccessFailure_WHEN_Restoring_THEN_ShouldReportIncomplete()
     {
-        var entry = CreateEntry(WorkspaceFileOperation.Delete, "ORIGINAL", null);
+        var original = new byte[] { 1 };
+        var entry = CreateEntry(WorkspaceFileOperation.Delete, Hash(original), null);
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
         _file.Setup(item => item.Exists(entry.GetRequiredDeleteMarkerPath())).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.GetRequiredDeleteMarkerPath(), CancellationToken.None)).ReturnsAsync(original);
         _fileCommitter.Setup(item => item.Move(entry.GetRequiredDeleteMarkerPath(), entry.TargetPath))
             .Throws(new UnauthorizedAccessException());
 
@@ -635,7 +830,7 @@ public sealed class WorkspaceCommitWriterTests
             OriginalExists = operation != WorkspaceFileOperation.Create,
             OriginalHash = originalHash,
             IntendedHash = intendedHash,
-            OriginalUnixFileMode = operation == WorkspaceFileOperation.Replace && !OperatingSystem.IsWindows()
+            OriginalUnixFileMode = operation != WorkspaceFileOperation.Create && !OperatingSystem.IsWindows()
                 ? _originalUnixFileMode
                 : null,
             StagedPath = staged,

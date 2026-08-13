@@ -78,6 +78,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         if (!OperatingSystem.IsWindows())
         {
             ConfigureUnixFileMode(changedPath, expectedMode);
+            ConfigureUnixFileMode(removedPath, expectedMode);
         }
 
         var result = await _target.CreateAsync("commit", "/workspace/solution.slnx", "/workspace", baseline, current, TestContext.Current.CancellationToken);
@@ -94,6 +95,8 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         plan.Artifacts["backup/000002.bin"].ToArray().Should().Equal(removedOriginalBytes);
         plan.Manifest.Version.Should().Be(1);
         plan.Manifest.Entries[0].OriginalUnixFileMode.Should().Be(
+            OperatingSystem.IsWindows() ? null : expectedMode);
+        plan.Manifest.Entries[2].OriginalUnixFileMode.Should().Be(
             OperatingSystem.IsWindows() ? null : expectedMode);
     }
 

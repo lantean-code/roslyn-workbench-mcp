@@ -68,7 +68,18 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             {
                 case WorkspaceFileOperation.Create:
                 case WorkspaceFileOperation.Replace:
-                    var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredStagedPath(), CancellationToken.None);
+                    var stagedPath = entry.GetRequiredStagedPath();
+                    var contents = await _recoveryStore.ReadArtifactAsync(
+                        manifest.CommitId,
+                        stagedPath,
+                        CancellationToken.None);
+
+                    if (!MatchesHash(contents, entry.IntendedHash))
+                    {
+                        return WorkspaceCommitValidationResult.Invalid(
+                            $"The staged recovery artifact '{stagedPath}' does not match the intended contents for target '{entry.TargetPath}'.");
+                    }
+
                     await _atomicFileWriter.WriteAllBytesAsync(
                         entry.TargetPath,
                         contents,
@@ -114,6 +125,19 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 {
                     return WorkspaceCommitValidationResult.Invalid(
                         $"The target '{entry.TargetPath}' changed after commit application.");
+                }
+
+                var deleteMarkerHash = await HashFileAsync(deleteMarkerPath, CancellationToken.None);
+                if (!string.Equals(deleteMarkerHash, entry.OriginalHash, StringComparison.Ordinal))
+                {
+                    return WorkspaceCommitValidationResult.Invalid(
+                        $"The delete marker for target '{entry.TargetPath}' changed after commit application.");
+                }
+
+                if (!HasExpectedUnixFileMode(deleteMarkerPath, entry))
+                {
+                    return WorkspaceCommitValidationResult.Invalid(
+                        $"The permissions for the delete marker of target '{entry.TargetPath}' changed after commit application.");
                 }
 
                 continue;
@@ -202,6 +226,19 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         var markerExists = _fileSystem.File.Exists(markerPath);
                         if (markerExists && !exists)
                         {
+                            var markerHash = await HashFileAsync(markerPath, CancellationToken.None);
+                            if (!string.Equals(markerHash, entry.OriginalHash, StringComparison.Ordinal))
+                            {
+                                conflict = true;
+                                continue;
+                            }
+
+                            if (!HasExpectedUnixFileMode(markerPath, entry))
+                            {
+                                conflict = true;
+                                continue;
+                            }
+
                             _fileCommitter.Move(markerPath, entry.TargetPath);
                             continue;
                         }
@@ -239,7 +276,17 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         continue;
                     }
 
-                    var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredBackupPath(), CancellationToken.None);
+                    var backup = await _recoveryStore.ReadArtifactAsync(
+                        manifest.CommitId,
+                        entry.GetRequiredBackupPath(),
+                        CancellationToken.None);
+
+                    if (!MatchesHash(backup, entry.OriginalHash))
+                    {
+                        conflict = true;
+                        continue;
+                    }
+
                     var targetDirectory = _fileSystem.Path.GetDirectoryName(entry.TargetPath)
                         ?? throw new InvalidOperationException($"The target '{entry.TargetPath}' does not have a parent directory.");
 
@@ -281,6 +328,12 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 }
             }
 
+            if (!conflict)
+            {
+                var restoredState = await RevalidateAsync(manifest, CancellationToken.None);
+                conflict = !restoredState.IsValid;
+            }
+
             return conflict ? RecoveryState.RecoveryConflict : RecoveryState.Restored;
         }
         catch (IOException)
@@ -296,7 +349,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     private async ValueTask<string> HashFileAsync(string path, CancellationToken cancellationToken)
     {
         var contents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
-        return Convert.ToHexString(SHA256.HashData(contents));
+        return Hash(contents);
     }
 
     private async ValueTask<WorkspaceCommitValidationResult> RevalidateEntryAsync(
@@ -362,6 +415,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
     private bool HasExpectedUnixFileMode(WorkspaceCommitEntry entry)
     {
+        return HasExpectedUnixFileMode(entry.TargetPath, entry);
+    }
+
+    private bool HasExpectedUnixFileMode(string path, WorkspaceCommitEntry entry)
+    {
         if (OperatingSystem.IsWindows())
         {
             return true;
@@ -369,7 +427,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
         var expectedMode = GetOriginalUnixFileMode(entry);
         return expectedMode is null
-            || _fileSystem.File.GetUnixFileMode(entry.TargetPath) == expectedMode;
+            || _fileSystem.File.GetUnixFileMode(path) == expectedMode;
     }
 
     private static UnixFileMode? GetOriginalUnixFileMode(WorkspaceCommitEntry entry)
@@ -377,5 +435,16 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return !OperatingSystem.IsWindows()
             ? entry.OriginalUnixFileMode
             : null;
+    }
+
+    private static bool MatchesHash(ReadOnlySpan<byte> contents, string? expectedHash)
+    {
+        var actualHash = Hash(contents);
+        return string.Equals(actualHash, expectedHash, StringComparison.Ordinal);
+    }
+
+    private static string Hash(ReadOnlySpan<byte> contents)
+    {
+        return Convert.ToHexString(SHA256.HashData(contents));
     }
 }

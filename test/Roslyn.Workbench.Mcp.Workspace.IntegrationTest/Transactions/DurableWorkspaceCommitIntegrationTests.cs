@@ -11,6 +11,10 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         | UnixFileMode.UserExecute
         | UnixFileMode.GroupRead;
 
+    private const UnixFileMode _deleteUnixFileMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite
+        | UnixFileMode.GroupRead;
+
     private static readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(10);
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
     private readonly string _stateDirectory;
@@ -76,6 +80,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
 
         File.Exists(transaction.CreatePath).Should().BeFalse();
         (await File.ReadAllBytesAsync(transaction.DeletePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.DeleteOriginal);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.GetUnixFileMode(transaction.DeletePath).Should().Be(_deleteUnixFileMode);
+        }
+
         Directory.Exists(transaction.CreatedDirectory).Should().BeFalse();
         (await _store.GetManifestsAsync(TestContext.Current.CancellationToken)).Should().BeEmpty();
     }
@@ -113,6 +122,92 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         (await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken)).Should().Equal(divergent);
         File.Exists(transaction.CreatePath).Should().BeFalse();
         (await File.ReadAllBytesAsync(transaction.DeletePath, TestContext.Current.CancellationToken)).Should().Equal(transaction.DeleteOriginal);
+        var manifests = await _store.GetManifestsAsync(TestContext.Current.CancellationToken);
+        manifests.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CorruptedStagedArtifact_WHEN_Applying_THEN_ShouldRejectBeforeWritingArtifactContents()
+    {
+        var transaction = await CreateTransactionAsync(RecoveryState.Applying);
+        var stagedPath = GetArtifactPath(transaction.Manifest.CommitId, "staged/replace.bin");
+        await File.WriteAllBytesAsync(stagedPath, [99], TestContext.Current.CancellationToken);
+
+        var result = await _writer.ApplyAsync(transaction.Manifest);
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("staged recovery artifact");
+        var replacementContents = await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken);
+        replacementContents.Should().Equal(transaction.ReplaceOriginal);
+        File.Exists(transaction.CreatePath).Should().BeFalse();
+        var deletedTargetContents = await File.ReadAllBytesAsync(transaction.DeletePath, TestContext.Current.CancellationToken);
+        deletedTargetContents.Should().Equal(transaction.DeleteOriginal);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CorruptedBackupAfterApplication_WHEN_FreshRecoveryRuns_THEN_ShouldRetainConflictEvidence()
+    {
+        var transaction = await CreateTransactionAsync(RecoveryState.Applying);
+        var applied = await _writer.ApplyAsync(transaction.Manifest);
+        applied.IsValid.Should().BeTrue();
+        var backupPath = GetArtifactPath(transaction.Manifest.CommitId, "backup/replace.bin");
+        await File.WriteAllBytesAsync(backupPath, [99], TestContext.Current.CancellationToken);
+
+        await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
+
+        var replacementContents = await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken);
+        replacementContents.Should().Equal(transaction.ReplaceIntended);
+        File.Exists(transaction.CreatePath).Should().BeFalse();
+        var restoredDeleteContents = await File.ReadAllBytesAsync(transaction.DeletePath, TestContext.Current.CancellationToken);
+        restoredDeleteContents.Should().Equal(transaction.DeleteOriginal);
+        var manifests = await _store.GetManifestsAsync(TestContext.Current.CancellationToken);
+        manifests.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        File.Exists(backupPath).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CorruptedDeleteMarkerAfterApplication_WHEN_FreshRecoveryRuns_THEN_ShouldRetainConflictEvidence()
+    {
+        var transaction = await CreateTransactionAsync(RecoveryState.Applying);
+        var applied = await _writer.ApplyAsync(transaction.Manifest);
+        applied.IsValid.Should().BeTrue();
+        var corruptedMarker = new byte[] { 99 };
+        await File.WriteAllBytesAsync(transaction.DeleteMarkerPath, corruptedMarker, TestContext.Current.CancellationToken);
+
+        await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
+
+        var replacementContents = await File.ReadAllBytesAsync(transaction.ReplacePath, TestContext.Current.CancellationToken);
+        replacementContents.Should().Equal(transaction.ReplaceOriginal);
+        File.Exists(transaction.CreatePath).Should().BeFalse();
+        File.Exists(transaction.DeletePath).Should().BeFalse();
+        var markerContents = await File.ReadAllBytesAsync(transaction.DeleteMarkerPath, TestContext.Current.CancellationToken);
+        markerContents.Should().Equal(corruptedMarker);
+        var manifests = await _store.GetManifestsAsync(TestContext.Current.CancellationToken);
+        manifests.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_DeleteMarkerModeChangesAfterApplication_WHEN_FreshRecoveryRuns_THEN_ShouldRetainConflictEvidence()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var transaction = await CreateTransactionAsync(RecoveryState.Applying);
+        var applied = await _writer.ApplyAsync(transaction.Manifest);
+        applied.IsValid.Should().BeTrue();
+        File.SetUnixFileMode(transaction.DeleteMarkerPath, UnixFileMode.UserRead);
+
+        await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
+
+        File.Exists(transaction.DeletePath).Should().BeFalse();
+        File.Exists(transaction.DeleteMarkerPath).Should().BeTrue();
+        File.GetUnixFileMode(transaction.DeleteMarkerPath).Should().Be(UnixFileMode.UserRead);
         var manifests = await _store.GetManifestsAsync(TestContext.Current.CancellationToken);
         manifests.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
     }
@@ -375,6 +470,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         return Path.Combine(_root, ".vs", "roslyn-workbench-mcp", "locks", "commit.lock");
     }
 
+    private string GetArtifactPath(string commitId, string relativePath)
+    {
+        return Path.Combine(_stateDirectory, "recovery", commitId, relativePath);
+    }
+
     private static async Task<Process> StartLockOwnerAsync(string lockPath)
     {
         var executableName = OperatingSystem.IsWindows()
@@ -455,6 +555,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         if (!OperatingSystem.IsWindows())
         {
             File.SetUnixFileMode(replacePath, _replaceUnixFileMode);
+            File.SetUnixFileMode(deletePath, _deleteUnixFileMode);
         }
 
         var manifest = new WorkspaceCommitManifest
@@ -493,6 +594,9 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     Operation = WorkspaceFileOperation.Delete,
                     OriginalExists = true,
                     OriginalHash = Hash(deleteOriginal),
+                    OriginalUnixFileMode = OperatingSystem.IsWindows()
+                        ? null
+                        : _deleteUnixFileMode,
                     BackupPath = "backup/delete.bin",
                     DeleteMarkerPath = deleteMarkerPath,
                 },

@@ -292,12 +292,17 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         }
 
         context.Artifacts.Add(backupPath, originalContents);
+        UnixFileMode? originalUnixFileMode = !OperatingSystem.IsWindows()
+            ? _fileSystem.File.GetUnixFileMode(path)
+            : null;
+
         var entry = new WorkspaceCommitEntry
         {
             TargetPath = path,
             Operation = WorkspaceFileOperation.Delete,
             OriginalExists = true,
             OriginalHash = Hash(originalContents),
+            OriginalUnixFileMode = originalUnixFileMode,
             BackupPath = backupPath,
             DeleteMarkerPath = deleteMarkerPath,
         };

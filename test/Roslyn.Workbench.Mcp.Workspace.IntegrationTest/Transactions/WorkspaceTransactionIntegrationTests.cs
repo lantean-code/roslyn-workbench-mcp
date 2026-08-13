@@ -1,4 +1,5 @@
 using System.Text;
+using Moq;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
@@ -208,6 +209,50 @@ public sealed class WorkspaceTransactionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_TargetChangesAfterInitialValidation_WHEN_Committing_THEN_ShouldConflictWithoutOverwritingExternalBytes()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        var externalText = "namespace Sample; public sealed class ExternalChange { }";
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison();
+        var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
+        var planner = new WorkspaceCommitPlanner(fileSystem, pathComparison, pathContainment);
+        var interceptingPlanner = new Mock<IWorkspaceCommitPlanner>();
+        interceptingPlanner
+            .Setup(item => item.CreateAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(() => File.WriteAllText(fixture.DocumentPath, externalText))
+            .Returns((string commitId, string loadedPath, string workspaceRoot, Solution baselineSolution, Solution currentSolution, CancellationToken cancellationToken) =>
+                planner.CreateAsync(commitId, loadedPath, workspaceRoot, baselineSolution, currentSolution, cancellationToken));
+
+        var options = new ComponentWorkspaceOptions
+        {
+            CommitPlanner = interceptingPlanner.Object,
+        };
+
+        await using var target = ComponentWorkspace.Create(options);
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
+        await StageMutationAsync(target);
+
+        var commit = await target.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        var persistedText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+        var recoveryDirectory = Path.Combine(target.StateDirectory, "recovery");
+
+        commit.Status.Should().Be(WorkspaceOperationStatus.Conflict);
+        commit.Error!.Code.Should().Be("TransactionConflicted");
+        status.Data!.State.Should().Be(WorkspaceLifecycleState.TransactionConflicted);
+        persistedText.Should().Be(externalText);
+        Directory.EnumerateFileSystemEntries(recoveryDirectory).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GIVEN_UnicodeEncodedDocument_WHEN_Committing_THEN_ShouldPreserveDocumentEncoding()
     {
         using var fixture = TestWorkspaceFixture.Create();
@@ -233,6 +278,29 @@ public sealed class WorkspaceTransactionIntegrationTests
         commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         bytes.Should().StartWith(encoding.GetPreamble());
         text.Should().Contain("TransactionMarker");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnchangedNonRoundTrippableSource_WHEN_Committing_THEN_ShouldAcceptOriginalByteChecksum()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        var originalText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+        var originalBytes = new List<byte>(Encoding.UTF8.GetBytes(originalText + Environment.NewLine + "// "))
+        {
+            0x80,
+        };
+
+        await File.WriteAllBytesAsync(fixture.DocumentPath, [.. originalBytes], TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
+        await StageMutationAsync(target);
+
+        var commit = await target.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        var committedText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+
+        commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded, commit.Error?.Message);
+        committedText.Should().Contain("TransactionMarker");
     }
 
     [Fact]

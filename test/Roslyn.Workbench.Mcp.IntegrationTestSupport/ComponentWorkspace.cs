@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
@@ -75,6 +76,12 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
             services.AddSingleton(TimeProvider.System);
             services.AddWorkspaceServices();
+            if (options.CommitPlanner is not null)
+            {
+                services.RemoveAll<IWorkspaceCommitPlanner>();
+                services.AddSingleton(options.CommitPlanner);
+            }
+
             if (options.Boundary != ComponentWorkspaceBoundary.CodeActions)
             {
                 services.AddPluginServices();

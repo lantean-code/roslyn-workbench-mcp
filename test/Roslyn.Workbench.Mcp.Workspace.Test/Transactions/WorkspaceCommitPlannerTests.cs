@@ -70,8 +70,10 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _file.Setup(item => item.Exists(changedPath)).Returns(true);
         _file.Setup(item => item.Exists(removedPath)).Returns(true);
         _file.Setup(item => item.Exists(addedPath)).Returns(false);
-        _file.Setup(item => item.ReadAllBytesAsync(changedPath, It.IsAny<CancellationToken>())).ReturnsAsync([1, 2]);
-        _file.Setup(item => item.ReadAllBytesAsync(removedPath, It.IsAny<CancellationToken>())).ReturnsAsync([3, 4]);
+        var changedOriginalBytes = Encoding.UTF8.GetBytes("old");
+        var removedOriginalBytes = Encoding.UTF8.GetBytes("remove");
+        _file.Setup(item => item.ReadAllBytesAsync(changedPath, It.IsAny<CancellationToken>())).ReturnsAsync(changedOriginalBytes);
+        _file.Setup(item => item.ReadAllBytesAsync(removedPath, It.IsAny<CancellationToken>())).ReturnsAsync(removedOriginalBytes);
         var expectedMode = UnixFileMode.UserRead | UnixFileMode.UserExecute | UnixFileMode.GroupRead;
         if (!OperatingSystem.IsWindows())
         {
@@ -86,10 +88,10 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             WorkspaceFileOperation.Create,
             WorkspaceFileOperation.Delete]);
 
-        plan.Artifacts["backup/000000.bin"].ToArray().Should().Equal(1, 2);
+        plan.Artifacts["backup/000000.bin"].ToArray().Should().Equal(changedOriginalBytes);
         plan.Artifacts["staged/000000.bin"].ToArray().Should().Equal(Encode(Encoding.Unicode, "new"));
         plan.Artifacts["staged/000001.bin"].ToArray().Should().Equal(Encode(Encoding.UTF8, "add"));
-        plan.Artifacts["backup/000002.bin"].ToArray().Should().Equal(3, 4);
+        plan.Artifacts["backup/000002.bin"].ToArray().Should().Equal(removedOriginalBytes);
         plan.Manifest.Version.Should().Be(1);
         plan.Manifest.Entries[0].OriginalUnixFileMode.Should().Be(
             OperatingSystem.IsWindows() ? null : expectedMode);
@@ -156,7 +158,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
 
         _file.Setup(item => item.Exists(targetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Encode(Encoding.UTF8, "before"));
+            .ReturnsAsync(Encoding.UTF8.GetBytes("before"));
 
         var result = await _target.CreateAsync(
             "commit",
@@ -283,6 +285,160 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_ReplacementTargetChangedFromBaseline_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/target.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "target.cs", SourceText.From("before"), filePath: targetPath);
+
+        var current = baseline.WithDocumentText(documentId, SourceText.From("after"));
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encode(Encoding.UTF8, "external"));
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("changed from the transaction baseline");
+    }
+
+    [Fact]
+    public async Task GIVEN_DeletionTargetChangedFromBaseline_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/target.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "target.cs", SourceText.From("before"), filePath: targetPath);
+
+        var current = baseline.RemoveDocument(documentId);
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encode(Encoding.UTF8, "external"));
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("changed from the transaction baseline");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnchangedNonRoundTrippableTarget_WHEN_PlanningReplacement_THEN_ShouldUseOriginalByteChecksum()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/target.cs");
+        var originalBytes = CreateNonRoundTrippableUtf8(0x80);
+        var baselineText = SourceText.From(
+            originalBytes,
+            originalBytes.Length,
+            Encoding.UTF8,
+            SourceHashAlgorithm.Sha256);
+
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "target.cs", baselineText, filePath: targetPath);
+
+        var currentText = baselineText.WithChanges(new TextChange(new TextSpan(0, 0), "internal "));
+        var current = baseline.WithDocumentText(documentId, currentText);
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(originalBytes);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
+
+        plan.Artifacts["backup/000000.bin"].ToArray().Should().Equal(originalBytes);
+    }
+
+    [Fact]
+    public async Task GIVEN_DifferentNonRoundTrippableTarget_WHEN_PlanningReplacement_THEN_ShouldRejectExactByteDrift()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/target.cs");
+        var originalBytes = CreateNonRoundTrippableUtf8(0x80);
+        var externalBytes = CreateNonRoundTrippableUtf8(0x81);
+        var baselineText = SourceText.From(
+            originalBytes,
+            originalBytes.Length,
+            Encoding.UTF8,
+            SourceHashAlgorithm.Sha1);
+
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "target.cs", baselineText, filePath: targetPath);
+
+        var currentText = baselineText.WithChanges(new TextChange(new TextSpan(0, 0), "internal "));
+        var current = baseline.WithDocumentText(documentId, currentText);
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(externalBytes);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("changed from the transaction baseline");
+    }
+
+    [Fact]
     public async Task GIVEN_NewDocumentOutsideProjectBoundary_WHEN_Planning_THEN_ShouldRejectPlan()
     {
         var projectId = ProjectId.CreateNewId();
@@ -321,7 +477,8 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var current = baseline.RemoveDocument(documentId);
         _file.Setup(item => item.Exists(targetPath)).Returns(true);
         _file.Setup(item => item.Exists(deleteMarkerPath)).Returns(true);
-        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>())).ReturnsAsync([1, 2]);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes("text"));
 
         var result = await _target.CreateAsync(
             "commit",
@@ -525,5 +682,10 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     private static byte[] Encode(Encoding encoding, string text)
     {
         return [.. encoding.GetPreamble(), .. encoding.GetBytes(text)];
+    }
+
+    private static byte[] CreateNonRoundTrippableUtf8(byte invalidByte)
+    {
+        return [.. Encoding.UTF8.GetBytes("class Target { } // "), invalidByte];
     }
 }

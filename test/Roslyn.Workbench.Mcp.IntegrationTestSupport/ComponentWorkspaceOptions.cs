@@ -14,6 +14,8 @@ internal sealed record ComponentWorkspaceOptions
 
     public bool IncludeBuiltInCodeActions { get; init; }
 
+    public IWorkspaceCommitPlanner? CommitPlanner { get; init; }
+
     public string? StateDirectory { get; init; }
 }
 

@@ -96,15 +96,15 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         Solution currentSolution,
         CancellationToken cancellationToken)
     {
-        var changedDocuments = projectChanges.GetChangedDocuments()
-            .Select(currentSolution.GetDocument)
-            .OfType<Document>();
-
-        foreach (var document in changedDocuments)
+        foreach (var documentId in projectChanges.GetChangedDocuments())
         {
+            var baselineDocument = GetRequiredDocument(baselineSolution, documentId);
+            var currentDocument = GetRequiredDocument(currentSolution, documentId);
+
             var validation = await AddWriteAsync(
                 context,
-                document,
+                currentDocument,
+                baselineDocument,
                 WorkspaceFileOperation.Replace,
                 cancellationToken);
 
@@ -123,6 +123,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             var validation = await AddWriteAsync(
                 context,
                 document,
+                baselineDocument: null,
                 WorkspaceFileOperation.Create,
                 cancellationToken);
 
@@ -151,6 +152,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     private async ValueTask<WorkspaceCommitValidationResult> AddWriteAsync(
         WorkspaceCommitPlanningContext context,
         Document document,
+        Document? baselineDocument,
         WorkspaceFileOperation operation,
         CancellationToken cancellationToken)
     {
@@ -189,6 +191,20 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var originalContents = originalExists
             ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken)
             : null;
+
+        if (baselineDocument is not null && originalContents is not null)
+        {
+            var matchesBaseline = await MatchesBaselineChecksumAsync(
+                baselineDocument,
+                originalContents,
+                cancellationToken);
+
+            if (!matchesBaseline)
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The target '{path}' changed from the transaction baseline during commit planning.");
+            }
+        }
 
         UnixFileMode? originalUnixFileMode = operation == WorkspaceFileOperation.Replace && !OperatingSystem.IsWindows()
             ? _fileSystem.File.GetUnixFileMode(path)
@@ -255,6 +271,17 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         }
 
         var originalContents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
+        var matchesBaseline = await MatchesBaselineChecksumAsync(
+            document,
+            originalContents,
+            cancellationToken);
+
+        if (!matchesBaseline)
+        {
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The target '{path}' changed from the transaction baseline during commit planning.");
+        }
+
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = $"backup/{artifactIndex}.bin";
         var deleteMarkerPath = $"{path}.{context.CommitId}.delete";
@@ -400,6 +427,41 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var text = await document.GetTextAsync(cancellationToken);
         var encoding = text.Encoding ?? Encoding.UTF8;
         return [.. encoding.GetPreamble(), .. encoding.GetBytes(text.ToString())];
+    }
+
+    [SuppressMessage(
+        "Security",
+        "CA5350:Do not use weak cryptographic algorithms",
+        Justification = "SHA-1 is used only when required to reproduce Roslyn's original-byte source checksum, never for a security decision.")]
+    private static async ValueTask<bool> MatchesBaselineChecksumAsync(
+        Document baselineDocument,
+        ReadOnlyMemory<byte> currentContents,
+        CancellationToken cancellationToken)
+    {
+        var baselineText = await baselineDocument.GetTextAsync(cancellationToken);
+        var baselineChecksum = baselineText.GetChecksum();
+        byte[] currentChecksum;
+        switch (baselineText.ChecksumAlgorithm)
+        {
+            case SourceHashAlgorithm.Sha1:
+                currentChecksum = SHA1.HashData(currentContents.Span);
+                break;
+            case SourceHashAlgorithm.Sha256:
+                currentChecksum = SHA256.HashData(currentContents.Span);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"The baseline document uses unsupported checksum algorithm '{baselineText.ChecksumAlgorithm}'.");
+        }
+
+        return baselineChecksum.AsSpan().SequenceEqual(currentChecksum);
+    }
+
+    private static Document GetRequiredDocument(Solution solution, DocumentId documentId)
+    {
+        return solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"The document '{documentId}' was not present in the expected solution.");
     }
 
     private static string GetArtifactIndex(WorkspaceCommitPlanningContext context)

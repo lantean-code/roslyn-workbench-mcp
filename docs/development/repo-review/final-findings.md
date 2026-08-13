@@ -10,7 +10,7 @@ Every one of the twenty ledger candidates was independently retraced against the
 
 ## Remediation and release gates
 
-The validated findings in this report are the authoritative RWMCP2 remediation worklist. Each finding must follow the approval-led process in [`DeepDiveReview.md`](../DeepDiveReview.md): current-source revalidation and explanation, proposed design, explicit approval, implementation, required executable validation, a first user code review and confirmation, an independent Review Agent pass over the complete proposed commit, correction and re-review of any substantiated feedback, a second user review and final confirmation, durable status update and then user commit. No finding is complete or ready to commit until its final Review Agent pass has no remaining actionable defects or regression gaps and the user has given the second confirmation; any material change after that pass requires another review.
+The validated findings in this report are the authoritative RWMCP2 remediation worklist. Each finding must follow the approval-led process in [`DeepDiveReview.md`](../DeepDiveReview.md): current-source revalidation and explanation, proposed design, explicit approval, implementation, required executable validation, a first user code review and confirmation, staging of that complete first-confirmed baseline, an independent Review Agent pass, unstaged correction and re-review of any substantiated feedback, a second user review comparing the staged baseline with those unstaged corrections, final confirmation, durable status update and then user commit. No finding is complete or ready to commit until its final Review Agent pass has no remaining actionable defects or regression gaps and the user has given the second confirmation; any material change after that pass requires another review.
 
 The repository-level assessment and finding narratives preserve the independent review baseline. Per-finding status and remediation-outcome records supersede that baseline as confirmed remediation proceeds.
 
@@ -32,11 +32,15 @@ A caller can retain a document range from epoch E or transaction revision R, all
 
 ### RWMCP2-004 — Commit can overwrite drift captured during planning
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/TransactionCommitService.cs:144-150,175-227,274-278,732-745`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitPlanner.cs:151-218`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputCertification.cs:23-47`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputChangeMonitor.cs:249-256,342-346`
 
 If an editor changes a staged target after commit's baseline `HasChanged` check but before planning reads the target, the planner adopts the external bytes as its `OriginalHash` and backup. Writer revalidation proves only that the target still equals that planner-captured hash, application overwrites it with transaction bytes, and commit certification treats the target as commit-owned while replaying watcher events. Neither immediate revalidation nor later input certification compares the planner-captured bytes with the transaction's Workspace baseline, so the external edit can be silently lost and its backup deleted after successful commit.
+
+**Remediation outcome:** Commit planning now compares every replacement and deletion target's current disk bytes with the original-byte checksum retained by Roslyn for the transaction baseline, using the baseline `SourceText`'s declared SHA-1 or SHA-256 algorithm before any disk bytes can become recovery state. A mismatch transitions the transaction to `TransactionConflicted` without applying or overwriting the external bytes; create existence checks, recovery capture and immediate per-entry writer revalidation remain intact. Focused tests cover replacement and deletion drift, SHA-1 and SHA-256 checksum reproduction, BOM and malformed/non-round-trippable bytes, and a real component commit that injects an external write after initial validation but before the real planner reads the target. Workspace unit and integration suites passed 979/979 and 90/90, the solution and affected `latest-all` analyzer builds passed, and a traced EF Core commit replaced 948 files with 418.57 ms planning time, a 17.62 MB peak private-memory increase and clean checkout/state restoration. The first independent Review Agent pass identified the non-round-trippable-byte defect in the initial re-encoding design; the checksum implementation and regression coverage corrected it, and the repeated Review Agent pass returned no findings.
 
 ### RWMCP2-005 — Recovery does not verify artifact content before restoring source
 

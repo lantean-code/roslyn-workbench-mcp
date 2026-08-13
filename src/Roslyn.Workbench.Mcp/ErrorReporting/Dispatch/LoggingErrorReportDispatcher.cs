@@ -10,6 +10,7 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
     private const string _destination = "standard error (stderr)";
     private const string _level = "error";
     private const string _logger = "roslyn-workbench-mcp";
+
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

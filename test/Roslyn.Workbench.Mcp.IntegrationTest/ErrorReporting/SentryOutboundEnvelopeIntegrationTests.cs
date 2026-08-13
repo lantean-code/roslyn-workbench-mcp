@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.ErrorReporting.Projection;
-using Sentry;
 using Sentry.Protocol.Envelopes;
 
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;

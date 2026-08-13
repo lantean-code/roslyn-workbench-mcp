@@ -35,6 +35,7 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
     }
 
 #pragma warning disable MCPEXP001
+
     public ValueTask<CallToolResult> CallToolAsync(
         RequestContext<CallToolRequestParams> context,
         CancellationToken cancellationToken)
@@ -55,5 +56,6 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
 
         return tool.InvokeAsync(context, cancellationToken);
     }
+
 #pragma warning restore MCPEXP001
 }

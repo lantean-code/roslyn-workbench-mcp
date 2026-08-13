@@ -400,5 +400,4 @@ public sealed class SubmitErrorReportToolTests
             ProcessorArchitecture = "X64",
         };
     }
-
 }

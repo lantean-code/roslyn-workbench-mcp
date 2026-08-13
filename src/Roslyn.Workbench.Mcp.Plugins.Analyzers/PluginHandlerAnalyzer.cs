@@ -592,21 +592,26 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
             {
                 case IdentifierNameSyntax identifier:
                     return identifier.Identifier.ValueText;
+
                 case ParenthesizedExpressionSyntax parenthesized:
                     expression = parenthesized.Expression;
                     break;
+
                 case CastExpressionSyntax cast:
                     expression = cast.Expression;
                     break;
+
                 case PostfixUnaryExpressionSyntax suppressNullableWarning
                     when suppressNullableWarning.IsKind(SyntaxKind.SuppressNullableWarningExpression):
                     expression = suppressNullableWarning.Operand;
                     break;
+
                 case BinaryExpressionSyntax coalesce
                     when coalesce.IsKind(SyntaxKind.CoalesceExpression)
                         && coalesce.Right is ThrowExpressionSyntax:
                     expression = coalesce.Left;
                     break;
+
                 default:
                     return null;
             }

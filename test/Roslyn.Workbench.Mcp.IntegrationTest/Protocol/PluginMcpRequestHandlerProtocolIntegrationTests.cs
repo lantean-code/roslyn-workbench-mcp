@@ -13,6 +13,7 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
 
 #pragma warning disable MCPEXP001
+
     [Fact]
     [Trait("Category", "Integration")]
     public async Task GIVEN_TaskAugmentedPluginCall_WHEN_RoutedThroughMcpSdk_THEN_ShouldRejectRequestWithoutInvokingAdapter()
@@ -88,5 +89,6 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
             await serverTask;
         }
     }
+
 #pragma warning restore MCPEXP001
 }

@@ -103,6 +103,5 @@ internal sealed class ServerStatusService : IServerStatusService
                     .ToString(),
             },
         };
-
     }
 }

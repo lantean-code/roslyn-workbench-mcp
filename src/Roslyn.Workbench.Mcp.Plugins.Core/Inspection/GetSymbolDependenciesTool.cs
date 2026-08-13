@@ -180,7 +180,6 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
                 }
 
                 break;
-
         }
     }
 

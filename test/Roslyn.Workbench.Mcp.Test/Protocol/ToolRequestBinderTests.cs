@@ -9,6 +9,7 @@ public sealed class ToolRequestBinderTests
 {
     private readonly Mock<IRequestObjectGraphValidator> _requestObjectGraphValidator;
     private readonly ToolRequestBinder _target;
+
     public ToolRequestBinderTests()
     {
         _requestObjectGraphValidator = new Mock<IRequestObjectGraphValidator>();
@@ -405,7 +406,6 @@ public sealed class ToolRequestBinderTests
         public string Value { get; init; } = "Value";
     }
 
-
     private enum TestEnum
     {
         Value,
@@ -451,5 +451,4 @@ public sealed class ToolRequestBinderTests
             writer.WriteEndObject();
         }
     }
-
 }

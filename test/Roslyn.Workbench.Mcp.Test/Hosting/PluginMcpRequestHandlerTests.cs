@@ -90,6 +90,7 @@ public sealed class PluginMcpRequestHandlerTests
     }
 
 #pragma warning disable MCPEXP001
+
     [Fact]
     public async Task GIVEN_TaskAugmentedPluginCall_WHEN_CallingTool_THEN_ShouldRejectRequestWithoutInvokingAdapter()
     {
@@ -114,6 +115,7 @@ public sealed class PluginMcpRequestHandlerTests
             value => value.InvokeAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
 #pragma warning restore MCPEXP001
 
     [Fact]

@@ -1025,7 +1025,6 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                 }
 
                 break;
-
         }
     }
 

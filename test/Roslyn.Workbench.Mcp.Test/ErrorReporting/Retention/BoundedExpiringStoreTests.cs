@@ -5,6 +5,7 @@ public sealed class BoundedExpiringStoreTests
     private readonly DateTimeOffset _now = DateTimeOffset.Parse(
         "2000-01-01T00:00:00Z",
         CultureInfo.InvariantCulture);
+
     private readonly Mock<IBoundedExpiringStorePolicy<Guid, CapturedErrorRecord>> _policy;
     private readonly Mock<TimeProvider> _timeProvider;
     private readonly Mock<ITimer> _expirationTimer;

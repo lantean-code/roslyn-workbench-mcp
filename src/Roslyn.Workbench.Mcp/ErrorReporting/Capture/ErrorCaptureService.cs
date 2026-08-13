@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -18,6 +17,7 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
 
     private static readonly string _serverVersion =
         typeof(ErrorCaptureService).Assembly.GetName().Version?.ToString() ?? "unknown";
+
     private static readonly string _roslynVersion =
         typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString() ?? "unknown";
 

@@ -14,6 +14,7 @@ internal sealed class ConflictRunner
     private const string _callToolContinuationKind = "CallTool";
     private const string _resolveExternallyContinuationKind = "ResolveExternally";
     private const string _transactionRollbackTool = "transaction-rollback";
+
     private static readonly byte[] _externalMarker = Encoding.UTF8.GetBytes(
         $"{Environment.NewLine}// Roslyn Workbench external conflict marker{Environment.NewLine}");
 

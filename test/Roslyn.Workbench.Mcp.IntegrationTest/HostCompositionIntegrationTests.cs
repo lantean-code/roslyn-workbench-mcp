@@ -8,7 +8,6 @@ using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 using Roslyn.Workbench.Mcp.ErrorReporting.Preparation;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.State;
-using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Test;
 

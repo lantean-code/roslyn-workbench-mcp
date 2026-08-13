@@ -1,4 +1,3 @@
-using System.Net.Http;
 using Sentry;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;

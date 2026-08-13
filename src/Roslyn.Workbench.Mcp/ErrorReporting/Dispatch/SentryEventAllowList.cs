@@ -9,8 +9,10 @@ internal static class SentryEventAllowList
 {
     private const string _workbenchContext = "roslyn_workbench";
     private const string _sdkName = "sentry.dotnet";
+
     private static readonly string _sdkVersion =
         typeof(SentryClient).Assembly.GetName().Version?.ToString(3) ?? "unknown";
+
     private static readonly ImmutableArray<string> _allowedTopLevelProperties =
     [
         "event_id",

@@ -18,8 +18,8 @@ public sealed class InvalidToolNameTestPlugin : IRoslynPlugin
     public sealed record Response;
 
 #pragma warning disable RWMCP022 // The fixture proves runtime rejection when the authoring diagnostic is suppressed.
+
     [RoslynTool("invalid tool name", "Invalid Tool Name", "Should never be published.")]
-#pragma warning restore RWMCP022
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(

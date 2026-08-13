@@ -6,6 +6,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
 {
     private static readonly MethodInfo _createQueryRegistrationMethod = GetMaterializationMethod(nameof(CreateQueryRegistration));
     private static readonly MethodInfo _createMutationRegistrationMethod = GetMaterializationMethod(nameof(CreateMutationRegistration));
+
     private static readonly ServiceProviderOptions _serviceProviderOptions = new()
     {
         ValidateOnBuild = true,

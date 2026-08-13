@@ -65,5 +65,4 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 
         return PluginExecutionResult.Success(data);
     }
-
 }

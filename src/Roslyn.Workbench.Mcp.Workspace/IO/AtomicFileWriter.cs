@@ -1,8 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
-
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
 internal sealed class AtomicFileWriter : IAtomicFileWriter

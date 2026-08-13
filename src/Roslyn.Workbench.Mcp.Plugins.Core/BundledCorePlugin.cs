@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 using Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 using Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 

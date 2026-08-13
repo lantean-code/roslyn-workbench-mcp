@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Validation;

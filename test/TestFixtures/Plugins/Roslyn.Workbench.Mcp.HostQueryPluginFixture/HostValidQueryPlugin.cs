@@ -122,6 +122,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     {
         private static readonly ConcurrentDictionary<string, int> _factoryExecutions =
             new(StringComparer.Ordinal);
+
         private static readonly ConcurrentDictionary<string, int> _invocations =
             new(StringComparer.Ordinal);
 

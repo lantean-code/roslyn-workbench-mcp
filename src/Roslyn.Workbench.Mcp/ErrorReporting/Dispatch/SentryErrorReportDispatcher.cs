@@ -135,5 +135,4 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 
         return fingerprint.ToImmutable();
     }
-
 }

@@ -94,5 +94,4 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         return PluginExecutionResult.Success(data);
     }
-
 }

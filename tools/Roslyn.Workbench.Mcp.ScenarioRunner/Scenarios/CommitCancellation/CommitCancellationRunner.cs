@@ -106,6 +106,15 @@ internal sealed class CommitCancellationRunner
                 "Committed",
                 cancellationToken);
 
+            var statusResult = await InvokeAfterSettlementAsync(
+                "workspace-status",
+                cancellationToken);
+            if (statusResult.IsError == true)
+            {
+                throw new InvalidOperationException(
+                    $"workspace-status returned an MCP error after commit settlement: {statusResult.StructuredContent?.GetRawText()}");
+            }
+
             committed = true;
             HasOpenTransaction = false;
         }

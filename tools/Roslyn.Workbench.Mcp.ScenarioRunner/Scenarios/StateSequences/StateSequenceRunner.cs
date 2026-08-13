@@ -11,6 +11,9 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.StateSequences;
 
 internal sealed class StateSequenceRunner
 {
+    private const string _callToolContinuationKind = "CallTool";
+    private const string _retryRequestContinuationKind = "RetryRequest";
+    private const string _workspaceReloadTool = "workspace-reload";
     private readonly ScenarioHost _host;
     private readonly CodeActionWorkflowInvoker _codeActionWorkflow;
     private readonly string _repositoryRoot;
@@ -112,12 +115,16 @@ internal sealed class StateSequenceRunner
                 "WorkspaceOutOfDate",
                 StringComparison.Ordinal)
             || !string.Equals(
-                stale.RequiredAction,
-                "ReloadWorkspace",
+                stale.Continuation?.Kind,
+                _callToolContinuationKind,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                stale.Continuation?.Tool,
+                _workspaceReloadTool,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                "The externally changed workspace did not reject the stale query with WorkspaceOutOfDate and ReloadWorkspace.");
+                "The externally changed workspace did not reject the stale query with WorkspaceOutOfDate and a workspace-reload tool continuation.");
         }
 
         var reload = await InvokeRequiredAsync(
@@ -880,7 +887,9 @@ internal sealed class StateSequenceRunner
         var observation = ResponseObservation.Create(result);
         var content = result.StructuredContent;
         var errorCode = TryGetString(content, "error", "code");
-        var requiredAction = TryGetString(content, "next");
+        var continuation = content is JsonElement structuredContent
+            ? ToolContinuationReader.Read(structuredContent)
+            : null;
         var transaction = TryGetObject(content, "data", "transaction");
         transaction ??= TryGetObject(content, "data", "mutation", "transaction");
 
@@ -895,7 +904,7 @@ internal sealed class StateSequenceRunner
             IsError = result.IsError == true,
             ResponseSha256 = observation.Sha256,
             ErrorCode = errorCode,
-            RequiredAction = requiredAction,
+            Continuation = continuation,
             WorkspaceState = TryGetString(content, "data", "state"),
             ExternalChange = CreateExternalChange(externalChange),
             MutationStaged = observation.MutationStaged,
@@ -951,8 +960,12 @@ internal sealed class StateSequenceRunner
                 "WorkspaceOutOfDate",
                 StringComparison.Ordinal)
             || !string.Equals(
-                stale.RequiredAction,
-                "ReloadWorkspace",
+                stale.Continuation?.Kind,
+                _callToolContinuationKind,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                stale.Continuation?.Tool,
+                _workspaceReloadTool,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -991,15 +1004,15 @@ internal sealed class StateSequenceRunner
             "WorkspaceChangedDuringLoad",
             StringComparison.Ordinal);
 
-        var hasExpectedRequiredAction = string.Equals(
-            reload.RequiredAction,
-            "Retry",
+        var hasExpectedContinuation = string.Equals(
+            reload.Continuation?.Kind,
+            _retryRequestContinuationKind,
             StringComparison.Ordinal);
 
-        if (!hasExpectedErrorCode || !hasExpectedRequiredAction)
+        if (!hasExpectedErrorCode || !hasExpectedContinuation)
         {
             throw new InvalidOperationException(
-                $"Watcher-stress reload failed with unexpected error '{reload.ErrorCode ?? "unknown"}' and action '{reload.RequiredAction ?? "none"}'.");
+                $"Watcher-stress reload failed with unexpected error '{reload.ErrorCode ?? "unknown"}' and continuation '{reload.Continuation?.Kind ?? "none"}'.");
         }
     }
 

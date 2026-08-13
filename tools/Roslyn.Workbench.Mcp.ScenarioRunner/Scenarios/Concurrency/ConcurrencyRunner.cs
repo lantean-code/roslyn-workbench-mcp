@@ -9,6 +9,10 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Concurrency;
 
 internal sealed class ConcurrencyRunner
 {
+    private const string _chooseToolContinuationKind = "ChooseTool";
+    private const string _retryRequestContinuationKind = "RetryRequest";
+    private const string _transactionCommitTool = "transaction-commit";
+    private const string _transactionRollbackTool = "transaction-rollback";
     private readonly ScenarioHost _host;
     private readonly Guid _primaryWorkspaceId;
     private readonly string _repositoryRoot;
@@ -218,7 +222,7 @@ internal sealed class ConcurrencyRunner
             ResponseSha256 = measurement.ResponseSha256,
             IsError = measurement.IsError,
             ErrorCode = measurement.ErrorCode,
-            RequiredAction = measurement.RequiredAction,
+            Continuation = measurement.Continuation,
             RetrySucceeded = false,
             FactoryExecutionCount = measurement.FactoryExecutionCount,
         };
@@ -370,7 +374,7 @@ internal sealed class ConcurrencyRunner
         if (measurement.IsError)
         {
             throw new InvalidOperationException(
-                $"Tool '{tool}' returned an MCP error during '{name}': {measurement.ErrorCode} / {measurement.RequiredAction}.");
+                $"Tool '{tool}' returned an MCP error during '{name}': {measurement.ErrorCode} / {measurement.Continuation?.Kind}.");
         }
 
         return measurement;
@@ -396,7 +400,9 @@ internal sealed class ConcurrencyRunner
             ResponseBytes = observation.Bytes,
             ResponseSha256 = observation.Sha256,
             ErrorCode = GetStructuredString(result, "error", "code"),
-            RequiredAction = GetStructuredString(result, "next"),
+            Continuation = result.StructuredContent is JsonElement content
+                ? ToolContinuationReader.Read(content)
+                : null,
             WorkspaceCount = GetWorkspaceCount(result),
             Workload = GetStructuredString(result, "data", "workload"),
             FactoryExecutionCount = GetStructuredInteger(
@@ -588,18 +594,23 @@ internal sealed class ConcurrencyRunner
     private static void ValidateTransactionOwnerRejection(
         ConcurrencyStepMeasurement measurement)
     {
+        var continuation = measurement.Continuation;
+        var tools = continuation?.Tools;
         if (!measurement.IsError
             || !string.Equals(
                 measurement.ErrorCode,
                 "TransactionOwnedByWorkspace",
                 StringComparison.Ordinal)
             || !string.Equals(
-                measurement.RequiredAction,
-                "CommitOrRollback",
-                StringComparison.Ordinal))
+                continuation?.Kind,
+                _chooseToolContinuationKind,
+                StringComparison.Ordinal)
+            || tools is not { Count: 2 }
+            || !tools.Contains(_transactionCommitTool, StringComparer.Ordinal)
+            || !tools.Contains(_transactionRollbackTool, StringComparer.Ordinal))
         {
             throw new InvalidOperationException(
-                "Starting a transaction for the non-owner Workspace did not reject with TransactionOwnedByWorkspace and CommitOrRollback.");
+                "Starting a transaction for the non-owner Workspace did not reject with TransactionOwnedByWorkspace and a commit-or-rollback tool choice.");
         }
     }
 
@@ -610,12 +621,12 @@ internal sealed class ConcurrencyRunner
                 "WorkspaceBusy",
                 StringComparison.Ordinal)
             || !string.Equals(
-                measurement.RequiredAction,
-                "Retry",
+                measurement.Continuation?.Kind,
+                _retryRequestContinuationKind,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                "An excess concurrent read did not reject with WorkspaceBusy and Retry.");
+                "An excess concurrent read did not reject with WorkspaceBusy and a retry-request continuation.");
         }
     }
 }

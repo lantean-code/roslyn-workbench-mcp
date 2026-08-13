@@ -21,6 +21,8 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Application;
 internal static class ScenarioApplication
 {
     private const string _allScenarios = "all";
+    private const int _workspaceOpenMaximumAttempts = 3;
+    private static readonly TimeSpan _workspaceOpenRetryDelay = TimeSpan.FromMilliseconds(250);
 
     [SuppressMessage(
         "Design",
@@ -1477,7 +1479,7 @@ internal static class ScenarioApplication
             RecoveryMilliseconds = completedExecution.RecoveryMilliseconds,
             RestorationMilliseconds = restorationMilliseconds,
             ErrorCode = completedExecution.ErrorCode,
-            RequiredAction = completedExecution.RequiredAction,
+            Continuation = completedExecution.Continuation,
             ExternalMutation = completedExecution.ExternalMutation,
             FilesBeforeRestoration = completedChanges.Files,
             RecoveryState = completedRecoveryEvidence.State,
@@ -2139,39 +2141,83 @@ internal static class ScenarioApplication
         CancellationToken cancellationToken,
         string alias = "performance")
     {
-        var result = await host.CallToolAsync(
-            "workspace-open",
-            new Dictionary<string, object?>
+        var arguments = new Dictionary<string, object?>
+        {
+            ["alias"] = alias,
+            ["path"] = workspacePath,
+            ["workspaceRoot"] = repositoryRoot,
+        };
+
+        for (var attempt = 1; attempt <= _workspaceOpenMaximumAttempts; attempt++)
+        {
+            var result = await host.CallToolAsync(
+                "workspace-open",
+                arguments,
+                cancellationToken);
+
+            if (result.IsError == true)
             {
-                ["alias"] = alias,
-                ["path"] = workspacePath,
-                ["workspaceRoot"] = repositoryRoot,
-            },
-            cancellationToken);
+                var canRetry = attempt < _workspaceOpenMaximumAttempts
+                    && IsWorkspaceChangedDuringLoadRetry(result);
+                if (canRetry)
+                {
+                    Console.WriteLine(
+                        $"workspace-open detected changing inputs; retrying after {_workspaceOpenRetryDelay.TotalMilliseconds:F0} ms ({attempt}/{_workspaceOpenMaximumAttempts - 1}).");
 
-        if (result.IsError == true)
-        {
-            throw new InvalidOperationException($"workspace-open failed: {result.StructuredContent?.GetRawText()}");
+                    await Task.Delay(_workspaceOpenRetryDelay, cancellationToken);
+                    continue;
+                }
+
+                throw new InvalidOperationException(
+                    $"workspace-open failed: {result.StructuredContent?.GetRawText()}");
+            }
+
+            var structuredContent = result.StructuredContent
+                ?? throw new InvalidDataException("workspace-open returned no structured content.");
+            var workspace = structuredContent
+                .GetProperty("data")
+                .GetProperty("workspace");
+            var workspaceId = workspace
+                .GetProperty("workspaceId")
+                .GetGuid();
+            if (workspaceId == Guid.Empty)
+            {
+                throw new InvalidDataException("workspace-open returned an empty workspaceId.");
+            }
+
+            var workspaceEpoch = workspace
+                .GetProperty("workspaceEpoch")
+                .GetInt64();
+
+            host.RegisterWorkspace(workspaceId, workspaceEpoch);
+            return workspaceId;
         }
 
-        var structuredContent = result.StructuredContent
-            ?? throw new InvalidDataException("workspace-open returned no structured content.");
-        var workspace = structuredContent
-            .GetProperty("data")
-            .GetProperty("workspace");
-        var workspaceId = workspace
-            .GetProperty("workspaceId")
-            .GetGuid();
-        if (workspaceId == Guid.Empty)
-        {
-            throw new InvalidDataException("workspace-open returned an empty workspaceId.");
-        }
-        var workspaceEpoch = workspace
-            .GetProperty("workspaceEpoch")
-            .GetInt64();
+        throw new InvalidOperationException(
+            "workspace-open exhausted its bounded retry loop without returning a result.");
+    }
 
-        host.RegisterWorkspace(workspaceId, workspaceEpoch);
-        return workspaceId;
+    private static bool IsWorkspaceChangedDuringLoadRetry(
+        ModelContextProtocol.Protocol.CallToolResult result)
+    {
+        if (result.StructuredContent is not { } content
+            || !content.TryGetProperty("error", out var error)
+            || !error.TryGetProperty("code", out var code))
+        {
+            return false;
+        }
+
+        var continuation = ToolContinuationReader.Read(content);
+        var hasExpectedErrorCode = string.Equals(
+            code.GetString(),
+            "WorkspaceChangedDuringLoad",
+            StringComparison.Ordinal);
+        var hasExpectedContinuation = string.Equals(
+            continuation?.Kind,
+            "RetryRequest",
+            StringComparison.Ordinal);
+
+        return hasExpectedErrorCode && hasExpectedContinuation;
     }
 
     private static async Task CloseWorkspaceAsync(ScenarioHost host, Guid workspaceId)

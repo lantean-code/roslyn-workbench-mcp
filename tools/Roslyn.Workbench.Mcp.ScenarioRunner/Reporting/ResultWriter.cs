@@ -153,7 +153,7 @@ internal static class ResultWriter
                     "F2",
                     CultureInfo.InvariantCulture)).AppendLine(" ms")
             .AppendLine()
-            .AppendLine("| Step | Tool | Elapsed (ms) | Error | Code | Required action |")
+            .AppendLine("| Step | Tool | Elapsed (ms) | Error | Code | Continuation |")
             .AppendLine("|---|---|---:|---|---|---|");
 
         foreach (var step in result.MultiWorkspace.Steps)
@@ -165,7 +165,7 @@ internal static class ResultWriter
                     step.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(step.IsError ? "Yes" : "No")
                 .Append(" | ").Append(step.ErrorCode ?? string.Empty)
-                .Append(" | ").Append(step.RequiredAction ?? string.Empty)
+                .Append(" | ").Append(FormatContinuation(step.Continuation))
                 .AppendLine(" |");
         }
 
@@ -568,8 +568,8 @@ internal static class ResultWriter
                 result.WarmupCount.ToString(CultureInfo.InvariantCulture))
             .Append("Measured iterations: ").AppendLine(
                 result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
-            .Append("Error/next: ").Append(first.ErrorCode).Append('/')
-            .AppendLine(first.RequiredAction ?? "None")
+            .Append("Error/continuation: ").Append(first.ErrorCode).Append('/')
+            .AppendLine(FormatContinuation(first.Continuation))
             .Append("Files left changed before runner restoration: ").AppendLine(
                 first.FilesBeforeRestoration.Count.ToString(CultureInfo.InvariantCulture))
             .Append("Recovery state/artifacts: ")
@@ -1005,6 +1005,26 @@ internal static class ResultWriter
         }
 
         return builder.ToString();
+    }
+
+    private static string FormatContinuation(ToolContinuationObservation? continuation)
+    {
+        if (continuation is null)
+        {
+            return "None";
+        }
+
+        if (continuation.Tool is not null)
+        {
+            return $"{continuation.Kind}: {continuation.Tool}";
+        }
+
+        if (continuation.Tools is { Count: > 0 })
+        {
+            return $"{continuation.Kind}: {string.Join(", ", continuation.Tools)}";
+        }
+
+        return continuation.Kind;
     }
 
     private static double Percentile(double[] orderedValues, double percentile)

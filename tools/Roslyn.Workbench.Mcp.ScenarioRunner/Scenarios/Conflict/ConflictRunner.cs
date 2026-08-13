@@ -11,6 +11,9 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Conflict;
 
 internal sealed class ConflictRunner
 {
+    private const string _callToolContinuationKind = "CallTool";
+    private const string _resolveExternallyContinuationKind = "ResolveExternally";
+    private const string _transactionRollbackTool = "transaction-rollback";
     private static readonly byte[] _externalMarker = Encoding.UTF8.GetBytes(
         $"{Environment.NewLine}// Roslyn Workbench external conflict marker{Environment.NewLine}");
 
@@ -77,12 +80,19 @@ internal sealed class ConflictRunner
             cancellationToken);
         commitStopwatch.Stop();
 
-        var (errorCode, requiredAction) = ReadError(result);
+        var (errorCode, continuation) = ReadError(result);
         if (!string.Equals(errorCode, "TransactionConflicted", StringComparison.Ordinal)
-            || !string.Equals(requiredAction, "RollbackTransaction", StringComparison.Ordinal))
+            || !string.Equals(
+                continuation?.Kind,
+                _callToolContinuationKind,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                continuation?.Tool,
+                _transactionRollbackTool,
+                StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Pre-write drift returned '{errorCode}'/'{requiredAction}' instead of TransactionConflicted/RollbackTransaction.");
+                $"Pre-write drift returned '{errorCode}'/'{continuation?.Kind}' instead of TransactionConflicted with a transaction-rollback tool continuation.");
         }
 
         await InvokeRequiredAsync("transaction-rollback", cancellationToken);
@@ -94,7 +104,7 @@ internal sealed class ConflictRunner
             ConflictDetectionMilliseconds = commitStopwatch.Elapsed.TotalMilliseconds,
             RecoveryMilliseconds = 0,
             ErrorCode = errorCode,
-            RequiredAction = requiredAction,
+            Continuation = continuation,
             ExternalMutation = externalMutation,
         };
     }
@@ -117,12 +127,15 @@ internal sealed class ConflictRunner
         recoveryStopwatch.Stop();
         commitStopwatch.Stop();
 
-        var (errorCode, requiredAction) = ReadError(result);
+        var (errorCode, continuation) = ReadError(result);
         if (!string.Equals(errorCode, "CommitFailed", StringComparison.Ordinal)
-            || !string.Equals(requiredAction, "ResolveRecovery", StringComparison.Ordinal))
+            || !string.Equals(
+                continuation?.Kind,
+                _resolveExternallyContinuationKind,
+                StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"In-progress conflict returned '{errorCode}'/'{requiredAction}' instead of CommitFailed/ResolveRecovery.");
+                $"In-progress conflict returned '{errorCode}'/'{continuation?.Kind}' instead of CommitFailed with an external-resolution continuation.");
         }
 
         return new ConflictExecution
@@ -133,7 +146,7 @@ internal sealed class ConflictRunner
             ConflictDetectionMilliseconds = conflictDetectionMilliseconds,
             RecoveryMilliseconds = recoveryStopwatch.Elapsed.TotalMilliseconds,
             ErrorCode = errorCode,
-            RequiredAction = requiredAction,
+            Continuation = continuation,
             ExternalMutation = externalMutation,
         };
     }
@@ -314,7 +327,7 @@ internal sealed class ConflictRunner
         return fullPath;
     }
 
-    private static (string ErrorCode, string? RequiredAction) ReadError(
+    private static (string ErrorCode, ToolContinuationObservation? Continuation) ReadError(
         CallToolResult result)
     {
         if (result.IsError != true || result.StructuredContent is not { } content)
@@ -329,10 +342,9 @@ internal sealed class ConflictRunner
             .GetString()
             ?? throw new InvalidDataException(
                 "The controlled conflict result contains no error code.");
-        var requiredAction = content.TryGetProperty("next", out var next)
-            ? next.GetString()
-            : null;
-        return (errorCode, requiredAction);
+        var continuation = ToolContinuationReader.Read(content);
+
+        return (errorCode, continuation);
     }
 
     private static string Hash(ReadOnlySpan<byte> contents)

@@ -14,7 +14,7 @@ internal sealed record ConcurrentInvocationMeasurement
 
     public string? ErrorCode { get; init; }
 
-    public string? RequiredAction { get; init; }
+    public ToolContinuationObservation? Continuation { get; init; }
 
     public required bool RetrySucceeded { get; init; }
 

@@ -14,7 +14,7 @@ internal sealed record StateSequenceStepMeasurement
 
     public string? ErrorCode { get; init; }
 
-    public string? RequiredAction { get; init; }
+    public ToolContinuationObservation? Continuation { get; init; }
 
     public string? WorkspaceState { get; init; }
 

@@ -16,7 +16,7 @@ internal sealed record ConcurrencyStepMeasurement
 
     public string? ErrorCode { get; init; }
 
-    public string? RequiredAction { get; init; }
+    public ToolContinuationObservation? Continuation { get; init; }
 
     public int? WorkspaceCount { get; init; }
 

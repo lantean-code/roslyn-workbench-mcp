@@ -23,7 +23,7 @@ internal sealed record ConflictMeasurement
 
     public required string ErrorCode { get; init; }
 
-    public required string? RequiredAction { get; init; }
+    public required ToolContinuationObservation? Continuation { get; init; }
 
     public required ExternalFileMutation ExternalMutation { get; init; }
 

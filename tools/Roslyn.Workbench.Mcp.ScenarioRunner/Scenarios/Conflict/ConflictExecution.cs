@@ -16,7 +16,7 @@ internal sealed record ConflictExecution
 
     public required string ErrorCode { get; init; }
 
-    public required string? RequiredAction { get; init; }
+    public required ToolContinuationObservation? Continuation { get; init; }
 
     public required ExternalFileMutation ExternalMutation { get; init; }
 }

@@ -256,3 +256,31 @@ The independent deep-dive review is complete when:
 - every candidate has been independently revalidated against the current source;
 - the final report identifies validated findings, notable test gaps and review limitations; and
 - no conclusion depends on prior review evidence or Git history.
+
+## Remediation and commit review gate
+
+**Status:** Not started — blocked until the validated RWMCP2 findings have been accepted as the remediation worklist.
+
+Each validated finding must be remediated as one independently confirmable work item unless the user explicitly approves a combined item. Use the following sequence for every item:
+
+1. Select the first incomplete finding in the approved implementation order and revalidate it against the current source.
+2. Explain the concrete failure scenario, representative examples, affected boundaries and supporting call path.
+3. Propose the complete production, contract, documentation and test changes, including alternatives and material trade-offs.
+4. Obtain explicit user approval before changing production code.
+5. Implement the approved change.
+6. Run all formatting, build, analyser, unit, integration, acceptance and scenario validation required by repository policy and the affected boundary.
+7. Present the complete implementation, code changes and validation evidence to the user for review and await the first confirmation. Answer requests for clarification and implement requested corrections, repeating implementation, validation and user review until the user confirms that the change is ready for independent review.
+8. After that first confirmation and before commit, invoke the Review Agent skill for an independent final review of the complete proposed item, preferably using the exact staged change set that will be committed. The review must inspect the surrounding current implementation, direct dependencies and consumers, cross-project contracts, DI/configuration effects and whether the tests exercise the real failure boundary; it must not be limited to superficial diff observations.
+9. Resolve every substantiated Review Agent defect or regression gap, rerun affected validation and repeat the independent review after any material correction. A finding is not ready for final confirmation while actionable review feedback remains.
+10. Present the final implementation, validation evidence and Review Agent outcome to the user for a second review and await final confirmation.
+11. Update the durable finding status only after final confirmation. The user then commits the independently reviewed item so the next remediation begins from a clean worktree.
+
+If the proposed commit changes after its successful Review Agent pass for anything other than a demonstrably mechanical correction, repeat that pass before the second confirmation and commit. The per-item review is a required commit gate, not a replacement for implementation-time reasoning, executable validation or either user review.
+
+## Post-remediation release-candidate review
+
+**Status:** Blocked — run only after every validated RWMCP2 finding is either confirmed complete or explicitly rejected, each remediation is committed, the worktree is clean and the complete release validation gate has succeeded.
+
+The RWMCP2 remediation will materially change transaction, recovery, Code Action, plugin, Host and test boundaries. After it is complete, use a new agent with no conversation context to perform a fresh independent release-candidate review of the complete current repository. The review should concentrate on whether each remediation closes its complete failure path, interactions between remediations, newly introduced ownership/concurrency/compatibility problems, representative end-to-end operations and whether tests cross the production boundaries they claim to prove, while retaining the repository-wide coverage and independent candidate validation requirements of this programme.
+
+Before starting that review, back up the completed RWMCP2 review artefacts outside the repository evidence boundary and reset the in-repository review workspace without carrying forward findings, conclusions, accepted limitations or remediation decisions. The new reviewer must not inspect Git history, the backed-up RWMCP2 artefacts or prior conversation context. Use a new stable identifier series beginning at `RWMCP3-001` and create fresh architecture, plan, subsystem/cross-cutting evidence, candidate ledger and final findings artefacts. This review is the final independent release-readiness gate; it must not begin early merely to review partially remediated state.

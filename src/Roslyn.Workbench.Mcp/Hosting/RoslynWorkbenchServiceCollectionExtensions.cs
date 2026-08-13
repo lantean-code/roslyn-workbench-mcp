@@ -138,6 +138,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IProjectStructureService, ProjectStructureService>();
         services.AddSingleton<IProjectTargetFrameworkResolver, ProjectTargetFrameworkResolver>();
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
+        services.AddSingleton<IWorkspaceSessionCleanup, WorkspaceSessionCleanup>();
         services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
         services.AddSingleton<ITransactionService, TransactionService>();
     }
@@ -241,6 +242,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddHostedService<StartupConfigurationReporter>();
         services.AddHostedService<StartupPrerequisiteLifecycleService>();
         services.AddHostedService<PluginCatalogStartupLifecycleService>();
+        services.AddHostedService<WorkspaceShutdownLifecycleService>();
     }
 
     private static void AddPluginCatalogServices(IServiceCollection services)

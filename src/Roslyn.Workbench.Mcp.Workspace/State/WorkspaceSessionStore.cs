@@ -113,6 +113,19 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         return session;
     }
 
+    public IReadOnlyList<WorkspaceSessionSnapshot> DrainWorkspaces()
+    {
+        lock (_syncRoot)
+        {
+            var sessions = _snapshot.Workspaces.Values
+                .OrderBy(static session => session.Workspace.WorkspaceId)
+                .ToArray();
+
+            _snapshot = new WorkspaceHostSnapshot();
+            return sessions;
+        }
+    }
+
     public void ReplaceSession(WorkspaceSessionSnapshot session)
     {
         ReplaceSessionCore(session, []);

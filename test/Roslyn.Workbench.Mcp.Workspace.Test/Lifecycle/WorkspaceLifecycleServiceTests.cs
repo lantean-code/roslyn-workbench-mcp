@@ -25,6 +25,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
     private readonly Mock<ICommitRecoveryStore> _recoveryStore;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
+    private readonly Mock<IWorkspaceSessionCleanup> _sessionCleanup;
     private readonly WorkspaceLifecycleService _target;
 
     public WorkspaceLifecycleServiceTests()
@@ -51,6 +52,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _recoveryStore = new Mock<ICommitRecoveryStore>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
+        _sessionCleanup = new Mock<IWorkspaceSessionCleanup>();
         _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
@@ -86,7 +88,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             _stateTransitions.Object,
             _resultFactory.Object,
             _recoveryStore.Object,
-            _instanceStatusPublisher.Object);
+            _instanceStatusPublisher.Object,
+            _sessionCleanup.Object);
     }
 
     [Fact]
@@ -818,7 +821,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_ReadyWorkspace_WHEN_Closing_THEN_ShouldDisposeAndReturnClosedPath()
+    public async Task GIVEN_ReadyWorkspace_WHEN_Closing_THEN_ShouldCleanupSessionAndReturnClosedPath()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
@@ -841,7 +844,77 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _sessionCleanup.Verify(item => item.CleanupAsync(session), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_SessionCleanupFails_WHEN_Closing_THEN_ShouldPropagateFailure()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var failure = new InvalidOperationException("Failure");
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        _sessionStore.Setup(item => item.RemoveWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
+        _sessionCleanup
+            .Setup(item => item.CleanupAsync(session))
+            .Returns(() => ValueTask.FromException(failure));
+
+        var action = async () => await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        var assertion = await action.Should().ThrowAsync<InvalidOperationException>();
+        assertion.Which.Should().BeSameAs(failure);
+    }
+
+    [Fact]
+    public async Task GIVEN_OpenWorkspaces_WHEN_ShuttingDown_THEN_ShouldDrainAndCleanupEverySession()
+    {
+        var firstSession = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "FirstPath", alias: null, transaction: null);
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondPath", alias: null, CreateTransaction());
+        _sessionStore.Setup(item => item.DrainWorkspaces()).Returns([firstSession, secondSession]);
+
+        await _target.ShutdownAsync();
+
+        _sessionCleanup.Verify(item => item.CleanupAsync(firstSession), Times.Once);
+        _sessionCleanup.Verify(item => item.CleanupAsync(secondSession), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_OneWorkspaceCleanupFails_WHEN_ShuttingDown_THEN_ShouldCleanupRemainingWorkspaceAndPropagateFailure()
+    {
+        var firstSession = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "FirstPath", alias: null, transaction: null);
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondPath", alias: null, transaction: null);
+        var failure = new InvalidOperationException("Failure");
+        _sessionStore.Setup(item => item.DrainWorkspaces()).Returns([firstSession, secondSession]);
+        _sessionCleanup
+            .Setup(item => item.CleanupAsync(firstSession))
+            .Returns(() => ValueTask.FromException(failure));
+
+        var action = async () => await _target.ShutdownAsync();
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Failure");
+        _sessionCleanup.Verify(item => item.CleanupAsync(secondSession), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_MultipleWorkspaceCleanupsFail_WHEN_ShuttingDown_THEN_ShouldReportEveryFailure()
+    {
+        var firstSession = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "FirstPath", alias: null, transaction: null);
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondPath", alias: null, transaction: null);
+        _sessionStore.Setup(item => item.DrainWorkspaces()).Returns([firstSession, secondSession]);
+        _sessionCleanup
+            .Setup(item => item.CleanupAsync(firstSession))
+            .Returns(() => ValueTask.FromException(new InvalidOperationException("FirstFailure")));
+
+        _sessionCleanup
+            .Setup(item => item.CleanupAsync(secondSession))
+            .Returns(() => ValueTask.FromException(new IOException("SecondFailure")));
+
+        var action = async () => await _target.ShutdownAsync();
+
+        var assertion = await action.Should().ThrowAsync<AggregateException>();
+        assertion.Which.InnerExceptions.Should().ContainSingle(exception => exception is InvalidOperationException && exception.Message == "FirstFailure");
+        assertion.Which.InnerExceptions.Should().ContainSingle(exception => exception is IOException && exception.Message == "SecondFailure");
     }
 
     [Fact]

@@ -18,6 +18,8 @@ internal interface IWorkspaceSessionStore
 
     WorkspaceSessionSnapshot? RemoveWorkspace(Guid workspaceId);
 
+    IReadOnlyList<WorkspaceSessionSnapshot> DrainWorkspaces();
+
     void ReplaceSession(WorkspaceSessionSnapshot session);
 
     void ReplaceSessionAfterStaging(

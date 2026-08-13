@@ -73,4 +73,10 @@ internal interface IWorkspaceLifecycleService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The reload result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Releases every open workspace during application shutdown.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous shutdown operation.</returns>
+    ValueTask ShutdownAsync();
 }

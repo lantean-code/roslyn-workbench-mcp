@@ -659,6 +659,34 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             Times.Once);
     }
 
+    [Fact]
+    public void GIVEN_OpenWorkspacesAndTransactionOwner_WHEN_Draining_THEN_ShouldReturnSessionsAndResetStore()
+    {
+        var firstSession = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "FirstAlias");
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondAlias");
+        var target = CreateStoreWithSession(firstSession);
+        AddSession(target, secondSession);
+        target.ReplaceSessionAndSetTransactionOwner(firstSession, firstSession.Workspace.WorkspaceId);
+
+        var result = target.DrainWorkspaces();
+
+        result.Should().Equal(firstSession, secondSession);
+        target.ReadSnapshot().Workspaces.Should().BeEmpty();
+        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_StoreAlreadyDrained_WHEN_DrainingAgain_THEN_ShouldReturnEmptyCollection()
+    {
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
+        var target = CreateStoreWithSession(session);
+        target.DrainWorkspaces();
+
+        var result = target.DrainWorkspaces();
+
+        result.Should().BeEmpty();
+    }
+
     private WorkspaceSessionStore CreateStoreWithSession(WorkspaceSessionSnapshot session)
     {
         var target = CreateStore();

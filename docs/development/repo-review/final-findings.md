@@ -68,19 +68,27 @@ After an interrupted applying commit, a truncated or altered backup can remain p
 
 ### RWMCP2-002 — Open Workspace resources survive generic Host shutdown
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionStore.cs:5-23`; `src/Roslyn.Workbench.Mcp/Hosting/RoslynWorkbenchServiceCollectionExtensions.cs:107-115`; `src/Roslyn.Workbench.Mcp/Program.cs:9-13`; `src/Roslyn.Workbench.Mcp.Workspace/Loading/LoadedWorkspace.cs:18-20`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputManifest.cs:23-25`
 
 Opening a Workspace transfers a disposable loaded Workspace and input manifest into the singleton session store. Explicit `workspace_close` disposes them, but the store is not disposable and no Host shutdown service drains it. `Program` relies on generic Host disposal, which has no ownership path to these session-held resources. Ending a stdio session with open Workspaces therefore leaves `MSBuildWorkspace` instances and filesystem watchers undisposed until process teardown; this is directly observable for in-process Host start/stop and prevents deterministic resource release.
 
+**Remediation outcome:** The session store now provides an atomic terminal drain, and a Host-managed Workspace lifecycle service invokes it after the MCP transport has stopped and completed in-flight requests. Every drained session receives best-effort status closure, input-manifest disposal and loaded-Workspace disposal even when another session fails. Terminal cleanup failures are logged without disrupting the remaining Host shutdown process, while the lower-level lifecycle retains the complete failures. Unit and integration coverage proves atomic and repeated drains, cleanup of every session, transport-before-Workspace shutdown ordering, terminal failure logging and disposal of a real stored session through in-process Host shutdown. The solution build, 1,000 Workspace unit tests, 94 Workspace integration tests, 484 Host unit tests and 71 Host integration tests passed; affected `latest-all` analyzer builds were clean, and the independent Review Agent returned no findings.
+
 ### RWMCP2-003 — Instance-status close failure skips Workspace resource disposal
+
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
 
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs:231-242`; `src/Roslyn.Workbench.Mcp.Workspace/Coordination/WorkspaceInstanceStatusPublisher.cs:175-189`; `src/Roslyn.Workbench.Mcp.Workspace/Coordination/WorkspaceInstanceStatusHandle.cs:49-52`
 
 `WorkspaceLifecycleService.CloseAsync` removes the session, awaits instance-status close, and only then disposes the input manifest and loaded Workspace, without a `finally`. `WorkspaceInstanceStatusPublisher` removes its handle before directly disposing the underlying stream, which can throw. A status-stream close failure therefore skips both Workspace resource disposals after the authoritative session has already disappeared, and no retry through Workspace selection is possible. Tests model throwing status-stream disposal at the publisher boundary but do not connect it to lifecycle cleanup.
+
+**Remediation outcome:** Explicit close and terminal shutdown now share a focused session-cleanup service that independently attempts advisory status closure, input-manifest disposal and loaded-Workspace disposal. It preserves and rethrows a single failure with its original stack or aggregates multiple failures only after every owned resource has been attempted. `workspace_close` continues to propagate cleanup failure to its caller, while only the terminal Host boundary logs and suppresses it. Focused unit coverage exercises each individual cleanup failure, three simultaneous failures, successful explicit-close delegation and exact failure propagation through `WorkspaceLifecycleService.CloseAsync`. The complete validation and independent Review Agent result are recorded with `RWMCP2-002`, with which this ownership remediation was implemented and reviewed.
 
 ### RWMCP2-006 — Plugin admission does not enforce the runtime query response contract
 

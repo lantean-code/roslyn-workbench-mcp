@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
@@ -16,6 +18,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+    private readonly IWorkspaceSessionCleanup _sessionCleanup;
 
     public WorkspaceLifecycleService(
         IOptions<WorkspaceOptions> options,
@@ -29,7 +32,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceStateTransitions workspaceStateTransitions,
         IWorkspaceOperationResultFactory resultFactory,
         ICommitRecoveryStore recoveryStore,
-        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IWorkspaceSessionCleanup sessionCleanup)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -43,6 +47,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _resultFactory = resultFactory;
         _recoveryStore = recoveryStore;
         _instanceStatusPublisher = instanceStatusPublisher;
+        _sessionCleanup = sessionCleanup;
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -237,9 +242,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
-        await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId);
-        removedSession.InputManifest.Dispose();
-        removedSession.LoadedWorkspace.Dispose();
+        await _sessionCleanup.CleanupAsync(removedSession);
         var outcome = new WorkspaceCloseOutcome
         {
             ClosedPath = removedSession.Workspace.LoadedPath,
@@ -248,6 +251,42 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var context = CreateContext(removedSession);
 
         return _resultFactory.Succeeded(outcome, context);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Application shutdown must release every open workspace before reporting any cleanup failure.")]
+    public async ValueTask ShutdownAsync()
+    {
+        var sessions = _sessionStore.DrainWorkspaces();
+        List<Exception>? failures = null;
+        foreach (var session in sessions)
+        {
+            try
+            {
+                await _sessionCleanup.CleanupAsync(session);
+            }
+            catch (Exception exception)
+            {
+                failures ??= [];
+                failures.Add(exception);
+            }
+        }
+
+        if (failures is null)
+        {
+            return;
+        }
+
+        if (failures.Count == 1)
+        {
+            ExceptionDispatchInfo.Capture(failures[0]).Throw();
+        }
+
+        throw new AggregateException(
+            "One or more failures occurred while shutting down open workspaces.",
+            failures);
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(

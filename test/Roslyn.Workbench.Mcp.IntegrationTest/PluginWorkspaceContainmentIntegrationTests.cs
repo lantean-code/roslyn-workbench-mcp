@@ -86,7 +86,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
 
     private sealed record TestRequest : WorkspaceMutationRequest;
 
-    private sealed class TestResponse;
+    private sealed class TestResponse : IQueryResponse;
 
     private sealed class MutatingQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {

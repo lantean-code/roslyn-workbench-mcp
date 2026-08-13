@@ -19,12 +19,12 @@ public interface IQueryToolHandler
 /// Executes one registered query tool.
 /// </summary>
 /// <typeparam name="TRequest">The request contract type.</typeparam>
-/// <typeparam name="TResponse">The successful response payload type.</typeparam>
+/// <typeparam name="TResponse">The object-valued successful response payload type.</typeparam>
 /// <remarks>
 /// Implementations are retained for the lifetime of the plugin catalogue and must be stateless, thread-safe, and must
 /// not own disposable resources. Invocation-scoped services are available through the supplied query context.
 /// </remarks>
-public interface IQueryToolHandler<TRequest, TResponse> : IQueryToolHandler where TRequest : WorkspaceBoundRequest
+public interface IQueryToolHandler<TRequest, TResponse> : IQueryToolHandler where TRequest : WorkspaceBoundRequest where TResponse : IQueryResponse
 {
     /// <summary>
     /// Executes the tool for the provided request.

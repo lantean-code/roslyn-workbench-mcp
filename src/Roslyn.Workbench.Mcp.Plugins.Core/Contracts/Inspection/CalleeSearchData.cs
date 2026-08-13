@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-callees.
 /// </summary>
-internal sealed record CalleeSearchData
+internal sealed record CalleeSearchData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried callable symbol.

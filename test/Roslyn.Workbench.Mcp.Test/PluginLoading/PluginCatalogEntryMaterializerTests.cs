@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Options;
-
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class PluginCatalogEntryMaterializerTests
@@ -13,15 +11,12 @@ public sealed class PluginCatalogEntryMaterializerTests
         _toolRegistrationMaterializer = new Mock<IPluginToolRegistrationMaterializer>();
         _schemaPreflight = new Mock<IPluginTransportSchemaPreflight>();
         _schemaPreflight
-            .Setup(preflight => preflight.Preflight(
-                It.IsAny<IReadOnlyList<PreparedPluginTool>>(),
-                It.IsAny<ToolOutputSchemaMode>()))
+            .Setup(preflight => preflight.Preflight(It.IsAny<IReadOnlyList<PreparedPluginTool>>()))
             .Returns(PluginTransportSchemaPreflightResult.Success());
 
         _target = new PluginCatalogEntryMaterializer(
             _toolRegistrationMaterializer.Object,
-            _schemaPreflight.Object,
-            Options.Create(new StartupOptions()));
+            _schemaPreflight.Object);
     }
 
     [Fact]
@@ -138,7 +133,7 @@ public sealed class PluginCatalogEntryMaterializerTests
             Message = "Schema failed.",
         };
         _schemaPreflight
-            .Setup(preflight => preflight.Preflight(plugin.Preparation.Tools, ToolOutputSchemaMode.Omit))
+            .Setup(preflight => preflight.Preflight(plugin.Preparation.Tools))
             .Returns(PluginTransportSchemaPreflightResult.Failure([diagnostic]));
 
         var result = _target.Materialize(plugin);

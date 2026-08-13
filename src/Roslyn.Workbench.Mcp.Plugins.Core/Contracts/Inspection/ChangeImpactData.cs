@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-change-impact.
 /// </summary>
-internal sealed record ChangeImpactData
+internal sealed record ChangeImpactData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried symbol.

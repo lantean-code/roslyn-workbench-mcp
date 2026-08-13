@@ -4,6 +4,7 @@ namespace Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerToolBase<TRequest>
     where TRequest : WorkspaceBoundRequest
+    where TResponse : IQueryResponse
 {
     private readonly IQueryToolHandler<TRequest, TResponse> _handler;
     private readonly IToolExecutionContextFactory _contextFactory;

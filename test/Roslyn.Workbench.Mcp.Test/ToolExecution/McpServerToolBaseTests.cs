@@ -96,7 +96,7 @@ public sealed class McpServerToolBaseTests
         public string Name { get; init; } = string.Empty;
     }
 
-    public sealed record TestResponse
+    public sealed record TestResponse : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

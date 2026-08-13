@@ -20,7 +20,7 @@ The three-tool [Code Action workflow](CodeActions.md) discovers ordinary Roslyn 
 
 ## Schemas and metadata
 
-Every tool publishes its name, title, description, input schema and behavioural annotations. By default, output schemas are omitted to keep `tools/list` compact. Start the server with `--tool-output-schema-mode Full` when clients need the generated family-specific output schemas.
+Every tool publishes its name, title, description, input schema and behavioural annotations. By default, output schemas are omitted to keep `tools/list` compact. Start the server with `--tool-output-schema-mode Full` when clients need the generated family-specific output schemas. The Host validates response contracts during startup in both modes; this setting changes publication only, not whether a plugin response is safe to advertise and serialise.
 
 Operational requirements that an agent must follow are stated in tool descriptions and structured diagnostics rather than hidden in client-specific metadata.
 

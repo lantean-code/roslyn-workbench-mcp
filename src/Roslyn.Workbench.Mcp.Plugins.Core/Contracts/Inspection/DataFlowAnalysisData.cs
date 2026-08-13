@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by analyze-data-flow.
 /// </summary>
-internal sealed record DataFlowAnalysisData
+internal sealed record DataFlowAnalysisData : IQueryResponse
 {
     /// <summary>
     /// Gets the analyzed region.

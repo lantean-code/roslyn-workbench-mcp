@@ -20,7 +20,7 @@ public sealed class PluginHandlerAnalyzerContractTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceMutationRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class {|RWMCP005:Handler|} :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>,
@@ -47,7 +47,7 @@ public sealed class PluginHandlerAnalyzerContractTests
             internal sealed record {|RWMCP008:Request|} :
                 Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             internal sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -65,7 +65,7 @@ public sealed class PluginHandlerAnalyzerContractTests
             internal sealed record Request :
                 Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            internal sealed record Response;
+            internal sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             internal sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -81,7 +81,7 @@ public sealed class PluginHandlerAnalyzerContractTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             [{|RWMCP012:Roslyn.Workbench.Mcp.Plugins.RoslynTool(
                 "query",
@@ -102,7 +102,7 @@ public sealed class PluginHandlerAnalyzerContractTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             [{|RWMCP022:Roslyn.Workbench.Mcp.Plugins.RoslynTool(
                 "invalid name",
@@ -132,7 +132,7 @@ public sealed class PluginHandlerAnalyzerContractTests
             public sealed record Request :
                 Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             [Roslyn.Workbench.Mcp.Plugins.RoslynTool(
                 "query",

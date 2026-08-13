@@ -47,7 +47,7 @@ public sealed class PluginMcpServerToolFactoryTests
     {
     }
 
-    public sealed record TestResponse
+    public sealed record TestResponse : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

@@ -22,7 +22,7 @@ public sealed class UnsupportedSchemaTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
-    public sealed record SupportedResponse
+    public sealed record SupportedResponse : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }
@@ -33,7 +33,7 @@ public sealed class UnsupportedSchemaTestPlugin : IRoslynPlugin
     }
 
     [JsonConverter(typeof(UnsupportedResponseConverter))]
-    public sealed record UnsupportedResponse
+    public sealed record UnsupportedResponse : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

@@ -179,7 +179,6 @@ public sealed class ExternalPluginBoundaryIntegrationTests
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
-            additionalArguments: ["--tool-output-schema-mode", "Full"],
             pluginAssets:
             [
                 AcceptancePluginAsset.HostQuery,

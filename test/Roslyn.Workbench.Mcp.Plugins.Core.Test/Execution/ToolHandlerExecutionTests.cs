@@ -38,11 +38,16 @@ public sealed class ToolHandlerExecutionTests
 
     private sealed record TestWorkspaceBoundRequest : WorkspaceMutationRequest;
 
-    private sealed class TestQueryTool : QueryToolHandler<TestWorkspaceBoundRequest, string>
+    private sealed record TestQueryResponse : IQueryResponse
     {
-        protected override ValueTask<PluginExecutionResult<string>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IQueryContext context, CancellationToken cancellationToken)
+    }
+
+    private sealed class TestQueryTool : QueryToolHandler<TestWorkspaceBoundRequest, TestQueryResponse>
+    {
+        protected override ValueTask<PluginExecutionResult<TestQueryResponse>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult.Success("Value"));
+            var response = new TestQueryResponse();
+            return ValueTask.FromResult(PluginExecutionResult.Success(response));
         }
     }
 

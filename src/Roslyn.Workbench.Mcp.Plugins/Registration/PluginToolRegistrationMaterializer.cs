@@ -103,6 +103,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
 
     private static IRegisteredPluginTool CreateQueryRegistration<TRequest, TResponse>(RegisteredTool tool, object handler)
         where TRequest : WorkspaceBoundRequest
+        where TResponse : IQueryResponse
     {
         var queryHandler = (IQueryToolHandler<TRequest, TResponse>)handler;
         return new PluginQueryRegistration<TRequest, TResponse>(tool, queryHandler);

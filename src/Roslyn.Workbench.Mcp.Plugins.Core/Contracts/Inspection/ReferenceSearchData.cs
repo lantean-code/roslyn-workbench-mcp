@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-references.
 /// </summary>
-internal sealed record ReferenceSearchData
+internal sealed record ReferenceSearchData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried symbol.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-operation-tree.
 /// </summary>
-internal sealed record OperationTreeData
+internal sealed record OperationTreeData : IQueryResponse
 {
     /// <summary>
     /// Gets the projected root operation.

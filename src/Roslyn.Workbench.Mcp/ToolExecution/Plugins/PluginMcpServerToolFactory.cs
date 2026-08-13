@@ -23,6 +23,7 @@ internal sealed class PluginMcpServerToolFactory : IPluginMcpServerToolFactory
 
     public McpServerTool VisitQuery<TRequest, TResponse>(PluginQueryRegistration<TRequest, TResponse> registration)
         where TRequest : WorkspaceBoundRequest
+        where TResponse : IQueryResponse
     {
         return new PluginQueryMcpServerTool<TRequest, TResponse>(
             registration,

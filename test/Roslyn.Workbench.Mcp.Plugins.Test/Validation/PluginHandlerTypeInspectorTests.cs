@@ -47,7 +47,7 @@ public sealed class PluginHandlerTypeInspectorTests
 #pragma warning disable CA1812 // Contract and handler fixtures are inspected through composition metadata without activation.
     private sealed record Request : WorkspaceBoundRequest;
 
-    private sealed record Response;
+    private sealed record Response : IQueryResponse;
 
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {

@@ -88,7 +88,7 @@ internal static class PluginDiagnosticDescriptors
     public static readonly DiagnosticDescriptor UnboundedQueryCollection = Create(
         "RWMCP014",
         "Bound agent-facing query collections",
-        "Query response member '{0}' exposes an unbounded collection; use BoundedCollection<TItem>",
+        "Query response member '{0}' exposes an unbounded collection; use BoundedCollection<TItem> within a dedicated IQueryResponse DTO",
         DiagnosticSeverity.Warning);
 
     public static readonly DiagnosticDescriptor PluginEntryPointContract = Create(

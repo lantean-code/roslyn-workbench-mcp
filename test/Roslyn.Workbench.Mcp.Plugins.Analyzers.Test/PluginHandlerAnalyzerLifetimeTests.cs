@@ -7,7 +7,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class {|RWMCP006:Handler|} :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>,
@@ -27,7 +27,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -45,7 +45,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -62,7 +62,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -84,7 +84,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -116,7 +116,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler(System.IO.MemoryStream stream) :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -133,7 +133,7 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler(System.IO.MemoryStream stream) :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>

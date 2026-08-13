@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-control-flow-graph.
 /// </summary>
-internal sealed record ControlFlowGraphData
+internal sealed record ControlFlowGraphData : IQueryResponse
 {
     /// <summary>
     /// Gets the owning callable symbol.

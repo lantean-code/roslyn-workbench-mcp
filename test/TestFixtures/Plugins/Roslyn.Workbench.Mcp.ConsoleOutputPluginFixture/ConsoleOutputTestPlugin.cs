@@ -28,7 +28,7 @@ public sealed class ConsoleOutputTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
-    public sealed record Response
+    public sealed record Response : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

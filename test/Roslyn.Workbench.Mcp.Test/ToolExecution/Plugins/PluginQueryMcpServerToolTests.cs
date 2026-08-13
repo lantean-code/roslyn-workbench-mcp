@@ -413,7 +413,7 @@ public sealed class PluginQueryMcpServerToolTests
         public DocumentSelector? Document { get; init; }
     }
 
-    public sealed record TestQueryResponse
+    public sealed record TestQueryResponse : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

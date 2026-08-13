@@ -43,6 +43,7 @@ internal static class McpServerToolTestData
         IQueryToolHandler<TRequest, TResponse> handler,
         string name)
         where TRequest : WorkspaceBoundRequest
+        where TResponse : IQueryResponse
     {
         return new PluginQueryRegistration<TRequest, TResponse>(
             CreateRegisteredPluginTool(name, ToolKind.Query, typeof(TRequest), typeof(TResponse)),

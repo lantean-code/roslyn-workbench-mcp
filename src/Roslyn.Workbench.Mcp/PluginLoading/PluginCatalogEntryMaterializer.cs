@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
@@ -7,16 +6,13 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
 {
     private readonly IPluginToolRegistrationMaterializer _toolRegistrationMaterializer;
     private readonly IPluginTransportSchemaPreflight _schemaPreflight;
-    private readonly ToolOutputSchemaMode _outputSchemaMode;
 
     public PluginCatalogEntryMaterializer(
         IPluginToolRegistrationMaterializer toolRegistrationMaterializer,
-        IPluginTransportSchemaPreflight schemaPreflight,
-        IOptions<StartupOptions> options)
+        IPluginTransportSchemaPreflight schemaPreflight)
     {
         _toolRegistrationMaterializer = toolRegistrationMaterializer;
         _schemaPreflight = schemaPreflight;
-        _outputSchemaMode = options.Value.ToolOutputSchemaMode;
     }
 
     [SuppressMessage(
@@ -28,7 +24,7 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         PluginMaterializationResult? materialization = null;
         try
         {
-            var schemaPreflight = _schemaPreflight.Preflight(plugin.Preparation.Tools, _outputSchemaMode);
+            var schemaPreflight = _schemaPreflight.Preflight(plugin.Preparation.Tools);
             if (!schemaPreflight.Succeeded)
             {
                 var disabledStatus = PluginCatalogStatusFactory.CreateDisabled(plugin.Metadata, schemaPreflight.Failures);

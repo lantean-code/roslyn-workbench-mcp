@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by go-to-definition.
 /// </summary>
-internal sealed record DefinitionData
+internal sealed record DefinitionData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried symbol.

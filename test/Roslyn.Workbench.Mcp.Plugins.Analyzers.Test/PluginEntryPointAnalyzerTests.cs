@@ -138,7 +138,7 @@ public sealed class PluginEntryPointAnalyzerTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             [Roslyn.Workbench.Mcp.Plugins.RoslynTool(
                 "tool",

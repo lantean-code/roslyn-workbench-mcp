@@ -12,8 +12,7 @@ public sealed class PluginHandlerContractResolverTests
     [Theory]
     [InlineData(typeof(QueryHandler), false, typeof(IQueryToolHandler<Request, Response>))]
     [InlineData(typeof(MutationHandler), true, typeof(IMutationToolHandler<Request>))]
-    [InlineData(typeof(PublicResponseQueryHandler), false, typeof(IQueryToolHandler<Request, string>))]
-    [InlineData(typeof(PublicGenericResponseQueryHandler), false, typeof(IQueryToolHandler<Request, IReadOnlyList<Response>>))]
+    [InlineData(typeof(PublicGenericResponseQueryHandler), false, typeof(IQueryToolHandler<Request, PublicGenericResponse<Response>>))]
     public void GIVEN_ValidHandlerContract_WHEN_Resolving_THEN_ShouldReturnContract(
         Type handlerType,
         bool isMutation,
@@ -117,7 +116,9 @@ public sealed class PluginHandlerContractResolverTests
 
     public sealed record SecondRequest : WorkspaceBoundRequest;
 
-    public sealed record Response;
+    public sealed record Response : IQueryResponse;
+
+    public sealed record PublicGenericResponse<T> : IQueryResponse;
 #pragma warning restore CA1515
 
 #pragma warning disable CA1812 // Contract fixtures are inspected as Type metadata and are not runtime handler instances.
@@ -147,22 +148,15 @@ public sealed class PluginHandlerContractResolverTests
         }
     }
 
-    private sealed class PublicResponseQueryHandler : IQueryToolHandler<Request, string>
+    private sealed class PublicGenericResponseQueryHandler : IQueryToolHandler<Request, PublicGenericResponse<Response>>
     {
-        public ValueTask<PluginExecutionResult<string>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult(PluginExecutionResult.Success("Response"));
-        }
-    }
-
-    private sealed class PublicGenericResponseQueryHandler : IQueryToolHandler<Request, IReadOnlyList<Response>>
-    {
-        public ValueTask<PluginExecutionResult<IReadOnlyList<Response>>> ExecuteAsync(
+        public ValueTask<PluginExecutionResult<PublicGenericResponse<Response>>> ExecuteAsync(
             Request request,
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult.Success<IReadOnlyList<Response>>([]));
+            var response = new PublicGenericResponse<Response>();
+            return ValueTask.FromResult(PluginExecutionResult.Success(response));
         }
     }
 
@@ -222,25 +216,27 @@ public sealed class PluginHandlerContractResolverTests
         }
     }
 
-    private sealed class NestedPrivateContractHandler : IQueryToolHandler<Request, IReadOnlyList<PrivateResponse>>
+    private sealed class NestedPrivateContractHandler : IQueryToolHandler<Request, PublicGenericResponse<PrivateResponse>>
     {
-        public ValueTask<PluginExecutionResult<IReadOnlyList<PrivateResponse>>> ExecuteAsync(
+        public ValueTask<PluginExecutionResult<PublicGenericResponse<PrivateResponse>>> ExecuteAsync(
             Request request,
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult.Success<IReadOnlyList<PrivateResponse>>([]));
+            var response = new PublicGenericResponse<PrivateResponse>();
+            return ValueTask.FromResult(PluginExecutionResult.Success(response));
         }
     }
 
-    private sealed class ArrayPrivateContractHandler : IQueryToolHandler<Request, PrivateResponse[]>
+    private sealed class ArrayPrivateContractHandler : IQueryToolHandler<Request, PublicGenericResponse<PrivateResponse[]>>
     {
-        public ValueTask<PluginExecutionResult<PrivateResponse[]>> ExecuteAsync(
+        public ValueTask<PluginExecutionResult<PublicGenericResponse<PrivateResponse[]>>> ExecuteAsync(
             Request request,
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult.Success<PrivateResponse[]>([]));
+            var response = new PublicGenericResponse<PrivateResponse[]>();
+            return ValueTask.FromResult(PluginExecutionResult.Success(response));
         }
     }
 

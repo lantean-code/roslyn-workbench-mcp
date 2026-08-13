@@ -45,6 +45,10 @@ internal static class AnalyzerSourcePrelude
             {
             }
 
+            public interface IQueryResponse
+            {
+            }
+
             public interface IMutationToolHandler
             {
             }
@@ -73,6 +77,7 @@ internal static class AnalyzerSourcePrelude
 
             public interface IQueryToolHandler<TRequest, TResponse> : IQueryToolHandler
                 where TRequest : WorkspaceBoundRequest
+                where TResponse : IQueryResponse
             {
             }
 

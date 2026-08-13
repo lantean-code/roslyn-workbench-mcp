@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-symbol-dependents.
 /// </summary>
-internal sealed record SymbolDependentsData
+internal sealed record SymbolDependentsData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried symbol.

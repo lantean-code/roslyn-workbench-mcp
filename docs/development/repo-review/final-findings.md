@@ -92,11 +92,15 @@ Opening a Workspace transfers a disposable loaded Workspace and input manifest i
 
 ### RWMCP2-006 — Plugin admission does not enforce the runtime query response contract
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp/Configuration/StartupOptions.cs:23-25`; `src/Roslyn.Workbench.Mcp/PluginLoading/PluginTransportSchemaPreflight.cs:14-42`; `src/Roslyn.Workbench.Mcp/PluginLoading/PluginCatalogEntryMaterializer.cs:26-51`; `src/Roslyn.Workbench.Mcp/PluginLoading/QueryResponseContractInspector.cs:24-70`; `src/Roslyn.Workbench.Mcp/ToolExecution/Plugins/PluginQueryMcpServerTool.cs:74-78`; `src/Roslyn.Workbench.Mcp/Protocol/Results/ToolResultEnvelopeSerializer.cs:19-38,179-188`
 
 The default `ToolOutputSchemaMode.Omit` validates the request but skips response metadata/schema creation. The response inspector explicitly excludes `string` from raw collection rejection and has no scalar/object-shape rule, while the public generic query contract permits such a response. The catalogue can consequently enable and advertise a query returning `string`, but a successful invocation reaches `ToolResultEnvelopeSerializer`, whose success data must serialize as a JSON object, and throws. Converter or metadata failures for otherwise object-shaped responses are likewise deferred in omission mode. Narrow current tests confirm each seam independently—scalar serialization throws and omission skips response validation—but do not join admission to invocation.
+
+**Remediation outcome:** Query handlers now require a Plugins-owned `IQueryResponse` root DTO, while reusable `BoundedCollection<TItem>` values remain neutral Abstractions components nested inside those DTOs. Plugin admission always generates response schema metadata and validates the runtime serializer's exact JSON contract before constructing handlers, regardless of whether output schemas are published. Only object contracts are admitted; scalar, collection, dictionary and top-level custom-converter contracts are rejected before advertisement, and runtime object projection remains as defence in depth. Bundled responses, external fixtures, analyser models, public API locks and plugin-author guidance were migrated together. Unit, plugin, analyser, integration and published-host acceptance coverage passed, including default output-schema omission, malformed response contracts and explicit JSON-kind rejection; affected `latest-all` analyser builds were clean. The first independent Review Agent pass returned no findings. After the user narrowed admission to dedicated object DTOs, the repeated pass found one misleading RWMCP014 remediation message; the message and its descriptor contract test were corrected, and the user gave final confirmation.
 
 ### RWMCP2-007 — Project details always omit effective preprocessor symbols
 

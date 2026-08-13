@@ -15,7 +15,7 @@ public sealed class InvalidToolNameTestPlugin : IRoslynPlugin
 
     public sealed record Request : WorkspaceBoundRequest;
 
-    public sealed record Response;
+    public sealed record Response : IQueryResponse;
 
 #pragma warning disable RWMCP022 // The fixture proves runtime rejection when the authoring diagnostic is suppressed.
 

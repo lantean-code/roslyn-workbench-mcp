@@ -16,6 +16,7 @@ internal sealed class PluginComponentTestSession
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : WorkspaceBoundRequest
+        where TResponse : IQueryResponse
     {
         var tool = GetTool(toolName);
         return tool.Accept(new QueryVisitor<TRequest, TResponse>(this, request, cancellationToken));
@@ -42,6 +43,7 @@ internal sealed class PluginComponentTestSession
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : WorkspaceBoundRequest
+        where TResponse : IQueryResponse
     {
         await using var lease = _workspace.PluginContextFactory.CreateQueryContext(request, cancellationToken);
         if (lease.HasShortCircuitResult)
@@ -103,6 +105,7 @@ internal sealed class PluginComponentTestSession
     private sealed class QueryVisitor<TExpectedRequest, TExpectedResponse>
         : IPluginToolRegistrationVisitor<ValueTask<PluginExecutionResult<TExpectedResponse>>>
         where TExpectedRequest : WorkspaceBoundRequest
+        where TExpectedResponse : IQueryResponse
     {
         private readonly PluginComponentTestSession _session;
         private readonly TExpectedRequest _request;
@@ -121,6 +124,7 @@ internal sealed class PluginComponentTestSession
         public ValueTask<PluginExecutionResult<TExpectedResponse>> VisitQuery<TRequest, TResponse>(
             PluginQueryRegistration<TRequest, TResponse> registration)
             where TRequest : WorkspaceBoundRequest
+            where TResponse : IQueryResponse
         {
             if (registration is not PluginQueryRegistration<TExpectedRequest, TExpectedResponse> typedRegistration)
             {
@@ -160,6 +164,7 @@ internal sealed class PluginComponentTestSession
         public ValueTask<PluginExecutionResult<MutationData>> VisitQuery<TRequest, TResponse>(
             PluginQueryRegistration<TRequest, TResponse> registration)
             where TRequest : WorkspaceBoundRequest
+            where TResponse : IQueryResponse
         {
             throw new InvalidOperationException($"Tool '{registration.Tool.Metadata.Name}' is not a mutation tool.");
         }

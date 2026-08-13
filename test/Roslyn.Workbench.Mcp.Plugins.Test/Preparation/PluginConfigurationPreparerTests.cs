@@ -294,11 +294,10 @@ public sealed class PluginConfigurationPreparerTests
         };
     }
 
-#pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
+#pragma warning disable CA1812 // These fixtures are consumed through closed generic registration metadata.
     private sealed record Request : WorkspaceMutationRequest;
-#pragma warning restore CA1812
 
-    private sealed record Response;
+    private sealed record Response : IQueryResponse;
 
     private interface IPluginService
     {
@@ -374,4 +373,5 @@ public sealed class PluginConfigurationPreparerTests
             return ValueTask.FromResult(result);
         }
     }
+#pragma warning restore CA1812
 }

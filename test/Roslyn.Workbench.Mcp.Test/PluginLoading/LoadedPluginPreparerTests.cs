@@ -104,11 +104,10 @@ public sealed class LoadedPluginPreparerTests
         action.Should().Throw<InvalidOperationException>();
     }
 
-#pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
+#pragma warning disable CA1812 // These fixtures are consumed through closed generic registration metadata.
     private sealed record Request : WorkspaceBoundRequest;
-#pragma warning restore CA1812
 
-    private sealed record Response;
+    private sealed record Response : IQueryResponse;
 
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {
@@ -126,4 +125,5 @@ public sealed class LoadedPluginPreparerTests
             return ValueTask.FromResult(result);
         }
     }
+#pragma warning restore CA1812
 }

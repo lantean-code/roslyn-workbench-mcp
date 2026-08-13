@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
@@ -8,7 +9,10 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// </summary>
 internal static class ToolResultEnvelopeSerializer
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+    };
 
     /// <summary>
     /// Creates a successful envelope that publishes the response payload under the shared data property.
@@ -35,6 +39,12 @@ internal static class ToolResultEnvelopeSerializer
 
             writer.WriteEndObject();
         });
+    }
+
+    public static JsonTypeInfoKind GetSuccessDataContractKind(Type dataType)
+    {
+        var typeInfo = _serializerOptions.GetTypeInfo(dataType);
+        return typeInfo.Kind;
     }
 
     /// <summary>

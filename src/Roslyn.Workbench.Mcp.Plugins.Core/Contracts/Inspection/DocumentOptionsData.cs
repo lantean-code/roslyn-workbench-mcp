@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-document-options.
 /// </summary>
-internal sealed record DocumentOptionsData
+internal sealed record DocumentOptionsData : IQueryResponse
 {
     /// <summary>
     /// Gets the resolved document reference.

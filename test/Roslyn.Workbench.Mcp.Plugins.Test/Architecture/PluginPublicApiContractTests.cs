@@ -69,6 +69,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration",
         "Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration",
         "Roslyn.Workbench.Mcp.Plugins.IQueryContext",
+        "Roslyn.Workbench.Mcp.Plugins.IQueryResponse",
         "Roslyn.Workbench.Mcp.Plugins.IQueryResultCache",
         "Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey",
         "Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler",
@@ -142,6 +143,23 @@ public sealed class PluginPublicApiContractTests
             .ToArray();
 
         productDependencies.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_QueryHandlerContract_WHEN_InspectingResponseConstraint_THEN_ShouldRequireQueryResponseMarker()
+    {
+        var responseParameter = typeof(IQueryToolHandler<,>).GetGenericArguments()[1];
+        var constraints = responseParameter.GetGenericParameterConstraints();
+
+        constraints.Should().ContainSingle().Which.Should().Be<IQueryResponse>();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BoundedCollection_WHEN_InspectingResponseContract_THEN_ShouldRemainNestedComponent()
+    {
+        typeof(IQueryResponse).IsAssignableFrom(typeof(BoundedCollection<string>)).Should().BeFalse();
     }
 
     [Fact]

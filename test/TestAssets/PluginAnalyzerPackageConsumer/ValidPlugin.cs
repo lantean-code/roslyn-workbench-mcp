@@ -15,7 +15,7 @@ public sealed record ExampleQueryRequest : WorkspaceBoundRequest
     public string Value { get; init; } = string.Empty;
 }
 
-public sealed record ExampleQueryData
+public sealed record ExampleQueryData : IQueryResponse
 {
     public string Value { get; init; } = string.Empty;
 }

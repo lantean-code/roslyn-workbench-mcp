@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-partial-declarations.
 /// </summary>
-internal sealed record PartialDeclarationsData
+internal sealed record PartialDeclarationsData : IQueryResponse
 {
     /// <summary>
     /// Gets the queried symbol.

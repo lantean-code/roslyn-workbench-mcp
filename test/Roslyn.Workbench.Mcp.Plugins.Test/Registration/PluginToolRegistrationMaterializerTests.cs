@@ -265,7 +265,7 @@ public sealed class PluginToolRegistrationMaterializerTests
     private sealed record Request : WorkspaceMutationRequest;
 #pragma warning restore CA1812
 
-    private sealed record Response;
+    private sealed record Response : IQueryResponse;
 
 #pragma warning disable CA1812 // Fixture services and handlers are constructed by DI from runtime Type metadata.
 

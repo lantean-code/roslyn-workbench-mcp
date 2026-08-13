@@ -136,7 +136,7 @@ Forward the token to cancellable Roslyn, I/O and asynchronous APIs, or call `Thr
 
 A query publishes a raw array, list, set, dictionary, enumerable or asynchronous collection either as its response or through a public response property.
 
-Expose a nullable integer limit with a positive declared default and apply `[Range(0, int.MaxValue)]` so negative values are rejected during request binding. An explicitly requested zero means that no items should be returned and must not be the declared default. Resolve omitted values with `ResultLimit.GetEffectiveValue`, apply the effective limit before constructing the response, and publish the result through `BoundedCollection.CreatePrebounded<TItem>` from `Roslyn.Workbench.Mcp.Workspace.Results`. Include `TotalCount` only when the complete count is already available cheaply.
+Expose a nullable integer limit with a positive declared default and apply `[Range(0, int.MaxValue)]` so negative values are rejected during request binding. An explicitly requested zero means that no items should be returned and must not be the declared default. Resolve omitted values with `ResultLimit.GetEffectiveValue`, apply the effective limit before constructing the response, and return a dedicated response DTO implementing `IQueryResponse` with a `BoundedCollection<TItem>` property created through `BoundedCollection.CreatePrebounded<TItem>` from `Roslyn.Workbench.Mcp.Workspace.Results`. `BoundedCollection<TItem>` is not itself a top-level response. Include `TotalCount` only when the complete count is already available cheaply.
 
 This diagnostic validates the published contract shape. It cannot prove that collection discovery stopped at the limit or that the chosen limit and ordering are appropriate.
 

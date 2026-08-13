@@ -7,7 +7,7 @@ public sealed class PluginHandlerAnalyzerStateTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -24,7 +24,7 @@ public sealed class PluginHandlerAnalyzerStateTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -41,7 +41,7 @@ public sealed class PluginHandlerAnalyzerStateTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -63,7 +63,7 @@ public sealed class PluginHandlerAnalyzerStateTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -80,7 +80,7 @@ public sealed class PluginHandlerAnalyzerStateTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public abstract class HandlerBase
             {

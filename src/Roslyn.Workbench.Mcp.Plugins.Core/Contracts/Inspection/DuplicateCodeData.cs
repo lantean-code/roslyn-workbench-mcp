@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-duplicate-code.
 /// </summary>
-internal sealed record DuplicateCodeData
+internal sealed record DuplicateCodeData : IQueryResponse
 {
     /// <summary>
     /// Gets the returned duplicate groups.

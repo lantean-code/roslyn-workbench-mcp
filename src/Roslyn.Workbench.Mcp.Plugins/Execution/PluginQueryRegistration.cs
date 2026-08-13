@@ -2,6 +2,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 internal sealed class PluginQueryRegistration<TRequest, TResponse> : IRegisteredPluginTool
     where TRequest : WorkspaceBoundRequest
+    where TResponse : IQueryResponse
 {
     public PluginQueryRegistration(
         RegisteredTool tool,

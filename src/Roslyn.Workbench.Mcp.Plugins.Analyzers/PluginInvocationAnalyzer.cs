@@ -309,11 +309,6 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
         foreach (var queryContract in contracts.QueryContracts)
         {
             var responseType = queryContract.TypeArguments[1];
-            if (IsBoundedCollection(responseType, symbols.BoundedCollectionDefinition))
-            {
-                continue;
-            }
-
             if (IsRawCollection(responseType, symbols))
             {
                 ReportRawResponse(context, handlerType, responseType);

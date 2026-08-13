@@ -38,7 +38,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
         public bool IncludeFactoryExecutionCount { get; init; }
     }
 
-    public sealed record QueryCacheCalibrationResponse
+    public sealed record QueryCacheCalibrationResponse : IQueryResponse
     {
         public required string Workload { get; init; }
 
@@ -58,7 +58,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
         public bool Throw { get; init; }
     }
 
-    public sealed record Response
+    public sealed record Response : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
 

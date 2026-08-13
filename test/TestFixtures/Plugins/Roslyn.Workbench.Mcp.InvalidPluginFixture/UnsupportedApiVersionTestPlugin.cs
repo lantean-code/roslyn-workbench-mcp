@@ -18,7 +18,7 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
         public string Name { get; init; } = string.Empty;
     }
 
-    public sealed record Response
+    public sealed record Response : IQueryResponse
     {
         public string Value { get; init; } = string.Empty;
     }

@@ -7,7 +7,7 @@ public sealed class PluginInvocationAnalyzerTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -29,7 +29,7 @@ public sealed class PluginInvocationAnalyzerTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -52,7 +52,7 @@ public sealed class PluginInvocationAnalyzerTests
     {
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
-            public sealed record Response;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
@@ -81,7 +81,11 @@ public sealed class PluginInvocationAnalyzerTests
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public sealed class {|RWMCP014:Handler|} : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, System.Collections.Generic.IReadOnlyList<string>>
+            public sealed class RawResponse : System.Collections.Generic.List<string>, Roslyn.Workbench.Mcp.Plugins.IQueryResponse
+            {
+            }
+
+            public sealed class {|RWMCP014:Handler|} : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, RawResponse>
             {
             }
             """;
@@ -95,7 +99,7 @@ public sealed class PluginInvocationAnalyzerTests
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public abstract record ResponseBase
+            public abstract record ResponseBase : Roslyn.Workbench.Mcp.Plugins.IQueryResponse
             {
                 public System.Collections.Generic.ISet<string> {|RWMCP014:Items|} { get; init; } =
                     new System.Collections.Generic.HashSet<string>();
@@ -118,7 +122,7 @@ public sealed class PluginInvocationAnalyzerTests
         const string source = """
             public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
 
-            public sealed record Response
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse
             {
                 public Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<string> Items { get; init; } =
                     new Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<string>();

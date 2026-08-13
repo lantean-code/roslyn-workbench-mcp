@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
@@ -11,9 +12,7 @@ internal sealed class PluginTransportSchemaPreflight : IPluginTransportSchemaPre
         _schemaFactory = schemaFactory;
     }
 
-    public PluginTransportSchemaPreflightResult Preflight(
-        IReadOnlyList<PreparedPluginTool> tools,
-        ToolOutputSchemaMode outputSchemaMode)
+    public PluginTransportSchemaPreflightResult Preflight(IReadOnlyList<PreparedPluginTool> tools)
     {
         var failures = new List<DiagnosticInfo>();
         foreach (var preparedTool in tools)
@@ -25,12 +24,7 @@ internal sealed class PluginTransportSchemaPreflight : IPluginTransportSchemaPre
                 failures.Add(inputFailure);
             }
 
-            if (outputSchemaMode != ToolOutputSchemaMode.Full)
-            {
-                continue;
-            }
-
-            var outputFailure = TryCreateOutputSchema(tool);
+            var outputFailure = TryValidateOutputContract(tool);
             if (outputFailure is not null)
             {
                 failures.Add(outputFailure);
@@ -63,7 +57,7 @@ internal sealed class PluginTransportSchemaPreflight : IPluginTransportSchemaPre
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Schema generation inspects third-party contracts; any provider failure must disable only the owning plugin and become a catalogue diagnostic.")]
-    private DiagnosticInfo? TryCreateOutputSchema(RegisteredTool tool)
+    private DiagnosticInfo? TryValidateOutputContract(RegisteredTool tool)
     {
         try
         {
@@ -72,12 +66,38 @@ internal sealed class PluginTransportSchemaPreflight : IPluginTransportSchemaPre
                 : PublishedToolKind.Mutation;
 
             _schemaFactory.CreateOutputSchema(kind, tool.ResponseType);
+
+            if (tool.Kind == ToolKind.Query)
+            {
+                var contractKind = ToolResultEnvelopeSerializer.GetSuccessDataContractKind(tool.ResponseType);
+                if (contractKind != JsonTypeInfoKind.Object)
+                {
+                    return CreateFailure(tool, "response", tool.ResponseType, contractKind);
+                }
+            }
+
             return null;
         }
         catch (Exception exception)
         {
             return CreateFailure(tool, "response", tool.ResponseType, exception);
         }
+    }
+
+    private static DiagnosticInfo CreateFailure(
+        RegisteredTool tool,
+        string contractDirection,
+        Type contractType,
+        JsonTypeInfoKind contractKind)
+    {
+        var contractTypeName = contractType.FullName ?? contractType.Name;
+        var message = $"Tool '{tool.Metadata.Name}' {contractDirection} contract '{contractTypeName}' "
+            + $"cannot be admitted because its JSON contract kind is '{contractKind}' rather than an object.";
+
+        return PluginCatalogStatusFactory.CreateDiagnostic(
+            PluginDiagnosticIds.ToolSchema,
+            DiagnosticSeverity.Error,
+            message);
     }
 
     private static DiagnosticInfo CreateFailure(

@@ -28,7 +28,7 @@ Anonymous report content does not make network transport anonymous. A hosted pro
 
 `never` disables preparation and submission for the process lifetime. `prompt` requests one-report, Workspace or server-session approval. `always` skips the prompt for explicit submissions. Only exact command-line input can establish `never` or `always`; an ambient environment value cannot establish a permanent policy.
 
-Workspace approval is process-local and tied to one Workspace ID and epoch. It is invalidated by close, reload, epoch change or restart. Session approval and “No, and don't ask again” suppression last only until restart. A normal decline discards the current prepared handle, while client cancellation retains it until expiry.
+Workspace approval is process-local and tied to one Workspace ID and epoch. It is invalidated by close, reload, epoch change or restart. Consent evaluation is the authorisation point for an explicit `submit-error-report` request and its already reviewed immutable payload. Lifecycle invalidation and session suppression affect later submission requests; they do not retroactively revoke a request which has already obtained consent. Session approval and “No, and don't ask again” suppression last only until restart. A normal decline discards the current prepared handle, while client cancellation retains it until expiry.
 
 When a prompt is required, a client without MCP elicitation support receives `ApprovalUnavailable` and nothing is sent. Prepared handles and correlation IDs are opaque, process-local and expire absolutely; reading them does not extend their lifetime.
 

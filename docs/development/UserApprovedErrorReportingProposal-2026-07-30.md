@@ -230,7 +230,7 @@ The choices have these effects:
 
 Client-level decline sends nothing, establishes no persistent decision and discards the current prepared handle. Client-level cancel sends nothing, establishes no persistent decision and retains the handle until expiry so the user may resume the decision.
 
-Workspace approval is process-local and invalidates on Workspace close, epoch change, reload or server restart. Session approval and suppression invalidate on server restart. No path or repository identity is persisted to preserve a Workspace decision.
+Workspace approval is process-local and invalidates on Workspace close, epoch change, reload or server restart. Consent evaluation is the authorisation point for the current explicit submission request and its reviewed immutable payload. Invalidation or session suppression changes later consent decisions; it does not retroactively revoke a request which has already obtained consent. Session approval and suppression invalidate on server restart. No path or repository identity is persisted to preserve a Workspace decision.
 
 If approval is required and the client does not advertise elicitation, submission returns `ApprovalUnavailable` without sending. A Boolean, phrase or replacement approval value supplied by the agent is never accepted as proof of consent.
 

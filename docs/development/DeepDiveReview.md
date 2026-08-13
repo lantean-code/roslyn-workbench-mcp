@@ -2,7 +2,7 @@
 
 Date: 2026-08-13
 
-**Review status:** Not started
+**Review status:** Complete — all eight implementation-depth units, all fourteen repository-wide validation passes and independent candidate validation completed on 2026-08-13. The final dispositions are recorded in the [independent final report](repo-review/final-findings.md).
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Pure formatting preferences, minor style disagreements, generic best-practice su
 
 ## Stage 1: Current architecture map
 
-**Status:** Incomplete
+**Status:** Complete — report: [Current repository architecture](repo-review/architecture.md)
 
 Before reviewing any subsystem, inspect the complete current repository and write [`repo-review/architecture.md`](repo-review/architecture.md). Map:
 
@@ -55,13 +55,13 @@ This map must be derived from current project files, source, configuration and t
 
 ## Stage 2: Review plan
 
-**Status:** Incomplete
+**Status:** Complete — plan: [Independent deep-dive review plan](repo-review/review-plan.md)
 
 Create [`repo-review/review-plan.md`](repo-review/review-plan.md) from the current architecture map. Review the following units in dependency order. A later unit may return an earlier unit to review when consumer behaviour invalidates an earlier assumption.
 
 ### 1. Public contracts and Workspace semantics
 
-**Status:** Incomplete
+**Status:** Complete — report: [Public contracts and Workspace semantics](repo-review/subsystems/01-public-contracts-and-workspace-semantics.md)
 
 Scope:
 
@@ -77,7 +77,7 @@ Primary risks include ambiguous or stale selection, snapshot mismatch, incorrect
 
 ### 2. Transactions, commit and recovery
 
-**Status:** Incomplete
+**Status:** Complete — report: [Transactions, commit and recovery](repo-review/subsystems/02-transactions-commit-and-recovery.md)
 
 Scope:
 
@@ -94,7 +94,7 @@ Primary risks include data loss, partial application, stale revisions, inconsist
 
 ### 3. Plugin platform
 
-**Status:** Incomplete
+**Status:** Complete — report: [Plugin platform](repo-review/subsystems/03-plugin-platform.md)
 
 Scope:
 
@@ -112,7 +112,7 @@ Primary risks include binary or source incompatibility, runtime/analyser contrac
 
 ### 4. Bundled query and mutation tools
 
-**Status:** Incomplete
+**Status:** Complete — report: [Bundled query and mutation tools](repo-review/subsystems/04-bundled-query-and-mutation-tools.md)
 
 Scope:
 
@@ -130,7 +130,7 @@ Primary risks include misleading results, incomplete or unstable identity, schem
 
 ### 5. Code Actions
 
-**Status:** Incomplete
+**Status:** Complete — report: [Code Actions](repo-review/subsystems/05-code-actions.md)
 
 Scope:
 
@@ -147,7 +147,7 @@ Primary risks include unstable replay identity, provider-version assumptions, in
 
 ### 6. Host and protocol
 
-**Status:** Incomplete
+**Status:** Complete — report: [Host and protocol](repo-review/subsystems/06-host-and-protocol.md)
 
 Scope:
 
@@ -165,7 +165,7 @@ Primary risks include wire incompatibility, schema/runtime disagreement, incorre
 
 ### 7. Error reporting and trust boundaries
 
-**Status:** Incomplete
+**Status:** Complete — report: [Error reporting and trust boundaries](repo-review/subsystems/07-error-reporting-and-trust-boundaries.md)
 
 Scope:
 
@@ -182,7 +182,7 @@ Primary risks include secret or source disclosure, consent bypass, time-of-check
 
 ### 8. Test and operational infrastructure
 
-**Status:** Incomplete
+**Status:** Complete — report: [Test and operational infrastructure](repo-review/subsystems/08-test-and-operational-infrastructure.md)
 
 Scope:
 
@@ -199,7 +199,7 @@ Primary risks include tests failing before exercising their claim, mocks that hi
 
 ## Stage 3: Repository-wide validation passes
 
-**Status:** Incomplete
+**Status:** Complete — reports: [Repository-wide validation passes](repo-review/repository-wide-passes.md) and [independent final findings](repo-review/final-findings.md)
 
 After all eight units are complete, perform explicit repository-wide passes for:
 

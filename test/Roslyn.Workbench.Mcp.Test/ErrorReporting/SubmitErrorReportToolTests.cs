@@ -93,6 +93,87 @@ public sealed class SubmitErrorReportToolTests
     }
 
     [Fact]
+    public async Task GIVEN_WorkspaceConsentInvalidatesAfterAuthorisation_WHEN_Submitting_THEN_ShouldCompleteCurrentExplicitSubmission()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission() with
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            WorkspaceEpoch = 5,
+        };
+        using var acquisitionReached = new ManualResetEventSlim();
+        using var continueAcquisition = new ManualResetEventSlim();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var consentState = ErrorReportingConsentState.AllowedForWorkspace;
+        PreparedSubmission? storedSubmission = submission;
+        store
+            .Setup(item => item.TryGet("Handle", out storedSubmission))
+            .Returns(true);
+        store
+            .Setup(item => item.TryBeginSubmission("Handle"))
+            .Callback(() =>
+            {
+                acquisitionReached.Set();
+                continueAcquisition.Wait();
+            })
+            .Returns(new SubmissionAcquisition
+            {
+                Outcome = SubmissionAcquisitionOutcome.Acquired,
+                Submission = submission,
+            });
+        consentService
+            .Setup(item => item.GetState(submission.WorkspaceId, submission.WorkspaceEpoch))
+            .Returns(() => consentState);
+        dispatcher
+            .Setup(item => item.DispatchAsync(submission.Payload, cancellationToken))
+            .ReturnsAsync(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Accepted,
+                ReportReference = "ReportReference",
+            });
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new SubmitErrorReportTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            _requestBinder.Object,
+            store.Object,
+            consentService.Object,
+            dispatcher.Object);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["submissionHandle"] = JsonSerializer.SerializeToElement("Handle"),
+        };
+
+        var invocation = Task.Run(() => ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            arguments,
+            cancellationToken));
+        try
+        {
+            acquisitionReached.Wait(TimeSpan.FromSeconds(5), cancellationToken).Should().BeTrue();
+            consentState = ErrorReportingConsentState.PromptRequired;
+        }
+        finally
+        {
+            continueAcquisition.Set();
+        }
+
+        var result = await invocation;
+
+        result.IsError.Should().BeFalse();
+        consentState.Should().Be(ErrorReportingConsentState.PromptRequired);
+        consentService.Verify(
+            item => item.GetState(submission.WorkspaceId, submission.WorkspaceEpoch),
+            Times.Once);
+        dispatcher.Verify(
+            item => item.DispatchAsync(submission.Payload, cancellationToken),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_PromptRequiredWithoutElicitationCapability_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch()
     {
         var store = new Mock<IPreparedSubmissionStore>();

@@ -77,6 +77,8 @@ internal sealed class SubmitErrorReportTool :
                 "The submission handle is unknown or its temporary prepared payload has expired.");
         }
 
+        // This read authorises the current explicit request and its immutable reviewed payload.
+        // Lifecycle invalidation changes later consent decisions; it does not revoke this request after authorisation.
         var consentState = _consentService.GetState(pending.WorkspaceId, pending.WorkspaceEpoch);
         if (consentState == ErrorReportingConsentState.SuppressedForSession)
         {

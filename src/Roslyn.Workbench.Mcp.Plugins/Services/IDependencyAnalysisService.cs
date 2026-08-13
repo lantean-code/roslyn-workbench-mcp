@@ -26,14 +26,18 @@ public interface IDependencyAnalysisService
     /// <param name="projects">The resolved projects.</param>
     /// <param name="documents">The resolved documents.</param>
     /// <param name="maxResults">The maximum number of cycles to return.</param>
+    /// <param name="maxNodes">The maximum number of graph nodes to analyse.</param>
+    /// <param name="maxEdges">The maximum number of graph edges to analyse.</param>
     /// <param name="context">The current query context.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The detected dependency cycles and complete cycle count.</returns>
-    ValueTask<(IReadOnlyList<DependencyCycle> Cycles, int TotalCount)> FindCyclesAsync(
+    /// <returns>The complete analysis outcome.</returns>
+    ValueTask<DependencyCycleAnalysisResult> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,
         int maxResults,
+        int maxNodes,
+        int maxEdges,
         IQueryContext context,
         CancellationToken cancellationToken);
 

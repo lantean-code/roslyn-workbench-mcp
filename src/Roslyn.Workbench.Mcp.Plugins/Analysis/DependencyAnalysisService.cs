@@ -12,98 +12,44 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return value is "Project" or "Namespace" or "Type" or "Symbol";
     }
 
-    public async ValueTask<(IReadOnlyList<DependencyCycle> Cycles, int TotalCount)> FindCyclesAsync(
+    public async ValueTask<DependencyCycleAnalysisResult> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,
         int maxResults,
+        int maxNodes,
+        int maxEdges,
         IQueryContext context,
         CancellationToken cancellationToken)
     {
         var analysisState = new DependencyAnalysisState(context.CurrentSolution);
-        var graph = await BuildSourceGraphAsync(granularity, projects, documents, null, null, analysisState, context, cancellationToken);
-        var adjacency = graph.Edges
-            .GroupBy(static edge => edge.FromId, StringComparer.Ordinal)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.Select(static edge => edge.ToId).Distinct(StringComparer.Ordinal).ToArray(),
-                StringComparer.Ordinal);
+        var graph = await BuildSourceGraphAsync(
+            granularity,
+            projects,
+            documents,
+            maxNodes,
+            maxEdges,
+            stopWhenNodeLimitExceeded: true,
+            analysisState,
+            context,
+            cancellationToken);
 
-        var nodeLookup = graph.Nodes.ToDictionary(static node => node.Id, StringComparer.Ordinal);
-        var indexByNodeId = new Dictionary<string, int>(StringComparer.Ordinal);
-        var lowLinkByNodeId = new Dictionary<string, int>(StringComparer.Ordinal);
-        var stack = new Stack<string>();
-        var onStack = new HashSet<string>(StringComparer.Ordinal);
-        var cycles = new List<DependencyCycle>();
-        var index = 0;
-
-        foreach (var node in graph.Nodes.OrderBy(static node => node.DisplayName, StringComparer.Ordinal))
+        if (graph.NodesHaveMore)
         {
-            if (!indexByNodeId.ContainsKey(node.Id))
-            {
-                Visit(node.Id);
-            }
+            return DependencyCycleAnalysisResult.NodeLimitExceeded();
         }
 
-        var orderedCycles = cycles
-            .OrderBy(static cycle => cycle.Nodes.Count)
-            .ThenBy(static cycle => cycle.Nodes[0].DisplayName, StringComparer.Ordinal)
-            .ToArray();
-
-        var hasMore = orderedCycles.Length > maxResults;
-        var selectedCycles = hasMore
-            ? orderedCycles.Take(maxResults).ToArray()
-            : orderedCycles;
-
-        return (selectedCycles, orderedCycles.Length);
-
-        void Visit(string nodeId)
+        if (graph.EdgesHaveMore)
         {
-            indexByNodeId[nodeId] = index;
-            lowLinkByNodeId[nodeId] = index;
-            index++;
-            stack.Push(nodeId);
-            onStack.Add(nodeId);
-
-            foreach (var nextNodeId in adjacency.GetValueOrDefault(nodeId, []))
-            {
-                if (!indexByNodeId.TryGetValue(nextNodeId, out var value))
-                {
-                    Visit(nextNodeId);
-                    lowLinkByNodeId[nodeId] = Math.Min(lowLinkByNodeId[nodeId], lowLinkByNodeId[nextNodeId]);
-                }
-                else if (onStack.Contains(nextNodeId))
-                {
-                    lowLinkByNodeId[nodeId] = Math.Min(lowLinkByNodeId[nodeId], value);
-                }
-            }
-
-            if (lowLinkByNodeId[nodeId] != indexByNodeId[nodeId])
-            {
-                return;
-            }
-
-            var component = new List<GraphNode>();
-            string currentNodeId;
-            do
-            {
-                currentNodeId = stack.Pop();
-                onStack.Remove(currentNodeId);
-                component.Add(nodeLookup[currentNodeId]);
-            }
-            while (!string.Equals(currentNodeId, nodeId, StringComparison.Ordinal));
-
-            var isSelfCycle = adjacency.GetValueOrDefault(nodeId, []).Contains(nodeId, StringComparer.Ordinal);
-            if (component.Count > 1 || isSelfCycle)
-            {
-                cycles.Add(new DependencyCycle
-                {
-                    Nodes = component
-                        .OrderBy(static graphNode => graphNode.DisplayName, StringComparer.Ordinal)
-                        .ToArray(),
-                });
-            }
+            return DependencyCycleAnalysisResult.EdgeLimitExceeded();
         }
+
+        var cycles = DependencyCycleDetector.FindCycles(graph.Nodes, graph.Edges, cancellationToken);
+        var selectedCycles = cycles.Count > maxResults
+            ? cycles.Take(maxResults).ToArray()
+            : cycles;
+
+        return DependencyCycleAnalysisResult.Completed(selectedCycles, cycles.Count);
     }
 
     public async ValueTask<(IReadOnlyList<TestImpactInfo> Tests, bool HasMore)> FindTestImpactsAsync(
@@ -198,7 +144,16 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         CancellationToken cancellationToken)
     {
         var analysisState = new DependencyAnalysisState(context.CurrentSolution);
-        var graph = await BuildSourceGraphAsync(granularity, projects, documents, maxNodes, maxEdges, analysisState, context, cancellationToken);
+        var graph = await BuildSourceGraphAsync(
+            granularity,
+            projects,
+            documents,
+            maxNodes,
+            maxEdges,
+            stopWhenNodeLimitExceeded: false,
+            analysisState,
+            context,
+            cancellationToken);
 
         return (graph.Nodes, graph.NodesHaveMore, graph.Edges, graph.EdgesHaveMore);
     }
@@ -237,6 +192,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
         foreach (var member in symbol.GetMembers())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (member.IsImplicitlyDeclared)
             {
                 continue;
@@ -375,22 +331,29 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         IReadOnlyList<Document> documents,
         int? maxNodes,
         int? maxEdges,
+        bool stopWhenNodeLimitExceeded,
         DependencyAnalysisState analysisState,
         IQueryContext context,
         CancellationToken cancellationToken)
     {
         return granularity switch
         {
-            "Project" => BuildProjectGraph(projects, maxNodes, maxEdges),
-            "Namespace" => await BuildNamespaceGraphAsync(documents, maxNodes, maxEdges, analysisState, cancellationToken),
-            "Type" => await BuildTypeGraphAsync(documents, maxNodes, maxEdges, analysisState, context, cancellationToken),
+            "Project" => BuildProjectGraph(projects, maxNodes, maxEdges, context.CurrentSolution.GetProjectDependencyGraph(), cancellationToken),
+            "Namespace" => await BuildNamespaceGraphAsync(documents, maxNodes, maxEdges, stopWhenNodeLimitExceeded, analysisState, cancellationToken),
+            "Type" => await BuildTypeGraphAsync(documents, maxNodes, maxEdges, stopWhenNodeLimitExceeded, analysisState, context, cancellationToken),
             "Symbol" => await BuildSymbolGraphAsync(documents, maxNodes, maxEdges, analysisState, context, cancellationToken),
             _ => throw new InvalidOperationException("Unsupported dependency graph granularity."),
         };
     }
 
-    private static SourceGraph BuildProjectGraph(IReadOnlyList<Project> projects, int? maxNodes, int? maxEdges)
+    private static SourceGraph BuildProjectGraph(
+        IReadOnlyList<Project> projects,
+        int? maxNodes,
+        int? maxEdges,
+        ProjectDependencyGraph dependencyGraph,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var orderedProjects = projects
             .OrderBy(static project => project.Name, StringComparer.Ordinal)
             .ToArray();
@@ -412,10 +375,11 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
         foreach (var project in selectedProjects)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var referencedProjects = new List<Project>();
-            foreach (var reference in project.ProjectReferences)
+            foreach (var referencedProjectId in dependencyGraph.GetProjectsThatThisProjectDirectlyDependsOn(project.Id))
             {
-                var referencedProject = project.Solution.GetProject(reference.ProjectId);
+                var referencedProject = project.Solution.GetProject(referencedProjectId);
                 if (referencedProject is null
                     || !nodeIds.Contains(CreateProjectId(referencedProject)))
                 {
@@ -457,10 +421,22 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         IReadOnlyList<Document> documents,
         int? maxNodes,
         int? maxEdges,
+        bool stopWhenNodeLimitExceeded,
         DependencyAnalysisState analysisState,
         CancellationToken cancellationToken)
     {
-        var sourceTypes = await GetSourceTypesAsync(documents, analysisState, cancellationToken);
+        var namespaceDiscovery = await GetNamespaceSourceTypesAsync(
+            documents,
+            stopWhenNodeLimitExceeded ? maxNodes : null,
+            analysisState,
+            cancellationToken);
+
+        if (namespaceDiscovery.HasMore)
+        {
+            return new SourceGraph([], true, [], false);
+        }
+
+        var sourceTypes = namespaceDiscovery.Items;
         var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var sourceType in sourceTypes)
         {
@@ -542,25 +518,37 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         IReadOnlyList<Document> documents,
         int? maxNodes,
         int? maxEdges,
+        bool stopWhenNodeLimitExceeded,
         DependencyAnalysisState analysisState,
         IQueryContext context,
         CancellationToken cancellationToken)
     {
-        var sourceTypes = await GetSourceTypesAsync(documents, analysisState, cancellationToken);
-        var orderedTypes = sourceTypes
-            .OrderBy(static symbol => GetGraphDisplayName(symbol), StringComparer.Ordinal)
+        var typeDiscovery = await GetSourceTypesAsync(
+            documents,
+            stopWhenNodeLimitExceeded ? maxNodes : null,
+            analysisState,
+            cancellationToken);
+
+        if (typeDiscovery.HasMore)
+        {
+            return new SourceGraph([], true, [], false);
+        }
+
+        var orderedTypes = typeDiscovery.Items
+            .OrderBy(static item => GetGraphDisplayName(item.Symbol), StringComparer.Ordinal)
+            .ThenBy(static item => item.Id, StringComparer.Ordinal)
             .ToArray();
 
         var selectedTypes = ApplyOptionalLimit(orderedTypes, maxNodes, out var nodesHaveMore);
         var typeNodes = new Dictionary<INamedTypeSymbol, GraphNode>(SymbolEqualityComparer.Default);
         foreach (var sourceType in selectedTypes)
         {
-            typeNodes[sourceType] = CreateSymbolGraphNode(sourceType, "Type", context);
+            typeNodes.Add(sourceType.Symbol, CreateSymbolGraphNode(sourceType.Symbol, sourceType.Id, "Type", context));
         }
 
-        var edges = await BuildSymbolEdgesAsync(selectedTypes, typeNodes, maxEdges, analysisState, cancellationToken);
-
-        var nodes = selectedTypes.Select(type => typeNodes[type]).ToArray();
+        var selectedTypeSymbols = selectedTypes.Select(static item => item.Symbol).ToArray();
+        var edges = await BuildSymbolEdgesAsync(selectedTypeSymbols, typeNodes, maxEdges, analysisState, cancellationToken);
+        var nodes = selectedTypeSymbols.Select(type => typeNodes[type]).ToArray();
 
         return new SourceGraph(nodes, nodesHaveMore, edges.Edges, edges.HasMore);
     }
@@ -582,7 +570,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         var symbolNodes = new Dictionary<ISymbol, GraphNode>(SymbolEqualityComparer.Default);
         foreach (var sourceSymbol in selectedSymbols)
         {
-            symbolNodes[sourceSymbol] = CreateSymbolGraphNode(sourceSymbol, "Symbol", context);
+            symbolNodes[sourceSymbol] = CreateSymbolGraphNode(sourceSymbol, CreateSymbolId(sourceSymbol), "Symbol", context);
         }
 
         var edges = await BuildSymbolEdgesAsync(selectedSymbols, symbolNodes, maxEdges, analysisState, cancellationToken);
@@ -670,12 +658,67 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
             .ToArray();
     }
 
-    private static async ValueTask<INamedTypeSymbol[]> GetSourceTypesAsync(
+    private static async ValueTask<SourceDiscoveryResult<SourceType>> GetSourceTypesAsync(
         IReadOnlyList<Document> documents,
+        int? maxTypes,
         DependencyAnalysisState analysisState,
         CancellationToken cancellationToken)
     {
         var orderedDocuments = GetOrderedDocuments(documents, cancellationToken);
+        var symbols = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var typeIds = new Dictionary<INamedTypeSymbol, string>(SymbolEqualityComparer.Default);
+        var symbolIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var document in orderedDocuments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await analysisState.GetSemanticModelAsync(document, cancellationToken);
+            if (syntaxRoot is null || semanticModel is null)
+            {
+                continue;
+            }
+
+            foreach (var declaration in syntaxRoot.DescendantNodes())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!IsTypeDeclarationNode(declaration))
+                {
+                    continue;
+                }
+
+                if (GetDeclaredSymbol(semanticModel, declaration, cancellationToken) is INamedTypeSymbol symbol && !symbol.IsImplicitlyDeclared)
+                {
+                    var normalizedSymbol = NormalizeNamedTypeSymbol(symbol);
+                    symbols.Add(normalizedSymbol);
+                    var typeId = CreateTypeId(normalizedSymbol, document.Project);
+                    typeIds.TryAdd(normalizedSymbol, typeId);
+                    symbolIds.Add(typeId);
+                    if (HasExceededLimit(symbolIds.Count, maxTypes))
+                    {
+                        return new SourceDiscoveryResult<SourceType>([], true);
+                    }
+                }
+            }
+        }
+
+        var orderedSymbols = symbols
+            .OrderBy(static symbol => symbol.ToDisplayString(), StringComparer.Ordinal)
+            .ThenBy(symbol => typeIds[symbol], StringComparer.Ordinal)
+            .Select(symbol => new SourceType(symbol, typeIds[symbol]))
+            .ToArray();
+
+        return new SourceDiscoveryResult<SourceType>(orderedSymbols, false);
+    }
+
+    private static async ValueTask<SourceDiscoveryResult<INamedTypeSymbol>> GetNamespaceSourceTypesAsync(
+        IReadOnlyList<Document> documents,
+        int? maxNamespaces,
+        DependencyAnalysisState analysisState,
+        CancellationToken cancellationToken)
+    {
+        var orderedDocuments = GetOrderedDocuments(documents, cancellationToken);
+        var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
         var symbols = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         foreach (var document in orderedDocuments)
@@ -690,21 +733,32 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
             foreach (var declaration in syntaxRoot.DescendantNodes())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!IsTypeDeclarationNode(declaration))
                 {
                     continue;
                 }
 
-                if (GetDeclaredSymbol(semanticModel, declaration, cancellationToken) is INamedTypeSymbol symbol && !symbol.IsImplicitlyDeclared)
+                if (GetDeclaredSymbol(semanticModel, declaration, cancellationToken) is not INamedTypeSymbol symbol || symbol.IsImplicitlyDeclared)
                 {
-                    symbols.Add(NormalizeNamedTypeSymbol(symbol));
+                    continue;
+                }
+
+                var normalizedSymbol = NormalizeNamedTypeSymbol(symbol);
+                symbols.Add(normalizedSymbol);
+                namespaceNames.Add(GetNamespaceName(normalizedSymbol));
+                if (HasExceededLimit(namespaceNames.Count, maxNamespaces))
+                {
+                    return new SourceDiscoveryResult<INamedTypeSymbol>([], true);
                 }
             }
         }
 
-        return symbols
+        var orderedSymbols = symbols
             .OrderBy(static symbol => symbol.ToDisplayString(), StringComparer.Ordinal)
             .ToArray();
+
+        return new SourceDiscoveryResult<INamedTypeSymbol>(orderedSymbols, false);
     }
 
     private static async ValueTask<ISymbol[]> GetSourceSymbolsAsync(
@@ -787,6 +841,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
         foreach (var operation in rootOperation.DescendantsAndSelf())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             AddTypeSymbol(operation.Type, dependencies);
 
             switch (operation)
@@ -818,13 +873,13 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         }
     }
 
-    private static GraphNode CreateSymbolGraphNode(ISymbol symbol, string kind, IQueryContext context)
+    private static GraphNode CreateSymbolGraphNode(ISymbol symbol, string id, string kind, IQueryContext context)
     {
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
         return new GraphNode
         {
-            Id = CreateSymbolId(symbol),
+            Id = id,
             Kind = kind,
             DisplayName = symbolReference.DisplayName,
             Symbol = symbolReference,
@@ -865,14 +920,27 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return maxResults is not null && count >= maxResults.Value;
     }
 
+    private static bool HasExceededLimit(int count, int? maxResults)
+    {
+        return maxResults is not null && count > maxResults.Value;
+    }
+
     private static string CreateProjectId(Project project)
     {
-        return $"project:{project.FilePath ?? project.Name}";
+        var projectIdentity = project.FilePath ?? project.Id.Id.ToString();
+        return $"project:{projectIdentity.Length}:{projectIdentity}{project.Name}";
     }
 
     private static string CreateNamespaceId(string name)
     {
         return $"namespace:{name}";
+    }
+
+    private static string CreateTypeId(INamedTypeSymbol symbol, Project project)
+    {
+        var projectIdentity = CreateProjectId(project);
+        var symbolId = CreateSymbolId(symbol);
+        return $"type:{projectIdentity.Length}:{projectIdentity}{symbolId}";
     }
 
     private static string CreateSymbolId(ISymbol symbol)
@@ -1087,6 +1155,32 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
             }
 
             return ValueTask.FromResult<SemanticModel?>(null);
+        }
+    }
+
+    private sealed class SourceDiscoveryResult<T>
+    {
+        public IReadOnlyList<T> Items { get; }
+
+        public bool HasMore { get; }
+
+        public SourceDiscoveryResult(IReadOnlyList<T> items, bool hasMore)
+        {
+            Items = items;
+            HasMore = hasMore;
+        }
+    }
+
+    private sealed class SourceType
+    {
+        public INamedTypeSymbol Symbol { get; }
+
+        public string Id { get; }
+
+        public SourceType(INamedTypeSymbol symbol, string id)
+        {
+            Symbol = symbol;
+            Id = id;
         }
     }
 

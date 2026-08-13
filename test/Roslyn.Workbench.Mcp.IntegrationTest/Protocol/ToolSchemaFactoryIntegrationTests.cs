@@ -25,6 +25,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var codeContextSchema = target.CreateInputSchema<GetCodeContextRequest>();
         var transactionPreviewSchema = target.CreateInputSchema<TransactionPreviewRequest>();
         var prepareFixAllSchema = target.CreateInputSchema<PrepareFixAllRequest>();
+        var dependencyCyclesSchema = target.CreateInputSchema<FindDependencyCyclesRequest>();
 
         GetProperty(calleesSchema, "maxDepth").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(operationTreeSchema, "maxDepth").GetProperty("default").GetInt32().Should().Be(8);
@@ -38,6 +39,10 @@ public sealed class ToolSchemaFactoryIntegrationTests
         GetProperty(transactionPreviewSchema, "contextLines").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(prepareFixAllSchema, "maxChanges").GetProperty("default").GetInt32().Should().Be(50);
         GetProperty(prepareFixAllSchema, "affectedDocumentsLimit").GetProperty("default").GetInt32().Should().Be(20);
+        GetProperty(dependencyCyclesSchema, "nodesLimit").GetProperty("default").GetInt32().Should().Be(25_000);
+        GetProperty(dependencyCyclesSchema, "nodesLimit").GetProperty("maximum").GetInt32().Should().Be(100_000);
+        GetProperty(dependencyCyclesSchema, "edgesLimit").GetProperty("default").GetInt32().Should().Be(100_000);
+        GetProperty(dependencyCyclesSchema, "edgesLimit").GetProperty("maximum").GetInt32().Should().Be(500_000);
     }
 
     [Fact]
@@ -350,7 +355,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             publishedLimit.GetProperty("maximum").GetInt32()
                 .Should().Be(Convert.ToInt32(range.Maximum, System.Globalization.CultureInfo.InvariantCulture));
 
-            if (IsCollectionLimitProperty(limitProperty))
+            if (IsResponseCollectionLimitProperty(limitProperty))
             {
                 Convert.ToInt32(fixedDefault.Value, System.Globalization.CultureInfo.InvariantCulture).Should().BePositive();
                 Convert.ToInt32(range.Minimum, System.Globalization.CultureInfo.InvariantCulture).Should().Be(0);
@@ -457,8 +462,14 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 || property.Name.EndsWith("Limit", StringComparison.Ordinal));
     }
 
-    private static bool IsCollectionLimitProperty(PropertyInfo property)
+    private static bool IsResponseCollectionLimitProperty(PropertyInfo property)
     {
+        if (property.DeclaringType == typeof(FindDependencyCyclesRequest)
+            && property.Name is nameof(FindDependencyCyclesRequest.NodesLimit) or nameof(FindDependencyCyclesRequest.EdgesLimit))
+        {
+            return false;
+        }
+
         return property.Name.EndsWith("Limit", StringComparison.Ordinal)
             || string.Equals(property.Name, "MaxChanges", StringComparison.Ordinal);
     }

@@ -106,6 +106,8 @@ public sealed class FindDependencyCyclesToolTests
             It.IsAny<IReadOnlyList<Project>>(),
             It.IsAny<IReadOnlyList<Document>>(),
             It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<IQueryContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -176,14 +178,18 @@ public sealed class FindDependencyCyclesToolTests
                 It.Is<IReadOnlyList<Project>>(projects => projects.Count == 1 && projects[0] == document.Document.Project),
                 It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0] == document.Document),
                 1,
+                25_000,
+                100_000,
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((cycles[..1], cycles.Length));
+            .ReturnsAsync(DependencyCycleAnalysisResult.Completed(cycles[..1], cycles.Length));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest
         {
             Granularity = "Type",
             CyclesLimit = 1,
+            NodesLimit = null,
+            EdgesLimit = null,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -191,5 +197,60 @@ public sealed class FindDependencyCyclesToolTests
         result.Data.Cycles.Items[0].Should().BeEquivalentTo(cycles[0]);
         result.Data.Cycles.HasMore.Should().BeTrue();
         result.Data.Cycles.TotalCount.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(DependencyCycleAnalysisStatus.NodeLimitExceeded, "NodesLimit")]
+    [InlineData(DependencyCycleAnalysisStatus.EdgeLimitExceeded, "EdgesLimit")]
+    public async Task GIVEN_AnalysisLimitExceeded_WHEN_CallingExecuteAsync_THEN_ShouldRejectPartialCycles(DependencyCycleAnalysisStatus status, string expectedLimit)
+    {
+        using var document = RoslynTestFactory.CreateDocument("class Formatter { }");
+        var target = new FindDependencyCyclesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
+        var analysisResult = status == DependencyCycleAnalysisStatus.NodeLimitExceeded
+            ? DependencyCycleAnalysisResult.NodeLimitExceeded()
+            : DependencyCycleAnalysisResult.EdgeLimitExceeded();
+
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.DependencyAnalysisService)
+            .Returns(dependencyAnalysisService.Object);
+
+        dependencyAnalysisService
+            .Setup(item => item.IsSupportedCycleGranularity("Type"))
+            .Returns(true);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DependencyCyclesData>(It.IsAny<ScopeSelector?>(), queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DependencyCyclesData>([document.Document]));
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProjects<DependencyCyclesData>(It.IsAny<ScopeSelector?>(), queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, DependencyCyclesData>([document.Document.Project]));
+
+        dependencyAnalysisService
+            .Setup(item => item.FindCyclesAsync(
+                "Type",
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<IReadOnlyList<Document>>(),
+                25,
+                12,
+                34,
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(analysisResult);
+
+        var result = await target.ExecuteAsync(new FindDependencyCyclesRequest
+        {
+            NodesLimit = 12,
+            EdgesLimit = 34,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "AnalysisLimitExceeded",
+            Message = $"Dependency-cycle analysis exceeded {expectedLimit}. Narrow the scope or increase that limit.",
+        });
     }
 }

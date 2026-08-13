@@ -56,11 +56,15 @@ After an interrupted applying commit, a truncated or altered backup can remain p
 
 ### RWMCP2-009 — Dependency-cycle traversal is unbounded, recursive and uncancellable
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
+
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs:15-58,60-106,372-389,508-565,673-707`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindDependencyCyclesTool.cs:6-36`
 
 `FindDependencyCyclesTool` passes its result count only as a final output limit. `DependencyAnalysisService` first builds source or type graphs without node or edge limits and traverses them using a recursive local function with no cancellation checks, then applies `maxResults`. A repository with a sufficiently deep dependency chain can exhaust the process stack, and a large graph continues consuming CPU and memory even for zero or very small result limits or after cancellation. Current [.NET documentation](https://learn.microsoft.com/dotnet/api/system.stackoverflowexception?view=net-10.0) confirms that user code cannot catch `StackOverflowException` and the process terminates by default, so this can terminate the Host rather than merely fail one tool call.
+
+**Remediation outcome:** Dependency-cycle requests now impose schema-published node and edge work bounds with defaults of 25,000/100,000 and maxima of 100,000/500,000, reject incomplete analysis through a typed result, and retain `cyclesLimit` solely as the output bound. Project analysis uses Roslyn's dependency graph; Namespace and Type discovery stop when the node bound is exceeded; Type and Project identities keep multi-target framework compilations distinct. Cycle detection is iterative and cancellation-aware, avoiding recursion and polling cancellation throughout traversal. Unit and component coverage exercises Project, Namespace and Type behaviour, node/edge rejection, cancellation, 20,000-node deep cyclic and acyclic graphs, multi-target identity and schema publication. Plugins, Core and component suites passed 146/146, 271/271 and 9/9, focused schema integration passed 14/14, and EF Core completed default Type analysis over 15,981 nodes and 44,050 edges in approximately 14.3 seconds. The independent Review Agent found no code defect and one missing contract-catalogue entry; after that documentation correction, the user gave final confirmation. A positive cyclic Roslyn Project fixture is intentionally absent because supported Roslyn solution APIs reject circular project references before the dependency graph can represent them; positive strongly connected-component behaviour is covered at the detector boundary.
 
 ### RWMCP2-002 — Open Workspace resources survive generic Host shutdown
 

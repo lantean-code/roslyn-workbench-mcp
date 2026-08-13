@@ -22,17 +22,30 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
             return projects.Rejection;
         }
 
-        var (cycles, totalCount) = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
+        var analysisResult = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
             request.EffectiveCyclesLimit,
+            request.EffectiveNodesLimit,
+            request.EffectiveEdgesLimit,
             context,
             cancellationToken);
 
+        if (!analysisResult.IsCompleted)
+        {
+            var exceededLimit = analysisResult.Status == DependencyCycleAnalysisStatus.NodeLimitExceeded
+                ? nameof(request.NodesLimit)
+                : nameof(request.EdgesLimit);
+
+            return PluginExecutionResult.Rejected<DependencyCyclesData>(
+                "AnalysisLimitExceeded",
+                $"Dependency-cycle analysis exceeded {exceededLimit}. Narrow the scope or increase that limit.");
+        }
+
         var data = new DependencyCyclesData
         {
-            Cycles = BoundedCollection.CreatePrebounded(cycles, totalCount),
+            Cycles = BoundedCollection.CreatePrebounded(analysisResult.Cycles, analysisResult.TotalCount.Value),
         };
 
         return PluginExecutionResult.Success(data);

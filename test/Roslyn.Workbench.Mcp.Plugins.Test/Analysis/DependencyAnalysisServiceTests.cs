@@ -241,16 +241,358 @@ public sealed class DependencyAnalysisServiceTests
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
 
         var project = document.Solution.Projects.Single();
-        var (cycles, totalCount) = await target.FindCyclesAsync(
+        var result = await target.FindCyclesAsync(
             "Type",
             [project],
             [document.Document],
             0,
+            100,
+            100,
             queryContext.Object,
             TestContext.Current.CancellationToken);
 
-        cycles.Should().BeEmpty();
-        totalCount.Should().Be(1);
+        result.Status.Should().Be(DependencyCycleAnalysisStatus.Completed);
+        result.Cycles.Should().BeEmpty();
+        result.TotalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectReferenceGraph_WHEN_FindingCycles_THEN_ShouldUseSolutionDependencyGraph()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Alpha.cs", Source = "class Alpha { }" }],
+                ProjectReferences = ["Beta"],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Beta",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Beta.cs", Source = "class Beta { }" }],
+            },
+        ]);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        var result = await target.FindCyclesAsync(
+            "Project",
+            solution.Solution.Projects.ToArray(),
+            solution.Solution.Projects.SelectMany(static project => project.Documents).ToArray(),
+            25,
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(DependencyCycleAnalysisStatus.Completed);
+        result.Cycles.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GIVEN_MultiTargetProjectNodesShareProjectPath_WHEN_FindingCycles_THEN_ShouldKeepFrameworkNodesDistinct()
+    {
+        const string sharedProjectPath = "/workspace/Alpha/Alpha.csproj";
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha(net8.0)",
+                FilePath = sharedProjectPath,
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Alpha8.cs", Source = "class Alpha8 { }" }],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha(net9.0)",
+                FilePath = sharedProjectPath,
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Alpha9.cs", Source = "class Alpha9 { }" }],
+            },
+        ]);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        var projects = solution.Solution.Projects.ToArray();
+        var documents = projects.SelectMany(static project => project.Documents).ToArray();
+        var graph = await target.BuildGraphAsync(
+            "Project",
+            projects,
+            documents,
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        var cycles = await target.FindCyclesAsync(
+            "Project",
+            projects,
+            documents,
+            25,
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        graph.Nodes.Should().HaveCount(2);
+        graph.Nodes.Select(static node => node.Id).Should().OnlyHaveUniqueItems();
+        cycles.Status.Should().Be(DependencyCycleAnalysisStatus.Completed);
+        cycles.Cycles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_MultiTargetProjectsContainSameTypes_WHEN_FindingCycles_THEN_ShouldKeepFrameworkTypeNodesDistinct()
+    {
+        const string sharedProjectPath = "/workspace/Alpha/Alpha.csproj";
+        const string source = "namespace Sample; class Alpha { public Beta Value { get; } = new(); } class Beta { public Alpha Value { get; } = new(); }";
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha(net8.0)",
+                FilePath = sharedProjectPath,
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Types.cs", Source = source }],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha(net9.0)",
+                FilePath = sharedProjectPath,
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Types.cs", Source = source }],
+            },
+        ]);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContext
+            .SetupGet(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+
+        workspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var projects = solution.Solution.Projects.ToArray();
+        var documents = projects.SelectMany(static project => project.Documents).ToArray();
+        var graph = await target.BuildGraphAsync(
+            "Type",
+            projects,
+            documents,
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        var cycles = await target.FindCyclesAsync(
+            "Type",
+            projects,
+            documents,
+            25,
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        graph.Nodes.Should().HaveCount(4);
+        graph.Nodes.Select(static node => node.Id).Should().OnlyHaveUniqueItems();
+        graph.Edges.Should().HaveCount(4);
+        cycles.Status.Should().Be(DependencyCycleAnalysisStatus.Completed);
+        cycles.Cycles.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GIVEN_DifferentProjectsContainSameFullyQualifiedType_WHEN_BuildingGraph_THEN_ShouldKeepProjectTypesDistinct()
+    {
+        const string source = "namespace Sample; class Shared { }";
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha",
+                FilePath = "/workspace/Alpha/Alpha.csproj",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Shared.cs", Source = source }],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Beta",
+                FilePath = "/workspace/Beta/Beta.csproj",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Shared.cs", Source = source }],
+            },
+        ]);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContext
+            .SetupGet(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+
+        workspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var projects = solution.Solution.Projects.ToArray();
+        var graph = await target.BuildGraphAsync(
+            "Type",
+            projects,
+            projects.SelectMany(static project => project.Documents).ToArray(),
+            100,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        graph.Nodes.Should().HaveCount(2);
+        graph.Nodes.Select(static node => node.Id).Should().OnlyHaveUniqueItems();
+    }
+
+    [Theory]
+    [InlineData(1, 100, DependencyCycleAnalysisStatus.NodeLimitExceeded)]
+    [InlineData(100, 0, DependencyCycleAnalysisStatus.EdgeLimitExceeded)]
+    public async Task GIVEN_ProjectReferenceGraphExceedsAnalysisLimit_WHEN_FindingCycles_THEN_ShouldRejectPartialAnalysis(
+        int maxNodes,
+        int maxEdges,
+        DependencyCycleAnalysisStatus expectedStatus)
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Alpha.cs", Source = "class Alpha { }" }],
+                ProjectReferences = ["Beta"],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Beta",
+                Documents = [new InMemoryRoslynDocumentDefinition { Name = "Beta.cs", Source = "class Beta { }" }],
+            },
+        ]);
+
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        var result = await target.FindCyclesAsync(
+            "Project",
+            solution.Solution.Projects.ToArray(),
+            solution.Solution.Projects.SelectMany(static project => project.Documents).ToArray(),
+            25,
+            maxNodes,
+            maxEdges,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(expectedStatus);
+        result.Cycles.Should().BeNull();
+        result.TotalCount.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_TypeGraphExceedsNodeLimit_WHEN_FindingCycles_THEN_ShouldRejectPartialAnalysis()
+    {
+        using var document = RoslynTestFactory.CreateDocument("class Alpha { } class Beta { }");
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        var result = await target.FindCyclesAsync(
+            "Type",
+            [document.Document.Project],
+            [document.Document],
+            25,
+            1,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(DependencyCycleAnalysisStatus.NodeLimitExceeded);
+        result.Cycles.Should().BeNull();
+        result.TotalCount.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_TypeGraphExceedsEdgeLimit_WHEN_FindingCycles_THEN_ShouldRejectPartialAnalysis()
+    {
+        using var document = RoslynTestFactory.CreateDocument("class Alpha { public Beta Value { get; } = new(); } class Beta { public Alpha Value { get; } = new(); }");
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContext
+            .SetupGet(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+
+        workspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.FindCyclesAsync(
+            "Type",
+            [document.Document.Project],
+            [document.Document],
+            25,
+            100,
+            1,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(DependencyCycleAnalysisStatus.EdgeLimitExceeded);
+        result.Cycles.Should().BeNull();
+        result.TotalCount.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_NamespaceGraphExceedsNodeLimit_WHEN_FindingCycles_THEN_ShouldStopDiscovery()
+    {
+        using var document = RoslynTestFactory.CreateDocument("namespace One { class Alpha { } } namespace Two { class Beta { } }");
+        var target = new DependencyAnalysisService();
+        var queryContext = new Mock<IQueryContext>();
+
+        queryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        var result = await target.FindCyclesAsync(
+            "Namespace",
+            [document.Document.Project],
+            [document.Document],
+            25,
+            1,
+            100,
+            queryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(DependencyCycleAnalysisStatus.NodeLimitExceeded);
     }
 
     [Fact]

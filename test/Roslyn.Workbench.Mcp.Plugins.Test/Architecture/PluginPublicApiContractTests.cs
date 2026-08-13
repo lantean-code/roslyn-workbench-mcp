@@ -88,6 +88,8 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute",
         "Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute",
         "Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle",
+        "Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult",
+        "Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus",
         "Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge",
         "Roslyn.Workbench.Mcp.Plugins.Services.GraphNode",
         "Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService",

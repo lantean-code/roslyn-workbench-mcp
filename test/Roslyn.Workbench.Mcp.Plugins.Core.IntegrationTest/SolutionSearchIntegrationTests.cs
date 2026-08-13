@@ -3,6 +3,61 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 public sealed class SolutionSearchIntegrationTests
 {
     [Fact]
+    public async Task GIVEN_NamespaceCycleAndProjectReference_WHEN_FindingCycles_THEN_ShouldAnalyseBothGranularitiesEndToEnd()
+    {
+        using var fixture = SolutionHierarchyFixture.Create();
+        var cycleDocumentPath = Path.Combine(fixture.WorkspaceRoot, "App", "NamespaceCycle.cs");
+        var cycleSource = """
+            namespace One
+            {
+                public sealed class Alpha
+                {
+                    public Two.Beta Value { get; } = new();
+                }
+            }
+
+            namespace Two
+            {
+                public sealed class Beta
+                {
+                    public One.Alpha Value { get; } = new();
+                }
+            }
+            """;
+
+        await File.WriteAllTextAsync(cycleDocumentPath, cycleSource, TestContext.Current.CancellationToken);
+
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.SolutionPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
+
+        var namespaceCycles = await session.ExecuteQueryAsync<FindDependencyCyclesRequest, DependencyCyclesData>(
+            "find-dependency-cycles",
+            new FindDependencyCyclesRequest
+            {
+                Granularity = "Namespace",
+            }, TestContext.Current.CancellationToken);
+
+        var projectCycles = await session.ExecuteQueryAsync<FindDependencyCyclesRequest, DependencyCyclesData>(
+            "find-dependency-cycles",
+            new FindDependencyCyclesRequest
+            {
+                Granularity = "Project",
+            }, TestContext.Current.CancellationToken);
+
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        namespaceCycles.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        namespaceCycles.Data!.Cycles.Items.Should().ContainSingle(cycle =>
+            cycle.Nodes.Count == 2
+            && cycle.Nodes[0].DisplayName == "One"
+            && cycle.Nodes[1].DisplayName == "Two");
+
+        projectCycles.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        projectCycles.Data!.Cycles.Items.Should().BeEmpty();
+        projectCycles.Data.Cycles.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_CrossProjectSolution_WHEN_SearchingRelationships_THEN_ShouldResolveAcrossProjectBoundary()
     {
         using var fixture = SolutionHierarchyFixture.Create();
@@ -76,6 +131,21 @@ public sealed class SolutionSearchIntegrationTests
                 Granularity = "Type",
             }, TestContext.Current.CancellationToken);
 
+        var cycles = await session.ExecuteQueryAsync<FindDependencyCyclesRequest, DependencyCyclesData>(
+            "find-dependency-cycles",
+            new FindDependencyCyclesRequest
+            {
+                Scope = new ScopeSelector
+                {
+                    Kind = ScopeKind.Project,
+                    Project = new ProjectSelector
+                    {
+                        Path = "App/App.csproj",
+                    },
+                },
+                Granularity = "Type",
+            }, TestContext.Current.CancellationToken);
+
         openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         implementations.Data!.Implementations.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("AppFormatter", StringComparison.Ordinal));
         references.Data!.References.Items.Should().Contain(static reference => reference.Location != null && reference.Location.Document != null && reference.Location.Document.Path.EndsWith("AppFormatter.cs", StringComparison.Ordinal));
@@ -83,5 +153,6 @@ public sealed class SolutionSearchIntegrationTests
         derivedTypes.Data!.DerivedTypes.Items.Should().Contain(static node => node.Type!.DisplayName.Contains("AppFormatter", StringComparison.Ordinal));
         dependencies.Data!.Dependencies.Items.Should().Contain(static dependency => dependency.Symbol!.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
         graph.Data!.Edges.Items.Should().Contain(static edge => edge.FromDisplayName.Contains("AppCaller", StringComparison.Ordinal) && edge.ToDisplayName.Contains("AppFormatter", StringComparison.Ordinal));
+        cycles.Data!.Cycles.Items.Should().BeEmpty();
     }
 }

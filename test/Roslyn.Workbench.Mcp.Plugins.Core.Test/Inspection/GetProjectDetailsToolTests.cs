@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.CSharp;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class GetProjectDetailsToolTests
@@ -65,6 +67,65 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Project!.Path.Should().Be(project.FilePath);
         result.Data.Project.TargetFrameworks.Should().Equal("TargetFramework");
         result.Data.CompilationOptions.Should().NotBeNull();
+        result.Data.CompilationOptions.PreprocessorSymbols.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectHasPreprocessorSymbols_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolsInOrdinalOrder()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Project.cs",
+                        Source = "public class ProjectType { }",
+                    },
+                ],
+            },
+        ]);
+
+        var project = solution.Solution.Projects.Single();
+        var parseOptions = ((CSharpParseOptions)project.ParseOptions!).WithPreprocessorSymbols(
+            "PROJECT_DETAILS_ZETA",
+            "PROJECT_DETAILS_ALPHA");
+        solution.Workspace.TryApplyChanges(
+            solution.Solution.WithProjectParseOptions(project.Id, parseOptions)).Should().BeTrue();
+        project = solution.Workspace.CurrentSolution.GetProject(project.Id)!;
+
+        var target = new GetProjectDetailsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProject<ProjectDetailsData>(
+                It.IsAny<ProjectSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
+
+        string? projectPath = project.FilePath;
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(project.FilePath!, out projectPath))
+            .Returns(true);
+
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(It.IsAny<Guid>(), project, It.IsAny<CancellationToken>()))
+            .Returns(ProjectTargetFrameworksResult.Succeeded());
+
+        var result = await target.ExecuteAsync(
+            new GetProjectDetailsRequest
+            {
+                Project = new ProjectSelector(),
+            },
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.CompilationOptions!.PreprocessorSymbols.Should().Equal(
+            "PROJECT_DETAILS_ALPHA",
+            "PROJECT_DETAILS_ZETA");
     }
 
     [Fact]

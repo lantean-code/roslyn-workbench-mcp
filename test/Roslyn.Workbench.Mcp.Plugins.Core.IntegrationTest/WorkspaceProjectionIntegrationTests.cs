@@ -47,6 +47,32 @@ public sealed class WorkspaceProjectionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_LoadedProjectHasDefinedConstants_WHEN_ProjectingProjectDetails_THEN_ShouldIncludeEffectivePreprocessorSymbols()
+    {
+        using var fixture = InspectionSampleFixture.Create(InspectionSampleProfile.PreprocessorSymbols);
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
+
+        var project = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
+            "get-project-details",
+            new GetProjectDetailsRequest
+            {
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+            },
+            TestContext.Current.CancellationToken);
+
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        project.Data!.CompilationOptions!.PreprocessorSymbols.Should().Contain("PROJECT_DETAILS_ALPHA");
+        project.Data.CompilationOptions.PreprocessorSymbols.Should().Contain("PROJECT_DETAILS_ZETA");
+        project.Data.CompilationOptions.PreprocessorSymbols.Should().Contain("NET10_0");
+        project.Data.CompilationOptions.PreprocessorSymbols.Should().BeInAscendingOrder(StringComparer.Ordinal);
+    }
+
+    [Fact]
     public async Task GIVEN_MultiProjectSolution_WHEN_ProjectingWorkspace_THEN_ShouldIncludeFoldersAndProjectReferences()
     {
         using var fixture = SolutionHierarchyFixture.Create();

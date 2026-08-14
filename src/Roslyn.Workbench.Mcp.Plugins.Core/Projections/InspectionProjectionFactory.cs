@@ -57,11 +57,15 @@ internal static class InspectionProjectionFactory
         };
     }
 
-    public static CompilationOptionsInfo CreateCompilationOptionsInfo(CompilationOptions? options)
+    public static CompilationOptionsInfo CreateCompilationOptionsInfo(CompilationOptions? options, ParseOptions? parseOptions)
     {
+        var preprocessorSymbols = CreatePreprocessorSymbols(parseOptions);
         if (options is null)
         {
-            return new CompilationOptionsInfo();
+            return new CompilationOptionsInfo
+            {
+                PreprocessorSymbols = preprocessorSymbols,
+            };
         }
 
         return new CompilationOptionsInfo
@@ -71,7 +75,7 @@ internal static class InspectionProjectionFactory
             AllowUnsafe = options is CSharpCompilationOptions csharpCompilationOptions && csharpCompilationOptions.AllowUnsafe,
             OptimizationLevel = options.OptimizationLevel.ToString(),
             WarningLevel = options.WarningLevel,
-            PreprocessorSymbols = options is CSharpCompilationOptions ? [] : [],
+            PreprocessorSymbols = preprocessorSymbols,
         };
     }
 
@@ -163,13 +167,10 @@ internal static class InspectionProjectionFactory
         }
 
         var languageVersion = string.Empty;
-        string[] preprocessorSymbols = [];
+        var preprocessorSymbols = CreatePreprocessorSymbols(options);
         if (options is CSharpParseOptions csharpOptions)
         {
             languageVersion = csharpOptions.LanguageVersion.ToDisplayString();
-            preprocessorSymbols = csharpOptions.PreprocessorSymbolNames
-                .OrderBy(static value => value, StringComparer.Ordinal)
-                .ToArray();
         }
 
         return new ParseOptionsInfo
@@ -179,6 +180,14 @@ internal static class InspectionProjectionFactory
             DocumentationMode = options.DocumentationMode.ToString(),
             PreprocessorSymbols = preprocessorSymbols,
         };
+    }
+
+    private static string[] CreatePreprocessorSymbols(ParseOptions? options)
+    {
+        return options?.PreprocessorSymbolNames
+            .OrderBy(static value => value, StringComparer.Ordinal)
+            .ToArray()
+            ?? [];
     }
 
     public static ContractProjectInfo CreateProjectInfo(Project project, string normalizedPath, IReadOnlyList<string> targetFrameworks)

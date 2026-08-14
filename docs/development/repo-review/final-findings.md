@@ -8,6 +8,32 @@ The current repository has strong structural separation, unusually broad automat
 
 Every one of the twenty ledger candidates was independently retraced against the complete current source, its consumers and the applicable product contracts. Seventeen remain substantiated: four P1/High, twelve P2/High and one P2/Medium. `RWMCP2-016` was rejected after current MCP SDK implementation inspection proved that registered call-tool filters wrap both direct registered tools and the fallback handler. `RWMCP2-018` was rejected because lifecycle invalidation controls later consent decisions rather than retroactively revoking an explicitly started submission request for an immutable prepared payload. `RWMCP2-020` was rejected because the documented release-evidence unit is a successfully completed command rather than a resumable partial run. No candidates were merged because the retained superficially related candidates have distinct root causes and failure outcomes.
 
+## Remediation worklist
+
+Last updated: 2026-08-14
+
+This table is the primary RWMCP2 remediation tracker. Its order is the required fix order; update both this row and the corresponding detailed finding whenever status changes. Rejected candidates are not remediation work items and remain documented in the durable ledger.
+
+| Order | Finding | Severity | Status |
+| ---: | --- | --- | --- |
+| 1 | `RWMCP2-001` — Code Action ranges are not snapshot-bound | P1 | Complete — confirmed 2026-08-13 |
+| 2 | `RWMCP2-004` — Commit can overwrite drift captured during planning | P1 | Complete — confirmed 2026-08-13 |
+| 3 | `RWMCP2-005` — Recovery does not verify artifact content before restoring source | P1 | Complete — confirmed 2026-08-13 |
+| 4 | `RWMCP2-009` — Dependency-cycle traversal is unbounded, recursive and uncancellable | P1 | Complete — confirmed 2026-08-13 |
+| 5 | `RWMCP2-002` — Open Workspace resources survive generic Host shutdown | P2 | Complete — confirmed 2026-08-13 |
+| 6 | `RWMCP2-003` — Instance-status close failure skips Workspace resource disposal | P2 | Complete — confirmed 2026-08-13 |
+| 7 | `RWMCP2-006` — Plugin admission does not enforce the runtime query response contract | P2 | Complete — confirmed 2026-08-13 |
+| 8 | `RWMCP2-007` — Project details always omit effective preprocessor symbols | P2 | Complete — confirmed 2026-08-14 |
+| 9 | `RWMCP2-008` — Flow analysis reports a different region from the one it analyses | P2 | Pending — remediation not started |
+| 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Pending — remediation not started |
+| 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Pending — remediation not started |
+| 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Pending — remediation not started |
+| 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Pending — remediation not started |
+| 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Pending — remediation not started |
+| 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Pending — remediation not started |
+| 16 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
+| 17 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
+
 ## Remediation and release gates
 
 The validated findings in this report are the authoritative RWMCP2 remediation worklist. Each finding must follow the approval-led process in [`DeepDiveReview.md`](../DeepDiveReview.md): current-source revalidation and explanation, proposed design, explicit approval, implementation, required executable validation, a first user code review and confirmation, staging of that complete first-confirmed baseline, an independent Review Agent pass, unstaged correction and re-review of any substantiated feedback, a second user review comparing the staged baseline with those unstaged corrections, final confirmation, durable status update and then user commit. No finding is complete or ready to commit until its final Review Agent pass has no remaining actionable defects or regression gaps and the user has given the second confirmation; any material change after that pass requires another review.
@@ -104,13 +130,19 @@ The default `ToolOutputSchemaMode.Omit` validates the request but skips response
 
 ### RWMCP2-007 — Project details always omit effective preprocessor symbols
 
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/CompilationOptionsInfo.cs:33-36`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Projections/InspectionProjectionFactory.cs:60-75`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetProjectDetailsTool.cs:67-75`
 
 The published project-details contract claims to return preprocessor symbols, but `InspectionProjectionFactory.CreateCompilationOptionsInfo` assigns an empty collection in both the C# and non-C# branches. `GetProjectDetailsTool` publishes that projection without another source of symbols. A C# project with `DEBUG`, target-framework constants or custom `DefineConstants` therefore reports none of them, even though the current document parse options expose the effective names and sibling document-option projection already reads them.
 
+**Remediation outcome:** `get-project-details` now supplies the selected project's parse options to the compilation-options projection. Project and document option responses share one null-safe projection of `ParseOptions.PreprocessorSymbolNames`, materialised in ordinal order while preserving the existing wire contract. Dedicated `InspectionProjectionFactoryTests` exercise every public factory method, every reachable branch, C# and language-neutral option handling, analyzer configuration, analyzer and metadata references, associated types, source and metadata definitions, modifiers, diagnostic severities, parameters, projects, references and null/default projections; the public tool test independently proves parse-option forwarding. Measured factory coverage is 100% of lines and 98.57% of branches. The only uncovered branch is the defensive `Project.AssemblyName ?? string.Empty` fallback: Roslyn's public project-construction API rejects a null assembly name before a real `Project` can be obtained, so covering it would require invalid artificial Roslyn state and qualifies for the repository's documented defensive Roslyn guard exception. A real MSBuild integration profile proves that explicit `DefineConstants` and the SDK-provided `NET10_0` symbol reach the public tool result. The solution build passed with zero warnings/errors; Core unit/contract tests passed 296/296; Core integration tests passed 10/10; and `latest-all` analyzer builds for the production, unit-test, integration-support and integration-test projects passed with zero warnings/errors. No acceptance-consumed artefact was changed. The first independent Review Agent pass found no production or test defect and one P3 tracking defect; after its unstaged correction, the repeated independent pass returned no findings. The user gave final confirmation on 2026-08-14. Residual risks are limited to the single-target integration fixture and helper-level non-C# coverage because Workspace admission currently supports C# only.
+
 ### RWMCP2-008 — Flow analysis reports a different region from the one it analyses
+
+**Status:** Pending — remediation not started
 
 **Severity:** P2  
 **Confidence:** High  
@@ -120,6 +152,8 @@ Both tools resolve the caller's exact location, find the containing statement, a
 
 ### RWMCP2-010 — Outer limits do not bound several large nested query payloads
 
+**Status:** Pending — remediation not started
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSolutionStructureRequest.cs:6-32`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetSolutionStructureTool.cs:107-155`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetDocumentOutlineRequest.cs:6-16`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Projections/DocumentOutlineProjectionFactory.cs:3-66`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindCallersTool.cs:23-76`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindDuplicateCodeTool.cs:84-118`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetControlFlowGraphTool.cs:70-80,86-115`
@@ -127,6 +161,8 @@ Both tools resolve the caller's exact location, find the containing statement, a
 Several public `maxResults`-style controls bound only a top-level collection while each admitted item can retain an unbounded nested graph: all documents per selected project, recursive outline descendants, every caller location and context, every duplicate occurrence, or all control-flow operations including full syntax. The Host serializer has no independent byte or nested-item budget. A request respecting its documented outer limit can therefore produce a repository-scale response, high allocation pressure and long serialization that the apparent limit does not constrain. These are manifestations of one shared result-bounding contract defect rather than independent findings.
 
 ### RWMCP2-012 — The current built-in Code Action compatibility gate fails its implement-interface case
+
+**Status:** Pending — remediation not started
 
 **Severity:** P2  
 **Confidence:** High  
@@ -136,6 +172,8 @@ The checked-in compatibility inventory requires the built-in implement-interface
 
 ### RWMCP2-013 — The built-in replay audit bypasses the replay path it claims to validate
 
+**Status:** Pending — remediation not started
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/BuiltInCodeActionAuditHarness.cs:79-127,150-199`; `.github/workflows/code-action-audit.yml:31-52`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/CodeActionResolver.cs:114-209`; `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionStager.cs:38-82`
@@ -143,6 +181,8 @@ The checked-in compatibility inventory requires the built-in implement-interface
 For cases labelled replayable, the audit discovers providers directly, finds matching actions, selects `matching[0]`, and calls that action's `GetOperationsAsync`. It does not create a production `ActionId`, store the recipe, rediscover uniquely through `CodeActionResolver`, or pass through `CodeActionStager`. A passing audit can therefore coexist with unstable action identity, ambiguity, reference expiry/invalidation, changed rediscovery, or staging failure—the precise production behaviours the replay label appears to assure. CI's test-count gate confirms case execution, not traversal of that boundary.
 
 ### RWMCP2-014 — Uncancelled cancellation exceptions bypass Workbench diagnostic capture
+
+**Status:** Pending — remediation not started
 
 **Severity:** P2  
 **Confidence:** High  
@@ -152,6 +192,8 @@ The Workbench call-tool filter rethrows every `OperationCanceledException` witho
 
 ### RWMCP2-015 — The unexpected-exception filter remaps deliberate MCP protocol failures
 
+**Status:** Pending — remediation not started
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp/Hosting/RoslynWorkbenchHostApplicationBuilderExtensions.cs:33-46`; `src/Roslyn.Workbench.Mcp/Hosting/PluginMcpRequestHandler.cs:39-57`; `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:35-78`; `test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/PluginMcpRequestHandlerProtocolIntegrationTests.cs:11-95`
@@ -159,6 +201,8 @@ The Workbench call-tool filter rethrows every `OperationCanceledException` witho
 The fallback plugin handler deliberately throws `McpProtocolException` for protocol-level failures such as an unknown tool. The registered Workbench filter surrounds the combined SDK dispatch path and catches that exception in its general unexpected-exception branch, logging/capturing it and returning a normal structured `UnhandledException` tool result. Because the filter has already returned a result, the SDK's outer protocol handling never sees the deliberate protocol exception. Unknown-tool and equivalent fallback failures are thus misclassified as internal correlated errors rather than preserving their intended MCP protocol semantics.
 
 ### RWMCP2-017 — Error capture loses valid Workspace selectors when several Workspaces are open
+
+**Status:** Pending — remediation not started
 
 **Severity:** P2  
 **Confidence:** High  
@@ -168,6 +212,8 @@ Public binding accepts Workspace selectors by canonical ID, alias or path and tr
 
 ### RWMCP2-019 — Failed initial preparation poisons the shared scenario cache
 
+**Status:** Pending — remediation not started
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryManager.cs:23-80`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/ExternalCommand.cs:8-43`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs:50-64`
@@ -175,6 +221,8 @@ Public binding accepts Workspace selectors by canonical ID, alias or path and tr
 Initial external-repository preparation clones and checks out directly in the persistent shared cache directory. Cancellation or command failure after `.git` is created leaves that partial repository in place. On the next locked preparation, `RepositoryManager` sees `.git`, skips clone, and validates the pinned clean checkout; the incomplete cache fails that validation repeatedly and is neither repaired nor replaced. Process-tree termination limits orphan processes but cannot restore repository state. The release wrappers reuse the same cache, so a single interrupted first preparation can poison subsequent scenario runs.
 
 ### RWMCP2-011 — Prepared Fix All references do not bind the operation that was reviewed
+
+**Status:** Pending — remediation not started
 
 **Severity:** P2  
 **Confidence:** Medium  

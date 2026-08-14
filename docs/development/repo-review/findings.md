@@ -72,7 +72,7 @@ Date: 2026-08-13
 
 ### RWMCP2-006 — Plugin admission does not enforce the runtime query response contract
 
-- **Status:** Validated — retained in final findings
+- **Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
 - **Severity:** P2
 - **Confidence:** High
 - **Location:** `src/Roslyn.Workbench.Mcp/Configuration/StartupOptions.cs:23-25`; `src/Roslyn.Workbench.Mcp/PluginLoading/PluginTransportSchemaPreflight.cs:14-42`; `src/Roslyn.Workbench.Mcp/PluginLoading/PluginCatalogEntryMaterializer.cs:26-51`; `src/Roslyn.Workbench.Mcp/PluginLoading/QueryResponseContractInspector.cs:24-70`; `src/Roslyn.Workbench.Mcp/ToolExecution/Plugins/PluginQueryMcpServerTool.cs:74-78`; `src/Roslyn.Workbench.Mcp/Protocol/Results/ToolResultEnvelopeSerializer.cs:19-38,179-188`; `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:35-78`
@@ -84,7 +84,7 @@ Date: 2026-08-13
 
 ### RWMCP2-007 — Project details always omit effective preprocessor symbols
 
-- **Status:** Validated — retained in final findings
+- **Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
 - **Severity:** P2
 - **Confidence:** High
 - **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/CompilationOptionsInfo.cs:33-36`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Projections/InspectionProjectionFactory.cs:60-75`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetProjectDetailsTool.cs:67-75`
@@ -92,7 +92,7 @@ Date: 2026-08-13
 - **Supporting call path/evidence:** `CompilationOptionsInfo.PreprocessorSymbols` explicitly claims “effective preprocessor symbols”. `GetProjectDetailsTool` constructs this payload solely through `CreateCompilationOptionsInfo(project.CompilationOptions)`. That factory assigns `PreprocessorSymbols = options is CSharpCompilationOptions ? [] : []`, making the field empty for every non-null project and providing no parse options from which symbols could be read. Current official Roslyn API documentation identifies [`ParseOptions.PreprocessorSymbolNames`](https://learn.microsoft.com/dotnet/api/microsoft.codeanalysis.parseoptions.preprocessorsymbolnames?view=roslyn-dotnet-5.3.0) as the defined-symbol source; the sibling document-options projection already reads and sorts that property. Project-details unit and component tests assert only that `CompilationOptions` is non-null and do not configure/assert symbols.
 - **Affected projects/subsystems:** `Roslyn.Workbench.Mcp.Plugins.Core` project-details contract/projection; Host-published query consumers; Roslyn project/parse-option boundary.
 - **Remediation direction:** Supply the project's effective parse options to the projection and populate a deterministically ordered symbol collection, or remove/relocate the field if project-level semantics cannot be represented correctly across documents/languages. Add a real project/component test with explicit `DefineConstants` and target-framework symbols.
-- **Validation history:** 2026-08-13 — independently traced from the current response contract through the tool and projection to Roslyn's parse-option boundary during review unit 4. Core tool and component suites passed 269/269 and 8/8, but neither asserts this field.
+- **Validation history:** 2026-08-13 — independently traced from the current response contract through the tool and projection to Roslyn's parse-option boundary during review unit 4. Core tool and component suites passed 269/269 and 8/8, but neither asserts this field. 2026-08-14 — remediation passes `Project.ParseOptions` into the project-details projection and shares a null-safe, ordinally ordered `ParseOptions.PreprocessorSymbolNames` projection with document options. Unit coverage proves ordering and unavailable-options behaviour; a real MSBuild integration profile proves custom `DefineConstants` and `NET10_0`. The solution build, 272 Core unit/contract tests, 10 Core integration tests and all four affected `latest-all` analyzer builds passed with zero warnings/errors. First-review feedback identified the absence of dedicated factory tests, then clarified that coverage must encompass the complete factory rather than only the remediated projections. `InspectionProjectionFactoryTests` now exercises every public factory method and every reachable branch, including C# and language-neutral options, analyzer configuration, symbols, definitions, modifiers, severities, parameters, projects and references. Measured coverage for `InspectionProjectionFactory` is 100% of lines and 98.57% of branches. The sole uncovered branch is the defensive `Project.AssemblyName ?? string.Empty` fallback: Roslyn rejects null assembly names through its public project-construction API, so reaching it would require invalid artificial Roslyn state; this is the documented defensive Roslyn guard exception permitted by the test policy. The final solution build, 296 Core unit/contract tests, 10 Core integration tests and all four affected `latest-all` analyzer builds passed with zero warnings/errors. The first independent Review Agent pass found no production or test defect and one P3 tracker-state defect; its unstaged correction was re-reviewed, and the repeated independent pass returned no findings. The user gave final confirmation on 2026-08-14.
 
 ### RWMCP2-008 — Flow analysis reports a different region from the one it analyzes
 

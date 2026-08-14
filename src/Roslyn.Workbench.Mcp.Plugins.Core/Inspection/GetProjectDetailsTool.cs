@@ -71,7 +71,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             ProjectReferences = projectReferences,
             MetadataReferences = metadataReferences,
             Analyzers = analyzers,
-            CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(project.CompilationOptions),
+            CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(project.CompilationOptions, project.ParseOptions),
         };
 
         var result = PluginExecutionResult.Success(projectDetails);

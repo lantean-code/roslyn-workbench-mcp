@@ -121,11 +121,6 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider",
-            Title = "Enable nullable reference types in project",
-        },
-        new()
-        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.SyncNamespace.CSharpSyncNamespaceCodeRefactoringProvider",
             TitlePrefix = "Change namespace to ",
         },
@@ -1291,6 +1286,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertNumericLiteral.CSharpConvertNumericLiteralCodeRefactoringProvider",
             Title = "Convert to hex",
             SourceNote = "NumericLiteralSamples.Build decimal literal",
+            ActionPath = [0, 1],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocation("42"),
         },
@@ -1299,6 +1295,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertTupleToStruct.CSharpConvertTupleToStructCodeRefactoringProvider",
             Title = "updating usages in containing member",
             SourceNote = "TupleSamples.Build tuple return type",
+            ActionPath = [0, 0],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocation("(int Sum, int Count)"),
         },
@@ -1307,6 +1304,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ImplementInterface.CSharpImplementExplicitlyCodeRefactoringProvider",
             Title = "Implement 'Goo1' explicitly",
             SourceNote = "ExplicitInterfaceSamples.Goo1 implicit implementation",
+            ActionPath = [0, 0],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetCursor("public void Goo1", 0, "public void ".Length),
         },
@@ -1315,6 +1313,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ImplementInterface.CSharpImplementImplicitlyCodeRefactoringProvider",
             Title = "Implement 'Goo1' implicitly",
             SourceNote = "ImplicitInterfaceSamples.Goo1 explicit implementation",
+            ActionPath = [0, 0],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetCursor("void IGoo.Goo1", 0, "void IGoo.".Length),
         },
@@ -1331,6 +1330,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineMethod.CSharpInlineMethodRefactoringProvider",
             Title = "Inline 'AddOne(int value)'",
             SourceNote = "InlineMethodSamples.Caller invocation",
+            ActionPath = [0, 0],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocation("AddOne(1)"),
         },
@@ -1341,15 +1341,6 @@ internal static class BuiltInCodeActionAuditCases
             SourceNote = "BannerTarget.cs start of document with sibling banner reference",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetCursorInDocument("BannerTarget.cs", "using System"),
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider",
-            Title = "Enable nullable reference types in project",
-            SourceNote = "EnableNullable.cs nullable directive in nullable-disabled project",
-            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.NullableDisabled),
-            LocationFactory = static fixture => fixture.GetCursorInDocument("EnableNullable.cs", "#nullable enable"),
         },
         new()
         {
@@ -1415,6 +1406,7 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = "Microsoft.CodeAnalysis.CSharp.Wrapping.CSharpWrappingCodeRefactoringProvider",
             Title = "Indent all arguments",
             SourceNote = "Wrapping.cs invocation expression header",
+            ActionPath = [0, 1],
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetCursorInDocument("Wrapping.cs", "Goobar(left, right)"),
         },

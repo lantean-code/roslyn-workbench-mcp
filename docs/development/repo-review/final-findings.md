@@ -27,7 +27,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 9 | `RWMCP2-008` — Flow analysis reports a different region from the one it analyses | P2 | Complete — confirmed 2026-08-14 |
 | 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Complete — confirmed 2026-08-14 |
 | 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Complete — confirmed 2026-08-14 |
-| 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Pending — remediation not started |
+| 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Complete — confirmed 2026-08-14 |
 | 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Pending — remediation not started |
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Pending — remediation not started |
 | 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Pending — remediation not started |
@@ -178,13 +178,15 @@ The checked-in compatibility inventory requires the built-in implement-interface
 
 ### RWMCP2-013 — The built-in replay audit bypasses the replay path it claims to validate
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
 
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/BuiltInCodeActionAuditHarness.cs:79-127,150-199`; `.github/workflows/code-action-audit.yml:31-52`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/CodeActionResolver.cs:114-209`; `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionStager.cs:38-82`
 
 For cases labelled replayable, the audit discovers providers directly, finds matching actions, selects `matching[0]`, and calls that action's `GetOperationsAsync`. It does not create a production `ActionId`, store the recipe, rediscover uniquely through `CodeActionResolver`, or pass through `CodeActionStager`. A passing audit can therefore coexist with unstable action identity, ambiguity, reference expiry/invalidation, changed rediscovery, or staging failure—the precise production behaviours the replay label appears to assure. CI's test-count gate confirms case execution, not traversal of that boundary.
+
+**Remediation outcome:** Every supported compatibility case now starts a transaction, lists through the production workflow, correlates the selected public `ActionId` with its retained provider, kind, title, equivalence key, nested action path, target span and diagnostic identity, releases the query lease, stages through production replay, verifies reference consumption and inspects the resulting transaction revision. Source-change inspection delegates to the production content-sensitive change counter, so equivalent replacement text cannot satisfy the replay assertion; additions and removals remain observable. Representative nested paths and diagnostic-backed cases are locked into the inventory. Real staging also established that `EnableNullableCodeRefactoringProvider` mutates project compilation options rather than source documents, so it is consistently classified and tested as a product-boundary exclusion instead of a supported replay candidate. The complete Code Action audit passed 120/120, Code Actions unit tests passed 284/284, Code Actions integration passed 19/19, Host integration passed 71/71, and the solution and affected `latest-all` analyser builds completed without warnings or errors. The first fresh context-free Review Agent pass found the equivalent-content false positive and contradictory exhaustive provider classification; both were corrected as isolated unstaged changes and revalidated. A second fresh context-free Review Agent pass returned no findings, material test gaps or residual risks. The user reviewed the staged baseline and isolated corrections and confirmed completion on 2026-08-14.
 
 ### RWMCP2-014 — Uncancelled cancellation exceptions bypass Workbench diagnostic capture
 

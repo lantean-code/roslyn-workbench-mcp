@@ -1,5 +1,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
+using Roslyn.Workbench.Mcp.CodeActions.References;
+using Roslyn.Workbench.Mcp.Workspace.Results;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -46,7 +49,8 @@ internal static class BuiltInCodeActionAuditHarness
 
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
-        var expectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var expectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, transactionRevision: 0);
         var location = auditCase.LocationFactory(fixture);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
             CreateListRequest(location, auditCase.Kind, expectedSnapshot),
@@ -150,53 +154,113 @@ internal static class BuiltInCodeActionAuditHarness
 
         try
         {
-            var action = matching[0].Action;
-            var progress = new Progress<CodeAnalysisProgress>();
-            var operations = await action.GetOperationsAsync(
-                queryContext.CurrentSolution,
-                progress,
-                TestContext.Current.CancellationToken);
+            var originalSolution = queryContext.CurrentSolution;
+            var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+            var (actionId, selectionFailure) = ResolvePublishedAction(
+                visibilityResult,
+                matching[0],
+                auditCase,
+                referenceStore);
 
-            if (TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
+            if (actionId is null)
             {
-                var (changedDocumentCount, expectedChangeFound, unexpectedChangeRemoved, changedSource) = await InspectChangedSourceDocumentsAsync(
-                    queryContext.CurrentSolution,
-                    applyChanges!.ChangedSolution,
-                    auditCase);
-
-                var isExpectedMutation = changedDocumentCount > 0
-                    && expectedChangeFound
-                    && unexpectedChangeRemoved;
-
                 return new BuiltInCodeActionAuditProbe
                 {
                     LocationStatus = resolution.Status,
                     VisibilityOutcome = visibilityResult.Outcome,
-                    RuntimeOutcome = isExpectedMutation
-                        ? BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable
-                        : BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
+                    RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
                     MatchingActionCount = matching.Length,
                     IsVisibleInList = IsVisible(visibilityResult, auditCase),
                     CandidateTitles = candidateTitles,
                     DiagnosticIds = diagnosticIds,
-                    FailureMessage = BuildMutationFailureMessage(
-                        changedDocumentCount,
-                        expectedChangeFound,
-                        unexpectedChangeRemoved,
-                        changedSource),
+                    FailureMessage = selectionFailure,
                 };
             }
+
+            await queryLease.DisposeAsync();
+
+            var stageRequest = new StageCodeActionRequest
+            {
+                ActionId = actionId.Value,
+                ExpectedSnapshot = expectedSnapshot,
+            };
+
+            var staged = await session.StageCodeActionAsync(
+                stageRequest,
+                TestContext.Current.CancellationToken);
+
+            if (!staged.IsSucceeded || staged.Data.Transaction is null)
+            {
+                return CreateReplayFailure(
+                    resolution.Status,
+                    visibilityResult,
+                    matching.Length,
+                    auditCase,
+                    candidateTitles,
+                    diagnosticIds,
+                    BuildStagingFailureMessage(staged));
+            }
+
+            if (referenceStore.TryGet(actionId.Value, out _))
+            {
+                return CreateReplayFailure(
+                    resolution.Status,
+                    visibilityResult,
+                    matching.Length,
+                    auditCase,
+                    candidateTitles,
+                    diagnosticIds,
+                    "Successful production staging did not consume the replay reference.");
+            }
+
+            var stagedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(
+                open,
+                staged.Data.Transaction.Revision);
+
+            await using var stagedQueryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
+                CreateListRequest(location, auditCase.Kind, stagedSnapshot),
+                TestContext.Current.CancellationToken);
+
+            if (stagedQueryLease.HasFailure)
+            {
+                return CreateReplayFailure(
+                    resolution.Status,
+                    visibilityResult,
+                    matching.Length,
+                    auditCase,
+                    candidateTitles,
+                    diagnosticIds,
+                    "The staged transaction revision could not be reacquired for source inspection.");
+            }
+
+            var stagedSolution = stagedQueryLease.Context.CurrentSolution;
+            var solutionChangeCounter = coordinator.GetRequiredService<ICodeActionSolutionChangeCounter>();
+            var (changedDocumentCount, expectedChangeFound, unexpectedChangeRemoved, changedSource) = await InspectChangedSourceDocumentsAsync(
+                originalSolution,
+                stagedSolution,
+                auditCase,
+                solutionChangeCounter);
+
+            var isExpectedMutation = changedDocumentCount > 0
+                && expectedChangeFound
+                && unexpectedChangeRemoved;
 
             return new BuiltInCodeActionAuditProbe
             {
                 LocationStatus = resolution.Status,
                 VisibilityOutcome = visibilityResult.Outcome,
-                RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
+                RuntimeOutcome = isExpectedMutation
+                    ? BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable
+                    : BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
                 MatchingActionCount = matching.Length,
                 IsVisibleInList = IsVisible(visibilityResult, auditCase),
                 CandidateTitles = candidateTitles,
                 DiagnosticIds = diagnosticIds,
-                FailureMessage = "The matched action produced unsupported operations.",
+                FailureMessage = BuildMutationFailureMessage(
+                    changedDocumentCount,
+                    expectedChangeFound,
+                    unexpectedChangeRemoved,
+                    changedSource),
             };
         }
         catch (OperationCanceledException)
@@ -229,7 +293,7 @@ internal static class BuiltInCodeActionAuditHarness
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
 
-        return Flatten(rootActions, CodeActionProviderIdentity.GetId(provider));
+        return Flatten(rootActions, CodeActionProviderIdentity.GetId(provider), span);
     }
 
     private static async Task<IReadOnlyList<DiscoveredAuditCodeAction>> DiscoverCodeFixesAsync(
@@ -247,7 +311,7 @@ internal static class BuiltInCodeActionAuditHarness
             return [];
         }
 
-        var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
+        var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)>();
         foreach (var diagnosticGroup in matchingDiagnostics.GroupBy(static diagnostic => diagnostic.Location.SourceSpan))
         {
             await RegisterCodeFixesAsync(
@@ -260,7 +324,7 @@ internal static class BuiltInCodeActionAuditHarness
         }
 
         return discovered
-            .SelectMany(entry => Flatten([entry.Action], CodeActionProviderIdentity.GetId(provider)))
+            .SelectMany(entry => Flatten([entry.Action], CodeActionProviderIdentity.GetId(provider), entry.TargetSpan))
             .ToArray();
     }
 
@@ -269,22 +333,29 @@ internal static class BuiltInCodeActionAuditHarness
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
+        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)> discovered,
         CancellationToken cancellationToken)
     {
-        var context = new CodeFixContext(document, requestedSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
+        var context = new CodeFixContext(
+            document,
+            requestedSpan,
+            diagnostics,
+            (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics, requestedSpan)),
+            cancellationToken);
+
         await provider.RegisterCodeFixesAsync(context);
     }
 
     private static List<DiscoveredAuditCodeAction> Flatten(
         List<CodeAction> rootActions,
-        string providerId)
+        string providerId,
+        TextSpan targetSpan)
     {
         var discovered = new List<DiscoveredAuditCodeAction>();
 
         for (var index = 0; index < rootActions.Count; index++)
         {
-            FlattenCore(rootActions[index], providerId, [index], discovered);
+            FlattenCore(rootActions[index], providerId, targetSpan, [index], discovered);
         }
 
         return discovered;
@@ -293,6 +364,7 @@ internal static class BuiltInCodeActionAuditHarness
     private static void FlattenCore(
         CodeAction action,
         string providerId,
+        TextSpan targetSpan,
         IReadOnlyList<int> path,
         ICollection<DiscoveredAuditCodeAction> discovered)
     {
@@ -301,7 +373,7 @@ internal static class BuiltInCodeActionAuditHarness
         {
             for (var index = 0; index < nested.Length; index++)
             {
-                FlattenCore(nested[index], providerId, path.Concat([index]).ToArray(), discovered);
+                FlattenCore(nested[index], providerId, targetSpan, path.Concat([index]).ToArray(), discovered);
             }
 
             return;
@@ -312,6 +384,7 @@ internal static class BuiltInCodeActionAuditHarness
             Action = action,
             ProviderId = providerId,
             Title = action.Title,
+            TargetSpan = targetSpan,
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = path.ToArray(),
         });
@@ -320,31 +393,37 @@ internal static class BuiltInCodeActionAuditHarness
     private static async Task<(int ChangedDocumentCount, bool ExpectedChangeFound, bool UnexpectedChangeRemoved, string? ChangedSource)> InspectChangedSourceDocumentsAsync(
         Solution before,
         Solution after,
-        BuiltInCodeActionAuditCase auditCase)
+        BuiltInCodeActionAuditCase auditCase,
+        ICodeActionSolutionChangeCounter solutionChangeCounter)
     {
-        var count = 0;
         var expectedChangedText = auditCase.ExpectedChangedText?.ReplaceLineEndings("\n");
         var unexpectedChangedText = auditCase.UnexpectedChangedText?.ReplaceLineEndings("\n");
         var expectedChangeFound = string.IsNullOrWhiteSpace(expectedChangedText);
         var unexpectedChangeRemoved = string.IsNullOrWhiteSpace(unexpectedChangedText);
         string? changedSource = null;
+        var changedDocuments = await solutionChangeCounter.GetChangedSourceDocumentsAsync(
+            before,
+            after,
+            TestContext.Current.CancellationToken);
 
-        foreach (var document in before.Projects.SelectMany(static project => project.Documents))
+        foreach (var documentId in changedDocuments.Select(static document => document.Id))
         {
-            var updatedDocument = after.GetDocument(document.Id);
-            if (updatedDocument is null)
+            var originalDocument = before.GetDocument(documentId);
+            var updatedDocument = after.GetDocument(documentId);
+            string? normalizedOriginalSource = null;
+            string? normalizedUpdatedSource = null;
+
+            if (originalDocument is not null)
             {
-                continue;
+                var originalText = await originalDocument.GetTextAsync(TestContext.Current.CancellationToken);
+                normalizedOriginalSource = originalText.ToString().ReplaceLineEndings("\n");
             }
 
-            var originalText = await document.GetTextAsync(TestContext.Current.CancellationToken);
-            var updatedText = await updatedDocument.GetTextAsync(TestContext.Current.CancellationToken);
-            if (!originalText.ContentEquals(updatedText))
+            if (updatedDocument is not null)
             {
-                count++;
-
+                var updatedText = await updatedDocument.GetTextAsync(TestContext.Current.CancellationToken);
                 var updatedSource = updatedText.ToString();
-                var normalizedUpdatedSource = updatedSource.ReplaceLineEndings("\n");
+                normalizedUpdatedSource = updatedSource.ReplaceLineEndings("\n");
                 changedSource ??= updatedSource;
 
                 if (!string.IsNullOrWhiteSpace(expectedChangedText)
@@ -352,49 +431,117 @@ internal static class BuiltInCodeActionAuditHarness
                 {
                     expectedChangeFound = true;
                 }
+            }
 
-                if (!string.IsNullOrWhiteSpace(unexpectedChangedText)
-                    && !normalizedUpdatedSource.Contains(unexpectedChangedText, StringComparison.Ordinal))
-                {
-                    unexpectedChangeRemoved = true;
-                }
+            if (!string.IsNullOrWhiteSpace(unexpectedChangedText)
+                && normalizedOriginalSource?.Contains(unexpectedChangedText, StringComparison.Ordinal) == true
+                && normalizedUpdatedSource?.Contains(unexpectedChangedText, StringComparison.Ordinal) != true)
+            {
+                unexpectedChangeRemoved = true;
             }
         }
 
-        return (count, expectedChangeFound, unexpectedChangeRemoved, changedSource);
+        return (changedDocuments.Count, expectedChangeFound, unexpectedChangeRemoved, changedSource);
     }
 
-    private static bool TryGetSupportedApplyChangesOperation(
-        IReadOnlyList<CodeActionOperation> operations,
-        out ApplyChangesOperation? applyChanges)
+    private static (Guid? ActionId, string? FailureMessage) ResolvePublishedAction(
+        CodeActionExecutionResult<CodeActionListData> result,
+        DiscoveredAuditCodeAction selectedAction,
+        BuiltInCodeActionAuditCase auditCase,
+        ICodeActionReferenceStore referenceStore)
     {
-        applyChanges = null;
+        var expectedKind = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
+            ? CodeActionKind.CodeFix
+            : CodeActionKind.Refactoring;
 
-        foreach (var operation in operations)
+        var matchingItems = new List<CodeActionListItem>();
+        foreach (var item in result.Data?.Actions.Items ?? [])
         {
-            if (operation is ApplyChangesOperation candidate)
+            if (item.Kind != expectedKind
+                || !string.Equals(item.Title, selectedAction.Title, StringComparison.Ordinal)
+                || item.Location.Span.Start != selectedAction.TargetSpan.Start
+                || item.Location.Span.Length != selectedAction.TargetSpan.Length)
             {
-                if (applyChanges is not null)
-                {
-                    applyChanges = null;
-                    return false;
-                }
-
-                applyChanges = candidate;
                 continue;
             }
 
-            if (!string.Equals(
-                operation.GetType().FullName,
-                "Microsoft.CodeAnalysis.Wrapping.WrapItemsAction+RecordCodeActionOperation",
-                StringComparison.Ordinal))
+            if (auditCase.ExpectedDiagnosticId is not null
+                && item.Diagnostics?.Items.Any(diagnostic => string.Equals(
+                    diagnostic.Id,
+                    auditCase.ExpectedDiagnosticId,
+                    StringComparison.Ordinal)) != true)
             {
-                applyChanges = null;
-                return false;
+                continue;
+            }
+
+            matchingItems.Add(item);
+        }
+
+        var expectedDiscoveredKind = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
+            ? DiscoveredActionKind.CodeFix
+            : DiscoveredActionKind.Refactoring;
+
+        var matchingReferences = new List<CodeActionListItem>();
+        foreach (var item in matchingItems)
+        {
+            if (!referenceStore.TryGet(item.ActionId, out var reference))
+            {
+                return (null, "A matching production list item did not retain a replay reference.");
+            }
+
+            var recipe = reference.Recipe;
+            if (recipe.Kind == expectedDiscoveredKind
+                && string.Equals(recipe.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
+                && string.Equals(recipe.Title, selectedAction.Title, StringComparison.Ordinal)
+                && string.Equals(recipe.EquivalenceKey, selectedAction.EquivalenceKey, StringComparison.Ordinal)
+                && recipe.ActionPath.SequenceEqual(selectedAction.ActionPath)
+                && recipe.Start == selectedAction.TargetSpan.Start
+                && recipe.Length == selectedAction.TargetSpan.Length
+                && (auditCase.ExpectedDiagnosticId is null
+                    || recipe.DiagnosticIds.Contains(auditCase.ExpectedDiagnosticId, StringComparer.Ordinal)))
+            {
+                matchingReferences.Add(item);
             }
         }
 
-        return applyChanges is not null;
+        if (matchingReferences.Count != 1)
+        {
+            return (null, $"Production listing retained {matchingReferences.Count} replay references for the matched provider leaf; exactly one was required.");
+        }
+
+        return (matchingReferences[0].ActionId, null);
+    }
+
+    private static BuiltInCodeActionAuditProbe CreateReplayFailure(
+        SelectorResolveStatus locationStatus,
+        CodeActionExecutionResult<CodeActionListData> visibilityResult,
+        int matchingActionCount,
+        BuiltInCodeActionAuditCase auditCase,
+        IReadOnlyList<string> candidateTitles,
+        IReadOnlyList<string> diagnosticIds,
+        string failureMessage)
+    {
+        return new BuiltInCodeActionAuditProbe
+        {
+            LocationStatus = locationStatus,
+            VisibilityOutcome = visibilityResult.Outcome,
+            RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
+            MatchingActionCount = matchingActionCount,
+            IsVisibleInList = IsVisible(visibilityResult, auditCase),
+            CandidateTitles = candidateTitles,
+            DiagnosticIds = diagnosticIds,
+            FailureMessage = failureMessage,
+        };
+    }
+
+    private static string BuildStagingFailureMessage(CodeActionExecutionResult<MutationData> staged)
+    {
+        if (staged.Error is not null)
+        {
+            return $"Production staging returned '{staged.Error.Code}': {staged.Error.Message}";
+        }
+
+        return $"Production staging returned '{staged.Outcome}'.";
     }
 
     private static bool IsVisible(CodeActionExecutionResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
@@ -508,6 +655,8 @@ internal static class BuiltInCodeActionAuditHarness
         public required string ProviderId { get; init; }
 
         public required string Title { get; init; }
+
+        public required TextSpan TargetSpan { get; init; }
 
         public string? EquivalenceKey { get; init; }
 

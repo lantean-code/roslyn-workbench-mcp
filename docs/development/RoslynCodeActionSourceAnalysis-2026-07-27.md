@@ -27,11 +27,11 @@ The production ledger and development-only provider assessments are the authorit
 
 | Category | Composed providers |
 | --- | ---: |
-| Ordinary replay | 232 |
+| Ordinary replay | 231 |
 | Mixed provider | 5 |
 | Option-backed only | 6 |
 | Internal-service dependent | 1 |
-| Product-boundary exclusion | 6 |
+| Product-boundary exclusion | 7 |
 | Custom semantic implementation | 0 |
 | **Total** | **250** |
 
@@ -78,11 +78,11 @@ Source inspection found ten `CodeActionWithOptions` families in the loaded Featu
 
 `AddMissingImports` is the only composed provider classified as internal-service dependent. It requires paste-tracking state designed for an editor paste operation. Rename Tracking has a similar editor-state dependency, but its provider is source-only EditorFeatures code and is not part of the Features assemblies composed by Workbench.
 
-The six product-boundary exclusions are `AddMissingReference`, `AddPackage`, `UpdateProjectToAllowUnsafe`, `UpgradeProject` and the two Copilot-backed providers. They require project/package mutation, external intelligence or another effect outside the source-document transaction contract.
+The seven product-boundary exclusions are `AddMissingReference`, `AddPackage`, `EnableNullable`, `UpdateProjectToAllowUnsafe`, `UpgradeProject` and the two Copilot-backed providers. They require project/package mutation, external intelligence or another effect outside the source-document transaction contract.
 
 ### Ordinary replay is the dominant architecture
 
-The remaining 232 composed providers produce ordinary actions compatible with opaque reference replay. Their individual availability during the analysis varied because some diagnostics were not activated or compatibility evidence was not complete, but those are discovery and validation prerequisites rather than different execution architectures.
+The remaining 231 composed providers produce ordinary actions compatible with opaque reference replay. Their individual availability during the analysis varied because some diagnostics were not activated or compatibility evidence was not complete, but those are discovery and validation prerequisites rather than different execution architectures.
 
 This is the evidence behind replacing the positive supported-provider ledger with allow-by-default ordinary replay, a small exclusion policy, generic structural checks and final Workspace mutation validation.
 
@@ -132,7 +132,6 @@ This is the evidence behind replacing the positive supported-provider ledger wit
 | Code fix | `Microsoft.CodeAnalysis.CSharp.CodeFixes.UseNameofInAttribute.CSharpUseNameofInAttributeCodeFixProvider` | Built-in diagnostic activation required |
 | Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider` | Supported as `add-await` |
 | Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ConvertLocalFunctionToMethod.CSharpConvertLocalFunctionToMethodCodeRefactoringProvider` | Supported as `convert-local-function-to-method` |
-| Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider` | Supported |
 | Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineMethod.CSharpInlineMethodRefactoringProvider` | Supported |
 | Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider` | Supported as `inline-variable` |
 | Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.SyncNamespace.CSharpSyncNamespaceCodeRefactoringProvider` | Supported |
@@ -358,6 +357,7 @@ This is the evidence behind replacing the positive supported-provider ledger wit
 | Code fix | `Microsoft.CodeAnalysis.CSharp.AddPackage.CSharpAddSpecificPackageCodeFixProvider` | Excluded | Mutates package/project state and may require network and package-source policy. |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.Copilot.CSharpCopilotCodeFixProvider` | Excluded | Depends on an external Copilot service and editor options. |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.Copilot.CSharpImplementNotImplementedExceptionFixProvider` | Excluded | Depends on an external Copilot service and editor options. |
+| Refactoring | `Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider` | Excluded | Mutates project compilation settings rather than staged source documents. |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UpdateProjectToAllowUnsafe.CSharpUpdateProjectToAllowUnsafeCodeFixProvider` | Excluded | Mutates project compilation settings rather than staged source documents. |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UpgradeProject.CSharpUpgradeProjectCodeFixProvider` | Excluded | Mutates the project language version rather than staged source documents. |
 

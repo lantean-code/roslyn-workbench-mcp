@@ -19,6 +19,7 @@ public sealed class CodeActionPolicyTests
     [InlineData("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ExtractClass.CSharpExtractClassCodeRefactoringProvider", "OptionsRequired")]
     [InlineData("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.MoveStaticMembers.CSharpMoveStaticMembersRefactoringProvider", "OptionsRequired")]
     [InlineData("Microsoft.CodeAnalysis.MoveToNamespace.MoveToNamespaceCodeActionProvider", "OptionsRequired")]
+    [InlineData("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider", "ProjectMutationRequired")]
     [InlineData("Microsoft.CodeAnalysis.CSharp.AddMissingReference.CSharpAddMissingReferenceCodeFixProvider", "ProjectMutationRequired")]
     [InlineData("Microsoft.CodeAnalysis.CSharp.AddPackage.CSharpAddSpecificPackageCodeFixProvider", "PackageMutationRequired")]
     [InlineData("Microsoft.CodeAnalysis.CSharp.UpdateProjectToAllowUnsafe.CSharpUpdateProjectToAllowUnsafeCodeFixProvider", "ProjectMutationRequired")]

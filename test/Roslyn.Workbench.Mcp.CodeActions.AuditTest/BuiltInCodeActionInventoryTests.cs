@@ -48,4 +48,15 @@ public sealed class BuiltInCodeActionInventoryTests
             .Should()
             .NotContain(static name => name.Contains("Dedicated", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void GIVEN_SupportedCompatibilityCases_WHEN_InspectingReplayCoverage_THEN_ShouldRetainNestedAndDiagnosticBackedCases()
+    {
+        BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Should().Contain(static auditCase =>
+            auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring
+            && auditCase.ActionPath.Count > 1);
+        BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Should().Contain(static auditCase =>
+            auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
+            && auditCase.ExpectedDiagnosticId != null);
+    }
 }

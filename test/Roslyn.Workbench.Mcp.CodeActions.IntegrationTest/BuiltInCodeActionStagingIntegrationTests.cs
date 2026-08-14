@@ -1,7 +1,59 @@
+using Roslyn.Workbench.Mcp.CodeActions.Composition;
+using Roslyn.Workbench.Mcp.CodeActions.Discovery;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed class BuiltInCodeActionStagingIntegrationTests
 {
+    [Fact]
+    public async Task GIVEN_ProjectOptionRefactoring_WHEN_ListingBuiltInActions_THEN_ShouldOmitUnsupportedAction()
+    {
+        using var fixture = InspectionSampleFixture.Create(InspectionSampleProfile.NullableDisabled);
+        var composition = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
+        {
+            IncludeBuiltInAssemblies = true,
+        });
+
+        composition.RefactoringProviders.Should().ContainSingle(provider =>
+            CodeActionProviderIdentity.GetId(provider) == "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider");
+
+        var workspaceOptions = new ComponentWorkspaceOptions
+        {
+            Boundary = ComponentWorkspaceBoundary.CodeActions,
+            IncludeBuiltInCodeActions = true,
+        };
+
+        await using var coordinator = ComponentWorkspace.Create(workspaceOptions, composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var location = fixture.GetCursorInDocument("EnableNullable.cs", "#nullable enable");
+        if (location.Span is not { Document: not null } span)
+        {
+            throw new InvalidOperationException("The nullable-refactoring fixture location must be span-backed.");
+        }
+
+        var range = new TextSpanRange
+        {
+            Start = span.Start,
+            Length = span.Length,
+        };
+
+        var request = new ListCodeActionsRequest
+        {
+            Document = span.Document,
+            Range = range,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            Kinds = CodeActionKindSelection.Refactorings,
+        };
+
+        var result = await session.ListAsync(request, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        result.Data!.Actions.Items.Should().NotContain(static action =>
+            action.Title == "Enable nullable reference types in project");
+    }
+
     [Fact]
     public async Task GIVEN_BuiltInCompilerFix_WHEN_ListingDocumentActions_THEN_ShouldPublishConciseDiagnosticAction()
     {

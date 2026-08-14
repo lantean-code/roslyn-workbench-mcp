@@ -17,6 +17,7 @@ internal static class CodeActionExclusions
             ["Microsoft.CodeAnalysis.CSharp.AddMissingReference.CSharpAddMissingReferenceCodeFixProvider"] = _projectMutationRequired,
             ["Microsoft.CodeAnalysis.CSharp.AddPackage.CSharpAddSpecificPackageCodeFixProvider"] = _packageMutationRequired,
             ["Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider"] = _editorStateRequired,
+            ["Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider"] = _projectMutationRequired,
             ["Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ExtractClass.CSharpExtractClassCodeRefactoringProvider"] = OptionsRequired,
             ["Microsoft.CodeAnalysis.CSharp.CodeRefactorings.MoveStaticMembers.CSharpMoveStaticMembersRefactoringProvider"] = OptionsRequired,
             ["Microsoft.CodeAnalysis.CSharp.Copilot.CSharpCopilotCodeFixProvider"] = _externalIntelligenceRequired,

@@ -45,6 +45,10 @@ internal static class BuiltInCodeActionProviderAssessment
             BuiltInCodeActionAuditStatus.Excluded),
 
         CreateRefactoring(
+            "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider",
+            BuiltInCodeActionAuditStatus.Excluded),
+
+        CreateRefactoring(
             "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.PullMemberUp.CSharpPullMemberUpCodeRefactoringProvider",
             BuiltInCodeActionAuditStatus.Excluded),
 

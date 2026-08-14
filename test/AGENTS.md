@@ -1,5 +1,10 @@
 # Unit Testing Rules (xUnit + Moq + AwesomeAssertions)
 
+## Review Agent isolation
+
+- Any Review Agent review involving tests must be performed by a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; the primary implementation agent must not perform that review itself.
+- The review subagent is read-only and must determine whether the tests exercise the real production boundary and failure scenario rather than relying on test names or isolated assertions.
+
 Cross-project test ownership and execution-path policy are defined in `../docs/development/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.
 
 - Frameworks: xUnit, Moq, AwesomeAssertions.

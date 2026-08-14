@@ -147,8 +147,8 @@ The existing registry contains the following 41 tools.
 | `go-to-definition` | Find source definitions | Retain |
 | `search-symbols` | Search symbol names | Retain |
 | `get-diagnostics` | Return compiler diagnostics | Retain |
-| `analyze-control-flow` | Analyse a selected region's control flow | Retain |
-| `analyze-data-flow` | Analyse a selected region's data flow | Retain |
+| `analyze-control-flow` | Analyse an exact complete statement or contiguous statement range | Retain |
+| `analyze-data-flow` | Analyse an exact expression, complete statement or contiguous statement range | Retain |
 | `get-document-outline` | Return namespace/type/member hierarchy | Retain |
 | `get-symbol-info` | Describe the symbol at a position | Retain |
 | `get-type-hierarchy` | Find base or derived types | Retain |

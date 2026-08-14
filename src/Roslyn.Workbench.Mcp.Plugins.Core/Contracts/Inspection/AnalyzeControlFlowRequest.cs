@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
 {
     /// <summary>
-    /// Gets the selected location.
+    /// Gets an exact complete statement or contiguous statement range to analyze.
     /// </summary>
     public required LocationSelector Location { get; init; }
 

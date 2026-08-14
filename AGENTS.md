@@ -100,6 +100,13 @@
    - PR summary explains what changed, why, risks, and testing.
    - Prefer the repository PR template in `.github/PULL_REQUEST_TEMPLATE.md` when present.
 
+## Review Agent isolation
+
+- Every request to invoke or use the Review Agent skill must be executed by a fresh subagent, not by the primary working agent.
+- Spawn the review subagent without conversation context so its conclusions are not influenced by implementation discussion or earlier review conclusions. Give it only the review target, the applicable repository instructions and the requirement to read and follow the Review Agent skill.
+- The review subagent must remain read-only and return its findings to the primary agent. It must not modify files, stage changes or delegate the review again.
+- After any material review-driven correction, use another fresh context-free Review Agent subagent for the repeated review.
+
 ## PR and review checklist
 
 - [ ] Change is scoped and well-justified; no unrelated edits.

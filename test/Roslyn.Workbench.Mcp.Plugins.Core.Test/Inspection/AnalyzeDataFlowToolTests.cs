@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
@@ -259,7 +260,7 @@ public sealed class AnalyzeDataFlowToolTests
         result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
-            Message = "The selected region must resolve to an executable statement.",
+            Message = "The selected region must exactly match an expression, a complete statement, or a contiguous range of statements in one executable body.",
         });
     }
 
@@ -342,4 +343,214 @@ public sealed class AnalyzeDataFlowToolTests
             ],
         });
     }
+
+    [Fact]
+    public async Task GIVEN_SelectionExactlyMatchesExpression_WHEN_CallingExecuteAsync_THEN_ShouldAnalyzeAndReturnExactRegion()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                string Format(string value)
+                {
+                    return value.Trim();
+                }
+            }
+            """);
+
+        var target = new AnalyzeDataFlowTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var selectedLocation = document.GetSingleNodeLocation<InvocationExpressionSyntax>(item => item.ToString() == "value.Trim()");
+        var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<DataFlowAnalysisData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<DataFlowAnalysisData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
+            .Returns(region);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Region.Should().Be(region);
+        result.Data.ReadInside.Should().ContainSingle(item => item.DisplayName == "value");
+    }
+
+    [Fact]
+    public async Task GIVEN_SelectionExactlySpansContiguousStatements_WHEN_CallingExecuteAsync_THEN_ShouldAnalyzeAndReturnExactRegion()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                int Format(int value)
+                {
+                    var first = value + 1;
+                    var second = first + 1;
+                    return second;
+                }
+            }
+            """);
+
+        var target = new AnalyzeDataFlowTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var syntaxRoot = (CompilationUnitSyntax)(await document.Document.GetSyntaxRootAsync(TestContext.Current.CancellationToken))!;
+        var syntaxTree = syntaxRoot.SyntaxTree;
+        var body = syntaxRoot.DescendantNodes().OfType<MethodDeclarationSyntax>().Single().Body!;
+        var selectedSpan = TextSpan.FromBounds(body.Statements[0].SpanStart, body.Statements[1].Span.End);
+        var selectedLocation = syntaxTree.GetLocation(selectedSpan);
+        var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<DataFlowAnalysisData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<DataFlowAnalysisData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
+            .Returns(region);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Region.Should().Be(region);
+        result.Data.VariablesDeclared.Select(item => item.DisplayName).Should().Equal("first", "second");
+    }
+
+    [Fact]
+    public async Task GIVEN_SelectionContainsOnlyPartOfStatement_WHEN_CallingExecuteAsync_THEN_ShouldRejectPartialRegion()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                int Format(int value)
+                {
+                    var result = value + 1;
+                    return result;
+                }
+            }
+            """);
+
+        var target = new AnalyzeDataFlowTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var syntaxRoot = (CompilationUnitSyntax)(await document.Document.GetSyntaxRootAsync(TestContext.Current.CancellationToken))!;
+        var syntaxTree = syntaxRoot.SyntaxTree;
+        var statement = syntaxRoot.DescendantNodes().OfType<LocalDeclarationStatementSyntax>().Single();
+        var partialSpan = TextSpan.FromBounds(statement.SpanStart, statement.Span.End - 1);
+        var selectedLocation = syntaxTree.GetLocation(partialSpan);
+        var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<DataFlowAnalysisData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<DataFlowAnalysisData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
+            .Returns(region);
+
+        var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "The selected region must exactly match an expression, a complete statement, or a contiguous range of statements in one executable body.",
+        });
+    }
+
+    [Fact]
+    public async Task GIVEN_ExactExpressionCannotBeAnalyzed_WHEN_CallingExecuteAsync_THEN_ShouldRejectUnsupportedAnalysis()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Format(int value)
+                {
+                    System.Console.WriteLine(value);
+                }
+            }
+            """);
+
+        var target = new AnalyzeDataFlowTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var selectedLocation = document.GetSingleNodeLocation<MemberAccessExpressionSyntax>(item => item.ToString() == "System.Console");
+        var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<DataFlowAnalysisData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<DataFlowAnalysisData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
+            .Returns(region);
+
+        var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "The selected region does not support data-flow analysis.",
+        });
+    }
+
 }

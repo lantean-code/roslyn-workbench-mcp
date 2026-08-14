@@ -1,5 +1,10 @@
 # Code Generation Rules
 
+## Review Agent isolation
+
+- Any Review Agent review of production source must be performed by a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; the primary implementation agent must not perform that review itself.
+- The review subagent is read-only and must inspect the affected source with its direct dependencies, consumers, contracts, configuration and tests before reporting findings.
+
 ## Expectations
 
 - Code must be technically precise, unambiguous, and avoid bad practices.

@@ -12,7 +12,7 @@ dotnet add package Roslyn.Workbench.Mcp.Plugins
 
 The package supplies the plugin API and includes the matching `Roslyn.Workbench.Mcp.Abstractions` assembly. Plugin projects need only this package and should not add repository project references or a direct Workspace reference.
 
-The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP022` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md) for each rule and its remediation. Authoring-contract rules such as synchronous plugin configuration remain the responsibility of trusted plugin code. Runtime validation remains authoritative for contracts the Host must consume safely, including metadata, handler shape, transport schemas and final tool names.
+The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP023` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md) for each rule and its remediation. Authoring-contract rules such as synchronous plugin configuration remain the responsibility of trusted plugin code. Runtime validation remains authoritative for contracts the Host must consume safely, including metadata, handler shape, transport schemas and final tool names.
 
 ## Entry point
 

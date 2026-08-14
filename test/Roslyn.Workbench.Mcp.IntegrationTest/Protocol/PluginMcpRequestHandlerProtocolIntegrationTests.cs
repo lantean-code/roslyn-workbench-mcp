@@ -1,10 +1,16 @@
 using System.IO.Pipelines;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
+
+using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
+using Roslyn.Workbench.Mcp.ToolExecution;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -14,10 +20,30 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
 
 #pragma warning disable MCPEXP001
 
-    [Fact]
+    [Theory]
+    [InlineData(false, "missing-tool", "is not registered")]
+    [InlineData(true, "plugin-tool", "does not support task-augmented execution")]
     [Trait("Category", "Integration")]
-    public async Task GIVEN_TaskAugmentedPluginCall_WHEN_RoutedThroughMcpSdk_THEN_ShouldRejectRequestWithoutInvokingAdapter()
+    public async Task GIVEN_InvalidPluginCall_WHEN_RoutedThroughInstalledFilter_THEN_ShouldReturnProtocolErrorWithoutCapturingFailure(
+        bool taskAugmented,
+        string requestedToolName,
+        string expectedMessage)
     {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
         var clientToServerPipe = new Pipe();
         var serverToClientPipe = new Pipe();
         var protocolTool = new Tool
@@ -26,10 +52,26 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
         };
         var tool = new Mock<McpServerTool>();
         tool.SetupGet(static value => value.ProtocolTool).Returns(protocolTool);
+        var healthProtocolTool = new Tool
+        {
+            Name = "health-probe",
+        };
+        var healthTool = new Mock<McpServerTool>();
+        healthTool.SetupGet(static value => value.ProtocolTool).Returns(healthProtocolTool);
+        healthTool
+            .Setup(value => value.InvokeAsync(
+                It.IsAny<RequestContext<CallToolRequestParams>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CallToolResult
+            {
+                Content = [],
+                IsError = false,
+            });
         using var catalogState = new PluginCatalogState();
         var tools = new Dictionary<string, McpServerTool>(StringComparer.Ordinal)
         {
             [protocolTool.Name] = tool.Object,
+            [healthProtocolTool.Name] = healthTool.Object,
         };
         var runtimeCatalog = new PluginRuntimeCatalogSnapshot
         {
@@ -40,8 +82,10 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
 
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(filter);
         services
             .AddMcpServer(options => options.Handlers.CallToolHandler = pluginHandler.CallToolAsync)
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
             .WithStreamServerTransport(
                 clientToServerPipe.Reader.AsStream(),
                 serverToClientPipe.Writer.AsStream());
@@ -65,8 +109,8 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
         {
             var request = new CallToolRequestParams
             {
-                Name = protocolTool.Name,
-                Task = new McpTaskMetadata(),
+                Name = requestedToolName,
+                Task = taskAugmented ? new McpTaskMetadata() : null,
             };
 
             var action = async () => await client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
@@ -76,10 +120,20 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
 
             var exception = await action.Should().ThrowAsync<McpProtocolException>();
             exception.Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
-            exception.Which.Message.Should().Contain("does not support task-augmented execution");
+            exception.Which.Message.Should().Contain(expectedMessage);
             tool.Verify(
                 value => value.InvokeAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()),
                 Times.Never);
+            capturedErrorStore.Verify(item => item.Add(It.IsAny<CapturedErrorRecord>()), Times.Never);
+
+            var healthResult = await client.CallToolAsync(
+                healthProtocolTool.Name,
+                cancellationToken: timeoutCancellation.Token);
+
+            healthResult.IsError.Should().NotBeTrue();
+            healthTool.Verify(
+                value => value.InvokeAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()),
+                Times.Once);
         }
         finally
         {

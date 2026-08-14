@@ -9,6 +9,7 @@ namespace Roslyn.Workbench.Mcp.Test;
 public sealed class PluginAnalyzerPackageIntegrationTests
 {
     private const string _packageVersion = "0.0.0-analyzer-test";
+    private const string _mcpPackageVersion = "1.4.1";
     private const string _nuGetSource = "https://api.nuget.org/v3/index.json";
 
     [Fact]
@@ -213,6 +214,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "--packages",
             Path.Combine(consumerDirectory, "packages"),
             "-p:NuGetAudit=false",
+            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 
@@ -264,6 +266,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "build",
             projectPath,
             "--no-restore",
+            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 
@@ -292,6 +295,16 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         cacheOutput.Should().Contain("RWMCP020");
         cacheOutput.Should().Contain("RWMCP021");
 
+        CopyConsumerSource(assetDirectory, "ProtocolExceptionPlugin.cs", consumerDirectory);
+
+        var (protocolExceptionExitCode, protocolExceptionOutput) = await RunDotNetAsync(
+            consumerDirectory,
+            invalidBuildArguments,
+            TestContext.Current.CancellationToken);
+
+        protocolExceptionExitCode.Should().NotBe(0);
+        protocolExceptionOutput.Should().Contain("RWMCP023");
+
         CopyConsumerSource(assetDirectory, "ValidPlugin.cs", consumerDirectory);
 
         var validBuildArguments = new List<string>
@@ -299,6 +312,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "build",
             projectPath,
             "--no-restore",
+            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 

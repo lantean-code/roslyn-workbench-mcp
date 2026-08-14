@@ -12,6 +12,8 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
     private const string _mutationHandlerMetadataName = "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1";
     private const string _cancellationTokenMetadataName = "System.Threading.CancellationToken";
     private const string _boundedCollectionMetadataName = "Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection`1";
+    private const string _mcpProtocolExceptionMetadataName = "ModelContextProtocol.McpProtocolException";
+    private const string _pluginAttributeMetadataName = "Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute";
 
     private static readonly ImmutableArray<string> _rawCollectionMetadataNames =
     [
@@ -31,9 +33,11 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
     ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(
-            PluginDiagnosticDescriptors.UnobservedCancellationToken,
-            PluginDiagnosticDescriptors.UnboundedQueryCollection);
+    [
+        PluginDiagnosticDescriptors.UnobservedCancellationToken,
+        PluginDiagnosticDescriptors.UnboundedQueryCollection,
+        PluginDiagnosticDescriptors.PluginProtocolException,
+    ];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -54,6 +58,8 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
         var mutationHandlerDefinition = compilation.GetTypeByMetadataName(_mutationHandlerMetadataName);
         var cancellationTokenType = compilation.GetTypeByMetadataName(_cancellationTokenMetadataName);
         var boundedCollectionDefinition = compilation.GetTypeByMetadataName(_boundedCollectionMetadataName);
+        var mcpProtocolExceptionType = compilation.GetTypeByMetadataName(_mcpProtocolExceptionMetadataName);
+        var pluginAttributeType = compilation.GetTypeByMetadataName(_pluginAttributeMetadataName);
         if (queryHandlerDefinition is null
             || mutationHandlerDefinition is null
             || cancellationTokenType is null
@@ -68,6 +74,7 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
             mutationHandlerDefinition,
             cancellationTokenType,
             boundedCollectionDefinition,
+            mcpProtocolExceptionType,
             rawCollectionDefinitions);
 
         context.RegisterOperationBlockStartAction(
@@ -76,6 +83,75 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(
             symbolContext => AnalyzeQueryResponse(symbolContext, symbols),
             SymbolKind.NamedType);
+
+        if (symbols.McpProtocolExceptionType is not null
+            && pluginAttributeType is not null
+            && PluginSymbolFacts.CompilationDeclaresPlugin(compilation.GlobalNamespace, pluginAttributeType))
+        {
+            context.RegisterOperationAction(
+                operationContext => AnalyzeThrow(operationContext, symbols.McpProtocolExceptionType),
+                OperationKind.Throw);
+        }
+    }
+
+    private static void AnalyzeThrow(
+        OperationAnalysisContext context,
+        INamedTypeSymbol mcpProtocolExceptionType)
+    {
+        var operation = (IThrowOperation)context.Operation;
+        var exceptionType = GetThrownExceptionType(operation);
+        if (!IsOrDerivesFrom(exceptionType, mcpProtocolExceptionType))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            PluginDiagnosticDescriptors.PluginProtocolException,
+            operation.Syntax.GetLocation()));
+    }
+
+    private static ITypeSymbol? GetThrownExceptionType(IThrowOperation operation)
+    {
+        if (operation.Exception is null)
+        {
+            return FindEnclosingCatchType(operation);
+        }
+
+        IOperation exception = operation.Exception;
+        while (exception is IConversionOperation { IsImplicit: true } conversion)
+        {
+            exception = conversion.Operand;
+        }
+
+        return exception.Type;
+    }
+
+    private static ITypeSymbol? FindEnclosingCatchType(IThrowOperation operation)
+    {
+        for (var current = operation.Parent; current is not null; current = current.Parent)
+        {
+            if (current is ICatchClauseOperation catchClause)
+            {
+                return catchClause.ExceptionType;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsOrDerivesFrom(
+        ITypeSymbol? candidate,
+        INamedTypeSymbol expectedBaseType)
+    {
+        for (var current = candidate as INamedTypeSymbol; current is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, expectedBaseType))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static ImmutableArray<INamedTypeSymbol> ResolveRawCollectionDefinitions(

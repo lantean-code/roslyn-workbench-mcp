@@ -26,3 +26,4 @@
 | RWMCP020 | RoslynWorkbench.PluginAuthoring | Error | Use a dedicated immutable query-cache key. |
 | RWMCP021 | RoslynWorkbench.PluginAuthoring | Warning | Cached value may be unsafe to retain. |
 | RWMCP022 | RoslynWorkbench.PluginAuthoring | Error | Use a protocol-compatible MCP tool name. |
+| RWMCP023 | RoslynWorkbench.PluginAuthoring | Error | Do not throw MCP protocol exceptions from plugins. |

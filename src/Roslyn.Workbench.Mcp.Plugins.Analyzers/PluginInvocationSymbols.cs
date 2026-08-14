@@ -13,6 +13,8 @@ internal sealed class PluginInvocationSymbols
 
     public INamedTypeSymbol BoundedCollectionDefinition { get; }
 
+    public INamedTypeSymbol? McpProtocolExceptionType { get; }
+
     public ImmutableArray<INamedTypeSymbol> RawCollectionDefinitions { get; }
 
     public PluginInvocationSymbols(
@@ -20,12 +22,14 @@ internal sealed class PluginInvocationSymbols
         INamedTypeSymbol mutationHandlerDefinition,
         INamedTypeSymbol cancellationTokenType,
         INamedTypeSymbol boundedCollectionDefinition,
+        INamedTypeSymbol? mcpProtocolExceptionType,
         ImmutableArray<INamedTypeSymbol> rawCollectionDefinitions)
     {
         QueryHandlerDefinition = queryHandlerDefinition;
         MutationHandlerDefinition = mutationHandlerDefinition;
         CancellationTokenType = cancellationTokenType;
         BoundedCollectionDefinition = boundedCollectionDefinition;
+        McpProtocolExceptionType = mcpProtocolExceptionType;
         RawCollectionDefinitions = rawCollectionDefinitions;
     }
 }

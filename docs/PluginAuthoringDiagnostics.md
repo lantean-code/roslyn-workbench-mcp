@@ -215,3 +215,13 @@ This warning is intentionally suppressible when static analysis cannot see a val
 ### Use a protocol-compatible MCP tool name
 
 MCP tool names must contain between 1 and 128 ASCII letters, digits, underscores, hyphens, or periods. The analyser checks constant names supplied through `RoslynToolAttribute` and `WithName`. The Host applies the same rule to the final merged metadata at startup, so dynamically configured names cannot bypass it. Choose a valid name rather than sanitising one because changing a name can silently alter the tool's public identity.
+
+<a id="RWMCP023"></a>
+
+## RWMCP023
+
+### Do not throw MCP protocol exceptions from plugins
+
+Do not throw or rethrow `ModelContextProtocol.McpProtocolException` from plugin code. Protocol errors are owned by the Host transport boundary; a protocol exception from plugin code is treated as an unexpected failure, captured for correlated error reporting and returned through a sanitised error envelope. Return an appropriate `PluginExecutionResult` failure so the Host can project the failure through the supported tool-result contract.
+
+The analyser activates only when the plugin project independently references the MCP SDK. Runtime exception handling remains authoritative because static analysis cannot identify a protocol exception hidden behind a broader static exception type or thrown by a dependency.

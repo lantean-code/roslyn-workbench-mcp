@@ -44,12 +44,14 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
         var toolName = context.Params?.Name;
         if (toolName is null || !runtimeCatalog.Tools.TryGetValue(toolName, out var tool))
         {
-            throw new McpProtocolException($"Tool '{toolName}' is not registered.", McpErrorCode.InvalidParams);
+            throw new RoslynWorkbenchMcpProtocolException(
+                $"Tool '{toolName}' is not registered.",
+                McpErrorCode.InvalidParams);
         }
 
         if (context.Params?.Task is not null)
         {
-            throw new McpProtocolException(
+            throw new RoslynWorkbenchMcpProtocolException(
                 $"Tool '{toolName}' does not support task-augmented execution.",
                 McpErrorCode.InvalidParams);
         }

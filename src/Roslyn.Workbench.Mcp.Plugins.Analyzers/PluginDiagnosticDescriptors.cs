@@ -139,6 +139,12 @@ internal static class PluginDiagnosticDescriptors
         "Tool name '{0}' must contain 1 to 128 ASCII letters, digits, underscores, hyphens, or periods",
         DiagnosticSeverity.Error);
 
+    public static readonly DiagnosticDescriptor PluginProtocolException = Create(
+        "RWMCP023",
+        "Do not throw MCP protocol exceptions from plugins",
+        "Plugin code must not throw McpProtocolException; return a plugin execution failure instead",
+        DiagnosticSeverity.Error);
+
     private static DiagnosticDescriptor Create(
         string id,
         LocalizableString title,

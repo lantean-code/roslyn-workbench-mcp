@@ -160,6 +160,11 @@ public sealed class PluginAuthoringAnalyzerDescriptorTests
                 "Query response member '{0}' exposes an unbounded collection; use BoundedCollection<TItem> within a dedicated IQueryResponse DTO",
                 DiagnosticSeverity.Warning),
             (
+                "RWMCP023",
+                "Do not throw MCP protocol exceptions from plugins",
+                "Plugin code must not throw McpProtocolException; return a plugin execution failure instead",
+                DiagnosticSeverity.Error),
+            (
                 "RWMCP015",
                 "Plugin entry-point marker and contract must agree",
                 "Plugin entry-point type '{0}' must be a concrete IRoslynPlugin implementation with RoslynPluginAttribute",

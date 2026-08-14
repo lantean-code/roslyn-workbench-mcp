@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 
+using ModelContextProtocol;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers.Test;
 
 internal static class AnalyzerVerifier
@@ -35,7 +37,16 @@ internal static class AnalyzerVerifier
         string source,
         params DiagnosticResult[] expected)
     {
-        var test = CreateTest<PluginInvocationAnalyzer>(source);
+        var test = CreateTest<PluginInvocationAnalyzer>(source, includeMcpSdk: true);
+        test.ExpectedDiagnostics.AddRange(expected);
+        await test.RunAsync();
+    }
+
+    public static async Task VerifyInvocationWithoutMcpSdkAsync(
+        string source,
+        params DiagnosticResult[] expected)
+    {
+        var test = CreateTest<PluginInvocationAnalyzer>(source, includeMcpSdk: false);
         test.ExpectedDiagnostics.AddRange(expected);
         await test.RunAsync();
     }
@@ -62,11 +73,27 @@ internal static class AnalyzerVerifier
         string source)
         where TAnalyzer : DiagnosticAnalyzer, new()
     {
+        return CreateTest<TAnalyzer>(source, includeMcpSdk: false);
+    }
+
+    private static CSharpAnalyzerTest<TAnalyzer, DefaultVerifier> CreateTest<TAnalyzer>(
+        string source,
+        bool includeMcpSdk)
+        where TAnalyzer : DiagnosticAnalyzer, new()
+    {
         var test = new CSharpAnalyzerTest<TAnalyzer, DefaultVerifier>
         {
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             TestCode = AnalyzerSourcePrelude.Code + source,
         };
+
+        if (includeMcpSdk)
+        {
+            var mcpSdkReference = MetadataReference.CreateFromFile(
+                typeof(McpProtocolException).Assembly.Location);
+
+            test.TestState.AdditionalReferences.Add(mcpSdkReference);
+        }
 
         return test;
     }

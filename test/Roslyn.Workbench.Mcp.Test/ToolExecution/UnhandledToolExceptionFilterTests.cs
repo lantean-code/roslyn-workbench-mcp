@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
+using ModelContextProtocol;
+
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution;
 
 public sealed class UnhandledToolExceptionFilterTests
@@ -120,6 +122,50 @@ public sealed class UnhandledToolExceptionFilterTests
         var result = await _target.InvokeAsync(next, context, CancellationToken.None);
 
         AssertCapturedFailure(result, exception, "Sensitive unrelated cancellation");
+    }
+
+    [Fact]
+    public async Task GIVEN_HostProtocolException_WHEN_FilteringCall_THEN_ShouldPropagateSameException()
+    {
+        var context = CreateContext();
+        var exception = new RoslynWorkbenchMcpProtocolException(
+            "Invalid protocol request",
+            McpErrorCode.InvalidParams);
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var action = async () => await _target.InvokeAsync(next, context, CancellationToken.None);
+
+        var assertion = await action.Should().ThrowAsync<McpProtocolException>();
+        assertion.Which.Should().BeSameAs(exception);
+        VerifyNoLog();
+        VerifyNoCapture();
+    }
+
+    [Fact]
+    public async Task GIVEN_NonHostProtocolException_WHEN_FilteringCall_THEN_ShouldCaptureFailure()
+    {
+        var context = CreateContext();
+        var exception = new McpProtocolException("Sensitive protocol failure", McpErrorCode.InvalidParams);
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var result = await _target.InvokeAsync(next, context, CancellationToken.None);
+
+        AssertCapturedFailure(result, exception, "Sensitive protocol failure");
+    }
+
+    [Fact]
+    public async Task GIVEN_NonProtocolMcpException_WHEN_FilteringCall_THEN_ShouldCaptureFailure()
+    {
+        var context = CreateContext();
+        var exception = new McpException("Sensitive MCP failure");
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var result = await _target.InvokeAsync(next, context, CancellationToken.None);
+
+        AssertCapturedFailure(result, exception, "Sensitive MCP failure");
     }
 
     [Fact]

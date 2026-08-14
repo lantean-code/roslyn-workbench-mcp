@@ -181,4 +181,4 @@ The independent review is complete through Stage 5. Every candidate was retraced
 
 **Status:** In progress
 
-The primary remediation tracker in `final-findings.md` is complete through required worklist order 13. `RWMCP2-014` was revalidated against the current SDK, Host, plugin and error-capture paths; remediated; validated through unit, composition and real-stream integration coverage; independently reviewed by a fresh context-free Review Agent with no findings; and confirmed by the user on 2026-08-14. The next pending item is `RWMCP2-015`.
+The primary remediation tracker in `final-findings.md` is complete through required worklist order 14. `RWMCP2-015` was revalidated against the current SDK, Host routing/filter, error-capture and plugin-authoring boundaries; remediated with a Host-owned protocol-error marker, runtime capture protection and `RWMCP023`; validated through unit, real-stream and packed external-consumer coverage; corrected after the first fresh context-free Review Agent identified an over-broad protocol-exception bypass; independently re-reviewed with no findings; and confirmed by the user on 2026-08-14. The next pending item is `RWMCP2-017`.

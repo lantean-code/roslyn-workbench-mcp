@@ -3,6 +3,158 @@ namespace Roslyn.Workbench.Mcp.Plugins.Analyzers.Test;
 public sealed class PluginInvocationAnalyzerTests
 {
     [Fact]
+    public async Task GIVEN_PluginThrowsProtocolException_WHEN_Analyzing_THEN_ShouldReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure()
+                {
+                    {|RWMCP023:throw new ModelContextProtocol.McpProtocolException();|}
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PluginThrowsProtocolExceptionVariable_WHEN_Analyzing_THEN_ShouldReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure(ModelContextProtocol.McpProtocolException exception)
+                {
+                    {|RWMCP023:throw exception;|}
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PluginThrowsDerivedProtocolException_WHEN_Analyzing_THEN_ShouldReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public sealed class DerivedProtocolException : ModelContextProtocol.McpProtocolException
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure()
+                {
+                    {|RWMCP023:throw new DerivedProtocolException();|}
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PluginRethrowsProtocolException_WHEN_Analyzing_THEN_ShouldReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure()
+                {
+                    try
+                    {
+                    }
+                    catch (ModelContextProtocol.McpProtocolException)
+                    {
+                        {|RWMCP023:throw;|}
+                    }
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PluginThrowsOrdinaryException_WHEN_Analyzing_THEN_ShouldNotReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure()
+                {
+                    throw new System.InvalidOperationException();
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_NonPluginCodeThrowsProtocolException_WHEN_Analyzing_THEN_ShouldNotReportRwmcp023()
+    {
+        const string source = """
+            public static class ApplicationHelper
+            {
+                public static void ThrowFailure()
+                {
+                    throw new ModelContextProtocol.McpProtocolException();
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_PluginDoesNotReferenceMcpSdk_WHEN_Analyzing_THEN_ShouldNotReportRwmcp023()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin-id", "Plugin", "1.0")]
+            public sealed class PluginEntryPoint
+            {
+            }
+
+            public static class PluginHelper
+            {
+                public static void ThrowFailure()
+                {
+                    throw new System.InvalidOperationException();
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationWithoutMcpSdkAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerIgnoresCancellation_WHEN_Analyzing_THEN_ShouldReportRwmcp013()
     {
         const string source = """

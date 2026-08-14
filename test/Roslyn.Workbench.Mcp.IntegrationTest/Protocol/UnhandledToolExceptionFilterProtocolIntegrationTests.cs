@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 
 using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
@@ -239,6 +240,95 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
             && !record.CancellationRequested
             && record.Exceptions.Length == 1
             && record.Exceptions[0].Type == typeof(OperationCanceledException).FullName)), Times.Once);
+
+        await serverCancellation.CancelAsync();
+        await clientToServerPipe.Writer.CompleteAsync();
+        await serverToClientPipe.Writer.CompleteAsync();
+        await serverTask;
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ToolThrowsProtocolException_WHEN_RoutedThroughInstalledFilter_THEN_ShouldReturnAndCaptureCorrelatedFailure()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        var exception = new McpProtocolException(
+            "Sensitive tool-controlled protocol failure",
+            McpErrorCode.InvalidParams);
+        var tool = McpServerTool.Create(
+            async (CancellationToken _) => await Task.FromException<string>(exception),
+            new McpServerToolCreateOptions
+            {
+                Name = "protocol-exception-probe",
+            });
+        var healthTool = McpServerTool.Create(
+            () => "Ready",
+            new McpServerToolCreateOptions
+            {
+                Name = "health-probe",
+            });
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool, healthTool])
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+
+        var result = await client.CallToolAsync(
+            "protocol-exception-probe",
+            cancellationToken: timeoutCancellation.Token);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent.Should().NotBeNull();
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+        var error = structuredContent.GetProperty("error");
+        error.GetProperty("code").GetString().Should().Be("UnhandledException");
+        structuredContent.GetRawText().Should().NotContain("Sensitive tool-controlled protocol failure");
+        var correlationId = error.GetProperty("correlationId").GetGuid();
+        capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(record =>
+            record.CorrelationId == correlationId
+            && record.Exceptions.Length == 1
+            && record.Exceptions[0].Type == typeof(McpProtocolException).FullName)), Times.Once);
+
+        var healthResult = await client.CallToolAsync(
+            "health-probe",
+            cancellationToken: timeoutCancellation.Token);
+
+        healthResult.IsError.Should().NotBeTrue();
 
         await serverCancellation.CancelAsync();
         await clientToServerPipe.Writer.CompleteAsync();

@@ -26,7 +26,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 8 | `RWMCP2-007` — Project details always omit effective preprocessor symbols | P2 | Complete — confirmed 2026-08-14 |
 | 9 | `RWMCP2-008` — Flow analysis reports a different region from the one it analyses | P2 | Complete — confirmed 2026-08-14 |
 | 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Complete — confirmed 2026-08-14 |
-| 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Pending — remediation not started |
+| 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Complete — confirmed 2026-08-14 |
 | 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Pending — remediation not started |
 | 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Pending — remediation not started |
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Pending — remediation not started |
@@ -166,13 +166,15 @@ Several public `maxResults`-style controls bound only a top-level collection whi
 
 ### RWMCP2-012 — The current built-in Code Action compatibility gate fails its implement-interface case
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
 
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/BuiltInCodeActionAuditCases.cs:948-960`; `test/Roslyn.Workbench.Mcp.IntegrationTestSupport/InspectionSampleFixture.cs:127-138`; `test/TestAssets/Workspaces/InspectionSample/Base/CandidateRefactorings.cs:31-38`; `.github/workflows/code-action-audit.yml:31-52`
 
 The checked-in compatibility inventory requires the built-in implement-interface refactoring to be offered and replayable for its controlled fixture, and CI executes that audit as a required project. A fresh complete audit run against the current source produced 119 passes and one failure: this case returned `NotOffered` instead of `OfferedAndReplayable`. The same stale fixture shape appears in shared inspection assets. This is a current compatibility-gate failure, not an inferred provider risk.
+
+**Remediation outcome:** The shared inspection fixture now provides a genuine interior class-body insertion line for `InterfaceImplementationCandidate`, so the existing zero-length selector reaches the position required by the pinned implement-interface provider. The provider ID, exact action title, expected mutation, selector semantics and production code remain unchanged. The complete Code Action audit passed 120/120, Code Actions integration passed 18/18, Plugins.Core integration passed 10/10, Host integration passed 71/71, and the solution and changed-project `latest-all` analyser builds completed without warnings or errors. A fresh context-free Review Agent pass found no defects or material coverage gaps and confirmed that the separate `RWMCP2-013` production replay limitation remains unchanged. The user reviewed the implementation and confirmed completion on 2026-08-14, explicitly waiving redundant later review stages for this item only because that independent pass had already completed with no findings.
 
 ### RWMCP2-013 — The built-in replay audit bypasses the replay path it claims to validate
 

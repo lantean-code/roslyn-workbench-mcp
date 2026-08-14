@@ -950,7 +950,7 @@ internal static class BuiltInCodeActionAuditCases
             ToolName = "implement-interface",
             ProviderId = "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
             Title = "Implement interface",
-            SourceNote = "InterfaceImplementationCandidate empty body",
+            SourceNote = "InterfaceImplementationCandidate interior body insertion point",
             ExpectedChangedText = "public string Format(int value)",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetCursorOnFollowingLineInDocument(

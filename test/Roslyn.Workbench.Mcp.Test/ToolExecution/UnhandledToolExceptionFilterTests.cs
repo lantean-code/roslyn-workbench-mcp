@@ -72,10 +72,11 @@ public sealed class UnhandledToolExceptionFilterTests
 
         result.Should().BeSameAs(expected);
         VerifyNoLog();
+        VerifyNoCapture();
     }
 
     [Fact]
-    public async Task GIVEN_HandlerCancellation_WHEN_FilteringCall_THEN_ShouldPropagateCancellation()
+    public async Task GIVEN_CancelledRequest_WHEN_FilteringCall_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
@@ -87,6 +88,38 @@ public sealed class UnhandledToolExceptionFilterTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         VerifyNoLog();
+        VerifyNoCapture();
+    }
+
+    [Fact]
+    public async Task GIVEN_UncancelledOperationCanceledException_WHEN_FilteringCall_THEN_ShouldCaptureFailure()
+    {
+        var context = CreateContext();
+        var exception = new OperationCanceledException("Sensitive cancellation failure");
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var result = await _target.InvokeAsync(next, context, CancellationToken.None);
+
+        AssertCapturedFailure(result, exception, "Sensitive cancellation failure");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnrelatedTokenCancellation_WHEN_FilteringActiveRequest_THEN_ShouldCaptureFailure()
+    {
+        using var unrelatedCancellation = new CancellationTokenSource();
+        await unrelatedCancellation.CancelAsync();
+        var context = CreateContext();
+        var exception = new OperationCanceledException(
+            "Sensitive unrelated cancellation",
+            innerException: null,
+            unrelatedCancellation.Token);
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var result = await _target.InvokeAsync(next, context, CancellationToken.None);
+
+        AssertCapturedFailure(result, exception, "Sensitive unrelated cancellation");
     }
 
     [Fact]
@@ -99,6 +132,14 @@ public sealed class UnhandledToolExceptionFilterTests
 
         var result = await _target.InvokeAsync(next, context, CancellationToken.None);
 
+        AssertCapturedFailure(result, exception, "Sensitive message");
+    }
+
+    private void AssertCapturedFailure(
+        CallToolResult result,
+        Exception exception,
+        string sensitiveMessage)
+    {
         result.Content.Should().BeEmpty();
         result.IsError.Should().BeTrue();
         result.StructuredContent.Should().NotBeNull();
@@ -109,12 +150,20 @@ public sealed class UnhandledToolExceptionFilterTests
         error.GetProperty("message").GetString().Should().Be("Tool execution failed.");
         var correlationId = error.GetProperty("correlationId").GetGuid();
         correlationId.Should().NotBeEmpty();
-        structuredContent.GetRawText().Should().NotContain("Sensitive message");
-        structuredContent.GetRawText().Should().NotContain(nameof(InvalidOperationException));
+        structuredContent.GetRawText().Should().NotContain(sensitiveMessage);
+        structuredContent.GetRawText().Should().NotContain(exception.GetType().Name);
         structuredContent.GetProperty("diagnostics").GetProperty("detailsAvailable").GetBoolean().Should().BeTrue();
         structuredContent.GetProperty("reporting").GetProperty("state").GetString().Should().Be("Available");
+        _captureService.Verify(item => item.Capture(
+            correlationId,
+            "tool-name",
+            null,
+            It.IsAny<TimeSpan>(),
+            false,
+            exception), Times.Once);
         _capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(
             record => record.CorrelationId == correlationId)), Times.Once);
+        _availabilityService.Verify(item => item.GetAvailability(null, null, null), Times.Once);
         _logger.Verify(
             item => item.Log(
                 LogLevel.Error,
@@ -150,6 +199,23 @@ public sealed class UnhandledToolExceptionFilterTests
                 It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    private void VerifyNoCapture()
+    {
+        _captureService.Verify(
+            item => item.Capture(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, JsonElement>?>(),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<bool>(),
+                It.IsAny<Exception>()),
+            Times.Never);
+        _capturedErrorStore.Verify(item => item.Add(It.IsAny<CapturedErrorRecord>()), Times.Never);
+        _availabilityService.Verify(
+            item => item.GetAvailability(It.IsAny<Guid?>(), It.IsAny<long?>(), It.IsAny<bool?>()),
             Times.Never);
     }
 }

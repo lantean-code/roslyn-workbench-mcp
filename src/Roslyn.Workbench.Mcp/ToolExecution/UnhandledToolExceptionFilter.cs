@@ -37,7 +37,7 @@ internal sealed partial class UnhandledToolExceptionFilter
         {
             return await next(context, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }

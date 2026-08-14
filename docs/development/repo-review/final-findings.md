@@ -28,7 +28,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Complete — confirmed 2026-08-14 |
 | 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Complete — confirmed 2026-08-14 |
 | 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Complete — confirmed 2026-08-14 |
-| 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Pending — remediation not started |
+| 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Complete — confirmed 2026-08-14 |
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Pending — remediation not started |
 | 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Pending — remediation not started |
 | 16 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
@@ -190,13 +190,15 @@ For cases labelled replayable, the audit discovers providers directly, finds mat
 
 ### RWMCP2-014 — Uncancelled cancellation exceptions bypass Workbench diagnostic capture
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
 
 **Severity:** P2  
 **Confidence:** High  
-**Location:** `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:35-45`; `test/Roslyn.Workbench.Mcp.Test/ToolExecution/UnhandledToolExceptionFilterTests.cs:77-90`
+**Location:** `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:36-78`; `test/Roslyn.Workbench.Mcp.Test/ToolExecution/UnhandledToolExceptionFilterTests.cs:78-166`; `test/Roslyn.Workbench.Mcp.Test/ToolExecution/Plugins/PluginQueryMcpServerToolTests.cs:236-295`; `test/Roslyn.Workbench.Mcp.IntegrationTest/Hosting/HostToolCompositionIntegrationTests.cs:142-190`; `test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/UnhandledToolExceptionFilterProtocolIntegrationTests.cs:20-371`
 
 The Workbench call-tool filter rethrows every `OperationCanceledException` without confirming that the current MCP request token is cancelled. A handler can throw with an unrelated token or throw an uncancelled cancellation exception; this bypasses Workbench unexpected-error logging, correlation, retained details and its structured `UnhandledException` contract. Inspection of the current MCP SDK's combined call-tool pipeline shows that the outer SDK dispatcher then catches this exception when the request token is still active and returns its generic error result. The failure is therefore contained by the SDK but loses the Workbench diagnostic and user-facing status path.
+
+**Remediation outcome:** `UnhandledToolExceptionFilter` now propagates `OperationCanceledException` only while the MCP SDK-supplied request-lifetime token is cancelled; uncancelled and unrelated-token cancellation exceptions enter the ordinary correlated diagnostic pipeline. The boundary deliberately lets request cancellation win if it races an exception from another cancelled token, because linked downstream tokens do not provide reliable causal identity after the request lifetime has ended. Unit coverage proves successful calls and genuine request cancellation produce no capture, while uncancelled and unrelated-token exceptions are logged, captured with `CancellationRequested = false`, retained and returned as sanitised `UnhandledException` results. Plugin-query coverage proves unrelated cancellation crosses adapter cleanup and disposes its lease; Host composition proves the installed filter retains the correlated record. New real-stream integration coverage proves the filter and handler receive the same SDK request token, a protocol cancellation notification cancels that token without capture and leaves the server usable, an independent tool cancellation is correlated over MCP, and the deliberate race follows the cancellation-wins policy. Host unit tests passed 502/502, Host integration tests passed 75/75, the solution build completed without warnings or errors, and changed-file `latest-all` analysis was clean apart from existing CA1812 warnings in unchanged dynamically instantiated plugin fixtures. A fresh context-free Review Agent pass returned no findings; it recorded only that the wire-level probes use SDK-created tools and rely on complementary Host-composition and plugin-adapter coverage rather than one published-Host external-plugin scenario. No acceptance artefact changed, so the acceptance wrapper was not required. The user reviewed the staged baseline and confirmed completion on 2026-08-14.
 
 ### RWMCP2-015 — The unexpected-exception filter remaps deliberate MCP protocol failures
 

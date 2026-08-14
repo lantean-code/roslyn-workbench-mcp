@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
@@ -136,5 +137,55 @@ public sealed class HostToolCompositionIntegrationTests
             CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_InstalledCallToolFilter_WHEN_HandlerThrowsUnrelatedCancellation_THEN_ShouldCaptureCorrelatedFailure()
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        await using var serviceProvider = builder.Services.BuildServiceProvider();
+        var mcpServerOptions = serviceProvider.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var server = new Mock<McpServer>();
+        server.SetupGet(item => item.Services).Returns(serviceProvider);
+        var context = new RequestContext<CallToolRequestParams>(
+            server.Object,
+            new JsonRpcRequest
+            {
+                Method = "tools/call",
+            },
+            new CallToolRequestParams
+            {
+                Name = "tool-name",
+            });
+
+        using var unrelatedCancellation = new CancellationTokenSource();
+        await unrelatedCancellation.CancelAsync();
+        var exception = new OperationCanceledException(
+            "Sensitive unrelated cancellation",
+            innerException: null,
+            unrelatedCancellation.Token);
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
+            ValueTask.FromException<CallToolResult>(exception);
+
+        var result = await mcpServerOptions.Filters.Request.CallToolFilters.Single()(next)(
+            context,
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent.Should().NotBeNull();
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+        var error = structuredContent.GetProperty("error");
+        error.GetProperty("code").GetString().Should().Be("UnhandledException");
+        structuredContent.GetRawText().Should().NotContain("Sensitive unrelated cancellation");
+        var correlationId = error.GetProperty("correlationId").GetGuid();
+        var capturedErrorStore = serviceProvider.GetRequiredService<ICapturedErrorStore>();
+        if (!capturedErrorStore.TryGet(correlationId, out var record))
+        {
+            throw new InvalidOperationException("The installed call-tool filter did not retain its correlated failure.");
+        }
+
+        record.CancellationRequested.Should().BeFalse();
+        record.Exceptions.Should().ContainSingle().Which.Type.Should().Be(typeof(OperationCanceledException).FullName);
     }
 }

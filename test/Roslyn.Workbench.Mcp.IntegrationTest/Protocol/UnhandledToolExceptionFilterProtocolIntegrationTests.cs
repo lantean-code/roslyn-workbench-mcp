@@ -1,0 +1,372 @@
+using System.IO.Pipelines;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+
+using ModelContextProtocol.Client;
+
+using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
+using Roslyn.Workbench.Mcp.ToolExecution;
+
+namespace Roslyn.Workbench.Mcp.Test.Protocol;
+
+public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
+{
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ActiveToolRequest_WHEN_ClientCancels_THEN_ShouldPropagateSameRequestTokenWithoutCapturingFailure()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var filterTokenObserved = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handlerTokenObserved = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handlerCancellationObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var filterCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handlerRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tool = McpServerTool.Create(
+            async (CancellationToken cancellationToken) =>
+            {
+                handlerTokenObserved.TrySetResult(cancellationToken);
+                try
+                {
+                    await handlerRelease.Task.WaitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    handlerCancellationObserved.TrySetResult();
+                    throw;
+                }
+
+                return "Completed";
+            },
+            new McpServerToolCreateOptions
+            {
+                Name = "cancellation-probe",
+            });
+        var healthTool = McpServerTool.Create(
+            () => "Ready",
+            new McpServerToolCreateOptions
+            {
+                Name = "health-probe",
+            });
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool, healthTool])
+            .WithRequestFilters(requestFilters =>
+            {
+                requestFilters.AddCallToolFilter(next =>
+                {
+                    var filteredNext = installedFilter(next);
+                    return async (context, cancellationToken) =>
+                    {
+                        filterTokenObserved.TrySetResult(cancellationToken);
+                        try
+                        {
+                            return await filteredNext(context, cancellationToken);
+                        }
+                        finally
+                        {
+                            filterCompleted.TrySetResult();
+                        }
+                    };
+                });
+            })
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var invocationCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+        var requestId = new RequestId("cancellation-probe-request");
+        var invocation = client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
+            RequestMethods.ToolsCall,
+            new CallToolRequestParams
+            {
+                Name = "cancellation-probe",
+            },
+            requestId: requestId,
+            cancellationToken: invocationCancellation.Token).AsTask();
+
+        var filterToken = await filterTokenObserved.Task.WaitAsync(timeoutCancellation.Token);
+        var handlerToken = await handlerTokenObserved.Task.WaitAsync(timeoutCancellation.Token);
+
+        filterToken.Should().Be(handlerToken);
+        filterToken.IsCancellationRequested.Should().BeFalse();
+
+        await client.SendNotificationAsync(
+            NotificationMethods.CancelledNotification,
+            new CancelledNotificationParams
+            {
+                RequestId = requestId,
+            },
+            cancellationToken: timeoutCancellation.Token);
+
+        await handlerCancellationObserved.Task.WaitAsync(timeoutCancellation.Token);
+        await filterCompleted.Task.WaitAsync(timeoutCancellation.Token);
+        filterToken.IsCancellationRequested.Should().BeTrue();
+        handlerToken.IsCancellationRequested.Should().BeTrue();
+        capturedErrorStore.Verify(item => item.Add(It.IsAny<CapturedErrorRecord>()), Times.Never);
+
+        var healthResult = await client.CallToolAsync(
+            "health-probe",
+            cancellationToken: timeoutCancellation.Token);
+
+        healthResult.IsError.Should().NotBeTrue();
+
+        await invocationCancellation.CancelAsync();
+        var invocationAction = async () => await invocation;
+        await invocationAction.Should().ThrowAsync<OperationCanceledException>();
+
+        await serverCancellation.CancelAsync();
+        await clientToServerPipe.Writer.CompleteAsync();
+        await serverToClientPipe.Writer.CompleteAsync();
+        await serverTask;
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ActiveToolRequest_WHEN_ToolThrowsIndependentCancellation_THEN_ShouldReturnAndCaptureCorrelatedFailure()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        using var unrelatedCancellation = new CancellationTokenSource();
+        await unrelatedCancellation.CancelAsync();
+        var exception = new OperationCanceledException(
+            "Sensitive independent cancellation",
+            innerException: null,
+            unrelatedCancellation.Token);
+        var requestTokenObserved = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tool = McpServerTool.Create(
+            async (CancellationToken cancellationToken) =>
+            {
+                requestTokenObserved.TrySetResult(cancellationToken);
+                return await Task.FromException<string>(exception);
+            },
+            new McpServerToolCreateOptions
+            {
+                Name = "independent-cancellation-probe",
+            });
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool])
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+
+        var result = await client.CallToolAsync(
+            "independent-cancellation-probe",
+            cancellationToken: timeoutCancellation.Token);
+
+        var requestToken = await requestTokenObserved.Task.WaitAsync(timeoutCancellation.Token);
+        requestToken.IsCancellationRequested.Should().BeFalse();
+        result.IsError.Should().BeTrue();
+        result.StructuredContent.Should().NotBeNull();
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+        var error = structuredContent.GetProperty("error");
+        error.GetProperty("code").GetString().Should().Be("UnhandledException");
+        structuredContent.GetRawText().Should().NotContain("Sensitive independent cancellation");
+        var correlationId = error.GetProperty("correlationId").GetGuid();
+        capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(record =>
+            record.CorrelationId == correlationId
+            && !record.CancellationRequested
+            && record.Exceptions.Length == 1
+            && record.Exceptions[0].Type == typeof(OperationCanceledException).FullName)), Times.Once);
+
+        await serverCancellation.CancelAsync();
+        await clientToServerPipe.Writer.CompleteAsync();
+        await serverToClientPipe.Writer.CompleteAsync();
+        await serverTask;
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CancelledToolRequest_WHEN_ToolThrowsIndependentCancellation_THEN_ShouldLetRequestCancellationWinWithoutCapturingFailure()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        using var unrelatedCancellation = new CancellationTokenSource();
+        await unrelatedCancellation.CancelAsync();
+        var exception = new OperationCanceledException(
+            "Sensitive racing cancellation",
+            innerException: null,
+            unrelatedCancellation.Token);
+        var handlerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handlerRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var filterCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tool = McpServerTool.Create(
+            async (CancellationToken cancellationToken) =>
+            {
+                handlerStarted.TrySetResult();
+                try
+                {
+                    await handlerRelease.Task.WaitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw exception;
+                }
+
+                return "Completed";
+            },
+            new McpServerToolCreateOptions
+            {
+                Name = "racing-cancellation-probe",
+            });
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool])
+            .WithRequestFilters(requestFilters =>
+            {
+                requestFilters.AddCallToolFilter(next =>
+                {
+                    var filteredNext = installedFilter(next);
+                    return async (context, cancellationToken) =>
+                    {
+                        try
+                        {
+                            return await filteredNext(context, cancellationToken);
+                        }
+                        finally
+                        {
+                            filterCompleted.TrySetResult();
+                        }
+                    };
+                });
+            })
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var invocationCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+        var requestId = new RequestId("racing-cancellation-probe-request");
+        var invocation = client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
+            RequestMethods.ToolsCall,
+            new CallToolRequestParams
+            {
+                Name = "racing-cancellation-probe",
+            },
+            requestId: requestId,
+            cancellationToken: invocationCancellation.Token).AsTask();
+
+        await handlerStarted.Task.WaitAsync(timeoutCancellation.Token);
+
+        await client.SendNotificationAsync(
+            NotificationMethods.CancelledNotification,
+            new CancelledNotificationParams
+            {
+                RequestId = requestId,
+            },
+            cancellationToken: timeoutCancellation.Token);
+
+        await filterCompleted.Task.WaitAsync(timeoutCancellation.Token);
+        capturedErrorStore.Verify(item => item.Add(It.IsAny<CapturedErrorRecord>()), Times.Never);
+
+        await invocationCancellation.CancelAsync();
+        var invocationAction = async () => await invocation;
+        await invocationAction.Should().ThrowAsync<OperationCanceledException>();
+
+        await serverCancellation.CancelAsync();
+        await clientToServerPipe.Writer.CompleteAsync();
+        await serverToClientPipe.Writer.CompleteAsync();
+        await serverTask;
+    }
+}

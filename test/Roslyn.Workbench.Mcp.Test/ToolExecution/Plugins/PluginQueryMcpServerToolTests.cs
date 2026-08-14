@@ -264,6 +264,38 @@ public sealed class PluginQueryMcpServerToolTests
     }
 
     [Fact]
+    public async Task GIVEN_HandlerThrowsUnrelatedCancellation_WHEN_InvokingQuery_THEN_ShouldPropagateExceptionAndDisposeLease()
+    {
+        var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var context = new Mock<IQueryContext>();
+        var operationLease = new Mock<IAsyncDisposable>();
+        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        using var unrelatedCancellation = new CancellationTokenSource();
+        await unrelatedCancellation.CancelAsync();
+        var exception = new OperationCanceledException(unrelatedCancellation.Token);
+        contextFactory
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<WorkspaceBoundRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                CancellationToken.None))
+            .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
+            .Returns(() => ValueTask.FromException<PluginExecutionResult<TestQueryResponse>>(exception));
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
+        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPublishInvalidRequestWithoutAcquiringContext()
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();

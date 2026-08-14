@@ -16,14 +16,14 @@ internal sealed record OperationNode
     public string? Type { get; init; }
 
     /// <summary>
-    /// Gets the constant value, when available.
+    /// Gets a value indicating whether the operation has a constant value.
     /// </summary>
-    public string? ConstantValue { get; init; }
+    public bool HasConstantValue { get; init; }
 
     /// <summary>
-    /// Gets the source syntax for the operation.
+    /// Gets the exact source location of the operation.
     /// </summary>
-    public string Syntax { get; init; } = string.Empty;
+    public ResolvedLocation? Location { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether child nodes were truncated.

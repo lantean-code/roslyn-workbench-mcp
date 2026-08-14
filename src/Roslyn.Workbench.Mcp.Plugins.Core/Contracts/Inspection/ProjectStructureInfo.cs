@@ -33,10 +33,10 @@ internal sealed record ProjectStructureInfo
     /// <summary>
     /// Gets the direct project references.
     /// </summary>
-    public IReadOnlyList<ProjectReferenceInfo> ProjectReferences { get; init; } = [];
+    public BoundedCollection<ProjectReferenceInfo> ProjectReferences { get; init; } = BoundedCollection.Empty<ProjectReferenceInfo>();
 
     /// <summary>
     /// Gets the project documents, when included.
     /// </summary>
-    public IReadOnlyList<DocumentReference>? Documents { get; init; }
+    public BoundedCollection<DocumentReference>? Documents { get; init; }
 }

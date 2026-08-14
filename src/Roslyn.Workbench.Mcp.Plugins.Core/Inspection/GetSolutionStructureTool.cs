@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool(_toolName, "Get Solution Structure", "Returns solution folders, projects, target frameworks and direct project relationships.")]
+[RoslynTool(_toolName, "Get Solution Structure", "Returns bounded solution folders, projects, target frameworks and direct project relationships.")]
 internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
 {
     private const string _toolName = "get-solution-structure";
@@ -104,43 +104,28 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                     ? folderPath
                     : null;
 
-                ProjectReferenceInfo[] projectReferences;
+                BoundedCollection<ProjectReferenceInfo> projectReferences;
                 using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectReferenceProjectionPhase))
                 {
-                    var projectedProjectReferences = new List<ProjectReferenceInfo>();
-                    foreach (var reference in project.ProjectReferences)
-                    {
-                        var referencedProject = context.CurrentSolution.GetProject(reference.ProjectId);
-                        if (referencedProject is not null
-                            && context.WorkspacePathService.TryNormalizePath(referencedProject.FilePath ?? referencedProject.Name, out var referencedProjectPath))
-                        {
-                            projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, referencedProjectPath));
-                        }
-                    }
-
-                    projectReferences = projectedProjectReferences
-                        .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
-                        .ToArray();
+                    projectReferences = CreateProjectReferences(
+                        project,
+                        context.CurrentSolution,
+                        context.WorkspacePathService,
+                        request.EffectiveProjectReferencesPerProjectLimit,
+                        cancellationToken);
                 }
 
-                IReadOnlyList<DocumentReference>? documents = null;
+                BoundedCollection<DocumentReference>? documents = null;
                 if (request.IncludeDocuments)
                 {
                     using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DocumentProjectionPhase))
                     {
-                        var projectedDocuments = new List<DocumentReference>();
-                        foreach (var document in project.Documents)
-                        {
-                            var documentReference = context.WorkspaceResolver.CreateDocumentReference(document);
-                            if (documentReference is not null)
-                            {
-                                projectedDocuments.Add(documentReference);
-                            }
-                        }
-
-                        documents = projectedDocuments
-                            .OrderBy(static document => document.Path, StringComparer.Ordinal)
-                            .ToArray();
+                        documents = CreateDocumentReferences(
+                            project,
+                            context.WorkspacePathService,
+                            context.WorkspaceResolver,
+                            request.EffectiveDocumentsPerProjectLimit,
+                            cancellationToken);
                     }
                 }
 
@@ -165,5 +150,69 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static BoundedCollection<DocumentReference> CreateDocumentReferences(Project project, IWorkspacePathService workspacePathService, IWorkspaceResolver workspaceResolver, int maxResults, CancellationToken cancellationToken)
+    {
+        var candidates = new List<(Document Document, string Path)>();
+        foreach (var document in project.Documents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (workspacePathService.TryNormalizePath(document.FilePath ?? document.Name, out var normalizedPath))
+            {
+                candidates.Add((document, normalizedPath));
+            }
+        }
+
+        candidates.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
+
+        var documents = new List<DocumentReference>();
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (documents.Count == maxResults)
+            {
+                return BoundedCollection.CreatePrebounded(documents, hasMore: true);
+            }
+
+            var documentReference = workspaceResolver.CreateDocumentReference(candidate.Document);
+            if (documentReference is not null)
+            {
+                documents.Add(documentReference);
+            }
+        }
+
+        return BoundedCollection.CreatePrebounded(documents, hasMore: false);
+    }
+
+    private static BoundedCollection<ProjectReferenceInfo> CreateProjectReferences(Project project, Solution currentSolution, IWorkspacePathService workspacePathService, int maxResults, CancellationToken cancellationToken)
+    {
+        var candidates = new List<(Project Project, string Path)>();
+        foreach (var projectReference in project.ProjectReferences)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var referencedProject = currentSolution.GetProject(projectReference.ProjectId);
+            if (referencedProject is not null
+                && workspacePathService.TryNormalizePath(referencedProject.FilePath ?? referencedProject.Name, out var normalizedPath))
+            {
+                candidates.Add((referencedProject, normalizedPath));
+            }
+        }
+
+        candidates.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
+
+        var projectReferences = new List<ProjectReferenceInfo>();
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (projectReferences.Count == maxResults)
+            {
+                break;
+            }
+
+            projectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(candidate.Project, candidate.Path));
+        }
+
+        return BoundedCollection.CreatePrebounded(projectReferences, candidates.Count);
     }
 }

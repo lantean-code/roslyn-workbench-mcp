@@ -123,6 +123,76 @@ public sealed class ToolResultEnvelopeSerializerTests
         publishedWarning.GetProperty("message").GetString().Should().Be("Message");
     }
 
+    [Fact]
+    public void GIVEN_MaximumDepthInspectionTrees_WHEN_SerializingSuccess_THEN_ShouldRemainWithinSerializerDepthAndOmitSourceText()
+    {
+        var outlineData = CreateMaximumDepthOutlineData();
+        var operationData = CreateMaximumDepthOperationData();
+
+        var outlineResult = ToolResultEnvelopeSerializer.CreateSuccess(outlineData);
+        var operationResult = ToolResultEnvelopeSerializer.CreateSuccess(operationData);
+        var outlineJson = outlineResult.GetRawText();
+        var operationJson = operationResult.GetRawText();
+
+        outlineJson.Length.Should().BeLessThan(100_000);
+        operationJson.Length.Should().BeLessThan(100_000);
+        operationJson.Should().NotContain("\"syntax\"");
+        operationJson.Should().NotContain("\"constantValue\":");
+        operationJson.Should().Contain("\"location\"");
+    }
+
+    private static DocumentOutlineData CreateMaximumDepthOutlineData()
+    {
+        IReadOnlyList<OutlineNode> children = [];
+        for (var depth = 24; depth > 0; depth--)
+        {
+            var node = new OutlineNode
+            {
+                Name = $"Node{depth}",
+                Kind = "NamedType",
+                Children = children,
+            };
+
+            children = [node];
+        }
+
+        var root = new OutlineNode
+        {
+            Name = "Document",
+            Kind = "Document",
+            Children = children,
+        };
+
+        return new DocumentOutlineData
+        {
+            Root = root,
+        };
+    }
+
+    private static OperationTreeData CreateMaximumDepthOperationData()
+    {
+        var root = new OperationNode
+        {
+            Kind = "Literal",
+            Location = new ResolvedLocation(),
+        };
+
+        for (var depth = 24; depth > 0; depth--)
+        {
+            root = new OperationNode
+            {
+                Kind = "Invocation",
+                Location = new ResolvedLocation(),
+                Children = [root],
+            };
+        }
+
+        return new OperationTreeData
+        {
+            Root = root,
+        };
+    }
+
 #pragma warning disable CA1812 // Payload fixture is consumed through generic serializer metadata.
     private sealed record TestData
     {

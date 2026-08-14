@@ -114,6 +114,7 @@ public sealed class GetSolutionStructureToolTests
             IncludeDocuments = false,
             FoldersLimit = 1,
             ProjectsLimit = 1,
+            ProjectReferencesPerProjectLimit = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -124,12 +125,13 @@ public sealed class GetSolutionStructureToolTests
         result.Data.Projects.Items[0].Name.Should().Be("Main");
         result.Data.Projects.Items[0].SolutionFolderPath.Should().Be("/src/core");
         result.Data.Projects.Items[0].Documents.Should().BeNull();
-        result.Data.Projects.Items[0].ProjectReferences.Should().ContainSingle(item => item.Name == "Referenced");
+        result.Data.Projects.Items[0].ProjectReferences.Items.Should().BeEmpty();
+        result.Data.Projects.Items[0].ProjectReferences.HasMore.Should().BeTrue();
         result.Data.Projects.HasMore.Should().BeTrue();
     }
 
     [Fact]
-    public async Task GIVEN_IncludeDocumentsIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedDocumentReferences()
+    public async Task GIVEN_DocumentsExceedPerProjectLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedBoundedDocumentReferences()
     {
         using var solution = RoslynTestFactory.CreateSolution(
         [
@@ -178,8 +180,18 @@ public sealed class GetSolutionStructureToolTests
             .Returns(10);
 
         string? mainProjectPath = "Main";
+        string? firstDocumentPath = "A.cs";
+        string? secondDocumentPath = "B.cs";
         queryContextMocks.WorkspacePathService
             .Setup(item => item.TryNormalizePath(mainProject.FilePath!, out mainProjectPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("A.cs", StringComparison.Ordinal)), out firstDocumentPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("B.cs", StringComparison.Ordinal)), out secondDocumentPath))
             .Returns(true);
 
         queryContextMocks.WorkspaceResolver
@@ -209,13 +221,24 @@ public sealed class GetSolutionStructureToolTests
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
             IncludeDocuments = true,
+            DocumentsPerProjectLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Projects.Items.Should().ContainSingle();
         result.Data.Projects.Items[0].TargetFrameworks.Should().BeEmpty();
         result.Data.Projects.Items[0].Documents.Should().NotBeNull();
-        result.Data.Projects.Items[0].Documents!.Select(item => item.Path).Should().Equal("A.cs", "B.cs");
+        result.Data.Projects.Items[0].Documents!.Items.Select(item => item.Path).Should().Equal("A.cs");
+        result.Data.Projects.Items[0].Documents!.HasMore.Should().BeTrue();
+
+        var zeroLimitResult = await target.ExecuteAsync(new GetSolutionStructureRequest
+        {
+            IncludeDocuments = true,
+            DocumentsPerProjectLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        zeroLimitResult.Data!.Projects.Items[0].Documents!.Items.Should().BeEmpty();
+        zeroLimitResult.Data.Projects.Items[0].Documents!.HasMore.Should().BeTrue();
     }
 
     [Fact]
@@ -296,6 +319,7 @@ public sealed class GetSolutionStructureToolTests
         string? referencedAPath = "B-ReferencedA";
         string? referencedBPath = "A-ReferencedB";
         string? mainProjectPath = "Main";
+        string? mainDocumentPath = "Main.cs";
         queryContextMocks.WorkspacePathService
             .Setup(item => item.TryNormalizePath("ReferencedA", out referencedAPath))
             .Returns(true);
@@ -306,6 +330,10 @@ public sealed class GetSolutionStructureToolTests
 
         queryContextMocks.WorkspacePathService
             .Setup(item => item.TryNormalizePath("Main", out mainProjectPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("Main.cs", StringComparison.Ordinal)), out mainDocumentPath))
             .Returns(true);
 
         queryContextMocks.WorkspaceResolver
@@ -353,6 +381,7 @@ public sealed class GetSolutionStructureToolTests
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
             IncludeDocuments = true,
+            ProjectReferencesPerProjectLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         var mainProjectResult = result.Data!.Projects.Items.Single(item => item.Name == "Main");
@@ -360,8 +389,10 @@ public sealed class GetSolutionStructureToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         mainProjectResult.Path.Should().Be("Main");
         mainProjectResult.SolutionFolderPath.Should().Be("/src/core");
-        mainProjectResult.ProjectReferences.Select(item => item.Name).Should().Equal("ReferencedB", "ReferencedA");
-        mainProjectResult.Documents!.Select(item => item.Path).Should().ContainSingle().Which.Should().Be("Main.cs");
+        mainProjectResult.ProjectReferences.Items.Select(item => item.Name).Should().Equal("ReferencedB");
+        mainProjectResult.ProjectReferences.HasMore.Should().BeTrue();
+        mainProjectResult.ProjectReferences.TotalCount.Should().Be(2);
+        mainProjectResult.Documents!.Items.Select(item => item.Path).Should().ContainSingle().Which.Should().Be("Main.cs");
     }
 
     [Fact]

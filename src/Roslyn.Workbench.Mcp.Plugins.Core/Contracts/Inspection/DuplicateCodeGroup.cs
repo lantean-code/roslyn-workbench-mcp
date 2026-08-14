@@ -13,5 +13,5 @@ internal sealed record DuplicateCodeGroup
     /// <summary>
     /// Gets the group occurrences.
     /// </summary>
-    public IReadOnlyList<DuplicateCodeOccurrence> Occurrences { get; init; } = [];
+    public BoundedCollection<DuplicateCodeOccurrence> Occurrences { get; init; } = BoundedCollection.Empty<DuplicateCodeOccurrence>();
 }

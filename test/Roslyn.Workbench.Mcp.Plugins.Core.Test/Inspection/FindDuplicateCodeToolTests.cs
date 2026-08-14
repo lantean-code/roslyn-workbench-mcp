@@ -240,13 +240,13 @@ public sealed class FindDuplicateCodeToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().HaveCount(2);
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain(".ctor");
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("set_Property");
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("MethodOne");
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("MethodTwo");
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("Local");
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).Select(item => item.Symbol!.DisplayName).Should().Contain(".ctor");
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).Select(item => item.Symbol!.DisplayName).Should().Contain("set_Property");
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).Select(item => item.Symbol!.DisplayName).Should().Contain("MethodOne");
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).Select(item => item.Symbol!.DisplayName).Should().Contain("MethodTwo");
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).Select(item => item.Symbol!.DisplayName).Should().Contain("Local");
         result.Data.Groups.Items.Select(item => item.StatementCount).Should().Equal(3, 2);
-        result.Data.Groups.Items.SelectMany(item => item.Occurrences).All(item => !string.IsNullOrWhiteSpace(item.Context)).Should().BeTrue();
+        result.Data.Groups.Items.SelectMany(item => item.Occurrences.Items).All(item => item.Location is not null).Should().BeTrue();
     }
 
     [Fact]
@@ -304,13 +304,28 @@ public sealed class FindDuplicateCodeToolTests
         {
             MinimumStatements = 2,
             GroupsLimit = 1,
+            OccurrencesPerGroupLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().ContainSingle();
         result.Data.Groups.Items[0].StatementCount.Should().Be(3);
+        result.Data.Groups.Items[0].Occurrences.Items.Should().ContainSingle();
+        result.Data.Groups.Items[0].Occurrences.HasMore.Should().BeTrue();
+        result.Data.Groups.Items[0].Occurrences.TotalCount.Should().Be(2);
         result.Data.Groups.HasMore.Should().BeTrue();
         result.Data.Groups.TotalCount.Should().Be(2);
-        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(2));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Once);
+
+        var zeroOccurrencesResult = await target.ExecuteAsync(new FindDuplicateCodeRequest
+        {
+            MinimumStatements = 2,
+            GroupsLimit = 1,
+            OccurrencesPerGroupLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        zeroOccurrencesResult.Data!.Groups.Items[0].Occurrences.Items.Should().BeEmpty();
+        zeroOccurrencesResult.Data.Groups.Items[0].Occurrences.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Once);
     }
 }

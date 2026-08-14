@@ -241,7 +241,7 @@ public sealed class GetOperationTreeToolTests
     }
 
     [Fact]
-    public async Task GIVEN_SelectedRegionResolvesToLiteralOperation_WHEN_CallingExecuteAsync_THEN_ShouldReturnConstantValue()
+    public async Task GIVEN_SelectedRegionResolvesToLiteralOperation_WHEN_CallingExecuteAsync_THEN_ShouldReturnConstantMetadataAndLocation()
     {
         using var document = RoslynTestFactory.CreateDocument("""
             class Formatter
@@ -286,7 +286,8 @@ public sealed class GetOperationTreeToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Kind.Should().Contain("Literal");
-        result.Data.Root.ConstantValue.Should().Be("42");
+        result.Data.Root.HasConstantValue.Should().BeTrue();
+        result.Data.Root.Location.Should().NotBeNull();
         result.Data.Root.Truncated.Should().BeFalse();
         result.Data.Truncated.Should().BeFalse();
     }
@@ -396,6 +397,115 @@ public sealed class GetOperationTreeToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Truncated.Should().BeTrue();
         result.Data.Root.Children.Should().BeEmpty();
+        result.Data.Truncated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_NodeLimitIsZero_WHEN_CallingExecuteAsync_THEN_ShouldReturnNullTruncatedRoot()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                    Format("value");
+                }
+
+                void Format(string value)
+                {
+                }
+            }
+            """);
+
+        var target = new GetOperationTreeTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (InvocationExpressionSyntax item) => item.ToString().Contains("Format(\"value\")", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<OperationTreeData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetOperationTreeRequest
+        {
+            Location = new LocationSelector(),
+            NodesLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Root.Should().BeNull();
+        result.Data.Truncated.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_OperationTreeExceedsNodeLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnOnlyBoundedNodes()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                    Format("value");
+                }
+
+                void Format(string value)
+                {
+                }
+            }
+            """);
+
+        var target = new GetOperationTreeTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (InvocationExpressionSyntax item) => item.ToString().Contains("Format(\"value\")", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<OperationTreeData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetOperationTreeRequest
+        {
+            Location = new LocationSelector(),
+            NodesLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Root.Should().NotBeNull();
+        result.Data.Root!.Children.Should().BeEmpty();
+        result.Data.Root.Truncated.Should().BeTrue();
         result.Data.Truncated.Should().BeTrue();
     }
 

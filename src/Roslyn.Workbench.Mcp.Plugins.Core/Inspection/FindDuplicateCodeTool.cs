@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("find-duplicate-code", "Find Duplicate Code", "Returns duplicate executable blocks that normalize to the same statement sequence.")]
+[RoslynTool("find-duplicate-code", "Find Duplicate Code", "Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.")]
 internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCodeRequest, DuplicateCodeData>
 {
     protected override async ValueTask<PluginExecutionResult<DuplicateCodeData>> ExecuteCoreAsync(FindDuplicateCodeRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -16,6 +16,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             context,
             request.MinimumStatements,
             request.EffectiveGroupsLimit,
+            request.EffectiveOccurrencesPerGroupLimit,
             cancellationToken);
 
         var data = new DuplicateCodeData
@@ -31,6 +32,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
         IQueryContext context,
         int minimumStatements,
         int maxResults,
+        int occurrencesPerGroupLimit,
         CancellationToken cancellationToken)
     {
         var candidates = new List<DuplicateCandidate>();
@@ -78,7 +80,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
                 {
                     Key = normalizedKey,
                     StatementCount = statements.Count,
-                    Statements = statements,
                     Symbol = symbol,
                     Location = resolvedLocation,
                 });
@@ -128,27 +129,27 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             var occurrences = new List<DuplicateCodeOccurrence>();
             foreach (var candidate in groupCandidate.Occurrences)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (occurrences.Count == occurrencesPerGroupLimit)
+                {
+                    break;
+                }
+
                 occurrences.Add(new DuplicateCodeOccurrence
                 {
                     Symbol = context.WorkspaceResolver.CreateSymbolReference(candidate.Symbol),
                     Location = candidate.Location,
-                    Context = CreateContext(candidate.Statements),
                 });
             }
 
             groups.Add(new DuplicateCodeGroup
             {
                 StatementCount = groupCandidate.StatementCount,
-                Occurrences = occurrences,
+                Occurrences = BoundedCollection.CreatePrebounded(occurrences, groupCandidate.Occurrences.Count),
             });
         }
 
         return (groups, groupCandidates.Count);
-    }
-
-    private static string CreateContext(IReadOnlyList<StatementSyntax> statements)
-    {
-        return string.Join(" ", statements.Select(static statement => statement.ToString().ReplaceLineEndings(" ").Trim()));
     }
 
     private static IEnumerable<BlockSyntax> GetExecutableBlocks(SyntaxNode syntaxRoot)
@@ -204,8 +205,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 
         public int StatementCount { get; init; }
 
-        public required IReadOnlyList<StatementSyntax> Statements { get; init; }
-
         public required ISymbol Symbol { get; init; }
 
         public required ResolvedLocation Location { get; init; }
@@ -219,6 +218,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 
         public int DiscoveryOrder { get; init; }
 
-        public required IReadOnlyList<DuplicateCandidate> Occurrences { get; init; }
+        public required List<DuplicateCandidate> Occurrences { get; init; }
     }
 }

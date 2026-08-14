@@ -19,12 +19,14 @@ public sealed class GetControlFlowGraphRequestSchemaTests
         requestProperties.TryGetProperty("symbol", out var symbolProperty).Should().BeTrue();
         requestProperties.TryGetProperty("location", out var locationProperty).Should().BeTrue();
         requestProperties.TryGetProperty("maxBlocks", out var maxBlocksProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("maxOperationsPerBlock", out var maxOperationsPerBlockProperty).Should().BeTrue();
         requestProperties.TryGetProperty("maxRegions", out var maxRegionsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
 
         symbolProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         maxBlocksProperty.GetProperty("type").GetString().Should().Be("integer");
+        maxOperationsPerBlockProperty.GetProperty("type").GetString().Should().Be("integer");
         maxRegionsProperty.GetProperty("type").GetString().Should().Be("integer");
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
     }

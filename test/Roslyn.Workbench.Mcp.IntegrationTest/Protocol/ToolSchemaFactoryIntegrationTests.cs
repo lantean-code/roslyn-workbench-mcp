@@ -470,6 +470,14 @@ public sealed class ToolSchemaFactoryIntegrationTests
             return false;
         }
 
+        if (property.Name == nameof(GetOperationTreeRequest.NodesLimit)
+            && property.DeclaringType is not null
+            && (property.DeclaringType == typeof(GetOperationTreeRequest)
+                || property.DeclaringType == typeof(GetDocumentOutlineRequest)))
+        {
+            return false;
+        }
+
         return property.Name.EndsWith("Limit", StringComparison.Ordinal)
             || string.Equals(property.Name, "MaxChanges", StringComparison.Ordinal);
     }

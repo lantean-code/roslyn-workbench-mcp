@@ -25,7 +25,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 7 | `RWMCP2-006` — Plugin admission does not enforce the runtime query response contract | P2 | Complete — confirmed 2026-08-13 |
 | 8 | `RWMCP2-007` — Project details always omit effective preprocessor symbols | P2 | Complete — confirmed 2026-08-14 |
 | 9 | `RWMCP2-008` — Flow analysis reports a different region from the one it analyses | P2 | Complete — confirmed 2026-08-14 |
-| 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Pending — remediation not started |
+| 10 | `RWMCP2-010` — Outer limits do not bound several large nested query payloads | P2 | Complete — confirmed 2026-08-14 |
 | 11 | `RWMCP2-012` — The current built-in Code Action compatibility gate fails its implement-interface case | P2 | Pending — remediation not started |
 | 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Pending — remediation not started |
 | 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Pending — remediation not started |
@@ -154,13 +154,15 @@ Both tools resolve the caller's exact location, find the containing statement, a
 
 ### RWMCP2-010 — Outer limits do not bound several large nested query payloads
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-14
 
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSolutionStructureRequest.cs:6-32`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetSolutionStructureTool.cs:107-155`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetDocumentOutlineRequest.cs:6-16`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Projections/DocumentOutlineProjectionFactory.cs:3-66`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindCallersTool.cs:23-76`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/FindDuplicateCodeTool.cs:84-118`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetControlFlowGraphTool.cs:70-80,86-115`
 
 Several public `maxResults`-style controls bound only a top-level collection while each admitted item can retain an unbounded nested graph: all documents per selected project, recursive outline descendants, every caller location and context, every duplicate occurrence, or all control-flow operations including full syntax. The Host serializer has no independent byte or nested-item budget. A request respecting its documented outer limit can therefore produce a repository-scale response, high allocation pressure and long serialization that the apparent limit does not constrain. These are manifestations of one shared result-bounding contract defect rather than independent findings.
+
+**Remediation outcome:** Solution structure now publishes bounded per-project documents and project references; document outline and operation-tree projections enforce global node and safe depth limits with explicit truncation; callers and duplicate groups publish bounded nested collections; and CFG blocks publish bounded operation metadata. Caller locations remain paired with explicitly requested context, while duplicate occurrences, CFG operations and operation-tree nodes return exact source pointers instead of embedded source or syntax payloads. Bounds are schema-published, zero-limit and deterministic-order semantics are covered, and contract/design documentation reflects the replaced wire shapes. Core tests passed 316/316, Host tests 499/499, Core integration 10/10, Host integration 71/71 and the complete published-host acceptance wrapper 63/63; the solution build passed without warnings or errors, changed production analyser builds were clean, and representative Serilog Scenario Runner workloads successfully recorded the new nested bounded collections with clean shutdown and repository restoration. The first fresh context-free Review Agent pass returned no findings and identified only published-boundary residual coverage opportunities; the unstaged follow-up added real published-Host assertions for two independently truncated callers, a truncated CFG operation collection and root operation-tree child truncation. The complete acceptance wrapper passed again, and a second fresh context-free Review Agent pass found no defects or material test gaps. The user gave final confirmation on 2026-08-14.
 
 ### RWMCP2-012 — The current built-in Code Action compatibility gate fails its implement-interface case
 

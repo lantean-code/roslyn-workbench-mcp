@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("get-document-outline", "Get Document Outline", "Returns a semantic outline for one document.")]
+[RoslynTool("get-document-outline", "Get Document Outline", "Returns a bounded semantic outline for one document.")]
 internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutlineRequest, DocumentOutlineData>
 {
     protected override async ValueTask<PluginExecutionResult<DocumentOutlineData>> ExecuteCoreAsync(GetDocumentOutlineRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -15,6 +15,7 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         OutlineNode? root = null;
+        var truncated = false;
         if (syntaxRoot is not null && semanticModel is not null)
         {
             root = new OutlineNode
@@ -26,6 +27,9 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
                     semanticModel,
                     context.WorkspaceResolver,
                     request.IncludeMembers,
+                    request.EffectiveNodesLimit,
+                    request.MaxDepth,
+                    out truncated,
                     cancellationToken),
             };
         }
@@ -34,6 +38,7 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         {
             Document = context.WorkspaceResolver.CreateDocumentReference(document),
             Root = root,
+            Truncated = truncated,
         };
 
         return PluginExecutionResult.Success(data);

@@ -553,4 +553,76 @@ public sealed class GetControlFlowGraphToolTests
         result.Data.Regions.Should().ContainSingle();
         result.Data.RegionsTruncated.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GIVEN_BasicBlockOperationsExceedLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnBoundedOperationPointers()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                int Run()
+                {
+                    var first = 1;
+                    var second = 2;
+                    var third = 3;
+                    return first + second + third;
+                }
+            }
+            """);
+
+        var target = new GetControlFlowGraphTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (MethodDeclarationSyntax item) => item.Identifier.ValueText == "Run",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<ControlFlowGraphData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<ControlFlowGraphData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Location = new LocationSelector(),
+            MaxBlocks = 64,
+            MaxOperationsPerBlock = 1,
+            MaxRegions = 32,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        var boundedBlock = result.Data!.Blocks.Single(item => item.Operations.HasMore);
+        boundedBlock.Operations.Items.Should().ContainSingle();
+        boundedBlock.Operations.Items[0].Kind.Should().NotBeEmpty();
+        boundedBlock.Operations.Items[0].Location.Should().NotBeNull();
+        boundedBlock.Operations.TotalCount.Should().BeGreaterThan(1);
+
+        var zeroOperationsResult = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Location = new LocationSelector(),
+            MaxBlocks = 64,
+            MaxOperationsPerBlock = 0,
+            MaxRegions = 32,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        var zeroOperationsBlock = zeroOperationsResult.Data!.Blocks.First(item => item.Operations.HasMore);
+        zeroOperationsBlock.Operations.Items.Should().BeEmpty();
+    }
 }

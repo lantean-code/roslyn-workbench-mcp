@@ -135,9 +135,28 @@ public sealed class SchemaGenerationTests
     public void GIVEN_SolutionStructureOutput_WHEN_GeneratingToolSchema_THEN_ShouldPublishStructuredCollectionPayload()
     {
         var outputSchema = CreateTool(nameof(ContractSchemaTestTools.GetSolutionStructure)).ProtocolTool.OutputSchema!.Value;
+        var schemaText = outputSchema.GetRawText();
 
         outputSchema.GetProperty("type").GetString().Should().Be("object");
-        outputSchema.GetRawText().Should().ContainAll("folders", "projects");
+        schemaText.Should().ContainAll("folders", "projects", "projectReferences", "documents", "items", "hasMore", "totalCount");
+    }
+
+    [Fact]
+    public void GIVEN_NestedInspectionOutputs_WHEN_GeneratingToolSchema_THEN_ShouldPublishBoundsAndPointersWithoutUnconditionalSourceText()
+    {
+        var callersSchema = CreateTool(nameof(ContractSchemaTestTools.FindCallers)).ProtocolTool.OutputSchema!.Value.GetRawText();
+        var duplicateSchema = CreateTool(nameof(ContractSchemaTestTools.FindDuplicateCode)).ProtocolTool.OutputSchema!.Value.GetRawText();
+        var controlFlowSchema = CreateTool(nameof(ContractSchemaTestTools.GetControlFlowGraph)).ProtocolTool.OutputSchema!.Value.GetRawText();
+        var operationTreeSchema = CreateTool(nameof(ContractSchemaTestTools.GetOperationTree)).ProtocolTool.OutputSchema!.Value.GetRawText();
+
+        callersSchema.Should().ContainAll("callSites", "items", "hasMore", "totalCount", "location", "context");
+        callersSchema.Should().NotContainAny("locations", "contexts");
+        duplicateSchema.Should().ContainAll("occurrences", "items", "hasMore", "totalCount", "location");
+        duplicateSchema.Should().NotContain("context");
+        controlFlowSchema.Should().ContainAll("operations", "items", "hasMore", "totalCount", "kind", "type", "location");
+        controlFlowSchema.Should().NotContain("syntax");
+        operationTreeSchema.Should().ContainAll("hasConstantValue", "location", "truncated", "children");
+        operationTreeSchema.Should().NotContainAny("syntax", "constantValue");
     }
 
     private static McpServerTool CreateTool(string methodName)

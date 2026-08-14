@@ -50,6 +50,24 @@ internal static class ContractSchemaTestTools
         return CreateResult(request);
     }
 
+    [McpServerTool(Name = "get-document-outline", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<DocumentOutlineData>))]
+    public static CallToolResult GetDocumentOutline(GetDocumentOutlineRequest request)
+    {
+        return CreateResult(request);
+    }
+
+    [McpServerTool(Name = "find-callers", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<CallerSearchData>))]
+    public static CallToolResult FindCallers(FindCallersRequest request)
+    {
+        return CreateResult(request);
+    }
+
+    [McpServerTool(Name = "find-duplicate-code", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<DuplicateCodeData>))]
+    public static CallToolResult FindDuplicateCode(FindDuplicateCodeRequest request)
+    {
+        return CreateResult(request);
+    }
+
     [McpServerTool(Name = "get-type-hierarchy", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<TypeHierarchyData>))]
     public static CallToolResult GetTypeHierarchy(GetTypeHierarchyRequest request)
     {
@@ -64,6 +82,12 @@ internal static class ContractSchemaTestTools
 
     [McpServerTool(Name = "get-control-flow-graph", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<ControlFlowGraphData>))]
     public static CallToolResult GetControlFlowGraph(GetControlFlowGraphRequest request)
+    {
+        return CreateResult(request);
+    }
+
+    [McpServerTool(Name = "get-operation-tree", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<OperationTreeData>))]
+    public static CallToolResult GetOperationTree(GetOperationTreeRequest request)
     {
         return CreateResult(request);
     }

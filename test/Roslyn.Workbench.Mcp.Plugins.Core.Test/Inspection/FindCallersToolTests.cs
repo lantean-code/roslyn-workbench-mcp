@@ -207,9 +207,10 @@ public sealed class FindCallersToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Callee");
         result.Data.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha", "RunBeta");
-        result.Data.Callers.Items[0].Contexts.Should().BeEmpty();
-        result.Data.Callers.Items[1].Locations.Should().ContainSingle();
-        result.Data.Callers.Items[1].Locations[0].Document!.Path.Should().Be("Callers.cs");
+        result.Data.Callers.Items[0].CallSites.Items.Should().ContainSingle();
+        result.Data.Callers.Items[0].CallSites.Items[0].Context.Should().BeNull();
+        result.Data.Callers.Items[1].CallSites.Items.Should().ContainSingle();
+        result.Data.Callers.Items[1].CallSites.Items[0].Location!.Document!.Path.Should().Be("Callers.cs");
         queryContextMocks.ToolExecutionServices.VerifyGet(item => item.InspectionContextService, Times.Never);
 
         var boundedResult = await target.ExecuteAsync(new FindCallersRequest
@@ -220,10 +221,20 @@ public sealed class FindCallersToolTests
 
         boundedResult.Data!.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha");
         boundedResult.Data.Callers.HasMore.Should().BeTrue();
+
+        var zeroCallSitesResult = await target.ExecuteAsync(new FindCallersRequest
+        {
+            Symbol = new SymbolSelector(),
+            CallersLimit = 1,
+            CallSitesPerCallerLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        zeroCallSitesResult.Data!.Callers.Items[0].CallSites.Items.Should().BeEmpty();
+        zeroCallSitesResult.Data.Callers.Items[0].CallSites.HasMore.Should().BeTrue();
     }
 
     [Fact]
-    public async Task GIVEN_IncludeContextIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnOnlyNonWhitespaceContexts()
+    public async Task GIVEN_CallSitesExceedPerCallerLimit_WHEN_CallingExecuteAsync_THEN_ShouldBoundBeforeContextProjection()
     {
         using var solution = RoslynTestFactory.CreateSolution(
         [
@@ -344,16 +355,20 @@ public sealed class FindCallersToolTests
         {
             Symbol = new SymbolSelector(),
             IncludeContext = true,
+            CallSitesPerCallerLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha", "RunBeta");
-        result.Data.Callers.Items[0].Contexts.Should().Equal("target.Callee();");
-        result.Data.Callers.Items[1].Contexts.Should().Equal("target.Callee();");
+        result.Data.Callers.Items[0].CallSites.Items.Select(item => item.Context).Should().Equal("target.Callee();");
+        result.Data.Callers.Items[1].CallSites.Items.Should().ContainSingle();
+        result.Data.Callers.Items[1].CallSites.Items[0].Context.Should().BeNull();
+        result.Data.Callers.Items[1].CallSites.HasMore.Should().BeTrue();
+        result.Data.Callers.Items[1].CallSites.TotalCount.Should().Be(2);
         inspectionContextService.Verify(item => item.ReadContextAsync(
             callerDocument,
             It.IsAny<TextSpan>(),
-            It.IsAny<CancellationToken>()), Times.Exactly(3));
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     private static async Task<IReadOnlyList<Location>> GetCalleeIdentifierLocationsAsync(Document document, string methodName)

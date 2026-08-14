@@ -2,11 +2,30 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Projections;
 
 internal static class DocumentOutlineProjectionFactory
 {
-    public static OutlineNode[] BuildOutlineChildren(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, CancellationToken cancellationToken)
+    public static OutlineNode[] BuildOutlineChildren(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, int maxNodes, int maxDepth, out bool truncated, CancellationToken cancellationToken)
+    {
+        var projectedNodeCount = 0;
+        truncated = false;
+
+        return BuildOutlineChildren(
+            syntaxNode,
+            semanticModel,
+            resolver,
+            includeMembers,
+            maxNodes,
+            maxDepth,
+            currentDepth: 1,
+            ref projectedNodeCount,
+            ref truncated,
+            cancellationToken);
+    }
+
+    private static OutlineNode[] BuildOutlineChildren(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, int maxNodes, int maxDepth, int currentDepth, ref int projectedNodeCount, ref bool truncated, CancellationToken cancellationToken)
     {
         var children = new List<OutlineNode>();
         foreach (var childNode in syntaxNode.ChildNodes())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (childNode is BaseFieldDeclarationSyntax fieldDeclaration)
             {
                 foreach (var variable in fieldDeclaration.Declaration.Variables)
@@ -14,26 +33,70 @@ internal static class DocumentOutlineProjectionFactory
                     var fieldSymbol = semanticModel.GetDeclaredSymbol(variable, cancellationToken);
                     if (fieldSymbol is not null)
                     {
+                        if (projectedNodeCount == maxNodes)
+                        {
+                            truncated = true;
+                            return children.ToArray();
+                        }
+
                         children.Add(CreateOutlineNode(fieldSymbol, resolver, []));
+                        projectedNodeCount++;
                     }
                 }
 
                 continue;
             }
 
-            var child = CreateOutlineNode(childNode, semanticModel, resolver, includeMembers, cancellationToken);
-            if (child is not null)
+            var symbol = GetDeclaredSymbol(childNode, semanticModel, cancellationToken);
+            if (symbol is null)
             {
-                children.Add(child);
+                continue;
+            }
+
+            if (currentDepth > maxDepth || projectedNodeCount == maxNodes)
+            {
+                truncated = true;
+                return children.ToArray();
+            }
+
+            projectedNodeCount++;
+            IReadOnlyList<OutlineNode> nestedChildren = [];
+            if (includeMembers || symbol is INamespaceSymbol)
+            {
+                if (currentDepth == maxDepth)
+                {
+                    truncated |= HasPotentialOutlineChildren(childNode);
+                }
+                else
+                {
+                    nestedChildren = BuildOutlineChildren(
+                        childNode,
+                        semanticModel,
+                        resolver,
+                        includeMembers,
+                        maxNodes,
+                        maxDepth,
+                        currentDepth + 1,
+                        ref projectedNodeCount,
+                        ref truncated,
+                        cancellationToken);
+                }
+            }
+
+            children.Add(CreateOutlineNode(symbol, resolver, nestedChildren));
+
+            if (truncated && projectedNodeCount == maxNodes)
+            {
+                return children.ToArray();
             }
         }
 
         return children.ToArray();
     }
 
-    private static OutlineNode? CreateOutlineNode(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, CancellationToken cancellationToken)
+    private static ISymbol? GetDeclaredSymbol(SyntaxNode syntaxNode, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
-        var symbol = syntaxNode switch
+        return syntaxNode switch
         {
             BaseNamespaceDeclarationSyntax namespaceDeclarationSyntax => semanticModel.GetDeclaredSymbol(namespaceDeclarationSyntax, cancellationToken),
             BaseTypeDeclarationSyntax typeDeclarationSyntax => semanticModel.GetDeclaredSymbol(typeDeclarationSyntax, cancellationToken),
@@ -43,17 +106,25 @@ internal static class DocumentOutlineProjectionFactory
             BasePropertyDeclarationSyntax propertyDeclarationSyntax => semanticModel.GetDeclaredSymbol(propertyDeclarationSyntax, cancellationToken),
             _ => null,
         };
+    }
 
-        if (symbol is null)
+    private static bool HasPotentialOutlineChildren(SyntaxNode syntaxNode)
+    {
+        foreach (var childNode in syntaxNode.ChildNodes())
         {
-            return null;
+            if (childNode is BaseFieldDeclarationSyntax { Declaration.Variables.Count: > 0 }
+                || childNode is BaseNamespaceDeclarationSyntax
+                || childNode is BaseTypeDeclarationSyntax
+                || childNode is DelegateDeclarationSyntax
+                || childNode is EnumMemberDeclarationSyntax
+                || childNode is BaseMethodDeclarationSyntax
+                || childNode is BasePropertyDeclarationSyntax)
+            {
+                return true;
+            }
         }
 
-        var children = includeMembers || symbol is INamespaceSymbol
-            ? BuildOutlineChildren(syntaxNode, semanticModel, resolver, includeMembers, cancellationToken)
-            : [];
-
-        return CreateOutlineNode(symbol, resolver, children);
+        return false;
     }
 
     private static OutlineNode CreateOutlineNode(ISymbol symbol, IWorkspaceResolver resolver, IReadOnlyList<OutlineNode> children)

@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("find-callers", "Find Callers", "Returns direct source call sites and containing symbols.")]
+[RoslynTool("find-callers", "Find Callers", "Returns bounded direct source call sites and containing symbols.")]
 internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, CallerSearchData>
 {
     protected override async ValueTask<PluginExecutionResult<CallerSearchData>> ExecuteCoreAsync(FindCallersRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -34,10 +34,10 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                 break;
             }
 
-            var contexts = new List<string>();
-            var locations = new List<ResolvedLocation>();
+            var callSiteCandidates = new List<(Location Source, ResolvedLocation Resolved)>();
             foreach (var location in caller.Locations)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!location.IsInSource)
                 {
                     continue;
@@ -46,33 +46,49 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                 var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
                 if (resolvedLocation is not null)
                 {
-                    locations.Add(resolvedLocation);
-                }
-
-                if (request.IncludeContext)
-                {
-                    var document = location.SourceTree is null
-                        ? null
-                        : context.CurrentSolution.GetDocument(location.SourceTree);
-
-                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, location.SourceSpan, cancellationToken);
-                    if (!string.IsNullOrWhiteSpace(contextLine))
-                    {
-                        contexts.Add(contextLine);
-                    }
+                    callSiteCandidates.Add((location, resolvedLocation));
                 }
             }
 
-            var orderedLocations = locations
-                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
-                .ThenBy(static location => location.Span?.Start)
+            var orderedCallSiteCandidates = callSiteCandidates
+                .OrderBy(static item => item.Resolved.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static item => item.Resolved.Span?.Start)
                 .ToArray();
+
+            var callSites = new List<CallerSiteInfo>();
+            foreach (var (sourceLocation, resolvedLocation) in orderedCallSiteCandidates)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (callSites.Count == request.EffectiveCallSitesPerCallerLimit)
+                {
+                    break;
+                }
+
+                string? contextLine = null;
+                if (request.IncludeContext)
+                {
+                    var document = sourceLocation.SourceTree is null
+                        ? null
+                        : context.CurrentSolution.GetDocument(sourceLocation.SourceTree);
+
+                    contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, sourceLocation.SourceSpan, cancellationToken);
+                    if (string.IsNullOrWhiteSpace(contextLine))
+                    {
+                        contextLine = null;
+                    }
+                }
+
+                callSites.Add(new CallerSiteInfo
+                {
+                    Location = resolvedLocation,
+                    Context = contextLine,
+                });
+            }
 
             callers.Add(new CallerInfo
             {
                 Caller = reference,
-                Locations = orderedLocations,
-                Contexts = request.IncludeContext ? contexts.ToArray() : [],
+                CallSites = BoundedCollection.CreatePrebounded(callSites, orderedCallSiteCandidates.Length),
             });
         }
 

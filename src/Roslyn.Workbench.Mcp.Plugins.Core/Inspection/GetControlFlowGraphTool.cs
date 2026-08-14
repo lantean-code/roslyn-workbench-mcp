@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Returns a projected control-flow graph for a symbol or selected region.")]
+[RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Returns a bounded control-flow graph with operation metadata and exact source pointers.")]
 internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowGraphRequest, ControlFlowGraphData>
 {
     protected override async ValueTask<PluginExecutionResult<ControlFlowGraphData>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -68,7 +68,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         }
 
         var maxBlocks = request.MaxBlocks;
-        var blocks = CreateBlocks(graph, maxBlocks);
+        var blocks = CreateBlocks(graph, maxBlocks, request.MaxOperationsPerBlock, context.WorkspaceResolver, cancellationToken);
         var regions = CreateRegions(graph, request.MaxRegions, out var regionsTruncated);
 
         var data = new ControlFlowGraphData
@@ -83,20 +83,32 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         return PluginExecutionResult.Success(data);
     }
 
-    private static List<BasicBlockInfo> CreateBlocks(ControlFlowGraph graph, int maxBlocks)
+    private static List<BasicBlockInfo> CreateBlocks(ControlFlowGraph graph, int maxBlocks, int maxOperationsPerBlock, IWorkspaceResolver workspaceResolver, CancellationToken cancellationToken)
     {
         var blocks = new List<BasicBlockInfo>();
         foreach (var block in graph.Blocks)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (blocks.Count == maxBlocks)
             {
                 break;
             }
 
-            var operations = new string[block.Operations.Length];
-            for (var index = 0; index < block.Operations.Length; index++)
+            var operations = new List<BasicBlockOperationInfo>();
+            foreach (var operation in block.Operations)
             {
-                operations[index] = block.Operations[index].Syntax.ToString();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (operations.Count == maxOperationsPerBlock)
+                {
+                    break;
+                }
+
+                operations.Add(new BasicBlockOperationInfo
+                {
+                    Kind = operation.Kind.ToString(),
+                    Type = operation.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                    Location = workspaceResolver.CreateResolvedLocation(operation.Syntax.GetLocation()),
+                });
             }
 
             var blockInfo = new BasicBlockInfo
@@ -104,7 +116,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
                 Ordinal = block.Ordinal,
                 Kind = block.Kind.ToString(),
                 IsReachable = block.IsReachable,
-                Operations = operations,
+                Operations = BoundedCollection.CreatePrebounded(operations, block.Operations.Length),
                 FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
                 ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
             };

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("get-operation-tree", "Get Operation Tree", "Returns a projected IOperation tree for a selected region.")]
+[RoslynTool("get-operation-tree", "Get Operation Tree", "Returns a bounded IOperation tree with metadata and exact source pointers.")]
 internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRequest, OperationTreeData>
 {
     protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -30,7 +30,22 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             return PluginExecutionResult.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
         }
 
-        var root = CreateOperationNode(operation, request.MaxDepth, depth: 0, out var truncated);
+        OperationNode? root = null;
+        var truncated = request.EffectiveNodesLimit == 0;
+        if (!truncated)
+        {
+            var projectedNodeCount = 0;
+            root = CreateOperationNode(
+                operation,
+                context.WorkspaceResolver,
+                request.MaxDepth,
+                request.EffectiveNodesLimit,
+                depth: 0,
+                ref projectedNodeCount,
+                out truncated,
+                cancellationToken);
+        }
+
         var data = new OperationTreeData
         {
             Root = root,
@@ -40,36 +55,54 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         return PluginExecutionResult.Success(data);
     }
 
-    private static OperationNode CreateOperationNode(IOperation operation, int maxDepth, int depth, out bool truncated)
+    private static OperationNode CreateOperationNode(IOperation operation, IWorkspaceResolver workspaceResolver, int maxDepth, int maxNodes, int depth, ref int projectedNodeCount, out bool truncated, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        projectedNodeCount++;
         if (depth >= maxDepth)
         {
             var childEnumerator = operation.ChildOperations.GetEnumerator();
             truncated = childEnumerator.MoveNext();
 
-            return CreateOperationNodeProjection(operation, truncated, []);
+            return CreateOperationNodeProjection(operation, workspaceResolver, truncated, []);
         }
 
         var children = new List<OperationNode>();
         truncated = false;
         foreach (var childOperation in operation.ChildOperations)
         {
-            var child = CreateOperationNode(childOperation, maxDepth, depth + 1, out var childTruncated);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (projectedNodeCount == maxNodes)
+            {
+                truncated = true;
+                break;
+            }
+
+            var child = CreateOperationNode(
+                childOperation,
+                workspaceResolver,
+                maxDepth,
+                maxNodes,
+                depth + 1,
+                ref projectedNodeCount,
+                out var childTruncated,
+                cancellationToken);
+
             children.Add(child);
             truncated |= childTruncated;
         }
 
-        return CreateOperationNodeProjection(operation, truncated, children.ToArray());
+        return CreateOperationNodeProjection(operation, workspaceResolver, truncated, children.ToArray());
     }
 
-    private static OperationNode CreateOperationNodeProjection(IOperation operation, bool truncated, OperationNode[] children)
+    private static OperationNode CreateOperationNodeProjection(IOperation operation, IWorkspaceResolver workspaceResolver, bool truncated, OperationNode[] children)
     {
         return new OperationNode
         {
             Kind = operation.Kind.ToString(),
             Type = operation.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-            ConstantValue = operation.ConstantValue.HasValue ? operation.ConstantValue.Value?.ToString() : null,
-            Syntax = operation.Syntax.ToString(),
+            HasConstantValue = operation.ConstantValue.HasValue,
+            Location = workspaceResolver.CreateResolvedLocation(operation.Syntax.GetLocation()),
             Truncated = truncated,
             Children = children,
         };

@@ -11,12 +11,7 @@ internal sealed record CallerInfo
     public SymbolReference? Caller { get; init; }
 
     /// <summary>
-    /// Gets the call-site locations.
+    /// Gets the bounded call sites for the caller.
     /// </summary>
-    public IReadOnlyList<ResolvedLocation> Locations { get; init; } = [];
-
-    /// <summary>
-    /// Gets optional source snippets for the call sites.
-    /// </summary>
-    public IReadOnlyList<string> Contexts { get; init; } = [];
+    public BoundedCollection<CallerSiteInfo> CallSites { get; init; } = BoundedCollection.Empty<CallerSiteInfo>();
 }

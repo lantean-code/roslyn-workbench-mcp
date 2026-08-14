@@ -6,6 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
 {
     private const int _defaultMaxBlocks = 64;
+    private const int _defaultMaxOperationsPerBlock = 32;
     private const int _defaultMaxRegions = 32;
 
     /// <summary>
@@ -21,6 +22,13 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxRegions)]
     public int MaxRegions { get; init; } = _defaultMaxRegions;
+
+    /// <summary>
+    /// Gets the maximum number of projected operations in each basic block.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    [DefaultValue(_defaultMaxOperationsPerBlock)]
+    public int MaxOperationsPerBlock { get; init; } = _defaultMaxOperationsPerBlock;
 
     /// <summary>
     /// Gets the optional symbol selector.

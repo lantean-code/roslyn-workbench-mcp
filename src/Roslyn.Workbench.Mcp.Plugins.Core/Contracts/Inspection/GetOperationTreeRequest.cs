@@ -6,6 +6,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
 {
     private const int _defaultMaxDepth = 8;
+    private const int _defaultNodesMaxResults = 200;
+    private const int _maximumMaxDepth = 24;
+    private const int _maximumNodesMaxResults = 2_000;
 
     /// <summary>
     /// Gets the selected location.
@@ -15,12 +18,21 @@ internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum traversal depth.
     /// </summary>
-    [Range(0, int.MaxValue)]
+    [Range(0, _maximumMaxDepth)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
+
+    /// <summary>
+    /// Gets the optional maximum total number of projected operation nodes.
+    /// </summary>
+    [Range(0, _maximumNodesMaxResults)]
+    [DefaultValue(_defaultNodesMaxResults)]
+    public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);
 }

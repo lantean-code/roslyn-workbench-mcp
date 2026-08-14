@@ -23,7 +23,7 @@ internal sealed record BasicBlockInfo
     /// <summary>
     /// Gets the projected operations in the block.
     /// </summary>
-    public IReadOnlyList<string> Operations { get; init; } = [];
+    public BoundedCollection<BasicBlockOperationInfo> Operations { get; init; } = BoundedCollection.Empty<BasicBlockOperationInfo>();
 
     /// <summary>
     /// Gets the fall-through successor ordinal, when available.

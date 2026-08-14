@@ -15,8 +15,4 @@ internal sealed record DuplicateCodeOccurrence
     /// </summary>
     public ResolvedLocation? Location { get; init; }
 
-    /// <summary>
-    /// Gets the compact source context.
-    /// </summary>
-    public string Context { get; init; } = string.Empty;
 }

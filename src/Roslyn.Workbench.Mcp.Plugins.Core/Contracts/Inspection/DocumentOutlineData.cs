@@ -14,4 +14,9 @@ internal sealed record DocumentOutlineData : IQueryResponse
     /// Gets the outline root node.
     /// </summary>
     public OutlineNode? Root { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the hierarchy was truncated by its node or depth bound.
+    /// </summary>
+    public bool Truncated { get; init; }
 }

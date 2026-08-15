@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Loading;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class WorkspaceProjectionIntegrationTests
@@ -102,5 +104,55 @@ public sealed class WorkspaceProjectionIntegrationTests
         solution.Data.Projects.Items.Should().ContainSingle(static project => project.Name == "App" && project.SolutionFolderPath == "src/apps");
         application.Data!.ProjectReferences.Items.Should().ContainSingle(static reference => reference.Name == "Lib");
         application.Data.MetadataReferences.Items.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_WorkspaceHasConfigurationProperty_WHEN_ProjectingWorkspace_THEN_ShouldReportEvaluatedTargetFramework()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await File.WriteAllTextAsync(
+            fixture.ProjectPath,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework Condition="'$(Configuration)' == 'Release'">net9.0</TargetFramework>
+                <TargetFramework Condition="'$(Configuration)' != 'Release'">net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """,
+            TestContext.Current.CancellationToken);
+
+        var properties = new WorkspaceMsBuildProperties
+        {
+            Configuration = "Release",
+        };
+
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(
+            fixture.ProjectPath,
+            TestContext.Current.CancellationToken,
+            msBuildProperties: properties);
+
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
+        var solution = await session.ExecuteQueryAsync<GetSolutionStructureRequest, SolutionStructureData>(
+            "get-solution-structure",
+            new GetSolutionStructureRequest(),
+            TestContext.Current.CancellationToken);
+
+        var project = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
+            "get-project-details",
+            new GetProjectDetailsRequest
+            {
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+            },
+            TestContext.Current.CancellationToken);
+
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        solution.Data!.Projects.Items.Should().ContainSingle().Which.TargetFrameworks.Should().Equal("net9.0");
+        project.Data!.Project!.TargetFrameworks.Should().Equal("net9.0");
     }
 }

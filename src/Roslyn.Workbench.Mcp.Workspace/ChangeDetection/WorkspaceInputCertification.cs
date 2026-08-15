@@ -3,15 +3,15 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
 {
     private readonly IWorkspaceInputChangeMonitor _changeMonitor;
-    private readonly StringComparer _pathComparer;
+    private readonly IWorkspacePathComparison _pathComparison;
     private int _completionState;
 
     public WorkspaceInputCertification(
         IWorkspaceInputChangeMonitor changeMonitor,
-        StringComparer pathComparer)
+        IWorkspacePathComparison pathComparison)
     {
         _changeMonitor = changeMonitor;
-        _pathComparer = pathComparer;
+        _pathComparison = pathComparison;
         _changeMonitor.Start();
     }
 
@@ -30,7 +30,9 @@ internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
             throw new InvalidOperationException("Workspace input certification has already completed or been disposed.");
         }
 
-        var ignoredPathSet = ignoredPaths.ToHashSet(_pathComparer);
+        var ignoredPathSet = ignoredPaths
+            .Select(_pathComparison.CreateKey)
+            .ToHashSet();
         var completedManifest = new WorkspaceInputManifest
         {
             ChangeMonitor = _changeMonitor,

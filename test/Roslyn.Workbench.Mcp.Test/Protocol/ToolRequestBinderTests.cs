@@ -89,6 +89,32 @@ public sealed class ToolRequestBinderTests
     }
 
     [Fact]
+    public void GIVEN_UnknownWorkspaceMsBuildProperty_WHEN_Binding_THEN_ShouldReturnContractError()
+    {
+        using var document = JsonDocument.Parse("""
+            {
+              "unknownProperty": "Value"
+            }
+            """);
+
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["path"] = JsonSerializer.SerializeToElement("Path"),
+            ["msBuildProperties"] = document.RootElement.Clone(),
+        };
+
+        var result = _target.TryBind<WorkspaceOpenRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
+        _requestObjectGraphValidator.Verify(item => item.TryCreateInvalidRequestError(
+            It.IsAny<object>(),
+            It.IsAny<JsonSerializerOptions>(),
+            out It.Ref<string?>.IsAny), Times.Never);
+    }
+
+    [Fact]
     public void GIVEN_OneRequiredPropertyIsMissing_WHEN_ValidatingRequiredArguments_THEN_ShouldReturnNamedError()
     {
         var arguments = new Dictionary<string, JsonElement>

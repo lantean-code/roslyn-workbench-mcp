@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.Diagnostics;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 
@@ -44,11 +45,11 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .Setup(item => item.Create(It.IsAny<string>()))
             .Returns(_changeMonitor.Object);
         _pathComparison
-            .Setup(item => item.GetComparer(It.IsAny<string>()))
-            .Returns(StringComparer.Ordinal);
-        _pathComparison
             .Setup(item => item.GetComparison(It.IsAny<string>()))
             .Returns(StringComparison.Ordinal);
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
 
         _target = new WorkspaceChangeDetector(
             _fileSystem.Object,
@@ -81,6 +82,12 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         var referencePath = typeof(object).Assembly.Location;
         var importPath = Path.Combine(root, "Build", "Imported.props");
         var solutionPath = Path.Combine(root, "Workspace.sln");
+        var properties = new WorkspaceMsBuildProperties
+        {
+            ArtifactsPath = Path.Combine(root, "Artifacts"),
+            Configuration = "Release",
+        };
+
         var projectId = ProjectId.CreateNewId();
         var analyzerReference = new Mock<AnalyzerReference>();
         analyzerReference.SetupGet(item => item.Display).Returns(analyzerPath);
@@ -93,7 +100,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .AddAnalyzerReference(projectId, analyzerReference.Object)
             .AddMetadataReference(projectId, MetadataReference.CreateFromFile(referencePath));
 
-        foreach (var filePath in new[] { solutionPath, projectPath, sourcePath, additionalPath, editorConfigPath, analyzerPath, referencePath, importPath })
+        foreach (var filePath in new[] { solutionPath, projectPath, sourcePath, additionalPath, editorConfigPath, generatedPath, analyzerPath, referencePath, importPath })
         {
             SetupFile(filePath);
             SetupDirectory(Path.GetDirectoryName(filePath)!);
@@ -103,13 +110,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         var binDirectory = Path.Combine(projectDirectory, "bin");
         var objDirectory = Path.Combine(projectDirectory, "obj");
         SetupDirectory(sourceDirectory);
-        _projectInputResolver.Setup(item => item.Resolve(projectPath))
+        _projectInputResolver.Setup(item => item.Resolve(projectPath, properties))
             .Returns(WorkspaceProjectInputResolution.Succeeded([importPath]));
 
         _directory.Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories)).Returns(
             [sourceDirectory, binDirectory, objDirectory]);
 
-        var result = _target.BuildManifest(solution, solutionPath, root);
+        using var certification = _target.BeginCertification(root);
+        var result = _target.BuildManifest(solution, solutionPath, root, certification, properties);
 
         result.Files.Select(item => item.Path).Should().BeEquivalentTo(
             solutionPath,
@@ -117,16 +125,103 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             sourcePath,
             additionalPath,
             editorConfigPath,
+            generatedPath,
             analyzerPath,
             referencePath,
             importPath);
 
         result.Directories.Select(item => item.Path).Should().Contain(sourceDirectory);
         result.Directories.Select(item => item.Path).Should().NotContain(binDirectory, objDirectory);
-        result.Files.Select(item => item.Path).Should().NotContain(generatedPath);
         _changeMonitorFactory.Verify(item => item.Create(root), Times.Once);
         _changeMonitor.Verify(item => item.Start(), Times.Once);
         _changeMonitor.Verify(item => item.Track(result), Times.Once);
+        _projectInputResolver.Verify(item => item.Resolve(projectPath, properties), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_CaseSensitiveExternalPathsAndCaseInsensitiveWorkspace_WHEN_BuildingManifest_THEN_ShouldRetainBothFiles()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(workspaceRoot, "Project");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var upperCaseExternalPath = Path.GetFullPath("/External/Document.cs");
+        var lowerCaseExternalPath = Path.GetFullPath("/External/document.cs");
+        var projectId = ProjectId.CreateNewId();
+        var solution = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath))
+            .AddDocument(DocumentId.CreateNewId(projectId), "Upper.cs", SourceText.From("class Upper { }"), filePath: upperCaseExternalPath)
+            .AddDocument(DocumentId.CreateNewId(projectId), "Lower.cs", SourceText.From("class Lower { }"), filePath: lowerCaseExternalPath);
+
+        _pathComparison
+            .Setup(item => item.GetComparison(workspaceRoot))
+            .Returns(StringComparison.OrdinalIgnoreCase);
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(
+                path,
+                isCaseSensitive: !path.StartsWith(workspaceRoot, StringComparison.OrdinalIgnoreCase)));
+        foreach (var filePath in new[] { solutionPath, projectPath, upperCaseExternalPath, lowerCaseExternalPath })
+        {
+            SetupFile(filePath);
+            SetupDirectory(Path.GetDirectoryName(filePath)!);
+        }
+
+        _directory
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Returns([]);
+        _projectInputResolver.Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        using var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+
+        manifest.Files.Select(static file => file.Path).Should().Contain(
+            upperCaseExternalPath,
+            lowerCaseExternalPath);
+    }
+
+    [Fact]
+    public void GIVEN_CaseDistinctProjectsOnNestedCaseSensitiveFileSystem_WHEN_BuildingManifest_THEN_ShouldResolveBothProjects()
+    {
+        using var workspace = new AdhocWorkspace();
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var nestedRoot = Path.Combine(workspaceRoot, "Native");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var upperCaseProjectPath = Path.Combine(nestedRoot, "Project.csproj");
+        var lowerCaseProjectPath = Path.Combine(nestedRoot, "project.csproj");
+        var upperCaseProject = ProjectInfo.Create(ProjectId.CreateNewId(), VersionStamp.Default, "Upper", "Upper", LanguageNames.CSharp, filePath: upperCaseProjectPath);
+        var lowerCaseProject = ProjectInfo.Create(ProjectId.CreateNewId(), VersionStamp.Default, "Lower", "Lower", LanguageNames.CSharp, filePath: lowerCaseProjectPath);
+        var solution = workspace.CurrentSolution
+            .AddProject(upperCaseProject)
+            .AddProject(lowerCaseProject);
+
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(
+                path,
+                isCaseSensitive: path.StartsWith(nestedRoot, StringComparison.Ordinal)));
+
+        SetupFile(solutionPath);
+        SetupFile(upperCaseProjectPath);
+        SetupFile(lowerCaseProjectPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(nestedRoot);
+        _directory
+            .Setup(item => item.EnumerateDirectories(nestedRoot, "*", SearchOption.AllDirectories))
+            .Returns([]);
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(upperCaseProjectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(lowerCaseProjectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        using var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+
+        _projectInputResolver.Verify(item => item.Resolve(upperCaseProjectPath), Times.Once);
+        _projectInputResolver.Verify(item => item.Resolve(lowerCaseProjectPath), Times.Once);
     }
 
     [Fact]
@@ -163,10 +258,10 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         const string filePath = "/Workspace/Project/Document.cs";
         var directory = new WorkspaceInputDirectoryFingerprint { Path = directoryPath };
         var file = new WorkspaceInputFileFingerprint { Path = filePath };
-        var ignoredPaths = new HashSet<string>(StringComparer.Ordinal)
+        var ignoredPaths = new HashSet<FileSystemPathKey>
         {
-            directoryPath,
-            filePath,
+            new FileSystemPathKey(directoryPath, isCaseSensitive: true),
+            new FileSystemPathKey(filePath, isCaseSensitive: true),
         };
 
         using var manifest = new WorkspaceInputManifest
@@ -230,8 +325,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
 
         var result = _target.BuildManifest(solution, solutionPath, root);
 
-        result.Files.Select(static file => file.Path).Should().Contain(conventionalNamedSourcePath);
-        result.Files.Select(static file => file.Path).Should().NotContain(generatedPath);
+        result.Files.Select(static file => file.Path).Should().Contain(conventionalNamedSourcePath, generatedPath);
         result.Directories.Select(static directory => directory.Path).Should().Contain(conventionalObjDirectory);
         result.Directories.Select(static directory => directory.Path).Should().NotContain(customObjDirectory);
     }

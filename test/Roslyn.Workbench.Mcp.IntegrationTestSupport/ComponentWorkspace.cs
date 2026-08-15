@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
@@ -155,12 +156,14 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         string path,
         CancellationToken cancellationToken,
         string? alias = null,
-        string? workspaceRoot = null)
+        string? workspaceRoot = null,
+        WorkspaceMsBuildProperties? msBuildProperties = null)
     {
         return GetRequiredService<IWorkspaceLifecycleService>().OpenAsync(
             path,
             alias,
             workspaceRoot,
+            msBuildProperties,
             cancellationToken);
     }
 

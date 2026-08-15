@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Operations;
 using Roslyn.Workbench.Mcp.Workspace.Paths;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
@@ -59,6 +60,7 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
         var queryCache = new Mock<IWorkspaceQueryCache>();
         var sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
         var workspaceLoader = new Mock<IWorkspaceLoader>();
+        var msBuildPropertiesResolver = new Mock<IWorkspaceMsBuildPropertiesResolver>();
         var workspaceRootResolver = new Mock<IWorkspaceRootResolver>();
         var workspacePathComparison = new Mock<IWorkspacePathComparison>();
         var workspaceLoadWorkflow = new Mock<IWorkspaceLoadWorkflow>();
@@ -97,15 +99,18 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
         var sessionStore = new WorkspaceSessionStore(queryCache.Object, []);
         var sessionCleanup = new WorkspaceSessionCleanup(instanceStatusPublisher.Object);
         var workspaceOptions = Options.Create(new WorkspaceOptions());
+        var readOnlyDocumentValidator = new Mock<IWorkspaceReadOnlyDocumentValidator>();
         var workspaceLifecycleService = new WorkspaceLifecycleService(
             workspaceOptions,
             sessionStore,
             sessionAcquirer.Object,
             workspaceLoader.Object,
+            msBuildPropertiesResolver.Object,
             workspaceRootResolver.Object,
             workspacePathComparison.Object,
             workspaceLoadWorkflow.Object,
             workspaceChangeDetector.Object,
+            readOnlyDocumentValidator.Object,
             workspaceStateTransitions.Object,
             resultFactory.Object,
             recoveryStore.Object,

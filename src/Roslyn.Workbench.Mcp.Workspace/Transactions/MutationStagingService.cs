@@ -49,6 +49,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         var processingResult = await _candidateProcessor.ProcessAsync(
             session.CurrentSolution,
             candidate.CandidateSolution,
+            session.Workspace.WorkspaceRoot,
             cancellationToken);
 
         if (!processingResult.IsSucceeded)

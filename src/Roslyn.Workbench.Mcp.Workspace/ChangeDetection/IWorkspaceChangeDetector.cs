@@ -4,13 +4,18 @@ internal interface IWorkspaceChangeDetector
 {
     IWorkspaceInputCertification BeginCertification(string workspaceRoot);
 
-    WorkspaceInputManifest BuildManifest(Solution solution, string loadedPath, string workspaceRoot);
+    WorkspaceInputManifest BuildManifest(
+        Solution solution,
+        string loadedPath,
+        string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties = null);
 
     WorkspaceInputManifest BuildManifest(
         Solution solution,
         string loadedPath,
         string workspaceRoot,
-        IWorkspaceInputCertification certification);
+        IWorkspaceInputCertification certification,
+        WorkspaceMsBuildProperties? msBuildProperties = null);
 
     bool HasChanged(WorkspaceInputManifest manifest, CancellationToken cancellationToken);
 }

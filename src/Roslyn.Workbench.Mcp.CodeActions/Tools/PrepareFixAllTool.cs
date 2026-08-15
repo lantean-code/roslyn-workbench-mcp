@@ -105,6 +105,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         var processingResult = await _candidateProcessor.ProcessAsync(
             context.CurrentSolution,
             application.CandidateSolution,
+            context.WorkspaceIdentity.WorkspaceRoot,
             cancellationToken);
 
         if (!processingResult.IsSucceeded)

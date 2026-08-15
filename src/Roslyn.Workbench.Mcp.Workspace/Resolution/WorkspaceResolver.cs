@@ -5,7 +5,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly Solution _solution;
     private readonly WorkspaceIdentity? _workspaceIdentity;
     private readonly int? _transactionRevision;
-    private readonly StringComparison _pathComparison;
+    private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
 
     public WorkspaceResolver(
@@ -18,11 +18,8 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         _solution = solution;
         _workspaceIdentity = workspaceIdentity;
         _transactionRevision = transactionRevision;
+        _workspacePathComparison = workspacePathComparison;
         _workspacePathService = workspacePathService;
-
-        _pathComparison = workspaceIdentity is null
-            ? StringComparison.Ordinal
-            : workspacePathComparison.GetComparison(workspaceIdentity.WorkspaceRoot);
     }
 
     public ResolvedLocation? CreateResolvedLocation(Location location)
@@ -279,8 +276,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         {
             foreach (var document in candidateProject.Documents)
             {
-                if (_workspacePathService.TryNormalizePath(document.FilePath ?? string.Empty, out var documentPath)
-                    && string.Equals(documentPath, normalizedPath, _pathComparison))
+                var physicalDocumentPath = document.FilePath;
+                if (physicalDocumentPath is not null
+                    && _workspacePathService.TryNormalizePath(physicalDocumentPath, out var documentPath)
+                    && PathsEqual(physicalDocumentPath, documentPath, normalizedPath))
                 {
                     matches.Add(document);
                 }
@@ -307,15 +306,23 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             || string.Equals(project.Name, selector.Name, StringComparison.Ordinal);
 
         var pathMatches = normalizedSelectorPath is null;
+        var physicalProjectPath = project.FilePath;
         if (normalizedSelectorPath is not null
-            && _workspacePathService.TryNormalizePath(project.FilePath ?? string.Empty, out var normalizedProjectPath))
+            && physicalProjectPath is not null
+            && _workspacePathService.TryNormalizePath(physicalProjectPath, out var normalizedProjectPath))
         {
-            pathMatches = string.Equals(normalizedProjectPath, normalizedSelectorPath, _pathComparison);
+            pathMatches = PathsEqual(physicalProjectPath, normalizedProjectPath, normalizedSelectorPath);
         }
 
         var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
 
         return idMatches && nameMatches && pathMatches && targetFrameworkMatches;
+    }
+
+    private bool PathsEqual(string physicalPath, string left, string right)
+    {
+        var comparison = _workspacePathComparison.GetComparison(physicalPath);
+        return string.Equals(left, right, comparison);
     }
 
     private ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveDocumentSpanAsync(

@@ -10,10 +10,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceLoader _workspaceLoader;
+    private readonly IWorkspaceMsBuildPropertiesResolver _msBuildPropertiesResolver;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspaceLoadWorkflow _workspaceLoadWorkflow;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
+    private readonly IWorkspaceReadOnlyDocumentValidator _readOnlyDocumentValidator;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ICommitRecoveryStore _recoveryStore;
@@ -25,10 +27,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceLoader workspaceLoader,
+        IWorkspaceMsBuildPropertiesResolver msBuildPropertiesResolver,
         IWorkspaceRootResolver workspaceRootResolver,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspaceLoadWorkflow workspaceLoadWorkflow,
         IWorkspaceChangeDetector workspaceChangeDetector,
+        IWorkspaceReadOnlyDocumentValidator readOnlyDocumentValidator,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IWorkspaceOperationResultFactory resultFactory,
         ICommitRecoveryStore recoveryStore,
@@ -39,10 +43,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _sessionStore = sessionStore;
         _sessionAcquirer = sessionAcquirer;
         _workspaceLoader = workspaceLoader;
+        _msBuildPropertiesResolver = msBuildPropertiesResolver;
         _workspaceRootResolver = workspaceRootResolver;
         _workspacePathComparison = workspacePathComparison;
         _workspaceLoadWorkflow = workspaceLoadWorkflow;
         _workspaceChangeDetector = workspaceChangeDetector;
+        _readOnlyDocumentValidator = readOnlyDocumentValidator;
         _workspaceStateTransitions = workspaceStateTransitions;
         _resultFactory = resultFactory;
         _recoveryStore = recoveryStore;
@@ -54,11 +60,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         string path,
         string? alias,
         string? workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var request = ResolveOpenRequest(path, alias, workspaceRoot);
+        var request = ResolveOpenRequest(path, alias, workspaceRoot, msBuildProperties);
         if (request.HasError)
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(request.Error);
@@ -92,6 +99,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
                 request.LoadedPath,
                 request.WorkspaceRoot,
+                request.MsBuildProperties,
                 cancellationToken);
         }
 
@@ -116,11 +124,22 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 loadedWorkspace.Solution,
                 request.LoadedPath,
                 request.WorkspaceRoot,
-                inputCertification);
+                inputCertification,
+                request.MsBuildProperties);
 
             if (!inputManifest.IsComplete)
             {
                 return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
+            }
+
+            var readOnlyDocumentValidation = await _readOnlyDocumentValidator.ValidateAsync(
+                loadedWorkspace.Solution,
+                request.WorkspaceRoot,
+                cancellationToken);
+
+            if (readOnlyDocumentValidation == WorkspaceReadOnlyDocumentValidationStatus.Invalid)
+            {
+                return CreateInputCertificationFailureResult<WorkspaceOpenOutcome>();
             }
 
             var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
@@ -139,6 +158,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 loadedWorkspace.Solution,
                 request.LoadedPath,
                 request.WorkspaceRoot,
+                request.MsBuildProperties,
                 _sessionStore.AllocateWorkspaceEpoch(),
                 loadedWorkspace.Diagnostics,
                 inputManifest,
@@ -179,14 +199,6 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 }
             }
         }
-    }
-
-    public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
-        string path,
-        string? alias,
-        CancellationToken cancellationToken)
-    {
-        return OpenAsync(path, alias, workspaceRoot: null, cancellationToken);
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken)
@@ -365,6 +377,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
             currentSession.Workspace.LoadedPath,
             currentSession.Workspace.WorkspaceRoot,
+            currentSession.MsBuildProperties,
             cancellationToken);
 
         if (loadedWorkspace.HasFailure)
@@ -379,12 +392,25 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 loadedWorkspace.Solution,
                 currentSession.Workspace.LoadedPath,
                 currentSession.Workspace.WorkspaceRoot,
-                inputCertification);
+                inputCertification,
+                currentSession.MsBuildProperties);
             if (!inputManifest.IsComplete)
             {
                 inputManifest.Dispose();
                 loadedWorkspace.Workspace.Dispose();
                 return CreateInputEvaluationFailureResult<WorkspaceReloadOutcome>(inputManifest, context);
+            }
+
+            var readOnlyDocumentValidation = await _readOnlyDocumentValidator.ValidateAsync(
+                loadedWorkspace.Solution,
+                currentSession.Workspace.WorkspaceRoot,
+                cancellationToken);
+
+            if (readOnlyDocumentValidation == WorkspaceReadOnlyDocumentValidationStatus.Invalid)
+            {
+                inputManifest.Dispose();
+                loadedWorkspace.Workspace.Dispose();
+                return CreateInputCertificationFailureResult<WorkspaceReloadOutcome>(context);
             }
 
             var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
@@ -412,6 +438,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Solution,
             currentSession.Workspace.LoadedPath,
             currentSession.Workspace.WorkspaceRoot,
+            currentSession.MsBuildProperties,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
             inputManifest,
@@ -443,7 +470,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return _resultFactory.Succeeded(outcome, reloadedContext);
     }
 
-    private ResolvedWorkspaceOpenRequest ResolveOpenRequest(string path, string? alias, string? workspaceRoot)
+    private ResolvedWorkspaceOpenRequest ResolveOpenRequest(
+        string path,
+        string? alias,
+        string? workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
         var normalizedPath = _workspaceLoader.NormalizeOpenPath(path);
         if (normalizedPath is null)
@@ -469,10 +500,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return ResolvedWorkspaceOpenRequest.Failure(error);
         }
 
+        var msBuildPropertiesResolution = _msBuildPropertiesResolver.Resolve(msBuildProperties);
+        if (msBuildPropertiesResolution.HasError)
+        {
+            return ResolvedWorkspaceOpenRequest.Failure(msBuildPropertiesResolution.Error);
+        }
+
         return ResolvedWorkspaceOpenRequest.Success(
             normalizedPath,
             _workspaceLoader.NormalizeAlias(alias),
-            resolvedWorkspaceRoot);
+            resolvedWorkspaceRoot,
+            msBuildPropertiesResolution.Properties);
     }
 
     private WorkspaceOperationError? ValidateOpenPreflight(string loadedPath, string? alias)
@@ -560,6 +598,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         Solution solution,
         string loadedPath,
         string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties,
         long workspaceEpoch,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         WorkspaceInputManifest inputManifest,
@@ -590,6 +629,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             Workspace = workspaceIdentity,
             LoadedWorkspace = workspace,
             CurrentSolution = solution,
+            MsBuildProperties = msBuildProperties,
             Transaction = null,
             ProjectCount = solution.Projects.Count(),
             DocumentCount = solution.Projects.Sum(static project => project.Documents.Count()),
@@ -792,7 +832,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 diagnostics: loadResult.Diagnostics),
             ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot => _resultFactory.Rejected<TOutcome>(
                 "WorkspaceProjectOutsideRoot",
-                "Every loaded project and source document must be contained by the workspace root.",
+                "Every loaded project must be contained by the workspace root.",
                 context: context,
                 diagnostics: loadResult.Diagnostics),
             _ => throw new InvalidOperationException("The workspace load failure is not supported."),

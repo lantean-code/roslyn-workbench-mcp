@@ -10,24 +10,28 @@ public interface IProjectStructureService
     /// <summary>
     /// Gets the target frameworks declared by the supplied project.
     /// </summary>
+    /// <param name="workspaceId">The workspace that owns the project.</param>
     /// <param name="project">The project.</param>
     /// <returns>The target-framework evaluation result.</returns>
-    ProjectTargetFrameworksResult GetTargetFrameworks(Project project);
+    ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, Project project);
 
     /// <summary>
     /// Gets the target frameworks declared by the supplied project path.
     /// </summary>
+    /// <param name="workspaceId">The workspace that owns the project.</param>
     /// <param name="projectPath">The project path.</param>
     /// <returns>The target-framework evaluation result.</returns>
-    ProjectTargetFrameworksResult GetTargetFrameworks(string? projectPath);
+    ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, string? projectPath);
 
     /// <summary>
     /// Gets the target frameworks declared by the supplied projects using one request-scoped evaluation batch.
     /// </summary>
+    /// <param name="workspaceId">The workspace that owns the projects.</param>
     /// <param name="projects">The projects, in result order.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The target-framework evaluation results in the same order as <paramref name="projects"/>.</returns>
     IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(
+        Guid workspaceId,
         IReadOnlyList<Project> projects,
         CancellationToken cancellationToken);
 

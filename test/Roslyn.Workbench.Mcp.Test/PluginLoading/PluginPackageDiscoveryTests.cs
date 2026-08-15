@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using Roslyn.Workbench.Mcp.Workspace.IO;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
@@ -19,7 +20,9 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy = new Mock<IPluginPackagePathPolicy>();
         _fileSystem.SetupGet(static value => value.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(static value => value.Path).Returns(_path.Object);
-        _packagePathPolicy.SetupGet(static value => value.Comparer).Returns(StringComparer.Ordinal);
+        _packagePathPolicy
+            .Setup(value => value.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
     }
 
     [Fact]

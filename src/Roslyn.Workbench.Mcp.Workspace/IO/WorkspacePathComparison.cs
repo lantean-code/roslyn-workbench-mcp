@@ -6,14 +6,6 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
     private readonly IFileSystem _fileSystem;
     private readonly Lazy<string[]> _mountInfo;
 
-    public StringComparison Comparison => OperatingSystem.IsWindows()
-        ? StringComparison.OrdinalIgnoreCase
-        : StringComparison.Ordinal;
-
-    public StringComparer Comparer => OperatingSystem.IsWindows()
-        ? StringComparer.OrdinalIgnoreCase
-        : StringComparer.Ordinal;
-
     public WorkspacePathComparison()
         : this(new FileSystem())
     {
@@ -32,11 +24,10 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
             : StringComparison.Ordinal;
     }
 
-    public StringComparer GetComparer(string path)
+    public FileSystemPathKey CreateKey(string path)
     {
-        return GetComparison(path) == StringComparison.OrdinalIgnoreCase
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+        var isCaseSensitive = GetComparison(path) == StringComparison.Ordinal;
+        return new FileSystemPathKey(path, isCaseSensitive);
     }
 
     public bool IsWindowsFileSystemPath(string path)

@@ -6,6 +6,8 @@ This guide describes how an MCP agent should use Roslyn Workbench safely and eff
 
 Open only fully trusted C# workspaces. Loading a workspace evaluates MSBuild project logic, and later operations can load and execute project analysers with the Host process's operating-system permissions. Roslyn Workbench does not sandbox this code.
 
+When a project needs caller-specific build evaluation, `workspace-open` accepts the allowlisted `msBuildProperties` values `artifactsPath`, `configuration`, `platform`, `targetFramework` and `runtimeIdentifier`. Supply only values required by that workspace; standard SDK, NuGet and Visual Studio locations do not need to be repeated. These values control MSBuild evaluation and do not grant filesystem permissions. Roslyn-evaluated source, additional and analyzer-config documents outside `workspaceRoot` are transparently queryable read-only inputs, while source mutations remain restricted to `workspaceRoot`.
+
 Treat the connected MCP agent as part of the local trust boundary. Local error details can contain exception messages and Workspace context. Do not copy them into an external report; use the server's explicit preparation, review and consent workflow when external reporting is appropriate.
 
 ## Discover before acting

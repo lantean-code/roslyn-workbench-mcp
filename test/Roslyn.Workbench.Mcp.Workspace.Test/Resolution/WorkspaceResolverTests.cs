@@ -83,6 +83,50 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public void GIVEN_CaseDistinctExternalDocuments_WHEN_ResolvingByPath_THEN_ShouldUseDocumentFileSystemSemantics()
+    {
+        using var workspace = new AdhocWorkspace();
+        var workspaceRoot = GetWorkspaceRoot();
+        var externalRoot = Path.Combine(Path.GetTempPath(), "ExternalRoot");
+        var project = AddProject(workspace, "Project");
+        var upperCasePath = Path.Combine(externalRoot, "Document.cs");
+        var lowerCasePath = Path.Combine(externalRoot, "document.cs");
+        var upperCaseDocument = AddDocument(workspace, project, "Upper.cs", "class Upper { }", upperCasePath);
+        AddDocument(workspace, project, "Lower.cs", "class Lower { }", lowerCasePath);
+
+        var pathComparison = new Mock<IWorkspacePathComparison>();
+        pathComparison
+            .Setup(item => item.GetComparison(It.IsAny<string>()))
+            .Returns((string path) => path.StartsWith(externalRoot, StringComparison.Ordinal)
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase);
+
+        var pathNormalizer = CreatePathNormalizer();
+        var workspacePathService = new WorkspacePathService(workspaceRoot, pathNormalizer.Object);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            WorkspaceEpoch = 2,
+            LoadedPath = Path.Combine(workspaceRoot, "Workspace.sln"),
+            WorkspaceRoot = workspaceRoot,
+        };
+
+        var target = new WorkspaceResolver(
+            workspace.CurrentSolution,
+            workspaceIdentity,
+            transactionRevision: null,
+            pathComparison.Object,
+            workspacePathService);
+
+        var selectorPath = Path.GetRelativePath(workspaceRoot, upperCasePath).Replace('\\', '/');
+        var result = target.ResolveDocument(new DocumentSelector { Path = selectorPath });
+        var resolvedDocument = result.Value ?? throw new InvalidOperationException("The external document was not resolved.");
+
+        result.IsResolved.Should().BeTrue();
+        resolvedDocument.Id.Should().Be(upperCaseDocument.Id);
+    }
+
+    [Fact]
     public void GIVEN_Document_WHEN_CreatingReference_THEN_ShouldIncludeIdsAndNormalizedPath()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");

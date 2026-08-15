@@ -57,6 +57,7 @@ public sealed class WorkspaceReloadToolTests
         result.IsError.Should().BeFalse();
         var data = result.StructuredContent!.Value.GetProperty("data");
         data.GetProperty("workspace").GetProperty("workspaceEpoch").GetInt64().Should().Be(4);
+        data.TryGetProperty("msBuildProperties", out _).Should().BeFalse();
         data.GetProperty("projectCount").GetInt32().Should().Be(4);
         service.Verify(item => item.ReloadAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),

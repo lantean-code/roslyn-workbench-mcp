@@ -165,11 +165,12 @@ internal static class StartupOptionsResolver
             "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
             warnings));
 
+        var distinctDirectoryKeys = new HashSet<FileSystemPathKey>();
         var distinctDirectories = new List<string>(pluginDirectories.Count);
         foreach (var pluginDirectory in pluginDirectories)
         {
-            var comparer = pathComparison.GetComparer(pluginDirectory);
-            if (!distinctDirectories.Contains(pluginDirectory, comparer))
+            var pluginDirectoryKey = pathComparison.CreateKey(pluginDirectory);
+            if (distinctDirectoryKeys.Add(pluginDirectoryKey))
             {
                 distinctDirectories.Add(pluginDirectory);
             }

@@ -4,23 +4,27 @@ internal sealed class ProjectStructureService : IProjectStructureService
 {
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
+    private readonly IWorkspaceMsBuildPropertiesProvider _msBuildPropertiesProvider;
 
     public ProjectStructureService(
         IWorkspacePathComparison pathComparison,
-        IWorkspacePathNormalizer pathNormalizer)
+        IWorkspacePathNormalizer pathNormalizer,
+        IWorkspaceMsBuildPropertiesProvider msBuildPropertiesProvider)
     {
         _pathComparison = pathComparison;
         _pathNormalizer = pathNormalizer;
+        _msBuildPropertiesProvider = msBuildPropertiesProvider;
     }
 
-    public ProjectTargetFrameworksResult GetTargetFrameworks(Project project)
+    public ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, Project project)
     {
-        return GetTargetFrameworks(project.FilePath);
+        return GetTargetFrameworks(workspaceId, project.FilePath);
     }
 
-    public ProjectTargetFrameworksResult GetTargetFrameworks(string? projectPath)
+    public ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, string? projectPath)
     {
-        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
+        var globalProperties = GetGlobalProperties(workspaceId);
+        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection(globalProperties);
         try
         {
             return EvaluateProjectTargetFrameworks(projectPath, projectCollection);
@@ -32,14 +36,16 @@ internal sealed class ProjectStructureService : IProjectStructureService
     }
 
     public IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(
+        Guid workspaceId,
         IReadOnlyList<Project> projects,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var results = new ProjectTargetFrameworksResult[projects.Count];
-        var resultsByPath = new Dictionary<string, ProjectTargetFrameworksResult>(StringComparer.Ordinal);
-        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
+        var resultsByPath = new Dictionary<FileSystemPathKey, ProjectTargetFrameworksResult>();
+        var globalProperties = GetGlobalProperties(workspaceId);
+        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection(globalProperties);
 
         try
         {
@@ -55,12 +61,13 @@ internal sealed class ProjectStructureService : IProjectStructureService
                     continue;
                 }
 
-                if (!resultsByPath.TryGetValue(projectPath, out var result))
+                var projectPathKey = _pathComparison.CreateKey(projectPath);
+                if (!resultsByPath.TryGetValue(projectPathKey, out var result))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     result = EvaluateProjectTargetFrameworks(projectPath, projectCollection);
                     cancellationToken.ThrowIfCancellationRequested();
-                    resultsByPath.Add(projectPath, result);
+                    resultsByPath.Add(projectPathKey, result);
                 }
 
                 results[index] = result;
@@ -116,8 +123,8 @@ internal sealed class ProjectStructureService : IProjectStructureService
 
             var solutionDirectory = Path.GetDirectoryName(loadedPath.AsSpan()).ToString();
 
-            var projectFolderPaths = new Dictionary<string, string?>(
-                _pathComparison.GetComparer(workspaceRoot));
+            var observedProjectPaths = new HashSet<FileSystemPathKey>();
+            var projectFolderPaths = new Dictionary<string, string?>(StringComparer.Ordinal);
 
             foreach (var project in model.SolutionProjects)
             {
@@ -135,7 +142,9 @@ internal sealed class ProjectStructureService : IProjectStructureService
                     ? NormalizeFolderPath(project.Parent.Path)
                     : null;
 
-                if (!projectFolderPaths.TryAdd(normalizedProjectPath, folderPath))
+                var fullProjectPathKey = _pathComparison.CreateKey(fullProjectPath);
+                if (!observedProjectPaths.Add(fullProjectPathKey)
+                    || !projectFolderPaths.TryAdd(normalizedProjectPath, folderPath))
                 {
                     return SolutionHierarchyResult.Failed(
                         $"Workspace file '{loadedPath}' contains duplicate project path '{normalizedProjectPath}'.");
@@ -149,6 +158,11 @@ internal sealed class ProjectStructureService : IProjectStructureService
             return SolutionHierarchyResult.Failed(
                 $"Could not load solution hierarchy for '{loadedPath}': {exception.Message}");
         }
+    }
+
+    private Dictionary<string, string> GetGlobalProperties(Guid workspaceId)
+    {
+        return _msBuildPropertiesProvider.Get(workspaceId)?.ToGlobalProperties() ?? [];
     }
 
     private static ProjectTargetFrameworksResult EvaluateProjectTargetFrameworks(

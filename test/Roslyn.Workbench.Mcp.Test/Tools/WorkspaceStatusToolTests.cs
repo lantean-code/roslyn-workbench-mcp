@@ -88,6 +88,7 @@ public sealed class WorkspaceStatusToolTests
         result.IsError.Should().BeFalse();
         var data = result.StructuredContent!.Value.GetProperty("data");
         data.GetProperty("state").GetString().Should().Be("Ready");
+        data.TryGetProperty("msBuildProperties", out _).Should().BeFalse();
         data.GetProperty("reloadRequired").GetBoolean().Should().BeTrue();
         var externalChange = data.GetProperty("externalChange");
         externalChange.GetProperty("detectionSource").GetString().Should().Be("FileSystemWatcher");

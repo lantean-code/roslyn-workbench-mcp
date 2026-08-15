@@ -25,8 +25,9 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string value) => Path.IsPathRooted(value));
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
-        _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
-        _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
         _pathContainment
             .Setup(item => item.TryGetStrictlyContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
             .Returns((string root, string path, out string containedPath) =>
@@ -176,6 +177,35 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         plan.Manifest.Entries.Should().ContainSingle();
         plan.Manifest.Entries[0].TargetPath.Should().Be(targetPath);
         plan.Artifacts.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GIVEN_CaseDistinctTargetsOnCaseSensitiveFileSystem_WHEN_Planning_THEN_ShouldRetainBothEntries()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var upperCaseDocumentId = DocumentId.CreateNewId(projectId);
+        var lowerCaseDocumentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/native/project.csproj");
+        var upperCaseTargetPath = Path.GetFullPath("/workspace/native/Document.cs");
+        var lowerCaseTargetPath = Path.GetFullPath("/workspace/native/document.cs");
+        var projectInfo = ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath);
+        var baseline = _workspace.CurrentSolution.AddProject(projectInfo);
+        var current = baseline
+            .AddDocument(upperCaseDocumentId, "Upper.cs", SourceText.From("class Upper { }"), filePath: upperCaseTargetPath)
+            .AddDocument(lowerCaseDocumentId, "Lower.cs", SourceText.From("class Lower { }"), filePath: lowerCaseTargetPath);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
+        plan.Manifest.Entries.Select(static entry => entry.TargetPath).Should().Contain(
+            upperCaseTargetPath,
+            lowerCaseTargetPath);
     }
 
     [Fact]

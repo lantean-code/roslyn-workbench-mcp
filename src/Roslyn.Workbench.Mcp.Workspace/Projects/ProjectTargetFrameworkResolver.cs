@@ -41,7 +41,7 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             cacheKey,
             factoryCancellationToken =>
             {
-                var evaluatedResult = _projectStructureService.GetTargetFrameworks(project);
+                var evaluatedResult = _projectStructureService.GetTargetFrameworks(workspaceId, project);
                 factoryCancellationToken.ThrowIfCancellationRequested();
                 return evaluatedResult;
             },
@@ -105,6 +105,7 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
             .ToArray();
 
         var evaluatedResults = _projectStructureService.GetTargetFrameworks(
+            workspaceId,
             projectsToEvaluate,
             cancellationToken);
 

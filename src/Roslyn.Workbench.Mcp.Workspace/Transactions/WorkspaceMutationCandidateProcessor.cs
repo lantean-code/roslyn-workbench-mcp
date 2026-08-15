@@ -22,11 +22,13 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
     public async ValueTask<WorkspaceMutationCandidateProcessingResult> ProcessAsync(
         Solution currentSolution,
         Solution candidateSolution,
+        string workspaceRoot,
         CancellationToken cancellationToken)
     {
         var validationError = _candidateValidator.Validate(
             currentSolution,
-            candidateSolution);
+            candidateSolution,
+            workspaceRoot);
 
         if (validationError is not null)
         {
@@ -55,7 +57,8 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
 
         validationError = _candidateValidator.Validate(
             currentSolution,
-            mergeResult.Solution);
+            mergeResult.Solution,
+            workspaceRoot);
 
         if (validationError is not null)
         {

@@ -2,5 +2,5 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal interface IMsBuildWorkspaceFactory
 {
-    MSBuildWorkspace Create();
+    MSBuildWorkspace Create(IReadOnlyDictionary<string, string>? globalProperties);
 }

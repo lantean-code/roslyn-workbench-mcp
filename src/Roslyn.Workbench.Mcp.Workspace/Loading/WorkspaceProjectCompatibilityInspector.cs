@@ -2,11 +2,14 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceProjectCompatibilityInspector : IWorkspaceProjectCompatibilityInspector
 {
-    public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) Inspect(string projectPath)
+    public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) Inspect(
+        string projectPath,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
         try
         {
-            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
+            var globalProperties = msBuildProperties?.ToGlobalProperties() ?? [];
+            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection(globalProperties);
             var project = projectCollection.LoadProject(projectPath);
             var root = project.Xml;
 

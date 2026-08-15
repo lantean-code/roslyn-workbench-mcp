@@ -18,12 +18,13 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
     public async ValueTask<ValidatedWorkspaceLoadResult> LoadAsync(
         string loadedPath,
         string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsProjectPath(loadedPath))
         {
-            var preflightFailure = InspectCompatibility(loadedPath);
+            var preflightFailure = InspectCompatibility(loadedPath, msBuildProperties);
             if (preflightFailure is not null)
             {
                 return preflightFailure;
@@ -35,7 +36,10 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             "workspace-open",
             "msbuild-load"))
         {
-            loadedWorkspace = await _workspaceLoader.LoadAsync(loadedPath, cancellationToken);
+            loadedWorkspace = await _workspaceLoader.LoadAsync(
+                loadedPath,
+                msBuildProperties,
+                cancellationToken);
         }
 
         if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
@@ -75,7 +79,9 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                     continue;
                 }
 
-                var compatibility = _workspaceLoader.InspectCompatibility(project.FilePath);
+                var compatibility = _workspaceLoader.InspectCompatibility(
+                    project.FilePath,
+                    msBuildProperties);
                 if (compatibility.Diagnostics.Count > 0)
                 {
                     unsupportedProjectIds.Add(project.Id);
@@ -108,14 +114,14 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
 
             solution = RemoveUnresolvedAnalyzerReferences(solution, diagnostics, cancellationToken);
 
-            var outsideRootInput = FindInputOutsideRoot(solution, workspaceRoot);
-            if (outsideRootInput is not null)
+            var outsideRootProject = FindProjectOutsideRoot(solution, workspaceRoot);
+            if (outsideRootProject is not null)
             {
                 diagnostics.Add(new DiagnosticInfo
                 {
                     Id = "WorkspaceInputOutsideRoot",
                     Severity = Results.DiagnosticSeverity.Error,
-                    Message = $"Loaded workspace input '{outsideRootInput}' is outside the workspace root '{workspaceRoot}'.",
+                    Message = $"Loaded project '{outsideRootProject}' is outside the workspace root '{workspaceRoot}'.",
                 });
 
                 loadedWorkspace.Workspace.Dispose();
@@ -138,7 +144,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         }
     }
 
-    private string? FindInputOutsideRoot(Solution solution, string workspaceRoot)
+    private string? FindProjectOutsideRoot(Solution solution, string workspaceRoot)
     {
         foreach (var project in solution.Projects)
         {
@@ -147,23 +153,16 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             {
                 return project.FilePath;
             }
-
-            foreach (var document in project.Documents)
-            {
-                if (!string.IsNullOrWhiteSpace(document.FilePath)
-                    && !_workspaceRootResolver.Contains(workspaceRoot, document.FilePath))
-                {
-                    return document.FilePath;
-                }
-            }
         }
 
         return null;
     }
 
-    private ValidatedWorkspaceLoadResult? InspectCompatibility(string projectPath)
+    private ValidatedWorkspaceLoadResult? InspectCompatibility(
+        string projectPath,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
-        var compatibility = _workspaceLoader.InspectCompatibility(projectPath);
+        var compatibility = _workspaceLoader.InspectCompatibility(projectPath, msBuildProperties);
         if (compatibility.Diagnostics.Count > 0)
         {
             return ValidatedWorkspaceLoadResult.Failed(

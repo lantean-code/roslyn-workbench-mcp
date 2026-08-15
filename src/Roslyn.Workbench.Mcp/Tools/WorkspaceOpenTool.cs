@@ -17,7 +17,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceOpenName,
             title: "Workspace Open",
-            description: "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+            description: "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
             readOnly: false,
             destructive: false)
     {
@@ -32,6 +32,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
             request.Path,
             request.Alias,
             request.WorkspaceRoot,
+            request.MsBuildProperties,
             cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceOpenData

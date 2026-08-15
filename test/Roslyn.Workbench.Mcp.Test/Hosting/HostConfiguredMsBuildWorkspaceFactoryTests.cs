@@ -16,7 +16,7 @@ public sealed class HostConfiguredMsBuildWorkspaceFactoryTests
     [Fact]
     public void GIVEN_NoComposedHostServices_WHEN_CreatingWorkspace_THEN_ShouldCreateDefaultWorkspace()
     {
-        using var result = _target.Create();
+        using var result = _target.Create(globalProperties: null);
 
         result.Should().NotBeNull();
         result.SkipUnrecognizedProjects.Should().BeTrue();
@@ -28,11 +28,16 @@ public sealed class HostConfiguredMsBuildWorkspaceFactoryTests
     {
         var hostServices = MefHostServices.Create(MefHostServices.DefaultAssemblies);
         _composition.SetupGet(item => item.WorkspaceHostServices).Returns(hostServices);
+        var globalProperties = new Dictionary<string, string>
+        {
+            ["Configuration"] = "Release",
+        };
 
-        using var result = _target.Create();
+        using var result = _target.Create(globalProperties);
 
         result.Should().NotBeNull();
         result.SkipUnrecognizedProjects.Should().BeTrue();
+        result.Properties.Should().ContainKey("Configuration").WhoseValue.Should().Be("Release");
         _composition.VerifyGet(item => item.WorkspaceHostServices, Times.Once);
     }
 }

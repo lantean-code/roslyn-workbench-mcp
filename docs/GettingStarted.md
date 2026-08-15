@@ -44,7 +44,7 @@ Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project 
 ## First workflow
 
 1. Call `server-status` with `detail` set to `Full` and review component status, startup fallbacks, recovery state and the published tool count.
-2. After establishing that the workspace and its build inputs are fully trusted, call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
+2. After establishing that the workspace and its build inputs are fully trusted, call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. If the project requires caller-specific MSBuild configuration, include the optional allowlisted `msBuildProperties`; use `artifactsPath` only when the build itself requires a non-default artifacts location. Standard SDK, NuGet and Visual Studio locations are discovered through normal MSBuild evaluation. Evaluated documents outside the workspace root are queryable but read-only. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
 3. Use query tools against the loaded workspace.
 4. Before any mutation, read [Workspaces and transactions](WorkspacesAndTransactions.md) and check `workspace-status`.
 

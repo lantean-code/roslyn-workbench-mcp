@@ -108,6 +108,34 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_WorkspaceMsBuildProperties_WHEN_ExportingInputSchema_THEN_ShouldPublishClosedOptionalAllowlist()
+    {
+        var target = CreateTarget();
+
+        var schema = target.CreateInputSchema<WorkspaceOpenRequest>();
+        var propertiesSchema = GetProperty(schema, "msBuildProperties");
+        var publishedPropertyNames = propertiesSchema.GetProperty("properties")
+            .EnumerateObject()
+            .Select(static property => property.Name)
+            .ToArray();
+
+        publishedPropertyNames.Should().BeEquivalentTo(
+            "artifactsPath",
+            "configuration",
+            "platform",
+            "runtimeIdentifier",
+            "targetFramework");
+
+        propertiesSchema.GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
+        schema.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .NotContain("msBuildProperties");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_ErrorReportingRequests_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredTypedIdentifiers()
     {
         var target = CreateTarget();

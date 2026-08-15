@@ -35,8 +35,8 @@ public sealed class StartupOptionsResolverTests
     {
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathComparison
-            .Setup(comparison => comparison.GetComparer(It.IsAny<string>()))
-            .Returns(StringComparer.Ordinal);
+            .Setup(comparison => comparison.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
     }
 
     [Fact]
@@ -381,8 +381,8 @@ public sealed class StartupOptionsResolverTests
     {
         var previousValues = ClearEnvironment();
         _pathComparison
-            .Setup(comparison => comparison.GetComparer(It.IsAny<string>()))
-            .Returns(StringComparer.OrdinalIgnoreCase);
+            .Setup(comparison => comparison.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
 
         try
         {

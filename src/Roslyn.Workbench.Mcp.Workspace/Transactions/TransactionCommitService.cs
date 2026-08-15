@@ -294,7 +294,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 transaction.CurrentSolution,
                 session.Workspace.LoadedPath,
                 session.Workspace.WorkspaceRoot,
-                promotionCertification);
+                promotionCertification,
+                session.MsBuildProperties);
 
             WorkspaceSessionSnapshot committedSession;
             var inputManifestHandedOff = false;

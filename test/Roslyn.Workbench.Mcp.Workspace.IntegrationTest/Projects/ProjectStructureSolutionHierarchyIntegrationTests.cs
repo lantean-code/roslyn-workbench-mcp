@@ -1,5 +1,7 @@
 using Moq;
 
+using Roslyn.Workbench.Mcp.Workspace.State;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
 
 public sealed class ProjectStructureSolutionHierarchyIntegrationTests
@@ -207,12 +209,13 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task GIVEN_CaseInsensitiveWorkspaceComparer_WHEN_GettingSolutionHierarchy_THEN_ShouldPreserveComparerForProjectLookup()
+    public async Task GIVEN_SolutionHierarchy_WHEN_GettingProjectFolderPaths_THEN_ShouldExposeExactNormalisedKeys()
     {
         var pathComparison = new Mock<IWorkspacePathComparison>();
         var fileSystem = new FileSystem();
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
-        var target = new ProjectStructureService(pathComparison.Object, pathNormalizer);
+        var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
+        var target = new ProjectStructureService(pathComparison.Object, pathNormalizer, msBuildPropertiesProvider.Object);
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -220,16 +223,17 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
             pathComparison
-                .Setup(item => item.GetComparer(directoryPath))
-                .Returns(StringComparer.OrdinalIgnoreCase);
+                .Setup(item => item.CreateKey(It.IsAny<string>()))
+                .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
 
             var workspace = CreateWorkspaceIdentity(solutionPath, directoryPath);
 
             var result = await target.GetSolutionHierarchyAsync(workspace, TestContext.Current.CancellationToken);
 
             result.IsSucceeded.Should().BeTrue();
-            result.ProjectFolderPaths.TryGetValue("lib/LIB.CSPROJ", out var folderPath).Should().BeTrue();
+            result.ProjectFolderPaths.TryGetValue("Lib/Lib.csproj", out var folderPath).Should().BeTrue();
             folderPath.Should().Be("src/core");
+            result.ProjectFolderPaths.ContainsKey("lib/LIB.CSPROJ").Should().BeFalse();
         }
         finally
         {
@@ -246,7 +250,8 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new Mock<IWorkspacePathNormalizer>();
-        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object);
+        var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
+        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object, msBuildPropertiesProvider.Object);
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -288,7 +293,8 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new Mock<IWorkspacePathNormalizer>();
-        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object);
+        var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
+        var target = new ProjectStructureService(pathComparison, pathNormalizer.Object, msBuildPropertiesProvider.Object);
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -378,8 +384,9 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+        var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
 
-        return new ProjectStructureService(pathComparison, pathNormalizer);
+        return new ProjectStructureService(pathComparison, pathNormalizer, msBuildPropertiesProvider.Object);
     }
 
     private static WorkspaceIdentity CreateWorkspaceIdentity(string? loadedPath, string? workspaceRoot = null)

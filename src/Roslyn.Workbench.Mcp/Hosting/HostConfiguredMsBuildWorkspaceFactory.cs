@@ -11,17 +11,20 @@ internal sealed class HostConfiguredMsBuildWorkspaceFactory : IMsBuildWorkspaceF
         _composition = composition;
     }
 
-    public MSBuildWorkspace Create()
+    public MSBuildWorkspace Create(IReadOnlyDictionary<string, string>? globalProperties)
     {
         var hostServices = _composition.WorkspaceHostServices;
+        var effectiveGlobalProperties = globalProperties is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(globalProperties, StringComparer.OrdinalIgnoreCase);
         MSBuildWorkspace workspace;
         if (hostServices is null)
         {
-            workspace = MSBuildWorkspace.Create();
+            workspace = MSBuildWorkspace.Create(effectiveGlobalProperties);
         }
         else
         {
-            workspace = MSBuildWorkspace.Create(hostServices);
+            workspace = MSBuildWorkspace.Create(effectiveGlobalProperties, hostServices);
         }
 
         workspace.SkipUnrecognizedProjects = true;

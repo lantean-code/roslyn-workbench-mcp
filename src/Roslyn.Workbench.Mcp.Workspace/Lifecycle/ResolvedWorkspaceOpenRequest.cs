@@ -8,11 +8,13 @@ internal sealed class ResolvedWorkspaceOpenRequest
         string? loadedPath,
         string? alias,
         string? workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties,
         WorkspaceOperationError? error)
     {
         LoadedPath = loadedPath;
         Alias = alias;
         WorkspaceRoot = workspaceRoot;
+        MsBuildProperties = msBuildProperties;
         Error = error;
     }
 
@@ -21,6 +23,8 @@ internal sealed class ResolvedWorkspaceOpenRequest
     public WorkspaceOperationError? Error { get; }
 
     public string? LoadedPath { get; }
+
+    public WorkspaceMsBuildProperties? MsBuildProperties { get; }
 
     public string? WorkspaceRoot { get; }
 
@@ -35,15 +39,21 @@ internal sealed class ResolvedWorkspaceOpenRequest
             loadedPath: null,
             alias: null,
             workspaceRoot: null,
+            msBuildProperties: null,
             error);
     }
 
-    public static ResolvedWorkspaceOpenRequest Success(string loadedPath, string? alias, string workspaceRoot)
+    public static ResolvedWorkspaceOpenRequest Success(
+        string loadedPath,
+        string? alias,
+        string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
         return new ResolvedWorkspaceOpenRequest(
             loadedPath,
             alias,
             workspaceRoot,
+            msBuildProperties,
             error: null);
     }
 }

@@ -287,7 +287,16 @@ public sealed class TransactionCommitServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ValidTransaction_WHEN_Committing_THEN_ShouldPersistProtocolAndPromoteStagedSolution()
     {
-        var session = CreateSession();
+        var properties = new WorkspaceMsBuildProperties
+        {
+            ArtifactsPath = "/artifacts",
+        };
+
+        var session = CreateSession() with
+        {
+            MsBuildProperties = properties,
+        };
+
         var transaction = session.Transaction!;
         var commitLock = new Mock<IWorkspaceCommitLock>();
         var manifest = CreateManifest();
@@ -307,7 +316,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
 
         _changeDetector
-            .Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx", "/workspace", _promotionCertification.Object))
+            .Setup(item => item.BuildManifest(
+                transaction.CurrentSolution,
+                "/workspace/solution.slnx",
+                "/workspace",
+                _promotionCertification.Object,
+                properties))
             .Returns(inputManifest);
 
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);

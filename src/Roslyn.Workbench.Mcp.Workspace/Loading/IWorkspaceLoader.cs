@@ -6,7 +6,12 @@ internal interface IWorkspaceLoader
 
     string? NormalizeAlias(string? alias);
 
-    (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(string projectPath);
+    (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(
+        string projectPath,
+        WorkspaceMsBuildProperties? msBuildProperties);
 
-    ValueTask<WorkspaceLoadResult> LoadAsync(string path, CancellationToken cancellationToken);
+    ValueTask<WorkspaceLoadResult> LoadAsync(
+        string path,
+        WorkspaceMsBuildProperties? msBuildProperties,
+        CancellationToken cancellationToken);
 }

@@ -7,12 +7,18 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly WorkspaceMutationCandidateValidator _target;
 
     public WorkspaceMutationCandidateValidatorTests()
     {
         _workspace = new AdhocWorkspace();
         _pathContainment = new Mock<IPhysicalPathContainment>();
+        _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
+
         _pathContainment
             .Setup(item => item.TryGetStrictlyContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
             .Returns((string root, string path, out string containedPath) =>
@@ -23,7 +29,9 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
                     StringComparison.Ordinal);
             });
 
-        _target = new WorkspaceMutationCandidateValidator(_pathContainment.Object);
+        _target = new WorkspaceMutationCandidateValidator(
+            _pathContainment.Object,
+            _pathComparison.Object);
     }
 
     [Fact]
@@ -32,7 +40,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var currentSolution = CreateSolution();
         using var otherWorkspace = new AdhocWorkspace();
 
-        var result = _target.Validate(currentSolution, otherWorkspace.CurrentSolution);
+        var result = _target.Validate(currentSolution, otherWorkspace.CurrentSolution, Path.GetTempPath());
 
         AssertError(result, "InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
     }
@@ -43,7 +51,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var currentSolution = CreateSolution();
         var candidateSolution = currentSolution.AddProject("AddedProject", "AddedProject", LanguageNames.CSharp).Solution;
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", "Mutation proposals must not add or remove projects.");
     }
@@ -51,6 +59,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     [Theory]
     [InlineData("ProjectIdentity", "Mutation proposals must not alter project identity.")]
     [InlineData("ProjectFilePath", "Mutation proposals must not alter project identity or options.")]
+    [InlineData("ProjectFilePathFromMissing", "Mutation proposals must not alter project identity or options.")]
     [InlineData("ProjectName", "Mutation proposals must not alter project identity or options.")]
     [InlineData("AssemblyName", "Mutation proposals must not alter project identity or options.")]
     [InlineData("DefaultNamespace", "Mutation proposals must not alter project identity or options.")]
@@ -59,7 +68,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     [InlineData("DocumentMetadata", "Mutation proposals must not alter source document metadata.")]
     public void GIVEN_UnsupportedCandidateShape_WHEN_Validating_THEN_ShouldRejectIt(string changeKind, string message)
     {
-        var currentSolution = CreateSolution();
+        var currentSolution = CreateSolution(projectHasPath: changeKind != "ProjectFilePathFromMissing");
         var currentProject = currentSolution.Projects.Single();
         var currentDocument = currentProject.Documents.Single();
         var candidateSolution = changeKind switch
@@ -68,6 +77,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
                 .RemoveProject(currentProject.Id)
                 .AddProject("ReplacementProject", "ReplacementProject", LanguageNames.CSharp).Solution,
             "ProjectFilePath" => currentSolution.WithProjectFilePath(currentProject.Id, "DifferentProjectPath"),
+            "ProjectFilePathFromMissing" => currentSolution.WithProjectFilePath(currentProject.Id, "ProjectPath"),
             "ProjectName" => currentSolution.WithProjectName(currentProject.Id, "DifferentProjectName"),
             "AssemblyName" => currentSolution.WithProjectAssemblyName(currentProject.Id, "DifferentAssemblyName"),
             "DefaultNamespace" => currentSolution.WithProjectDefaultNamespace(currentProject.Id, "DifferentNamespace"),
@@ -81,9 +91,30 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             _ => throw new InvalidOperationException("Unsupported test change kind."),
         };
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", message);
+    }
+
+    [Fact]
+    public void GIVEN_ProjectPathCaseChangesOnCaseInsensitiveFileSystem_WHEN_Validating_THEN_ShouldRetainProjectIdentity()
+    {
+        var currentSolution = CreateSolution();
+        var currentProject = currentSolution.Projects.Single();
+        var currentProjectPath = currentProject.FilePath
+            ?? throw new InvalidOperationException("The current project path is unavailable.");
+
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
+
+        var candidateSolution = currentSolution.WithProjectFilePath(
+            currentProject.Id,
+            currentProjectPath.ToUpperInvariant());
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        result.Should().BeNull();
     }
 
     [Theory]
@@ -118,7 +149,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 
         var candidateSolution = currentSolution.AddDocument(documentInfo);
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", message);
     }
@@ -141,7 +172,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var analyzerReference = new Mock<AnalyzerReference>();
         var solutions = CreateReferenceOrNonSourceDocumentChange(changeKind, analyzerReference.Object);
 
-        var result = _target.Validate(solutions.Current, solutions.Candidate);
+        var result = _target.Validate(solutions.Current, solutions.Candidate, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
     }
@@ -163,7 +194,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             candidateSolution = currentSolution.WithDocumentText(document.Id, SourceText.From("class Updated { }"));
         }
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", message);
     }
@@ -175,9 +206,22 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var document = currentSolution.Projects.Single().Documents.Single();
         var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ExistingDocumentOutsideWorkspaceRoot_WHEN_ChangingText_THEN_ShouldRejectIt()
+    {
+        var currentSolution = CreateSolution(documentIsLinked: true);
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;
+        var workspaceRoot = Path.Combine(Path.GetTempPath(), "Project");
+
+        var result = _target.Validate(currentSolution, candidateSolution, workspaceRoot);
+
+        AssertError(result, "UnsupportedChange", "Mutation proposals must keep mutable source files within the workspace root.");
     }
 
     [Fact]
@@ -187,7 +231,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var document = currentSolution.Projects.Single().Documents.Single();
         var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;
 
-        var result = _target.Validate(currentSolution, candidateSolution);
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         result.Should().BeNull();
     }

@@ -35,7 +35,7 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
 
         await File.WriteAllTextAsync(documentPath, "public class C { } public class D : C { }", cancellationToken);
         var workspaceFactory = new Mock<IMsBuildWorkspaceFactory>();
-        workspaceFactory.Setup(item => item.Create()).Returns(MSBuildWorkspace.Create());
+        workspaceFactory.Setup(item => item.Create(null)).Returns(MSBuildWorkspace.Create());
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
@@ -48,6 +48,7 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
         var result = await target.LoadAsync(
             projectPath,
             directory.DirectoryPath,
+            null,
             cancellationToken);
 
         result.HasFailure.Should().BeFalse();

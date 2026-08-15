@@ -8,32 +8,29 @@ internal sealed class WorkspaceCommitPlanningContext
 
     public string WorkspaceRoot { get; }
 
-    public IReadOnlyList<string> ProjectRoots { get; }
+    public IReadOnlyList<FileSystemPathKey> ProjectRoots { get; }
 
-    public HashSet<string> BaselineDocumentPaths { get; }
+    public HashSet<FileSystemPathKey> BaselineDocumentPaths { get; }
 
-    public Dictionary<string, WorkspaceCommitEntry> EntriesByTarget { get; }
+    public Dictionary<FileSystemPathKey, WorkspaceCommitEntry> EntriesByTarget { get; } = [];
 
     public List<WorkspaceCommitEntry> Entries { get; } = [];
 
     public Dictionary<string, ReadOnlyMemory<byte>> Artifacts { get; } = new(StringComparer.Ordinal);
 
-    public HashSet<string> CreatedDirectories { get; }
+    public HashSet<FileSystemPathKey> CreatedDirectories { get; } = [];
 
     public WorkspaceCommitPlanningContext(
         string commitId,
         string loadedPath,
         string workspaceRoot,
-        IReadOnlyList<string> projectRoots,
-        HashSet<string> baselineDocumentPaths,
-        IEqualityComparer<string> pathComparer)
+        IReadOnlyList<FileSystemPathKey> projectRoots,
+        HashSet<FileSystemPathKey> baselineDocumentPaths)
     {
         CommitId = commitId;
         LoadedPath = loadedPath;
         WorkspaceRoot = workspaceRoot;
         ProjectRoots = projectRoots;
         BaselineDocumentPaths = baselineDocumentPaths;
-        EntriesByTarget = new Dictionary<string, WorkspaceCommitEntry>(pathComparer);
-        CreatedDirectories = new HashSet<string>(pathComparer);
     }
 }

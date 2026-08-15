@@ -31,8 +31,9 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Complete — confirmed 2026-08-14 |
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Complete — confirmed 2026-08-14 |
 | 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Complete — confirmed 2026-08-15 |
-| 16 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
-| 17 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
+| 16 | `RWMCP2-021` — External generated documents make a valid source-root Workspace unloadable | P2 | Complete — confirmed 2026-08-15 |
+| 17 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
+| 18 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
 
 ## Remediation and release gates
 
@@ -96,8 +97,8 @@ After an interrupted applying commit, a truncated or altered backup can remain p
 
 **Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-13
 
-**Severity:** P2  
-**Confidence:** High  
+**Severity:** P2
+**Confidence:** High
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionStore.cs:5-23`; `src/Roslyn.Workbench.Mcp/Hosting/RoslynWorkbenchServiceCollectionExtensions.cs:107-115`; `src/Roslyn.Workbench.Mcp/Program.cs:9-13`; `src/Roslyn.Workbench.Mcp.Workspace/Loading/LoadedWorkspace.cs:18-20`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputManifest.cs:23-25`
 
 Opening a Workspace transfers a disposable loaded Workspace and input manifest into the singleton session store. Explicit `workspace_close` disposes them, but the store is not disposable and no Host shutdown service drains it. `Program` relies on generic Host disposal, which has no ownership path to these session-held resources. Ending a stdio session with open Workspaces therefore leaves `MSBuildWorkspace` instances and filesystem watchers undisposed until process teardown; this is directly observable for in-process Host start/stop and prevents deterministic resource release.
@@ -243,6 +244,20 @@ Initial external-repository preparation clones and checks out directly in the pe
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Tools/PrepareFixAllTool.cs:82-169`; `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionReplayRecipe.cs:3-20`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/PreparedFixAllResolver.cs:25-76`; `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionStager.cs:38-82`
 
 Preparation creates a Fix All action, evaluates and processes its candidate, counts changed documents and enforces the requested maximum. The stored recipe adds only the Fix All scope; it does not bind the reviewed operation, its changed-document identity or the approved maximum. Staging later rediscovers the provider, creates a fresh Fix All action, evaluates it and returns its candidate without comparing it with the prepared candidate or reapplying the maximum. A provider whose output changes between calls can therefore stage more or different changes than were reviewed. The path is complete and has no later prevention, but confidence is Medium because occurrence depends on provider instability or changing provider-external state; deterministic built-in providers will usually recreate the same operation.
+
+### RWMCP2-021 — External generated documents make a valid source-root Workspace unloadable
+
+**Status:** In progress — first independent-review corrections awaiting user confirmation
+
+**Severity:** P2
+
+**Confidence:** High
+
+**Location:** `src/Roslyn.Workbench.Mcp.Workspace/Loading/WorkspaceLoadWorkflow.cs:111-124,141-158`; `src/Roslyn.Workbench.Mcp.Workspace/Loading/WorkspaceRootResolver.cs:22-43`
+
+When MSBuild intermediate output is outside the repository, SDK-generated documents are loaded from that external intermediate tree. Workspace loading applies authored-source containment to every `project.Documents` entry, so a generated `GlobalUsings.g.cs` outside the source root rejects the entire otherwise valid Workspace. This was reproduced by the published WSL Host using the repository-mandated external artifacts layout. Broadening the Workspace root to cover both locations is not an acceptable general solution because it broadens the trust and observation boundary and, in the dogfood run, failed to load within five minutes.
+
+**Remediation outcome:** `workspace-open` now accepts a closed, optional allowlist of per-workspace MSBuild global properties, which affect evaluation but do not grant filesystem permissions. Project files and every staged mutation remain constrained to `workspaceRoot`; source, additional and analyzer-config documents selected by trusted MSBuild evaluation are admitted automatically as queryable read-only inputs, certified against their disk contents and individually fingerprinted for later polling. The effective properties are retained internally across reload; compatibility inspection, project-structure queries and change-detection project evaluation use the same values. They are not echoed by public lifecycle responses because those responses expose only actionable state. External-document handling is likewise transparent to MCP clients. The first independent review identified mixed-filesystem path deduplication and one stale response-field statement; both corrections are included in the cumulative staged baseline with regression coverage. A deeper audit removed the root-wide comparer assumption from change manifests, project-input resolution, read-only certification, watcher sets, selector resolution, target-framework evaluation, transaction planning, mutation validation, recovery validation, startup plugin roots and package discovery. These paths now use an immutable key whose equality and hash semantics are captured for each physical path; direct comparisons resolve semantics from the physical path involved, while logical schema, identifier and ordering comparisons remain ordinal. Its plugin-ABI candidate was rejected because this project remains unreleased and the public plugin API deliberately remains version 1 until first release. The solution build, 1,034 Workspace unit tests, 104 Workspace integration tests, 513 Host unit tests, 89 Host integration tests, bundled-plugin integration suite and changed-project latest-all analyzer builds pass. The repeated independent review found no production, contract, dependency-injection, path-comparison, mutation/recovery or test defect. The published WSL Host then loaded the complete repository with the external artifacts path while retaining the repository root: 30 projects and 1,563 documents reached `Ready`, the solution-structure query returned all 30 loaded projects, and a semantic document query succeeded against xUnit's package-provided `DefaultRunnerReporters.cs` source outside the repository. The user gave final confirmation on 2026-08-15.
 
 ## Notable test gaps
 

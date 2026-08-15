@@ -19,10 +19,19 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         _pathComparison = pathComparison;
     }
 
-    public WorkspaceInputManifest BuildManifest(Solution solution, string loadedPath, string workspaceRoot)
+    public WorkspaceInputManifest BuildManifest(
+        Solution solution,
+        string loadedPath,
+        string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties = null)
     {
         using var certification = BeginCertification(workspaceRoot);
-        return BuildManifest(solution, loadedPath, workspaceRoot, certification);
+        return BuildManifest(
+            solution,
+            loadedPath,
+            workspaceRoot,
+            certification,
+            msBuildProperties);
     }
 
     public IWorkspaceInputCertification BeginCertification(string workspaceRoot)
@@ -34,7 +43,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         {
             return new WorkspaceInputCertification(
                 changeMonitor,
-                _pathComparison.GetComparer(workspaceRoot));
+                _pathComparison);
         }
         catch
         {
@@ -47,7 +56,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         Solution solution,
         string loadedPath,
         string workspaceRoot,
-        IWorkspaceInputCertification certification)
+        IWorkspaceInputCertification certification,
+        WorkspaceMsBuildProperties? msBuildProperties = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(loadedPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -56,7 +66,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             "workspace-open",
             WorkbenchPerformanceEventSource.ManifestConstructionPhase);
 
-        using var manifest = CreateManifest(solution, loadedPath, workspaceRoot);
+        using var manifest = CreateManifest(
+            solution,
+            loadedPath,
+            workspaceRoot,
+            msBuildProperties);
         return certification.Complete(manifest);
     }
 
@@ -92,7 +106,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         foreach (var directory in manifest.Directories)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (manifest.IgnoredPaths.Contains(directory.Path))
+            if (manifest.IgnoredPaths.Contains(_pathComparison.CreateKey(directory.Path)))
             {
                 continue;
             }
@@ -113,7 +127,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         foreach (var file in manifest.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (manifest.IgnoredPaths.Contains(file.Path))
+            if (manifest.IgnoredPaths.Contains(_pathComparison.CreateKey(file.Path)))
             {
                 continue;
             }
@@ -148,24 +162,27 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     private WorkspaceInputManifest CreateManifest(
         Solution solution,
         string loadedPath,
-        string workspaceRoot)
+        string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
-        var pathComparer = _pathComparison.GetComparer(workspaceRoot);
-        var files = new Dictionary<string, WorkspaceInputFileFingerprint>(pathComparer);
-        var directories = new Dictionary<string, WorkspaceInputDirectoryFingerprint>(pathComparer);
+        var files = new Dictionary<FileSystemPathKey, WorkspaceInputFileFingerprint>();
+        var directories = new Dictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint>();
         var evaluationFailures = new List<WorkspaceProjectInputFailure>();
         var projectResolutions = new Dictionary<ProjectId, WorkspaceProjectInputResolution>();
-        var artifactRoots = new List<string>
+        var excludedDirectoryRoots = new List<string>
         {
             _fileSystem.Path.Combine(workspaceRoot, ".vs"),
         };
 
         var protectedPaths = new List<string> { loadedPath };
-        var resolutionCache = new Dictionary<string, WorkspaceProjectInputResolution>(pathComparer);
+        var resolutionCache = new Dictionary<FileSystemPathKey, WorkspaceProjectInputResolution>();
 
         foreach (var project in solution.Projects)
         {
-            var inputResolution = ResolveProjectInputs(project.FilePath, resolutionCache);
+            var inputResolution = ResolveProjectInputs(
+                project.FilePath,
+                msBuildProperties,
+                resolutionCache);
             projectResolutions.Add(project.Id, inputResolution);
             if (!inputResolution.IsSucceeded)
             {
@@ -173,7 +190,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             }
             else
             {
-                AddProjectArtifactRoots(project, inputResolution, artifactRoots);
+                AddProjectMonitoringExclusions(project, inputResolution, excludedDirectoryRoots);
             }
 
             if (!string.IsNullOrWhiteSpace(project.FilePath))
@@ -183,9 +200,9 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         }
 
         var pathPolicy = WorkspaceInputPathPolicy.Create(
-            artifactRoots,
+            excludedDirectoryRoots,
             protectedPaths,
-            _pathComparison.GetComparison(workspaceRoot));
+            _pathComparison);
 
         AddFile(files, directories, loadedPath, pathPolicy);
 
@@ -227,8 +244,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     }
 
     private void AddFile(
-        Dictionary<string, WorkspaceInputFileFingerprint> files,
-        IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
+        Dictionary<FileSystemPathKey, WorkspaceInputFileFingerprint> files,
+        IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
         string? path,
         WorkspaceInputPathPolicy pathPolicy)
     {
@@ -243,7 +260,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             return;
         }
 
-        files[file.FullName] = new WorkspaceInputFileFingerprint
+        var filePathKey = _pathComparison.CreateKey(file.FullName);
+        files[filePathKey] = new WorkspaceInputFileFingerprint
         {
             Path = file.FullName,
             LastWriteTimeUtc = file.LastWriteTimeUtc,
@@ -257,7 +275,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     }
 
     private void AddProjectDirectories(
-        IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
+        IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
         string? projectPath,
         WorkspaceInputPathPolicy pathPolicy)
     {
@@ -286,68 +304,67 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     }
 
     private WorkspaceInputDirectoryFingerprint? AddDirectory(
-        IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
+        IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
         string? path,
         WorkspaceInputPathPolicy pathPolicy)
     {
-        if (string.IsNullOrWhiteSpace(path) || !pathPolicy.ShouldTrack(path))
+        if (string.IsNullOrWhiteSpace(path) || !pathPolicy.ShouldMonitor(path))
         {
             return null;
         }
 
         var directory = _fileSystem.DirectoryInfo.New(path);
-        if (directory.Exists)
+        if (!directory.Exists)
         {
-            directories[directory.FullName] = new WorkspaceInputDirectoryFingerprint
-            {
-                Path = directory.FullName,
-            };
+            return null;
         }
 
-        return !directory.Exists
-            ? null
-            : directories[directory.FullName];
+        var fingerprint = new WorkspaceInputDirectoryFingerprint
+        {
+            Path = directory.FullName,
+        };
+
+        var directoryPathKey = _pathComparison.CreateKey(directory.FullName);
+        directories[directoryPathKey] = fingerprint;
+        return fingerprint;
     }
 
     private void AddDocuments(
-        Dictionary<string, WorkspaceInputFileFingerprint> files,
-        IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
+        Dictionary<FileSystemPathKey, WorkspaceInputFileFingerprint> files,
+        IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
         IEnumerable<TextDocument> documents,
         WorkspaceInputPathPolicy pathPolicy)
     {
         foreach (var document in documents)
         {
-            if (pathPolicy.ShouldTrack(document.FilePath))
-            {
-                AddFile(files, directories, document.FilePath, pathPolicy);
-            }
+            AddFile(files, directories, document.FilePath, pathPolicy);
         }
     }
 
-    private void AddProjectArtifactRoots(
+    private void AddProjectMonitoringExclusions(
         Project project,
         WorkspaceProjectInputResolution inputResolution,
-        List<string> artifactRoots)
+        List<string> excludedDirectoryRoots)
     {
         if (inputResolution.ArtifactRoots.Count == 0)
         {
-            AddProjectFallbackArtifactRoots(project.FilePath, artifactRoots);
+            AddProjectFallbackMonitoringExclusions(project.FilePath, excludedDirectoryRoots);
         }
         else
         {
             foreach (var artifactRoot in inputResolution.ArtifactRoots)
             {
-                artifactRoots.Add(artifactRoot);
+                excludedDirectoryRoots.Add(artifactRoot);
             }
         }
 
-        AddParentPath(project.OutputFilePath, artifactRoots);
-        AddPath(project.CompilationOutputInfo.GeneratedFilesOutputDirectory, artifactRoots);
+        AddParentPath(project.OutputFilePath, excludedDirectoryRoots);
+        AddPath(project.CompilationOutputInfo.GeneratedFilesOutputDirectory, excludedDirectoryRoots);
     }
 
-    private void AddProjectFallbackArtifactRoots(
+    private void AddProjectFallbackMonitoringExclusions(
         string? projectPath,
-        List<string> artifactRoots)
+        List<string> excludedDirectoryRoots)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
         {
@@ -360,38 +377,40 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             return;
         }
 
-        artifactRoots.Add(_fileSystem.Path.Combine(projectDirectory, "bin"));
-        artifactRoots.Add(_fileSystem.Path.Combine(projectDirectory, "obj"));
+        excludedDirectoryRoots.Add(_fileSystem.Path.Combine(projectDirectory, "bin"));
+        excludedDirectoryRoots.Add(_fileSystem.Path.Combine(projectDirectory, "obj"));
     }
 
     private void AddParentPath(
         string? path,
-        List<string> artifactRoots)
+        List<string> excludedDirectoryRoots)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             return;
         }
 
-        AddPath(_fileSystem.Path.GetDirectoryName(path), artifactRoots);
+        AddPath(_fileSystem.Path.GetDirectoryName(path), excludedDirectoryRoots);
     }
 
     private WorkspaceProjectInputResolution ResolveProjectInputs(
         string? projectPath,
-        Dictionary<string, WorkspaceProjectInputResolution> resolutionCache)
+        WorkspaceMsBuildProperties? msBuildProperties,
+        Dictionary<FileSystemPathKey, WorkspaceProjectInputResolution> resolutionCache)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
         {
-            return _projectInputResolver.Resolve(projectPath);
+            return _projectInputResolver.Resolve(projectPath, msBuildProperties);
         }
 
-        if (resolutionCache.TryGetValue(projectPath, out var cachedResolution))
+        var projectPathKey = _pathComparison.CreateKey(projectPath);
+        if (resolutionCache.TryGetValue(projectPathKey, out var cachedResolution))
         {
             return cachedResolution;
         }
 
-        var resolution = _projectInputResolver.Resolve(projectPath);
-        resolutionCache.Add(projectPath, resolution);
+        var resolution = _projectInputResolver.Resolve(projectPath, msBuildProperties);
+        resolutionCache.Add(projectPathKey, resolution);
         return resolution;
     }
 

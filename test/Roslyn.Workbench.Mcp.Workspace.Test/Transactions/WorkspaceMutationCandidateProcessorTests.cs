@@ -43,12 +43,13 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var solution = workspace.CurrentSolution;
         var error = CreateError("CandidateValidationFailed");
         _candidateValidator
-            .Setup(item => item.Validate(solution, solution))
+            .Setup(item => item.Validate(solution, solution, "WorkspaceRoot"))
             .Returns(error);
 
         var result = await _target.ProcessAsync(
             solution,
             solution,
+            "WorkspaceRoot",
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeFalse();
@@ -85,11 +86,12 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var result = await _target.ProcessAsync(
             solution,
             solution,
+            "WorkspaceRoot",
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeFalse();
         result.Error.Should().BeSameAs(error);
-        _candidateValidator.Verify(item => item.Validate(solution, solution), Times.Once);
+        _candidateValidator.Verify(item => item.Validate(solution, solution, "WorkspaceRoot"), Times.Once);
     }
 
     [Fact]
@@ -99,7 +101,7 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var solution = workspace.CurrentSolution;
         var error = CreateError("MergedCandidateValidationFailed");
         _candidateValidator
-            .SetupSequence(item => item.Validate(solution, solution))
+            .SetupSequence(item => item.Validate(solution, solution, "WorkspaceRoot"))
             .Returns((WorkspaceOperationError?)null)
             .Returns(error);
 
@@ -113,11 +115,12 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var result = await _target.ProcessAsync(
             solution,
             solution,
+            "WorkspaceRoot",
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeFalse();
         result.Error.Should().BeSameAs(error);
-        _candidateValidator.Verify(item => item.Validate(solution, solution), Times.Exactly(2));
+        _candidateValidator.Verify(item => item.Validate(solution, solution, "WorkspaceRoot"), Times.Exactly(2));
     }
 
     [Fact]
@@ -137,12 +140,13 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var result = await _target.ProcessAsync(
             currentSolution,
             currentSolution,
+            "WorkspaceRoot",
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeTrue();
         result.Solution.Should().BeSameAs(mergedSolution);
-        _candidateValidator.Verify(item => item.Validate(currentSolution, currentSolution), Times.Once);
-        _candidateValidator.Verify(item => item.Validate(currentSolution, mergedSolution), Times.Once);
+        _candidateValidator.Verify(item => item.Validate(currentSolution, currentSolution, "WorkspaceRoot"), Times.Once);
+        _candidateValidator.Verify(item => item.Validate(currentSolution, mergedSolution, "WorkspaceRoot"), Times.Once);
     }
 
     [Fact]
@@ -180,13 +184,15 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         var target = new WorkspaceMutationCandidateProcessor(
             new AddedDocumentProjectContextPropagator(pathComparison),
             new WorkspaceMutationCandidateValidator(
-                new PhysicalPathContainment(new FileSystem(), pathComparison)),
+                new PhysicalPathContainment(new FileSystem(), pathComparison),
+                pathComparison),
             new LinkedDocumentChangeMerger(),
             new RemovedDocumentProjectContextPropagator(pathComparison));
 
         var result = await target.ProcessAsync(
             currentSolution,
             candidateSolution,
+            projectDirectory,
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeTrue();

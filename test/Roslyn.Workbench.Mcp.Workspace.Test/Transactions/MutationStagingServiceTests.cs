@@ -30,10 +30,12 @@ public sealed class MutationStagingServiceTests : IDisposable
             .Setup(item => item.ProcessAsync(
                 It.IsAny<Solution>(),
                 It.IsAny<Solution>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .Returns((
                 Solution _,
                 Solution candidateSolution,
+                string _,
                 CancellationToken _) => ValueTask.FromResult(
                     WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution)));
 
@@ -107,6 +109,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         _candidateProcessor.Verify(item => item.ProcessAsync(
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -129,6 +132,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             .Setup(item => item.ProcessAsync(
                 currentSolution,
                 candidate.CandidateSolution,
+                session.Workspace.WorkspaceRoot,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 
@@ -172,6 +176,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             .Setup(item => item.ProcessAsync(
                 currentSolution,
                 candidate.CandidateSolution,
+                session.Workspace.WorkspaceRoot,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 
@@ -356,6 +361,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             .Setup(item => item.ProcessAsync(
                 It.IsAny<Solution>(),
                 It.IsAny<Solution>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(error));
 

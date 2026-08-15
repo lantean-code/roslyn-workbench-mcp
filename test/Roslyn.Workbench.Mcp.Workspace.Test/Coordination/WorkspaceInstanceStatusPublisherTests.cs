@@ -28,7 +28,6 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string a, string b, string c, string d) => $"{a}/{b}/{c}/{d}");
 
-        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
         _pathContainment
             .Setup(item => item.TryGetStrictlyContainedPath(

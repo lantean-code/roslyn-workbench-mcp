@@ -22,7 +22,7 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
 
             var target = new WorkspaceProjectCompatibilityInspector();
 
-            var result = target.Inspect(projectPath);
+            var result = target.Inspect(projectPath, null);
 
             result.IsSdkStyle.Should().BeTrue();
             result.Diagnostics.Should().BeEmpty();
@@ -52,7 +52,7 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
 
             var target = new WorkspaceProjectCompatibilityInspector();
 
-            var result = target.Inspect(projectPath);
+            var result = target.Inspect(projectPath, null);
 
             result.IsSdkStyle.Should().BeFalse();
             result.Diagnostics.Should().BeEmpty();
@@ -75,13 +75,50 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
             File.WriteAllText(projectPath, "<Project>");
             var target = new WorkspaceProjectCompatibilityInspector();
 
-            var result = target.Inspect(projectPath);
+            var result = target.Inspect(projectPath, null);
 
             result.IsSdkStyle.Should().BeFalse();
             result.Diagnostics.Should().ContainSingle().Which.Should().Match<DiagnosticInfo>(diagnostic =>
                 diagnostic.Id == "WorkspaceLoad"
                 && diagnostic.Severity == Results.DiagnosticSeverity.Error
                 && !string.IsNullOrWhiteSpace(diagnostic.Message));
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_ConfigurationDisablesMissingImport_WHEN_InspectingCompatibility_THEN_ShouldUseConfiguredProperties()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Conditional.csproj");
+            File.WriteAllText(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <Import Project="Missing.props" Condition="'$(Configuration)' != 'Release'" />
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var properties = new WorkspaceMsBuildProperties
+            {
+                Configuration = "Release",
+            };
+
+            var target = new WorkspaceProjectCompatibilityInspector();
+
+            var result = target.Inspect(projectPath, properties);
+
+            result.IsSdkStyle.Should().BeTrue();
+            result.Diagnostics.Should().BeEmpty();
         }
         finally
         {

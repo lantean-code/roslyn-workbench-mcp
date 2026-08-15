@@ -299,7 +299,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                     && string.Equals(
                         owner.CommitId,
                         _fileSystem.Path.GetFileName(containedDirectory),
-                        _pathComparison.Comparison)
+                        _pathComparison.GetComparison(containedDirectory))
                     && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
                     && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
                 {
@@ -460,7 +460,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             || manifest.Entries is null
             || manifest.CreatedDirectories is null
             || !HasValidCommitIdCharacters(manifest.CommitId)
-            || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.Comparison)
+            || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.GetComparison(directory))
             || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
             || !_pathContainment.TryGetContainedPath(
@@ -471,7 +471,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             return false;
         }
 
-        var targets = new HashSet<string>(_pathComparison.GetComparer(manifest.WorkspaceRoot));
+        var targets = new HashSet<FileSystemPathKey>();
         foreach (var entry in manifest.Entries)
         {
             if (entry is null || !IsValidEntry(manifest, entry, targets))
@@ -480,7 +480,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             }
         }
 
-        var createdDirectories = new HashSet<string>(_pathComparison.GetComparer(manifest.WorkspaceRoot));
+        var createdDirectories = new HashSet<FileSystemPathKey>();
         foreach (var path in manifest.CreatedDirectories)
         {
             if (string.IsNullOrWhiteSpace(path)
@@ -488,8 +488,13 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 || !_pathContainment.TryGetStrictlyContainedPath(
                     manifest.WorkspaceRoot,
                     path,
-                    out _)
-                || !createdDirectories.Add(path))
+                    out _))
+            {
+                return false;
+            }
+
+            var pathKey = _pathComparison.CreateKey(path);
+            if (!createdDirectories.Add(pathKey))
             {
                 return false;
             }
@@ -501,15 +506,20 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private bool IsValidEntry(
         WorkspaceCommitManifest manifest,
         WorkspaceCommitEntry entry,
-        HashSet<string> targets)
+        HashSet<FileSystemPathKey> targets)
     {
         if (string.IsNullOrWhiteSpace(entry.TargetPath)
             || !_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
             || !_pathContainment.TryGetStrictlyContainedPath(
                 manifest.WorkspaceRoot,
                 entry.TargetPath,
-                out _)
-            || !targets.Add(entry.TargetPath))
+                out _))
+        {
+            return false;
+        }
+
+        var targetPathKey = _pathComparison.CreateKey(entry.TargetPath);
+        if (!targets.Add(targetPathKey))
         {
             return false;
         }
@@ -589,7 +599,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return string.Equals(
             expectedPath,
             entry.DeleteMarkerPath,
-            _pathComparison.GetComparison(manifest.WorkspaceRoot));
+            _pathComparison.GetComparison(entry.TargetPath));
     }
 
     private bool HasRequiredArtifactPath(string commitId, string? relativePath)

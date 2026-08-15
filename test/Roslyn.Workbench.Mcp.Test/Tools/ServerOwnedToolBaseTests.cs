@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
 
@@ -208,6 +209,7 @@ public sealed class ServerOwnedToolBaseTests
             It.IsAny<string>(),
             It.IsAny<string?>(),
             It.IsAny<string?>(),
+            It.IsAny<WorkspaceMsBuildProperties?>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 

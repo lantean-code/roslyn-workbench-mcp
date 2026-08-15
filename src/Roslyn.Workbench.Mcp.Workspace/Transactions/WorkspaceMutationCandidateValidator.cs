@@ -3,13 +3,20 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCandidateValidator
 {
     private readonly IPhysicalPathContainment _pathContainment;
+    private readonly IWorkspacePathComparison _pathComparison;
 
-    public WorkspaceMutationCandidateValidator(IPhysicalPathContainment pathContainment)
+    public WorkspaceMutationCandidateValidator(
+        IPhysicalPathContainment pathContainment,
+        IWorkspacePathComparison pathComparison)
     {
         _pathContainment = pathContainment;
+        _pathComparison = pathComparison;
     }
 
-    public WorkspaceOperationError? Validate(Solution currentSolution, Solution candidateSolution)
+    public WorkspaceOperationError? Validate(
+        Solution currentSolution,
+        Solution candidateSolution,
+        string workspaceRoot)
     {
         if (!ReferenceEquals(candidateSolution.Workspace, currentSolution.Workspace))
         {
@@ -23,7 +30,10 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
 
         foreach (var currentProject in currentSolution.Projects)
         {
-            var validationError = ValidateProject(currentProject, candidateSolution.GetProject(currentProject.Id));
+            var validationError = ValidateProject(
+                currentProject,
+                candidateSolution.GetProject(currentProject.Id),
+                workspaceRoot);
             if (validationError is not null)
             {
                 return validationError;
@@ -33,7 +43,10 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         return null;
     }
 
-    private WorkspaceOperationError? ValidateProject(Project currentProject, Project? candidateProject)
+    private WorkspaceOperationError? ValidateProject(
+        Project currentProject,
+        Project? candidateProject,
+        string workspaceRoot)
     {
         if (candidateProject is null)
         {
@@ -62,19 +75,26 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             return CreateError("UnsupportedChange", "Mutation proposals must not alter source document metadata.");
         }
 
-        return ValidateSourceDocumentChanges(currentProject, candidateProject, projectChanges, textChangedDocuments);
+        return ValidateSourceDocumentChanges(
+            currentProject,
+            candidateProject,
+            projectChanges,
+            textChangedDocuments,
+            workspaceRoot);
     }
 
     private WorkspaceOperationError? ValidateSourceDocumentChanges(
         Project currentProject,
         Project candidateProject,
         ProjectChanges projectChanges,
-        IReadOnlySet<DocumentId> textChangedDocuments)
+        IReadOnlySet<DocumentId> textChangedDocuments,
+        string workspaceRoot)
     {
         var validationError = TryValidateSourceDocuments(
             currentProject,
             projectChanges.GetRemovedDocuments(),
             "deleted",
+            workspaceRoot,
             requireProjectDirectory: false);
 
         if (validationError is not null)
@@ -86,6 +106,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             candidateProject,
             projectChanges.GetAddedDocuments(),
             "created",
+            workspaceRoot,
             requireProjectDirectory: true);
 
         if (validationError is not null)
@@ -97,6 +118,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             candidateProject,
             textChangedDocuments,
             "changed",
+            workspaceRoot,
             requireProjectDirectory: false);
     }
 
@@ -104,6 +126,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         Project project,
         IEnumerable<DocumentId> documentIds,
         string operation,
+        string workspaceRoot,
         bool requireProjectDirectory)
     {
         foreach (var documentId in documentIds)
@@ -114,6 +137,14 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 || string.IsNullOrWhiteSpace(document.FilePath))
             {
                 return CreateError("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
+            }
+
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                workspaceRoot,
+                document.FilePath,
+                out _))
+            {
+                return CreateError("UnsupportedChange", "Mutation proposals must keep mutable source files within the workspace root.");
             }
 
             if (requireProjectDirectory)
@@ -133,12 +164,22 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         return null;
     }
 
-    private static bool HasDifferentIdentity(Project currentProject, Project candidateProject)
+    private bool HasDifferentIdentity(Project currentProject, Project candidateProject)
     {
-        return !string.Equals(candidateProject.FilePath, currentProject.FilePath, StringComparison.Ordinal)
+        return !PathsEqual(candidateProject.FilePath, currentProject.FilePath)
             || !string.Equals(candidateProject.Name, currentProject.Name, StringComparison.Ordinal)
             || !string.Equals(candidateProject.AssemblyName, currentProject.AssemblyName, StringComparison.Ordinal)
             || !string.Equals(candidateProject.DefaultNamespace, currentProject.DefaultNamespace, StringComparison.Ordinal);
+    }
+
+    private bool PathsEqual(string? left, string? right)
+    {
+        if (left is null || right is null)
+        {
+            return left is null && right is null;
+        }
+
+        return _pathComparison.CreateKey(left) == _pathComparison.CreateKey(right);
     }
 
     private static bool HasDifferentOptions(Project currentProject, Project candidateProject)

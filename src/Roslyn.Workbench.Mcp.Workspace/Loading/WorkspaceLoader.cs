@@ -40,20 +40,26 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
         return string.IsNullOrWhiteSpace(alias) ? null : alias.Trim();
     }
 
-    public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(string projectPath)
+    public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(
+        string projectPath,
+        WorkspaceMsBuildProperties? msBuildProperties)
     {
-        return _compatibilityInspector.Inspect(projectPath);
+        return _compatibilityInspector.Inspect(projectPath, msBuildProperties);
     }
 
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "MSBuild workspace loading is an external compatibility boundary; non-cancellation failures are returned as workspace diagnostics after the partially loaded workspace is disposed.")]
-    public async ValueTask<WorkspaceLoadResult> LoadAsync(string path, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceLoadResult> LoadAsync(
+        string path,
+        WorkspaceMsBuildProperties? msBuildProperties,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var workspace = _workspaceFactory.Create();
+        var globalProperties = msBuildProperties?.ToGlobalProperties();
+        var workspace = _workspaceFactory.Create(globalProperties);
         var diagnostics = new List<DiagnosticInfo>();
 
         workspace.RegisterWorkspaceFailedHandler(args =>

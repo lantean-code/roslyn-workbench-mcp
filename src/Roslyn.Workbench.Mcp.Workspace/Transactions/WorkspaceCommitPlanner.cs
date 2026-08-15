@@ -70,8 +70,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         [NotNullWhen(true)] out WorkspaceCommitPlanningContext? context,
         [NotNullWhen(false)] out string? errorMessage)
     {
-        var comparer = _pathComparison.GetComparer(workspaceRoot);
-        if (!TryGetProjectRoots(baselineSolution, currentSolution, comparer, out var projectRoots, out errorMessage))
+        if (!TryGetProjectRoots(baselineSolution, currentSolution, out var projectRoots, out errorMessage))
         {
             context = null;
             return false;
@@ -82,8 +81,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             _fileSystem.Path.GetFullPath(loadedPath),
             _fileSystem.Path.GetFullPath(workspaceRoot),
             projectRoots,
-            GetBaselineDocumentPaths(baselineSolution, comparer),
-            comparer);
+            GetBaselineDocumentPaths(baselineSolution));
 
         errorMessage = null;
         return true;
@@ -169,7 +167,8 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 
         var intendedContents = await GetDocumentBytesAsync(document, cancellationToken);
         var intendedHash = Hash(intendedContents);
-        if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
+        var targetPathKey = _pathComparison.CreateKey(path);
+        if (context.EntriesByTarget.TryGetValue(targetPathKey, out var existingEntry))
         {
             if (existingEntry.Operation == operation
                 && string.Equals(existingEntry.IntendedHash, intendedHash, StringComparison.Ordinal))
@@ -234,7 +233,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         };
 
         context.Entries.Add(entry);
-        context.EntriesByTarget.Add(path, entry);
+        context.EntriesByTarget.Add(targetPathKey, entry);
         return WorkspaceCommitValidationResult.Valid();
     }
 
@@ -254,7 +253,8 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Invalid(targetError);
         }
 
-        if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
+        var targetPathKey = _pathComparison.CreateKey(path);
+        if (context.EntriesByTarget.TryGetValue(targetPathKey, out var existingEntry))
         {
             if (existingEntry.Operation == WorkspaceFileOperation.Delete)
             {
@@ -308,7 +308,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         };
 
         context.Entries.Add(entry);
-        context.EntriesByTarget.Add(path, entry);
+        context.EntriesByTarget.Add(targetPathKey, entry);
         return WorkspaceCommitValidationResult.Valid();
     }
 
@@ -328,10 +328,11 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return false;
         }
 
-        var isSupported = context.BaselineDocumentPaths.Contains(targetPath);
+        var targetPathKey = _pathComparison.CreateKey(targetPath);
+        var isSupported = context.BaselineDocumentPaths.Contains(targetPathKey);
         foreach (var projectRoot in context.ProjectRoots)
         {
-            if (_pathContainment.TryGetContainedPath(projectRoot, targetPath, out _))
+            if (_pathContainment.TryGetContainedPath(projectRoot.Path, targetPath, out _))
             {
                 isSupported = true;
                 break;
@@ -354,7 +355,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var directory = _fileSystem.Path.GetDirectoryName(path);
         while (directory is not null && !_fileSystem.Directory.Exists(directory))
         {
-            context.CreatedDirectories.Add(directory);
+            context.CreatedDirectories.Add(_pathComparison.CreateKey(directory));
             directory = _fileSystem.Path.GetDirectoryName(directory);
         }
     }
@@ -362,11 +363,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     private bool TryGetProjectRoots(
         Solution baselineSolution,
         Solution currentSolution,
-        IEqualityComparer<string> comparer,
-        [NotNullWhen(true)] out string[]? projectRoots,
+        [NotNullWhen(true)] out FileSystemPathKey[]? projectRoots,
         [NotNullWhen(false)] out string? errorMessage)
     {
-        var roots = new HashSet<string>(comparer);
+        var roots = new HashSet<FileSystemPathKey>();
         foreach (var project in baselineSolution.Projects.Concat(currentSolution.Projects))
         {
             if (string.IsNullOrWhiteSpace(project.FilePath))
@@ -383,7 +383,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 return false;
             }
 
-            roots.Add(projectRoot);
+            roots.Add(_pathComparison.CreateKey(projectRoot));
         }
 
         projectRoots = roots.ToArray();
@@ -391,18 +391,17 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         return true;
     }
 
-    private HashSet<string> GetBaselineDocumentPaths(
-        Solution baselineSolution,
-        IEqualityComparer<string> comparer)
+    private HashSet<FileSystemPathKey> GetBaselineDocumentPaths(Solution baselineSolution)
     {
-        var paths = new HashSet<string>(comparer);
+        var paths = new HashSet<FileSystemPathKey>();
         foreach (var project in baselineSolution.Projects)
         {
             foreach (var document in project.Documents)
             {
                 if (!string.IsNullOrWhiteSpace(document.FilePath))
                 {
-                    paths.Add(_fileSystem.Path.GetFullPath(document.FilePath));
+                    var documentPath = _fileSystem.Path.GetFullPath(document.FilePath);
+                    paths.Add(_pathComparison.CreateKey(documentPath));
                 }
             }
         }
@@ -419,7 +418,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             WorkspaceRoot = context.WorkspaceRoot,
             State = Results.RecoveryState.Prepared,
             Entries = context.Entries,
-            CreatedDirectories = context.CreatedDirectories.OrderBy(path => path.Length).ToArray(),
+            CreatedDirectories = context.CreatedDirectories
+                .OrderBy(static key => key.Path.Length)
+                .Select(static key => key.Path)
+                .ToArray(),
         };
 
         return new WorkspaceCommitPlan(manifest, context.Artifacts);

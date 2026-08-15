@@ -27,11 +27,11 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
-        var action = async () => await _target.LoadAsync("/workspace/Project.csproj", "/workspace", cancellationSource.Token);
+        var action = async () => await _target.LoadAsync("/workspace/Project.csproj", "/workspace", null, cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _workspaceLoader.Verify(item => item.InspectCompatibility(It.IsAny<string>()), Times.Never);
-        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _workspaceLoader.Verify(item => item.InspectCompatibility(It.IsAny<string>(), It.IsAny<WorkspaceMsBuildProperties?>()), Times.Never);
+        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -40,12 +40,13 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     public async Task GIVEN_ProjectPreflightFails_WHEN_Loading_THEN_ShouldReturnExpectedFailure(bool hasDiagnostics)
     {
         var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Message = "Message" } } : [];
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((false, diagnostics));
 
         var result = await _target.LoadAsync(
             "/workspace/Project.csproj",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeTrue();
@@ -54,7 +55,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             : ValidatedWorkspaceLoadFailure.NotSupported);
 
         result.Diagnostics.Should().Equal(diagnostics);
-        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -65,7 +66,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var diagnostics = new[] { new DiagnosticInfo { Message = "Message" } };
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", TestContext.Current.CancellationToken))
+        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", null, TestContext.Current.CancellationToken))
             .ReturnsAsync(new WorkspaceLoadResult
             {
                 Solution = hasSolution ? _workspace.CurrentSolution : null,
@@ -76,6 +77,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeTrue();
@@ -95,12 +97,12 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_LoadedInputOutsideRoot_WHEN_Loading_THEN_ShouldDisposeAndRejectIt()
+    public async Task GIVEN_LoadedProjectOutsideRoot_WHEN_Loading_THEN_ShouldDisposeAndRejectIt()
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/outside/Project.csproj", "/outside/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/outside/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/outside/Project.csproj", null))
             .Returns((true, []));
 
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/outside/Project.csproj")).Returns(false);
@@ -108,6 +110,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeTrue();
@@ -117,6 +120,67 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             && diagnostic.Message.Contains("/outside/Project.csproj", StringComparison.Ordinal)
             && diagnostic.Message.Contains("/workspace", StringComparison.Ordinal));
 
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_EvaluatedDocumentOutsideRoot_WHEN_Loading_THEN_ShouldAcceptItAsReadOnlyInput()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolution("/workspace/Project.csproj", "/external/Linked.cs");
+
+        _workspaceLoader
+            .Setup(item => item.LoadAsync("/workspace/Solution.sln", null, TestContext.Current.CancellationToken))
+            .ReturnsAsync(new WorkspaceLoadResult
+            {
+                Workspace = loadedWorkspace.Object,
+                Solution = solution,
+            });
+
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
+            .Returns((true, []));
+
+        var result = await _target.LoadAsync(
+            "/workspace/Solution.sln",
+            "/workspace",
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.HasFailure.Should().BeFalse();
+        result.Solution.Should().BeSameAs(solution);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectWithinConfiguredArtifactsPath_WHEN_Loading_THEN_ShouldRejectIt()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolution("/artifacts/Project.csproj", "/artifacts/Document.cs");
+        var properties = new WorkspaceMsBuildProperties
+        {
+            ArtifactsPath = "/artifacts",
+        };
+
+        _workspaceLoader
+            .Setup(item => item.LoadAsync("/workspace/Solution.sln", properties, TestContext.Current.CancellationToken))
+            .ReturnsAsync(new WorkspaceLoadResult
+            {
+                Workspace = loadedWorkspace.Object,
+                Solution = solution,
+            });
+
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/artifacts/Project.csproj", properties))
+            .Returns((true, []));
+        _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/artifacts/Project.csproj")).Returns(false);
+
+        var result = await _target.LoadAsync(
+            "/workspace/Solution.sln",
+            "/workspace",
+            properties,
+            TestContext.Current.CancellationToken);
+
+        result.HasFailure.Should().BeTrue();
+        result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -130,12 +194,13 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Message = "Message" } } : [];
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((false, diagnostics));
 
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeTrue();
@@ -162,7 +227,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace, cancellationSource.Token);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []));
 
         _workspaceRootResolver
@@ -176,6 +241,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var action = async () => await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
@@ -188,7 +254,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []));
 
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", It.IsAny<string>()))
@@ -197,6 +263,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var action = async () => await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
@@ -209,11 +276,11 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         var diagnostics = new[] { new DiagnosticInfo { Message = "Message" } };
-        _workspaceLoader.SetupSequence(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.SetupSequence(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []))
             .Returns((true, []));
 
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Project.csproj", TestContext.Current.CancellationToken))
+        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Project.csproj", null, TestContext.Current.CancellationToken))
             .ReturnsAsync(new WorkspaceLoadResult
             {
                 Workspace = loadedWorkspace.Object,
@@ -224,6 +291,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var result = await _target.LoadAsync(
             "/workspace/Project.csproj",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeFalse();
@@ -249,19 +317,20 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             .AddProject("PathlessProject", "PathlessProject", LanguageNames.CSharp).Solution;
 
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []));
 
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeFalse();
         result.Solution!.Projects.Should().ContainSingle(item => item.Name == "Project");
         result.Diagnostics.Should().HaveCount(2);
         result.Diagnostics.Should().OnlyContain(item => item.Id == "WorkspaceProjectSkipped");
-        _workspaceLoader.Verify(item => item.InspectCompatibility("/workspace/Project.csproj"), Times.Once);
+        _workspaceLoader.Verify(item => item.InspectCompatibility("/workspace/Project.csproj", null), Times.Once);
     }
 
     [Fact]
@@ -279,12 +348,13 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var projectId = solution.ProjectIds.Single();
         solution = solution.AddAnalyzerReference(projectId, projectAnalyzer);
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []));
 
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeFalse();
@@ -331,13 +401,14 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
             "/workspace",
+            null,
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeTrue();
         result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.NotSupported);
         result.Diagnostics.Should().ContainSingle(item => item.Id == "WorkspaceProjectSkipped");
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
-        _workspaceLoader.Verify(item => item.InspectCompatibility(It.IsAny<string>()), Times.Never);
+        _workspaceLoader.Verify(item => item.InspectCompatibility(It.IsAny<string>(), It.IsAny<WorkspaceMsBuildProperties?>()), Times.Never);
     }
 
     public void Dispose()
@@ -351,7 +422,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         Mock<ILoadedWorkspace> loadedWorkspace,
         CancellationToken? cancellationToken = null)
     {
-        _workspaceLoader.Setup(item => item.LoadAsync(path, cancellationToken ?? TestContext.Current.CancellationToken))
+        _workspaceLoader.Setup(item => item.LoadAsync(path, null, cancellationToken ?? TestContext.Current.CancellationToken))
             .ReturnsAsync(new WorkspaceLoadResult
             {
                 Workspace = loadedWorkspace.Object,

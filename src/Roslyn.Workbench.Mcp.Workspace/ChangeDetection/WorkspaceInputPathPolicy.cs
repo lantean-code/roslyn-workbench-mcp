@@ -2,40 +2,42 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal sealed class WorkspaceInputPathPolicy
 {
-    public static WorkspaceInputPathPolicy TrackAll { get; } = new([], StringComparison.Ordinal);
+    public static WorkspaceInputPathPolicy MonitorAll { get; } = new([]);
 
-    private readonly string[] _artifactRootPrefixes;
-    private readonly StringComparison _comparison;
+    private readonly StringComparison[] _excludedDirectoryRootComparisons;
+    private readonly string[] _excludedDirectoryRootPrefixes;
 
-    public IReadOnlyList<string> ArtifactRoots { get; }
+    public IReadOnlyList<string> ExcludedDirectoryRoots { get; }
 
     private WorkspaceInputPathPolicy(
-        IReadOnlyList<string> artifactRoots,
-        StringComparison comparison)
+        IReadOnlyList<FileSystemPathKey> excludedDirectoryRoots)
     {
-        ArtifactRoots = artifactRoots;
-        _comparison = comparison;
-        _artifactRootPrefixes = new string[artifactRoots.Count];
-        for (var index = 0; index < artifactRoots.Count; index++)
+        ExcludedDirectoryRoots = excludedDirectoryRoots.Select(static key => key.Path).ToArray();
+        _excludedDirectoryRootComparisons = new StringComparison[excludedDirectoryRoots.Count];
+        _excludedDirectoryRootPrefixes = new string[excludedDirectoryRoots.Count];
+        for (var index = 0; index < excludedDirectoryRoots.Count; index++)
         {
-            var root = artifactRoots[index];
-            _artifactRootPrefixes[index] = Path.EndsInDirectorySeparator(root)
+            var key = excludedDirectoryRoots[index];
+            var root = key.Path;
+            _excludedDirectoryRootComparisons[index] = key.Comparison;
+            _excludedDirectoryRootPrefixes[index] = Path.EndsInDirectorySeparator(root)
                 ? root
                 : root + Path.DirectorySeparatorChar;
         }
     }
 
-    public bool ShouldTrack(string? path)
+    public bool ShouldMonitor(string? path)
     {
         if (!TryNormalizePath(path, out var normalizedPath))
         {
             return true;
         }
 
-        for (var index = 0; index < ArtifactRoots.Count; index++)
+        for (var index = 0; index < ExcludedDirectoryRoots.Count; index++)
         {
-            if (string.Equals(normalizedPath, ArtifactRoots[index], _comparison)
-                || normalizedPath.StartsWith(_artifactRootPrefixes[index], _comparison))
+            var comparison = _excludedDirectoryRootComparisons[index];
+            if (string.Equals(normalizedPath, ExcludedDirectoryRoots[index], comparison)
+                || normalizedPath.StartsWith(_excludedDirectoryRootPrefixes[index], comparison))
             {
                 return false;
             }
@@ -45,37 +47,32 @@ internal sealed class WorkspaceInputPathPolicy
     }
 
     public static WorkspaceInputPathPolicy Create(
-        IEnumerable<string> artifactRoots,
+        IEnumerable<string> excludedDirectoryRoots,
         IEnumerable<string> protectedPaths,
-        StringComparison comparison)
+        IWorkspacePathComparison pathComparison)
     {
-        var comparer = comparison == StringComparison.OrdinalIgnoreCase
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-
-        var normalizedProtectedPaths = NormalizePaths(protectedPaths, comparer);
-        var normalizedArtifactRoots = NormalizePaths(artifactRoots, comparer);
-        var safeArtifactRoots = new List<string>(normalizedArtifactRoots.Count);
-        foreach (var artifactRoot in normalizedArtifactRoots)
+        var normalizedProtectedPaths = NormalizePaths(protectedPaths, pathComparison);
+        var normalizedExcludedDirectoryRoots = NormalizePaths(excludedDirectoryRoots, pathComparison);
+        var safeExcludedDirectoryRoots = new List<FileSystemPathKey>(normalizedExcludedDirectoryRoots.Count);
+        foreach (var excludedDirectoryRoot in normalizedExcludedDirectoryRoots)
         {
-            if (!ContainsAnyPath(artifactRoot, normalizedProtectedPaths, comparison))
+            if (!ContainsAnyPath(excludedDirectoryRoot, normalizedProtectedPaths))
             {
-                safeArtifactRoots.Add(artifactRoot);
+                safeExcludedDirectoryRoots.Add(excludedDirectoryRoot);
             }
         }
 
-        var minimalArtifactRoots = RemoveNestedRoots(safeArtifactRoots, comparison);
-        return new WorkspaceInputPathPolicy(minimalArtifactRoots, comparison);
+        var minimalExcludedDirectoryRoots = RemoveNestedRoots(safeExcludedDirectoryRoots);
+        return new WorkspaceInputPathPolicy(minimalExcludedDirectoryRoots);
     }
 
     private static bool ContainsAnyPath(
-        string root,
-        IReadOnlyList<string> paths,
-        StringComparison comparison)
+        FileSystemPathKey root,
+        IReadOnlyList<FileSystemPathKey> paths)
     {
         foreach (var path in paths)
         {
-            if (ContainsPath(root, path, comparison))
+            if (ContainsPath(root.Path, path.Path, root.Comparison))
             {
                 return true;
             }
@@ -84,38 +81,39 @@ internal sealed class WorkspaceInputPathPolicy
         return false;
     }
 
-    private static List<string> NormalizePaths(
+    private static List<FileSystemPathKey> NormalizePaths(
         IEnumerable<string> paths,
-        StringComparer comparer)
+        IWorkspacePathComparison pathComparison)
     {
-        var normalizedPaths = new List<string>();
-        var uniquePaths = new HashSet<string>(comparer);
+        var normalizedPaths = new List<FileSystemPathKey>();
+        var uniquePaths = new HashSet<FileSystemPathKey>();
         foreach (var path in paths)
         {
-            if (!TryNormalizePath(path, out var normalizedPath)
-                || !uniquePaths.Add(normalizedPath))
+            if (!TryNormalizePath(path, out var normalizedPath))
             {
                 continue;
             }
 
-            normalizedPaths.Add(normalizedPath);
+            var normalizedPathKey = pathComparison.CreateKey(normalizedPath);
+            if (uniquePaths.Add(normalizedPathKey))
+            {
+                normalizedPaths.Add(normalizedPathKey);
+            }
         }
 
         return normalizedPaths;
     }
 
-    private static List<string> RemoveNestedRoots(
-        List<string> artifactRoots,
-        StringComparison comparison)
+    private static List<FileSystemPathKey> RemoveNestedRoots(List<FileSystemPathKey> excludedDirectoryRoots)
     {
-        artifactRoots.Sort(static (left, right) => left.Length.CompareTo(right.Length));
-        var minimalRoots = new List<string>(artifactRoots.Count);
-        foreach (var artifactRoot in artifactRoots)
+        excludedDirectoryRoots.Sort(static (left, right) => left.Path.Length.CompareTo(right.Path.Length));
+        var minimalRoots = new List<FileSystemPathKey>(excludedDirectoryRoots.Count);
+        foreach (var excludedDirectoryRoot in excludedDirectoryRoots)
         {
             var isNested = false;
             foreach (var existingRoot in minimalRoots)
             {
-                if (ContainsPath(existingRoot, artifactRoot, comparison))
+                if (ContainsPath(existingRoot.Path, excludedDirectoryRoot.Path, existingRoot.Comparison))
                 {
                     isNested = true;
                     break;
@@ -124,7 +122,7 @@ internal sealed class WorkspaceInputPathPolicy
 
             if (!isNested)
             {
-                minimalRoots.Add(artifactRoot);
+                minimalRoots.Add(excludedDirectoryRoot);
             }
         }
 

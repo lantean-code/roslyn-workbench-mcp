@@ -5,5 +5,6 @@ internal interface IWorkspaceMutationCandidateProcessor
     ValueTask<WorkspaceMutationCandidateProcessingResult> ProcessAsync(
         Solution currentSolution,
         Solution candidateSolution,
+        string workspaceRoot,
         CancellationToken cancellationToken);
 }

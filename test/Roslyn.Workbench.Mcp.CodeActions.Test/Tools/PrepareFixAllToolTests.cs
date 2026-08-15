@@ -35,6 +35,10 @@ public sealed class PrepareFixAllToolTests
 
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
+        _context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            WorkspaceRoot = "WorkspaceRoot",
+        });
         _timeProvider
             .Setup(item => item.GetUtcNow())
             .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -227,6 +231,7 @@ public sealed class PrepareFixAllToolTests
             .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
+                "WorkspaceRoot",
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
@@ -260,6 +265,7 @@ public sealed class PrepareFixAllToolTests
             .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
+                "WorkspaceRoot",
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
@@ -288,6 +294,7 @@ public sealed class PrepareFixAllToolTests
             .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
+                "WorkspaceRoot",
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(new WorkspaceOperationError
             {
@@ -467,6 +474,7 @@ public sealed class PrepareFixAllToolTests
             .Setup(item => item.ProcessAsync(
                 roslyn.Solution,
                 roslyn.Solution,
+                "WorkspaceRoot",
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Succeeded(roslyn.Solution));
 

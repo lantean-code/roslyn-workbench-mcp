@@ -10,7 +10,10 @@ public sealed class PluginPackagePathPolicyTests
 
     public PluginPackagePathPolicyTests()
     {
-        _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
+
         _target = new PluginPackagePathPolicy(
             _pathComparison.Object,
             _pathContainment.Object);
@@ -43,6 +46,17 @@ public sealed class PluginPackagePathPolicyTests
 
         result.Should().Be(isContained);
         containedPath.Should().Be(expectedPath);
-        _target.Comparer.Should().BeSameAs(StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public void GIVEN_Path_WHEN_CreatingKey_THEN_ShouldUseSharedPathComparison()
+    {
+        const string path = "/packages/plugin";
+        var expected = new FileSystemPathKey(path, isCaseSensitive: true);
+
+        var result = _target.CreateKey(path);
+
+        result.Should().Be(expected);
+        _pathComparison.Verify(item => item.CreateKey(path), Times.Once);
     }
 }

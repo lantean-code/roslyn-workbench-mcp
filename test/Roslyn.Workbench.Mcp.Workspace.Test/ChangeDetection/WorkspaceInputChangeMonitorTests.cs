@@ -27,8 +27,8 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _fileSystem.SetupGet(item => item.FileSystemWatcher).Returns(_watcherFactory.Object);
         _watcherFactory.Setup(item => item.New(_workspaceRoot)).Returns(_watcher.Object);
         _pathComparison
-            .Setup(item => item.GetComparer(_workspaceRoot))
-            .Returns(StringComparer.Ordinal);
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
 
         _target = new WorkspaceInputChangeMonitor(
             _fileSystem.Object,
@@ -118,10 +118,10 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     {
         var documentPath = Path.Combine(_workspaceRoot, "Document.cs");
         var createdPath = Path.Combine(_workspaceRoot, "Project", "Created.cs");
-        var ignoredPaths = new HashSet<string>(StringComparer.Ordinal)
+        var ignoredPaths = new HashSet<FileSystemPathKey>
         {
-            documentPath,
-            createdPath,
+            new FileSystemPathKey(documentPath, isCaseSensitive: true),
+            new FileSystemPathKey(createdPath, isCaseSensitive: true),
         };
 
         _target.Start();
@@ -260,7 +260,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
             PathPolicy = WorkspaceInputPathPolicy.Create(
                 [artifactRoot],
                 [Path.Combine(_workspaceRoot, "Project", "Project.csproj")],
-                StringComparison.Ordinal),
+                _pathComparison.Object),
         };
 
         _target.Track(manifest);
@@ -270,8 +270,12 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _target.Change.Should().BeNull();
     }
 
-    [Fact]
-    public void GIVEN_TrackedInputInsideArtifactRoot_WHEN_FileChanges_THEN_ShouldReportChange()
+    [Theory]
+    [InlineData(WatcherChangeTypes.Changed)]
+    [InlineData(WatcherChangeTypes.Created)]
+    [InlineData(WatcherChangeTypes.Deleted)]
+    public void GIVEN_PolledInputInsideArtifactRoot_WHEN_WatcherReportsFileChange_THEN_ShouldIgnoreChange(
+        WatcherChangeTypes changeType)
     {
         var artifactRoot = Path.Combine(_workspaceRoot, "Project", "custom-obj");
         var trackedInput = Path.Combine(artifactRoot, "Project.nuget.g.props");
@@ -287,24 +291,63 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
             PathPolicy = WorkspaceInputPathPolicy.Create(
                 [artifactRoot],
                 [Path.Combine(_workspaceRoot, "Project", "Project.csproj")],
-                StringComparison.Ordinal),
+                _pathComparison.Object),
         };
 
         _target.Track(manifest);
-        _watcher.Raise(
-            item => item.Changed += null,
-            new FileSystemEventArgs(
-                WatcherChangeTypes.Changed,
-                Path.GetDirectoryName(trackedInput)!,
-                Path.GetFileName(trackedInput)));
+        var args = new FileSystemEventArgs(
+            changeType,
+            Path.GetDirectoryName(trackedInput)!,
+            Path.GetFileName(trackedInput));
 
-        WaitForChange();
-        _target.Change.Should().BeEquivalentTo(new WorkspaceInputChange
+        if (changeType == WatcherChangeTypes.Changed)
         {
-            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
-            Kind = WorkspaceInputChangeKind.Changed,
-            Path = trackedInput,
-        });
+            _watcher.Raise(item => item.Changed += null, args);
+        }
+        else if (changeType == WatcherChangeTypes.Created)
+        {
+            _watcher.Raise(item => item.Created += null, args);
+        }
+        else
+        {
+            _watcher.Raise(item => item.Deleted += null, args);
+        }
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_PolledInputInsideArtifactRoot_WHEN_WatcherReportsRename_THEN_ShouldIgnoreChange()
+    {
+        var artifactRoot = Path.Combine(_workspaceRoot, "Project", "custom-obj");
+        var trackedInput = Path.Combine(artifactRoot, "Project.nuget.g.props");
+        using var manifest = new WorkspaceInputManifest
+        {
+            Files =
+            [
+                new WorkspaceInputFileFingerprint
+                {
+                    Path = trackedInput,
+                },
+            ],
+            PathPolicy = WorkspaceInputPathPolicy.Create(
+                [artifactRoot],
+                [Path.Combine(_workspaceRoot, "Project", "Project.csproj")],
+                _pathComparison.Object),
+        };
+
+        _target.Track(manifest);
+        var args = new RenamedEventArgs(
+            WatcherChangeTypes.Renamed,
+            artifactRoot,
+            "Renamed.props",
+            Path.GetFileName(trackedInput));
+
+        _watcher.Raise(item => item.Renamed += null, args);
+
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeNull();
     }
 
     [Fact]
@@ -431,7 +474,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _target.Dispose();
     }
 
-    private void TrackWorkspaceInputs(IReadOnlySet<string>? ignoredPaths = null)
+    private void TrackWorkspaceInputs(IReadOnlySet<FileSystemPathKey>? ignoredPaths = null)
     {
         using var manifest = new WorkspaceInputManifest
         {
@@ -449,7 +492,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
                     Path = Path.Combine(_workspaceRoot, "Document.cs"),
                 },
             ],
-            IgnoredPaths = ignoredPaths ?? new HashSet<string>(),
+            IgnoredPaths = ignoredPaths ?? new HashSet<FileSystemPathKey>(),
         };
 
         _target.Track(manifest);

@@ -1,7 +1,13 @@
+using Moq;
+
+using Roslyn.Workbench.Mcp.Workspace.State;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
 
 public sealed class ProjectStructureTargetFrameworkIntegrationTests
 {
+    private static readonly Guid _workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     [Fact]
     public void GIVEN_TargetFrameworksImportedFromProps_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValues()
     {
@@ -29,7 +35,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
                 </Project>
                 """);
 
-            var result = target.GetTargetFrameworks(projectPath);
+            var result = target.GetTargetFrameworks(_workspaceId, projectPath);
 
             result.IsSucceeded.Should().BeTrue();
             result.TargetFrameworks.Should().Equal("net10.0", "net9.0");
@@ -46,7 +52,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
         var target = CreateTarget();
         var projectPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n"), "Missing.csproj");
 
-        var result = target.GetTargetFrameworks(projectPath);
+        var result = target.GetTargetFrameworks(_workspaceId, projectPath);
 
         result.IsSucceeded.Should().BeFalse();
         result.ErrorMessage.Should().Contain(projectPath);
@@ -63,7 +69,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             var projectPath = Path.Combine(directoryPath, "Malformed.csproj");
             File.WriteAllText(projectPath, "<Project><PropertyGroup>");
 
-            var result = target.GetTargetFrameworks(projectPath);
+            var result = target.GetTargetFrameworks(_workspaceId, projectPath);
 
             result.IsSucceeded.Should().BeFalse();
             result.ErrorMessage.Should().Contain(projectPath);
@@ -85,7 +91,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             var projectPath = Path.Combine(directoryPath, "Sample.csproj");
             File.WriteAllText(projectPath, "<Project />");
 
-            var result = target.GetTargetFrameworks(projectPath);
+            var result = target.GetTargetFrameworks(_workspaceId, projectPath);
 
             result.IsSucceeded.Should().BeTrue();
             result.TargetFrameworks.Should().BeEmpty();
@@ -107,10 +113,47 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             var projectPath = Path.Combine(directoryPath, "Sample.csproj");
             File.WriteAllText(projectPath, "<Project><PropertyGroup><TargetFramework> net10.0 </TargetFramework></PropertyGroup></Project>");
 
-            var result = target.GetTargetFrameworks(projectPath);
+            var result = target.GetTargetFrameworks(_workspaceId, projectPath);
 
             result.IsSucceeded.Should().BeTrue();
             result.TargetFrameworks.Should().ContainSingle().Which.Should().Be("net10.0");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_ConfigurationSpecificTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldUseWorkspaceProperties()
+    {
+        var properties = new WorkspaceMsBuildProperties
+        {
+            Configuration = "Release",
+        };
+
+        var target = CreateTarget(properties);
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Configured.csproj");
+            File.WriteAllText(projectPath, """
+                <Project>
+                  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+                    <TargetFramework>net9.0</TargetFramework>
+                  </PropertyGroup>
+                  <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var result = target.GetTargetFrameworks(_workspaceId, projectPath);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.TargetFrameworks.Should().ContainSingle().Which.Should().Be("net9.0");
         }
         finally
         {
@@ -125,7 +168,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
         var project = workspace.AddProject("Project", LanguageNames.CSharp);
         var target = CreateTarget();
 
-        var result = target.GetTargetFrameworks(project);
+        var result = target.GetTargetFrameworks(_workspaceId, project);
 
         result.IsSucceeded.Should().BeTrue();
         result.TargetFrameworks.Should().BeEmpty();
@@ -150,19 +193,66 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
             var sharedProjectB = AddProject(workspace, "SharedB", sharedProjectPath);
             var otherProject = AddProject(workspace, "Other", otherProjectPath);
 
-            var results = target.GetTargetFrameworks(
+            Project[] projects =
             [
                 sharedProjectA,
                 pathlessProject,
                 sharedProjectB,
                 otherProject,
-            ], TestContext.Current.CancellationToken);
+            ];
+
+            var results = target.GetTargetFrameworks(
+                _workspaceId,
+                projects,
+                TestContext.Current.CancellationToken);
 
             results.Should().HaveCount(4);
             results[0].TargetFrameworks.Should().Equal("net10.0");
             results[1].TargetFrameworks.Should().BeEmpty();
             results[2].Should().BeSameAs(results[0]);
             results[3].TargetFrameworks.Should().Equal("net9.0", "net8.0");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_CaseVariantProjectPathsOnCaseInsensitiveFileSystem_WHEN_GettingTargetFrameworks_THEN_ShouldReuseEvaluation()
+    {
+        using var workspace = new AdhocWorkspace();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Sample.csproj");
+            var caseVariantProjectPath = Path.Combine(directoryPath, "SAMPLE.CSPROJ");
+            File.WriteAllText(projectPath, "<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+
+            var firstProject = AddProject(workspace, "First", projectPath);
+            var secondProject = AddProject(workspace, "Second", caseVariantProjectPath);
+            Project[] projects = [firstProject, secondProject];
+
+            var fileSystem = new FileSystem();
+            var pathComparison = new Mock<IWorkspacePathComparison>();
+            pathComparison
+                .Setup(item => item.CreateKey(It.IsAny<string>()))
+                .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
+
+            var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+            var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
+            var target = new ProjectStructureService(pathComparison.Object, pathNormalizer, msBuildPropertiesProvider.Object);
+
+            var results = target.GetTargetFrameworks(
+                _workspaceId,
+                projects,
+                TestContext.Current.CancellationToken);
+
+            results.Should().HaveCount(2);
+            results[0].TargetFrameworks.Should().ContainSingle().Which.Should().Be("net10.0");
+            results[1].Should().BeSameAs(results[0]);
         }
         finally
         {
@@ -182,7 +272,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
         var cancellationToken = cancellationSource.Token;
         cancellationSource.Cancel();
 
-        var action = () => target.GetTargetFrameworks(projects, cancellationToken);
+        var action = () => target.GetTargetFrameworks(_workspaceId, projects, cancellationToken);
 
         action.Should().Throw<OperationCanceledException>()
             .Where(exception => exception.CancellationToken == cancellationToken);
@@ -201,13 +291,15 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
         return workspace.AddProject(projectInfo);
     }
 
-    private static ProjectStructureService CreateTarget()
+    private static ProjectStructureService CreateTarget(WorkspaceMsBuildProperties? properties = null)
     {
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
+        var msBuildPropertiesProvider = new Mock<IWorkspaceMsBuildPropertiesProvider>();
+        msBuildPropertiesProvider.Setup(item => item.Get(_workspaceId)).Returns(properties);
 
-        return new ProjectStructureService(pathComparison, pathNormalizer);
+        return new ProjectStructureService(pathComparison, pathNormalizer, msBuildPropertiesProvider.Object);
     }
 
     private static string CreateDirectoryPath()

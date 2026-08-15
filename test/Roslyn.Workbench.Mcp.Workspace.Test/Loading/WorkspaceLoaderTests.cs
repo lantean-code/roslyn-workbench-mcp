@@ -99,11 +99,16 @@ public sealed class WorkspaceLoaderTests
     public void GIVEN_ProjectPath_WHEN_InspectingCompatibility_THEN_ShouldReturnInspectorResult()
     {
         var expected = (IsSdkStyle: true, Diagnostics: (IReadOnlyList<DiagnosticInfo>)Array.Empty<DiagnosticInfo>());
-        _compatibilityInspector.Setup(item => item.Inspect("ProjectPath")).Returns(expected);
+        var properties = new WorkspaceMsBuildProperties
+        {
+            Configuration = "Release",
+        };
 
-        var result = _target.InspectCompatibility("ProjectPath");
+        _compatibilityInspector.Setup(item => item.Inspect("ProjectPath", properties)).Returns(expected);
+
+        var result = _target.InspectCompatibility("ProjectPath", properties);
 
         result.Should().BeEquivalentTo(expected);
-        _compatibilityInspector.Verify(item => item.Inspect("ProjectPath"), Times.Once);
+        _compatibilityInspector.Verify(item => item.Inspect("ProjectPath", properties), Times.Once);
     }
 }

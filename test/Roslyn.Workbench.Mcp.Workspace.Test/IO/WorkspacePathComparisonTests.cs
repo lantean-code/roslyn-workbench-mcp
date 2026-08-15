@@ -3,19 +3,17 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
 public sealed class WorkspacePathComparisonTests
 {
     [Fact]
-    public void GIVEN_CurrentOperatingSystem_WHEN_ReadingPolicy_THEN_ShouldExposePlatformDefaultComparison()
+    public void GIVEN_CurrentOperatingSystem_WHEN_CreatingPathKey_THEN_ShouldCapturePlatformDefaultComparison()
     {
         var target = new WorkspacePathComparison();
         var expectedComparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-        var expectedComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+        var result = target.CreateKey("Path");
 
-        target.Comparison.Should().Be(expectedComparison);
-        target.Comparer.Should().BeSameAs(expectedComparer);
+        result.Path.Should().Be("Path");
+        result.Comparison.Should().Be(expectedComparison);
     }
 
     [Fact]
@@ -29,11 +27,9 @@ public sealed class WorkspacePathComparisonTests
 
         var mountComparison = target.GetComparison("/mnt/c");
         var comparison = target.GetComparison("/mnt/c/Users/Developer/Repository");
-        var comparer = target.GetComparer("/mnt/c/Users/Developer/Repository");
 
         mountComparison.Should().Be(StringComparison.OrdinalIgnoreCase);
         comparison.Should().Be(StringComparison.OrdinalIgnoreCase);
-        comparer.Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
     }
 
     [Theory]
@@ -84,15 +80,9 @@ public sealed class WorkspacePathComparisonTests
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-        var expectedComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-
         var comparison = target.GetComparison("/mnt/c/Users/Developer/Repository");
-        var comparer = target.GetComparer("/mnt/c/Users/Developer/Repository");
 
         comparison.Should().Be(expectedComparison);
-        comparer.Should().BeSameAs(expectedComparer);
     }
 
     [Fact]

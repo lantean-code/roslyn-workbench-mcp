@@ -83,6 +83,7 @@
 - On an internal type, declare members that form the type's normal usable surface as public; do not repeat `internal` merely because the containing type is internal. Use internal member accessibility only when it expresses a deliberately narrower boundary, such as a reflection-hidden helper, controlled construction seam, or cross-type coordination method.
 - Use `async` only when needed.
 - Async methods should follow normal .NET naming and generally end with `Async`, except for well-known event handlers or framework-required signatures.
+- Place `CancellationToken` last in every production method signature, including signatures where trailing optional parameters would be exempt from `CA1068`. Prefer required nullable parameters at internal boundaries when optional syntax would force the token out of the final position; do not add forwarding overloads solely to preserve optional arguments.
 - Do not use `ConfigureAwait(false)`. Production code in this repository executes within the console-hosted application, which does not install a synchronization context; await tasks directly.
 - Assign an awaited result to a clearly named local before querying it or accessing members. Avoid constructs such as `(await operation).Any(...)`; separate the asynchronous operation from the subsequent synchronous processing.
 - Prefer LINQ for simple operations; use loops for complex logic or hot paths where clarity or allocation control matters.

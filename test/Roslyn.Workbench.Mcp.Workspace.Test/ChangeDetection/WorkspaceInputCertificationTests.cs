@@ -5,14 +5,20 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 public sealed class WorkspaceInputCertificationTests : IDisposable
 {
     private readonly Mock<IWorkspaceInputChangeMonitor> _changeMonitor;
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly WorkspaceInputCertification _target;
 
     public WorkspaceInputCertificationTests()
     {
         _changeMonitor = new Mock<IWorkspaceInputChangeMonitor>();
+        _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
+
         _target = new WorkspaceInputCertification(
             _changeMonitor.Object,
-            StringComparer.Ordinal);
+            _pathComparison.Object);
     }
 
     [Fact]
@@ -79,7 +85,8 @@ public sealed class WorkspaceInputCertificationTests : IDisposable
 
         using var result = _target.Complete(manifest, ["/Workspace/Document.cs"]);
 
-        result.IgnoredPaths.Should().Contain("/Workspace/Document.cs");
+        var expectedPath = new FileSystemPathKey("/Workspace/Document.cs", isCaseSensitive: true);
+        result.IgnoredPaths.Should().Contain(expectedPath);
         result.IgnoredPaths.Should().NotBeSameAs(manifest.IgnoredPaths);
         _changeMonitor.Verify(item => item.Track(result), Times.Once);
     }

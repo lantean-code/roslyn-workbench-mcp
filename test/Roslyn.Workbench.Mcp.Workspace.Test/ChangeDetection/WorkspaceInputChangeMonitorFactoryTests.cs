@@ -14,7 +14,6 @@ public sealed class WorkspaceInputChangeMonitorFactoryTests
         var workspaceRoot = Path.Combine(Path.GetTempPath(), "Workspace");
         fileSystem.SetupGet(item => item.FileSystemWatcher).Returns(watcherFactory.Object);
         watcherFactory.Setup(item => item.New(workspaceRoot)).Returns(watcher.Object);
-        pathComparison.Setup(item => item.GetComparer(workspaceRoot)).Returns(StringComparer.Ordinal);
         var target = new WorkspaceInputChangeMonitorFactory(
             fileSystem.Object,
             pathComparison.Object);

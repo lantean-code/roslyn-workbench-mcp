@@ -112,6 +112,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceQueryCache, WorkspaceQueryCache>();
         services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, PluginQueryCacheLifecycleObserver>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
+        services.AddSingleton<IWorkspaceMsBuildPropertiesProvider, WorkspaceMsBuildPropertiesProvider>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
         services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
@@ -119,12 +120,14 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
         services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
         services.AddSingleton<IWorkspaceProjectCompatibilityInspector, WorkspaceProjectCompatibilityInspector>();
+        services.AddSingleton<IWorkspaceMsBuildPropertiesResolver, WorkspaceMsBuildPropertiesResolver>();
         services.AddSingleton<IWorkspaceLoader, WorkspaceLoader>();
         services.AddSingleton<IWorkspaceRootResolver, WorkspaceRootResolver>();
         services.AddSingleton<IWorkspaceLoadWorkflow, WorkspaceLoadWorkflow>();
         services.AddSingleton<IWorkspaceProjectInputResolver, WorkspaceProjectInputResolver>();
         services.AddSingleton<IWorkspaceInputChangeMonitorFactory, WorkspaceInputChangeMonitorFactory>();
         services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
+        services.AddSingleton<IWorkspaceReadOnlyDocumentValidator, WorkspaceReadOnlyDocumentValidator>();
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();

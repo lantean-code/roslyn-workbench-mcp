@@ -65,10 +65,10 @@ public sealed class CommitRecoveryStoreTests
         _path.Setup(item => item.GetFullPath(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal))))
             .Returns((string path) => NormalizeVirtualPath(path));
 
-        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
-        _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
-        _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
         _pathContainment
             .Setup(item => item.TryGetContainedPath(
                 It.IsAny<string>(),

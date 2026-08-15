@@ -14,7 +14,11 @@ After the caller has established that the workspace is fully trusted, `workspace
 
 Solutions may contain unsupported languages, projects without usable paths and non-SDK-style projects. The Host removes those projects from the loaded solution and returns `WorkspaceProjectSkipped` diagnostics. Loading fails when no supported SDK-style C# project remains. Unresolved analyser references are also removed and reported rather than preventing otherwise supported projects from loading.
 
-By default, the workspace root is inferred from the loaded path. A caller may supply an existing absolute `workspaceRoot` that contains the loaded path to define the repository, coordination and transaction boundary. Every retained project and source document must remain within that root.
+By default, the workspace root is inferred from the loaded path. A caller may supply an existing absolute `workspaceRoot` that contains the loaded path to define the repository, coordination and transaction boundary. Every retained project must remain within that root.
+
+`workspace-open` may also include `msBuildProperties` with the allowlisted global properties `artifactsPath`, `configuration`, `platform`, `targetFramework` and `runtimeIdentifier`. Omit the object when the project needs no caller-specific build configuration. Values apply only to that workspace's MSBuild evaluation and are retained across reloads; they do not change process environment variables. Unknown properties and empty values are rejected rather than passed through to MSBuild.
+
+An `artifactsPath` must name an existing absolute directory because it is an MSBuild evaluation setting, not a filesystem permission. Project files must remain inside `workspaceRoot`. Source, additional and analyzer-config documents selected by the evaluated projects may reside outside it, including linked files, package-provided source and generated intermediates; those documents are transparently queryable but read-only. The Host certifies their loaded content against disk and polls their individual fingerprints for later changes without watching or trusting their containing trees. Source mutations remain strictly limited to `workspaceRoot`.
 
 When the server runs under WSL and opens a workspace on a mounted Windows filesystem, `workspace-open` returns a `WorkspaceOnWindowsFileSystemFromWsl` warning. This layout is supported but can substantially reduce load and query performance. Prefer WSL-native storage or run the server directly on Windows.
 

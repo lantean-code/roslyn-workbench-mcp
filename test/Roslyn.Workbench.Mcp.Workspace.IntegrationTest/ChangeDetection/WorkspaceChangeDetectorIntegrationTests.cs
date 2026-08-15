@@ -3,6 +3,49 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 public sealed class WorkspaceChangeDetectorIntegrationTests
 {
     [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_GlobalProperties_WHEN_ResolvingProjectInputs_THEN_ShouldUseThemForImportsAndArtifactRoots()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Sample.csproj");
+            var releasePropsPath = Path.Combine(directoryPath, "Release.props");
+            var artifactsPath = Path.Combine(directoryPath, "external-artifacts");
+            File.WriteAllText(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <Import Project="Release.props" Condition="'$(Configuration)' == 'Release'" />
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            File.WriteAllText(releasePropsPath, "<Project />");
+            var properties = new WorkspaceMsBuildProperties
+            {
+                ArtifactsPath = artifactsPath,
+                Configuration = "Release",
+            };
+
+            var pathComparison = new WorkspacePathComparison();
+            var target = new WorkspaceProjectInputResolver(pathComparison);
+
+            var result = target.Resolve(projectPath, properties);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.ImportedPaths.Should().Contain(releasePropsPath);
+            result.ArtifactRoots.Should().Contain(artifactsPath);
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
     public void GIVEN_ProjectWithCustomImportedProps_WHEN_BuildingManifest_THEN_ShouldIncludeEvaluatedImportPath()
     {
         MsBuildTestRegistration.EnsureRegistered();
@@ -60,9 +103,9 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
             using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
 
             manifest.Files.Select(static file => file.Path).Should().Contain(importedPropsPath);
-            manifest.PathPolicy.ArtifactRoots.Should().Contain(Path.Combine(directoryPath, ".vs"));
-            manifest.PathPolicy.ArtifactRoots.Should().Contain(Path.Combine(directoryPath, "bin"));
-            manifest.PathPolicy.ArtifactRoots.Should().Contain(Path.Combine(directoryPath, "obj"));
+            manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, ".vs"));
+            manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "bin"));
+            manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "obj"));
         }
         finally
         {
@@ -71,7 +114,8 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
     }
 
     [Fact]
-    public void GIVEN_EvaluatedCustomAndCentralArtifactPaths_WHEN_BuildingManifest_THEN_ShouldExcludeOnlyThoseTrees()
+    [Trait("Category", "Integration")]
+    public void GIVEN_EvaluatedArtifactPaths_WHEN_BuildingManifest_THEN_ShouldExcludeTreesAndPollLoadedDocuments()
     {
         MsBuildTestRegistration.EnsureRegistered();
         var directoryPath = CreateDirectoryPath();
@@ -148,10 +192,16 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
 
-            manifest.PathPolicy.ArtifactRoots.Should().Contain(Path.Combine(directoryPath, "artifacts"));
-            manifest.PathPolicy.ArtifactRoots.Should().Contain(Path.Combine(directoryPath, "intermediate"));
-            manifest.Files.Select(static file => file.Path).Should().Contain(conventionalNamedSourcePath);
-            manifest.Files.Select(static file => file.Path).Should().NotContain(customIntermediatePath, centralArtifactPath);
+            manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "artifacts"));
+            manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "intermediate"));
+            manifest.Files.Select(static file => file.Path).Should().Contain(
+                conventionalNamedSourcePath,
+                customIntermediatePath,
+                centralArtifactPath);
+
+            File.WriteAllText(customIntermediatePath, "class ChangedIntermediateGenerated { }");
+
+            target.HasChanged(manifest, TestContext.Current.CancellationToken).Should().BeTrue();
         }
         finally
         {

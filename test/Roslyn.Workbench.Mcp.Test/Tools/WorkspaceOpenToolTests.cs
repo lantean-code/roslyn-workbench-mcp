@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
 
@@ -44,6 +45,7 @@ public sealed class WorkspaceOpenToolTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<WorkspaceMsBuildProperties?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -52,8 +54,14 @@ public sealed class WorkspaceOpenToolTests
     public async Task GIVEN_OpenRequest_WHEN_OpeningWorkspace_THEN_ShouldRouteAndMapResult()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
+        var properties = new WorkspaceMsBuildProperties
+        {
+            ArtifactsPath = "/artifacts",
+            Configuration = "Release",
+        };
+
         service
-            .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None))
+            .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", properties, CancellationToken.None))
             .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceOpenOutcome
             {
                 Workspace = new WorkspaceIdentity
@@ -73,6 +81,7 @@ public sealed class WorkspaceOpenToolTests
         {
             Path = "/workspace/Sample.csproj",
             Alias = "Alias",
+            MsBuildProperties = properties,
             WorkspaceRoot = "/workspace",
         };
         string? errorMessage = null;
@@ -105,11 +114,12 @@ public sealed class WorkspaceOpenToolTests
         data.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("11111111-1111-1111-1111-111111111111");
         data.GetProperty("projectCount").GetInt32().Should().Be(2);
         data.GetProperty("documentCount").GetInt32().Should().Be(5);
-        service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None), Times.Once);
+        data.TryGetProperty("msBuildProperties", out _).Should().BeFalse();
+        service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", properties, CancellationToken.None), Times.Once);
         protocolFactory.Verify(item => item.CreateServerOwnedTool<WorkspaceOpenRequest, WorkspaceOpenData>(
             "workspace-open",
             "Workspace Open",
-            "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+            "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
             false,
             false,
             null,

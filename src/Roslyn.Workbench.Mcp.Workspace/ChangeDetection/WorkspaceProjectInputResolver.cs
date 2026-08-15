@@ -22,7 +22,9 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
         _pathComparison = pathComparison;
     }
 
-    public WorkspaceProjectInputResolution Resolve(string? projectPath)
+    public WorkspaceProjectInputResolution Resolve(
+        string? projectPath,
+        WorkspaceMsBuildProperties? msBuildProperties = null)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
         {
@@ -38,12 +40,14 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
 
         try
         {
-            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
-            var project = projectCollection.LoadProject(projectPath);
-            var comparer = _pathComparison.GetComparer(projectPath);
+            var globalProperties = msBuildProperties?.ToGlobalProperties()
+                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+            var effectiveGlobalProperties = new Dictionary<string, string>(globalProperties, StringComparer.OrdinalIgnoreCase);
+            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection(effectiveGlobalProperties);
+            var project = projectCollection.LoadProject(projectPath);
             var importedPaths = new List<string>();
-            var uniqueImportedPaths = new HashSet<string>(comparer);
+            var uniqueImportedPaths = new HashSet<FileSystemPathKey>();
             foreach (var import in project.Imports)
             {
                 var path = import.ImportedProject?.FullPath;
@@ -53,13 +57,14 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
                 }
 
                 var fullPath = Path.GetFullPath(path);
-                if (uniqueImportedPaths.Add(fullPath))
+                var fullPathKey = _pathComparison.CreateKey(fullPath);
+                if (uniqueImportedPaths.Add(fullPathKey))
                 {
                     importedPaths.Add(fullPath);
                 }
             }
 
-            var artifactRoots = ResolveArtifactRoots(project, comparer);
+            var artifactRoots = ResolveArtifactRoots(project);
             return WorkspaceProjectInputResolution.Succeeded(
                 importedPaths.ToArray(),
                 artifactRoots);
@@ -70,17 +75,15 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
         }
     }
 
-    private static string[] ResolveArtifactRoots(
-        Microsoft.Build.Evaluation.Project project,
-        StringComparer comparer)
+    private string[] ResolveArtifactRoots(Microsoft.Build.Evaluation.Project project)
     {
         var artifactRoots = new List<string>();
-        var uniqueArtifactRoots = new HashSet<string>(comparer);
+        var uniqueArtifactRoots = new HashSet<FileSystemPathKey>();
         foreach (var propertyName in _artifactPathPropertyNames)
         {
             var propertyValue = project.GetPropertyValue(propertyName);
             if (!TryResolvePath(project.DirectoryPath, propertyValue, out var artifactRoot)
-                || !uniqueArtifactRoots.Add(artifactRoot))
+                || !uniqueArtifactRoots.Add(_pathComparison.CreateKey(artifactRoot)))
             {
                 continue;
             }
@@ -97,14 +100,14 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
         return artifactRoots.ToArray();
     }
 
-    private static void AddFallbackArtifactRoot(
+    private void AddFallbackArtifactRoot(
         string projectDirectory,
         string directoryName,
         List<string> artifactRoots,
-        HashSet<string> uniqueArtifactRoots)
+        HashSet<FileSystemPathKey> uniqueArtifactRoots)
     {
         var artifactRoot = Path.GetFullPath(Path.Combine(projectDirectory, directoryName));
-        if (uniqueArtifactRoots.Add(artifactRoot))
+        if (uniqueArtifactRoots.Add(_pathComparison.CreateKey(artifactRoot)))
         {
             artifactRoots.Add(artifactRoot);
         }

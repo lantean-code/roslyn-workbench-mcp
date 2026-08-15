@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
 
 public sealed class ProjectTargetFrameworkResolverTests
 {
+    private static readonly Guid _workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     [Fact]
     public void GIVEN_CachedProject_WHEN_GettingTargetFrameworks_THEN_ShouldReturnCachedResult()
     {
@@ -17,7 +19,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         var cacheEntry = new ProjectTargetFrameworkCacheEntry(cachedTargetFrameworks);
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(_workspaceId, project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -41,13 +43,13 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             project,
             TestContext.Current.CancellationToken);
 
         result.TargetFrameworks.Should().Equal("net10.0");
         projectStructureService.Verify(
-            item => item.GetTargetFrameworks(It.IsAny<Project>()),
+            item => item.GetTargetFrameworks(It.IsAny<Guid>(), It.IsAny<Project>()),
             Times.Never);
     }
 
@@ -79,7 +81,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             project,
             TestContext.Current.CancellationToken);
 
@@ -99,11 +101,11 @@ public sealed class ProjectTargetFrameworkResolverTests
         var failedResult = ProjectTargetFrameworksResult.Failed("Failure");
 
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
+            .Setup(item => item.GetTargetFrameworks(_workspaceId, project))
             .Returns(failedResult);
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(_workspaceId, project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -132,14 +134,14 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var result = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             project,
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeFalse();
         result.ErrorMessage.Should().Be("Failure");
         projectStructureService.Verify(
-            item => item.GetTargetFrameworks(project),
+            item => item.GetTargetFrameworks(_workspaceId, project),
             Times.Once);
     }
 
@@ -169,7 +171,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         cacheScopeFactory
             .Setup(item => item.CreateScope(
-                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                _workspaceId,
                 It.IsAny<Solution>(),
                 "project-target-framework"))
             .Returns(cacheScope.Object);
@@ -192,6 +194,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(
+                _workspaceId,
                 It.Is<IReadOnlyList<Project>>(items =>
                     items.Count == 2
                     && items[0] == firstMiss
@@ -204,7 +207,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             projects,
             TestContext.Current.CancellationToken);
 
@@ -212,6 +215,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         results[1].TargetFrameworks.Should().Equal("net9.0");
         results[2].TargetFrameworks.Should().Equal("net10.0");
         projectStructureService.Verify(item => item.GetTargetFrameworks(
+            _workspaceId,
             It.Is<IReadOnlyList<Project>>(items =>
                 items.Count == 2
                 && items[0] == firstMiss
@@ -219,7 +223,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             TestContext.Current.CancellationToken), Times.Once);
 
         projectStructureService.Verify(
-            item => item.GetTargetFrameworks(It.IsAny<Project>()),
+            item => item.GetTargetFrameworks(It.IsAny<Guid>(), It.IsAny<Project>()),
             Times.Never);
 
         cacheScope.Verify(item => item.Store(
@@ -249,7 +253,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         cacheScopeFactory
             .Setup(item => item.CreateScope(
-                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                _workspaceId,
                 It.IsAny<Solution>(),
                 "project-target-framework"))
             .Returns(cacheScope.Object);
@@ -262,6 +266,7 @@ public sealed class ProjectTargetFrameworkResolverTests
 
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(
+                _workspaceId,
                 It.IsAny<IReadOnlyList<Project>>(),
                 TestContext.Current.CancellationToken))
             .Returns(evaluatedResults);
@@ -271,7 +276,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             projects,
             TestContext.Current.CancellationToken);
 
@@ -297,7 +302,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         ProjectTargetFrameworkCacheEntry? configuredEntry = expectedEntry;
 
         cacheScopeFactory
-            .Setup(item => item.CreateScope(Guid.Parse("11111111-1111-1111-1111-111111111111"), project.Solution, "project-target-framework"))
+            .Setup(item => item.CreateScope(_workspaceId, project.Solution, "project-target-framework"))
             .Returns(cacheScope.Object);
 
         cacheScope
@@ -311,7 +316,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             [project],
             TestContext.Current.CancellationToken);
 
@@ -319,6 +324,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             .Which.TargetFrameworks.Should().Equal("net10.0");
         projectStructureService.Verify(
             item => item.GetTargetFrameworks(
+                It.IsAny<Guid>(),
                 It.IsAny<IReadOnlyList<Project>>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -352,7 +358,7 @@ public sealed class ProjectTargetFrameworkResolverTests
             cacheScopeFactory.Object);
 
         var results = target.Resolve(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            _workspaceId,
             [project],
             TestContext.Current.CancellationToken);
 

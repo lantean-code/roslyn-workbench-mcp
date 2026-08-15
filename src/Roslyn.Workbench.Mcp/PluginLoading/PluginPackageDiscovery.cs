@@ -18,7 +18,7 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
 
     public IReadOnlyList<PluginPackageDiscoveryResult> Discover(IReadOnlyList<string> searchRoots)
     {
-        var packageDirectories = new HashSet<string>(_packagePathPolicy.Comparer);
+        var packageDirectories = new HashSet<FileSystemPathKey>();
         var results = new List<PluginPackageDiscoveryResult>();
         foreach (var searchRoot in searchRoots)
         {
@@ -33,7 +33,7 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
                 {
                     if (_packagePathPolicy.TryGetContainedPath(searchRoot, packageDirectory, out var containedPackageDirectory))
                     {
-                        packageDirectories.Add(containedPackageDirectory);
+                        packageDirectories.Add(_packagePathPolicy.CreateKey(containedPackageDirectory));
                     }
                     else
                     {
@@ -51,9 +51,9 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
             }
         }
 
-        foreach (var packageDirectory in packageDirectories.OrderBy(static path => path, StringComparer.Ordinal))
+        foreach (var packageDirectory in packageDirectories.OrderBy(static key => key.Path, StringComparer.Ordinal))
         {
-            results.Add(DiscoverPackage(packageDirectory));
+            results.Add(DiscoverPackage(packageDirectory.Path));
         }
 
         return results;

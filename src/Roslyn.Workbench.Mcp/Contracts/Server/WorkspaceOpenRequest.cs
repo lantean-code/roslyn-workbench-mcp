@@ -19,6 +19,11 @@ internal sealed record WorkspaceOpenRequest
     public required string Path { get; init; }
 
     /// <summary>
+    /// Gets the optional allowlisted MSBuild global properties used to evaluate this workspace.
+    /// </summary>
+    public WorkspaceMsBuildProperties? MsBuildProperties { get; init; }
+
+    /// <summary>
     /// Gets the optional absolute repository or workspace root used for coordination and transaction boundaries.
     /// </summary>
     public string? WorkspaceRoot { get; init; }

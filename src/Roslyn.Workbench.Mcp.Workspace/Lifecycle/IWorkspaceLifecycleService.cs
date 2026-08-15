@@ -6,29 +6,19 @@ namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 internal interface IWorkspaceLifecycleService
 {
     /// <summary>
-    /// Opens the requested workspace using automatic root discovery.
-    /// </summary>
-    /// <param name="path">The absolute solution or project path.</param>
-    /// <param name="alias">The optional workspace alias.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The open result.</returns>
-    ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
-        string path,
-        string? alias,
-        CancellationToken cancellationToken);
-
-    /// <summary>
     /// Opens the requested workspace.
     /// </summary>
     /// <param name="path">The absolute solution or project path.</param>
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="workspaceRoot">The optional repository or workspace root.</param>
+    /// <param name="msBuildProperties">The optional allowlisted MSBuild global properties.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The open result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
         string path,
         string? alias,
         string? workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties,
         CancellationToken cancellationToken);
 
     /// <summary>

@@ -8,16 +8,16 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     private readonly IFileSystem _fileSystem;
     private readonly IFileSystemWatcher _watcher;
-    private readonly StringComparer _pathComparer;
+    private readonly IWorkspacePathComparison _pathComparison;
     private readonly Channel<WorkspaceInputWatcherEvent> _events;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly TaskCompletionSource _trackingStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Task _eventProcessingTask;
     private WorkspaceInputChange? _change;
-    private IReadOnlySet<string> _ignoredPaths;
-    private WorkspaceInputPathPolicy _pathPolicy = WorkspaceInputPathPolicy.TrackAll;
-    private IReadOnlySet<string>? _trackedDirectories;
-    private IReadOnlySet<string>? _trackedFiles;
+    private IReadOnlySet<FileSystemPathKey> _ignoredPaths;
+    private WorkspaceInputPathPolicy _pathPolicy = WorkspaceInputPathPolicy.MonitorAll;
+    private IReadOnlySet<FileSystemPathKey>? _trackedDirectories;
+    private IReadOnlySet<FileSystemPathKey>? _trackedFiles;
     private int _disposeState;
     private int _pendingEventCount;
     private int _startState;
@@ -30,8 +30,8 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         string workspaceRoot)
     {
         _fileSystem = fileSystem;
-        _pathComparer = pathComparison.GetComparer(workspaceRoot);
-        _ignoredPaths = new HashSet<string>(_pathComparer);
+        _pathComparison = pathComparison;
+        _ignoredPaths = new HashSet<FileSystemPathKey>();
         _watcher = fileSystem.FileSystemWatcher.New(workspaceRoot);
         _watcher.IncludeSubdirectories = true;
         _watcher.InternalBufferSize = _maximumWatcherBufferSize;
@@ -61,12 +61,12 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         _ignoredPaths = manifest.IgnoredPaths;
         _pathPolicy = manifest.PathPolicy;
         _trackedDirectories = manifest.Directories
-            .Select(static directory => directory.Path)
-            .ToHashSet(_pathComparer);
+            .Select(directory => _pathComparison.CreateKey(directory.Path))
+            .ToHashSet();
 
         _trackedFiles = manifest.Files
-            .Select(static file => file.Path)
-            .ToHashSet(_pathComparer);
+            .Select(file => _pathComparison.CreateKey(file.Path))
+            .ToHashSet();
 
         Start();
         _trackingStarted.TrySetResult();
@@ -191,7 +191,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         switch (watcherEvent.Kind)
         {
             case WorkspaceInputWatcherEventKind.Changed:
-                if (!ShouldTrackChangedPath(watcherEvent.Path))
+                if (!ShouldMonitorChangedPath(watcherEvent.Path))
                 {
                     return false;
                 }
@@ -200,7 +200,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Created:
-                if (!ShouldTrackCreatedPath(watcherEvent.Path))
+                if (!ShouldMonitorCreatedPath(watcherEvent.Path))
                 {
                     return false;
                 }
@@ -209,7 +209,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Deleted:
-                if (!ShouldTrackDeletedPath(watcherEvent.Path))
+                if (!ShouldMonitorDeletedPath(watcherEvent.Path))
                 {
                     return false;
                 }
@@ -218,7 +218,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 return true;
 
             case WorkspaceInputWatcherEventKind.Renamed:
-                if (!ShouldTrackRenamedPath(watcherEvent.Path, watcherEvent.PreviousPath))
+                if (!ShouldMonitorRenamedPath(watcherEvent.Path, watcherEvent.PreviousPath))
                 {
                     return false;
                 }
@@ -246,21 +246,25 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         }
     }
 
-    private bool ShouldTrackChangedPath(string? path)
+    private bool ShouldMonitorChangedPath(string? path)
     {
         var trackedFiles = _trackedFiles;
         var pathIsIgnored = path is not null && IsIgnoredPath(path);
         return path is not null
             && !pathIsIgnored
+            && _pathPolicy.ShouldMonitor(path)
             && trackedFiles is not null
-            && trackedFiles.Contains(path);
+            && trackedFiles.Contains(_pathComparison.CreateKey(path));
     }
 
-    private bool ShouldTrackCreatedPath(string? path)
+    private bool ShouldMonitorCreatedPath(string? path)
     {
         var trackedFiles = _trackedFiles;
         var trackedDirectories = _trackedDirectories;
-        if (path is null || trackedFiles is null || trackedDirectories is null)
+        if (path is null
+            || trackedFiles is null
+            || trackedDirectories is null
+            || !_pathPolicy.ShouldMonitor(path))
         {
             return false;
         }
@@ -271,7 +275,8 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
             return false;
         }
 
-        if (trackedFiles.Contains(path) || trackedDirectories.Contains(path))
+        var pathKey = _pathComparison.CreateKey(path);
+        if (trackedFiles.Contains(pathKey) || trackedDirectories.Contains(pathKey))
         {
             return true;
         }
@@ -279,19 +284,24 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         return IsPersistentUntrackedPath(path, trackedDirectories);
     }
 
-    private bool ShouldTrackDeletedPath(string? path)
+    private bool ShouldMonitorDeletedPath(string? path)
     {
         var trackedFiles = _trackedFiles;
         var trackedDirectories = _trackedDirectories;
-        if (path is null || trackedFiles is null || trackedDirectories is null || IsIgnoredPath(path))
+        if (path is null
+            || trackedFiles is null
+            || trackedDirectories is null
+            || IsIgnoredPath(path)
+            || !_pathPolicy.ShouldMonitor(path))
         {
             return false;
         }
 
-        return trackedFiles.Contains(path) || trackedDirectories.Contains(path);
+        var pathKey = _pathComparison.CreateKey(path);
+        return trackedFiles.Contains(pathKey) || trackedDirectories.Contains(pathKey);
     }
 
-    private bool ShouldTrackRenamedPath(string? path, string? previousPath)
+    private bool ShouldMonitorRenamedPath(string? path, string? previousPath)
     {
         var trackedFiles = _trackedFiles;
         var trackedDirectories = _trackedDirectories;
@@ -302,19 +312,20 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
         var previousPathWasTracked = previousPath is not null
             && !IsIgnoredPath(previousPath)
-            && (trackedFiles.Contains(previousPath) || trackedDirectories.Contains(previousPath));
+            && _pathPolicy.ShouldMonitor(previousPath)
+            && ContainsPath(trackedFiles, trackedDirectories, previousPath);
 
         if (previousPathWasTracked)
         {
             return true;
         }
 
-        if (path is null || IsIgnoredPath(path))
+        if (path is null || IsIgnoredPath(path) || !_pathPolicy.ShouldMonitor(path))
         {
             return false;
         }
 
-        if (trackedFiles.Contains(path) || trackedDirectories.Contains(path))
+        if (ContainsPath(trackedFiles, trackedDirectories, path))
         {
             return true;
         }
@@ -322,15 +333,25 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         return IsPersistentUntrackedPath(path, trackedDirectories);
     }
 
-    private bool IsPersistentUntrackedPath(string path, IReadOnlySet<string> trackedDirectories)
+    private bool ContainsPath(
+        IReadOnlySet<FileSystemPathKey> trackedFiles,
+        IReadOnlySet<FileSystemPathKey> trackedDirectories,
+        string path)
     {
-        if (!_pathPolicy.ShouldTrack(path))
+        var pathKey = _pathComparison.CreateKey(path);
+        return trackedFiles.Contains(pathKey) || trackedDirectories.Contains(pathKey);
+    }
+
+    private bool IsPersistentUntrackedPath(string path, IReadOnlySet<FileSystemPathKey> trackedDirectories)
+    {
+        if (!_pathPolicy.ShouldMonitor(path))
         {
             return false;
         }
 
         var parent = Path.GetDirectoryName(path);
-        var belongsToTrackedDirectory = parent is not null && trackedDirectories.Contains(parent);
+        var belongsToTrackedDirectory = parent is not null
+            && trackedDirectories.Contains(_pathComparison.CreateKey(parent));
         if (!belongsToTrackedDirectory)
         {
             return false;
@@ -341,7 +362,8 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     private bool IsIgnoredPath(string path)
     {
-        if (_ignoredPaths.Contains(path))
+        var pathKey = _pathComparison.CreateKey(path);
+        if (_ignoredPaths.Contains(pathKey))
         {
             return true;
         }
@@ -350,14 +372,14 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         var fileName = Path.GetFileName(path);
         foreach (var ignoredPath in _ignoredPaths)
         {
-            var ignoredDirectory = Path.GetDirectoryName(ignoredPath);
-            var hasSameDirectory = _pathComparer.Equals(directory, ignoredDirectory);
+            var ignoredDirectory = Path.GetDirectoryName(ignoredPath.Path);
+            var hasSameDirectory = string.Equals(directory, ignoredDirectory, ignoredPath.Comparison);
             if (!hasSameDirectory)
             {
                 continue;
             }
 
-            var ignoredFileName = Path.GetFileName(ignoredPath);
+            var ignoredFileName = Path.GetFileName(ignoredPath.Path);
             var prefix = $".{ignoredFileName}.";
             var hasExpectedPrefix = fileName.StartsWith(prefix, StringComparison.Ordinal);
             var hasExpectedSuffix = fileName.EndsWith(".tmp", StringComparison.Ordinal);

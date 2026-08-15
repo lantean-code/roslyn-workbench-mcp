@@ -8,6 +8,17 @@ public sealed class ExternalErrorReportProjectorTests
     [Fact]
     public void GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldIncludeOnlyAllowListedAnonymousData()
     {
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+            WorkspaceEpoch = 7,
+        };
+        var workspaceContext = new CapturedWorkspaceContext(
+            workspaceIdentity,
+            WorkspaceLifecycleState.Ready,
+            projectCount: 3,
+            documentCount: 20,
+            transactionRevision: null);
         var record = new CapturedErrorRecord
         {
             CorrelationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -36,14 +47,7 @@ public sealed class ExternalErrorReportProjectorTests
                     ],
                 },
             ],
-            Workspace = new CapturedWorkspaceContext
-            {
-                WorkspaceId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
-                WorkspaceEpoch = 7,
-                LifecycleState = "Ready",
-                ProjectCount = 3,
-                DocumentCount = 20,
-            },
+            Workspace = workspaceContext,
             ServerVersion = "ServerVersion",
             RoslynVersion = "RoslynVersion",
             DotNetVersion = "DotNetVersion",

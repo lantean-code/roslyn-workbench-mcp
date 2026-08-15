@@ -44,66 +44,80 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
         }
 
         var context = contextLease.Context;
-        PluginExecutionResult<MutationCandidate> proposalResult;
-        ToolExecutionFailureResult? containmentFailure;
-        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        try
         {
-            try
+            PluginExecutionResult<MutationCandidate> proposalResult;
+            ToolExecutionFailureResult? containmentFailure;
+            using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
             {
-                proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+                try
+                {
+                    proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+                }
+                finally
+                {
+                    containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+                }
             }
-            finally
+
+            if (containmentFailure is not null)
             {
-                containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
+                    isError: true);
+            }
+
+            if (proposalResult.HasError)
+            {
+                var failure = new ToolExecutionFailureResult
+                {
+                    Outcome = proposalResult.Outcome,
+                    Error = proposalResult.Error,
+                    RequiredAction = proposalResult.RequiredAction,
+                    Diagnostics = proposalResult.Diagnostics,
+                    Warnings = proposalResult.Warnings,
+                };
+
+                return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
+            }
+
+            if (!proposalResult.IsSucceeded)
+            {
+                var noChange = PluginExecutionResult.NoChange<MutationData>(
+                    diagnostics: proposalResult.Diagnostics,
+                    warnings: proposalResult.Warnings);
+
+                return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
+            }
+
+            PluginExecutionResult<MutationData> stagedResult;
+            using (StartPhase(WorkbenchPerformanceEventSource.MutationStagingPhase))
+            {
+                stagedResult = await contextLease.StageAsync(
+                    _tool.Metadata.Name,
+                    proposalResult.Data,
+                    proposalResult.Diagnostics,
+                    proposalResult.Warnings,
+                    cancellationToken);
+            }
+
+            using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+            {
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
+                    stagedResult.HasError);
             }
         }
-
-        if (containmentFailure is not null)
+        catch (Exception exception)
         {
-            return CreateStructuredResult(
-                McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
-                isError: true);
-        }
+            var workspaceContext = new CapturedWorkspaceContext(
+                context.WorkspaceIdentity,
+                context.CurrentSolution,
+                context.TransactionRevision);
 
-        if (proposalResult.HasError)
-        {
-            var failure = new ToolExecutionFailureResult
-            {
-                Outcome = proposalResult.Outcome,
-                Error = proposalResult.Error,
-                RequiredAction = proposalResult.RequiredAction,
-                Diagnostics = proposalResult.Diagnostics,
-                Warnings = proposalResult.Warnings,
-            };
-
-            return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
-        }
-
-        if (!proposalResult.IsSucceeded)
-        {
-            var noChange = PluginExecutionResult.NoChange<MutationData>(
-                diagnostics: proposalResult.Diagnostics,
-                warnings: proposalResult.Warnings);
-
-            return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
-        }
-
-        PluginExecutionResult<MutationData> stagedResult;
-        using (StartPhase(WorkbenchPerformanceEventSource.MutationStagingPhase))
-        {
-            stagedResult = await contextLease.StageAsync(
-                _tool.Metadata.Name,
-                proposalResult.Data,
-                proposalResult.Diagnostics,
-                proposalResult.Warnings,
-                cancellationToken);
-        }
-
-        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
-        {
-            return CreateStructuredResult(
-                McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
-                stagedResult.HasError);
+            throw new WorkspaceAttributedToolException(
+                workspaceContext,
+                exception);
         }
     }
 }

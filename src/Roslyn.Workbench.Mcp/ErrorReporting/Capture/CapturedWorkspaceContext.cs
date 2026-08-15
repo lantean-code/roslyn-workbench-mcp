@@ -1,16 +1,58 @@
+using Microsoft.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 internal sealed record CapturedWorkspaceContext
 {
-    public required Guid WorkspaceId { get; init; }
+    public Guid WorkspaceId { get; }
 
-    public required long WorkspaceEpoch { get; init; }
+    public long WorkspaceEpoch { get; }
 
-    public required string LifecycleState { get; init; }
+    public string LifecycleState { get; }
 
-    public int ProjectCount { get; init; }
+    public int ProjectCount { get; }
 
-    public int DocumentCount { get; init; }
+    public int DocumentCount { get; }
 
-    public int? TransactionRevision { get; init; }
+    public int? TransactionRevision { get; }
+
+    public CapturedWorkspaceContext(
+        WorkspaceIdentity workspaceIdentity,
+        Solution currentSolution,
+        int? transactionRevision)
+        : this(
+            workspaceIdentity,
+            GetAcquiredExecutionLifecycleState(transactionRevision),
+            currentSolution.ProjectIds.Count,
+            GetDocumentCount(currentSolution),
+            transactionRevision)
+    {
+    }
+
+    public CapturedWorkspaceContext(
+        WorkspaceIdentity workspaceIdentity,
+        WorkspaceLifecycleState lifecycleState,
+        int projectCount,
+        int documentCount,
+        int? transactionRevision)
+    {
+        WorkspaceId = workspaceIdentity.WorkspaceId;
+        WorkspaceEpoch = workspaceIdentity.WorkspaceEpoch;
+        LifecycleState = lifecycleState.ToString();
+        ProjectCount = projectCount;
+        DocumentCount = documentCount;
+        TransactionRevision = transactionRevision;
+    }
+
+    private static WorkspaceLifecycleState GetAcquiredExecutionLifecycleState(int? transactionRevision)
+    {
+        return transactionRevision is null
+            ? WorkspaceLifecycleState.Ready
+            : WorkspaceLifecycleState.TransactionActive;
+    }
+
+    private static int GetDocumentCount(Solution currentSolution)
+    {
+        return currentSolution.Projects.Sum(static project => project.Documents.Count());
+    }
 }

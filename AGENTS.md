@@ -104,6 +104,8 @@
 
 - Every request to invoke or use the Review Agent skill must be executed by a fresh subagent, not by the primary working agent.
 - Spawn the review subagent without conversation context so its conclusions are not influenced by implementation discussion or earlier review conclusions. Give it only the review target, the applicable repository instructions and the requirement to read and follow the Review Agent skill.
+- The primary agent must include the exact validation commands already run, their results and whether the reviewed files changed afterwards in the review handoff. The review subagent must treat current successful validation evidence as reusable and must not repeat an equivalent command against the unchanged reviewed baseline merely to reproduce the same result.
+- The review subagent may run additional or repeated validation only when the supplied evidence is missing or stale, a suspected defect requires reproduction, the existing coverage does not exercise the reviewed behaviour, or a materially different command is needed. Its report must distinguish validation evidence supplied by the primary agent from commands the review subagent ran itself.
 - The review subagent must remain read-only and return its findings to the primary agent. It must not modify files, stage changes or delegate the review again.
 - After any material review-driven correction, use another fresh context-free Review Agent subagent for the repeated review.
 

@@ -46,17 +46,31 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         }
 
         var context = contextLease.Context;
-        CodeActionExecutionResult<TResponse> result;
-        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        try
         {
-            result = await _handler.ExecuteAsync(request, context, cancellationToken);
-        }
+            CodeActionExecutionResult<TResponse> result;
+            using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+            {
+                result = await _handler.ExecuteAsync(request, context, cancellationToken);
+            }
 
-        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+            using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+            {
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializeCodeActionQuery(result),
+                    result.HasError);
+            }
+        }
+        catch (Exception exception)
         {
-            return CreateStructuredResult(
-                McpPublishedResultSerializer.SerializeCodeActionQuery(result),
-                result.HasError);
+            var workspaceContext = new CapturedWorkspaceContext(
+                context.WorkspaceIdentity,
+                context.CurrentSolution,
+                context.TransactionRevision);
+
+            throw new WorkspaceAttributedToolException(
+                workspaceContext,
+                exception);
         }
     }
 }

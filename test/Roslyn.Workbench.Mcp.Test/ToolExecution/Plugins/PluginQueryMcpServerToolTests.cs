@@ -1,14 +1,17 @@
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.Plugins;
 
-public sealed class PluginQueryMcpServerToolTests
+public sealed class PluginQueryMcpServerToolTests : IDisposable
 {
     private readonly Mock<IToolRequestBinder> _requestBinder;
+    private readonly AdhocWorkspace _roslynWorkspace;
 
     public PluginQueryMcpServerToolTests()
     {
+        _roslynWorkspace = new AdhocWorkspace();
         _requestBinder = new Mock<IToolRequestBinder>();
         var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var request = new TestQueryRequest
@@ -23,6 +26,11 @@ public sealed class PluginQueryMcpServerToolTests
                 out request,
                 out errorMessage))
             .Returns(true);
+    }
+
+    public void Dispose()
+    {
+        _roslynWorkspace.Dispose();
     }
 
     [Fact]
@@ -210,6 +218,7 @@ public sealed class PluginQueryMcpServerToolTests
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var context = new Mock<IQueryContext>();
+        ToolExecutionContextMockHelper.ConfigurePluginContext(context, _roslynWorkspace.CurrentSolution);
         var operationLease = new Mock<IAsyncDisposable>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         contextFactory
@@ -228,7 +237,12 @@ public sealed class PluginQueryMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeOfType<InvalidOperationException>();
+        assertion.Which.WorkspaceContext.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        assertion.Which.WorkspaceContext.WorkspaceEpoch.Should().Be(3);
+        assertion.Which.WorkspaceContext.LifecycleState.Should().Be(nameof(WorkspaceLifecycleState.TransactionActive));
+        assertion.Which.WorkspaceContext.TransactionRevision.Should().Be(2);
         contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
@@ -239,6 +253,7 @@ public sealed class PluginQueryMcpServerToolTests
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var context = new Mock<IQueryContext>();
+        ToolExecutionContextMockHelper.ConfigurePluginContext(context, _roslynWorkspace.CurrentSolution);
         var operationLease = new Mock<IAsyncDisposable>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         using var cancellationSource = new CancellationTokenSource();
@@ -259,7 +274,8 @@ public sealed class PluginQueryMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeAssignableTo<OperationCanceledException>();
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
 
@@ -269,6 +285,7 @@ public sealed class PluginQueryMcpServerToolTests
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var context = new Mock<IQueryContext>();
+        ToolExecutionContextMockHelper.ConfigurePluginContext(context, _roslynWorkspace.CurrentSolution);
         var operationLease = new Mock<IAsyncDisposable>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         using var unrelatedCancellation = new CancellationTokenSource();
@@ -290,7 +307,8 @@ public sealed class PluginQueryMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeSameAs(exception);
         contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }

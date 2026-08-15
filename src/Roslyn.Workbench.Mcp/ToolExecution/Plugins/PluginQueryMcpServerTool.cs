@@ -51,32 +51,46 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         }
 
         var context = contextLease.Context;
-        PluginExecutionResult<TResponse> result;
-        ToolExecutionFailureResult? containmentFailure;
-        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        try
         {
-            try
+            PluginExecutionResult<TResponse> result;
+            ToolExecutionFailureResult? containmentFailure;
+            using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
             {
-                result = await _handler.ExecuteAsync(request, context, cancellationToken);
+                try
+                {
+                    result = await _handler.ExecuteAsync(request, context, cancellationToken);
+                }
+                finally
+                {
+                    containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+                }
             }
-            finally
+
+            if (containmentFailure is not null)
             {
-                containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
+                    isError: true);
+            }
+
+            using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+            {
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializePluginQuery(result),
+                    result.HasError);
             }
         }
-
-        if (containmentFailure is not null)
+        catch (Exception exception)
         {
-            return CreateStructuredResult(
-                McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
-                isError: true);
-        }
+            var workspaceContext = new CapturedWorkspaceContext(
+                context.WorkspaceIdentity,
+                context.CurrentSolution,
+                context.TransactionRevision);
 
-        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
-        {
-            return CreateStructuredResult(
-                McpPublishedResultSerializer.SerializePluginQuery(result),
-                result.HasError);
+            throw new WorkspaceAttributedToolException(
+                workspaceContext,
+                exception);
         }
     }
 }

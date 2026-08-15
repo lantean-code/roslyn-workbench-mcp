@@ -10,5 +10,6 @@ internal interface IErrorCaptureService
         IDictionary<string, JsonElement>? arguments,
         TimeSpan duration,
         bool cancellationRequested,
+        CapturedWorkspaceContext? workspaceContext,
         Exception exception);
 }

@@ -24,6 +24,8 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
     private readonly ErrorReportingOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly IWorkspaceSessionStore _workspaceSessionStore;
+    private readonly IWorkspaceSelector _workspaceSelector;
+    private readonly IToolRequestBinder _requestBinder;
     private readonly IPluginCatalogState _pluginCatalogState;
     private readonly CodeActionCatalogSnapshot _codeActionCatalog;
 
@@ -31,12 +33,16 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         IOptions<ErrorReportingOptions> options,
         TimeProvider timeProvider,
         IWorkspaceSessionStore workspaceSessionStore,
+        IWorkspaceSelector workspaceSelector,
+        IToolRequestBinder requestBinder,
         IPluginCatalogState pluginCatalogState,
         CodeActionCatalogSnapshot codeActionCatalog)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
         _workspaceSessionStore = workspaceSessionStore;
+        _workspaceSelector = workspaceSelector;
+        _requestBinder = requestBinder;
         _pluginCatalogState = pluginCatalogState;
         _codeActionCatalog = codeActionCatalog;
     }
@@ -47,10 +53,11 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         IDictionary<string, JsonElement>? arguments,
         TimeSpan duration,
         bool cancellationRequested,
+        CapturedWorkspaceContext? workspaceContext,
         Exception exception)
     {
         var failureTime = _timeProvider.GetUtcNow();
-        var workspace = CaptureWorkspace(arguments);
+        var workspace = workspaceContext ?? CaptureWorkspace(arguments);
         var (executionFamily, pluginClassification) = ClassifyTool(toolName);
         var exceptions = CaptureExceptionChain(exception);
 
@@ -78,35 +85,34 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
 
     private CapturedWorkspaceContext? CaptureWorkspace(IDictionary<string, JsonElement>? arguments)
     {
-        var workspaceId = TryGetWorkspaceId(arguments);
-        WorkspaceSessionSnapshot? session = null;
-        if (workspaceId is not null)
+        WorkspaceSelector? selector = null;
+        if (arguments is not null)
         {
-            session = _workspaceSessionStore.ReadSession(workspaceId.Value);
-        }
-        else
-        {
-            var snapshot = _workspaceSessionStore.ReadSnapshot();
-            if (snapshot.Workspaces.Count == 1)
+            if (!_requestBinder.TryBind<ErrorCaptureWorkspaceRequest>(
+                arguments,
+                out var request,
+                out _))
             {
-                session = snapshot.Workspaces.Values.Single();
+                return null;
             }
+
+            selector = request.Workspace;
         }
 
-        if (session is null)
+        var snapshot = _workspaceSessionStore.ReadSnapshot();
+        var selectionResult = _workspaceSelector.Select(snapshot, selector);
+        if (selectionResult.HasError)
         {
             return null;
         }
 
-        return new CapturedWorkspaceContext
-        {
-            WorkspaceId = session.Workspace.WorkspaceId,
-            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
-            LifecycleState = session.State.ToString(),
-            ProjectCount = session.ProjectCount,
-            DocumentCount = session.DocumentCount,
-            TransactionRevision = session.Transaction?.CurrentRevision,
-        };
+        var session = selectionResult.Selection.Session;
+        return new CapturedWorkspaceContext(
+            session.Workspace,
+            session.State,
+            session.ProjectCount,
+            session.DocumentCount,
+            session.Transaction?.CurrentRevision);
     }
 
     private (string ExecutionFamily, string PluginClassification) ClassifyTool(string toolName)
@@ -229,22 +235,6 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         }
 
         return captured.MoveToImmutable();
-    }
-
-    private static Guid? TryGetWorkspaceId(IDictionary<string, JsonElement>? arguments)
-    {
-        if (arguments is null
-            || !arguments.TryGetValue("workspace", out var workspace)
-            || workspace.ValueKind != JsonValueKind.Object
-            || !workspace.TryGetProperty("workspaceId", out var workspaceId)
-            || workspaceId.ValueKind != JsonValueKind.String)
-        {
-            return null;
-        }
-
-        return Guid.TryParse(workspaceId.GetString(), out var parsedWorkspaceId)
-            ? parsedWorkspaceId
-            : null;
     }
 
     private static string GetOperatingSystemFamily()

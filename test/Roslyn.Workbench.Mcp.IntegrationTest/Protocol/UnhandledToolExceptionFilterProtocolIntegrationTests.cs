@@ -1,5 +1,7 @@
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 
+using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,7 +12,9 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 
 using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
+using Roslyn.Workbench.Mcp.Plugins.Registration;
 using Roslyn.Workbench.Mcp.ToolExecution;
+using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -249,6 +253,238 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
 
     [Fact]
     [Trait("Category", "Integration")]
+    public async Task GIVEN_WorkspaceAttributedFailure_WHEN_RoutedThroughInstalledFilter_THEN_ShouldCaptureOriginalExecutionWorkspace()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        using var roslynWorkspace = new AdhocWorkspace();
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            WorkspaceEpoch = 5,
+            LoadedPath = "C:\\Workspace\\Solution.sln",
+            WorkspaceRoot = "C:\\Workspace",
+        };
+        var exception = new InvalidOperationException("Sensitive attributed failure");
+        var workspaceContext = new CapturedWorkspaceContext(
+            workspaceIdentity,
+            roslynWorkspace.CurrentSolution,
+            transactionRevision: 2);
+        var attributedException = new WorkspaceAttributedToolException(
+            workspaceContext,
+            exception);
+        var tool = McpServerTool.Create(
+            async (CancellationToken _) => await Task.FromException<string>(attributedException),
+            new McpServerToolCreateOptions
+            {
+                Name = "workspace-attribution-probe",
+            });
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool])
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+
+        var result = await client.CallToolAsync(
+            "workspace-attribution-probe",
+            cancellationToken: timeoutCancellation.Token);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent.Should().NotBeNull();
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+        var correlationId = structuredContent.GetProperty("error").GetProperty("correlationId").GetGuid();
+        capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(record =>
+            record.CorrelationId == correlationId
+            && record.Workspace != null
+            && record.Workspace.WorkspaceId == workspaceIdentity.WorkspaceId
+            && record.Workspace.WorkspaceEpoch == workspaceIdentity.WorkspaceEpoch
+            && record.Workspace.TransactionRevision == 2
+            && record.Exceptions.Length == 1
+            && record.Exceptions[0].Type == typeof(InvalidOperationException).FullName)), Times.Once);
+
+        await serverCancellation.CancelAsync();
+        await clientToServerPipe.Writer.CompleteAsync();
+        await serverToClientPipe.Writer.CompleteAsync();
+        await serverTask;
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_PluginQueryHandlerFailure_WHEN_RoutedThroughAdapterAndInstalledFilter_THEN_ShouldCaptureOriginalFailureAndExecutionWorkspace()
+    {
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.Logging.ClearProviders();
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider();
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        using var roslynWorkspace = new AdhocWorkspace();
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            WorkspaceEpoch = 5,
+            LoadedPath = "C:\\Workspace\\Solution.sln",
+            WorkspaceRoot = "C:\\Workspace",
+        };
+        var context = new Mock<IQueryContext>();
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(workspaceIdentity);
+        context.SetupGet(item => item.CurrentSolution).Returns(roslynWorkspace.CurrentSolution);
+        context.SetupGet(item => item.TransactionRevision).Returns(2);
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        contextFactory
+            .Setup(item => item.CreateQueryContext(
+                It.IsAny<AdapterFailureRequest>(),
+                "plugin.test",
+                "adapter-failure-probe",
+                It.IsAny<CancellationToken>()))
+            .Returns(ToolExecutionContextLease.Acquired(context.Object));
+        var handler = new Mock<IQueryToolHandler<AdapterFailureRequest, AdapterFailureResponse>>();
+        handler
+            .Setup(item => item.ExecuteAsync(
+                It.IsAny<AdapterFailureRequest>(),
+                context.Object,
+                It.IsAny<CancellationToken>()))
+            .Returns(ThrowAdapterFailure);
+        var registeredTool = new RegisteredTool
+        {
+            Plugin = new PluginMetadata
+            {
+                PluginId = "plugin.test",
+                DisplayName = "Plugin Test",
+                Version = "1.0.0",
+                SupportedApiVersion = PluginApiVersions.V1,
+            },
+            Metadata = new ToolRegistrationMetadata
+            {
+                Name = "adapter-failure-probe",
+                Title = "Adapter Failure Probe",
+                Description = "Exercises plugin failure attribution.",
+            },
+            Kind = ToolKind.Query,
+            RequestType = typeof(AdapterFailureRequest),
+            ResponseType = typeof(AdapterFailureResponse),
+        };
+        var registration = new PluginQueryRegistration<AdapterFailureRequest, AdapterFailureResponse>(
+            registeredTool,
+            handler.Object);
+        var protocolFactory = workbenchServices.GetRequiredService<IMcpToolProtocolFactory>();
+        var requestBinder = workbenchServices.GetRequiredService<IToolRequestBinder>();
+        var startupOptions = workbenchServices.GetRequiredService<IOptions<StartupOptions>>();
+        var tool = new PluginQueryMcpServerTool<AdapterFailureRequest, AdapterFailureResponse>(
+            registration,
+            contextFactory.Object,
+            protocolFactory,
+            requestBinder,
+            startupOptions);
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool])
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+
+        try
+        {
+            var result = await client.CallToolAsync(
+                "adapter-failure-probe",
+                cancellationToken: timeoutCancellation.Token);
+
+            result.IsError.Should().BeTrue();
+            result.StructuredContent.Should().NotBeNull();
+            var structuredContent = result.StructuredContent.GetValueOrDefault();
+            var error = structuredContent.GetProperty("error");
+            error.GetProperty("code").GetString().Should().Be("UnhandledException");
+            var correlationId = error.GetProperty("correlationId").GetGuid();
+            capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(record =>
+                record.CorrelationId == correlationId
+                && record.Workspace != null
+                && record.Workspace.WorkspaceId == workspaceIdentity.WorkspaceId
+                && record.Workspace.WorkspaceEpoch == workspaceIdentity.WorkspaceEpoch
+                && record.Workspace.LifecycleState == nameof(WorkspaceLifecycleState.TransactionActive)
+                && record.Workspace.TransactionRevision == 2
+                && record.Exceptions.Length == 1
+                && record.Exceptions[0].Type == typeof(InvalidOperationException).FullName
+                && record.Exceptions[0].StackFrames.Any(frame => frame.Method == nameof(ThrowAdapterFailure)))), Times.Once);
+            handler.Verify(item => item.ExecuteAsync(
+                It.IsAny<AdapterFailureRequest>(),
+                context.Object,
+                It.IsAny<CancellationToken>()), Times.Once);
+            contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
+        }
+        finally
+        {
+            await serverCancellation.CancelAsync();
+            await clientToServerPipe.Writer.CompleteAsync();
+            await serverToClientPipe.Writer.CompleteAsync();
+            await serverTask;
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_ToolThrowsProtocolException_WHEN_RoutedThroughInstalledFilter_THEN_ShouldReturnAndCaptureCorrelatedFailure()
     {
         var capturedErrorStore = new Mock<ICapturedErrorStore>();
@@ -459,4 +695,20 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
         await serverToClientPipe.Writer.CompleteAsync();
         await serverTask;
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ValueTask<PluginExecutionResult<AdapterFailureResponse>> ThrowAdapterFailure()
+    {
+        throw new InvalidOperationException("Sensitive adapter failure");
+    }
+
+#pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.
+    public sealed record AdapterFailureRequest : WorkspaceBoundRequest
+    {
+    }
+
+    public sealed class AdapterFailureResponse : IQueryResponse
+    {
+    }
+#pragma warning restore CA1515
 }

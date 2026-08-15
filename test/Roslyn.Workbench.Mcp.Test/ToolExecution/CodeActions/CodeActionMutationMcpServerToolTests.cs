@@ -1,17 +1,20 @@
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
 
-public sealed class CodeActionMutationMcpServerToolTests
+public sealed class CodeActionMutationMcpServerToolTests : IDisposable
 {
+    private readonly AdhocWorkspace _roslynWorkspace;
     private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<IToolRequestBinder> _requestBinder;
 
     public CodeActionMutationMcpServerToolTests()
     {
+        _roslynWorkspace = new AdhocWorkspace();
         _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _requestBinder = new Mock<IToolRequestBinder>();
@@ -44,6 +47,11 @@ public sealed class CodeActionMutationMcpServerToolTests
                 out referencedRequest,
                 out errorMessage))
             .Returns(true);
+    }
+
+    public void Dispose()
+    {
+        _roslynWorkspace.Dispose();
     }
 
     [Fact]
@@ -418,6 +426,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
+        ToolExecutionContextMockHelper.ConfigureCodeActionContext(context, _roslynWorkspace.CurrentSolution);
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
@@ -433,7 +442,8 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeOfType<InvalidOperationException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -443,6 +453,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
+        ToolExecutionContextMockHelper.ConfigureCodeActionContext(context, _roslynWorkspace.CurrentSolution);
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
@@ -460,7 +471,8 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), cancellationSource.Token);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeAssignableTo<OperationCanceledException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -470,6 +482,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
+        ToolExecutionContextMockHelper.ConfigureCodeActionContext(context, _roslynWorkspace.CurrentSolution);
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
@@ -494,7 +507,8 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeOfType<InvalidOperationException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -504,6 +518,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
+        ToolExecutionContextMockHelper.ConfigureCodeActionContext(context, _roslynWorkspace.CurrentSolution);
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
@@ -530,7 +545,8 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), cancellationSource.Token);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeAssignableTo<OperationCanceledException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 

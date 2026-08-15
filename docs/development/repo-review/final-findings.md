@@ -10,7 +10,7 @@ Every one of the twenty ledger candidates was independently retraced against the
 
 ## Remediation worklist
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 This table is the primary RWMCP2 remediation tracker. Its order is the required fix order; update both this row and the corresponding detailed finding whenever status changes. Rejected candidates are not remediation work items and remain documented in the durable ledger.
 
@@ -30,7 +30,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 12 | `RWMCP2-013` — The built-in replay audit bypasses the replay path it claims to validate | P2 | Complete — confirmed 2026-08-14 |
 | 13 | `RWMCP2-014` — Uncancelled cancellation exceptions bypass Workbench diagnostic capture | P2 | Complete — confirmed 2026-08-14 |
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Complete — confirmed 2026-08-14 |
-| 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Pending — remediation not started |
+| 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Complete — confirmed 2026-08-15 |
 | 16 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
 | 17 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
 
@@ -214,13 +214,15 @@ The fallback plugin handler deliberately throws `McpProtocolException` for proto
 
 ### RWMCP2-017 — Error capture loses valid Workspace selectors when several Workspaces are open
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-15
 
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp/ErrorReporting/Capture/ErrorCaptureService.cs:79-109,234-248`; `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/WorkspaceSelector.cs:6-27`; `src/Roslyn.Workbench.Mcp/Protocol/ToolRequestBinder.cs:361-370`; `src/Roslyn.Workbench.Mcp/ErrorReporting/Tools/PrepareErrorReportTool.cs:74-108`
 
 Public binding accepts Workspace selectors by canonical ID, alias or path and treats JSON property names case-insensitively. Error capture examines only exact lower-case `workspace` or `workspaceId` properties and retains the value only when it parses as a canonical ID; sole-Workspace fallback works only when exactly one session is open. With several Workspaces, an unexpected error from a valid alias/path selector or differently cased property loses its Workspace context. Error-report preparation then cannot include or apply the appropriate Workspace-scoped context and consent semantics, and no later layer reconstructs the selector from the bound request.
+
+**Remediation outcome:** Error capture now binds its Workspace-bearing request projection through the same request binder and selector implementation as tool execution, so canonical IDs, aliases, paths, casing variants, invalid selectors, mismatches and implicit single-Workspace fallback share production semantics. After a tool acquires its execution context, all four plugin and Code Action query/mutation adapters attach an immutable projection of that exact Workspace identity, epoch, lifecycle, project/document counts and transaction revision to unexpected failures. The top-level filter unwraps and captures the original exception with that authoritative context while preserving request cancellation and Host-owned protocol exceptions through `ExceptionDispatchInfo`; it falls back to request binding only for failures that occur before acquisition. Unit coverage exercises all adapters, capture precedence and filter branches; multi-Workspace integration coverage exercises selector forms; and a real MCP stream test joins the PluginQuery adapter, installed SDK filter and captured-error store while proving the correlation ID, original failure type, execution-time Workspace attribution and original throw-site stack frame. Host unit/contract tests passed 511/511 and Host integration tests passed 88/88. The first fresh context-free Review Agent identified that re-resolving a selector after lease disposal could attribute a failure to a replacement Workspace; immutable execution-time attribution corrected that defect. The final fresh Review Agent pass returned no findings after the joined protocol integration test closed its residual boundary gap. Changed-file `latest-all` analysis was clean apart from eight existing CA1812 warnings in unchanged dynamically instantiated plugin fixtures. No acceptance artefact changed, so the acceptance wrapper was not required. The user gave final confirmation on 2026-08-15.
 
 ### RWMCP2-019 — Failed initial preparation poisons the shared scenario cache
 

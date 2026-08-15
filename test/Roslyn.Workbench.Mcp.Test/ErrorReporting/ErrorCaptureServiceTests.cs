@@ -1,18 +1,35 @@
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
+using Roslyn.Workbench.Mcp.Workspace.Selection;
 
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
 
-public sealed class ErrorCaptureServiceTests
+public sealed class ErrorCaptureServiceTests : IDisposable
 {
     private readonly DateTimeOffset _now = DateTimeOffset.Parse("2000-01-01T00:00:00Z", CultureInfo.InvariantCulture);
     private readonly Mock<TimeProvider> _timeProvider = new Mock<TimeProvider>();
     private readonly Mock<IWorkspaceSessionStore> _workspaceSessionStore = new Mock<IWorkspaceSessionStore>();
+    private readonly Mock<IWorkspaceSelector> _workspaceSelector = new Mock<IWorkspaceSelector>();
+    private readonly Mock<IToolRequestBinder> _requestBinder = new Mock<IToolRequestBinder>();
+    private readonly AdhocWorkspace _roslynWorkspace = new AdhocWorkspace();
 
     public ErrorCaptureServiceTests()
     {
         _timeProvider.Setup(item => item.GetUtcNow()).Returns(_now);
         _workspaceSessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot());
+
+        var selectionError = new WorkspaceOperationError
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        _workspaceSelector
+            .Setup(item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSelectionResult.Failure(selectionError));
     }
 
     [Fact]
@@ -28,6 +45,7 @@ public sealed class ErrorCaptureServiceTests
             arguments: null,
             TimeSpan.FromMilliseconds(25),
             cancellationRequested: false,
+            workspaceContext: null,
             exception);
 
         result.CorrelationId.Should().Be(correlationId);
@@ -56,10 +74,6 @@ public sealed class ErrorCaptureServiceTests
             MaximumCapturedErrorBytes = 1_000,
         };
         var target = CreateTarget(options);
-        var arguments = new Dictionary<string, JsonElement>
-        {
-            ["workspace"] = JsonSerializer.SerializeToElement(new { workspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") }),
-        };
         var exception = new InvalidOperationException(
             new string('A', 1_000),
             new ArgumentException(
@@ -69,9 +83,10 @@ public sealed class ErrorCaptureServiceTests
         var result = target.Capture(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "unknown-tool",
-            arguments,
+            arguments: null,
             TimeSpan.FromMilliseconds(-1),
             cancellationRequested: true,
+            workspaceContext: null,
             exception);
 
         result.ExecutionFamily.Should().Be("Unknown");
@@ -81,7 +96,6 @@ public sealed class ErrorCaptureServiceTests
         result.Exceptions.Should().HaveCount(2);
         result.Exceptions.Should().OnlyContain(item => item.Message.Length <= 128);
         result.Exceptions.Should().OnlyContain(item => item.StackFrames.Length <= 2);
-        _workspaceSessionStore.Verify(item => item.ReadSession(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")), Times.Once);
     }
 
     [Fact]
@@ -102,6 +116,7 @@ public sealed class ErrorCaptureServiceTests
             arguments: null,
             TimeSpan.Zero,
             cancellationRequested: false,
+            workspaceContext: null,
             exception);
 
         result.Exceptions.Should().ContainSingle();
@@ -132,6 +147,7 @@ public sealed class ErrorCaptureServiceTests
             arguments: null,
             TimeSpan.Zero,
             cancellationRequested: false,
+            workspaceContext: null,
             new InvalidOperationException("Failure message."));
 
         result.ExecutionFamily.Should().Be("CodeAction");
@@ -173,10 +189,141 @@ public sealed class ErrorCaptureServiceTests
             arguments: null,
             TimeSpan.Zero,
             cancellationRequested: false,
+            workspaceContext: null,
             new InvalidOperationException("Failure message."));
 
         result.ExecutionFamily.Should().Be("Query");
         result.PluginClassification.Should().Be(expectedClassification);
+    }
+
+    [Fact]
+    public void GIVEN_ValidWorkspaceArguments_WHEN_Capturing_THEN_ShouldCaptureResolvedWorkspaceContext()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["workspace"] = JsonSerializer.SerializeToElement(new { alias = "Alias" }),
+        };
+        var selector = new WorkspaceSelector { Alias = "Alias" };
+        var request = new ErrorCaptureWorkspaceRequest { Workspace = selector };
+        ErrorCaptureWorkspaceRequest? boundRequest = request;
+        string? bindingError = null;
+
+        _requestBinder
+            .Setup(item => item.TryBind<ErrorCaptureWorkspaceRequest>(arguments, out boundRequest, out bindingError))
+            .Returns(true);
+
+        var session = CreateSession();
+        var snapshot = new WorkspaceHostSnapshot
+        {
+            Workspaces = new Dictionary<Guid, WorkspaceSessionSnapshot>
+            {
+                [session.Workspace.WorkspaceId] = session,
+            },
+        };
+        var selection = new WorkspaceSelection
+        {
+            WorkspaceId = session.Workspace.WorkspaceId,
+            Session = session,
+        };
+
+        _workspaceSessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
+        _workspaceSelector
+            .Setup(item => item.Select(snapshot, selector))
+            .Returns(WorkspaceSelectionResult.Success(selection));
+
+        var result = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "unknown-tool",
+            arguments,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            new InvalidOperationException("Failure message."));
+
+        result.Workspace.Should().NotBeNull();
+        result.Workspace.WorkspaceId.Should().Be(session.Workspace.WorkspaceId);
+        result.Workspace.WorkspaceEpoch.Should().Be(5);
+        result.Workspace.LifecycleState.Should().Be(nameof(WorkspaceLifecycleState.TransactionActive));
+        result.Workspace.ProjectCount.Should().Be(3);
+        result.Workspace.DocumentCount.Should().Be(10);
+        result.Workspace.TransactionRevision.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_InvalidWorkspaceArguments_WHEN_Capturing_THEN_ShouldNotAttemptWorkspaceSelection()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["workspace"] = JsonSerializer.SerializeToElement(new { alias = "Alias" }),
+        };
+        ErrorCaptureWorkspaceRequest? boundRequest = null;
+        string? bindingError = "Binding error.";
+
+        _requestBinder
+            .Setup(item => item.TryBind<ErrorCaptureWorkspaceRequest>(arguments, out boundRequest, out bindingError))
+            .Returns(false);
+
+        var result = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "unknown-tool",
+            arguments,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            new InvalidOperationException("Failure message."));
+
+        result.Workspace.Should().BeNull();
+        _workspaceSessionStore.Verify(item => item.ReadSnapshot(), Times.Never);
+        _workspaceSelector.Verify(
+            item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_AuthoritativeWorkspaceContext_WHEN_Capturing_THEN_ShouldUseItWithoutBindingOrSelectingWorkspace()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["workspace"] = JsonSerializer.SerializeToElement(new { alias = "Replacement" }),
+        };
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            WorkspaceEpoch = 5,
+        };
+        var workspaceContext = new CapturedWorkspaceContext(
+            workspaceIdentity,
+            WorkspaceLifecycleState.Ready,
+            projectCount: 3,
+            documentCount: 10,
+            transactionRevision: null);
+
+        var result = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "unknown-tool",
+            arguments,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext,
+            new InvalidOperationException("Failure message."));
+
+        result.Workspace.Should().BeSameAs(workspaceContext);
+        _requestBinder.Verify(item => item.TryBind<ErrorCaptureWorkspaceRequest>(
+            It.IsAny<IDictionary<string, JsonElement>>(),
+            out It.Ref<ErrorCaptureWorkspaceRequest?>.IsAny,
+            out It.Ref<string?>.IsAny), Times.Never);
+        _workspaceSessionStore.Verify(item => item.ReadSnapshot(), Times.Never);
+        _workspaceSelector.Verify(
+            item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()),
+            Times.Never);
+    }
+
+    public void Dispose()
+    {
+        _roslynWorkspace.Dispose();
     }
 
     private ErrorCaptureService CreateTarget(ErrorReportingOptions options)
@@ -203,8 +350,43 @@ public sealed class ErrorCaptureServiceTests
             Options.Create(options),
             _timeProvider.Object,
             _workspaceSessionStore.Object,
+            _workspaceSelector.Object,
+            _requestBinder.Object,
             pluginCatalogState.Object,
             codeActionCatalog);
+    }
+
+    private WorkspaceSessionSnapshot CreateSession()
+    {
+        var workspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = 5,
+            Alias = "Alias",
+            LoadedPath = "/Source/Workspace.sln",
+            WorkspaceRoot = "/Source",
+        };
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var operationGate = new Mock<IWorkspaceOperationGate>();
+
+        return new WorkspaceSessionSnapshot
+        {
+            CommittedSnapshotId = committedSnapshotId,
+            State = WorkspaceLifecycleState.TransactionActive,
+            Workspace = workspaceIdentity,
+            LoadedWorkspace = loadedWorkspace.Object,
+            CurrentSolution = _roslynWorkspace.CurrentSolution,
+            InputManifest = new WorkspaceInputManifest(),
+            OperationGate = operationGate.Object,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                workspaceIdentity,
+                committedSnapshotId,
+                transaction: null),
+            ProjectCount = 3,
+            DocumentCount = 10,
+        };
     }
 
     private static InvalidOperationException CreateThrownException()

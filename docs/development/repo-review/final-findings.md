@@ -252,7 +252,7 @@ Preparation creates a Fix All action, evaluates and processes its candidate, cou
 
 ### RWMCP2-021 — External generated documents make a valid source-root Workspace unloadable
 
-**Status:** In progress — first independent-review corrections awaiting user confirmation
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-15
 
 **Severity:** P2
 

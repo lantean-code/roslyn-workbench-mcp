@@ -259,7 +259,7 @@ The independent deep-dive review is complete when:
 
 ## Remediation and commit review gate
 
-**Status:** Complete — all 18 remediation worklist items are confirmed complete; the post-remediation release-candidate review remains blocked until the final remediation is committed, the worktree is clean and the complete release validation gate succeeds.
+**Status:** Complete — all 18 remediation worklist items are confirmed complete and committed, the worktree is clean, and the complete WSL and Windows release validation gates succeeded on 2026-08-16.
 
 Each validated finding must be remediated as one independently confirmable work item unless the user explicitly approves a combined item. Use the following sequence for every item:
 
@@ -280,7 +280,7 @@ If the proposed commit changes after its successful Review Agent pass for anythi
 
 ## Post-remediation release-candidate review
 
-**Status:** Blocked — run only after every validated RWMCP2 finding is either confirmed complete or explicitly rejected, each remediation is committed, the worktree is clean and the complete release validation gate has succeeded.
+**Status:** Ready — every validated RWMCP2 finding is confirmed complete, each remediation is committed, the worktree is clean and the complete WSL and Windows release validation gates succeeded on 2026-08-16.
 
 The RWMCP2 remediation will materially change transaction, recovery, Code Action, plugin, Host and test boundaries. After it is complete, use a new agent with no conversation context to perform a fresh independent release-candidate review of the complete current repository. The review should concentrate on whether each remediation closes its complete failure path, interactions between remediations, newly introduced ownership/concurrency/compatibility problems, representative end-to-end operations and whether tests cross the production boundaries they claim to prove, while retaining the repository-wide coverage and independent candidate validation requirements of this programme.
 

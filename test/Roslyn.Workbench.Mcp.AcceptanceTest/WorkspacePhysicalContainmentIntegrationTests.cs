@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 public sealed class WorkspacePhysicalContainmentIntegrationTests
 {
     [Fact]
-    public async Task GIVEN_SourceDocumentLinkEscapesWorkspace_WHEN_Opening_THEN_ShouldRejectWorkspace()
+    public async Task GIVEN_SourceDocumentLinkEscapesWorkspace_WHEN_QueryingAndMutating_THEN_ShouldRemainReadOnly()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken);
@@ -11,11 +11,12 @@ public sealed class WorkspacePhysicalContainmentIntegrationTests
         try
         {
             var externalDirectory = Path.Combine(target.ScenarioRoot, "external-sources");
+            var externalDocumentPath = Path.Combine(externalDirectory, "Escaped.cs");
             var linkedDirectory = Path.Combine(target.WorkspaceRoot, "Linked");
             var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
             Directory.CreateDirectory(externalDirectory);
             await File.WriteAllTextAsync(
-                Path.Combine(externalDirectory, "Escaped.cs"),
+                externalDocumentPath,
                 "public sealed class EscapedType { }",
                 TestContext.Current.CancellationToken);
 
@@ -25,14 +26,73 @@ public sealed class WorkspacePhysicalContainmentIntegrationTests
                 externalDirectory,
                 TestContext.Current.CancellationToken);
 
-            var result = await OpenWorkspaceAsync(target, projectPath);
+            var openResult = await OpenWorkspaceAsync(target, projectPath);
 
-            result.IsError.Should().BeTrue();
-            AcceptanceProtocol.GetError(result)
+            openResult.IsError.Should().NotBeTrue();
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var searchResult = await target.CallToolAsync(
+                "search-symbols",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["query"] = "EscapedType",
+                },
+                TestContext.Current.CancellationToken);
+
+            searchResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(searchResult)
+                .GetProperty("symbols")
+                .GetProperty("items")
+                .GetArrayLength()
+                .Should()
+                .Be(1);
+
+            var startResult = await target.CallToolAsync(
+                "transaction-start",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            startResult.IsError.Should().NotBeTrue();
+            var renameResult = await target.CallToolAsync(
+                "rename-symbol",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["symbol"] = new Dictionary<string, object?>
+                    {
+                        ["documentationCommentId"] = "T:EscapedType",
+                    },
+                    ["newName"] = "RenamedEscapedType",
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            renameResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(renameResult)
                 .GetProperty("code")
                 .GetString()
                 .Should()
-                .Be("WorkspaceProjectOutsideRoot");
+                .Be("UnsupportedChange");
+
+            var externalDocumentContent = await File.ReadAllTextAsync(
+                externalDocumentPath,
+                TestContext.Current.CancellationToken);
+
+            externalDocumentContent.Should().Contain("EscapedType").And.NotContain("RenamedEscapedType");
+
+            var rollbackResult = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            rollbackResult.IsError.Should().NotBeTrue();
         }
         catch
         {

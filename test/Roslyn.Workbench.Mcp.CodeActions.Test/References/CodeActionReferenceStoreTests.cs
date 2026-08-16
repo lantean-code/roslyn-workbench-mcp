@@ -1,5 +1,7 @@
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Internal;
+using Roslyn.Workbench.Mcp.Workspace.IO;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.References;
 
@@ -18,11 +20,13 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         _timeProvider = new Mock<TimeProvider>();
         _clock.SetupGet(item => item.UtcNow).Returns(_utcNow);
         _timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        _cache = new MemoryCache(new MemoryCacheOptions
+        var cacheOptions = new MemoryCacheOptions
         {
             Clock = _clock.Object,
             SizeLimit = 100_000,
-        });
+        };
+
+        _cache = new MemoryCache(cacheOptions);
 
         _target = new CodeActionReferenceState(_cache, _timeProvider.Object);
     }
@@ -68,14 +72,70 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
     [Fact]
     public void GIVEN_CacheCannotAcceptRecipeSize_WHEN_CreatingReference_THEN_ShouldReturnFalse()
     {
-        using var cache = new MemoryCache(new MemoryCacheOptions
+        var cacheOptions = new MemoryCacheOptions
         {
             Clock = _clock.Object,
             SizeLimit = 1,
-        });
+        };
+
+        using var cache = new MemoryCache(cacheOptions);
 
         using var target = new CodeActionReferenceState(cache, _timeProvider.Object);
         var recipe = CreateRecipe() with { Title = "Title" };
+
+        var created = target.TryCreate(recipe, _utcNow.AddMinutes(5), out var reference);
+
+        created.Should().BeFalse();
+        reference.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_PreparedIdentityExceedsCacheCapacity_WHEN_CreatingReference_THEN_ShouldChargeIdentityAndReturnFalse()
+    {
+        var cacheOptions = new MemoryCacheOptions
+        {
+            Clock = _clock.Object,
+            SizeLimit = 300,
+        };
+
+        using var cache = new MemoryCache(cacheOptions);
+
+        using var target = new CodeActionReferenceState(cache, _timeProvider.Object);
+        var documentPathValue = new string('P', 300);
+        var documentPath = new FileSystemPathKey(documentPathValue, isCaseSensitive: true);
+        var contentHash = new string('C', 40);
+        var serializedBytesHash = new string('B', 64);
+        var documentIdentity = new WorkspaceMutationDocumentIdentity
+        {
+            ProjectId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            DocumentPath = documentPath,
+            ChangeKind = WorkspaceMutationDocumentChangeKind.Modified,
+            ContentHash = contentHash,
+            SerializedBytesHash = serializedBytesHash,
+            EncodingName = "utf-8",
+        };
+
+        var identity = new WorkspaceMutationCandidateIdentity
+        {
+            Documents = [documentIdentity],
+        };
+
+        var precondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = identity,
+            MaximumChangedDocuments = 50,
+        };
+
+        var preparedFixAll = new PreparedFixAllReplayData
+        {
+            Scope = CodeActionFixAllScope.Solution,
+            CandidatePrecondition = precondition,
+        };
+
+        var recipe = CreateRecipe() with
+        {
+            PreparedFixAll = preparedFixAll,
+        };
 
         var created = target.TryCreate(recipe, _utcNow.AddMinutes(5), out var reference);
 
@@ -100,7 +160,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         var expiresAt = _utcNow.AddMinutes(5);
         var recipe = CreateRecipe() with
         {
-            PreparedFixAllScope = CodeActionFixAllScope.Solution,
+            PreparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData(CodeActionFixAllScope.Solution),
         };
 
         _target.TryCreate(recipe, expiresAt, out var reference).Should().BeTrue();
@@ -117,7 +177,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         var single = CreateReference(CreateRecipe());
         var prepared = CreateReference(CreateRecipe() with
         {
-            PreparedFixAllScope = CodeActionFixAllScope.Project,
+            PreparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData(CodeActionFixAllScope.Project),
         });
 
         _target.IsPreparedFixAll(single.ActionId).Should().BeFalse();

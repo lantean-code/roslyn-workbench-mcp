@@ -1,3 +1,6 @@
+using System.Text;
+
+using Moq;
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
 using Roslyn.Workbench.Mcp.CodeActions.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
@@ -165,6 +168,176 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         staged.Data.Summary.Should().Be("Fix all: Apply test code fix");
         preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
         sourceAfterRollback.Should().Be(originalSource);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_FixAllProviderChangesAfterPreparation_WHEN_Staging_THEN_ShouldRejectWithoutAppendingRevision()
+    {
+        var provider = new ChangingFixAllCodeFixProvider();
+        var composition = new Mock<ICodeActionComposition>();
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        composition.SetupGet(item => item.WorkspaceHostServices).Returns(_composition.WorkspaceHostServices);
+        composition.SetupGet(item => item.RefactoringProviders).Returns([]);
+        composition.SetupGet(item => item.CodeFixProviders).Returns([provider]);
+
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(composition.Object);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var codeFixes = await ListActionsAsync(
+            session,
+            fixture.GetLocation("unused"),
+            snapshot,
+            includeRefactorings: false);
+
+        var originActionId = codeFixes.Data!.Actions.Items
+            .Single(static action => action.Title == "Apply changing test code fix")
+            .ActionId;
+
+        var prepared = await session.PrepareFixAllAsync(new PrepareFixAllRequest
+        {
+            ActionId = originActionId,
+            Scope = CodeActionFixAllScope.Solution,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+
+        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = prepared.Data!.ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
+
+        staged.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
+        staged.Error!.Code.Should().Be("MutationCandidateChanged");
+        staged.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        preview.Data!.Transaction!.Revision.Should().Be(0);
+        preview.Data.Documents.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_PreparedFixAllProducesUnsupportedOperationOnReplay_WHEN_Staging_THEN_ShouldRejectAndInvalidateReference()
+    {
+        var provider = new FailingReplayFixAllCodeFixProvider();
+        var composition = new Mock<ICodeActionComposition>();
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        composition.SetupGet(item => item.WorkspaceHostServices).Returns(_composition.WorkspaceHostServices);
+        composition.SetupGet(item => item.RefactoringProviders).Returns([]);
+        composition.SetupGet(item => item.CodeFixProviders).Returns([provider]);
+
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(composition.Object);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var codeFixes = await ListActionsAsync(
+            session,
+            fixture.GetLocation("unused"),
+            snapshot,
+            includeRefactorings: false);
+
+        var originActionId = codeFixes.Data!.Actions.Items
+            .Single(static action => action.Title == "Apply failing replay test code fix")
+            .ActionId;
+        var prepared = await session.PrepareFixAllAsync(new PrepareFixAllRequest
+        {
+            ActionId = originActionId,
+            Scope = CodeActionFixAllScope.Solution,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+        prepared.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+        referenceStore.TryGet(prepared.Data!.ActionId, out _).Should().BeTrue();
+
+        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = prepared.Data.ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
+
+        staged.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
+        staged.Error!.Code.Should().Be("MutationCandidateChanged");
+        staged.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        referenceStore.TryGet(prepared.Data.ActionId, out _).Should().BeFalse();
+        preview.Data!.Transaction!.Revision.Should().Be(0);
+        preview.Data.Documents.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_FixAllChangesOnlySerializedEncoding_WHEN_PreparingStagingAndCommitting_THEN_ShouldPreserveReviewedBytes()
+    {
+        var provider = new EncodingFixAllCodeFixProvider();
+        var composition = new Mock<ICodeActionComposition>();
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        composition.SetupGet(item => item.WorkspaceHostServices).Returns(_composition.WorkspaceHostServices);
+        composition.SetupGet(item => item.RefactoringProviders).Returns([]);
+        composition.SetupGet(item => item.CodeFixProviders).Returns([provider]);
+
+        using var fixture = InspectionSampleFixture.Create();
+        var originalSource = await File.ReadAllTextAsync(
+            fixture.DocumentPath,
+            TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(
+            fixture.DocumentPath,
+            originalSource,
+            Encoding.UTF8,
+            TestContext.Current.CancellationToken);
+        var utf8Preamble = Encoding.UTF8.GetPreamble();
+        var initialBytes = await File.ReadAllBytesAsync(
+            fixture.DocumentPath,
+            TestContext.Current.CancellationToken);
+        initialBytes.AsSpan().StartsWith(utf8Preamble).Should().BeTrue();
+
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(composition.Object);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var codeFixes = await ListActionsAsync(
+            session,
+            fixture.GetLocation("unused"),
+            snapshot,
+            includeRefactorings: false);
+
+        var originActionId = codeFixes.Data!.Actions.Items
+            .Single(static action => action.Title == "Apply encoding test code fix")
+            .ActionId;
+
+        var prepared = await session.PrepareFixAllAsync(new PrepareFixAllRequest
+        {
+            ActionId = originActionId,
+            Scope = CodeActionFixAllScope.Solution,
+            ExpectedSnapshot = snapshot,
+            MaxChanges = 1,
+        }, TestContext.Current.CancellationToken);
+        prepared.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        prepared.Data!.AffectedDocuments.TotalCount.Should().Be(1);
+
+        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = prepared.Data.ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+        staged.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+
+        await coordinator.CommitTransactionAsync(
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(open, 1));
+
+        var committedBytes = await File.ReadAllBytesAsync(
+            fixture.DocumentPath,
+            TestContext.Current.CancellationToken);
+
+        committedBytes.AsSpan().StartsWith(utf8Preamble).Should().BeFalse();
     }
 
     [Fact]

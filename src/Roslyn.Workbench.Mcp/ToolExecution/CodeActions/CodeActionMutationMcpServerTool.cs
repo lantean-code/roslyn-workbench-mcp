@@ -93,7 +93,11 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                     cancellationToken);
             }
 
-            if (stagedResult.IsSucceeded && request is ICodeActionReferenceRequest referenceRequest)
+            var shouldConsumeReference = stagedResult.IsSucceeded
+                || stagedResult.Error?.Code == WorkspaceErrorCodes.MutationCandidateChanged;
+
+            if (shouldConsumeReference
+                && request is ICodeActionReferenceRequest referenceRequest)
             {
                 _referenceStore.Remove(referenceRequest.ActionId);
             }

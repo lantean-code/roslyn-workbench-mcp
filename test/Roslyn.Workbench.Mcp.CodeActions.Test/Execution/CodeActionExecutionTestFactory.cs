@@ -46,4 +46,26 @@ internal static class CodeActionExecutionTestFactory
             },
         ]);
     }
+
+    public static PreparedFixAllReplayData CreatePreparedFixAllReplayData(
+        CodeActionFixAllScope scope = CodeActionFixAllScope.Document,
+        int maximumChangedDocuments = 50)
+    {
+        var identity = new WorkspaceMutationCandidateIdentity
+        {
+            Documents = [],
+        };
+
+        var precondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = identity,
+            MaximumChangedDocuments = maximumChangedDocuments,
+        };
+
+        return new PreparedFixAllReplayData
+        {
+            Scope = scope,
+            CandidatePrecondition = precondition,
+        };
+    }
 }

@@ -35,10 +35,10 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
             return resolution;
         }
 
-        var scope = resolution.Reference.Recipe.PreparedFixAllScope;
-        if (scope is null
+        var preparedFixAll = resolution.Reference.Recipe.PreparedFixAll;
+        if (preparedFixAll is null
             || resolution.Action.Kind != DiscoveredActionKind.CodeFix
-            || !resolution.Action.FixAllScopes.Contains(scope.Value))
+            || !resolution.Action.FixAllScopes.Contains(preparedFixAll.Scope))
         {
             return Unavailable<T>("The prepared Fix All scope is no longer available.");
         }
@@ -51,7 +51,7 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
         }
 
         var creation = await CreateFixAllActionAsync(
-            scope.Value,
+            preparedFixAll.Scope,
             provider,
             fixAllProvider,
             resolution.Action,

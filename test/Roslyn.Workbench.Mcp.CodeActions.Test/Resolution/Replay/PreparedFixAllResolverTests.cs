@@ -231,6 +231,12 @@ public sealed class PreparedFixAllResolverTests
         CodeActionFixAllScope? preparedScope,
         IReadOnlyList<CodeActionFixAllScope> advertisedScopes)
     {
+        PreparedFixAllReplayData? preparedFixAll = null;
+        if (preparedScope is not null)
+        {
+            preparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData(preparedScope.Value);
+        }
+
         var action = new DiscoveredCodeAction
         {
             Action = CodeAction.Create("Title", _ => Task.FromResult(document.Project.Solution)),
@@ -243,13 +249,13 @@ public sealed class PreparedFixAllResolverTests
             FixAllScopes = advertisedScopes,
         };
 
-        var reference = new CodeActionReference(
-            Guid.Empty,
-            CodeActionExecutionTestFactory.CreateReplayRecipe() with
-            {
-                PreparedFixAllScope = preparedScope,
-            },
-            new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
+        var replayRecipe = CodeActionExecutionTestFactory.CreateReplayRecipe() with
+        {
+            PreparedFixAll = preparedFixAll,
+        };
+
+        var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero);
+        var reference = new CodeActionReference(Guid.Empty, replayRecipe, expiresAt);
 
         return CodeActionResolution.Resolved<WorkspaceMutationCandidate>(
             action,

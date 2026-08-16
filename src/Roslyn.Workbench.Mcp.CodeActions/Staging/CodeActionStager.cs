@@ -35,8 +35,9 @@ internal sealed class CodeActionStager : ICodeActionStager
             return runtimeRejection;
         }
 
+        var isPreparedFixAll = _referenceStore.IsPreparedFixAll(request.ActionId);
         CodeActionResolution<WorkspaceMutationCandidate> resolvedAction;
-        if (_referenceStore.IsPreparedFixAll(request.ActionId))
+        if (isPreparedFixAll)
         {
             resolvedAction = await _preparedFixAllResolver.ResolveActionAsync<WorkspaceMutationCandidate>(
                 request.ActionId,
@@ -70,13 +71,24 @@ internal sealed class CodeActionStager : ICodeActionStager
 
         if (application.HasFailure)
         {
+            if (isPreparedFixAll)
+            {
+                _referenceStore.Remove(request.ActionId);
+                return Rejected<WorkspaceMutationCandidate>(
+                    WorkspaceErrorCodes.MutationCandidateChanged,
+                    "The mutation candidate no longer matches the previously prepared operation.",
+                    RequiredAction.ResolveTargetAgain);
+            }
+
             return Rejected<WorkspaceMutationCandidate>(application.Failure);
         }
 
+        var candidatePrecondition = resolvedAction.Reference.Recipe.PreparedFixAll?.CandidatePrecondition;
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = application.CandidateSolution,
             Summary = resolvedAction.Action.Title,
+            Precondition = candidatePrecondition,
         };
 
         return CodeActionExecutionResult.Success(candidate);

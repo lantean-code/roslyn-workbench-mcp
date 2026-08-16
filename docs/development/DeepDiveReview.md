@@ -259,7 +259,7 @@ The independent deep-dive review is complete when:
 
 ## Remediation and commit review gate
 
-**Status:** In progress — remediation worklist orders 1 through 17 are confirmed complete; only `RWMCP2-011` remains pending.
+**Status:** Complete — all 18 remediation worklist items are confirmed complete; the post-remediation release-candidate review remains blocked until the final remediation is committed, the worktree is clean and the complete release validation gate succeeds.
 
 Each validated finding must be remediated as one independently confirmable work item unless the user explicitly approves a combined item. Use the following sequence for every item:
 

@@ -216,7 +216,12 @@ public sealed class WorkspaceTransactionIntegrationTests
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison();
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
-        var planner = new WorkspaceCommitPlanner(fileSystem, pathComparison, pathContainment);
+        var documentContentService = new WorkspaceDocumentContentService();
+        var planner = new WorkspaceCommitPlanner(
+            fileSystem,
+            pathComparison,
+            pathContainment,
+            documentContentService);
         var interceptingPlanner = new Mock<IWorkspaceCommitPlanner>();
         interceptingPlanner
             .Setup(item => item.CreateAsync(

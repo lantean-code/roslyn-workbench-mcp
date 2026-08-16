@@ -20,5 +20,6 @@ internal static class WorkspaceErrorCodes
     public const string TransactionCapacity = "RevisionCapacityReached";
     public const string CommitRecoveryCapacity = "CommitRecoveryCapacityReached";
     public const string LinkedDocumentConflict = "LinkedDocumentConflict";
+    public const string MutationCandidateChanged = "MutationCandidateChanged";
     public const string SnapshotMismatch = "SnapshotMismatch";
 }

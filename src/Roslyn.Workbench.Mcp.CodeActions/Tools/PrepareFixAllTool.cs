@@ -13,6 +13,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
     private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
+    private readonly IWorkspaceMutationCandidateIdentityService _candidateIdentityService;
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _referenceLifetime;
 
@@ -25,6 +26,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         ICodeActionResolver resolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter,
         IWorkspaceMutationCandidateProcessor candidateProcessor,
+        IWorkspaceMutationCandidateIdentityService candidateIdentityService,
         TimeProvider timeProvider,
         IOptions<CodeActionExecutionOptions> options)
     {
@@ -36,6 +38,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         _resolver = resolver;
         _solutionChangeCounter = solutionChangeCounter;
         _candidateProcessor = candidateProcessor;
+        _candidateIdentityService = candidateIdentityService;
         _timeProvider = timeProvider;
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
@@ -128,10 +131,16 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 RequiredAction.NarrowRequest);
         }
 
+        var candidateIdentity = await _candidateIdentityService.CreateAsync(
+            context.CurrentSolution,
+            processingResult.Solution,
+            cancellationToken);
+
         return CreatePreparedReferenceResult(
             request,
             resolution.Reference,
             changedDocuments,
+            candidateIdentity,
             context.WorkspaceResolver,
             cancellationToken);
     }
@@ -140,12 +149,25 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         PrepareFixAllRequest request,
         CodeActionReference reference,
         IReadOnlyList<Document> changedDocuments,
+        WorkspaceMutationCandidateIdentity candidateIdentity,
         IWorkspaceResolver workspaceResolver,
         CancellationToken cancellationToken)
     {
+        var candidatePrecondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = candidateIdentity,
+            MaximumChangedDocuments = request.EffectiveMaxChanges,
+        };
+
+        var preparedFixAll = new PreparedFixAllReplayData
+        {
+            Scope = request.Scope,
+            CandidatePrecondition = candidatePrecondition,
+        };
+
         var preparedRecipe = reference.Recipe with
         {
-            PreparedFixAllScope = request.Scope,
+            PreparedFixAll = preparedFixAll,
         };
 
         var affectedDocuments = CreateAffectedDocuments(
@@ -216,7 +238,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         CodeActionReference reference,
         CodeActionFixAllScope scope)
     {
-        if (reference.Recipe.PreparedFixAllScope is not null)
+        if (reference.Recipe.PreparedFixAll is not null)
         {
             return Rejected<PrepareFixAllData>(
                 "FixAllUnavailable",

@@ -76,6 +76,7 @@ public sealed class CodeActionStagerTests
             CancellationToken.None);
 
         result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        result.Data.Precondition.Should().BeNull();
         result.Data.Summary.Should().Be("Title");
     }
 
@@ -85,6 +86,7 @@ public sealed class CodeActionStagerTests
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
         var action = CreateAction(roslyn.Solution);
+        var preparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData();
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _referenceStore.Setup(item => item.IsPreparedFixAll(Guid.Empty)).Returns(true);
         _preparedFixAllResolver
@@ -93,7 +95,7 @@ public sealed class CodeActionStagerTests
                 expectedSnapshot,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document));
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, preparedFixAll));
 
         _evaluator
             .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
@@ -109,6 +111,7 @@ public sealed class CodeActionStagerTests
             CancellationToken.None);
 
         result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        result.Data.Precondition.Should().BeSameAs(preparedFixAll.CandidatePrecondition);
         _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
             It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
@@ -204,9 +207,49 @@ public sealed class CodeActionStagerTests
         _referenceStore.Verify(item => item.Remove(It.IsAny<Guid>()), Times.Never);
     }
 
+    [Fact]
+    public async Task GIVEN_EvaluatorRejectsPreparedFixAll_WHEN_Staging_THEN_ShouldInvalidateReferenceAsChanged()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var action = CreateAction(roslyn.Solution);
+        var preparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData();
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _referenceStore.Setup(item => item.IsPreparedFixAll(Guid.Empty)).Returns(true);
+        _preparedFixAllResolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                Guid.Empty,
+                It.IsAny<SnapshotPrecondition>(),
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, preparedFixAll));
+
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.UnsupportedActionOperation,
+                "Unsupported action operation."));
+
+        var result = await _target.StageAsync(
+            new StageCodeActionRequest
+            {
+                ExpectedSnapshot = new SnapshotPrecondition
+                {
+                    WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                },
+                ActionId = Guid.Empty,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be(WorkspaceErrorCodes.MutationCandidateChanged);
+        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        _referenceStore.Verify(item => item.Remove(Guid.Empty), Times.Once);
+    }
+
     private static CodeActionResolution<WorkspaceMutationCandidate> CreateResolution(
         CodeAction action,
-        Document document)
+        Document document,
+        PreparedFixAllReplayData? preparedFixAll = null)
     {
         var discoveredAction = new DiscoveredCodeAction
         {
@@ -218,7 +261,10 @@ public sealed class CodeActionStagerTests
             EquivalenceKey = "EquivalenceKey",
         };
 
-        var replayRecipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
+        var replayRecipe = CodeActionExecutionTestFactory.CreateReplayRecipe() with
+        {
+            PreparedFixAll = preparedFixAll,
+        };
         var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero);
         var reference = new CodeActionReference(Guid.Empty, replayRecipe, expiresAt);
 

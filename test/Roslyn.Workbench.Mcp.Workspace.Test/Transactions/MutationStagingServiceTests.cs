@@ -11,6 +11,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
+    private readonly Mock<IWorkspaceMutationCandidateIdentityService> _candidateIdentityService;
     private readonly MutationStagingService _target;
 
     public MutationStagingServiceTests()
@@ -22,6 +23,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
+        _candidateIdentityService = new Mock<IWorkspaceMutationCandidateIdentityService>();
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(3));
@@ -45,7 +47,8 @@ public sealed class MutationStagingServiceTests : IDisposable
             _diffBuilder.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object,
-            _candidateProcessor.Object);
+            _candidateProcessor.Object,
+            _candidateIdentityService.Object);
     }
 
     [Fact]
@@ -202,6 +205,72 @@ public sealed class MutationStagingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_PreparedCandidateNormalizationFails_WHEN_Staging_THEN_ShouldRejectAsChangedWithoutAppendingRevision()
+    {
+        var currentSolution = CreateSolution();
+        var identity = new WorkspaceMutationCandidateIdentity { Documents = [] };
+        var precondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = identity,
+            MaximumChangedDocuments = 1,
+        };
+
+        var candidate = new WorkspaceMutationCandidate
+        {
+            CandidateSolution = currentSolution,
+            Precondition = precondition,
+        };
+
+        var transaction = CreateTransaction(currentSolution);
+        var session = CreateSession(transaction);
+        var processingError = new WorkspaceOperationError
+        {
+            Code = "UnsupportedChange",
+            Message = "Message",
+        };
+
+        var expected = CreateRejectedResult(WorkspaceErrorCodes.MutationCandidateChanged);
+        SetupOwner(session);
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
+                currentSolution,
+                candidate.CandidateSolution,
+                session.Workspace.WorkspaceRoot,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(processingError));
+        _resultFactory
+            .Setup(item => item.Rejected<MutationStagingOutcome>(
+                WorkspaceErrorCodes.MutationCandidateChanged,
+                "The mutation candidate no longer matches the previously prepared operation.",
+                RequiredAction.ResolveTargetAgain,
+                null,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var result = await _target.StageAsync(
+            "OperationName",
+            candidate,
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _candidateIdentityService.Verify(item => item.CreateAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<IWorkspaceResolver>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<IReadOnlyList<WorkspaceSnapshotId>>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_MissingOwnerSession_WHEN_Staging_THEN_ShouldRequireTransaction()
     {
         var expected = CreateRejectedResult("TransactionRequired");
@@ -240,6 +309,129 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedCandidateNoLongerMatches_WHEN_Staging_THEN_ShouldRejectWithoutAppendingRevision()
+    {
+        var currentSolution = CreateSolution();
+        var identity = new WorkspaceMutationCandidateIdentity
+        {
+            Documents = [],
+        };
+        var precondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = identity,
+            MaximumChangedDocuments = 1,
+        };
+
+        var candidate = new WorkspaceMutationCandidate
+        {
+            CandidateSolution = currentSolution,
+            Precondition = precondition,
+        };
+
+        var transaction = CreateTransaction(currentSolution);
+        var session = CreateSession(transaction);
+        var expected = CreateRejectedResult(WorkspaceErrorCodes.MutationCandidateChanged);
+        SetupOwner(session);
+        _candidateIdentityService
+            .Setup(item => item.CreateAsync(
+                currentSolution,
+                currentSolution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(identity);
+        _candidateIdentityService
+            .Setup(item => item.MatchesPrecondition(precondition, identity))
+            .Returns(false);
+        _resultFactory
+            .Setup(item => item.Rejected<MutationStagingOutcome>(
+                WorkspaceErrorCodes.MutationCandidateChanged,
+                "The mutation candidate no longer matches the previously prepared operation.",
+                RequiredAction.ResolveTargetAgain,
+                null,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var result = await _target.StageAsync(
+            "OperationName",
+            candidate,
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<IWorkspaceResolver>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<IReadOnlyList<WorkspaceSnapshotId>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedCandidateStillMatches_WHEN_Staging_THEN_ShouldAppendRevision()
+    {
+        var currentSolution = CreateSolution();
+        var identity = new WorkspaceMutationCandidateIdentity
+        {
+            Documents = [],
+        };
+        var precondition = new WorkspaceMutationCandidatePrecondition
+        {
+            ExpectedIdentity = identity,
+            MaximumChangedDocuments = 1,
+        };
+
+        var candidate = new WorkspaceMutationCandidate
+        {
+            CandidateSolution = currentSolution,
+            Precondition = precondition,
+        };
+
+        var transaction = CreateTransaction(currentSolution);
+        var session = CreateSession(transaction);
+        var changes = new ChangeSummary();
+        var expected = WorkspaceOperationResult.NoChange<MutationStagingOutcome>();
+        SetupOwner(session);
+        _candidateIdentityService
+            .Setup(item => item.CreateAsync(
+                currentSolution,
+                currentSolution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(identity);
+        _candidateIdentityService
+            .Setup(item => item.MatchesPrecondition(precondition, identity))
+            .Returns(true);
+        _diffBuilder
+            .Setup(item => item.CreateChangeSummaryAsync(
+                currentSolution,
+                currentSolution,
+                It.IsAny<IWorkspaceResolver>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(changes);
+        _resultFactory
+            .Setup(item => item.Succeeded(
+                It.IsAny<MutationStagingOutcome>(),
+                null,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var result = await _target.StageAsync(
+            "OperationName",
+            candidate,
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
+            It.Is<WorkspaceSessionSnapshot>(replacement => replacement.Transaction != null && replacement.Transaction.CurrentRevision == 1),
+            It.IsAny<IReadOnlyList<WorkspaceSnapshotId>>()), Times.Once);
     }
 
     [Fact]

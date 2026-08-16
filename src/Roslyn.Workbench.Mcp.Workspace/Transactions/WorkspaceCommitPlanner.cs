@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
@@ -9,15 +8,18 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
+    private readonly IWorkspaceDocumentContentService _documentContentService;
 
     public WorkspaceCommitPlanner(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
-        IPhysicalPathContainment pathContainment)
+        IPhysicalPathContainment pathContainment,
+        IWorkspaceDocumentContentService documentContentService)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
         _pathContainment = pathContainment;
+        _documentContentService = documentContentService;
     }
 
     public async ValueTask<WorkspaceCommitPlanResult> CreateAsync(
@@ -165,8 +167,9 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Invalid(targetError);
         }
 
-        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken);
-        var intendedHash = Hash(intendedContents);
+        var documentContent = await _documentContentService.CreateAsync(document, cancellationToken);
+        var intendedContents = documentContent.SerializedBytes;
+        var intendedHash = documentContent.SerializedBytesHash;
         var targetPathKey = _pathComparison.CreateKey(path);
         if (context.EntriesByTarget.TryGetValue(targetPathKey, out var existingEntry))
         {
@@ -425,15 +428,6 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         };
 
         return new WorkspaceCommitPlan(manifest, context.Artifacts);
-    }
-
-    private static async ValueTask<byte[]> GetDocumentBytesAsync(
-        Document document,
-        CancellationToken cancellationToken)
-    {
-        var text = await document.GetTextAsync(cancellationToken);
-        var encoding = text.Encoding ?? Encoding.UTF8;
-        return [.. encoding.GetPreamble(), .. encoding.GetBytes(text.ToString())];
     }
 
     [SuppressMessage(

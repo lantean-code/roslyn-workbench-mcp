@@ -7,6 +7,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.References;
 
 internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDisposable
 {
+    private const long _preparedFixAllFixedCharge = 2;
+    private const long _preparedDocumentIdentityFixedCharge = 18;
+
     private readonly IMemoryCache _cache;
     private readonly Dictionary<Guid, ReferenceRegistration> _registrations;
     private readonly Dictionary<WorkspaceSnapshotIdentity, HashSet<Guid>> _snapshotIndex;
@@ -149,7 +152,7 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
     public bool IsPreparedFixAll(Guid actionId)
     {
         return TryGet(actionId, out var reference)
-            && reference.Recipe.PreparedFixAllScope is not null;
+            && reference.Recipe.PreparedFixAll is not null;
     }
 
     public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
@@ -177,33 +180,6 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         {
             RemoveIndexedReferences(_snapshotIndex, snapshot);
         }
-    }
-
-    private static long CalculateSize(CodeActionReplayRecipe recipe)
-    {
-        var size = 1L
-            + recipe.ProviderId.Length
-            + recipe.Title.Length
-            + (recipe.EquivalenceKey?.Length ?? 0)
-            + 16
-            + recipe.DocumentPath.Length
-            + recipe.ProjectId.Length
-            + recipe.ActionPath.Count
-            + recipe.Diagnostics.Count
-            + (recipe.PreparedFixAllScope is null ? 0 : 1)
-            + 3;
-
-        foreach (var diagnosticId in recipe.DiagnosticIds)
-        {
-            size += diagnosticId.Length;
-        }
-
-        foreach (var diagnostic in recipe.Diagnostics)
-        {
-            size += diagnostic.Id.Length + diagnostic.Message.Length;
-        }
-
-        return size;
     }
 
     private void AddRegistration(ReferenceRegistration registration)
@@ -275,39 +251,6 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         }
     }
 
-    private static void AddToIndex<TKey>(
-        Dictionary<TKey, HashSet<Guid>> index,
-        TKey key,
-        Guid actionId)
-        where TKey : notnull
-    {
-        if (!index.TryGetValue(key, out var actionIds))
-        {
-            actionIds = [];
-            index.Add(key, actionIds);
-        }
-
-        actionIds.Add(actionId);
-    }
-
-    private static void RemoveFromIndex<TKey>(
-        Dictionary<TKey, HashSet<Guid>> index,
-        TKey key,
-        Guid actionId)
-        where TKey : notnull
-    {
-        if (!index.TryGetValue(key, out var actionIds))
-        {
-            return;
-        }
-
-        actionIds.Remove(actionId);
-        if (actionIds.Count == 0)
-        {
-            index.Remove(key);
-        }
-    }
-
     private void OnEntryAdmitted(long size)
     {
         var entries = Interlocked.Increment(ref _entryCount);
@@ -349,6 +292,85 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         if (metric is not null)
         {
             RecordMetric(metric, 1);
+        }
+    }
+
+    private static long CalculateSize(CodeActionReplayRecipe recipe)
+    {
+        var size = 1L
+            + recipe.ProviderId.Length
+            + recipe.Title.Length
+            + (recipe.EquivalenceKey?.Length ?? 0)
+            + 16
+            + recipe.DocumentPath.Length
+            + recipe.ProjectId.Length
+            + recipe.ActionPath.Count
+            + recipe.Diagnostics.Count
+            + 3;
+
+        foreach (var diagnosticId in recipe.DiagnosticIds)
+        {
+            size += diagnosticId.Length;
+        }
+
+        foreach (var diagnostic in recipe.Diagnostics)
+        {
+            size += diagnostic.Id.Length + diagnostic.Message.Length;
+        }
+
+        if (recipe.PreparedFixAll is not null)
+        {
+            size += CalculateSize(recipe.PreparedFixAll);
+        }
+
+        return size;
+    }
+
+    private static long CalculateSize(PreparedFixAllReplayData preparedFixAll)
+    {
+        var size = _preparedFixAllFixedCharge;
+        foreach (var document in preparedFixAll.CandidatePrecondition.ExpectedIdentity.Documents)
+        {
+            size += _preparedDocumentIdentityFixedCharge
+                + document.DocumentPath.Path.Length
+                + document.ContentHash.Length
+                + document.SerializedBytesHash.Length
+                + document.EncodingName.Length;
+        }
+
+        return size;
+    }
+
+    private static void AddToIndex<TKey>(
+        Dictionary<TKey, HashSet<Guid>> index,
+        TKey key,
+        Guid actionId)
+        where TKey : notnull
+    {
+        if (!index.TryGetValue(key, out var actionIds))
+        {
+            actionIds = [];
+            index.Add(key, actionIds);
+        }
+
+        actionIds.Add(actionId);
+    }
+
+    private static void RemoveFromIndex<TKey>(
+        Dictionary<TKey, HashSet<Guid>> index,
+        TKey key,
+        Guid actionId)
+        where TKey : notnull
+    {
+        if (!index.TryGetValue(key, out var actionIds))
+        {
+            return;
+        }
+
+        actionIds.Remove(actionId);
+        if (actionIds.Count == 0)
+        {
+            index.Remove(key);
         }
     }
 

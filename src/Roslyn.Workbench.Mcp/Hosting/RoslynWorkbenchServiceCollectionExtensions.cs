@@ -99,6 +99,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceStateDirectory, WorkspaceStateDirectory>();
         services.AddSingleton(CommitRecoveryLimits.Default);
         services.AddSingleton<ICommitRecoveryStore, CommitRecoveryStore>();
+        services.AddSingleton<IWorkspaceDocumentContentService, WorkspaceDocumentContentService>();
         services.AddSingleton<IWorkspaceCommitPlanner, WorkspaceCommitPlanner>();
         services.AddSingleton<IWorkspaceFileLockProvider, FileStreamWorkspaceFileLockProvider>();
         services.AddSingleton<IWorkspaceCommitLockManager, WorkspaceCommitLockManager>();
@@ -135,6 +136,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IRemovedDocumentProjectContextPropagator, RemovedDocumentProjectContextPropagator>();
         services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
         services.AddSingleton<IWorkspaceMutationCandidateProcessor, WorkspaceMutationCandidateProcessor>();
+        services.AddSingleton<IWorkspaceMutationCandidateIdentityService, WorkspaceMutationCandidateIdentityService>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
@@ -248,30 +250,6 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddHostedService<WorkspaceShutdownLifecycleService>();
     }
 
-    private static void AddPluginCatalogServices(IServiceCollection services)
-    {
-        services.AddSingleton<IPluginHandlerTypeInspector, PluginHandlerTypeInspector>();
-        services.AddSingleton<IPluginHandlerContractResolver, PluginHandlerContractResolver>();
-        services.AddSingleton<IPluginHandlerWarningInspector, PluginHandlerWarningInspector>();
-        services.AddSingleton<IPluginConfigurationPreparer, PluginConfigurationPreparer>();
-        services.AddSingleton<IPluginToolRegistrationMaterializer, PluginToolRegistrationMaterializer>();
-        services.AddSingleton<IPluginComposer, MefPluginComposer>();
-        services.AddSingleton<ILoadedPluginPreparer, LoadedPluginPreparer>();
-        services.AddSingleton<IPluginEntryPointValidator, PluginEntryPointValidator>();
-        services.AddSingleton<IPluginPackagePathPolicy, PluginPackagePathPolicy>();
-        services.AddSingleton<IPluginAssemblyMetadataReader, PluginAssemblyMetadataReader>();
-        services.AddSingleton<IPluginLoadContextFactory, PluginLoadContextFactory>();
-        services.AddSingleton<IPluginCandidatePreparer, PluginCandidatePreparer>();
-        services.AddSingleton<IPluginTransportSchemaPreflight, PluginTransportSchemaPreflight>();
-        services.AddSingleton<IPluginCatalogEntryMaterializer, PluginCatalogEntryMaterializer>();
-        services.AddSingleton<IPluginPackageDiscovery, PluginPackageDiscovery>();
-        services.AddSingleton<IPluginCollisionPolicy, PluginCollisionPolicy>();
-        services.AddSingleton<IPluginCatalogLoader, PluginCatalogLoader>();
-        services.AddSingleton<IPluginMcpServerToolFactory, PluginMcpServerToolFactory>();
-        services.AddSingleton<IPluginCatalogState, PluginCatalogState>();
-        services.AddSingleton<IPluginMcpRequestHandler, PluginMcpRequestHandler>();
-    }
-
     public static void ConfigureRoslynWorkbenchLogging(this ILoggingBuilder loggingBuilder)
     {
         loggingBuilder.ClearProviders();
@@ -295,5 +273,29 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<SentryOptions, RoslynWorkbenchSentryOptions>();
         services.AddSingleton<ISentryClient, SentryClient>();
         services.AddSingleton<IErrorReportDispatcher, SentryErrorReportDispatcher>();
+    }
+
+    private static void AddPluginCatalogServices(IServiceCollection services)
+    {
+        services.AddSingleton<IPluginHandlerTypeInspector, PluginHandlerTypeInspector>();
+        services.AddSingleton<IPluginHandlerContractResolver, PluginHandlerContractResolver>();
+        services.AddSingleton<IPluginHandlerWarningInspector, PluginHandlerWarningInspector>();
+        services.AddSingleton<IPluginConfigurationPreparer, PluginConfigurationPreparer>();
+        services.AddSingleton<IPluginToolRegistrationMaterializer, PluginToolRegistrationMaterializer>();
+        services.AddSingleton<IPluginComposer, MefPluginComposer>();
+        services.AddSingleton<ILoadedPluginPreparer, LoadedPluginPreparer>();
+        services.AddSingleton<IPluginEntryPointValidator, PluginEntryPointValidator>();
+        services.AddSingleton<IPluginPackagePathPolicy, PluginPackagePathPolicy>();
+        services.AddSingleton<IPluginAssemblyMetadataReader, PluginAssemblyMetadataReader>();
+        services.AddSingleton<IPluginLoadContextFactory, PluginLoadContextFactory>();
+        services.AddSingleton<IPluginCandidatePreparer, PluginCandidatePreparer>();
+        services.AddSingleton<IPluginTransportSchemaPreflight, PluginTransportSchemaPreflight>();
+        services.AddSingleton<IPluginCatalogEntryMaterializer, PluginCatalogEntryMaterializer>();
+        services.AddSingleton<IPluginPackageDiscovery, PluginPackageDiscovery>();
+        services.AddSingleton<IPluginCollisionPolicy, PluginCollisionPolicy>();
+        services.AddSingleton<IPluginCatalogLoader, PluginCatalogLoader>();
+        services.AddSingleton<IPluginMcpServerToolFactory, PluginMcpServerToolFactory>();
+        services.AddSingleton<IPluginCatalogState, PluginCatalogState>();
+        services.AddSingleton<IPluginMcpRequestHandler, PluginMcpRequestHandler>();
     }
 }

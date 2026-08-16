@@ -2,6 +2,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
 
 internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChangeCounter
 {
+    private readonly IWorkspaceDocumentContentService _documentContentService;
+
+    public CodeActionSolutionChangeCounter(IWorkspaceDocumentContentService documentContentService)
+    {
+        _documentContentService = documentContentService;
+    }
+
     public async ValueTask<IReadOnlyList<Document>> GetChangedSourceDocumentsAsync(
         Solution before,
         Solution after,
@@ -45,9 +52,9 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
                 continue;
             }
 
-            var originalText = await originalDocument.GetTextAsync(cancellationToken);
-            var updatedText = await updatedDocument.GetTextAsync(cancellationToken);
-            if (!originalText.ContentEquals(updatedText))
+            var originalContent = await _documentContentService.CreateAsync(originalDocument, cancellationToken);
+            var updatedContent = await _documentContentService.CreateAsync(updatedDocument, cancellationToken);
+            if (!_documentContentService.HasEquivalentContent(originalContent, updatedContent))
             {
                 changedDocuments.Add(updatedDocument);
             }

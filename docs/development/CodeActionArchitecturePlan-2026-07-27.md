@@ -159,7 +159,7 @@ The request contains:
 | `AffectedDocumentsLimit` | Optional with published curated default | Bounds the affected-document list returned to the agent. |
 | `ExpectedSnapshot` | Required | Revalidates the Workspace and transaction revision. |
 
-Preparation revalidates the originating Code Fix, verifies its `FixAllProvider` and requested scope, constructs the Fix All action, evaluates its candidate solution without staging it, applies the same linked-document merge and source-only candidate validation used by Workspace staging, and records a replayable Fix All recipe.
+Preparation revalidates the originating Code Fix, verifies its `FixAllProvider` and requested scope, constructs the Fix All action, evaluates its candidate solution without staging it, applies the same linked-document merge and source-only candidate validation used by Workspace staging, and records a replayable Fix All recipe. The recipe includes a bounded identity of the exact normalised source operation, using stable project identities, filesystem-aware paths, change kinds and content checksums without retaining source text or a Roslyn `Solution` graph.
 
 The response contains:
 
@@ -354,7 +354,9 @@ A prepared Fix All recipe additionally records:
 - diagnostic IDs;
 - equivalence key;
 - approved maximum changed-document count; and
-- enough scope identity to recreate the same operation.
+- the exact normalised candidate identity needed to prove that staging recreated the same operation without retaining source text or Roslyn Workspace graphs.
+
+Prepared Fix All staging recreates and normalises the provider action through the ordinary Workspace candidate processor, then compares it with the recorded identity and approved maximum before creating or appending a transaction revision. Any content, path, project, change-kind or changed-document-count mismatch rejects with `MutationCandidateChanged`, invalidates the prepared reference and requires fresh discovery and preparation.
 
 Reference resolution must not use title as the primary selector. Rediscovery must match exactly one leaf by provider, kind, location, diagnostics, equivalence key and action path, with title retained only as a consistency check. Zero matches reject as expired or unavailable; multiple matches reject as ambiguous. Both instruct the caller to list again.
 

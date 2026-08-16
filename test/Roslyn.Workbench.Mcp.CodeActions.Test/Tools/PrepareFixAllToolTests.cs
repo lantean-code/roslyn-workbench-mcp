@@ -14,6 +14,7 @@ public sealed class PrepareFixAllToolTests
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionSolutionChangeCounter> _solutionChangeCounter;
     private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
+    private readonly Mock<IWorkspaceMutationCandidateIdentityService> _candidateIdentityService;
     private readonly Mock<TimeProvider> _timeProvider;
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
@@ -29,6 +30,7 @@ public sealed class PrepareFixAllToolTests
         _resolver = new Mock<ICodeActionResolver>();
         _solutionChangeCounter = new Mock<ICodeActionSolutionChangeCounter>();
         _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
+        _candidateIdentityService = new Mock<IWorkspaceMutationCandidateIdentityService>();
         _timeProvider = new Mock<TimeProvider>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
@@ -52,6 +54,7 @@ public sealed class PrepareFixAllToolTests
             _resolver.Object,
             _solutionChangeCounter.Object,
             _candidateProcessor.Object,
+            _candidateIdentityService.Object,
             _timeProvider.Object,
             Options.Create(new CodeActionExecutionOptions
             {
@@ -133,7 +136,7 @@ public sealed class PrepareFixAllToolTests
             resolution.Reference!.ActionId,
             resolution.Reference.Recipe with
             {
-                PreparedFixAllScope = CodeActionFixAllScope.Document,
+                PreparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData(),
             },
             resolution.Reference.ExpiresAt);
 
@@ -431,7 +434,10 @@ public sealed class PrepareFixAllToolTests
             changedDocuments.Length > affectedDocumentsLimit);
 
         _referenceStore.Verify(item => item.TryCreate(
-            It.Is<CodeActionReplayRecipe>(recipe => recipe.PreparedFixAllScope == scope),
+            It.Is<CodeActionReplayRecipe>(recipe =>
+                recipe.PreparedFixAll != null
+                && recipe.PreparedFixAll.Scope == scope
+                && recipe.PreparedFixAll.CandidatePrecondition.MaximumChangedDocuments == 50),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero),
             out preparedReference), Times.Once);
     }
@@ -484,6 +490,18 @@ public sealed class PrepareFixAllToolTests
                 roslyn.Solution,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(changedDocuments);
+
+        var identity = new WorkspaceMutationCandidateIdentity
+        {
+            Documents = [],
+        };
+
+        _candidateIdentityService
+            .Setup(item => item.CreateAsync(
+                roslyn.Solution,
+                roslyn.Solution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(identity);
     }
 
     private (CodeFixProvider Provider, FixAllProvider FixAllProvider) SetupProvider(

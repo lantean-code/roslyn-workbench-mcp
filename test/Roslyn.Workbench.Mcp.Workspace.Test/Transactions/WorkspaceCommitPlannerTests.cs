@@ -1,21 +1,32 @@
 using System.Runtime.Versioning;
 using System.Text;
 
+using Roslyn.Workbench.Mcp.TestSupport.Workspace;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class WorkspaceCommitPlannerTests : IDisposable
 {
-    private readonly AdhocWorkspace _workspace = new();
-    private readonly Mock<IFileSystem> _fileSystem = new();
-    private readonly Mock<IFile> _file = new();
-    private readonly Mock<IDirectory> _directory = new();
-    private readonly Mock<IPath> _path = new();
-    private readonly Mock<IWorkspacePathComparison> _pathComparison = new();
-    private readonly Mock<IPhysicalPathContainment> _pathContainment = new();
+    private readonly AdhocWorkspace _workspace;
+    private readonly Mock<IFileSystem> _fileSystem;
+    private readonly Mock<IFile> _file;
+    private readonly Mock<IDirectory> _directory;
+    private readonly Mock<IPath> _path;
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
+    private readonly Mock<IPhysicalPathContainment> _pathContainment;
+    private readonly Mock<IWorkspaceDocumentContentService> _documentContentService;
     private readonly WorkspaceCommitPlanner _target;
 
     public WorkspaceCommitPlannerTests()
     {
+        _workspace = new AdhocWorkspace();
+        _fileSystem = new Mock<IFileSystem>();
+        _file = new Mock<IFile>();
+        _directory = new Mock<IDirectory>();
+        _path = new Mock<IPath>();
+        _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathContainment = new Mock<IPhysicalPathContainment>();
+        _documentContentService = new Mock<IWorkspaceDocumentContentService>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -28,6 +39,11 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _pathComparison
             .Setup(item => item.CreateKey(It.IsAny<string>()))
             .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
+
+        _documentContentService
+            .Setup(item => item.CreateAsync(It.IsAny<Document>(), It.IsAny<CancellationToken>()))
+            .Returns((Document document, CancellationToken cancellationToken) => WorkspaceDocumentContentTestFactory.CreateAsync(document, cancellationToken));
+
         _pathContainment
             .Setup(item => item.TryGetStrictlyContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
             .Returns((string root, string path, out string containedPath) =>
@@ -44,7 +60,11 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
                 return IsContained(root, containedPath, allowRoot: true);
             });
 
-        _target = new WorkspaceCommitPlanner(_fileSystem.Object, _pathComparison.Object, _pathContainment.Object);
+        _target = new WorkspaceCommitPlanner(
+            _fileSystem.Object,
+            _pathComparison.Object,
+            _pathContainment.Object,
+            _documentContentService.Object);
     }
 
     [Fact]

@@ -8,6 +8,7 @@ internal sealed class MutationStagingService : IMutationStagingService
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
     private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
+    private readonly IWorkspaceMutationCandidateIdentityService _candidateIdentityService;
 
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
@@ -15,7 +16,8 @@ internal sealed class MutationStagingService : IMutationStagingService
         IWorkspaceDiffBuilder diffBuilder,
         IWorkspaceResolverFactory resolverFactory,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
-        IWorkspaceMutationCandidateProcessor candidateProcessor)
+        IWorkspaceMutationCandidateProcessor candidateProcessor,
+        IWorkspaceMutationCandidateIdentityService candidateIdentityService)
     {
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
@@ -23,6 +25,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
         _candidateProcessor = candidateProcessor;
+        _candidateIdentityService = candidateIdentityService;
     }
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
@@ -54,6 +57,11 @@ internal sealed class MutationStagingService : IMutationStagingService
 
         if (!processingResult.IsSucceeded)
         {
+            if (candidate.Precondition is not null)
+            {
+                return CreateMutationCandidateChangedResult(diagnostics, warnings);
+            }
+
             return CreateValidationFailureResult(processingResult.Error, diagnostics, warnings);
         }
 
@@ -61,6 +69,18 @@ internal sealed class MutationStagingService : IMutationStagingService
         {
             CandidateSolution = processingResult.Solution,
         };
+
+        var preconditionFailure = await ValidatePreconditionAsync(
+            session.CurrentSolution,
+            mergedCandidate,
+            diagnostics,
+            warnings,
+            cancellationToken);
+
+        if (preconditionFailure is not null)
+        {
+            return preconditionFailure;
+        }
 
         var stagedMutation = await CreateStagedMutationAsync(
             operationName,
@@ -78,6 +98,43 @@ internal sealed class MutationStagingService : IMutationStagingService
         return CreateSuccessResult(operationName, mergedCandidate, stagedMutation, diagnostics, warnings);
     }
 
+    private async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>?> ValidatePreconditionAsync(
+        Solution currentSolution,
+        WorkspaceMutationCandidate candidate,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings,
+        CancellationToken cancellationToken)
+    {
+        if (candidate.Precondition is null)
+        {
+            return null;
+        }
+
+        var identity = await _candidateIdentityService.CreateAsync(
+            currentSolution,
+            candidate.CandidateSolution,
+            cancellationToken);
+
+        if (_candidateIdentityService.MatchesPrecondition(candidate.Precondition, identity))
+        {
+            return null;
+        }
+
+        return CreateMutationCandidateChangedResult(diagnostics, warnings);
+    }
+
+    private WorkspaceOperationResult<MutationStagingOutcome> CreateMutationCandidateChangedResult(
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings)
+    {
+        return _resultFactory.Rejected<MutationStagingOutcome>(
+            WorkspaceErrorCodes.MutationCandidateChanged,
+            "The mutation candidate no longer matches the previously prepared operation.",
+            RequiredAction.ResolveTargetAgain,
+            diagnostics: diagnostics,
+            warnings: warnings);
+    }
+
     private async ValueTask<StagedMutation> CreateStagedMutationAsync(
         string operationName,
         WorkspaceMutationCandidate candidate,
@@ -85,10 +142,15 @@ internal sealed class MutationStagingService : IMutationStagingService
         WorkspaceTransaction transaction,
         CancellationToken cancellationToken)
     {
+        var candidateResolver = _resolverFactory.Create(
+            candidate.CandidateSolution,
+            session.Workspace,
+            transaction.CurrentRevision + 1);
+
         var changes = await _diffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
             candidate.CandidateSolution,
-            _resolverFactory.Create(candidate.CandidateSolution, session.Workspace, transaction.CurrentRevision + 1),
+            candidateResolver,
             cancellationToken);
 
         var revision = CreateRevision(operationName, candidate, changes);
@@ -133,10 +195,12 @@ internal sealed class MutationStagingService : IMutationStagingService
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings)
     {
+        var outcome = CreateOutcome(operationName, candidate, stagedMutation);
+        var combinedWarnings = warnings.Concat(candidate.Warnings).ToArray();
         return _resultFactory.Succeeded(
-            CreateOutcome(operationName, candidate, stagedMutation),
+            outcome,
             diagnostics: diagnostics,
-            warnings: warnings.Concat(candidate.Warnings).ToArray());
+            warnings: combinedWarnings);
     }
 
     private WorkspaceOperationResult<MutationStagingOutcome> CreateTransactionRequiredResult()

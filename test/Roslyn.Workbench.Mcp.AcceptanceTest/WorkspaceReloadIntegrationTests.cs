@@ -115,7 +115,7 @@ public sealed class WorkspaceReloadIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_GeneratedOutputChanges_WHEN_QueryingWorkspace_THEN_ShouldRemainReady()
+    public async Task GIVEN_SelectedGeneratedDocumentChanges_WHEN_QueryingWorkspace_THEN_ShouldRequireReload()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
 
@@ -149,8 +149,9 @@ public sealed class WorkspaceReloadIntegrationTests
                 "// Updated generated output.\r\n",
                 TestContext.Current.CancellationToken);
 
-            var refreshedSearch = await SearchAsync(target, workspaceSelector, "Class1");
-            refreshedSearch.IsError.Should().NotBeTrue();
+            var staleSearch = await SearchAsync(target, workspaceSelector, "Class1");
+            staleSearch.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(staleSearch).GetProperty("code").GetString().Should().Be("WorkspaceOutOfDate");
 
             var statusResult = await target.CallToolAsync(
                 "workspace-status",
@@ -161,8 +162,21 @@ public sealed class WorkspaceReloadIntegrationTests
                 TestContext.Current.CancellationToken);
 
             var statusData = AcceptanceProtocol.GetSuccessData(statusResult);
-            statusData.GetProperty("state").GetString().Should().Be("Ready");
-            statusData.TryGetProperty("externalChange", out _).Should().BeFalse();
+            statusData.GetProperty("state").GetString().Should().Be("WorkspaceOutOfDate");
+
+            var externalChange = statusData.GetProperty("externalChange");
+            var detectionSource = externalChange.GetProperty("detectionSource").GetString();
+            externalChange.GetProperty("path").GetString().Should().Be(generatedDocumentPath);
+
+            if (detectionSource == "FileSystemWatcher")
+            {
+                externalChange.GetProperty("kind").GetString().Should().Be("Changed");
+            }
+            else
+            {
+                detectionSource.Should().Be("MetadataPolling");
+                externalChange.GetProperty("kind").GetString().Should().Be("MetadataChanged");
+            }
         }
         catch
         {

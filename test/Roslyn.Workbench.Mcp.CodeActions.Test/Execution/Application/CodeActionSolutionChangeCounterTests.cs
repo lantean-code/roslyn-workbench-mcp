@@ -1,14 +1,27 @@
+using System.Text;
+
 using Microsoft.CodeAnalysis.Text;
+using Roslyn.Workbench.Mcp.TestSupport.Workspace;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution.Application;
 
 public sealed class CodeActionSolutionChangeCounterTests
 {
+    private readonly Mock<IWorkspaceDocumentContentService> _documentContentService;
     private readonly CodeActionSolutionChangeCounter _target;
 
     public CodeActionSolutionChangeCounterTests()
     {
-        _target = new CodeActionSolutionChangeCounter();
+        _documentContentService = new Mock<IWorkspaceDocumentContentService>();
+        _documentContentService
+            .Setup(item => item.CreateAsync(It.IsAny<Document>(), It.IsAny<CancellationToken>()))
+            .Returns((Document document, CancellationToken cancellationToken) => WorkspaceDocumentContentTestFactory.CreateAsync(document, cancellationToken));
+
+        _documentContentService
+            .Setup(item => item.HasEquivalentContent(It.IsAny<WorkspaceDocumentContent>(), It.IsAny<WorkspaceDocumentContent>()))
+            .Returns((WorkspaceDocumentContent expected, WorkspaceDocumentContent candidate) => WorkspaceDocumentContentTestFactory.HasEquivalentContent(expected, candidate));
+
+        _target = new CodeActionSolutionChangeCounter(_documentContentService.Object);
     }
 
     [Fact]
@@ -108,6 +121,26 @@ public sealed class CodeActionSolutionChangeCounterTests
     }
 
     [Fact]
+    public async Task GIVEN_EquivalentTextSerializesDifferently_WHEN_GettingChanges_THEN_ShouldReturnDocument()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var document = roslyn.GetDocument("First.cs");
+        var contentBytes = Encoding.UTF8.GetBytes("class First { }");
+        var originalText = SourceText.From(contentBytes, contentBytes.Length, Encoding.UTF8);
+        var originalSolution = roslyn.Solution.WithDocumentText(document.Id, originalText);
+        var encodingWithoutPreamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var updatedText = SourceText.From(contentBytes, contentBytes.Length, encodingWithoutPreamble);
+        var updatedSolution = originalSolution.WithDocumentText(document.Id, updatedText);
+
+        var result = await _target.GetChangedSourceDocumentsAsync(
+            originalSolution,
+            updatedSolution,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Id.Should().Be(document.Id);
+    }
+
+    [Fact]
     public async Task GIVEN_OnlyDocumentMetadataChanges_WHEN_GettingChanges_THEN_ShouldReturnEmpty()
     {
         using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
@@ -203,4 +236,5 @@ public sealed class CodeActionSolutionChangeCounterTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
+
 }

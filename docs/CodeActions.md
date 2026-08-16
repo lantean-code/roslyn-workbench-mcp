@@ -110,14 +110,14 @@ Only use `prepare-fix-all` when the selected Code Fix lists the requested scope 
 }
 ```
 
-Preparation is read-only. It revalidates the originating Code Fix, evaluates the selected scope, rejects an operation exceeding `maxChanges`, and returns:
+Preparation is read-only. It revalidates the originating Code Fix, evaluates the selected scope, rejects an operation exceeding `maxChanges`, and records the exact normalised source operation that was approved before returning:
 
 - a new `actionId` representing the prepared Fix All operation;
 - the accepted `scope`;
 - `affectedDiagnosticCount` when authoritatively available; and
 - a bounded `affectedDocuments` collection.
 
-Pass the new prepared `actionId`, not the originating action reference, to `stage-code-action` with the same current snapshot. Preview, history, rollback and commit then work exactly as they do for a single action.
+Pass the new prepared `actionId`, not the originating action reference, to `stage-code-action` with the same current snapshot. The Host recreates and normalises the Fix All operation, then requires its affected projects, paths, change kinds and content checksums to match the prepared operation exactly and still satisfy `maxChanges`. If the provider produces a different operation, staging rejects it with `MutationCandidateChanged`, consumes the invalid prepared reference and instructs the caller to resolve the target again. A matching operation proceeds through preview, history, rollback and commit exactly as a single action does.
 
 ## Reference and snapshot rules
 

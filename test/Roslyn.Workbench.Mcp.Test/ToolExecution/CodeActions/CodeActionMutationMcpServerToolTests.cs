@@ -381,6 +381,58 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_PreparedCandidateChanged_WHEN_StagingReference_THEN_ShouldConsumeInvalidReference()
+    {
+        var actionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var handler = new Mock<ICodeActionMutationToolHandler<TestReferencedMutationRequest>>();
+        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var context = new Mock<ICodeActionMutationContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var workspaceContext = new Mock<IWorkspaceExecutionContext>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext.Object, stager.Object);
+
+        contextFactory
+            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
+        var candidate = MutationCandidateTestData.CreateWorkspaceCandidate();
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(CodeActionExecutionResult.Success(candidate));
+
+        var stagingError = new WorkspaceOperationError
+        {
+            Code = WorkspaceErrorCodes.MutationCandidateChanged,
+            Message = "Message",
+            RequiredAction = RequiredAction.ResolveTargetAgain,
+        };
+
+        stager
+            .Setup(item => item.StageAsync(
+                It.IsAny<string>(),
+                candidate,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>(),
+                CancellationToken.None))
+            .ReturnsAsync(WorkspaceOperationResult.Rejected<MutationStagingOutcome>(stagingError));
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = McpServerToolTestData.CreateMutationArguments();
+        arguments["actionId"] = JsonSerializer.SerializeToElement(actionId);
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        var errorCode = result.StructuredContent!.Value
+            .GetProperty("error")
+            .GetProperty("code")
+            .GetString();
+
+        errorCode.Should().Be(WorkspaceErrorCodes.MutationCandidateChanged);
+        _referenceStore.Verify(item => item.Remove(actionId), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_CodeActionReferenceAndNoChangeStaging_WHEN_InvokingMutation_THEN_ShouldRetainReference()
     {
         var actionId = Guid.Parse("11111111-1111-1111-1111-111111111111");

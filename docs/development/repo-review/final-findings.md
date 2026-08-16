@@ -33,7 +33,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Complete — confirmed 2026-08-15 |
 | 16 | `RWMCP2-021` — External generated documents make a valid source-root Workspace unloadable | P2 | Complete — confirmed 2026-08-15 |
 | 17 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P3 | Complete — confirmed 2026-08-16 |
-| 18 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
+| 18 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Complete — confirmed 2026-08-16 |
 
 ## Remediation and release gates
 
@@ -240,13 +240,15 @@ Initial external-repository preparation clones and checks out directly in the pe
 
 ### RWMCP2-011 — Prepared Fix All references do not bind the operation that was reviewed
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-16
 
 **Severity:** P2  
 **Confidence:** Medium  
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Tools/PrepareFixAllTool.cs:82-169`; `src/Roslyn.Workbench.Mcp.CodeActions/References/CodeActionReplayRecipe.cs:3-20`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/PreparedFixAllResolver.cs:25-76`; `src/Roslyn.Workbench.Mcp.CodeActions/Staging/CodeActionStager.cs:38-82`
 
 Preparation creates a Fix All action, evaluates and processes its candidate, counts changed documents and enforces the requested maximum. The stored recipe adds only the Fix All scope; it does not bind the reviewed operation, its changed-document identity or the approved maximum. Staging later rediscovers the provider, creates a fresh Fix All action, evaluates it and returns its candidate without comparing it with the prepared candidate or reapplying the maximum. A provider whose output changes between calls can therefore stage more or different changes than were reviewed. The path is complete and has no later prevention, but confidence is Medium because occurrence depends on provider instability or changing provider-external state; deterministic built-in providers will usually recreate the same operation.
+
+**Remediation outcome:** Prepared Fix All references now retain the approved maximum and a normalised identity for every changed source operation, including project, physical path semantics, change kind, logical content, exact serialised bytes and encoding. Staging recreates and normalises the provider result, rejects any identity or maximum mismatch as `MutationCandidateChanged`, consumes the stale prepared reference and does not append a transaction revision. The same document-content service supplies preparation, comparison and commit serialisation, and commit planning reuses its serialised-byte hash. A total, symmetric comparer provides deterministic identity ordering across mixed filesystem case-sensitivity policies and every identity component. Stateful, encoding-sensitive and failing-replay provider fixtures cover changed operations, exact byte preservation, reference consumption and successful prepare-to-commit behaviour; focused comparer coverage locks the ordering contract. The solution build, 1,052 Workspace unit tests, 287 Code Actions unit tests, 104 Workspace integration tests and 22 Code Actions integration tests passed, and all affected `latest-all` analyzer builds completed with zero warnings or errors. The final fresh context-free Review Agent found no actionable defect; its only residual gap was defence-in-depth end-to-end coverage for a replay that expands beyond the prepared maximum, whose rejection branch is already covered at the identity-service boundary. The user gave final confirmation on 2026-08-16.
 
 ### RWMCP2-021 — External generated documents make a valid source-root Workspace unloadable
 

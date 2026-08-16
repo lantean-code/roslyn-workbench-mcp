@@ -28,7 +28,12 @@ internal sealed class RepositoryManager
         EnsureNuGetConfigurationIsolation();
 
         var repositoryRoot = Path.Combine(_cacheDirectory, repository.Id, repository.Commit);
-        if (!Directory.Exists(Path.Combine(repositoryRoot, ".git")))
+        await RecreateInvalidCacheAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+
+        if (!Directory.Exists(repositoryRoot))
         {
             Directory.CreateDirectory(Path.Combine(_cacheDirectory, repository.Id));
             await RunRequiredAsync(
@@ -83,12 +88,41 @@ internal sealed class RepositoryManager
         return repositoryRoot;
     }
 
+    public static string GetNuGetPackagesDirectory(string repositoryRoot)
+    {
+        return Path.Combine(repositoryRoot, ".performance", "nuget-packages");
+    }
+
     private void EnsureNuGetConfigurationIsolation()
     {
         Directory.CreateDirectory(_cacheDirectory);
 
         var configurationPath = Path.Combine(_cacheDirectory, "NuGet.Config");
         File.WriteAllText(configurationPath, NuGetIsolationConfiguration);
+    }
+
+    private static async Task RecreateInvalidCacheAsync(
+        string repositoryRoot,
+        string expectedCommit,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(repositoryRoot))
+        {
+            return;
+        }
+
+        var validationFailure = await GetPinnedCheckoutValidationFailureAsync(
+            repositoryRoot,
+            expectedCommit,
+            "before preparation",
+            cancellationToken);
+        if (validationFailure is null)
+        {
+            return;
+        }
+
+        Console.WriteLine($"Recreating invalid repository cache '{repositoryRoot}'. {validationFailure}");
+        Directory.Delete(repositoryRoot, recursive: true);
     }
 
     private static async Task RunRequiredAsync(
@@ -120,21 +154,36 @@ internal sealed class RepositoryManager
         string validationPoint,
         CancellationToken cancellationToken)
     {
+        var validationFailure = await GetPinnedCheckoutValidationFailureAsync(
+            repositoryRoot,
+            expectedCommit,
+            validationPoint,
+            cancellationToken);
+        if (validationFailure is not null)
+        {
+            throw new InvalidOperationException(validationFailure);
+        }
+    }
+
+    private static async Task<string?> GetPinnedCheckoutValidationFailureAsync(
+        string repositoryRoot,
+        string expectedCommit,
+        string validationPoint,
+        CancellationToken cancellationToken)
+    {
         var head = await GitCommand.RunAsync(
             ["rev-parse", "HEAD"],
             repositoryRoot,
             cancellationToken);
         if (head.ExitCode != 0)
         {
-            throw new InvalidOperationException(
-                $"Unable to inspect repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{head.StandardError}");
+            return $"Unable to inspect repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{head.StandardError}";
         }
 
         var actualCommit = head.StandardOutput.Trim();
         if (!string.Equals(actualCommit, expectedCommit, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException(
-                $"Repository cache '{repositoryRoot}' is at '{actualCommit}' {validationPoint}, not pinned commit '{expectedCommit}'. Remove that cache directory explicitly before retrying.");
+            return $"Repository cache '{repositoryRoot}' is at '{actualCommit}' {validationPoint}, not pinned commit '{expectedCommit}'.";
         }
 
         var status = await GitCommand.RunAsync(
@@ -143,20 +192,15 @@ internal sealed class RepositoryManager
             cancellationToken);
         if (status.ExitCode != 0)
         {
-            throw new InvalidOperationException(
-                $"Unable to inspect tracked changes in repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{status.StandardError}");
+            return $"Unable to inspect tracked changes in repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{status.StandardError}";
         }
 
         var trackedChanges = status.StandardOutput.Trim();
         if (!string.IsNullOrWhiteSpace(trackedChanges))
         {
-            throw new InvalidOperationException(
-                $"Repository cache '{repositoryRoot}' contains tracked changes {validationPoint}. Use a clean cache so the pinned scenario inputs remain reproducible.{Environment.NewLine}{trackedChanges}");
+            return $"Repository cache '{repositoryRoot}' contains tracked changes {validationPoint}.{Environment.NewLine}{trackedChanges}";
         }
-    }
 
-    public static string GetNuGetPackagesDirectory(string repositoryRoot)
-    {
-        return Path.Combine(repositoryRoot, ".performance", "nuget-packages");
+        return null;
     }
 }

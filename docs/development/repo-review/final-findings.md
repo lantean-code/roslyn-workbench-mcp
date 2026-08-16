@@ -10,7 +10,7 @@ Every one of the twenty ledger candidates was independently retraced against the
 
 ## Remediation worklist
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 This table is the primary RWMCP2 remediation tracker. Its order is the required fix order; update both this row and the corresponding detailed finding whenever status changes. Rejected candidates are not remediation work items and remain documented in the durable ledger.
 
@@ -32,7 +32,7 @@ This table is the primary RWMCP2 remediation tracker. Its order is the required 
 | 14 | `RWMCP2-015` — The unexpected-exception filter remaps deliberate MCP protocol failures | P2 | Complete — confirmed 2026-08-14 |
 | 15 | `RWMCP2-017` — Error capture loses valid Workspace selectors when several Workspaces are open | P2 | Complete — confirmed 2026-08-15 |
 | 16 | `RWMCP2-021` — External generated documents make a valid source-root Workspace unloadable | P2 | Complete — confirmed 2026-08-15 |
-| 17 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P2 | Pending — remediation not started |
+| 17 | `RWMCP2-019` — Failed initial preparation poisons the shared scenario cache | P3 | Complete — confirmed 2026-08-16 |
 | 18 | `RWMCP2-011` — Prepared Fix All references do not bind the operation that was reviewed | P2 | Pending — remediation not started |
 
 ## Remediation and release gates
@@ -227,13 +227,16 @@ Public binding accepts Workspace selectors by canonical ID, alias or path and tr
 
 ### RWMCP2-019 — Failed initial preparation poisons the shared scenario cache
 
-**Status:** Pending — remediation not started
+**Status:** Complete — remediated, independently reviewed and confirmed on 2026-08-16
 
-**Severity:** P2  
+**Severity:** P3
+
 **Confidence:** High  
-**Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryManager.cs:23-80`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/ExternalCommand.cs:8-43`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs:50-64`
+**Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryManager.cs:23-215`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs:50-64`
 
 Initial external-repository preparation clones and checks out directly in the persistent shared cache directory. Cancellation or command failure after `.git` is created leaves that partial repository in place. On the next locked preparation, `RepositoryManager` sees `.git`, skips clone, and validates the pinned clean checkout; the incomplete cache fails that validation repeatedly and is neither repaired nor replaced. Process-tree termination limits orphan processes but cannot restore repository state. The release wrappers reuse the same cache, so a single interrupted first preparation can poison subsequent scenario runs.
+
+**Remediation outcome:** The scenario runner now validates any existing commit-specific cache before reuse and, while holding the existing cache-wide lock, deletes and recreates only that exact runner-owned checkout when inspection fails, the pinned commit differs or tracked files are dirty. A newly cloned or prepared checkout still receives strict validation, while a valid cache is reused without recloning. The finding was reduced from P2 to P3 because this is a manually invoked development/release-validation runner, cannot affect the MCP Host or user source, and always had a straightforward manual cache-deletion recovery; the real repeated-run failure nevertheless justified eliminating that operational trap. Failure injection proved recovery from an incomplete `.git` directory and a tracked-dirty checkout, followed by clean pinned state and valid-cache reuse. Normal and `latest-all` Scenario Runner builds passed with zero warnings or errors, and the checked-in WSL wrapper successfully prepared GuardClauses, Serilog and EF Core. A dedicated automated test project was intentionally not added for this development-only runner. The fresh context-free Review Agent reused that current evidence, ran no duplicate validation and returned no findings; its residual risks are limited to platform permissions or sharing violations preventing deletion and a new interrupted clone requiring the following invocation to repair it. The user gave final confirmation on 2026-08-16.
 
 ### RWMCP2-011 — Prepared Fix All references do not bind the operation that was reviewed
 

@@ -2,7 +2,7 @@
 
 Date: 2026-08-16
 
-**Review status:** Ready — the repository is clean and the required pre-review release validation has completed on Windows and WSL.
+**Review status:** Complete — all four stages completed on 2026-08-16.
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Do not report pure formatting preferences, minor style disagreements, generic be
 
 ## Stage 1: Current architecture map
 
-**Status:** Incomplete
+**Status:** Complete — report: [Current repository architecture](repo-review/architecture.md)
 
 Inspect the complete repository and write [`repo-review/architecture.md`](repo-review/architecture.md). Map:
 
@@ -55,7 +55,7 @@ The map must be derived from current project files, source, configuration and te
 
 ## Stage 2: Dependency-ordered review plan
 
-**Status:** Incomplete
+**Status:** Complete — plan: [RWMCP3 dependency-ordered review plan](repo-review/review-plan.md)
 
 Create [`repo-review/review-plan.md`](repo-review/review-plan.md) from the current architecture map. Divide the repository into the following coherent review units in dependency order. A later unit may reopen an earlier unit when consumer behaviour changes its risk assessment.
 
@@ -109,7 +109,7 @@ Trace a real component fixture, published Host acceptance, first and repeated re
 
 ## Stage 3: Repository-wide validation passes
 
-**Status:** Incomplete
+**Status:** Complete — report: [Repository-wide validation passes](repo-review/repository-wide-passes.md)
 
 After all subsystem reviews, write [`repo-review/repository-wide-passes.md`](repo-review/repository-wide-passes.md) covering explicit passes for:
 
@@ -132,7 +132,7 @@ Trace representative operations again across the complete repository. Reopen sub
 
 ## Stage 4: Independent candidate validation
 
-**Status:** Incomplete
+**Status:** Complete — report: [RWMCP3 final validated findings](repo-review/final-findings.md)
 
 Maintain [`repo-review/findings.md`](repo-review/findings.md) as the durable candidate ledger throughout the review. Every candidate must have a stable `RWMCP3-###` identifier and include:
 

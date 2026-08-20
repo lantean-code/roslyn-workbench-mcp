@@ -26,5 +26,7 @@ internal interface IWorkspaceSessionStore
         WorkspaceSessionSnapshot session,
         IReadOnlyList<WorkspaceSnapshotId> discardedSnapshotIds);
 
-    void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, Guid? transactionOwnerWorkspaceId);
+    TransactionAdmissionResult TryStartTransaction(WorkspaceSessionSnapshot session);
+
+    TransactionCompletionResult TryCompleteTransaction(WorkspaceSessionSnapshot session);
 }

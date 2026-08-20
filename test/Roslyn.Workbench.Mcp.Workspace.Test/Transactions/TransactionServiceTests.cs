@@ -283,6 +283,52 @@ public sealed class TransactionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_OwnerChangesDuringAdmission_WHEN_StartingTransaction_THEN_ShouldRejectNewTransaction()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
+        var ownerSession = CreateSession(CreateTransaction()) with
+        {
+            Workspace = new WorkspaceIdentity
+            {
+                WorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Alias = "OwnerAlias",
+                LoadedPath = "OwnerPath",
+            },
+        };
+
+        var expected = CreateResult<TransactionStartOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
+        _sessionStore.Setup(item => item.TryStartTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionAdmissionResult.Rejected(Guid.Parse("22222222-2222-2222-2222-222222222222")));
+
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("22222222-2222-2222-2222-222222222222"))).Returns(ownerSession);
+        _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.Ready, WorkspaceTrigger.TransactionStarted))
+            .Returns(WorkspaceLifecycleState.TransactionActive);
+
+        _resultFactory.Setup(item => item.Rejected<TransactionStartOutcome>(
+            WorkspaceErrorCodes.TransactionOwner,
+            It.Is<string>(message => message.Contains("OwnerAlias", StringComparison.Ordinal)),
+            RequiredAction.CommitOrRollback,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _instanceStatusPublisher.Verify(item => item.UpdateAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<WorkspaceLifecycleState>(),
+            It.IsAny<int?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_StartingTransaction_THEN_ShouldRejectDuplicateTransaction()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
@@ -311,6 +357,8 @@ public sealed class TransactionServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.Ready, WorkspaceTrigger.TransactionStarted))
             .Returns(WorkspaceLifecycleState.TransactionActive);
+        _sessionStore.Setup(item => item.TryStartTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionAdmissionResult.Admitted());
 
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<TransactionStartOutcome>(outcome => outcome.Transaction.Revision == 0),
@@ -321,15 +369,14 @@ public sealed class TransactionServiceTests : IDisposable
         var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+        _sessionStore.Verify(item => item.TryStartTransaction(
             It.Is<WorkspaceSessionSnapshot>(updated =>
                 updated.Transaction != null
                 && updated.Transaction.TransactionId == new WorkspaceTransactionId(7)
                 && updated.Transaction.BaselineSnapshotId == session.CommittedSnapshotId
                 && updated.Transaction.MaxRevisions == 5
                 && updated.CurrentSnapshotIdentity.TransactionId == new WorkspaceTransactionId(7)
-                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId),
-            Guid.Parse("11111111-1111-1111-1111-111111111111")), Times.Once);
+                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId)), Times.Once);
     }
 
     [Fact]
@@ -1022,6 +1069,44 @@ public sealed class TransactionServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
+    [Fact]
+    public async Task GIVEN_TransactionOwnershipChanges_WHEN_RollingBack_THEN_ShouldReturnFaultWithoutPublishingState()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction();
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expected = CreateResult<TransactionRollbackOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
+        _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
+        _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionRolledBack))
+            .Returns(WorkspaceLifecycleState.Ready);
+
+        _sessionStore.Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionCompletionResult.OwnershipChanged(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                observedOwnerWorkspaceId: null));
+
+        _resultFactory.Setup(item => item.Faulted<TransactionRollbackOutcome>(
+            "TransactionOwnershipChanged",
+            It.Is<string>(message => message.Contains("no active owner is recorded", StringComparison.Ordinal)),
+            null,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _instanceStatusPublisher.Verify(item => item.UpdateAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<WorkspaceLifecycleState>(),
+            It.IsAny<int?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>()), Times.Never);
+    }
+
     [Theory]
     [InlineData(WorkspaceLifecycleState.TransactionActive, "TransactionRolledBack", TransactionRollbackState.Ready)]
     [InlineData(WorkspaceLifecycleState.TransactionConflicted, "ConflictedRollbackCompleted", TransactionRollbackState.WorkspaceOutOfDate)]
@@ -1043,6 +1128,9 @@ public sealed class TransactionServiceTests : IDisposable
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _stateTransitions.Setup(item => item.Fire(state, trigger)).Returns(WorkspaceLifecycleState.Ready);
+        _sessionStore.Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionCompletionResult.Completed());
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<TransactionRollbackOutcome>(outcome => outcome.State == expectedState),
             It.IsAny<WorkspaceOperationContext>(),
@@ -1052,13 +1140,12 @@ public sealed class TransactionServiceTests : IDisposable
         var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+        _sessionStore.Verify(item => item.TryCompleteTransaction(
             It.Is<WorkspaceSessionSnapshot>(updated =>
                 updated.Transaction == null
                 && updated.CurrentSolution == transaction.BaselineSolution
                 && updated.CurrentSnapshotIdentity.TransactionId == null
-                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId),
-            null), Times.Once);
+                && updated.CurrentSnapshotIdentity.SnapshotId == session.CommittedSnapshotId)), Times.Once);
     }
 
     public void Dispose()

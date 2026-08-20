@@ -41,6 +41,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(new WorkspaceSnapshotId(3));
+        _sessionStore
+            .Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionCompletionResult.Completed());
+
         _recoveryStore
             .Setup(item => item.PersistPlanAsync(
                 It.IsAny<WorkspaceCommitPlan>(),
@@ -112,9 +116,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
             It.IsAny<CancellationToken>()), Times.Never);
 
         _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
-            It.IsAny<WorkspaceSessionSnapshot>(),
-            It.IsAny<Guid?>()), Times.Never);
+        _sessionStore.Verify(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
     }
 
     [Fact]
@@ -339,15 +341,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _commitWriter.Verify(item => item.ApplyAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying)), Times.Once);
         _recoveryStore.Verify(item => item.WriteManifestAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed), CancellationToken.None), Times.Once);
         _commitWriter.Verify(item => item.CompleteAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed)), Times.Once);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+        _sessionStore.Verify(item => item.TryCompleteTransaction(
             It.Is<WorkspaceSessionSnapshot>(value =>
                 value.Transaction == null
                 && value.CommittedSnapshotId == new WorkspaceSnapshotId(3)
                 && value.CurrentSolution == transaction.CurrentSolution
                 && value.InputManifest == inputManifest
                 && value.CurrentSnapshotIdentity.TransactionId == null
-                && value.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3)),
-            null), Times.Once);
+                && value.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3))), Times.Once);
 
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
         commitLock.Verify(item => item.Dispose(), Times.Once);
@@ -395,15 +396,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+        _sessionStore.Verify(item => item.TryCompleteTransaction(
             It.Is<WorkspaceSessionSnapshot>(value =>
                 value.State == WorkspaceLifecycleState.WorkspaceOutOfDate
                 && value.Transaction == null
                 && value.CurrentSolution == transaction.CurrentSolution
                 && value.InputManifest == inputManifest
                 && value.LoadDiagnostics.Count == 1
-                && value.LoadDiagnostics[0].Id == "WorkspaceInputEvaluationFailed"),
-            null), Times.Once);
+                && value.LoadDiagnostics[0].Id == "WorkspaceInputEvaluationFailed")), Times.Once);
     }
 
     [Fact]
@@ -949,7 +949,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<Guid?>()), Times.Never);
+        _sessionStore.Verify(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
         _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
     }
 
@@ -1001,8 +1001,40 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), null), Times.Once);
+        _sessionStore.Verify(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()), Times.Once);
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_TransactionOwnershipChangesDuringCompletion_WHEN_Committing_THEN_ShouldRestoreAndReturnFaultWithoutContinuation()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _sessionStore.Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
+            .Returns(TransactionCompletionResult.OwnershipChanged(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Guid.Parse("22222222-2222-2222-2222-222222222222")));
+
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()))
+            .ReturnsAsync(RecoveryState.Restored);
+
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitFailed",
+            It.Is<string>(message => message.Contains("Restart the server before continuing.", StringComparison.Ordinal)),
+            null,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()), Times.Once);
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
+        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

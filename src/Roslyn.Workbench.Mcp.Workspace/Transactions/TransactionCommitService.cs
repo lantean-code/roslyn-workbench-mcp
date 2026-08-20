@@ -370,10 +370,24 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 WorkbenchPerformanceEventSource.TransactionCommitOperation,
                 WorkbenchPerformanceEventSource.CommitCleanupPhase))
             {
-                await CompleteCommitAsync(
+                var completion = await CompleteCommitAsync(
                     session.InputManifest,
                     committedSession,
                     manifest);
+
+                if (!completion.IsCompleted)
+                {
+                    return await RecoverFailedCommitAsync(
+                        session,
+                        transaction,
+                        context,
+                        commitId,
+                        manifest,
+                        applicationStarted: true,
+                        failureMessage: completion.Failure.Message,
+                        validationConflict: false,
+                        restoredRequiredAction: null);
+                }
             }
 
             var outcome = new TransactionCommitOutcome
@@ -557,7 +571,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         return message.ToString();
     }
 
-    private async ValueTask CompleteCommitAsync(
+    private async ValueTask<TransactionCompletionResult> CompleteCommitAsync(
         WorkspaceInputManifest previousInputManifest,
         WorkspaceSessionSnapshot committedSession,
         WorkspaceCommitManifest applyingManifest)
@@ -568,7 +582,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         {
             await _recoveryStore.WriteManifestAsync(committedManifest, CancellationToken.None);
 
-            _sessionStore.ReplaceSessionAndSetTransactionOwner(committedSession, null);
+            var completion = _sessionStore.TryCompleteTransaction(committedSession);
+            if (!completion.IsCompleted)
+            {
+                committedSession.InputManifest.Dispose();
+                return completion;
+            }
+
             sessionReplaced = true;
             previousInputManifest.Dispose();
             var recoveryArtifactsRemoved = await _commitWriter.CompleteAsync(committedManifest);
@@ -578,6 +598,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             }
 
             await PublishCommitPhaseAsync(committedSession, null, null, "Committed");
+            return completion;
         }
         catch
         {
@@ -613,7 +634,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         WorkspaceCommitManifest? manifest,
         bool applicationStarted,
         string failureMessage,
-        bool validationConflict)
+        bool validationConflict,
+        RequiredAction? restoredRequiredAction = RequiredAction.Retry)
     {
         using var recoveryPhase = WorkbenchPerformanceEventSource.Log.StartPhase(
             WorkbenchPerformanceEventSource.TransactionCommitOperation,
@@ -658,10 +680,14 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             recoveryStatePersisted,
             failureMessage);
 
-        var requiredAction = RequiredAction.ResolveRecovery;
-        if (!applicationStarted || state == RecoveryState.Restored)
+        RequiredAction? requiredAction = RequiredAction.ResolveRecovery;
+        if (!applicationStarted)
         {
             requiredAction = RequiredAction.Retry;
+        }
+        else if (state == RecoveryState.Restored)
+        {
+            requiredAction = restoredRequiredAction;
         }
 
         return _resultFactory.Faulted<TransactionCommitOutcome>(

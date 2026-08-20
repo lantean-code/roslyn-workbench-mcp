@@ -48,7 +48,8 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-003 — Concurrent transaction starts can create two active transactions
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-20
+
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/TransactionService.cs:66-108,388`; `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionStore.cs:141-152`
@@ -59,7 +60,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Workspace state/transactions, Host tools, all mutation admission and protocol concurrency.  
 **Remediation direction:** Make owner admission/clearing atomic and owner-aware inside the store; add simultaneous multi-Workspace component/protocol tests.  
-**Origin/history:** Unit 2, 2026-08-16; traced through service/store/admission and tests; focused suites passed without exercising the race.
+**Origin/history:** Unit 2, 2026-08-16; traced through service/store/admission and tests; focused suites passed without exercising the race. Remediated on 2026-08-20 with atomic store-owned admission, owner-aware completion results, durable commit recovery and simultaneous multi-Workspace component coverage; the staged implementation received an independent Review Agent pass with no findings.
 
 ### RWMCP3-004 — Reused public revision numbers can validate stale snapshots against another solution
 

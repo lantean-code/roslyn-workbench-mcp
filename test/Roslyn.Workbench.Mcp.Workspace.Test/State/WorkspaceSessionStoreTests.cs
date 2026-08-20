@@ -160,7 +160,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     {
         var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
-        target.ReplaceSessionAndSetTransactionOwner(session, Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        target.TryStartTransaction(session);
 
         var result = target.RemoveWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
@@ -180,7 +180,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var secondSession = CreateSession(Guid.Parse("66666666-6666-6666-6666-666666666666"), "SecondAlias");
         var target = CreateStoreWithSession(firstSession);
         AddSession(target, secondSession);
-        target.ReplaceSessionAndSetTransactionOwner(firstSession, Guid.Parse("55555555-5555-5555-5555-555555555555"));
+        target.TryStartTransaction(firstSession);
 
         var result = target.RemoveWorkspace(Guid.Parse("66666666-6666-6666-6666-666666666666"));
 
@@ -210,17 +210,101 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_ReplacementAndOwner_WHEN_ReplacingAndSettingOwner_THEN_ShouldUpdateBothValues()
+    public void GIVEN_ReplacementAndNoOwner_WHEN_StartingTransaction_THEN_ShouldUpdateSessionAndOwner()
     {
         var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias");
         var target = CreateStoreWithSession(session);
         var replacement = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ReplacementAlias");
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        var result = target.TryStartTransaction(replacement);
 
+        result.IsAdmitted.Should().BeTrue();
+        result.ExistingOwnerWorkspaceId.Should().BeNull();
         target.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111")).Should().BeSameAs(replacement);
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_TwoWorkspacesWithoutOwner_WHEN_StartingTransactionsConcurrently_THEN_ShouldAdmitExactlyOne()
+    {
+        var firstSession = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "FirstAlias");
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondAlias");
+        var target = CreateStoreWithSession(firstSession);
+        AddSession(target, secondSession);
+        var firstTransaction = CreateTransaction();
+        var secondTransaction = CreateTransaction();
+        var firstReplacement = firstSession with
+        {
+            State = WorkspaceLifecycleState.TransactionActive,
+            Transaction = firstTransaction,
+            CurrentSolution = firstTransaction.CurrentSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                firstSession.Workspace,
+                firstSession.CommittedSnapshotId,
+                firstTransaction),
+        };
+
+        var secondReplacement = secondSession with
+        {
+            State = WorkspaceLifecycleState.TransactionActive,
+            Transaction = secondTransaction,
+            CurrentSolution = secondTransaction.CurrentSolution,
+            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(
+                secondSession.Workspace,
+                secondSession.CommittedSnapshotId,
+                secondTransaction),
+        };
+
+        using var startGate = new Barrier(2);
+
+        var firstTask = Task.Run(() =>
+        {
+            startGate.SignalAndWait(TestContext.Current.CancellationToken);
+            return target.TryStartTransaction(firstReplacement);
+        });
+
+        var secondTask = Task.Run(() =>
+        {
+            startGate.SignalAndWait(TestContext.Current.CancellationToken);
+            return target.TryStartTransaction(secondReplacement);
+        });
+
+        var results = await Task.WhenAll(firstTask, secondTask);
+        var admittedResult = results.Single(result => result.IsAdmitted);
+        var rejectedResult = results.Single(result => !result.IsAdmitted);
+        var snapshot = target.ReadSnapshot();
+
+        rejectedResult.ExistingOwnerWorkspaceId.Should().Be(snapshot.TransactionOwnerWorkspaceId);
+        admittedResult.ExistingOwnerWorkspaceId.Should().BeNull();
+        snapshot.Workspaces.Values.Count(session => session.Transaction is not null).Should().Be(1);
+    }
+
+    [Fact]
+    public void GIVEN_DifferentTransactionOwner_WHEN_CompletingTransaction_THEN_ShouldPreserveOwnerAndSessions()
+    {
+        var firstTransaction = CreateTransaction();
+        var firstSession = CreateSession(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "FirstAlias",
+            transaction: firstTransaction);
+
+        var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondAlias");
+        var target = CreateStoreWithSession(firstSession);
+        AddSession(target, secondSession);
+        var secondReplacement = secondSession with { State = WorkspaceLifecycleState.Ready };
+
+        target.TryStartTransaction(firstSession);
+
+        var result = target.TryCompleteTransaction(secondReplacement);
+        var expectedFailure = new TransactionCompletionFailure(
+            secondSession.Workspace.WorkspaceId,
+            firstSession.Workspace.WorkspaceId);
+
+        result.IsCompleted.Should().BeFalse();
+        result.Failure.Should().Be(expectedFailure);
+        target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be(firstSession.Workspace.WorkspaceId);
+        target.ReadSession(secondSession.Workspace.WorkspaceId).Should().BeSameAs(secondSession);
     }
 
     [Fact]
@@ -330,7 +414,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        target.TryStartTransaction(replacement);
 
         _lifecycleObserver.Verify(
             item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
@@ -366,7 +450,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        target.TryStartTransaction(replacement);
 
         _queryCache.Verify(
             item => item.InvalidateWorkspace(It.IsAny<Guid>()),
@@ -391,8 +475,11 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction: null),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+        target.TryStartTransaction(session);
+        var result = target.TryCompleteTransaction(replacement);
 
+        result.IsCompleted.Should().BeTrue();
+        result.Failure.Should().BeNull();
         _lifecycleObserver.Verify(
             item => item.InvalidateTransaction(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -426,7 +513,8 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction: null),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+        target.TryStartTransaction(session);
+        target.TryCompleteTransaction(replacement);
 
         _queryCache.Verify(
             item => item.InvalidateWorkspace(It.IsAny<Guid>()),
@@ -539,7 +627,8 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction: null),
         };
 
-        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+        target.TryStartTransaction(session);
+        target.TryCompleteTransaction(replacement);
 
         _queryCache.Verify(
             item => item.InvalidateWorkspace(Guid.Parse("11111111-1111-1111-1111-111111111111")),
@@ -666,7 +755,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var secondSession = CreateSession(Guid.Parse("22222222-2222-2222-2222-222222222222"), "SecondAlias");
         var target = CreateStoreWithSession(firstSession);
         AddSession(target, secondSession);
-        target.ReplaceSessionAndSetTransactionOwner(firstSession, firstSession.Workspace.WorkspaceId);
+        target.TryStartTransaction(firstSession);
 
         var result = target.DrainWorkspaces();
 

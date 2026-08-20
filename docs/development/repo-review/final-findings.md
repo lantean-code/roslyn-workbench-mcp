@@ -6,15 +6,19 @@ Date: 2026-08-16
 
 The repository has a coherent acyclic architecture, clear ownership of Host, Workspace, plugin and Code Action concerns, disciplined process/resource lifetimes, a strong normal durable-commit protocol and credible component/published-Host coverage. Independent validation nevertheless retained nineteen concrete findings: two P1 correctness/concurrency defects and seventeen P2 contract, lifecycle, filesystem, tool, performance and operational-evidence defects. No candidate was rejected or merged as a duplicate.
 
-The most urgent release risks are non-atomic global transaction admission and reusable public snapshot identities. Both can make the in-memory transaction model accept work against state other than the caller intended. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
+The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Transaction admission has since been remediated and independently reviewed; reusable public snapshot identity remains incomplete. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
 
 ## P1 — High confidence
 
 ### RWMCP3-003 — Concurrent transaction starts can create two active transactions
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-20
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/TransactionService.cs:50-123,350-403`; `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionAcquirer.cs:19-62`; `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSessionStore.cs:141-159`
 
 Exclusive operation gates are per Workspace. Two requests for different Workspaces can both read a null process-global owner, create transactions and then overwrite the owner serially. Both sessions retain active transactions; later commit/rollback can also clear ownership without verifying the owner. Host protocol dispatch is concurrent and provides no compensating serialisation. Make admission and clearing atomic and owner-aware inside the session store, and add simultaneous multi-Workspace protocol/component tests.
+
+**Remediation:** Transaction admission and completion now execute atomically under the session-store lock. Completion returns an invariant-bearing result without changing state when ownership differs; rollback reports the structured ownership fault, while commit performs durable restoration before reporting it. Store, service and real multi-Workspace component tests cover concurrent admission and completion failure. Workspace unit tests passed 1,057/1,057, Workspace integration tests passed 105/105 and the independent staged review found no defects.
 
 ### RWMCP3-004 — Reused public revision numbers can validate stale snapshots against another solution
 
@@ -132,7 +136,7 @@ Containment is revalidated by pathname, then asynchronous artifact work occurs b
 
 ## Notable test gaps
 
-The most consequential missing evidence is simultaneous multi-Workspace transaction admission, stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission, deterministic directory swaps and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file, format-range and Code Action provider cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
+Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission, deterministic directory swaps and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file, format-range and Code Action provider cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
 
 ## Areas not reviewed confidently
 

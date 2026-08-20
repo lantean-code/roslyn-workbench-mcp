@@ -138,17 +138,22 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         ReplaceSessionCore(session, discardedSnapshotIds);
     }
 
-    public void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, Guid? transactionOwnerWorkspaceId)
+    public TransactionAdmissionResult TryStartTransaction(WorkspaceSessionSnapshot session)
     {
         bool invalidateQueryCache;
         lock (_syncRoot)
         {
+            if (_snapshot.TransactionOwnerWorkspaceId is { } existingOwnerWorkspaceId)
+            {
+                return TransactionAdmissionResult.Rejected(existingOwnerWorkspaceId);
+            }
+
             _snapshot.Workspaces.TryGetValue(session.Workspace.WorkspaceId, out var previousSession);
             NotifySnapshotLifecycle(previousSession, session, []);
             invalidateQueryCache = ReplaceSessionLocked(session);
             _snapshot = _snapshot with
             {
-                TransactionOwnerWorkspaceId = transactionOwnerWorkspaceId,
+                TransactionOwnerWorkspaceId = session.Workspace.WorkspaceId,
             };
         }
 
@@ -156,6 +161,37 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         {
             _queryCache.InvalidateWorkspace(session.Workspace.WorkspaceId);
         }
+
+        return TransactionAdmissionResult.Admitted();
+    }
+
+    public TransactionCompletionResult TryCompleteTransaction(WorkspaceSessionSnapshot session)
+    {
+        bool invalidateQueryCache;
+        lock (_syncRoot)
+        {
+            if (_snapshot.TransactionOwnerWorkspaceId != session.Workspace.WorkspaceId)
+            {
+                return TransactionCompletionResult.OwnershipChanged(
+                    session.Workspace.WorkspaceId,
+                    _snapshot.TransactionOwnerWorkspaceId);
+            }
+
+            _snapshot.Workspaces.TryGetValue(session.Workspace.WorkspaceId, out var previousSession);
+            NotifySnapshotLifecycle(previousSession, session, []);
+            invalidateQueryCache = ReplaceSessionLocked(session);
+            _snapshot = _snapshot with
+            {
+                TransactionOwnerWorkspaceId = null,
+            };
+        }
+
+        if (invalidateQueryCache)
+        {
+            _queryCache.InvalidateWorkspace(session.Workspace.WorkspaceId);
+        }
+
+        return TransactionCompletionResult.Completed();
     }
 
     private void ReplaceSessionCore(

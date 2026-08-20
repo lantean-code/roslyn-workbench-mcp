@@ -67,11 +67,7 @@ internal sealed class TransactionService : ITransactionService
         if (ownerWorkspaceId is not null && ownerWorkspaceId != acquisition.Selection.WorkspaceId)
         {
             var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId.Value);
-            return _resultFactory.Rejected<TransactionStartOutcome>(
-                WorkspaceErrorCodes.TransactionOwner,
-                $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before starting a transaction on this workspace.",
-                RequiredAction.CommitOrRollback,
-                context);
+            return CreateTransactionOwnerResult<TransactionStartOutcome>(ownerSession, context);
         }
 
         if (session.Transaction is not null)
@@ -105,7 +101,13 @@ internal sealed class TransactionService : ITransactionService
             CurrentSnapshotIdentity = snapshotIdentity,
         };
 
-        _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, acquisition.Selection.WorkspaceId);
+        var admission = _sessionStore.TryStartTransaction(updatedSession);
+        if (!admission.IsAdmitted)
+        {
+            var ownerSession = _sessionStore.ReadSession(admission.ExistingOwnerWorkspaceId.Value);
+            return CreateTransactionOwnerResult<TransactionStartOutcome>(ownerSession, context);
+        }
+
         await _instanceStatusPublisher.UpdateAsync(
             updatedSession.Workspace.WorkspaceId,
             updatedSession.State,
@@ -385,7 +387,16 @@ internal sealed class TransactionService : ITransactionService
             CurrentSnapshotIdentity = snapshotIdentity,
         };
 
-        _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, null);
+        var completion = _sessionStore.TryCompleteTransaction(updatedSession);
+        if (!completion.IsCompleted)
+        {
+            var context = CreateContext(session);
+            return _resultFactory.Faulted<TransactionRollbackOutcome>(
+                "TransactionOwnershipChanged",
+                completion.Failure.Message,
+                context: context);
+        }
+
         await _instanceStatusPublisher.UpdateAsync(
             updatedSession.Workspace.WorkspaceId,
             updatedSession.State,
@@ -413,6 +424,17 @@ internal sealed class TransactionService : ITransactionService
         return session.Workspace.Alias
             ?? session.Workspace.LoadedPath
             ?? session.Workspace.WorkspaceId.ToString();
+    }
+
+    private WorkspaceOperationResult<T> CreateTransactionOwnerResult<T>(
+        WorkspaceSessionSnapshot? ownerSession,
+        WorkspaceOperationContext context)
+    {
+        return _resultFactory.Rejected<T>(
+            WorkspaceErrorCodes.TransactionOwner,
+            $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before starting a transaction on this workspace.",
+            RequiredAction.CommitOrRollback,
+            context);
     }
 
     private static WorkspaceSelector? CreateWorkspaceSelector(Guid? workspaceId, string? alias, string? path)

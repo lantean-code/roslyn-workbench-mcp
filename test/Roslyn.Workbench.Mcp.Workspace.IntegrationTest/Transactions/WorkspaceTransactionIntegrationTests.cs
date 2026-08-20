@@ -48,6 +48,66 @@ public sealed class WorkspaceTransactionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_TwoOpenedWorkspaces_WHEN_StartingTransactionsConcurrently_THEN_ShouldAdmitOnlyOneOwner()
+    {
+        using var fixtureA = TestWorkspaceFixture.Create();
+        using var fixtureB = TestWorkspaceFixture.Create();
+        await using var target = fixtureA.CreateWorkspace();
+
+        var openA = await target.OpenAsync(
+            fixtureA.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "alpha");
+
+        var openB = await target.OpenAsync(
+            fixtureB.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "beta");
+
+        using var startGate = new Barrier(2);
+        var startATask = Task.Run(async () =>
+        {
+            startGate.SignalAndWait(TestContext.Current.CancellationToken);
+            return await target.StartTransactionAsync(
+                TestContext.Current.CancellationToken,
+                workspaceId: openA.Data!.Workspace.WorkspaceId);
+        });
+
+        var startBTask = Task.Run(async () =>
+        {
+            startGate.SignalAndWait(TestContext.Current.CancellationToken);
+            return await target.StartTransactionAsync(
+                TestContext.Current.CancellationToken,
+                workspaceId: openB.Data!.Workspace.WorkspaceId);
+        });
+
+        var starts = await Task.WhenAll(startATask, startBTask);
+        var admitted = starts.Single(result => result.Status == WorkspaceOperationStatus.Succeeded);
+        var rejected = starts.Single(result => result.Status == WorkspaceOperationStatus.Rejected);
+        var admittedStatus = await target.GetStatusAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: admitted.Context.WorkspaceId);
+
+        var rejectedStatus = await target.GetStatusAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: rejected.Context.WorkspaceId);
+
+        rejected.Error!.Code.Should().Be("TransactionOwnedByWorkspace");
+        admittedStatus.Data!.State.Should().Be(WorkspaceLifecycleState.TransactionActive);
+        rejectedStatus.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
+
+        await target.RollbackTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: admitted.Context.WorkspaceId);
+
+        var startAfterRollback = await target.StartTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: rejected.Context.WorkspaceId);
+
+        startAfterRollback.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+    }
+
+    [Fact]
     public async Task GIVEN_ReadyWorkspace_WHEN_StartingTransaction_THEN_ShouldReportActiveTransactionCapabilities()
     {
         using var fixture = TestWorkspaceFixture.Create();

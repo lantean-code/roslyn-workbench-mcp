@@ -13,6 +13,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceMsBuildPropertiesResolver _msBuildPropertiesResolver;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
     private readonly IWorkspacePathComparison _workspacePathComparison;
+    private readonly IWorkspacePathNormalizer _workspacePathNormalizer;
     private readonly IWorkspaceLoadWorkflow _workspaceLoadWorkflow;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceReadOnlyDocumentValidator _readOnlyDocumentValidator;
@@ -30,6 +31,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceMsBuildPropertiesResolver msBuildPropertiesResolver,
         IWorkspaceRootResolver workspaceRootResolver,
         IWorkspacePathComparison workspacePathComparison,
+        IWorkspacePathNormalizer workspacePathNormalizer,
         IWorkspaceLoadWorkflow workspaceLoadWorkflow,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceReadOnlyDocumentValidator readOnlyDocumentValidator,
@@ -46,6 +48,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _msBuildPropertiesResolver = msBuildPropertiesResolver;
         _workspaceRootResolver = workspaceRootResolver;
         _workspacePathComparison = workspacePathComparison;
+        _workspacePathNormalizer = workspacePathNormalizer;
         _workspaceLoadWorkflow = workspaceLoadWorkflow;
         _workspaceChangeDetector = workspaceChangeDetector;
         _readOnlyDocumentValidator = readOnlyDocumentValidator;
@@ -79,7 +82,6 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         var hasPendingRecovery = await HasPendingRecoveryAsync(
             request.LoadedPath,
-            request.WorkspaceRoot,
             cancellationToken);
 
         if (hasPendingRecovery)
@@ -248,6 +250,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 rejectionContext);
         }
 
+        var failureContext = WorkspaceFailureContextFactory.Create(session);
         var removedSession = _sessionStore.RemoveWorkspace(acquisition.Selection.WorkspaceId);
         if (removedSession is null)
         {
@@ -257,15 +260,16 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
-        await _sessionCleanup.CleanupAsync(removedSession);
+        await CleanupClosedSessionAsync(removedSession, failureContext);
+
+        var operationContext = WorkspaceOperationContextFactory.Create(removedSession);
+
         var outcome = new WorkspaceCloseOutcome
         {
             ClosedPath = removedSession.Workspace.LoadedPath,
         };
 
-        var context = WorkspaceOperationContextFactory.Create(removedSession);
-
-        return _resultFactory.Succeeded(outcome, context);
+        return _resultFactory.Succeeded(outcome, operationContext);
     }
 
     [SuppressMessage(
@@ -451,17 +455,26 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             currentSession.OperationGate);
 
         var oldSession = _sessionStore.ReadSession(acquisition.Selection.WorkspaceId);
+        WorkspaceFailureContext? replacedFailureContext = null;
+        if (oldSession is not null)
+        {
+            replacedFailureContext = WorkspaceFailureContextFactory.Create(oldSession);
+        }
+
         _sessionStore.ReplaceSession(reloadedSession);
 
-        oldSession?.InputManifest.Dispose();
-        oldSession?.LoadedWorkspace.Dispose();
+        if (oldSession is not null && replacedFailureContext is not null)
+        {
+            DisposeReplacedSession(oldSession, replacedFailureContext);
+        }
 
-        await _instanceStatusPublisher.UpdateAsync(
+        var reloadedContext = WorkspaceOperationContextFactory.Create(reloadedSession);
+        var reloadedFailureContext = WorkspaceFailureContextFactory.Create(reloadedSession);
+
+        await UpdateReloadedStatusAsync(
             reloadedSession.Workspace.WorkspaceId,
             reloadedSession.State,
-            transactionRevision: null,
-            commitId: null,
-            commitPhase: null);
+            reloadedFailureContext);
 
         var outcome = new WorkspaceReloadOutcome
         {
@@ -471,9 +484,68 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             LoadDiagnostics = reloadedSession.LoadDiagnostics,
         };
 
-        var reloadedContext = WorkspaceOperationContextFactory.Create(reloadedSession);
-
         return _resultFactory.Succeeded(outcome, reloadedContext);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Unexpected cleanup failures must retain the immutable context captured before the Workspace session is removed.")]
+    private async ValueTask CleanupClosedSessionAsync(
+        WorkspaceSessionSnapshot removedSession,
+        WorkspaceFailureContext context)
+    {
+        try
+        {
+            await _sessionCleanup.CleanupAsync(removedSession);
+        }
+        catch (Exception exception)
+        {
+            throw new WorkspaceOperationException(context, exception);
+        }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Unexpected disposal failures must retain the immutable context of the Workspace session whose resources are being released.")]
+    private static void DisposeReplacedSession(
+        WorkspaceSessionSnapshot replacedSession,
+        WorkspaceFailureContext context)
+    {
+        try
+        {
+            replacedSession.InputManifest.Dispose();
+            replacedSession.LoadedWorkspace.Dispose();
+        }
+        catch (Exception exception)
+        {
+            throw new WorkspaceOperationException(context, exception);
+        }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Unexpected status publication failures must retain the immutable context of the newly installed Workspace session.")]
+    private async ValueTask UpdateReloadedStatusAsync(
+        Guid workspaceId,
+        WorkspaceLifecycleState state,
+        WorkspaceFailureContext context)
+    {
+        try
+        {
+            await _instanceStatusPublisher.UpdateAsync(
+                workspaceId,
+                state,
+                transactionRevision: null,
+                commitId: null,
+                commitPhase: null);
+        }
+        catch (Exception exception)
+        {
+            throw new WorkspaceOperationException(context, exception);
+        }
     }
 
     private ResolvedWorkspaceOpenRequest ResolveOpenRequest(
@@ -533,16 +605,49 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
     private async ValueTask<bool> HasPendingRecoveryAsync(
         string loadedPath,
-        string workspaceRoot,
         CancellationToken cancellationToken)
     {
         var statuses = await _recoveryStore.GetStatusesAsync(cancellationToken);
-        return statuses.Any(status =>
-            (string.IsNullOrWhiteSpace(status.SolutionPath)
-                || PathsEqual(Path.GetFullPath(status.SolutionPath), loadedPath)
-                || !string.IsNullOrWhiteSpace(status.WorkspaceRoot)
-                && PathsEqual(Path.GetFullPath(status.WorkspaceRoot), workspaceRoot))
-            && status.State is not RecoveryState.Committed and not RecoveryState.Restored);
+        foreach (var status in statuses)
+        {
+            if (status.State is RecoveryState.Committed or RecoveryState.Restored)
+            {
+                continue;
+            }
+
+            if (IsPendingRecoveryForWorkspace(status, loadedPath))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsPendingRecoveryForWorkspace(RecoveryStatus status, string loadedPath)
+    {
+        if (status.HasMalformedWorkspaceIdentity)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(status.SolutionPath))
+        {
+            return true;
+        }
+
+        if (!_workspacePathNormalizer.TryGetFullPath(status.SolutionPath, out var recoveredLoadedPath))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(status.WorkspaceRoot)
+            && !_workspacePathNormalizer.TryGetFullPath(status.WorkspaceRoot, out _))
+        {
+            return true;
+        }
+
+        return PathsEqual(recoveredLoadedPath, loadedPath);
     }
 
     private WorkspaceOperationError? TryRegisterSession(

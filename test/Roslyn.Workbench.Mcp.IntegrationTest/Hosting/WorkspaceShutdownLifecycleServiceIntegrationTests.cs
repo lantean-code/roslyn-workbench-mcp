@@ -103,6 +103,7 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
         var sessionStore = new WorkspaceSessionStore(queryCache.Object, []);
         var sessionCleanup = new WorkspaceSessionCleanup(instanceStatusPublisher.Object);
         var workspaceOptions = Options.Create(new WorkspaceOptions());
+        var workspacePathNormalizer = new WorkspacePathNormalizer(new FileSystem());
         var readOnlyDocumentValidator = new Mock<IWorkspaceReadOnlyDocumentValidator>();
         var workspaceLifecycleService = new WorkspaceLifecycleService(
             workspaceOptions,
@@ -112,6 +113,7 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
             msBuildPropertiesResolver.Object,
             workspaceRootResolver.Object,
             workspacePathComparison.Object,
+            workspacePathNormalizer,
             workspaceLoadWorkflow.Object,
             workspaceChangeDetector.Object,
             readOnlyDocumentValidator.Object,

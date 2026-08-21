@@ -8,19 +8,25 @@ public sealed class WorkspaceOperationContextFactoryTests : IDisposable
     private readonly AdhocWorkspace _workspace = new();
 
     [Fact]
-    public void GIVEN_SessionWithTransaction_WHEN_CreatingContext_THEN_ShouldUseCurrentSnapshotAndRevision()
+    public void GIVEN_SessionWithTransaction_WHEN_CreatingOperationAndFailureContexts_THEN_ShouldCaptureExpectedState()
     {
         var session = CreateSession(transactionRevision: 1);
         var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
             session.CurrentSnapshotIdentity,
             session.Transaction?.CurrentRevision);
 
-        var result = WorkspaceOperationContextFactory.Create(session);
+        var operationContext = WorkspaceOperationContextFactory.Create(session);
+        var failureContext = WorkspaceFailureContextFactory.Create(session);
 
-        result.Snapshot.Should().Be(expectedSnapshot);
-        result.WorkspaceId.Should().Be(expectedSnapshot.WorkspaceId);
-        result.WorkspaceEpoch.Should().Be(expectedSnapshot.WorkspaceEpoch);
-        result.TransactionRevision.Should().Be(expectedSnapshot.TransactionRevision);
+        operationContext.Snapshot.Should().Be(expectedSnapshot);
+        operationContext.WorkspaceId.Should().Be(expectedSnapshot.WorkspaceId);
+        operationContext.WorkspaceEpoch.Should().Be(expectedSnapshot.WorkspaceEpoch);
+        operationContext.TransactionRevision.Should().Be(expectedSnapshot.TransactionRevision);
+        failureContext.Workspace.Should().BeSameAs(session.Workspace);
+        failureContext.LifecycleState.Should().Be(WorkspaceLifecycleState.TransactionActive);
+        failureContext.ProjectCount.Should().Be(session.ProjectCount);
+        failureContext.DocumentCount.Should().Be(session.DocumentCount);
+        failureContext.TransactionRevision.Should().Be(session.Transaction?.CurrentRevision);
     }
 
     [Fact]

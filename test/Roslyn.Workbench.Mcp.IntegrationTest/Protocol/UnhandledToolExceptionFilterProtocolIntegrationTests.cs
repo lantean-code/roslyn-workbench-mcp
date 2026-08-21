@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,6 +16,9 @@ using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 using Roslyn.Workbench.Mcp.Plugins.Registration;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
+using Roslyn.Workbench.Mcp.Tools;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
+using Roslyn.Workbench.Mcp.Workspace.Operations;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -340,6 +344,134 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
         await clientToServerPipe.Writer.CompleteAsync();
         await serverToClientPipe.Writer.CompleteAsync();
         await serverTask;
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_WorkspaceStatusCleanupFailsAfterClose_WHEN_CallingTool_THEN_ShouldCaptureRemovedWorkspaceContext()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-lifecycle-failure-tests");
+        var capturedErrorStore = new Mock<ICapturedErrorStore>();
+        var instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
+        var cleanupFailure = new InvalidOperationException("Sensitive cleanup failure");
+        instanceStatusPublisher
+            .Setup(item => item.OpenAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<WorkspaceLifecycleState>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
+
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddRoslynWorkbench(["--state-directory", stateDirectory.DirectoryPath]);
+        builder.Logging.ClearProviders();
+        builder.Services.RemoveAll<IWorkspaceInstanceStatusPublisher>();
+        builder.Services.AddSingleton(instanceStatusPublisher.Object);
+        builder.Services.AddSingleton(capturedErrorStore.Object);
+
+        await using var workbenchServices = builder.Services.BuildServiceProvider(validateScopes: true);
+        var lifecycleService = workbenchServices.GetRequiredService<IWorkspaceLifecycleService>();
+        var openResult = await lifecycleService.OpenAsync(
+            fixture.ProjectPath,
+            "LifecycleFailure",
+            fixture.WorkspaceRoot,
+            msBuildProperties: null,
+            TestContext.Current.CancellationToken);
+
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        if (!openResult.HasData)
+        {
+            Assert.Fail("Workspace opening did not return its successful outcome.");
+        }
+
+        var openOutcome = openResult.Data;
+        var workspace = openOutcome.Workspace;
+        instanceStatusPublisher
+            .Setup(item => item.CloseAsync(workspace.WorkspaceId))
+            .Returns(() => ValueTask.FromException(cleanupFailure));
+
+        var installedFilter = workbenchServices
+            .GetRequiredService<IOptions<McpServerOptions>>()
+            .Value
+            .Filters
+            .Request
+            .CallToolFilters
+            .Single();
+
+        var filter = workbenchServices.GetRequiredService<UnhandledToolExceptionFilter>();
+        var tool = new WorkspaceCloseTool(
+            workbenchServices.GetRequiredService<IOptions<StartupOptions>>(),
+            workbenchServices.GetRequiredService<IMcpToolProtocolFactory>(),
+            workbenchServices.GetRequiredService<IToolRequestBinder>(),
+            lifecycleService);
+
+        var clientToServerPipe = new Pipe();
+        var serverToClientPipe = new Pipe();
+        var protocolServices = new ServiceCollection();
+        protocolServices.AddLogging();
+        protocolServices.AddSingleton(filter);
+        protocolServices
+            .AddMcpServer()
+            .WithTools([tool])
+            .WithRequestFilters(requestFilters => requestFilters.AddCallToolFilter(installedFilter))
+            .WithStreamServerTransport(
+                clientToServerPipe.Reader.AsStream(),
+                serverToClientPipe.Writer.AsStream());
+
+        await using var protocolServiceProvider = protocolServices.BuildServiceProvider(validateScopes: true);
+        var server = protocolServiceProvider.GetRequiredService<McpServer>();
+        using var serverCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var serverTask = server.RunAsync(serverCancellation.Token);
+        await using var client = await McpClient.CreateAsync(
+            new StreamClientTransport(
+                clientToServerPipe.Writer.AsStream(),
+                serverToClientPipe.Reader.AsStream(),
+                NullLoggerFactory.Instance),
+            loggerFactory: NullLoggerFactory.Instance,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeoutCancellation.CancelAfter(_timeout);
+
+        try
+        {
+            var result = await client.CallToolAsync(
+                "workspace-close",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = new Dictionary<string, object?>
+                    {
+                        ["workspaceId"] = workspace.WorkspaceId,
+                    },
+                },
+                cancellationToken: timeoutCancellation.Token);
+
+            result.IsError.Should().BeTrue();
+            result.StructuredContent.Should().NotBeNull();
+            var structuredContent = result.StructuredContent.GetValueOrDefault();
+            var error = structuredContent.GetProperty("error");
+            error.GetProperty("code").GetString().Should().Be("UnhandledException");
+            var correlationId = error.GetProperty("correlationId").GetGuid();
+            capturedErrorStore.Verify(item => item.Add(It.Is<CapturedErrorRecord>(record =>
+                record.CorrelationId == correlationId
+                && record.Workspace != null
+                && record.Workspace.WorkspaceId == workspace.WorkspaceId
+                && record.Workspace.WorkspaceEpoch == workspace.WorkspaceEpoch
+                && record.Workspace.LifecycleState == nameof(WorkspaceLifecycleState.Ready)
+                && record.Workspace.ProjectCount == openOutcome.ProjectCount
+                && record.Workspace.DocumentCount == openOutcome.DocumentCount
+                && record.Exceptions.Length == 1
+                && record.Exceptions[0].Type == typeof(InvalidOperationException).FullName)), Times.Once);
+        }
+        finally
+        {
+            await serverCancellation.CancelAsync();
+            await clientToServerPipe.Writer.CompleteAsync();
+            await serverToClientPipe.Writer.CompleteAsync();
+            await serverTask;
+        }
     }
 
     [Fact]

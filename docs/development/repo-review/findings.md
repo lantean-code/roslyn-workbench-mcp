@@ -94,7 +94,8 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-006 — Malformed nonblank recovery paths can crash Workspace opening
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs:126-129`; `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs:533-539`
@@ -105,7 +106,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Recovery, Workspace lifecycle, Host startup/status/protocol.  
 **Remediation direction:** Sanitise invalid identities to empty/global or use non-throwing normalisation and globally block unnormalisable evidence; add malformed nonblank admission coverage.  
-**Origin/history:** Unit 2, 2026-08-16; focused suites passed without this composition; independently validated in Stage 4.
+**Origin/history:** Unit 2, 2026-08-16; focused suites passed without this composition; independently validated in Stage 4. Remediated on 2026-08-21 with non-throwing canonical identity handling, explicit malformed-evidence state, solution-only matching, legacy payload validation and pre-recovery orphan-owner validation. Workspace unit tests passed 1,148/1,148, Workspace integration tests passed 112/112, affected `latest-all` analyser builds were clean and the final independent staged review found no defects.
 
 ### RWMCP3-007 — Directory-swap races can invalidate containment before atomic writes
 
@@ -229,7 +230,8 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-015 — Server-owned lifecycle failures can lose authoritative Workspace attribution
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp/Tools/ServerOwnedToolBase.cs:41-64`; `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:64-81,99-120`; `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs:225-265`; `src/Roslyn.Workbench.Mcp/ErrorReporting/Capture/ErrorCaptureService.cs:50-116`
@@ -240,7 +242,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Host tools, Workspace lifecycle, correlated diagnostics and reporting consent/availability.  
 **Remediation direction:** Retain immutable Workspace context after server-owned target resolution and attach it to unexpected failures; cover cleanup failure through the protocol boundary.  
-**Origin/history:** Unit 6, 2026-08-16; independently corroborated by Unit 7 at the reporting/consent boundary and validated in Stage 4.
+**Origin/history:** Unit 6, 2026-08-16; independently corroborated by Unit 7 at the reporting/consent boundary and validated in Stage 4. Remediated on 2026-08-21 by capturing immutable Workspace failure context before close/reload state transitions and translating the original failure into the shared Host attribution boundary without coupling operation-result metadata to error-reporting data. Host unit tests passed 516/516, Host integration tests passed 90/90, affected `latest-all` analyser builds were clean and the final independent staged review found no defects.
 
 ### RWMCP3-016 — Baseline untracked files can be mutated without restoration
 

@@ -16,7 +16,7 @@ The outstanding findings are grouped below by shared production boundary and val
 |---:|---|---|---|
 | 1 | RWMCP3-002 | Correct target-framework project resolution | Complete |
 | 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Complete |
-| 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Incomplete |
+| 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Complete |
 | 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Incomplete |
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Incomplete |
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Incomplete |
@@ -80,9 +80,13 @@ Staging permits source-document additions and removals, but commit emits only fi
 
 ### RWMCP3-006 — Malformed nonblank recovery paths can crash Workspace opening
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs:119-130,171-182,665-676`; `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs:528-539`
 
 Invalid recovery records preserve raw nonblank identities. Admission later calls `Path.GetFullPath` on that value without safe normalisation, so an unnormalisable path escapes as an exception instead of structured recovery-pending state. Sanitise invalid identities to a global block or use non-throwing normalisation; cover malformed nonblank recovery plus Workspace open.
+
+**Remediation:** Recovery evidence now normalises solution and root identities through the non-throwing Workspace path normaliser and carries an explicit malformed-identity signal when unsafe input cannot be canonicalised. Valid records are scoped by solution identity rather than a shared Workspace root; missing or malformed required identities block globally, while legacy solution-only records remain supported. Dedicated legacy deserialisation preserves nonblank roots for validation without exposing them publicly, and orphan owners are canonicalised before startup recovery can consume them. Unit and real-filesystem integration coverage exercises malformed manifests, owners and legacy records, shared roots and structured Workspace-open rejection. Workspace unit tests passed 1,148/1,148, Workspace integration tests passed 112/112, affected `latest-all` analyser builds were clean and the final independent staged review found no defects.
 
 ### RWMCP3-008 — Location-based CFG requests throw for ordinary executable locations
 
@@ -126,9 +130,13 @@ Published input schemas are closed, but runtime deserialization uses default unm
 
 ### RWMCP3-015 — Server-owned lifecycle failures can lose authoritative Workspace attribution
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp/Tools/ServerOwnedToolBase.cs:41-64`; `src/Roslyn.Workbench.Mcp/ToolExecution/UnhandledToolExceptionFilter.cs:64-81,99-120`; `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceLifecycleService.cs:225-265,434-452`; `src/Roslyn.Workbench.Mcp.Workspace/Lifecycle/WorkspaceSessionCleanup.cs:19-61`; `src/Roslyn.Workbench.Mcp/ErrorReporting/Capture/ErrorCaptureService.cs:50-116`
 
 Close removes a session before cleanup; reload replaces the epoch before old-resource disposal. If either then fails, server-owned tools retain no immutable resolved context, so fallback capture sees no session or the replacement. Diagnostics and Workspace-scoped consent are consequently lost or misattributed. Attach authoritative context after target resolution and cover real post-transition failures through the protocol.
+
+**Remediation:** Close and reload now capture a complete immutable `WorkspaceFailureContext` before removing or replacing the authoritative session. Unexpected cleanup, disposal and status-publication failures retain that context and their original inner exception through a Workspace-owned transport exception; `ServerOwnedToolBase` maps it into the existing Host error-attribution path used by plugin and Code Action executors. General `WorkspaceOperationContext` result metadata and Host-owned `CapturedWorkspaceContext` remain uncoupled. Workspace and Host unit coverage exercises context creation and translation, while protocol integration verifies a real post-removal close failure retains the removed Workspace identity, epoch, lifecycle state and counts. Host unit tests passed 516/516, Host integration tests passed 90/90, affected `latest-all` analyser builds were clean and the final independent staged review found no defects.
 
 ### RWMCP3-016 — Baseline untracked files can be mutated without restoration
 

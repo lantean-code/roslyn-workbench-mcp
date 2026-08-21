@@ -10,6 +10,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison();
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(fileSystem);
         var workspaceStateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
@@ -21,6 +22,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             pathComparison,
+            pathNormalizer,
             new PhysicalPathContainment(fileSystem, pathComparison),
             workspaceStateDirectory,
             stateDirectorySecurity,

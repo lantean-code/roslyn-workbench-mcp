@@ -45,7 +45,23 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         ToolResult<TResponse> result;
         using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
         {
-            result = await ExecuteAsync(request, cancellationToken);
+            try
+            {
+                result = await ExecuteAsync(request, cancellationToken);
+            }
+            catch (WorkspaceOperationException exception)
+                when (exception.InnerException is Exception failure)
+            {
+                var failureContext = exception.Context;
+                var workspaceContext = new CapturedWorkspaceContext(
+                    failureContext.Workspace,
+                    failureContext.LifecycleState,
+                    failureContext.ProjectCount,
+                    failureContext.DocumentCount,
+                    failureContext.TransactionRevision);
+
+                throw new WorkspaceAttributedToolException(workspaceContext, failure);
+            }
         }
 
         using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))

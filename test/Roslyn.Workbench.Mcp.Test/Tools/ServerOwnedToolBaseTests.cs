@@ -174,6 +174,57 @@ public sealed class ServerOwnedToolBaseTests
     }
 
     [Fact]
+    public async Task GIVEN_ContextualWorkspaceFailure_WHEN_InvokingTool_THEN_ShouldTranslateFailureForErrorCapture()
+    {
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var failureContext = WorkspaceSnapshotTestFactory.CreateFailureContext(
+            workspaceId,
+            workspaceEpoch: 2,
+            transactionRevision: 4,
+            lifecycleState: WorkspaceLifecycleState.TransactionConflicted,
+            projectCount: 5,
+            documentCount: 6);
+
+        var failure = new InvalidOperationException("Failure");
+        var operationException = new WorkspaceOperationException(failureContext, failure);
+        var service = new Mock<IWorkspaceLifecycleService>();
+        service
+            .Setup(item => item.ListAsync(CancellationToken.None))
+            .Returns(() => ValueTask.FromException<WorkspaceOperationResult<WorkspaceListOutcome>>(operationException));
+
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var boundRequest = new WorkspaceListRequest();
+        string? errorMessage = null;
+        var requestBinder = new Mock<IToolRequestBinder>();
+        requestBinder
+            .Setup(item => item.TryBind(
+                It.IsAny<IDictionary<string, JsonElement>>(),
+                out boundRequest,
+                out errorMessage))
+            .Returns(true);
+
+        var target = new WorkspaceListTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            requestBinder.Object,
+            service.Object);
+
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "workspace-list",
+            cancellationToken: CancellationToken.None);
+
+        var assertion = await action.Should().ThrowAsync<WorkspaceAttributedToolException>();
+        assertion.Which.InnerException.Should().BeSameAs(failure);
+        assertion.Which.WorkspaceContext.WorkspaceId.Should().Be(workspaceId);
+        assertion.Which.WorkspaceContext.WorkspaceEpoch.Should().Be(2);
+        assertion.Which.WorkspaceContext.LifecycleState.Should().Be("TransactionConflicted");
+        assertion.Which.WorkspaceContext.ProjectCount.Should().Be(5);
+        assertion.Which.WorkspaceContext.DocumentCount.Should().Be(6);
+        assertion.Which.WorkspaceContext.TransactionRevision.Should().Be(4);
+    }
+
+    [Fact]
     public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPublishInvalidRequestWithoutCallingService()
     {
         var service = new Mock<IWorkspaceLifecycleService>();

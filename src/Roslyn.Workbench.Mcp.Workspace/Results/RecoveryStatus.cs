@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.Results;
 /// </summary>
 public sealed record RecoveryStatus
 {
+    internal bool HasMalformedWorkspaceIdentity { get; init; }
+
     internal string WorkspaceRoot { get; init; } = string.Empty;
 
     /// <summary>

@@ -17,6 +17,7 @@ public sealed class CommitRecoveryStoreTests
     private readonly Mock<IPath> _path;
     private readonly Mock<IAtomicFileWriter> _atomicFileWriter;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
+    private readonly Mock<IWorkspacePathNormalizer> _pathNormalizer;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly Mock<IWorkspaceStateDirectory> _stateDirectory;
     private readonly Mock<IWorkspaceStateDirectorySecurity> _stateDirectorySecurity;
@@ -32,6 +33,7 @@ public sealed class CommitRecoveryStoreTests
         _path = new Mock<IPath>();
         _atomicFileWriter = new Mock<IAtomicFileWriter>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathNormalizer = new Mock<IWorkspacePathNormalizer>();
         _pathContainment = new Mock<IPhysicalPathContainment>();
         _stateDirectory = new Mock<IWorkspaceStateDirectory>();
         _stateDirectorySecurity = new Mock<IWorkspaceStateDirectorySecurity>();
@@ -69,6 +71,14 @@ public sealed class CommitRecoveryStoreTests
         _pathComparison
             .Setup(item => item.CreateKey(It.IsAny<string>()))
             .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: true));
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string path, out string normalizedPath) =>
+            {
+                normalizedPath = path;
+                return true;
+            });
+
         _pathContainment
             .Setup(item => item.TryGetContainedPath(
                 It.IsAny<string>(),
@@ -184,7 +194,13 @@ public sealed class CommitRecoveryStoreTests
             [validPath, nullPath, malformedPath, ioFailurePath, accessFailurePath]);
 
         _file.Setup(item => item.ReadAllTextAsync(validPath, TestContext.Current.CancellationToken)).ReturnsAsync(
-            JsonSerializer.Serialize(new RecoveryStatus { CommitId = "CommitId", SolutionPath = "SolutionPath" }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+            JsonSerializer.Serialize(
+                new RecoveryStatus
+                {
+                    CommitId = "CommitId",
+                    SolutionPath = "/Workspace/Solution.sln",
+                },
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)));
 
         _file.Setup(item => item.ReadAllTextAsync(nullPath, TestContext.Current.CancellationToken)).ReturnsAsync("null");
         _file.Setup(item => item.ReadAllTextAsync(malformedPath, TestContext.Current.CancellationToken)).ReturnsAsync("{");
@@ -196,13 +212,38 @@ public sealed class CommitRecoveryStoreTests
         result.Should().HaveCount(5);
         result.Should().AllSatisfy(status => status.State.Should().Be(RecoveryState.RecoveryConflict));
         var validStatus = result.Single(status => status.CommitId == "CommitId");
-        validStatus.SolutionPath.Should().Be("SolutionPath");
+        validStatus.SolutionPath.Should().Be("/Workspace/Solution.sln");
+        validStatus.WorkspaceRoot.Should().BeEmpty();
         validStatus.Message.Should().Be("Legacy recovery evidence cannot be restored automatically.");
         result.Where(status => status.CommitId != "CommitId").Should().AllSatisfy(status =>
         {
             status.SolutionPath.Should().BeEmpty();
             status.WorkspaceRoot.Should().BeEmpty();
         });
+    }
+
+    [Fact]
+    public async Task GIVEN_LegacyRecordWithMalformedWorkspaceRoot_WHEN_ReadingStatuses_THEN_ShouldPreserveMalformedIdentity()
+    {
+        var path = _recoveryDirectory + "/CommitId.json";
+        var json = """
+            {
+              "solutionPath": "/Workspace/Other.sln",
+              "workspaceRoot": "InvalidRoot",
+              "state": 3
+            }
+            """;
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns([path]);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ReturnsAsync(json);
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        var status = result.Should().ContainSingle().Which;
+        status.SolutionPath.Should().Be("/Workspace/Other.sln");
+        status.WorkspaceRoot.Should().BeEmpty();
+        status.HasMalformedWorkspaceIdentity.Should().BeTrue();
     }
 
     [Fact]
@@ -730,6 +771,41 @@ public sealed class CommitRecoveryStoreTests
         result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
     }
 
+    [Fact]
+    public async Task GIVEN_InvalidManifestWithUnnormalisableIdentity_WHEN_ReadingStatuses_THEN_ShouldReturnGlobalRecoveryConflict()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var loadedPath = "/Workspace/Invalid.sln";
+        var manifest = CreateManifest() with
+        {
+            Version = 2,
+            LoadedPath = loadedPath,
+        };
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(loadedPath, out It.Ref<string>.IsAny))
+            .Returns((string _, out string normalizedPath) =>
+            {
+                normalizedPath = string.Empty;
+                return false;
+            });
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        var conflict = result.Should().ContainSingle().Which;
+        conflict.State.Should().Be(RecoveryState.RecoveryConflict);
+        conflict.SolutionPath.Should().BeEmpty();
+        conflict.WorkspaceRoot.Should().Be("/Workspace");
+        conflict.HasMalformedWorkspaceIdentity.Should().BeTrue();
+    }
+
     [Theory]
     [InlineData("commitId")]
     [InlineData("loadedPath")]
@@ -782,6 +858,48 @@ public sealed class CommitRecoveryStoreTests
         var result = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle().Which.Should().BeEquivalentTo(owner);
+    }
+
+    [Theory]
+    [InlineData("loadedPath")]
+    [InlineData("workspaceRoot")]
+    public async Task GIVEN_UnnormalisableOrphanOwnerIdentity_WHEN_ReadingEvidence_THEN_ShouldReturnOnlyGlobalConflict(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var ownerPath = directory + "/owner.json";
+        var loadedPath = scenario == "loadedPath" ? "/Workspace/Invalid.sln" : "/Workspace/Workspace.sln";
+        var workspaceRoot = scenario == "workspaceRoot" ? "/InvalidWorkspace" : "/Workspace";
+        var invalidPath = scenario == "loadedPath" ? loadedPath : workspaceRoot;
+        var owner = new WorkspaceCommitOwner
+        {
+            CommitId = "CommitId",
+            LoadedPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
+        };
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns([]);
+        _file.Setup(item => item.Exists(directory + "/manifest.json")).Returns(false);
+        _file.Setup(item => item.Exists(ownerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(ownerPath, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(owner, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        _pathNormalizer
+            .Setup(item => item.TryGetFullPath(invalidPath, out It.Ref<string>.IsAny))
+            .Returns((string _, out string normalizedPath) =>
+            {
+                normalizedPath = string.Empty;
+                return false;
+            });
+
+        var owners = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
+        var statuses = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        owners.Should().BeEmpty();
+        var conflict = statuses.Should().ContainSingle().Which;
+        conflict.HasMalformedWorkspaceIdentity.Should().BeTrue();
+        conflict.State.Should().Be(RecoveryState.RecoveryConflict);
     }
 
     [Fact]
@@ -927,6 +1045,7 @@ public sealed class CommitRecoveryStoreTests
         status.Message.Should().Be("The recovery owner record is malformed or unreadable.");
         status.SolutionPath.Should().Be(scenario is "version" or "commit" or "root" ? "/Workspace/Workspace.sln" : string.Empty);
         status.WorkspaceRoot.Should().Be(scenario is "version" or "commit" or "loaded" ? "/Workspace" : string.Empty);
+        status.HasMalformedWorkspaceIdentity.Should().Be(scenario is not "version" and not "commit");
     }
 
     [Fact]
@@ -1005,6 +1124,7 @@ public sealed class CommitRecoveryStoreTests
             _fileSystem.Object,
             _atomicFileWriter.Object,
             _pathComparison.Object,
+            _pathNormalizer.Object,
             _pathContainment.Object,
             _stateDirectory.Object,
             _stateDirectorySecurity.Object,

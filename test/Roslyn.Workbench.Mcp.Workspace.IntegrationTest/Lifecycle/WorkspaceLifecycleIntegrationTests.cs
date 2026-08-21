@@ -1,9 +1,13 @@
+using System.Text.Json;
+
 using Microsoft.Extensions.Hosting;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle;
 
 public sealed class WorkspaceLifecycleIntegrationTests
 {
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public async Task GIVEN_ComponentWorkspace_WHEN_Disposed_THEN_ShouldSignalHostLifetimeShutdown()
     {
@@ -191,6 +195,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-recovery-tests");
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison();
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(fileSystem);
         var workspaceStateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
@@ -202,6 +207,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             pathComparison,
+            pathNormalizer,
             new PhysicalPathContainment(fileSystem, pathComparison),
             workspaceStateDirectory,
             stateDirectorySecurity,
@@ -224,5 +230,63 @@ public sealed class WorkspaceLifecycleIntegrationTests
 
         result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.RequiredAction.Should().Be(RequiredAction.ResolveRecovery);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_MalformedRecoveryManifestWithUnnormalisableIdentity_WHEN_OpeningWorkspace_THEN_ShouldReturnStructuredRecoveryPending()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-malformed-recovery-tests");
+        var fileSystem = new FileSystem();
+        var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(fileSystem);
+        var workspaceStateDirectory = new WorkspaceStateDirectory(
+            Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
+            fileSystem,
+            stateDirectorySecurity);
+
+        workspaceStateDirectory.Initialize();
+        var commitDirectory = Path.Combine(stateDirectory.DirectoryPath, "recovery", "commit-id");
+        stateDirectorySecurity.EnsureDirectory(commitDirectory);
+        var manifest = new WorkspaceCommitManifest
+        {
+            Version = 2,
+            CommitId = "commit-id",
+            LoadedPath = $"{fixture.ProjectPath}\0invalid",
+            WorkspaceRoot = fixture.WorkspaceRoot,
+            State = RecoveryState.Prepared,
+            Entries = [],
+            CreatedDirectories = [],
+        };
+
+        var manifestPath = Path.Combine(commitDirectory, "manifest.json");
+        var manifestJson = JsonSerializer.Serialize(manifest, _serializerOptions);
+        await File.WriteAllTextAsync(
+            manifestPath,
+            manifestJson,
+            TestContext.Current.CancellationToken);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(
+                manifestPath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+
+        await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions
+        {
+            StateDirectory = stateDirectory.DirectoryPath,
+        });
+
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
+        if (!result.HasError)
+        {
+            Assert.Fail("Workspace opening did not return its recovery error.");
+        }
+
+        result.Error.Code.Should().Be("RecoveryPending");
+        result.Error.RequiredAction.Should().Be(RequiredAction.ResolveRecovery);
     }
 }

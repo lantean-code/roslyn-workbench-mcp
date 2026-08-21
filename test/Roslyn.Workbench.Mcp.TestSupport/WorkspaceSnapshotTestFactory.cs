@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Results;
+
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 internal static class WorkspaceSnapshotTestFactory
@@ -75,6 +77,30 @@ internal static class WorkspaceSnapshotTestFactory
         {
             Snapshot = snapshot,
         };
+
+        return context;
+    }
+
+    public static WorkspaceFailureContext CreateFailureContext(
+        Guid workspaceId,
+        long workspaceEpoch = 1,
+        int? transactionRevision = null,
+        WorkspaceLifecycleState lifecycleState = WorkspaceLifecycleState.Ready,
+        int projectCount = 2,
+        int documentCount = 3)
+    {
+        var workspace = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = workspaceEpoch,
+        };
+
+        var context = new WorkspaceFailureContext(
+            workspace,
+            lifecycleState,
+            projectCount,
+            documentCount,
+            transactionRevision);
 
         return context;
     }

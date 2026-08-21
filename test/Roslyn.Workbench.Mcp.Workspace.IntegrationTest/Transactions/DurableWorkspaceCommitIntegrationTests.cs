@@ -32,6 +32,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         _fileCommitter = new NativeAtomicFileCommitter();
         _atomicWriter = new AtomicFileWriter(_fileSystem, _fileCommitter);
         _pathContainment = CreatePathContainment(_fileSystem);
+        var pathNormalizer = new WorkspacePathNormalizer(_fileSystem);
         var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(_fileSystem);
         var stateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
@@ -43,6 +44,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             _fileSystem,
             _atomicWriter,
             new WorkspacePathComparison(),
+            pathNormalizer,
             _pathContainment,
             stateDirectory,
             stateDirectorySecurity,
@@ -424,6 +426,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var pathContainment = CreatePathContainment(fileSystem);
+        var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(fileSystem);
         var stateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
@@ -435,6 +438,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             fileSystem,
             atomicWriter,
             new WorkspacePathComparison(),
+            pathNormalizer,
             pathContainment,
             stateDirectory,
             stateDirectorySecurity,

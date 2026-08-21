@@ -1,7 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed record WorkspaceCommitManifest
 {
+    [JsonIgnore]
+    public bool HasMalformedWorkspaceIdentity { get; init; }
+
     public int Version { get; init; } = 1;
 
     public required string CommitId { get; init; }

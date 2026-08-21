@@ -15,6 +15,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IWorkspacePathNormalizer _pathNormalizer;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspaceStateDirectorySecurity _stateDirectorySecurity;
     private readonly CommitRecoveryLimits _limits;
@@ -24,6 +25,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
         IWorkspacePathComparison pathComparison,
+        IWorkspacePathNormalizer pathNormalizer,
         IPhysicalPathContainment pathContainment,
         IWorkspaceStateDirectory stateDirectory,
         IWorkspaceStateDirectorySecurity stateDirectorySecurity,
@@ -32,6 +34,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         _fileSystem = fileSystem;
         _atomicFileWriter = atomicFileWriter;
         _pathComparison = pathComparison;
+        _pathNormalizer = pathNormalizer;
         _pathContainment = pathContainment;
         _stateDirectorySecurity = stateDirectorySecurity;
         _limits = limits;
@@ -177,6 +180,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 CommitId = manifest.CommitId,
                 SolutionPath = manifest.LoadedPath,
                 WorkspaceRoot = manifest.WorkspaceRoot,
+                HasMalformedWorkspaceIdentity = manifest.HasMalformedWorkspaceIdentity,
                 State = manifest.State,
                 Message = manifest.Message,
             }).ToList();
@@ -294,21 +298,40 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
                 var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
                 var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
-                if (owner is not null
-                    && owner.Version == 1
+                if (owner is null)
+                {
+                    conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner));
+                    continue;
+                }
+
+                var hasValidMetadata = owner.Version == 1
                     && string.Equals(
                         owner.CommitId,
                         _fileSystem.Path.GetFileName(containedDirectory),
-                        _pathComparison.GetComparison(containedDirectory))
-                    && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
-                    && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
-                {
-                    owners.Add(owner);
-                }
-                else
+                        _pathComparison.GetComparison(containedDirectory));
+
+                if (!hasValidMetadata)
                 {
                     conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner));
+                    continue;
                 }
+
+                var hasValidLoadedPath = TryGetSafeNormalizedPath(owner.LoadedPath, allowMissing: false, out var loadedPath);
+                var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(owner.WorkspaceRoot, allowMissing: false, out var workspaceRoot);
+
+                if (!hasValidLoadedPath || !hasValidWorkspaceRoot)
+                {
+                    conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner));
+                    continue;
+                }
+
+                var normalizedOwner = owner with
+                {
+                    LoadedPath = loadedPath,
+                    WorkspaceRoot = workspaceRoot,
+                };
+
+                owners.Add(normalizedOwner);
             }
             catch (IOException)
             {
@@ -343,7 +366,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 "legacy recovery status");
 
             var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
-            var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
+            var legacy = JsonSerializer.Deserialize<LegacyRecoveryStatus>(json, _serializerOptions);
             return CreateLegacyStatus(commitId, legacy);
         }
         catch (IOException)
@@ -366,43 +389,68 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private RecoveryStatus CreateInvalidOwnerStatus(string directory, WorkspaceCommitOwner? owner)
     {
+        var hasValidLoadedPath = TryGetSafeNormalizedPath(owner?.LoadedPath, allowMissing: false, out var loadedPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(owner?.WorkspaceRoot, allowMissing: false, out var workspaceRoot);
+
         return new RecoveryStatus
         {
             CommitId = _fileSystem.Path.GetFileName(directory),
-            SolutionPath = GetSafeAbsolutePath(owner?.LoadedPath),
-            WorkspaceRoot = GetSafeAbsolutePath(owner?.WorkspaceRoot),
+            SolutionPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
             State = RecoveryState.RecoveryConflict,
             Message = "The recovery owner record is malformed or unreadable.",
         };
     }
 
-    private static RecoveryStatus CreateOrphanedOwnerStatus(WorkspaceCommitOwner owner)
+    private RecoveryStatus CreateOrphanedOwnerStatus(WorkspaceCommitOwner owner)
     {
+        var hasValidLoadedPath = TryGetSafeNormalizedPath(owner.LoadedPath, allowMissing: false, out var loadedPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(owner.WorkspaceRoot, allowMissing: false, out var workspaceRoot);
+
         return new RecoveryStatus
         {
             CommitId = owner.CommitId,
-            SolutionPath = owner.LoadedPath,
-            WorkspaceRoot = owner.WorkspaceRoot,
+            SolutionPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
             State = RecoveryState.RecoveryConflict,
             Message = "The commit was interrupted before its durable manifest was prepared.",
         };
     }
 
-    private static RecoveryStatus CreateLegacyStatus(string commitId, RecoveryStatus? legacy)
+    private RecoveryStatus CreateLegacyStatus(string commitId, LegacyRecoveryStatus? legacy)
     {
+        var hasValidSolutionPath = TryGetSafeNormalizedPath(legacy?.SolutionPath, allowMissing: false, out var solutionPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(legacy?.WorkspaceRoot, allowMissing: true, out var workspaceRoot);
+
         return new RecoveryStatus
         {
             CommitId = commitId,
-            SolutionPath = legacy?.SolutionPath ?? string.Empty,
-            WorkspaceRoot = legacy?.WorkspaceRoot ?? string.Empty,
+            SolutionPath = solutionPath,
+            WorkspaceRoot = workspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidSolutionPath || !hasValidWorkspaceRoot,
             State = RecoveryState.RecoveryConflict,
             Message = "Legacy recovery evidence cannot be restored automatically.",
         };
     }
 
-    private string GetSafeAbsolutePath(string? path)
+    private bool TryGetSafeNormalizedPath(string? path, bool allowMissing, out string normalizedPath)
     {
-        return path is not null && _fileSystem.Path.IsPathFullyQualified(path) ? path : string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            normalizedPath = string.Empty;
+            return allowMissing;
+        }
+
+        if (!_fileSystem.Path.IsPathFullyQualified(path)
+            || !_pathNormalizer.TryGetFullPath(path, out normalizedPath))
+        {
+            normalizedPath = string.Empty;
+            return false;
+        }
+
+        return true;
     }
 
     private string GetCommitDirectory(string commitId)
@@ -672,11 +720,15 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private WorkspaceCommitManifest CreateInvalidManifest(string directory, string? loadedPath, string? workspaceRoot)
     {
+        var hasValidLoadedPath = TryGetSafeNormalizedPath(loadedPath, allowMissing: false, out var normalizedLoadedPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(workspaceRoot, allowMissing: false, out var normalizedWorkspaceRoot);
+
         return new WorkspaceCommitManifest
         {
             CommitId = _fileSystem.Path.GetFileName(directory),
-            LoadedPath = loadedPath ?? string.Empty,
-            WorkspaceRoot = workspaceRoot ?? string.Empty,
+            LoadedPath = normalizedLoadedPath,
+            WorkspaceRoot = normalizedWorkspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
             State = RecoveryState.RecoveryConflict,
             Entries = [],
             CreatedDirectories = [],

@@ -2,6 +2,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputResolver
 {
+    private static readonly string[] _workspaceItemTypes = ["Compile", "AdditionalFiles", "EditorConfigFiles"];
+
     private static readonly string[] _artifactPathPropertyNames =
     [
         "ArtifactsPath",
@@ -40,12 +42,16 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
 
         try
         {
-            var globalProperties = msBuildProperties?.ToGlobalProperties()
-                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            var effectiveGlobalProperties = new Dictionary<string, string>(globalProperties, StringComparer.OrdinalIgnoreCase);
+            var globalProperties = msBuildProperties?.ToGlobalProperties();
+            var effectiveGlobalProperties = WorkspaceDesignTimeGlobalProperties.Create(globalProperties);
             using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection(effectiveGlobalProperties);
-            var project = projectCollection.LoadProject(projectPath);
+            var project = new Microsoft.Build.Evaluation.Project(
+                projectPath,
+                effectiveGlobalProperties,
+                toolsVersion: null,
+                projectCollection,
+                Microsoft.Build.Evaluation.ProjectLoadSettings.RecordEvaluatedItemElements);
+
             var importedPaths = new List<string>();
             var uniqueImportedPaths = new HashSet<FileSystemPathKey>();
             foreach (var import in project.Imports)
@@ -65,14 +71,68 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
             }
 
             var artifactRoots = ResolveArtifactRoots(project);
+            var itemGlobs = ResolveItemGlobs(project);
             return WorkspaceProjectInputResolution.Succeeded(
                 importedPaths.ToArray(),
-                artifactRoots);
+                artifactRoots,
+                itemGlobs);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
             return WorkspaceProjectInputResolution.Failed(projectPath, exception.Message);
         }
+    }
+
+    private WorkspaceEvaluatedItemGlob[] ResolveItemGlobs(Microsoft.Build.Evaluation.Project project)
+    {
+        var itemGlobs = new List<WorkspaceEvaluatedItemGlob>();
+        foreach (var itemType in _workspaceItemTypes)
+        {
+            foreach (var globResult in project.GetAllGlobs(itemType))
+            {
+                var searchRoots = ResolveSearchRoots(project.DirectoryPath, globResult.IncludeGlobs);
+                if (searchRoots.Count == 0)
+                {
+                    continue;
+                }
+
+                var matcher = new MsBuildWorkspaceItemGlobMatcher(globResult.MsBuildGlob);
+                var itemGlob = new WorkspaceEvaluatedItemGlob(matcher, searchRoots);
+
+                itemGlobs.Add(itemGlob);
+            }
+        }
+
+        return itemGlobs.ToArray();
+    }
+
+    private List<string> ResolveSearchRoots(
+        string projectDirectory,
+        IEnumerable<string> includeGlobs)
+    {
+        var searchRoots = new List<string>();
+        var uniqueSearchRoots = new HashSet<FileSystemPathKey>();
+        foreach (var includeGlob in includeGlobs)
+        {
+            var parsedGlob = Microsoft.Build.Globbing.MSBuildGlob.Parse(
+                projectDirectory,
+                includeGlob);
+
+            if (!parsedGlob.IsLegal)
+            {
+                continue;
+            }
+
+            var searchRoot = Path.TrimEndingDirectorySeparator(
+                Path.GetFullPath(parsedGlob.FixedDirectoryPart));
+
+            if (uniqueSearchRoots.Add(_pathComparison.CreateKey(searchRoot)))
+            {
+                searchRoots.Add(searchRoot);
+            }
+        }
+
+        return searchRoots;
     }
 
     private string[] ResolveArtifactRoots(Microsoft.Build.Evaluation.Project project)

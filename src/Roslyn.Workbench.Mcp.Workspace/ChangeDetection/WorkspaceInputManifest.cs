@@ -12,6 +12,8 @@ internal sealed record WorkspaceInputManifest : IDisposable
 
     public IReadOnlyList<WorkspaceProjectInputFailure> EvaluationFailures { get; init; } = [];
 
+    public IReadOnlyList<WorkspaceExternalInputMembership> ExternalInputMemberships { get; init; } = [];
+
     public IReadOnlyList<WorkspaceInputFileFingerprint> Files { get; init; } = [];
 
     public IReadOnlySet<FileSystemPathKey> IgnoredPaths { get; init; } = new HashSet<FileSystemPathKey>();

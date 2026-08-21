@@ -14,9 +14,7 @@ internal sealed class HostConfiguredMsBuildWorkspaceFactory : IMsBuildWorkspaceF
     public MSBuildWorkspace Create(IReadOnlyDictionary<string, string>? globalProperties)
     {
         var hostServices = _composition.WorkspaceHostServices;
-        var effectiveGlobalProperties = globalProperties is null
-            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, string>(globalProperties, StringComparer.OrdinalIgnoreCase);
+        var effectiveGlobalProperties = WorkspaceDesignTimeGlobalProperties.Create(globalProperties);
         MSBuildWorkspace workspace;
         if (hostServices is null)
         {

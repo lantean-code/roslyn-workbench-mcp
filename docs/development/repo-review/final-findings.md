@@ -34,9 +34,13 @@ Undo followed by a new branch reuses an integer revision while allocating a diff
 
 ### RWMCP3-001 — New external wildcard documents remain invisible to an open Workspace
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceChangeDetector.cs:106-159,162-243,277-303`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputChangeMonitor.cs:27-41`
 
 Only the Workspace root is recursively watched. Existing external evaluated files are individually fingerprinted, while external directories are checked only for continued existence. A newly created file matching an external wildcard is therefore not detected, the Workspace can remain Ready and reload refuses. Represent and poll external evaluated membership roots or provide explicit recertification; add real-MSBuild external wildcard-addition coverage.
+
+**Remediation:** Manifest construction now retains evaluated `Compile`, `AdditionalFiles` and `EditorConfigFiles` wildcard rules under the same design-time MSBuild properties as the loaded Workspace, consolidates external search roots and records their loaded membership. A dedicated external-input monitor uses recursive watchers with channel-backed event processing, performs initial and directory-event membership reconciliation, polls missing or unwatchable roots and conservatively invalidates on watcher failures. Real-MSBuild tests cover conditioned globs and populated-directory insertion; focused monitor, membership and property tests have 100% line and branch coverage. Workspace unit tests passed 1,108/1,108, Workspace integration tests passed 108/108, Host unit tests passed 514/514, latest-all analyzer builds were clean, Windows and WSL EF Core stress scenarios completed with clean restoration/shutdown, and the repeated fresh staged review found no findings after correction of its first pass.
 
 ### RWMCP3-002 — Target-framework selectors can match an unrelated output-path ancestor
 

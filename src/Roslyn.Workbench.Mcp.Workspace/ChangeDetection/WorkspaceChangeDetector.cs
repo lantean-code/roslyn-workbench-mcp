@@ -41,9 +41,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         var changeMonitor = _changeMonitorFactory.Create(workspaceRoot);
         try
         {
-            return new WorkspaceInputCertification(
+            var certification = new WorkspaceInputCertification(
                 changeMonitor,
                 _pathComparison);
+
+            return certification;
         }
         catch
         {
@@ -234,13 +236,196 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             }
         }
 
-        return new WorkspaceInputManifest
+        var externalInputMemberships = CreateExternalInputMemberships(
+            solution,
+            projectResolutions,
+            workspaceRoot);
+
+        var manifest = new WorkspaceInputManifest
         {
             Directories = directories.Values.ToArray(),
             EvaluationFailures = evaluationFailures,
+            ExternalInputMemberships = externalInputMemberships,
             Files = files.Values.ToArray(),
             PathPolicy = pathPolicy,
         };
+
+        return manifest;
+    }
+
+    private List<WorkspaceExternalInputMembership> CreateExternalInputMemberships(
+        Solution solution,
+        IReadOnlyDictionary<ProjectId, WorkspaceProjectInputResolution> projectResolutions,
+        string workspaceRoot)
+    {
+        var externalGlobRoots = new List<(WorkspaceEvaluatedItemGlob Glob, FileSystemPathKey Root)>();
+        var uniqueRoots = new HashSet<FileSystemPathKey>();
+        foreach (var resolution in projectResolutions.Values)
+        {
+            if (!resolution.IsSucceeded)
+            {
+                continue;
+            }
+
+            foreach (var itemGlob in resolution.ItemGlobs)
+            {
+                foreach (var searchRoot in itemGlob.SearchRoots)
+                {
+                    var normalizedSearchRoot = _fileSystem.Path.TrimEndingDirectorySeparator(
+                        _fileSystem.Path.GetFullPath(searchRoot));
+
+                    if (ContainsPath(workspaceRoot, normalizedSearchRoot))
+                    {
+                        continue;
+                    }
+
+                    var searchRootKey = _pathComparison.CreateKey(normalizedSearchRoot);
+                    externalGlobRoots.Add((itemGlob, searchRootKey));
+                    uniqueRoots.Add(searchRootKey);
+                }
+            }
+        }
+
+        if (externalGlobRoots.Count == 0)
+        {
+            return [];
+        }
+
+        var minimalRoots = RemoveNestedRoots(uniqueRoots);
+        var loadedDocumentPaths = GetLoadedDocumentPaths(solution);
+        var memberships = new List<WorkspaceExternalInputMembership>(minimalRoots.Count);
+        foreach (var minimalRoot in minimalRoots)
+        {
+            var globs = GetGlobsForRoot(minimalRoot, externalGlobRoots);
+            var loadedPaths = GetLoadedPathsForGlobs(
+                minimalRoot,
+                globs,
+                loadedDocumentPaths);
+
+            var membership = new WorkspaceExternalInputMembership(
+                minimalRoot,
+                globs,
+                loadedPaths);
+
+            memberships.Add(membership);
+        }
+
+        return memberships;
+    }
+
+    private List<WorkspaceEvaluatedItemGlob> GetGlobsForRoot(
+        FileSystemPathKey minimalRoot,
+        IEnumerable<(WorkspaceEvaluatedItemGlob Glob, FileSystemPathKey Root)> externalGlobRoots)
+    {
+        var globs = new List<WorkspaceEvaluatedItemGlob>();
+        var uniqueGlobs = new HashSet<WorkspaceEvaluatedItemGlob>();
+        foreach (var (glob, root) in externalGlobRoots)
+        {
+            if (ContainsPath(minimalRoot.Path, root.Path) && uniqueGlobs.Add(glob))
+            {
+                globs.Add(glob);
+            }
+        }
+
+        return globs;
+    }
+
+    private HashSet<FileSystemPathKey> GetLoadedPathsForGlobs(
+        FileSystemPathKey root,
+        IReadOnlyList<WorkspaceEvaluatedItemGlob> globs,
+        IEnumerable<FileSystemPathKey> loadedDocumentPaths)
+    {
+        var loadedPaths = new HashSet<FileSystemPathKey>();
+        foreach (var path in loadedDocumentPaths)
+        {
+            if (!ContainsPath(root.Path, path.Path))
+            {
+                continue;
+            }
+
+            foreach (var glob in globs)
+            {
+                if (!glob.Matches(path.Path))
+                {
+                    continue;
+                }
+
+                loadedPaths.Add(path);
+                break;
+            }
+        }
+
+        return loadedPaths;
+    }
+
+    private FileSystemPathKey[] GetLoadedDocumentPaths(Solution solution)
+    {
+        var paths = new HashSet<FileSystemPathKey>();
+        foreach (var project in solution.Projects)
+        {
+            AddDocumentPaths(paths, project.Documents);
+            AddDocumentPaths(paths, project.AdditionalDocuments);
+            AddDocumentPaths(paths, project.AnalyzerConfigDocuments);
+        }
+
+        return paths.ToArray();
+    }
+
+    private void AddDocumentPaths(
+        HashSet<FileSystemPathKey> paths,
+        IEnumerable<TextDocument> documents)
+    {
+        foreach (var document in documents)
+        {
+            if (!string.IsNullOrWhiteSpace(document.FilePath))
+            {
+                paths.Add(_pathComparison.CreateKey(document.FilePath));
+            }
+        }
+    }
+
+    private List<FileSystemPathKey> RemoveNestedRoots(IEnumerable<FileSystemPathKey> roots)
+    {
+        var orderedRoots = roots.ToList();
+        orderedRoots.Sort(static (left, right) => left.Path.Length.CompareTo(right.Path.Length));
+
+        var minimalRoots = new List<FileSystemPathKey>(orderedRoots.Count);
+        foreach (var root in orderedRoots)
+        {
+            var isNested = false;
+            foreach (var existingRoot in minimalRoots)
+            {
+                if (ContainsPath(existingRoot.Path, root.Path))
+                {
+                    isNested = true;
+                    break;
+                }
+            }
+
+            if (isNested)
+            {
+                continue;
+            }
+
+            minimalRoots.Add(root);
+        }
+
+        return minimalRoots;
+    }
+
+    private bool ContainsPath(string root, string path)
+    {
+        var comparison = _pathComparison.GetComparison(root);
+        if (string.Equals(root, path, comparison))
+        {
+            return true;
+        }
+
+        var rootPrefix = _fileSystem.Path.EndsInDirectorySeparator(root)
+            ? root
+            : root + _fileSystem.Path.DirectorySeparatorChar;
+
+        return path.StartsWith(rootPrefix, comparison);
     }
 
     private void AddFile(

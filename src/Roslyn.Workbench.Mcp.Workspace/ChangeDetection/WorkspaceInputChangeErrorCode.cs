@@ -4,4 +4,5 @@ internal enum WorkspaceInputChangeErrorCode
 {
     WatcherBufferOverflow,
     WatcherFailure,
+    MembershipEnumerationFailure,
 }

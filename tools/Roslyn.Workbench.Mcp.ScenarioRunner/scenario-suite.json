@@ -1226,6 +1226,31 @@
           }
         },
         {
+          "id": "external-wildcard-watcher-stress",
+          "description": "Measures EF Core reload and watcher-stress behaviour while 32 distinct external roots contribute 1,024 evaluated AdditionalFiles through 64 globs.",
+          "tool": "get-solution-structure",
+          "stateSequence": {
+            "kind": "WatcherStress",
+            "watcherStress": {
+              "artifactPath": "artifacts/external-wildcard-watcher-stress",
+              "fileCount": 20000,
+              "writePasses": 2,
+              "externalWildcard": {
+                "targetProjectPath": "src/EFCore/EFCore.csproj",
+                "rootCount": 32,
+                "globsPerRoot": 2,
+                "filesPerGlob": 16
+              }
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
           "id": "solution-structure-without-documents",
           "description": "The high-bound solution projection without optional document payloads.",
           "tool": "get-solution-structure",

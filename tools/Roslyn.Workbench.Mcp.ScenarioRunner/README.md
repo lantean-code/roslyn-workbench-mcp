@@ -257,6 +257,20 @@ Stress the recursive filesystem monitor with generated artifact events during an
   --iterations 1 --warmups 0 --skip-prepare
 ```
 
+Measure the same EF Core watcher workload while 32 external roots contribute 1,024 evaluated `AdditionalFiles` through 64 wildcard items:
+
+```powershell
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  state-sequence --repository efcore --scenario external-wildcard-watcher-stress `
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  state-sequence --repository efcore --scenario external-wildcard-watcher-stress \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
 Validate cancellation immediately before and after durable application begins:
 
 ```bash

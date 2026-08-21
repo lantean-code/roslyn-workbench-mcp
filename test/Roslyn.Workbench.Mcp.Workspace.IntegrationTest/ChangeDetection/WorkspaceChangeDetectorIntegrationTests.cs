@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.MSBuild;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 
 public sealed class WorkspaceChangeDetectorIntegrationTests
@@ -43,6 +45,209 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
         {
             DeleteDirectory(directoryPath);
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_ExternalWorkspaceItemGlobs_WHEN_ResolvingProjectInputs_THEN_ShouldRetainEvaluatedMembershipRules()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-external-glob-tests");
+        var workspaceRoot = Path.Combine(directory.DirectoryPath, "workspace");
+        var externalRoot = Path.Combine(directory.DirectoryPath, "external");
+        var excludedRoot = Path.Combine(externalRoot, "excluded");
+        var removedRoot = Path.Combine(externalRoot, "removed");
+        Directory.CreateDirectory(workspaceRoot);
+        Directory.CreateDirectory(excludedRoot);
+        Directory.CreateDirectory(removedRoot);
+
+        var projectPath = Path.Combine(workspaceRoot, "Sample.csproj");
+        var includedSourcePath = Path.Combine(externalRoot, "Included.cs");
+        var excludedSourcePath = Path.Combine(excludedRoot, "Excluded.cs");
+        var removedSourcePath = Path.Combine(removedRoot, "Removed.cs");
+        var additionalPath = Path.Combine(externalRoot, "Additional.txt");
+        var editorConfigPath = Path.Combine(externalRoot, "Settings.globalconfig");
+        var externalInclude = GetProjectRelativePath(workspaceRoot, externalRoot);
+        File.WriteAllText(projectPath, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Compile Include="{{externalInclude}}/**/*.cs" Exclude="{{externalInclude}}/excluded/**/*.cs" />
+                <Compile Remove="{{externalInclude}}/removed/**/*.cs" />
+                <AdditionalFiles Include="{{externalInclude}}/**/*.txt" />
+                <EditorConfigFiles Include="{{externalInclude}}/**/*.globalconfig" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        var pathComparison = new WorkspacePathComparison();
+        var target = new WorkspaceProjectInputResolver(pathComparison);
+
+        var result = target.Resolve(projectPath);
+
+        result.IsSucceeded.Should().BeTrue();
+        result.ItemGlobs.SelectMany(static glob => glob.SearchRoots).Should().Contain(externalRoot);
+        result.ItemGlobs.Should().Contain(glob => glob.Matches(includedSourcePath));
+        result.ItemGlobs.Should().Contain(glob => glob.Matches(additionalPath));
+        result.ItemGlobs.Should().Contain(glob => glob.Matches(editorConfigPath));
+        result.ItemGlobs.Should().NotContain(glob => glob.Matches(excludedSourcePath));
+        result.ItemGlobs.Should().NotContain(glob => glob.Matches(removedSourcePath));
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_OpenProjectWithExternalCompileGlob_WHEN_MatchingFileIsCreated_THEN_ShouldBecomeStaleAndReloadTheDocument()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-external-glob-tests");
+        var workspaceRoot = Path.Combine(directory.DirectoryPath, "workspace");
+        var externalRoot = Path.Combine(directory.DirectoryPath, "external");
+        Directory.CreateDirectory(workspaceRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        var projectPath = Path.Combine(workspaceRoot, "Sample.csproj");
+        var localSourcePath = Path.Combine(workspaceRoot, "Sample.cs");
+        var existingExternalPath = Path.Combine(externalRoot, "Existing.cs");
+        var createdExternalPath = Path.Combine(externalRoot, "Created.cs");
+        var externalInclude = GetProjectRelativePath(workspaceRoot, externalRoot);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await File.WriteAllTextAsync(projectPath, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup Condition="'$(DesignTimeBuild)' == 'true'">
+                <Compile Include="{{externalInclude}}/**/*.cs" />
+              </ItemGroup>
+            </Project>
+            """, cancellationToken);
+
+        await File.WriteAllTextAsync(localSourcePath, "internal sealed class Sample { }", cancellationToken);
+        await File.WriteAllTextAsync(existingExternalPath, "internal sealed class Existing { }", cancellationToken);
+
+        using var initialWorkspace = MSBuildWorkspace.Create();
+        var initialProject = await initialWorkspace.OpenProjectAsync(projectPath, cancellationToken: cancellationToken);
+        initialProject.Documents.Should().Contain(document => PathEquals(document.FilePath, existingExternalPath));
+        initialProject.Documents.Should().NotContain(document => PathEquals(document.FilePath, createdExternalPath));
+
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+        var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+            fileSystem,
+            pathComparison,
+            externalMonitorFactory);
+        var projectInputResolver = new WorkspaceProjectInputResolver(pathComparison);
+
+        var target = new WorkspaceChangeDetector(
+            fileSystem,
+            projectInputResolver,
+            changeMonitorFactory,
+            pathComparison);
+
+        using var manifest = target.BuildManifest(
+            initialProject.Solution,
+            projectPath,
+            workspaceRoot);
+
+        target.HasChanged(manifest, cancellationToken).Should().BeFalse();
+        await File.WriteAllTextAsync(createdExternalPath, "internal sealed class Created { }", cancellationToken);
+
+        var detectedChange = SpinWait.SpinUntil(
+            () => target.HasChanged(manifest, cancellationToken),
+            TimeSpan.FromSeconds(5));
+
+        detectedChange.Should().BeTrue();
+        var expectedChange = new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.FileSystemWatcher,
+            Kind = WorkspaceInputChangeKind.Created,
+            Path = createdExternalPath,
+        };
+
+        manifest.Change.Should().BeEquivalentTo(expectedChange);
+
+        using var reloadedWorkspace = MSBuildWorkspace.Create();
+        var reloadedProject = await reloadedWorkspace.OpenProjectAsync(projectPath, cancellationToken: cancellationToken);
+        reloadedProject.Documents.Should().Contain(document => PathEquals(document.FilePath, createdExternalPath));
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_OpenProjectWithExternalCompileGlob_WHEN_PopulatedDirectoryIsMovedIntoRoot_THEN_ShouldBecomeStale()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-external-glob-tests");
+        var workspaceRoot = Path.Combine(directory.DirectoryPath, "workspace");
+        var externalRoot = Path.Combine(directory.DirectoryPath, "external");
+        var sourceDirectory = Path.Combine(directory.DirectoryPath, "source");
+        var insertedDirectory = Path.Combine(externalRoot, "inserted");
+        Directory.CreateDirectory(workspaceRoot);
+        Directory.CreateDirectory(externalRoot);
+        Directory.CreateDirectory(sourceDirectory);
+
+        var projectPath = Path.Combine(workspaceRoot, "Sample.csproj");
+        var localSourcePath = Path.Combine(workspaceRoot, "Sample.cs");
+        var insertedSourcePath = Path.Combine(insertedDirectory, "Inserted.cs");
+        var sourcePath = Path.Combine(sourceDirectory, "Inserted.cs");
+        var externalInclude = GetProjectRelativePath(workspaceRoot, externalRoot);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await File.WriteAllTextAsync(projectPath, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Compile Include="{{externalInclude}}/**/*.cs" />
+              </ItemGroup>
+            </Project>
+            """, cancellationToken);
+
+        await File.WriteAllTextAsync(localSourcePath, "internal sealed class Sample { }", cancellationToken);
+        await File.WriteAllTextAsync(sourcePath, "internal sealed class Inserted { }", cancellationToken);
+
+        using var workspace = MSBuildWorkspace.Create();
+        var project = await workspace.OpenProjectAsync(projectPath, cancellationToken: cancellationToken);
+        project.Documents.Should().NotContain(document => PathEquals(document.FilePath, insertedSourcePath));
+
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison(fileSystem);
+        var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+        var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+            fileSystem,
+            pathComparison,
+            externalMonitorFactory);
+
+        var projectInputResolver = new WorkspaceProjectInputResolver(pathComparison);
+        var target = new WorkspaceChangeDetector(
+            fileSystem,
+            projectInputResolver,
+            changeMonitorFactory,
+            pathComparison);
+
+        using var manifest = target.BuildManifest(
+            project.Solution,
+            projectPath,
+            workspaceRoot);
+
+        target.HasChanged(manifest, cancellationToken).Should().BeFalse();
+        Directory.Move(sourceDirectory, insertedDirectory);
+
+        var detectedChange = SpinWait.SpinUntil(
+            () => target.HasChanged(manifest, cancellationToken),
+            TimeSpan.FromSeconds(5));
+
+        detectedChange.Should().BeTrue();
+        var expectedChange = new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.MetadataPolling,
+            Kind = WorkspaceInputChangeKind.Created,
+            Path = insertedSourcePath,
+        };
+
+        manifest.Change.Should().BeEquivalentTo(expectedChange);
     }
 
     [Fact]
@@ -93,7 +298,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -183,7 +393,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -231,7 +446,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -287,7 +507,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -338,7 +563,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -390,7 +620,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
 
             var fileSystem = new FileSystem();
             var pathComparison = new WorkspacePathComparison();
-            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(fileSystem, pathComparison);
+            var externalMonitorFactory = new WorkspaceExternalInputChangeMonitorFactory(fileSystem, pathComparison);
+            var changeMonitorFactory = new WorkspaceInputChangeMonitorFactory(
+                fileSystem,
+                pathComparison,
+                externalMonitorFactory);
+
             var target = new WorkspaceChangeDetector(
                 fileSystem,
                 new WorkspaceProjectInputResolver(pathComparison),
@@ -453,5 +688,16 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
         {
             Directory.Delete(directoryPath, recursive: true);
         }
+    }
+
+    private static string GetProjectRelativePath(string projectDirectory, string path)
+    {
+        return Path.GetRelativePath(projectDirectory, path).Replace(Path.DirectorySeparatorChar, '/');
+    }
+
+    private static bool PathEquals(string? left, string right)
+    {
+        return left is not null
+            && string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.Ordinal);
     }
 }

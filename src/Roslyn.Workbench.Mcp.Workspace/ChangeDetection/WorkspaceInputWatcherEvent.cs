@@ -1,17 +1,25 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal readonly struct WorkspaceInputWatcherEvent
 {
     public Exception? Error { get; }
 
-    public WorkspaceInputWatcherEventKind Kind { get; }
+    public WorkspaceInputChangeKind Kind { get; }
+
+    [MemberNotNullWhen(true, nameof(Path))]
+    public bool HasPath => Kind != WorkspaceInputChangeKind.WatcherError;
+
+    [MemberNotNullWhen(true, nameof(PreviousPath))]
+    public bool HasPreviousPath => PreviousPath is not null;
 
     public string? Path { get; }
 
     public string? PreviousPath { get; }
 
     private WorkspaceInputWatcherEvent(
-        WorkspaceInputWatcherEventKind kind,
+        WorkspaceInputChangeKind kind,
         string? path,
         string? previousPath,
         Exception? error)
@@ -25,7 +33,7 @@ internal readonly struct WorkspaceInputWatcherEvent
     public static WorkspaceInputWatcherEvent Changed(string path)
     {
         return new WorkspaceInputWatcherEvent(
-            WorkspaceInputWatcherEventKind.Changed,
+            WorkspaceInputChangeKind.Changed,
             path,
             null,
             null);
@@ -34,7 +42,7 @@ internal readonly struct WorkspaceInputWatcherEvent
     public static WorkspaceInputWatcherEvent Created(string path)
     {
         return new WorkspaceInputWatcherEvent(
-            WorkspaceInputWatcherEventKind.Created,
+            WorkspaceInputChangeKind.Created,
             path,
             null,
             null);
@@ -43,7 +51,7 @@ internal readonly struct WorkspaceInputWatcherEvent
     public static WorkspaceInputWatcherEvent Deleted(string path)
     {
         return new WorkspaceInputWatcherEvent(
-            WorkspaceInputWatcherEventKind.Deleted,
+            WorkspaceInputChangeKind.Deleted,
             path,
             null,
             null);
@@ -52,7 +60,7 @@ internal readonly struct WorkspaceInputWatcherEvent
     public static WorkspaceInputWatcherEvent Renamed(string path, string previousPath)
     {
         return new WorkspaceInputWatcherEvent(
-            WorkspaceInputWatcherEventKind.Renamed,
+            WorkspaceInputChangeKind.Renamed,
             path,
             previousPath,
             null);
@@ -61,7 +69,7 @@ internal readonly struct WorkspaceInputWatcherEvent
     public static WorkspaceInputWatcherEvent WatcherError(Exception error)
     {
         return new WorkspaceInputWatcherEvent(
-            WorkspaceInputWatcherEventKind.Error,
+            WorkspaceInputChangeKind.WatcherError,
             null,
             null,
             error);

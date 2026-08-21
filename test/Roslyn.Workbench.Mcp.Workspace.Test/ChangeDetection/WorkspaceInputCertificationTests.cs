@@ -30,11 +30,23 @@ public sealed class WorkspaceInputCertificationTests : IDisposable
     [Fact]
     public void GIVEN_ActiveCertification_WHEN_Completed_THEN_ShouldAttachAndConfigureMonitor()
     {
-        using var manifest = new WorkspaceInputManifest();
+        var matcher = new Mock<IWorkspaceItemGlobMatcher>();
+        var itemGlob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
+        var loadedPaths = new HashSet<FileSystemPathKey>();
+        var membership = new WorkspaceExternalInputMembership(
+            _pathComparison.Object.CreateKey("/External"),
+            [itemGlob],
+            loadedPaths);
+
+        using var manifest = new WorkspaceInputManifest
+        {
+            ExternalInputMemberships = [membership],
+        };
 
         var result = _target.Complete(manifest);
 
         result.ChangeMonitor.Should().BeSameAs(_changeMonitor.Object);
+        result.ExternalInputMemberships.Should().ContainSingle().Which.Should().BeSameAs(membership);
         _changeMonitor.Verify(item => item.Track(result), Times.Once);
 
         _target.Dispose();

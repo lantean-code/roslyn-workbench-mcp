@@ -44,6 +44,29 @@ public sealed class WorkbenchPerformanceEventSourceTests
         retryEvent.Payload.Should().Equal(2, 50);
     }
 
+    [Fact]
+    public void GIVEN_EnabledListener_WHEN_InputMonitorIsConfigured_THEN_ShouldWriteBoundedResourceCounts()
+    {
+        var eventSource = WorkbenchPerformanceEventSource.Log;
+        using var listener = new WorkbenchPerformanceEventListener(eventSource);
+
+        eventSource.WorkspaceInputMonitorConfigured(
+            externalRootCount: 2,
+            evaluatedGlobCount: 4,
+            externalWatcherCount: 1);
+
+        eventSource.ConstructionException.Should().BeNull();
+        var configurationEvent = listener.Events.Should().ContainSingle(
+            item => item.EventName == "WorkspaceInputMonitorConfigured").Which;
+
+        configurationEvent.PayloadNames.Should().Equal(
+            "externalRootCount",
+            "evaluatedGlobCount",
+            "externalWatcherCount");
+
+        configurationEvent.Payload.Should().Equal(2, 4, 1);
+    }
+
     private static bool IsExpectedTraceEvent(EventWrittenEventArgs traceEvent)
     {
         return traceEvent.EventName == "PhaseCompleted"

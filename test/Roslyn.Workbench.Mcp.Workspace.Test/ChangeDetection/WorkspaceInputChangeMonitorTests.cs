@@ -9,6 +9,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IFileSystemWatcherFactory> _watcherFactory;
     private readonly Mock<IFileSystemWatcher> _watcher;
+    private readonly Mock<IWorkspaceExternalInputChangeMonitorFactory> _externalMonitorFactory;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly string _workspaceRoot;
     private readonly WorkspaceInputChangeMonitor _target;
@@ -20,6 +21,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _directory = new Mock<IDirectory>();
         _watcherFactory = new Mock<IFileSystemWatcherFactory>();
         _watcher = new Mock<IFileSystemWatcher>();
+        _externalMonitorFactory = new Mock<IWorkspaceExternalInputChangeMonitorFactory>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _workspaceRoot = Path.Combine(Path.GetTempPath(), "Workspace");
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
@@ -33,6 +35,7 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _target = new WorkspaceInputChangeMonitor(
             _fileSystem.Object,
             _pathComparison.Object,
+            _externalMonitorFactory.Object,
             _workspaceRoot);
     }
 
@@ -467,6 +470,42 @@ public sealed class WorkspaceInputChangeMonitorTests : IDisposable
         _target.Dispose();
 
         _watcher.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ExternalInputs_WHEN_TrackingAndChecking_THEN_ShouldDelegateToExternalMonitor()
+    {
+        var externalMonitor = new Mock<IWorkspaceExternalInputChangeMonitor>();
+        var externalChange = new WorkspaceInputChange
+        {
+            DetectionSource = WorkspaceInputChangeDetectionSource.MetadataPolling,
+            Kind = WorkspaceInputChangeKind.Created,
+        };
+
+        externalMonitor.SetupGet(item => item.Change).Returns(externalChange);
+        var externalRoot = Path.Combine(Path.GetTempPath(), "External");
+        var membership = new WorkspaceExternalInputMembership(
+            new FileSystemPathKey(externalRoot, isCaseSensitive: true),
+            [],
+            new HashSet<FileSystemPathKey>());
+
+        _externalMonitorFactory
+            .Setup(item => item.Create(It.IsAny<IReadOnlyList<WorkspaceExternalInputMembership>>()))
+            .Returns(externalMonitor.Object);
+
+        using var manifest = new WorkspaceInputManifest
+        {
+            ExternalInputMemberships = [membership],
+        };
+
+        _target.Track(manifest);
+        _target.WaitForPendingEvents(CancellationToken.None);
+        _target.Change.Should().BeSameAs(externalChange);
+        _target.Dispose();
+
+        externalMonitor.Verify(item => item.Start(), Times.Once);
+        externalMonitor.Verify(item => item.WaitForPendingEvents(CancellationToken.None), Times.Once);
+        externalMonitor.Verify(item => item.Dispose(), Times.Once);
     }
 
     public void Dispose()

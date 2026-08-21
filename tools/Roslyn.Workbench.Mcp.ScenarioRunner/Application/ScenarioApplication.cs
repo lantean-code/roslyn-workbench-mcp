@@ -911,6 +911,22 @@ internal static class ScenarioApplication
         int iteration,
         CancellationToken cancellationToken)
     {
+        var stateSequence = scenario.StateSequence
+            ?? throw new InvalidOperationException(
+                $"Scenario '{scenario.Id}' does not define a state sequence.");
+
+        var externalWildcardDefinition = stateSequence.WatcherStress?.ExternalWildcard;
+        ExternalWildcardWorkspaceSetup? setup = null;
+        if (externalWildcardDefinition is not null)
+        {
+            setup = ExternalWildcardWorkspaceSetup.Apply(
+                repositoryRoot,
+                externalWildcardDefinition,
+                cancellationToken);
+        }
+
+        using var externalWildcardSetup = setup;
+
         await using var host = await ScenarioHost.StartAsync(
             hostPath,
             repositoryRoot,
@@ -964,6 +980,15 @@ internal static class ScenarioApplication
             {
                 runFailure = CombineFailures(runFailure, exception);
             }
+        }
+
+        try
+        {
+            externalWildcardSetup?.Restore();
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
         }
 
         RepositoryChangeSet? changes = null;

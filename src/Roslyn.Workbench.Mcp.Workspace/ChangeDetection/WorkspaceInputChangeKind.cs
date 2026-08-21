@@ -9,4 +9,5 @@ internal enum WorkspaceInputChangeKind
     WatcherError,
     MetadataChanged,
     ManifestIncomplete,
+    MembershipError,
 }

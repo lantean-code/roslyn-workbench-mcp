@@ -8,5 +8,7 @@ internal sealed record WatcherStressDefinition
     public required int FileCount { get; init; }
 
     public required int WritePasses { get; init; }
+
+    public ExternalWildcardStressDefinition? ExternalWildcard { get; init; }
 }
 #pragma warning restore CA1812

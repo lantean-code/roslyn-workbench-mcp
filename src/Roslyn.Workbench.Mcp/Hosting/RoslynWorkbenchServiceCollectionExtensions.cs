@@ -126,6 +126,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceRootResolver, WorkspaceRootResolver>();
         services.AddSingleton<IWorkspaceLoadWorkflow, WorkspaceLoadWorkflow>();
         services.AddSingleton<IWorkspaceProjectInputResolver, WorkspaceProjectInputResolver>();
+        services.AddSingleton<IWorkspaceExternalInputChangeMonitorFactory, WorkspaceExternalInputChangeMonitorFactory>();
         services.AddSingleton<IWorkspaceInputChangeMonitorFactory, WorkspaceInputChangeMonitorFactory>();
         services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
         services.AddSingleton<IWorkspaceReadOnlyDocumentValidator, WorkspaceReadOnlyDocumentValidator>();

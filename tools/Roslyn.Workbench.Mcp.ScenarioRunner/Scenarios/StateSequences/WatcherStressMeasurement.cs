@@ -8,6 +8,12 @@ internal sealed record WatcherStressMeasurement
 
     public required int WritePasses { get; init; }
 
+    public int ExternalRootCount { get; init; }
+
+    public int EvaluatedExternalGlobCount { get; init; }
+
+    public int LoadedExternalFileCount { get; init; }
+
     public required double BaselineReloadMilliseconds { get; init; }
 
     public required double StressedReloadMilliseconds { get; init; }

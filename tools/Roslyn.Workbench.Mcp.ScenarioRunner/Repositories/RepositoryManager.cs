@@ -122,7 +122,30 @@ internal sealed class RepositoryManager
         }
 
         Console.WriteLine($"Recreating invalid repository cache '{repositoryRoot}'. {validationFailure}");
+        RemoveReadOnlyAttributes(repositoryRoot);
         Directory.Delete(repositoryRoot, recursive: true);
+    }
+
+    private static void RemoveReadOnlyAttributes(string repositoryRoot)
+    {
+        var directories = new Stack<DirectoryInfo>();
+        directories.Push(new DirectoryInfo(repositoryRoot));
+
+        while (directories.TryPop(out var directory))
+        {
+            directory.Attributes &= ~FileAttributes.ReadOnly;
+
+            foreach (var entry in directory.EnumerateFileSystemInfos())
+            {
+                entry.Attributes &= ~FileAttributes.ReadOnly;
+
+                if (entry is DirectoryInfo childDirectory
+                    && !entry.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    directories.Push(childDirectory);
+                }
+            }
+        }
     }
 
     private static async Task RunRequiredAsync(

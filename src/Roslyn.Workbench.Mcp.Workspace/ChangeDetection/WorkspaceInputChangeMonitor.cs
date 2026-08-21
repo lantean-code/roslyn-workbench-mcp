@@ -8,12 +8,14 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
     private readonly IFileSystem _fileSystem;
     private readonly IFileSystemWatcher _watcher;
+    private readonly IWorkspaceExternalInputChangeMonitorFactory _externalMonitorFactory;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly Channel<WorkspaceInputWatcherEvent> _events;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly TaskCompletionSource _trackingStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Task _eventProcessingTask;
     private WorkspaceInputChange? _change;
+    private IWorkspaceExternalInputChangeMonitor? _externalMonitor;
     private IReadOnlySet<FileSystemPathKey> _ignoredPaths;
     private WorkspaceInputPathPolicy _pathPolicy = WorkspaceInputPathPolicy.MonitorAll;
     private IReadOnlySet<FileSystemPathKey>? _trackedDirectories;
@@ -22,15 +24,17 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     private int _pendingEventCount;
     private int _startState;
 
-    public WorkspaceInputChange? Change => Volatile.Read(ref _change);
+    public WorkspaceInputChange? Change => Volatile.Read(ref _change) ?? _externalMonitor?.Change;
 
     public WorkspaceInputChangeMonitor(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
+        IWorkspaceExternalInputChangeMonitorFactory externalMonitorFactory,
         string workspaceRoot)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
+        _externalMonitorFactory = externalMonitorFactory;
         _ignoredPaths = new HashSet<FileSystemPathKey>();
         _watcher = fileSystem.FileSystemWatcher.New(workspaceRoot);
         _watcher.IncludeSubdirectories = true;
@@ -68,6 +72,12 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
             .Select(file => _pathComparison.CreateKey(file.Path))
             .ToHashSet();
 
+        if (manifest.ExternalInputMemberships.Count > 0)
+        {
+            _externalMonitor = _externalMonitorFactory.Create(manifest.ExternalInputMemberships);
+            _externalMonitor.Start();
+        }
+
         Start();
         _trackingStarted.TrySetResult();
     }
@@ -89,6 +99,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         }
 
         _watcher.EnableRaisingEvents = false;
+        _externalMonitor?.Dispose();
         _shutdown.Cancel();
         _events.Writer.TryComplete();
 
@@ -104,6 +115,13 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     }
 
     public void WaitForPendingEvents(CancellationToken cancellationToken)
+    {
+        WaitForWorkspaceEvents(cancellationToken);
+        _externalMonitor?.WaitForPendingEvents(cancellationToken);
+        WaitForWorkspaceEvents(cancellationToken);
+    }
+
+    private void WaitForWorkspaceEvents(CancellationToken cancellationToken)
     {
         var spinWait = new SpinWait();
         while (Volatile.Read(ref _pendingEventCount) > 0 && Change is null)
@@ -190,7 +208,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     {
         switch (watcherEvent.Kind)
         {
-            case WorkspaceInputWatcherEventKind.Changed:
+            case WorkspaceInputChangeKind.Changed:
                 if (!ShouldMonitorChangedPath(watcherEvent.Path))
                 {
                     return false;
@@ -199,7 +217,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 RecordChange(WorkspaceInputChangeKind.Changed, watcherEvent.Path);
                 return true;
 
-            case WorkspaceInputWatcherEventKind.Created:
+            case WorkspaceInputChangeKind.Created:
                 if (!ShouldMonitorCreatedPath(watcherEvent.Path))
                 {
                     return false;
@@ -208,7 +226,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 RecordChange(WorkspaceInputChangeKind.Created, watcherEvent.Path);
                 return true;
 
-            case WorkspaceInputWatcherEventKind.Deleted:
+            case WorkspaceInputChangeKind.Deleted:
                 if (!ShouldMonitorDeletedPath(watcherEvent.Path))
                 {
                     return false;
@@ -217,7 +235,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
                 RecordChange(WorkspaceInputChangeKind.Deleted, watcherEvent.Path);
                 return true;
 
-            case WorkspaceInputWatcherEventKind.Renamed:
+            case WorkspaceInputChangeKind.Renamed:
                 if (!ShouldMonitorRenamedPath(watcherEvent.Path, watcherEvent.PreviousPath))
                 {
                     return false;
@@ -230,7 +248,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 
                 return true;
 
-            case WorkspaceInputWatcherEventKind.Error:
+            case WorkspaceInputChangeKind.WatcherError:
                 var errorCode = watcherEvent.Error is InternalBufferOverflowException
                     ? WorkspaceInputChangeErrorCode.WatcherBufferOverflow
                     : WorkspaceInputChangeErrorCode.WatcherFailure;

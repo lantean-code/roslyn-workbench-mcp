@@ -38,7 +38,10 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => Path.GetDirectoryName(path));
         _path.Setup(item => item.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
+        _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
         _path.Setup(item => item.TrimEndingDirectorySeparator(It.IsAny<string>())).Returns((string path) => Path.TrimEndingDirectorySeparator(path));
+        _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
+        _path.Setup(item => item.EndsInDirectorySeparator(It.IsAny<string>())).Returns((string path) => Path.EndsInDirectorySeparator(path));
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string left, string right) => Path.Combine(left, right));
         _changeMonitorFactory
@@ -371,6 +374,129 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
 
         result.IsComplete.Should().BeTrue();
         _projectInputResolver.Verify(item => item.Resolve(projectPath), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_NestedExternalGlobRoots_WHEN_BuildingManifest_THEN_ShouldCreateOneMinimalMembership()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(workspaceRoot, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var externalRoot = Path.GetFullPath("/External");
+        var nestedExternalRoot = Path.Combine(externalRoot, "Nested");
+        var externalPath = Path.Combine(externalRoot, "External.cs");
+        var nestedExternalPath = Path.Combine(nestedExternalRoot, "Nested.cs");
+        var nonMatchingExternalPath = Path.Combine(externalRoot, "Notes.txt");
+        var localPath = Path.Combine(projectDirectory, "Local.cs");
+        var projectId = ProjectId.CreateNewId();
+        var solution = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(DocumentId.CreateNewId(projectId), "Local.cs", SourceText.From("class Local { }"), filePath: localPath)
+            .AddDocument(DocumentId.CreateNewId(projectId), "External.cs", SourceText.From("class External { }"), filePath: externalPath)
+            .AddDocument(DocumentId.CreateNewId(projectId), "Nested.cs", SourceText.From("class Nested { }"), filePath: nestedExternalPath)
+            .AddAdditionalDocument(DocumentId.CreateNewId(projectId), "Notes.txt", SourceText.From("Notes"), filePath: nonMatchingExternalPath);
+
+        var externalMatcher = new Mock<IWorkspaceItemGlobMatcher>();
+        externalMatcher
+            .Setup(item => item.Matches(It.IsAny<string>()))
+            .Returns((string path) => string.Equals(Path.GetExtension(path), ".cs", StringComparison.Ordinal));
+
+        var nestedMatcher = new Mock<IWorkspaceItemGlobMatcher>();
+        nestedMatcher
+            .Setup(item => item.Matches(It.IsAny<string>()))
+            .Returns((string path) => path.StartsWith(nestedExternalRoot, StringComparison.Ordinal));
+
+        var externalGlob = new WorkspaceEvaluatedItemGlob(
+            externalMatcher.Object,
+            [projectDirectory, externalRoot, nestedExternalRoot]);
+        var nestedGlob = new WorkspaceEvaluatedItemGlob(nestedMatcher.Object, [nestedExternalRoot]);
+        SetupFile(solutionPath);
+        SetupFile(projectPath);
+        SetupFile(localPath);
+        SetupFile(externalPath);
+        SetupFile(nestedExternalPath);
+        SetupFile(nonMatchingExternalPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(projectDirectory);
+        SetupDirectory(externalRoot);
+        SetupDirectory(nestedExternalRoot);
+        _directory
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Returns([]);
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded(itemGlobs: [externalGlob, nestedGlob]));
+
+        using var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+
+        var membership = result.ExternalInputMemberships.Should().ContainSingle().Which;
+        membership.SearchRoot.Should().Be(externalRoot);
+        membership.Globs.Should().Contain(externalGlob);
+        membership.Globs.Should().Contain(nestedGlob);
+        membership.LoadedPaths.Should().Contain(_pathComparison.Object.CreateKey(externalPath));
+        membership.LoadedPaths.Should().Contain(_pathComparison.Object.CreateKey(nestedExternalPath));
+        membership.LoadedPaths.Should().NotContain(_pathComparison.Object.CreateKey(nonMatchingExternalPath));
+    }
+
+    [Fact]
+    public void GIVEN_OneGlobWithDisjointExternalRoots_WHEN_BuildingManifest_THEN_ShouldScopeLoadedPathsToEachRoot()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(workspaceRoot, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var firstExternalRoot = Path.GetFullPath("/FirstExternal");
+        var secondExternalRoot = Path.GetFullPath("/SecondExternal");
+        var firstExternalPath = Path.Combine(firstExternalRoot, "First.cs");
+        var secondExternalPath = Path.Combine(secondExternalRoot, "Second.cs");
+        var projectId = ProjectId.CreateNewId();
+        var solution = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(DocumentId.CreateNewId(projectId), "First.cs", SourceText.From("class First { }"), filePath: firstExternalPath)
+            .AddDocument(DocumentId.CreateNewId(projectId), "Second.cs", SourceText.From("class Second { }"), filePath: secondExternalPath);
+
+        var matcher = new Mock<IWorkspaceItemGlobMatcher>();
+        matcher.Setup(item => item.Matches(It.IsAny<string>())).Returns(true);
+        var glob = new WorkspaceEvaluatedItemGlob(
+            matcher.Object,
+            [firstExternalRoot, secondExternalRoot]);
+
+        SetupFile(solutionPath);
+        SetupFile(projectPath);
+        SetupFile(firstExternalPath);
+        SetupFile(secondExternalPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(projectDirectory);
+        SetupDirectory(firstExternalRoot);
+        SetupDirectory(secondExternalRoot);
+        _directory
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Returns([]);
+        _projectInputResolver
+            .Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded(itemGlobs: [glob]));
+
+        using var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+
+        result.ExternalInputMemberships.Should().HaveCount(2);
+        var firstMembership = result.ExternalInputMemberships.Single(item => item.SearchRoot == firstExternalRoot);
+        var secondMembership = result.ExternalInputMemberships.Single(item => item.SearchRoot == secondExternalRoot);
+        firstMembership.LoadedPaths.Should().BeEquivalentTo([_pathComparison.Object.CreateKey(firstExternalPath)]);
+        secondMembership.LoadedPaths.Should().BeEquivalentTo([_pathComparison.Object.CreateKey(secondExternalPath)]);
     }
 
     [Fact]

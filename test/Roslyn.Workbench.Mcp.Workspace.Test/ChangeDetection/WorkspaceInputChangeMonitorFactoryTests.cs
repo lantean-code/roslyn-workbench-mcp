@@ -11,12 +11,14 @@ public sealed class WorkspaceInputChangeMonitorFactoryTests
         var watcherFactory = new Mock<IFileSystemWatcherFactory>();
         var watcher = new Mock<IFileSystemWatcher>();
         var pathComparison = new Mock<IWorkspacePathComparison>();
+        var externalMonitorFactory = new Mock<IWorkspaceExternalInputChangeMonitorFactory>();
         var workspaceRoot = Path.Combine(Path.GetTempPath(), "Workspace");
         fileSystem.SetupGet(item => item.FileSystemWatcher).Returns(watcherFactory.Object);
         watcherFactory.Setup(item => item.New(workspaceRoot)).Returns(watcher.Object);
         var target = new WorkspaceInputChangeMonitorFactory(
             fileSystem.Object,
-            pathComparison.Object);
+            pathComparison.Object,
+            externalMonitorFactory.Object);
 
         using var result = target.Create(workspaceRoot);
 

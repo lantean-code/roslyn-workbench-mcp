@@ -18,7 +18,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-001 — New external wildcard documents remain invisible to an open Workspace
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceChangeDetector.cs:106-157,207-304`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputChangeMonitor.cs:27-41`
@@ -29,7 +29,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Workspace change detection/lifecycle, Host status/reload, plugin and Code Action consumers.  
 **Remediation direction:** Safely represent/poll evaluated wildcard membership roots or provide an explicit recertifying reload; add real-MSBuild external wildcard membership coverage.  
-**Origin/history:** Unit 1, 2026-08-16; current source and tests inspected, no executable reproduction; independently validated in Stage 4.
+**Origin/history:** Unit 1, 2026-08-16; current source and tests inspected, no executable reproduction; independently validated in Stage 4. Remediated on 2026-08-21 by preserving evaluated `Compile`, `AdditionalFiles` and `EditorConfigFiles` wildcard membership under the Workspace's design-time MSBuild properties, monitoring consolidated external roots, reconciling directory-level changes and polling when watchers are unavailable. Real-MSBuild, unit, integration and Windows/WSL EF Core stress coverage passed; the first independent review found three defects that were corrected, and the repeated fresh staged review found no findings.
 
 ### RWMCP3-002 — Target-framework selectors can match an unrelated output-path ancestor
 

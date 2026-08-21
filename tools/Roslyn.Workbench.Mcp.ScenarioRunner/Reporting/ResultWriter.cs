@@ -783,6 +783,15 @@ internal static class ResultWriter
                 .Append('/')
                 .AppendLine(first.WatcherStress.WritePasses.ToString(
                     CultureInfo.InvariantCulture))
+                .Append("External roots/globs/files: ")
+                .Append(first.WatcherStress.ExternalRootCount.ToString(
+                    CultureInfo.InvariantCulture))
+                .Append('/')
+                .Append(first.WatcherStress.EvaluatedExternalGlobCount.ToString(
+                    CultureInfo.InvariantCulture))
+                .Append('/')
+                .AppendLine(first.WatcherStress.LoadedExternalFileCount.ToString(
+                    CultureInfo.InvariantCulture))
                 .Append("Baseline/stressed reload: ")
                 .Append(first.WatcherStress.BaselineReloadMilliseconds.ToString(
                     "F2",

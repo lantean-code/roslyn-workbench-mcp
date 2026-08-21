@@ -38,6 +38,7 @@ internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
             ChangeMonitor = _changeMonitor,
             Directories = manifest.Directories,
             EvaluationFailures = manifest.EvaluationFailures,
+            ExternalInputMemberships = manifest.ExternalInputMemberships,
             Files = manifest.Files,
             IgnoredPaths = ignoredPathSet,
             PathPolicy = manifest.PathPolicy,

@@ -26,6 +26,7 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public const string DiagnosticCollectionPhase = "diagnostic-collection";
     public const string DocumentProjectionPhase = "document-projection";
     public const string ExternalChangeDetectionPhase = "external-change-detection";
+    public const string ExternalMembershipCheckPhase = "external-membership-check";
     public const string FolderSelectionPhase = "folder-selection";
     public const string HandlerExecutionPhase = "handler-execution";
     public const string ManifestConstructionPhase = "manifest-construction";
@@ -78,5 +79,11 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public void AtomicFileCommitRetry(int retryNumber, int delayMilliseconds)
     {
         WriteEvent(3, retryNumber, delayMilliseconds);
+    }
+
+    [Event(4, Level = EventLevel.Informational)]
+    public void WorkspaceInputMonitorConfigured(int externalRootCount, int evaluatedGlobCount, int externalWatcherCount)
+    {
+        WriteEvent(4, externalRootCount, evaluatedGlobCount, externalWatcherCount);
     }
 }

@@ -730,6 +730,9 @@ internal sealed class StateSequenceRunner
             ArtifactPath = definition.ArtifactPath,
             FileCount = definition.FileCount,
             WritePasses = definition.WritePasses,
+            ExternalRootCount = definition.ExternalWildcard?.RootCount ?? 0,
+            EvaluatedExternalGlobCount = GetEvaluatedExternalGlobCount(definition.ExternalWildcard),
+            LoadedExternalFileCount = GetLoadedExternalFileCount(definition.ExternalWildcard),
             BaselineReloadMilliseconds = baselineReloadMilliseconds,
             StressedReloadMilliseconds = reload.ElapsedMilliseconds,
             ReloadDeltaMilliseconds = reload.ElapsedMilliseconds - baselineReloadMilliseconds,
@@ -742,6 +745,26 @@ internal sealed class StateSequenceRunner
         };
 
         return (measurement, reload);
+    }
+
+    private static int GetEvaluatedExternalGlobCount(ExternalWildcardStressDefinition? definition)
+    {
+        if (definition is null)
+        {
+            return 0;
+        }
+
+        return checked(definition.RootCount * definition.GlobsPerRoot);
+    }
+
+    private static int GetLoadedExternalFileCount(ExternalWildcardStressDefinition? definition)
+    {
+        if (definition is null)
+        {
+            return 0;
+        }
+
+        return checked(definition.RootCount * definition.GlobsPerRoot * definition.FilesPerGlob);
     }
 
     private static void RunWatcherStress(

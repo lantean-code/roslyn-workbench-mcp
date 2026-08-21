@@ -521,6 +521,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var targetFrameworkMappings = new Dictionary<ProjectId, string>
+        {
+            [solution.ProjectIds.Single()] = "net10.0",
+        };
+        var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
         var requestedProperties = new WorkspaceMsBuildProperties
         {
             ArtifactsPath = "/requested-artifacts",
@@ -542,7 +547,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace",
             resolvedProperties,
             TestContext.Current.CancellationToken))
-            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
+            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(
+                loadedWorkspace.Object,
+                solution,
+                targetFrameworks,
+                []));
 
         using var inputManifest = new WorkspaceInputManifest();
         _changeDetector.Setup(item => item.BuildManifest(
@@ -583,6 +592,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 session.Workspace.Alias == "Alias"
                 && session.Workspace.WorkspaceRoot == "/workspace"
                 && session.MsBuildProperties == resolvedProperties
+                && session.ProjectTargetFrameworks == targetFrameworks
                 && session.CommittedSnapshotId == WorkspaceSnapshotTestFactory.CreateId(17)
                 && session.OperationGate is WorkspaceOperationGate),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
@@ -1477,6 +1487,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolutionWithProject(projectPath);
+        var targetFrameworkMappings = new Dictionary<ProjectId, string>
+        {
+            [solution.ProjectIds.Single()] = "net10.0",
+        };
+        var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
         var properties = new WorkspaceMsBuildProperties
         {
             ArtifactsPath = "/artifacts",
@@ -1499,7 +1514,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             workspaceRoot,
             properties,
             TestContext.Current.CancellationToken))
-            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(newWorkspace.Object, solution, []));
+            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(
+                newWorkspace.Object,
+                solution,
+                targetFrameworks,
+                []));
 
         using var manifest = new WorkspaceInputManifest();
         _changeDetector.Setup(item => item.BuildManifest(
@@ -1532,6 +1551,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             && replacement.OperationGate == gate.Object
             && replacement.Workspace.Alias == "Alias"
             && replacement.MsBuildProperties == properties
+            && replacement.ProjectTargetFrameworks == targetFrameworks
             && replacement.CommittedSnapshotId == WorkspaceSnapshotTestFactory.CreateId(17))), Times.Once);
 
         _instanceStatusPublisher.Verify(item => item.UpdateAsync(
@@ -1749,7 +1769,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         loadedWorkspace.SetupGet(item => item.CurrentSolution).Returns(solution);
         _workspaceLoadWorkflow.Setup(item => item.LoadAsync(path, It.IsAny<string>(), null, TestContext.Current.CancellationToken))
-            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
+            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(
+                loadedWorkspace.Object,
+                solution,
+                WorkspaceProjectTargetFrameworkMap.Empty,
+                []));
 
         _changeDetector
             .Setup(item => item.BuildManifest(solution, path, workspaceRoot, _inputCertification.Object))

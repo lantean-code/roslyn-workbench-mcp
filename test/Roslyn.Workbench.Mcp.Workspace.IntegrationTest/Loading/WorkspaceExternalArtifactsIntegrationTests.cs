@@ -83,7 +83,7 @@ public sealed class WorkspaceExternalArtifactsIntegrationTests
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
         var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer);
         var compatibilityInspector = new WorkspaceProjectCompatibilityInspector();
-        var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathNormalizer);
+        var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathComparison, pathNormalizer);
         var target = new WorkspaceLoadWorkflow(loader, rootResolver);
 
         var result = await target.LoadAsync(

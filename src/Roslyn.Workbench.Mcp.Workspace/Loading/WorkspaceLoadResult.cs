@@ -6,5 +6,7 @@ internal sealed class WorkspaceLoadResult
 
     public Solution? Solution { get; init; }
 
+    public WorkspaceProjectTargetFrameworkMap? ProjectTargetFrameworks { get; init; }
+
     public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
 }

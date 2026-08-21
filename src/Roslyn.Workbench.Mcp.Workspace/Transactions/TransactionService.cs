@@ -166,6 +166,7 @@ internal sealed class TransactionService : ITransactionService
         var resolver = _resolverFactory.Create(
             session.Transaction.CurrentSolution,
             session.Workspace,
+            session.ProjectTargetFrameworks,
             snapshot);
 
         var context = WorkspaceOperationContextFactory.Create(session);

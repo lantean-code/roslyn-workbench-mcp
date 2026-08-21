@@ -198,6 +198,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         var resolver = _resolverFactory.Create(
             session.CurrentSolution,
             session.Workspace,
+            session.ProjectTargetFrameworks,
             snapshot);
 
         return new WorkspaceExecutionContext(

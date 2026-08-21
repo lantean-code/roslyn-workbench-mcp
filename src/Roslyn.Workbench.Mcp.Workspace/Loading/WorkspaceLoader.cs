@@ -6,15 +6,18 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
     private readonly IMsBuildWorkspaceFactory _workspaceFactory;
     private readonly IWorkspaceProjectCompatibilityInspector _compatibilityInspector;
+    private readonly IWorkspacePathComparison _pathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
     public WorkspaceLoader(
         IMsBuildWorkspaceFactory workspaceFactory,
         IWorkspaceProjectCompatibilityInspector compatibilityInspector,
+        IWorkspacePathComparison pathComparison,
         IWorkspacePathNormalizer pathNormalizer)
     {
         _workspaceFactory = workspaceFactory;
         _compatibilityInspector = compatibilityInspector;
+        _pathComparison = pathComparison;
         _pathNormalizer = pathNormalizer;
     }
 
@@ -60,6 +63,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 
         var globalProperties = msBuildProperties?.ToGlobalProperties();
         var workspace = _workspaceFactory.Create(globalProperties);
+        var targetFrameworkCollector = new WorkspaceProjectTargetFrameworkCollector(_pathComparison);
         var diagnostics = new List<DiagnosticInfo>();
 
         workspace.RegisterWorkspaceFailedHandler(args =>
@@ -81,6 +85,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
             {
                 var project = await workspace.OpenProjectAsync(
                     path,
+                    progress: targetFrameworkCollector,
                     cancellationToken: cancellationToken);
 
                 solution = project.Solution;
@@ -89,13 +94,17 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
             {
                 solution = await workspace.OpenSolutionAsync(
                     path,
+                    progress: targetFrameworkCollector,
                     cancellationToken: cancellationToken);
             }
+
+            var projectTargetFrameworks = targetFrameworkCollector.CreateMap(solution);
 
             return new WorkspaceLoadResult
             {
                 Workspace = new LoadedWorkspace(workspace),
                 Solution = solution,
+                ProjectTargetFrameworks = projectTargetFrameworks,
                 Diagnostics = diagnostics,
             };
         }

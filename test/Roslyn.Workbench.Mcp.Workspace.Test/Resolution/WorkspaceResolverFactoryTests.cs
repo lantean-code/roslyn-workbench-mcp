@@ -35,15 +35,24 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             LoadedPath = "LoadedPath",
             WorkspaceRoot = "WorkspaceRoot",
         };
+        var targetFrameworkMappings = new Dictionary<ProjectId, string>
+        {
+            [project.Id] = "net10.0",
+        };
+        var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
 
         var result = _target.Create(
             document.Project.Solution,
             identity,
+            targetFrameworks,
             WorkspaceSnapshotTestFactory.CreatePrecondition(identity.WorkspaceId, identity.WorkspaceEpoch, transactionRevision: 3));
         var resolution = result.ResolveDocument(new DocumentSelector { DocumentId = document.Id.Id.ToString() });
+        var projectResolution = result.ResolveProject(new ProjectSelector { TargetFramework = "NET10.0" });
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().BeSameAs(document);
+        projectResolution.Status.Should().Be(SelectorResolveStatus.Resolved);
+        projectResolution.Value!.Id.Should().Be(project.Id);
     }
 
     public void Dispose()

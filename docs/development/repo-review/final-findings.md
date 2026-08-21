@@ -8,6 +8,22 @@ The repository has a coherent acyclic architecture, clear ownership of Host, Wor
 
 The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Both have since been remediated and independently reviewed. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
 
+## Remediation work items
+
+The outstanding findings are grouped below by shared production boundary and validation path. In remediation discussions, the **next item** means the first row whose status is `Incomplete`. Every finding retains its own identifier, validation evidence, remediation record and completion status even when implemented and independently reviewed as part of one grouped change. If investigation shows that a grouping does not converge cleanly, update this table before splitting the work.
+
+| Order | Findings | Work item | Status |
+|---:|---|---|---|
+| 1 | RWMCP3-002 | Correct target-framework project resolution | Complete |
+| 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Incomplete |
+| 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Incomplete |
+| 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Incomplete |
+| 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Incomplete |
+| 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Incomplete |
+| 7 | RWMCP3-014 | Reject undeclared request members at binding | Incomplete |
+| 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Incomplete |
+| 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Incomplete |
+
 ## P1 — High confidence
 
 ### RWMCP3-003 — Concurrent transaction starts can create two active transactions
@@ -44,9 +60,13 @@ Only the Workspace root is recursively watched. Existing external evaluated file
 
 ### RWMCP3-002 — Target-framework selectors can match an unrelated output-path ancestor
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Resolution/WorkspaceResolver.cs:297-320,499-520`
 
 After checking a project-name suffix, target-framework matching accepts any matching segment in the absolute output path. A parent directory named for another TFM can therefore select the wrong target-specific project for plugin and Code Action consumers. Use authoritative evaluated TFM identity or a validated output-layout position and add an ancestor-collision test.
+
+**Remediation:** Workspace loading now captures authoritative `ProjectLoadProgress.TargetFramework` metadata during Roslyn resolve operations, correlates it conservatively to project IDs using physical project paths and Roslyn's multi-target name discriminator, and retains the immutable mapping through open, reload, query, transaction and mutation-staging flows. Resolver selection no longer inspects output paths or guesses from project names; missing or contradictory metadata remains unmatched. Real-MSBuild integration tests cover direct project loading, full `.slnx` loading with interleaved single- and multi-target projects, and contradictory metadata, while unit coverage verifies ancestor collisions and lifecycle propagation. Workspace unit tests passed 1,113/1,113, Workspace integration tests passed 111/111, latest-all analyser builds were clean, and both fresh independent staged reviews found no defects.
 
 ### RWMCP3-005 — Add/delete commits do not preserve explicitly itemised project graphs
 

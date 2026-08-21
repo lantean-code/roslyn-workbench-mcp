@@ -540,6 +540,7 @@ public sealed class TransactionServiceTests : IDisposable
         _resolverFactory.Setup(item => item.Create(
             transaction.CurrentSolution,
             session.Workspace,
+            session.ProjectTargetFrameworks,
             snapshot))
             .Returns(_resolver.Object);
 
@@ -1248,6 +1249,7 @@ public sealed class TransactionServiceTests : IDisposable
         _resolverFactory.Setup(item => item.Create(
             transaction.CurrentSolution,
             session.Workspace,
+            session.ProjectTargetFrameworks,
             snapshot))
             .Returns(_resolver.Object);
 

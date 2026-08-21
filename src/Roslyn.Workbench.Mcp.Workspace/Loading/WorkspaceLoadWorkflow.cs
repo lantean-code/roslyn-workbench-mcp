@@ -42,7 +42,9 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                 cancellationToken);
         }
 
-        if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
+        if (loadedWorkspace.Solution is null
+            || loadedWorkspace.Workspace is null
+            || loadedWorkspace.ProjectTargetFrameworks is null)
         {
             loadedWorkspace.Workspace?.Dispose();
             return ValidatedWorkspaceLoadResult.Failed(
@@ -135,6 +137,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             return ValidatedWorkspaceLoadResult.Succeeded(
                 loadedWorkspace.Workspace,
                 solution,
+                loadedWorkspace.ProjectTargetFrameworks,
                 diagnostics);
         }
         catch

@@ -5,5 +5,6 @@ internal interface IWorkspaceResolverFactory
     IWorkspaceResolver Create(
         Solution solution,
         WorkspaceIdentity? workspaceIdentity,
+        WorkspaceProjectTargetFrameworkMap projectTargetFrameworks,
         SnapshotPrecondition? snapshot);
 }

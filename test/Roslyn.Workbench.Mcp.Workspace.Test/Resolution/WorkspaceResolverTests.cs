@@ -65,6 +65,7 @@ public sealed class WorkspaceResolverTests
             WorkspaceSnapshotTestFactory.CreatePrecondition(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
+            WorkspaceProjectTargetFrameworkMap.Empty,
             pathComparison.Object,
             workspacePathService);
 
@@ -103,6 +104,7 @@ public sealed class WorkspaceResolverTests
             WorkspaceSnapshotTestFactory.CreatePrecondition(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
+            WorkspaceProjectTargetFrameworkMap.Empty,
             pathComparison.Object,
             workspacePathService);
 
@@ -172,6 +174,7 @@ public sealed class WorkspaceResolverTests
         var targetWithoutIdentity = new WorkspaceResolver(
             workspace.CurrentSolution,
             snapshot: null,
+            WorkspaceProjectTargetFrameworkMap.Empty,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
@@ -214,6 +217,7 @@ public sealed class WorkspaceResolverTests
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
             snapshot: null,
+            WorkspaceProjectTargetFrameworkMap.Empty,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
@@ -430,7 +434,11 @@ public sealed class WorkspaceResolverTests
             firstDocument.Id,
             Path.Combine(GetWorkspaceRoot(), "Sample", "Document.cs"))).Should().BeTrue();
 
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var targetFrameworks = CreateTargetFrameworkMap((expectedProject, "net10.0"));
+        var target = CreateTarget(
+            workspace.CurrentSolution,
+            GetWorkspaceRoot(),
+            projectTargetFrameworks: targetFrameworks);
         var selector = new DocumentSelector
         {
             Path = "Sample/Document.cs",
@@ -542,11 +550,15 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_TargetFrameworkInProjectName_WHEN_ResolvingProject_THEN_ShouldReturnTargetSpecificProject()
+    public void GIVEN_AuthoritativeTargetFrameworkMapping_WHEN_ResolvingProject_THEN_ShouldReturnTargetSpecificProject()
     {
         using var workspace = CreateWorkspace("Sample (net8.0)", "Document.cs", "class C { }");
         var expectedProject = AddProject(workspace, "Sample (net10.0)");
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var targetFrameworks = CreateTargetFrameworkMap((expectedProject, "net10.0"));
+        var target = CreateTarget(
+            workspace.CurrentSolution,
+            GetWorkspaceRoot(),
+            projectTargetFrameworks: targetFrameworks);
 
         var result = target.ResolveProject(new ProjectSelector { TargetFramework = "NET10.0" });
 
@@ -555,17 +567,23 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_TargetFrameworkInOutputPath_WHEN_ResolvingProject_THEN_ShouldReturnTargetSpecificProject()
+    public void GIVEN_UnrelatedTargetFrameworkInOutputPath_WHEN_ResolvingProject_THEN_ShouldNotUsePathAncestor()
     {
         using var workspace = CreateWorkspace("OuterProject", "Document.cs", "class C { }");
-        var outputPath = Path.Combine(GetWorkspaceRoot(), "Project", "bin", "net10.0", "Project.dll");
-        var expectedProject = AddProject(workspace, "TargetProject", outputPath);
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var outputPath = Path.Combine(GetWorkspaceRoot(), "net8.0", "Project", "bin", "net10.0", "Project.dll");
+        var project = AddProject(workspace, "TargetProject", outputPath);
+        var targetFrameworks = CreateTargetFrameworkMap((project, "net10.0"));
+        var target = CreateTarget(
+            workspace.CurrentSolution,
+            GetWorkspaceRoot(),
+            projectTargetFrameworks: targetFrameworks);
 
-        var result = target.ResolveProject(new ProjectSelector { TargetFramework = "net10.0" });
+        var unrelatedAncestorResult = target.ResolveProject(new ProjectSelector { TargetFramework = "net8.0" });
+        var mappedFrameworkResult = target.ResolveProject(new ProjectSelector { TargetFramework = "net10.0" });
 
-        result.Status.Should().Be(SelectorResolveStatus.Resolved);
-        result.Value!.Id.Should().Be(expectedProject.Id);
+        unrelatedAncestorResult.Status.Should().Be(SelectorResolveStatus.NotFound);
+        mappedFrameworkResult.Status.Should().Be(SelectorResolveStatus.Resolved);
+        mappedFrameworkResult.Value!.Id.Should().Be(project.Id);
     }
 
     [Fact]
@@ -1301,7 +1319,8 @@ public sealed class WorkspaceResolverTests
         Solution solution,
         string workspaceRoot,
         int? transactionRevision = null,
-        StringComparison pathComparison = StringComparison.Ordinal)
+        StringComparison pathComparison = StringComparison.Ordinal,
+        WorkspaceProjectTargetFrameworkMap? projectTargetFrameworks = null)
     {
         var comparison = CreatePathComparison(pathComparison);
         var pathNormalizer = CreatePathNormalizer();
@@ -1312,8 +1331,18 @@ public sealed class WorkspaceResolverTests
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2,
                 transactionRevision: transactionRevision),
+            projectTargetFrameworks ?? WorkspaceProjectTargetFrameworkMap.Empty,
             comparison.Object,
             new WorkspacePathService(workspaceRoot, pathNormalizer.Object));
+    }
+
+    private static WorkspaceProjectTargetFrameworkMap CreateTargetFrameworkMap(params (Project Project, string TargetFramework)[] entries)
+    {
+        var targetFrameworksByProjectId = entries.ToDictionary(
+            static entry => entry.Project.Id,
+            static entry => entry.TargetFramework);
+
+        return new WorkspaceProjectTargetFrameworkMap(targetFrameworksByProjectId);
     }
 
     private static Mock<IWorkspacePathNormalizer> CreatePathNormalizer()

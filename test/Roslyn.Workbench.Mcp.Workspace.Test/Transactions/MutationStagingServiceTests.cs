@@ -9,6 +9,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
+    private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
     private readonly Mock<IWorkspaceMutationCandidateIdentityService> _candidateIdentityService;
@@ -21,12 +22,21 @@ public sealed class MutationStagingServiceTests : IDisposable
         _sessionStore = new Mock<IWorkspaceSessionStore>();
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
+        _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
         _candidateIdentityService = new Mock<IWorkspaceMutationCandidateIdentityService>();
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(WorkspaceSnapshotTestFactory.CreateId(3));
+
+        _resolverFactory
+            .Setup(item => item.Create(
+                It.IsAny<Solution>(),
+                It.IsAny<WorkspaceIdentity>(),
+                It.IsAny<WorkspaceProjectTargetFrameworkMap>(),
+                It.IsAny<SnapshotPrecondition>()))
+            .Returns(_resolver.Object);
 
         _candidateProcessor
             .Setup(item => item.ProcessAsync(
@@ -460,7 +470,11 @@ public sealed class MutationStagingServiceTests : IDisposable
             MaxRevisions = 3,
         };
 
-        var session = CreateSession(transaction);
+        var targetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty;
+        var session = CreateSession(transaction) with
+        {
+            ProjectTargetFrameworks = targetFrameworks,
+        };
         SetupOwner(session);
         var changes = new ChangeSummary();
         var handlerWarning = new WarningInfo { Code = "HandlerWarning", Message = "Message" };
@@ -502,6 +516,11 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        _resolverFactory.Verify(item => item.Create(
+            candidateSolution,
+            session.Workspace,
+            targetFrameworks,
+            It.Is<SnapshotPrecondition>(snapshot => snapshot.TransactionRevision == 1)), Times.Once);
         _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
             It.Is<WorkspaceSessionSnapshot>(replacement =>
                 replacement.CurrentSolution == candidateSolution

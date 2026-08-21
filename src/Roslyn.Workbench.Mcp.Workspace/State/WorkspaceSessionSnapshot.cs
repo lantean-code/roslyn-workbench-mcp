@@ -12,6 +12,8 @@ internal sealed record WorkspaceSessionSnapshot
 
     public required Solution CurrentSolution { get; init; }
 
+    public WorkspaceProjectTargetFrameworkMap ProjectTargetFrameworks { get; init; } = WorkspaceProjectTargetFrameworkMap.Empty;
+
     public WorkspaceMsBuildProperties? MsBuildProperties { get; init; }
 
     public WorkspaceTransaction? Transaction { get; init; }

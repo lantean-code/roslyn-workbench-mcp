@@ -70,6 +70,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             .ReturnsAsync(new WorkspaceLoadResult
             {
                 Solution = hasSolution ? _workspace.CurrentSolution : null,
+                ProjectTargetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty,
                 Workspace = hasSolution ? null : loadedWorkspace.Object,
                 Diagnostics = diagnostics,
             });
@@ -94,6 +95,28 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         }
 
         loadedWorkspace.Verify(item => item.Dispose(), expectedDisposals);
+    }
+
+    [Fact]
+    public async Task GIVEN_LoaderResultWithoutTargetFrameworkMap_WHEN_Loading_THEN_ShouldDisposeWorkspaceAndReturnFailure()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", null, TestContext.Current.CancellationToken))
+            .ReturnsAsync(new WorkspaceLoadResult
+            {
+                Solution = _workspace.CurrentSolution,
+                Workspace = loadedWorkspace.Object,
+            });
+
+        var result = await _target.LoadAsync(
+            "/workspace/Solution.sln",
+            "/workspace",
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.HasFailure.Should().BeTrue();
+        result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.LoadFailed);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -135,6 +158,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             {
                 Workspace = loadedWorkspace.Object,
                 Solution = solution,
+                ProjectTargetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty,
             });
 
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
@@ -167,6 +191,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             {
                 Workspace = loadedWorkspace.Object,
                 Solution = solution,
+                ProjectTargetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty,
             });
 
         _workspaceLoader.Setup(item => item.InspectCompatibility("/artifacts/Project.csproj", properties))
@@ -275,6 +300,11 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
+        var targetFrameworkMappings = new Dictionary<ProjectId, string>
+        {
+            [solution.ProjectIds.Single()] = "net10.0",
+        };
+        var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
         var diagnostics = new[] { new DiagnosticInfo { Message = "Message" } };
         _workspaceLoader.SetupSequence(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []))
@@ -285,6 +315,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             {
                 Workspace = loadedWorkspace.Object,
                 Solution = solution,
+                ProjectTargetFrameworks = targetFrameworks,
                 Diagnostics = diagnostics,
             });
 
@@ -298,6 +329,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         result.Failure.Should().BeNull();
         result.Workspace.Should().BeSameAs(loadedWorkspace.Object);
         result.Solution.Should().BeSameAs(solution);
+        result.ProjectTargetFrameworks.Should().BeSameAs(targetFrameworks);
         result.Diagnostics.Should().Equal(diagnostics);
         loadedWorkspace.Verify(item => item.Dispose(), Times.Never);
     }
@@ -427,6 +459,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             {
                 Workspace = loadedWorkspace.Object,
                 Solution = solution,
+                ProjectTargetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty,
             });
     }
 

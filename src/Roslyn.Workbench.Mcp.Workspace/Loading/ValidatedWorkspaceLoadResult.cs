@@ -7,11 +7,13 @@ internal sealed class ValidatedWorkspaceLoadResult
     private ValidatedWorkspaceLoadResult(
         ILoadedWorkspace? workspace,
         Solution? solution,
+        WorkspaceProjectTargetFrameworkMap? projectTargetFrameworks,
         ValidatedWorkspaceLoadFailure? failure,
         IReadOnlyList<DiagnosticInfo> diagnostics)
     {
         Workspace = workspace;
         Solution = solution;
+        ProjectTargetFrameworks = projectTargetFrameworks;
         Failure = failure;
         Diagnostics = diagnostics;
     }
@@ -22,10 +24,13 @@ internal sealed class ValidatedWorkspaceLoadResult
 
     public Solution? Solution { get; }
 
+    public WorkspaceProjectTargetFrameworkMap? ProjectTargetFrameworks { get; }
+
     public ILoadedWorkspace? Workspace { get; }
 
     [MemberNotNullWhen(true, nameof(Failure))]
     [MemberNotNullWhen(false, nameof(Solution))]
+    [MemberNotNullWhen(false, nameof(ProjectTargetFrameworks))]
     [MemberNotNullWhen(false, nameof(Workspace))]
     public bool HasFailure => Failure is not null;
 
@@ -36,6 +41,7 @@ internal sealed class ValidatedWorkspaceLoadResult
         return new ValidatedWorkspaceLoadResult(
             workspace: null,
             solution: null,
+            projectTargetFrameworks: null,
             failure,
             diagnostics ?? []);
     }
@@ -43,11 +49,13 @@ internal sealed class ValidatedWorkspaceLoadResult
     public static ValidatedWorkspaceLoadResult Succeeded(
         ILoadedWorkspace workspace,
         Solution solution,
+        WorkspaceProjectTargetFrameworkMap projectTargetFrameworks,
         IReadOnlyList<DiagnosticInfo> diagnostics)
     {
         return new ValidatedWorkspaceLoadResult(
             workspace,
             solution,
+            projectTargetFrameworks,
             failure: null,
             diagnostics);
     }

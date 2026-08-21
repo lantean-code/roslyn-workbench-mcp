@@ -42,7 +42,7 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
         var compatibilityInspector = new WorkspaceProjectCompatibilityInspector();
         var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer);
-        var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathNormalizer);
+        var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathComparison, pathNormalizer);
         var target = new WorkspaceLoadWorkflow(loader, rootResolver);
 
         var result = await target.LoadAsync(

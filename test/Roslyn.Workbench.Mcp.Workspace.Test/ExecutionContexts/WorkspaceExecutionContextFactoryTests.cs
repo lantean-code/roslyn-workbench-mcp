@@ -42,7 +42,11 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             .Returns(SnapshotMatchResult.Matched());
         _loadedWorkspace = new Mock<ILoadedWorkspace>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
-        _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<SnapshotPrecondition>()))
+        _resolverFactory.Setup(item => item.Create(
+            It.IsAny<Solution>(),
+            It.IsAny<WorkspaceIdentity>(),
+            It.IsAny<WorkspaceProjectTargetFrameworkMap>(),
+            It.IsAny<SnapshotPrecondition>()))
             .Returns(_resolver.Object);
         _pathServiceFactory.Setup(item => item.Create(It.IsAny<WorkspaceIdentity>()))
             .Returns(_workspacePathService.Object);
@@ -387,9 +391,16 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         var gate = new Mock<IWorkspaceOperationGate>();
         gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
-        var session = CreateSession(gate.Object);
+        var targetFrameworks = WorkspaceProjectTargetFrameworkMap.Empty;
+        var session = CreateSession(gate.Object) with
+        {
+            ProjectTargetFrameworks = targetFrameworks,
+        };
         SetupSelection(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(false);
+        var expectedSnapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            session.Transaction?.CurrentRevision);
 
         var result = _target.CreateQueryContext(workspace: null, CancellationToken.None);
 
@@ -401,6 +412,11 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Context.DefaultMaxResults.Should().Be(25);
         result.Context.WorkspacePathService.Should().BeSameAs(_workspacePathService.Object);
         result.Context.WorkspaceResolver.Should().BeSameAs(_resolver.Object);
+        _resolverFactory.Verify(item => item.Create(
+            session.CurrentSolution,
+            session.Workspace,
+            targetFrameworks,
+            expectedSnapshot), Times.Once);
     }
 
     [Fact]

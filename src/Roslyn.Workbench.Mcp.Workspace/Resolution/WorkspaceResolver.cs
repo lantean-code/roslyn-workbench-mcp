@@ -4,17 +4,20 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 {
     private readonly Solution _solution;
     private readonly SnapshotPrecondition? _snapshot;
+    private readonly WorkspaceProjectTargetFrameworkMap _projectTargetFrameworks;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
 
     public WorkspaceResolver(
         Solution solution,
         SnapshotPrecondition? snapshot,
+        WorkspaceProjectTargetFrameworkMap projectTargetFrameworks,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathService workspacePathService)
     {
         _solution = solution;
         _snapshot = snapshot;
+        _projectTargetFrameworks = projectTargetFrameworks;
         _workspacePathComparison = workspacePathComparison;
         _workspacePathService = workspacePathService;
     }
@@ -314,7 +317,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             pathMatches = PathsEqual(physicalProjectPath, normalizedProjectPath, normalizedSelectorPath);
         }
 
-        var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
+        var targetFrameworkMatches = MatchesTargetFramework(project.Id, selector.TargetFramework);
 
         return idMatches && nameMatches && pathMatches && targetFrameworkMatches;
     }
@@ -496,28 +499,14 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         return SelectorResolveResult.NotFound<T>();
     }
 
-    private static bool MatchesTargetFramework(Project project, string? targetFramework)
+    private bool MatchesTargetFramework(ProjectId projectId, string? targetFramework)
     {
         if (string.IsNullOrWhiteSpace(targetFramework))
         {
             return true;
         }
 
-        var targetFrameworkSuffix = $"({targetFramework})";
-        if (project.Name.EndsWith(targetFrameworkSuffix, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(project.OutputFilePath))
-        {
-            return false;
-        }
-
-        return project.OutputFilePath.Split(
-            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
-            StringSplitOptions.RemoveEmptyEntries)
-            .Contains(targetFramework, StringComparer.OrdinalIgnoreCase);
+        return _projectTargetFrameworks.Matches(projectId, targetFramework);
     }
 
     private static bool IsSymbolInProjectScope(ISymbol symbol, Project? project, Compilation compilation)

@@ -28,6 +28,60 @@ public sealed class WorkspaceResolverIntegrationTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_SingleTargetProject_WHEN_ResolvingTargetFramework_THEN_ShouldUseEvaluatedProjectFramework()
+    {
+        using var fixture = TestWorkspaceFixture.Create();
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
+        var resolver = contextLease.Context!.WorkspaceResolver;
+
+        var matching = resolver.ResolveProject(new ProjectSelector { TargetFramework = "NET10.0" });
+        var unavailable = resolver.ResolveProject(new ProjectSelector { TargetFramework = "net8.0" });
+
+        matching.Status.Should().Be(SelectorResolveStatus.Resolved);
+        matching.Value!.FilePath.Should().Be(fixture.ProjectPath);
+        unavailable.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_MultiTargetProject_WHEN_ResolvingTargetFramework_THEN_ShouldSelectMatchingRoslynProject()
+    {
+        using var fixture = WorkspaceAssetMaterializer.Materialize("MultiTargetLinked");
+        var solutionPath = Path.Combine(fixture.WorkspaceRoot, "Sample.slnx");
+        var options = new ComponentWorkspaceOptions
+        {
+            StateDirectory = fixture.StateRoot,
+        };
+        await using var target = ComponentWorkspace.Create(options);
+        await target.OpenAsync(solutionPath, TestContext.Current.CancellationToken);
+
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
+        var resolver = contextLease.Context!.WorkspaceResolver;
+
+        var net10 = resolver.ResolveProject(new ProjectSelector
+        {
+            Path = "MultiTarget/MultiTarget.csproj",
+            TargetFramework = "net10.0",
+        });
+
+        var netStandard = resolver.ResolveProject(new ProjectSelector
+        {
+            Path = "MultiTarget/MultiTarget.csproj",
+            TargetFramework = "netstandard2.0",
+        });
+
+        net10.Status.Should().Be(SelectorResolveStatus.Resolved);
+        netStandard.Status.Should().Be(SelectorResolveStatus.Resolved);
+        net10.Value!.Id.Should().NotBe(netStandard.Value!.Id);
+        net10.Value.Name.Should().EndWith("(net10.0)");
+        netStandard.Value.Name.Should().EndWith("(netstandard2.0)");
+    }
+
+    [Fact]
     public async Task GIVEN_AmbiguousProjectSelector_WHEN_ResolvingProject_THEN_ShouldReturnAmbiguous()
     {
         using var fixture = TestWorkspaceFixture.CreateAmbiguous();

@@ -154,6 +154,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         var candidateResolver = _resolverFactory.Create(
             candidate.CandidateSolution,
             session.Workspace,
+            session.ProjectTargetFrameworks,
             snapshot);
 
         var changes = await _diffBuilder.CreateChangeSummaryAsync(

@@ -114,7 +114,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 
         var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
     }
 
     [Theory]
@@ -208,7 +208,108 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 
         var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_TextAndDocumentMetadataChange_WHEN_Validating_THEN_ShouldRejectIt()
+    {
+        var currentSolution = CreateSolution();
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var candidateSolution = currentSolution
+            .WithDocumentText(document.Id, SourceText.From("class Updated { }"))
+            .WithDocumentFolders(document.Id, ["DifferentFolder"]);
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        AssertError(result, "UnsupportedChange", "Mutation proposals must not alter source document metadata.");
+    }
+
+    [Fact]
+    public void GIVEN_SameDirectoryFileRename_WHEN_Validating_THEN_ShouldAcceptIt()
+    {
+        var currentSolution = CreateSolution();
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var candidatePath = Path.Combine(Path.GetTempPath(), "Project", "RenamedDocument.cs");
+        var candidateSolution = currentSolution
+            .WithDocumentText(document.Id, SourceText.From("class RenamedDocument { }"))
+            .WithDocumentFilePath(document.Id, candidatePath)
+            .WithDocumentName(document.Id, "RenamedDocument.cs");
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("MissingPath", "Mutation proposals must use regular source documents for relocated files.")]
+    [InlineData("Script", "Mutation proposals must use regular source documents for relocated files.")]
+    [InlineData(
+        "DifferentDirectory",
+        "Mutation proposals may rename source files but must not move them between directories or alter their logical folders.")]
+    [InlineData(
+        "DifferentFolders",
+        "Mutation proposals may rename source files but must not move them between directories or alter their logical folders.")]
+    [InlineData(
+        "MismatchedName",
+        "Mutation proposals may rename source files but must not move them between directories or alter their logical folders.")]
+    public void GIVEN_InvalidFileRelocation_WHEN_Validating_THEN_ShouldRejectIt(string changeKind, string message)
+    {
+        var currentSolution = CreateSolution();
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var candidateDirectory = changeKind == "DifferentDirectory"
+            ? "DifferentProject"
+            : "Project";
+
+        var candidatePath = changeKind == "MissingPath"
+            ? null
+            : Path.Combine(
+                Path.GetTempPath(),
+                candidateDirectory,
+                "RenamedDocument.cs");
+
+        var candidateName = changeKind == "MismatchedName"
+            ? "DifferentName.cs"
+            : "RenamedDocument.cs";
+
+        var candidateSolution = currentSolution
+            .WithDocumentFilePath(document.Id, candidatePath)
+            .WithDocumentName(document.Id, candidateName);
+
+        if (changeKind == "Script")
+        {
+            candidateSolution = candidateSolution.WithDocumentSourceCodeKind(document.Id, SourceCodeKind.Script);
+        }
+
+        if (changeKind == "DifferentFolders")
+        {
+            candidateSolution = candidateSolution.WithDocumentFolders(document.Id, ["DifferentFolder"]);
+        }
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        AssertError(result, "UnsupportedChange", message);
+    }
+
+    [Fact]
+    public void GIVEN_CaseOnlyFileRenameOnCaseInsensitiveFileSystem_WHEN_Validating_THEN_ShouldRejectIt()
+    {
+        var currentSolution = CreateSolution();
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var currentPath = document.FilePath
+            ?? throw new InvalidOperationException("The current document path is unavailable.");
+
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
+
+        var candidateSolution = currentSolution
+            .WithDocumentFilePath(document.Id, currentPath.ToUpperInvariant())
+            .WithDocumentName(document.Id, document.Name.ToUpperInvariant());
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        AssertError(result, "UnsupportedChange", "Case-only source file renames are not supported on a case-insensitive filesystem.");
     }
 
     [Fact]
@@ -233,7 +334,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 
         var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
     }
 
     public void Dispose()
@@ -293,11 +394,14 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         };
     }
 
-    private static void AssertError(WorkspaceOperationError? result, string code, string message)
+    private static void AssertError(WorkspaceMutationCandidateValidationResult result, string code, string message)
     {
-        result.Should().NotBeNull();
-        result.Code.Should().Be(code);
-        result.Message.Should().Be(message);
+        result.IsValid.Should().BeFalse();
+        var error = result.Error
+            ?? throw new InvalidOperationException("The invalid result did not provide an error.");
+
+        error.Code.Should().Be(code);
+        error.Message.Should().Be(message);
     }
 
     private static (Solution Current, Solution Candidate) RemoveMetadataReference(Solution solution, ProjectId projectId, MetadataReference reference)

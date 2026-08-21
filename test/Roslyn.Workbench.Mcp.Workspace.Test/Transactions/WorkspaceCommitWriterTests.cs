@@ -388,6 +388,37 @@ public sealed class WorkspaceCommitWriterTests
     }
 
     [Fact]
+    public async Task GIVEN_CreateWithIntendedUnixFileMode_WHEN_Applying_THEN_ShouldWriteWithIntendedMode()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var contents = new byte[] { 1 };
+        var intendedMode = UnixFileMode.UserRead | UnixFileMode.UserExecute;
+        var entry = CreateEntry(WorkspaceFileOperation.Create, originalHash: null, Hash(contents)) with
+        {
+            IntendedUnixFileMode = intendedMode,
+        };
+
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(false);
+        _recoveryStore
+            .Setup(item => item.ReadArtifactAsync("commit", entry.GetRequiredStagedPath(), CancellationToken.None))
+            .ReturnsAsync(contents);
+
+        var result = await _target.ApplyAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeTrue();
+        _atomicWriter.Verify(item => item.WriteAllBytesAsync(
+            entry.TargetPath,
+            It.Is<ReadOnlyMemory<byte>>(value => value.ToArray().SequenceEqual(contents)),
+            AtomicFileAccess.Default,
+            intendedMode,
+            CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_DeleteMarkerAppearsAfterRevalidation_WHEN_Applying_THEN_ShouldRejectDelete()
     {
         var original = new byte[] { 1 };
@@ -475,6 +506,30 @@ public sealed class WorkspaceCommitWriterTests
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync([7]);
         _directory.Setup(item => item.EnumerateFileSystemEntries("/workspace/new")).Returns([entry.TargetPath]);
+
+        var result = await _target.RestoreAsync(CreateManifest(entry));
+
+        result.Should().Be(RecoveryState.RecoveryConflict);
+        _file.Verify(item => item.Delete(entry.TargetPath), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CreatedTargetPermissionsDrift_WHEN_Restoring_THEN_ShouldPreserveTargetAndReportConflict()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var intended = new byte[] { 8 };
+        var entry = CreateEntry(WorkspaceFileOperation.Create, originalHash: null, Hash(intended)) with
+        {
+            IntendedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserExecute,
+        };
+
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(intended);
+        ConfigureUnixFileMode(entry.TargetPath, UnixFileMode.UserRead);
 
         var result = await _target.RestoreAsync(CreateManifest(entry));
 
@@ -831,6 +886,9 @@ public sealed class WorkspaceCommitWriterTests
             OriginalHash = originalHash,
             IntendedHash = intendedHash,
             OriginalUnixFileMode = operation != WorkspaceFileOperation.Create && !OperatingSystem.IsWindows()
+                ? _originalUnixFileMode
+                : null,
+            IntendedUnixFileMode = operation == WorkspaceFileOperation.Replace && !OperatingSystem.IsWindows()
                 ? _originalUnixFileMode
                 : null,
             StagedPath = staged,

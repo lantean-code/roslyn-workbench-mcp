@@ -14,8 +14,12 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Braces must never be omitted.
 - Expression-bodied members are not permitted in tests.
 - Keep generic type declarations, generic method declarations, generic method invocations and generic type argument lists on one physical line regardless of length. Never place generic type arguments on separate lines.
+- Keep tuple type declarations on one physical line regardless of length. Never place tuple elements on separate lines.
 - Insert a blank line after any statement that spans multiple lines before beginning the next statement.
 - Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
+- Do not perform asynchronous or otherwise complex work directly inside a conditional expression. Assign the result to a clearly named local before evaluating the condition. Simple predicate calls and conventional `Try*` calls may remain in conditions when the complete expression is immediately understandable.
+- Keep methods focused on one clearly described operation. When a method contains several logical stages, substantial branching, or a long sequence that is difficult to verify as a whole, extract descriptively named helpers for the distinct stages.
+- Name private helpers for their specific responsibility. Do not reuse a broader public method name when the private helper performs a narrower operation and the shared name would make call sites or stack traces ambiguous.
 - Do not construct meaningful objects inline inside another constructor, factory, wrapper, mock return, or complex return expression. Assign each constructed context, lease, scope, store, options object, identity component, expected result, or other meaningful value to its own clearly named local before assembling or returning the completed value.
 
 ## Naming

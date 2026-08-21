@@ -143,7 +143,89 @@ public sealed class RenameSymbolToolTests
         result.Data.Summary.Should().Be("Rename 'ExistingName' to 'UpdatedName'.");
 
         var renamedDocument = result.Data.CandidateSolution.GetDocument(document.Document.Id);
+        var documentDirectory = Path.GetDirectoryName(document.Document.FilePath)
+            ?? throw new InvalidOperationException("The source document does not have a parent directory.");
+
+        var expectedPath = Path.Combine(documentDirectory, "UpdatedName.cs");
         renamedDocument!.Name.Should().Be("UpdatedName.cs");
+        renamedDocument.FilePath.Should().Be(expectedPath);
+    }
+
+    [Fact]
+    public async Task GIVEN_FileRenameChangesReferenceDocumentText_WHEN_CallingExecuteAsync_THEN_ShouldRetainReferenceDocumentPath()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "ExistingName.cs",
+                        Source = "public sealed class ExistingName { }",
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Consumer.cs",
+                        Source = "public sealed class Consumer { public ExistingName Value { get; } = new(); }",
+                    },
+                ],
+            },
+        ]);
+
+        var declarationDocument = solution.GetDocument("ExistingName.cs");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            declarationDocument,
+            "ExistingName",
+            CancellationToken.None);
+
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new RenameSymbolRequest
+        {
+            ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
+            Symbol = new SymbolSelector(),
+            NewName = "UpdatedName",
+            RenameFile = true,
+        };
+
+        contextMocks.MutationContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
+                request.Symbol,
+                request.ExpectedSnapshot,
+                contextMocks.MutationContext.Object,
+                CancellationToken.None))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
+
+        var target = new RenameSymbolTool();
+        var result = await target.ExecuteAsync(
+            request,
+            contextMocks.MutationContext.Object,
+            CancellationToken.None);
+
+        var candidateSolution = result.Data?.CandidateSolution
+            ?? throw new InvalidOperationException("The candidate solution was not returned.");
+
+        var declaration = candidateSolution.GetDocument(declarationDocument.Id)
+            ?? throw new InvalidOperationException("The renamed declaration document was not found.");
+
+        var consumerDocument = solution.GetDocument("Consumer.cs");
+        var consumer = candidateSolution.GetDocument(consumerDocument.Id)
+            ?? throw new InvalidOperationException("The consumer document was not found.");
+
+        var consumerText = await consumer.GetTextAsync(CancellationToken.None);
+        var declarationDirectory = Path.GetDirectoryName(declarationDocument.FilePath)
+            ?? throw new InvalidOperationException("The declaration document does not have a parent directory.");
+
+        var expectedDeclarationPath = Path.Combine(declarationDirectory, "UpdatedName.cs");
+        declaration.FilePath.Should().Be(expectedDeclarationPath);
+        consumer.FilePath.Should().Be(consumerDocument.FilePath);
+        consumerText.ToString().Should().Contain("UpdatedName Value");
     }
 
     [Fact]

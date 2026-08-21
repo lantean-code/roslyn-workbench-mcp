@@ -5,17 +5,20 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
     private readonly IAddedDocumentProjectContextPropagator _addedDocumentProjectContextPropagator;
     private readonly IWorkspaceMutationCandidateValidator _candidateValidator;
     private readonly ILinkedDocumentChangeMerger _linkedDocumentChangeMerger;
+    private readonly IRelocatedDocumentProjectContextPropagator _relocatedDocumentProjectContextPropagator;
     private readonly IRemovedDocumentProjectContextPropagator _removedDocumentProjectContextPropagator;
 
     public WorkspaceMutationCandidateProcessor(
         IAddedDocumentProjectContextPropagator addedDocumentProjectContextPropagator,
         IWorkspaceMutationCandidateValidator candidateValidator,
         ILinkedDocumentChangeMerger linkedDocumentChangeMerger,
+        IRelocatedDocumentProjectContextPropagator relocatedDocumentProjectContextPropagator,
         IRemovedDocumentProjectContextPropagator removedDocumentProjectContextPropagator)
     {
         _addedDocumentProjectContextPropagator = addedDocumentProjectContextPropagator;
         _candidateValidator = candidateValidator;
         _linkedDocumentChangeMerger = linkedDocumentChangeMerger;
+        _relocatedDocumentProjectContextPropagator = relocatedDocumentProjectContextPropagator;
         _removedDocumentProjectContextPropagator = removedDocumentProjectContextPropagator;
     }
 
@@ -25,14 +28,14 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
         string workspaceRoot,
         CancellationToken cancellationToken)
     {
-        var validationError = _candidateValidator.Validate(
+        var validation = _candidateValidator.Validate(
             currentSolution,
             candidateSolution,
             workspaceRoot);
 
-        if (validationError is not null)
+        if (!validation.IsValid)
         {
-            return WorkspaceMutationCandidateProcessingResult.Failed(validationError);
+            return WorkspaceMutationCandidateProcessingResult.Failed(validation.Error);
         }
 
         var propagatedSolution = await _addedDocumentProjectContextPropagator.PropagateAsync(
@@ -41,6 +44,11 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
             cancellationToken);
 
         propagatedSolution = _removedDocumentProjectContextPropagator.Propagate(
+            currentSolution,
+            propagatedSolution,
+            cancellationToken);
+
+        propagatedSolution = _relocatedDocumentProjectContextPropagator.Propagate(
             currentSolution,
             propagatedSolution,
             cancellationToken);
@@ -55,14 +63,14 @@ internal sealed class WorkspaceMutationCandidateProcessor : IWorkspaceMutationCa
             return WorkspaceMutationCandidateProcessingResult.Failed(mergeResult.Error);
         }
 
-        validationError = _candidateValidator.Validate(
+        validation = _candidateValidator.Validate(
             currentSolution,
             mergeResult.Solution,
             workspaceRoot);
 
-        if (validationError is not null)
+        if (!validation.IsValid)
         {
-            return WorkspaceMutationCandidateProcessingResult.Failed(validationError);
+            return WorkspaceMutationCandidateProcessingResult.Failed(validation.Error);
         }
 
         return WorkspaceMutationCandidateProcessingResult.Succeeded(mergeResult.Solution);

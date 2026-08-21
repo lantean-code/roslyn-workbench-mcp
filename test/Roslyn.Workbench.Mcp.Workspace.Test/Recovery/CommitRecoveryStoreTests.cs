@@ -689,7 +689,10 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("replaceMarker")]
     [InlineData("replaceModeInvalid")]
     [InlineData("createMode")]
+    [InlineData("createIntendedModeInvalid")]
+    [InlineData("replaceIntendedModeInvalid")]
     [InlineData("deleteModeInvalid")]
+    [InlineData("deleteIntendedMode")]
     [InlineData("deleteOriginalExists")]
     [InlineData("deleteOriginalHash")]
     [InlineData("deleteIntendedHash")]
@@ -1070,7 +1073,10 @@ public sealed class CommitRecoveryStoreTests
             "replaceMarker" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/File.cs.CommitId.delete" }], },
             "replaceModeInvalid" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = (UnixFileMode)(1 << 20) }], },
             "createMode" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { OriginalUnixFileMode = UnixFileMode.UserRead }], },
+            "createIntendedModeInvalid" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { IntendedUnixFileMode = (UnixFileMode)(1 << 20) }], },
+            "replaceIntendedModeInvalid" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { IntendedUnixFileMode = (UnixFileMode)(1 << 20) }], },
             "deleteModeInvalid" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalUnixFileMode = (UnixFileMode)(1 << 20) }], },
+            "deleteIntendedMode" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { IntendedUnixFileMode = UnixFileMode.UserRead }], },
             "deleteOriginalExists" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalExists = false }], },
             "deleteOriginalHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalHash = null }], },
             "deleteIntendedHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { IntendedHash = new string('B', 64) }], },
@@ -1163,6 +1169,9 @@ public sealed class CommitRecoveryStoreTests
             BackupPath = "backup/File.bin",
             StagedPath = "staged/File.bin",
             OriginalUnixFileMode = OperatingSystem.IsWindows()
+                ? null
+                : UnixFileMode.UserRead | UnixFileMode.UserWrite,
+            IntendedUnixFileMode = OperatingSystem.IsWindows()
                 ? null
                 : UnixFileMode.UserRead | UnixFileMode.UserWrite,
         };

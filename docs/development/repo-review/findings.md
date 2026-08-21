@@ -33,7 +33,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-002 — Target-framework selectors can match an unrelated output-path ancestor
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Resolution/WorkspaceResolver.cs:297-320,499-520`
@@ -79,7 +79,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-005 — Add/delete commits do not preserve explicitly itemised project graphs
 
-**Status:** Validated  
+**Status:** Complete — intentional product boundary confirmed and documented on 2026-08-21
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceMutationCandidateValidator.cs:93-115`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitPlanner.cs:117-147`
@@ -90,7 +90,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Workspace graph/commit, Plugins, CodeActions and lifecycle.  
 **Remediation direction:** Conservatively reject add/delete unless evaluation proves post-reload inclusion/removal correctness, or transactionally persist project items; add explicit-item reload coverage.  
-**Origin/history:** Unit 2, 2026-08-16; traced across all mutation adapters and current fixtures; independently validated in Stage 4.
+**Origin/history:** Unit 2, 2026-08-16; traced across all mutation adapters and current fixtures; independently validated in Stage 4. Disposition confirmed on 2026-08-21: source mutations intentionally do not edit project files, so callers own explicit membership, exclusions and linked-item declarations. The boundary is now explicit in agent and transaction guidance, and the grouped final independent review found no defects.
 
 ### RWMCP3-006 — Malformed nonblank recovery paths can crash Workspace opening
 
@@ -154,7 +154,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-010 — `renameFile=true` cannot complete a durable same-document path transition
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Refactorings/RenameSymbolTool.cs:30-48`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceMutationCandidateValidator.cs:61-83`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitPlanner.cs:99-109,152-209`
@@ -165,7 +165,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Plugins.Core rename, Host/plugin mutation adaptation and Workspace commit/reload.  
 **Remediation direction:** Represent and validate a durable move/delete-plus-create, or reject file rename until supported; cover complete stage/commit/reload including explicit compile items.  
-**Origin/history:** Unit 4, 2026-08-16; complete static cross-boundary trace, executable mutation validation pending.
+**Origin/history:** Unit 4, 2026-08-16; complete static cross-boundary trace. Remediated on 2026-08-21 with validated same-directory path relocation, sibling target-framework propagation, durable delete-plus-create planning, separate original/intended Unix permission state and conflict-preserving recovery. Workspace unit tests passed 1,138/1,138, Plugins.Core unit tests passed 317/317, Workspace integration tests passed 111/111 and Plugins.Core integration tests passed 12/12; affected latest-all analyser builds were clean and the final fresh independent review found no defects.
 
 ### RWMCP3-011 — Format range silently ignores its document binding
 

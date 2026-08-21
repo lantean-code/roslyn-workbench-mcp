@@ -101,11 +101,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             var baselineDocument = GetRequiredDocument(baselineSolution, documentId);
             var currentDocument = GetRequiredDocument(currentSolution, documentId);
 
-            var validation = await AddWriteAsync(
+            var validation = await AddChangedDocumentAsync(
                 context,
-                currentDocument,
                 baselineDocument,
-                WorkspaceFileOperation.Replace,
+                currentDocument,
                 cancellationToken);
 
             if (!validation.IsValid)
@@ -125,6 +124,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 document,
                 baselineDocument: null,
                 WorkspaceFileOperation.Create,
+                intendedUnixFileMode: null,
                 cancellationToken);
 
             if (!validation.IsValid)
@@ -149,11 +149,64 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         return WorkspaceCommitValidationResult.Valid();
     }
 
+    private async ValueTask<WorkspaceCommitValidationResult> AddChangedDocumentAsync(
+        WorkspaceCommitPlanningContext context,
+        Document baselineDocument,
+        Document currentDocument,
+        CancellationToken cancellationToken)
+    {
+        if (string.Equals(
+            baselineDocument.FilePath,
+            currentDocument.FilePath,
+            StringComparison.Ordinal))
+        {
+            return await AddWriteAsync(
+                context,
+                currentDocument,
+                baselineDocument,
+                WorkspaceFileOperation.Replace,
+                intendedUnixFileMode: null,
+                cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(baselineDocument.FilePath)
+            || string.IsNullOrWhiteSpace(currentDocument.FilePath))
+        {
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The changed document '{currentDocument.Name}' does not have a stable file path.");
+        }
+
+        if (_pathComparison.CreateKey(baselineDocument.FilePath)
+            == _pathComparison.CreateKey(currentDocument.FilePath))
+        {
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The source file rename from '{baselineDocument.FilePath}' to '{currentDocument.FilePath}' differs only by case on a case-insensitive filesystem.");
+        }
+
+        var deletion = await AddDeleteAsync(context, baselineDocument, cancellationToken);
+        if (!deletion.IsValid)
+        {
+            return deletion;
+        }
+
+        var baselinePathKey = _pathComparison.CreateKey(baselineDocument.FilePath);
+        var intendedUnixFileMode = context.EntriesByTarget[baselinePathKey].OriginalUnixFileMode;
+
+        return await AddWriteAsync(
+            context,
+            currentDocument,
+            baselineDocument: null,
+            WorkspaceFileOperation.Create,
+            intendedUnixFileMode,
+            cancellationToken);
+    }
+
     private async ValueTask<WorkspaceCommitValidationResult> AddWriteAsync(
         WorkspaceCommitPlanningContext context,
         Document document,
         Document? baselineDocument,
         WorkspaceFileOperation operation,
+        UnixFileMode? intendedUnixFileMode,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -212,6 +265,8 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             ? _fileSystem.File.GetUnixFileMode(path)
             : null;
 
+        intendedUnixFileMode ??= originalUnixFileMode;
+
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
         var stagedPath = $"staged/{artifactIndex}.bin";
@@ -231,6 +286,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             OriginalHash = originalContents is null ? null : Hash(originalContents),
             IntendedHash = intendedHash,
             OriginalUnixFileMode = originalUnixFileMode,
+            IntendedUnixFileMode = intendedUnixFileMode,
             BackupPath = backupPath,
             StagedPath = stagedPath,
         };

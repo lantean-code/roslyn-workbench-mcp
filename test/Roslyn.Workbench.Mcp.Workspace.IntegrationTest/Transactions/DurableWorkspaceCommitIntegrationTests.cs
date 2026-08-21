@@ -577,6 +577,9 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     OriginalUnixFileMode = OperatingSystem.IsWindows()
                         ? null
                         : _replaceUnixFileMode,
+                    IntendedUnixFileMode = OperatingSystem.IsWindows()
+                        ? null
+                        : _replaceUnixFileMode,
                     BackupPath = "backup/replace.bin",
                     StagedPath = "staged/replace.bin",
                 },

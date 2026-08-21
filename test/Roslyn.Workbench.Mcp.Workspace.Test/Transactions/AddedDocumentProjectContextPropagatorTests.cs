@@ -23,7 +23,11 @@ public sealed class AddedDocumentProjectContextPropagatorTests : IDisposable
         var firstProject = AddProject("Project (net10.0)", projectPath);
         var secondProject = AddProject("Project (net9.0)", projectPath);
         var projectWithoutPath = AddProject("Project without path", filePath: null);
-        var currentSolution = _workspace.CurrentSolution;
+        var currentSolution = _workspace.CurrentSolution.AddDocument(
+            DocumentId.CreateNewId(secondProject.Id),
+            "Pathless.cs",
+            SourceText.From("internal sealed class Pathless;"));
+
         var addedDocumentId = DocumentId.CreateNewId(firstProject.Id);
         var candidateSolution = currentSolution.AddDocument(
             addedDocumentId,

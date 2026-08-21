@@ -48,6 +48,7 @@
 - Braces on a new line and never omitted.
 - Use file-scoped namespaces by default. Use block-scoped namespaces only when the file structure genuinely requires them.
 - Keep generic type declarations, generic method declarations, generic method invocations and generic type argument lists on one physical line regardless of length. Never place generic type arguments on separate lines.
+- Keep tuple type declarations on one physical line regardless of length. Never place tuple elements on separate lines.
 - Use blank lines where appropriate to improve readability.
 - Insert a blank line after any statement that spans multiple lines before beginning the next statement.
 - Prefer expression-bodied syntax for simple get-only properties. Methods and all other members must use block bodies.
@@ -86,9 +87,12 @@
 - Place `CancellationToken` last in every production method signature, including signatures where trailing optional parameters would be exempt from `CA1068`. Prefer required nullable parameters at internal boundaries when optional syntax would force the token out of the final position; do not add forwarding overloads solely to preserve optional arguments.
 - Do not use `ConfigureAwait(false)`. Production code in this repository executes within the console-hosted application, which does not install a synchronization context; await tasks directly.
 - Assign an awaited result to a clearly named local before querying it or accessing members. Avoid constructs such as `(await operation).Any(...)`; separate the asynchronous operation from the subsequent synchronous processing.
+- Do not perform asynchronous or otherwise complex work directly inside a conditional expression. Assign the result to a clearly named local before evaluating the condition. Simple predicate calls and conventional `Try*` calls may remain in conditions when the complete expression is immediately understandable.
 - Prefer LINQ for simple operations; use loops for complex logic or hot paths where clarity or allocation control matters.
 - Do not use LINQ to compress multi-stage logic at the expense of readability. Use named intermediate stages and explicit loops when filtering, ordering, limiting, projection, or allocation control combine; keep LINQ for short operations that remain easier to verify than the equivalent loop.
 - Keep conditional and null-coalescing expressions simple. Do not perform non-trivial work or invoke methods on both branches or operands; use named intermediate values or ordinary branching when the alternatives require separate operations or nested construction.
+- Keep methods focused on one clearly described operation. When a method contains several logical stages, substantial branching, or a long sequence that is difficult to verify as a whole, extract descriptively named helpers for the distinct stages.
+- Name private helpers for their specific responsibility. Do not reuse a broader public method name when the private helper performs a narrower operation and the shared name would make call sites or stack traces ambiguous.
 - Do not construct meaningful objects inline inside another constructor, factory, wrapper, or complex return expression. Assign each constructed context, lease, scope, store, options object, identity component, or other meaningful value to its own clearly named local before assembling and returning the completed result.
 - Do not use exceptions for flow control. Expected validation failures, unavailable capabilities, contention, malformed external input, and other anticipated outcomes must be represented by explicit results, diagnostics, status values, `Try*` patterns, or ordinary branching.
 - Do not throw an exception locally only for a caller or enclosing `catch` to translate it into an expected result. Accumulating validation should return all applicable diagnostics instead of throwing on the first finding.

@@ -526,7 +526,8 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
         return entry.Operation switch
         {
-            WorkspaceFileOperation.Create => HasValidUnixFileMode(entry, requiresMode: false)
+            WorkspaceFileOperation.Create => HasValidUnixFileMode(entry.OriginalUnixFileMode, requiresMode: false, permitsMode: false)
+                && HasValidUnixFileMode(entry.IntendedUnixFileMode, requiresMode: false, permitsMode: !OperatingSystem.IsWindows())
                 && !entry.OriginalExists
                 && entry.OriginalHash is null
                 && IsValidHash(entry.IntendedHash)
@@ -534,8 +535,13 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
                 && entry.DeleteMarkerPath is null,
             WorkspaceFileOperation.Replace => HasValidUnixFileMode(
-                    entry,
-                    requiresMode: !OperatingSystem.IsWindows())
+                    entry.OriginalUnixFileMode,
+                    requiresMode: !OperatingSystem.IsWindows(),
+                    permitsMode: !OperatingSystem.IsWindows())
+                && HasValidUnixFileMode(
+                    entry.IntendedUnixFileMode,
+                    requiresMode: !OperatingSystem.IsWindows(),
+                    permitsMode: !OperatingSystem.IsWindows())
                 && entry.OriginalExists
                 && IsValidHash(entry.OriginalHash)
                 && IsValidHash(entry.IntendedHash)
@@ -543,8 +549,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
                 && entry.DeleteMarkerPath is null,
             WorkspaceFileOperation.Delete => HasValidUnixFileMode(
-                    entry,
-                    requiresMode: !OperatingSystem.IsWindows())
+                    entry.OriginalUnixFileMode,
+                    requiresMode: !OperatingSystem.IsWindows(),
+                    permitsMode: !OperatingSystem.IsWindows())
+                && HasValidUnixFileMode(entry.IntendedUnixFileMode, requiresMode: false, permitsMode: false)
                 && entry.OriginalExists
                 && IsValidHash(entry.OriginalHash)
                 && entry.IntendedHash is null
@@ -555,14 +563,14 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         };
     }
 
-    private static bool HasValidUnixFileMode(WorkspaceCommitEntry entry, bool requiresMode)
+    private static bool HasValidUnixFileMode(UnixFileMode? unixFileMode, bool requiresMode, bool permitsMode)
     {
-        if (!requiresMode)
+        if (unixFileMode is not { } mode)
         {
-            return entry.OriginalUnixFileMode is null;
+            return !requiresMode;
         }
 
-        if (entry.OriginalUnixFileMode is not { } mode)
+        if (!permitsMode)
         {
             return false;
         }

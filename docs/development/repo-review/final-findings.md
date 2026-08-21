@@ -15,7 +15,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | Order | Findings | Work item | Status |
 |---:|---|---|---|
 | 1 | RWMCP3-002 | Correct target-framework project resolution | Complete |
-| 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Incomplete |
+| 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Complete |
 | 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Incomplete |
 | 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Incomplete |
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Incomplete |
@@ -70,9 +70,13 @@ After checking a project-name suffix, target-framework matching accepts any matc
 
 ### RWMCP3-005 — Add/delete commits do not preserve explicitly itemised project graphs
 
+**Status:** Complete — intentional product boundary confirmed and documented on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceMutationCandidateValidator.cs:86-123`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitPlanner.cs:92-149`
 
 Staging permits source-document additions and removals, but commit emits only file creates/deletes and neither changes project items nor proves post-reload membership. With explicit compile items, a new file disappears on reload or a deleted item remains broken. Persist project membership transactionally or reject add/delete unless reevaluation proves equivalence; add explicit-item stage/commit/reload tests.
+
+**Disposition:** The finding was rejected as a product defect. Source mutations intentionally operate on source files and do not edit project files; callers remain responsible for explicit project membership, exclusions and linked-item declarations. Agent and transaction documentation now states that boundary directly. The grouped implementation and disposition received repeated independent reviews, with the final review reporting no findings.
 
 ### RWMCP3-006 — Malformed nonblank recovery paths can crash Workspace opening
 
@@ -94,9 +98,13 @@ The schema permits `afterLines = int.MaxValue`; adding it to the selected end li
 
 ### RWMCP3-010 — `renameFile=true` cannot complete a durable same-document path transition
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Refactorings/RenameSymbolTool.cs:30-48`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceMutationCandidateValidator.cs:61-83`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitPlanner.cs:99-109,152-209`
 
 Roslyn produces a same-document-ID text/path change. Staging accepts it because text also changed, but planning treats the new path as an existing replacement and creates no deletion or move for the old path. Model a validated durable move/delete-plus-create or reject file rename until supported; cover full stage/commit/reload, including explicit items.
+
+**Remediation:** File rename now converts Roslyn's logical document rename into a validated same-directory path transition, propagates the new path and name across sibling target-framework contexts while retaining their logical folders, and plans the durable change as deletion of the original plus creation of the destination. Recovery entries distinguish original and intended Unix modes so apply, validation and rollback preserve permissions and external permission drift becomes a recovery conflict. Unit and integration coverage exercises platform-neutral rename paths, sibling contexts, commit planning, manifest validation, recovery and complete commit/reopen behaviour. Workspace unit tests passed 1,138/1,138, Plugins.Core unit tests passed 317/317, Workspace integration tests passed 111/111 and Plugins.Core integration tests passed 12/12; affected latest-all analyser builds were clean and the final fresh independent review found no defects.
 
 ### RWMCP3-011 — Format range silently ignores its document binding
 

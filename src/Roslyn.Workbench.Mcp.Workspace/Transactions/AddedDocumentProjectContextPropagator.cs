@@ -54,14 +54,20 @@ internal sealed class AddedDocumentProjectContextPropagator : IAddedDocumentProj
 
         var propagatedSolution = solution;
         var siblingProjectIds = solution.Projects
-            .Where(project => IsSiblingProject(sourceProject, project))
+            .Where(project => ProjectContextMatcher.AreSiblingContexts(
+                sourceProject,
+                project,
+                _pathComparison))
             .Select(static project => project.Id)
             .ToArray();
 
         foreach (var siblingProjectId in siblingProjectIds)
         {
             var siblingProject = GetRequiredProject(propagatedSolution, siblingProjectId);
-            if (ContainsDocument(siblingProject, addedDocument.FilePath))
+            if (ProjectContextMatcher.ContainsDocument(
+                siblingProject,
+                addedDocument.FilePath,
+                _pathComparison))
             {
                 continue;
             }
@@ -76,32 +82,6 @@ internal sealed class AddedDocumentProjectContextPropagator : IAddedDocumentProj
         }
 
         return propagatedSolution;
-    }
-
-    private bool IsSiblingProject(Project sourceProject, Project candidateProject)
-    {
-        var sourceProjectPath = sourceProject.FilePath;
-        if (candidateProject.Id == sourceProject.Id
-            || string.IsNullOrWhiteSpace(sourceProjectPath)
-            || string.IsNullOrWhiteSpace(candidateProject.FilePath))
-        {
-            return false;
-        }
-
-        var comparison = _pathComparison.GetComparison(sourceProjectPath);
-        return string.Equals(
-            sourceProjectPath,
-            candidateProject.FilePath,
-            comparison);
-    }
-
-    private bool ContainsDocument(Project project, string documentPath)
-    {
-        var comparison = _pathComparison.GetComparison(documentPath);
-        return project.Documents.Any(document => string.Equals(
-            document.FilePath,
-            documentPath,
-            comparison));
     }
 
     private static Project GetRequiredProject(Solution solution, ProjectId projectId)

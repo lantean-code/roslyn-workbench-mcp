@@ -50,8 +50,14 @@ internal sealed class RemovedDocumentProjectContextPropagator : IRemovedDocument
 
         var propagatedSolution = solution;
         var siblingDocumentIds = solution.Projects
-            .Where(project => IsSiblingProject(sourceProject, project))
-            .SelectMany(project => GetDocumentIds(project, removedDocument.FilePath))
+            .Where(project => ProjectContextMatcher.AreSiblingContexts(
+                sourceProject,
+                project,
+                _pathComparison))
+            .SelectMany(project => ProjectContextMatcher.GetDocumentIds(
+                project,
+                removedDocument.FilePath,
+                _pathComparison))
             .ToArray();
 
         foreach (var siblingDocumentId in siblingDocumentIds)
@@ -60,31 +66,6 @@ internal sealed class RemovedDocumentProjectContextPropagator : IRemovedDocument
         }
 
         return propagatedSolution;
-    }
-
-    private bool IsSiblingProject(Project sourceProject, Project candidateProject)
-    {
-        var sourceProjectPath = sourceProject.FilePath;
-        if (candidateProject.Id == sourceProject.Id
-            || string.IsNullOrWhiteSpace(sourceProjectPath)
-            || string.IsNullOrWhiteSpace(candidateProject.FilePath))
-        {
-            return false;
-        }
-
-        var comparison = _pathComparison.GetComparison(sourceProjectPath);
-        return string.Equals(
-            sourceProjectPath,
-            candidateProject.FilePath,
-            comparison);
-    }
-
-    private IEnumerable<DocumentId> GetDocumentIds(Project project, string documentPath)
-    {
-        var comparison = _pathComparison.GetComparison(documentPath);
-        return project.Documents
-            .Where(document => string.Equals(document.FilePath, documentPath, comparison))
-            .Select(static document => document.Id);
     }
 
     private static Project GetRequiredProject(Solution solution, ProjectId projectId)

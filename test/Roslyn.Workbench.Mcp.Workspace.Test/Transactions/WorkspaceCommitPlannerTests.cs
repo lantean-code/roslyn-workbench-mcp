@@ -122,6 +122,177 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_RelocatedDocument_WHEN_Planning_THEN_ShouldDeleteOriginalAndCreateRenamedFile()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var originalPath = Path.GetFullPath("/workspace/project/Original.cs");
+        var renamedPath = Path.GetFullPath("/workspace/project/Renamed.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "Original.cs", SourceText.From("class Original;"), filePath: originalPath);
+
+        var current = baseline
+            .WithDocumentText(documentId, SourceText.From("class Renamed;"))
+            .WithDocumentFilePath(documentId, renamedPath)
+            .WithDocumentName(documentId, "Renamed.cs");
+
+        var originalBytes = Encoding.UTF8.GetBytes("class Original;");
+        _file.Setup(item => item.Exists(originalPath)).Returns(true);
+        _file.Setup(item => item.Exists(renamedPath)).Returns(false);
+        _file
+            .Setup(item => item.ReadAllBytesAsync(originalPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(originalBytes);
+
+        var expectedMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        if (!OperatingSystem.IsWindows())
+        {
+            ConfigureUnixFileMode(originalPath, expectedMode);
+        }
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
+        plan.Manifest.Entries.Select(static entry => entry.Operation).Should().Equal(
+            WorkspaceFileOperation.Delete,
+            WorkspaceFileOperation.Create);
+
+        plan.Manifest.Entries.Select(static entry => entry.TargetPath).Should().Equal(
+            originalPath,
+            renamedPath);
+
+        plan.Manifest.Entries[0].OriginalUnixFileMode.Should().Be(
+            OperatingSystem.IsWindows() ? null : expectedMode);
+
+        plan.Manifest.Entries[1].IntendedUnixFileMode.Should().Be(
+            OperatingSystem.IsWindows() ? null : expectedMode);
+
+        plan.Artifacts["backup/000000.bin"].ToArray().Should().Equal(originalBytes);
+        plan.Artifacts["staged/000001.bin"].ToArray().Should().Equal(Encode(Encoding.UTF8, "class Renamed;"));
+    }
+
+    [Fact]
+    public async Task GIVEN_RelocatedDocumentWithoutStablePaths_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: "/workspace/project/project.csproj"))
+            .AddDocument(documentId, "Original.cs", SourceText.From("class Original;"), filePath: "/workspace/project/Original.cs");
+
+        var current = baseline.WithDocumentFilePath(documentId, filePath: null);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("does not have a stable file path");
+    }
+
+    [Fact]
+    public async Task GIVEN_CaseOnlyRelocationOnCaseInsensitiveFileSystem_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var originalPath = Path.GetFullPath("/workspace/project/Original.cs");
+        var renamedPath = Path.GetFullPath("/workspace/project/original.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: "/workspace/project/project.csproj"))
+            .AddDocument(documentId, "Original.cs", SourceText.From("class Original;"), filePath: originalPath);
+
+        var current = baseline
+            .WithDocumentFilePath(documentId, renamedPath)
+            .WithDocumentName(documentId, "original.cs");
+
+        _pathComparison
+            .Setup(item => item.CreateKey(It.IsAny<string>()))
+            .Returns((string path) => new FileSystemPathKey(path, isCaseSensitive: false));
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("differs only by case");
+    }
+
+    [Theory]
+    [InlineData(true, "changed from the transaction baseline")]
+    [InlineData(false, "expected existence state")]
+    public async Task GIVEN_RelocationTargetStateIsInvalid_WHEN_Planning_THEN_ShouldRejectPlan(bool originalChanged, string message)
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var originalPath = Path.GetFullPath("/workspace/project/Original.cs");
+        var renamedPath = Path.GetFullPath("/workspace/project/Renamed.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: "/workspace/project/project.csproj"))
+            .AddDocument(documentId, "Original.cs", SourceText.From("class Original;"), filePath: originalPath);
+
+        var current = baseline
+            .WithDocumentFilePath(documentId, renamedPath)
+            .WithDocumentName(documentId, "Renamed.cs");
+
+        _file.Setup(item => item.Exists(originalPath)).Returns(true);
+        _file.Setup(item => item.Exists(renamedPath)).Returns(!originalChanged);
+        var originalBytes = Encoding.UTF8.GetBytes(originalChanged ? "class External;" : "class Original;");
+        _file
+            .Setup(item => item.ReadAllBytesAsync(originalPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(originalBytes);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(message);
+    }
+
+    [Fact]
     public async Task GIVEN_ConflictingDuplicateCanonicalTargets_WHEN_Planning_THEN_ShouldRejectPlan()
     {
         var projectId = ProjectId.CreateNewId();

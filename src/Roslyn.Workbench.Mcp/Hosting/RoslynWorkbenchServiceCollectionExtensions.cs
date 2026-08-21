@@ -134,6 +134,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();
         services.AddSingleton<IAddedDocumentProjectContextPropagator, AddedDocumentProjectContextPropagator>();
+        services.AddSingleton<IRelocatedDocumentProjectContextPropagator, RelocatedDocumentProjectContextPropagator>();
         services.AddSingleton<IRemovedDocumentProjectContextPropagator, RemovedDocumentProjectContextPropagator>();
         services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
         services.AddSingleton<IWorkspaceMutationCandidateProcessor, WorkspaceMutationCandidateProcessor>();

@@ -38,6 +38,8 @@ Do not accumulate unrelated work in an open transaction. Run queries outside a t
 
 `transaction-commit` writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.
 
+Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reconcile those changes after reload. If the project explicitly includes, removes or excludes an affected source path, update the project file separately before relying on the reloaded project graph.
+
 Small, frequent Workbench transactions keep previews reviewable and bound the temporary original and intended source content processed by durable commit and recovery. Query-heavy sessions do not need an open transaction.
 
 ## Failures and recovery

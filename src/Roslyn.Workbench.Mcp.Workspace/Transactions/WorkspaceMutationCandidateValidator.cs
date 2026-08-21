@@ -13,116 +13,124 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         _pathComparison = pathComparison;
     }
 
-    public WorkspaceOperationError? Validate(
+    public WorkspaceMutationCandidateValidationResult Validate(
         Solution currentSolution,
         Solution candidateSolution,
         string workspaceRoot)
     {
         if (!ReferenceEquals(candidateSolution.Workspace, currentSolution.Workspace))
         {
-            return CreateError("InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
+            return CreateInvalidResult("InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
         }
 
         if (candidateSolution.ProjectIds.Count != currentSolution.ProjectIds.Count)
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not add or remove projects.");
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not add or remove projects.");
         }
 
         foreach (var currentProject in currentSolution.Projects)
         {
-            var validationError = ValidateProject(
+            var validation = ValidateProject(
                 currentProject,
                 candidateSolution.GetProject(currentProject.Id),
                 workspaceRoot);
-            if (validationError is not null)
+
+            if (!validation.IsValid)
             {
-                return validationError;
+                return validation;
             }
         }
 
-        return null;
+        return WorkspaceMutationCandidateValidationResult.Valid();
     }
 
-    private WorkspaceOperationError? ValidateProject(
+    private WorkspaceMutationCandidateValidationResult ValidateProject(
         Project currentProject,
         Project? candidateProject,
         string workspaceRoot)
     {
         if (candidateProject is null)
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity.");
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity.");
         }
 
         if (HasDifferentIdentity(currentProject, candidateProject))
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
         }
 
         var projectChanges = candidateProject.GetChanges(currentProject);
         if (HasReferenceOrNonSourceDocumentChanges(projectChanges))
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
         }
 
         if (HasDifferentOptions(currentProject, candidateProject))
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
         }
 
-        var textChangedDocuments = projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true).ToHashSet();
-        if (projectChanges.GetChangedDocuments().Except(textChangedDocuments).Any())
+        var changedDocumentIds = projectChanges.GetChangedDocuments().ToArray();
+        foreach (var changedDocumentId in changedDocumentIds)
         {
-            return CreateError("UnsupportedChange", "Mutation proposals must not alter source document metadata.");
+            var metadataValidation = ValidateChangedDocumentMetadata(
+                GetRequiredDocument(currentProject, changedDocumentId),
+                GetRequiredDocument(candidateProject, changedDocumentId));
+
+            if (!metadataValidation.IsValid)
+            {
+                return metadataValidation;
+            }
         }
 
         return ValidateSourceDocumentChanges(
             currentProject,
             candidateProject,
             projectChanges,
-            textChangedDocuments,
+            changedDocumentIds,
             workspaceRoot);
     }
 
-    private WorkspaceOperationError? ValidateSourceDocumentChanges(
+    private WorkspaceMutationCandidateValidationResult ValidateSourceDocumentChanges(
         Project currentProject,
         Project candidateProject,
         ProjectChanges projectChanges,
-        IReadOnlySet<DocumentId> textChangedDocuments,
+        IReadOnlyList<DocumentId> changedDocumentIds,
         string workspaceRoot)
     {
-        var validationError = TryValidateSourceDocuments(
+        var validation = ValidateSourceDocuments(
             currentProject,
             projectChanges.GetRemovedDocuments(),
             "deleted",
             workspaceRoot,
             requireProjectDirectory: false);
 
-        if (validationError is not null)
+        if (!validation.IsValid)
         {
-            return validationError;
+            return validation;
         }
 
-        validationError = TryValidateSourceDocuments(
+        validation = ValidateSourceDocuments(
             candidateProject,
             projectChanges.GetAddedDocuments(),
             "created",
             workspaceRoot,
             requireProjectDirectory: true);
 
-        if (validationError is not null)
+        if (!validation.IsValid)
         {
-            return validationError;
+            return validation;
         }
 
-        return TryValidateSourceDocuments(
+        return ValidateSourceDocuments(
             candidateProject,
-            textChangedDocuments,
+            changedDocumentIds,
             "changed",
             workspaceRoot,
             requireProjectDirectory: false);
     }
 
-    private WorkspaceOperationError? TryValidateSourceDocuments(
+    private WorkspaceMutationCandidateValidationResult ValidateSourceDocuments(
         Project project,
         IEnumerable<DocumentId> documentIds,
         string operation,
@@ -136,7 +144,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 || document.SourceCodeKind != SourceCodeKind.Regular
                 || string.IsNullOrWhiteSpace(document.FilePath))
             {
-                return CreateError("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
+                return CreateInvalidResult("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
             }
 
             if (!_pathContainment.TryGetStrictlyContainedPath(
@@ -144,7 +152,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 document.FilePath,
                 out _))
             {
-                return CreateError("UnsupportedChange", "Mutation proposals must keep mutable source files within the workspace root.");
+                return CreateInvalidResult("UnsupportedChange", "Mutation proposals must keep mutable source files within the workspace root.");
             }
 
             if (requireProjectDirectory)
@@ -156,12 +164,71 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                         document.FilePath,
                         out _))
                 {
-                    return CreateError("UnsupportedChange", "Mutation proposals must keep created source files within the owning project directory.");
+                    return CreateInvalidResult("UnsupportedChange", "Mutation proposals must keep created source files within the owning project directory.");
                 }
             }
         }
 
-        return null;
+        return WorkspaceMutationCandidateValidationResult.Valid();
+    }
+
+    private WorkspaceMutationCandidateValidationResult ValidateChangedDocumentMetadata(
+        Document currentDocument,
+        Document candidateDocument)
+    {
+        var currentPath = currentDocument.FilePath;
+        var candidatePath = candidateDocument.FilePath;
+        if (string.Equals(currentPath, candidatePath, StringComparison.Ordinal))
+        {
+            return HasSameNonPathMetadata(currentDocument, candidateDocument)
+                ? WorkspaceMutationCandidateValidationResult.Valid()
+                : CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter source document metadata.");
+        }
+
+        if (string.IsNullOrWhiteSpace(currentPath)
+            || string.IsNullOrWhiteSpace(candidatePath)
+            || currentDocument.SourceCodeKind != SourceCodeKind.Regular
+            || candidateDocument.SourceCodeKind != SourceCodeKind.Regular)
+        {
+            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must use regular source documents for relocated files.");
+        }
+
+        if (_pathComparison.CreateKey(currentPath) == _pathComparison.CreateKey(candidatePath))
+        {
+            return CreateInvalidResult(
+                "UnsupportedChange",
+                "Case-only source file renames are not supported on a case-insensitive filesystem.");
+        }
+
+        if (!HaveSameDirectory(currentPath, candidatePath)
+            || !currentDocument.Folders.SequenceEqual(candidateDocument.Folders, StringComparer.Ordinal)
+            || !string.Equals(Path.GetFileName(candidatePath), candidateDocument.Name, StringComparison.Ordinal))
+        {
+            return CreateInvalidResult(
+                "UnsupportedChange",
+                "Mutation proposals may rename source files but must not move them between directories or alter their logical folders.");
+        }
+
+        return WorkspaceMutationCandidateValidationResult.Valid();
+    }
+
+    private bool HaveSameDirectory(string currentPath, string candidatePath)
+    {
+        var currentDirectory = Path.GetDirectoryName(currentPath);
+        var candidateDirectory = Path.GetDirectoryName(candidatePath);
+        if (currentDirectory is null || candidateDirectory is null)
+        {
+            return false;
+        }
+
+        return _pathComparison.CreateKey(currentDirectory) == _pathComparison.CreateKey(candidateDirectory);
+    }
+
+    private static bool HasSameNonPathMetadata(Document currentDocument, Document candidateDocument)
+    {
+        return string.Equals(currentDocument.Name, candidateDocument.Name, StringComparison.Ordinal)
+            && currentDocument.SourceCodeKind == candidateDocument.SourceCodeKind
+            && currentDocument.Folders.SequenceEqual(candidateDocument.Folders, StringComparer.Ordinal);
     }
 
     private bool HasDifferentIdentity(Project currentProject, Project candidateProject)
@@ -204,12 +271,21 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             || projectChanges.GetRemovedAnalyzerConfigDocuments().Any();
     }
 
-    private static WorkspaceOperationError CreateError(string code, string message)
+    private static Document GetRequiredDocument(Project project, DocumentId documentId)
     {
-        return new WorkspaceOperationError
+        return project.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"The document '{documentId}' is not present in the expected project.");
+    }
+
+    private static WorkspaceMutationCandidateValidationResult CreateInvalidResult(string code, string message)
+    {
+        var error = new WorkspaceOperationError
         {
             Code = code,
             Message = message,
         };
+
+        return WorkspaceMutationCandidateValidationResult.Invalid(error);
     }
 }

@@ -56,3 +56,5 @@ Queries run against the effective solution: the staged working solution while a 
 For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the [three-tool Code Action workflow](CodeActions.md). After a successful stage advances the revision, rediscover any subsequent action against that new current revision.
 
 `transaction-commit` rechecks the source-file manifest and is the only public operation that writes staged source changes to disk. It does not compile the solution or modify project, props or targets files. Durable recovery records protect interrupted commits and are surfaced by `server-status`.
+
+Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reflect those changes after reload. For explicitly included, removed or excluded source paths, update the project file separately before relying on the reloaded project graph. Roslyn Workbench does not infer or persist that project-file change.

@@ -142,10 +142,19 @@ internal sealed class MutationStagingService : IMutationStagingService
         WorkspaceTransaction transaction,
         CancellationToken cancellationToken)
     {
+        var transactionRevision = transaction.CurrentRevision + 1;
+        var snapshotId = _sessionStore.AllocateWorkspaceSnapshotId();
+        var snapshotIdentity = new WorkspaceSnapshotIdentity(
+            session.Workspace.WorkspaceId,
+            session.Workspace.WorkspaceEpoch,
+            snapshotId,
+            transaction.TransactionId);
+
+        var snapshot = WorkspaceSnapshotPreconditionFactory.Create(snapshotIdentity, transactionRevision);
         var candidateResolver = _resolverFactory.Create(
             candidate.CandidateSolution,
             session.Workspace,
-            transaction.CurrentRevision + 1);
+            snapshot);
 
         var changes = await _diffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
@@ -153,13 +162,9 @@ internal sealed class MutationStagingService : IMutationStagingService
             candidateResolver,
             cancellationToken);
 
-        var revision = CreateRevision(operationName, candidate, changes);
+        var revision = CreateRevision(operationName, candidate, changes, snapshotId);
         var appendResult = transaction.Append(revision);
         var updatedTransaction = appendResult.Transaction;
-        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
-            session.Workspace,
-            session.CommittedSnapshotId,
-            updatedTransaction);
 
         var updatedSession = session with
         {
@@ -197,8 +202,10 @@ internal sealed class MutationStagingService : IMutationStagingService
     {
         var outcome = CreateOutcome(operationName, candidate, stagedMutation);
         var combinedWarnings = warnings.Concat(candidate.Warnings).ToArray();
+        var context = WorkspaceOperationContextFactory.Create(stagedMutation.Session);
         return _resultFactory.Succeeded(
             outcome,
+            context,
             diagnostics: diagnostics,
             warnings: combinedWarnings);
     }
@@ -222,10 +229,11 @@ internal sealed class MutationStagingService : IMutationStagingService
             warnings: warnings);
     }
 
-    private WorkspaceTransactionRevision CreateRevision(
+    private static WorkspaceTransactionRevision CreateRevision(
         string operationName,
         WorkspaceMutationCandidate candidate,
-        ChangeSummary stagedChanges)
+        ChangeSummary stagedChanges,
+        WorkspaceSnapshotId snapshotId)
     {
         var preview = new MutationPreview
         {
@@ -234,7 +242,7 @@ internal sealed class MutationStagingService : IMutationStagingService
 
         return new WorkspaceTransactionRevision
         {
-            SnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
+            SnapshotId = snapshotId,
             Solution = candidate.CandidateSolution,
             Changes = stagedChanges,
             Operation = operationName,

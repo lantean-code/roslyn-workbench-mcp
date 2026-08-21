@@ -6,7 +6,7 @@ Date: 2026-08-16
 
 The repository has a coherent acyclic architecture, clear ownership of Host, Workspace, plugin and Code Action concerns, disciplined process/resource lifetimes, a strong normal durable-commit protocol and credible component/published-Host coverage. Independent validation nevertheless retained nineteen concrete findings: two P1 correctness/concurrency defects and seventeen P2 contract, lifecycle, filesystem, tool, performance and operational-evidence defects. No candidate was rejected or merged as a duplicate.
 
-The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Transaction admission has since been remediated and independently reviewed; reusable public snapshot identity remains incomplete. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
+The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Both have since been remediated and independently reviewed. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
 
 ## P1 — High confidence
 
@@ -22,9 +22,13 @@ Exclusive operation gates are per Workspace. Two requests for different Workspac
 
 ### RWMCP3-004 — Reused public revision numbers can validate stale snapshots against another solution
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
+
 **Location:** `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/SnapshotPrecondition.cs:6-22`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/SnapshotGuard.cs:7-24`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceTransaction.cs:17-47`; `src/Roslyn.Workbench.Mcp.Workspace/State/WorkspaceSnapshotIdentity.cs:25-42`
 
 Undo followed by a new branch reuses an integer revision while allocating a different internal snapshot ID. A new transaction can likewise reuse revision zero within the same epoch. Because public preconditions and `SnapshotGuard` compare only Workspace ID, epoch and revision, stale inputs can authorise work against a different immutable solution. Publish and require an opaque snapshot identity or make public revision identity monotonic and non-reusable; cover branch and transaction-replacement aliasing through adapters.
+
+**Remediation:** Public snapshot preconditions now include an opaque immutable-solution snapshot ID and are propagated through Workspace, plugin, Code Action and Host contracts, success envelopes, schemas and scenario execution. Branch replacement allocates a fresh identity, while undo and redo restore the stored revision identity. Snapshot validation uses an invariant-bearing result, normative guidance requires callers to echo the complete published snapshot, and stale branch/replacement coverage verifies that matching public revision numbers cannot authorise work against another solution. Workspace unit tests passed 1,063/1,063, broad component, acceptance and representative scenario validation passed, and the final independent staged review found no defects.
 
 ## P2 — High confidence
 

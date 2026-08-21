@@ -79,7 +79,11 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                     diagnostics: proposalResult.Diagnostics,
                     warnings: proposalResult.Warnings);
 
-                return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionMutation(noChange), isError: false);
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializeCodeActionMutation(
+                        noChange,
+                        context.Snapshot),
+                    isError: false);
             }
 
             CodeActionExecutionResult<MutationData> stagedResult;
@@ -105,7 +109,9 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
             {
                 return CreateStructuredResult(
-                    McpPublishedResultSerializer.SerializeCodeActionMutation(stagedResult),
+                    McpPublishedResultSerializer.SerializeCodeActionMutation(
+                        stagedResult,
+                        context.Snapshot),
                     stagedResult.HasError);
             }
         }

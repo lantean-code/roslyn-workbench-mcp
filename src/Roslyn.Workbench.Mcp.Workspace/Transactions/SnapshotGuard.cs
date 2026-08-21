@@ -4,25 +4,29 @@ internal sealed class SnapshotGuard : ISnapshotGuard
 {
     private const string _transactionSnapshotMismatchCode = "SnapshotMismatch";
 
-    public WorkspaceOperationError? Validate(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot)
+    public SnapshotValidationResult Validate(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot)
     {
         if (session.Transaction is null || expectedSnapshot is null)
         {
-            return null;
+            return SnapshotValidationResult.Valid();
         }
 
-        if (expectedSnapshot.WorkspaceId != session.Workspace.WorkspaceId
-            || expectedSnapshot.WorkspaceEpoch != session.Workspace.WorkspaceEpoch
-            || expectedSnapshot.TransactionRevision != session.Transaction.CurrentRevision)
+        var currentSnapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            session.Transaction.CurrentRevision);
+
+        if (expectedSnapshot != currentSnapshot)
         {
-            return new WorkspaceOperationError
+            var error = new WorkspaceOperationError
             {
                 Code = _transactionSnapshotMismatchCode,
                 Message = "The request snapshot does not match the current transaction snapshot.",
                 RequiredAction = RequiredAction.ResolveTargetAgain,
             };
+
+            return SnapshotValidationResult.Invalid(error);
         }
 
-        return null;
+        return SnapshotValidationResult.Valid();
     }
 }

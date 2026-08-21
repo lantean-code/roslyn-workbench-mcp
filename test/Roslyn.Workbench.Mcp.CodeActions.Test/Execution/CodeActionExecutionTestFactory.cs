@@ -4,7 +4,7 @@ internal static class CodeActionExecutionTestFactory
 {
     public static CodeActionReplayRecipe CreateReplayRecipe()
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch: 1,

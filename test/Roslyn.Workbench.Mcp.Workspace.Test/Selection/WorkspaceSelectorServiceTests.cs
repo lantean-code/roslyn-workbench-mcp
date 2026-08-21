@@ -398,7 +398,7 @@ public sealed class WorkspaceSelectorServiceTests
         string? alias,
         string loadedPath)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = workspaceId,

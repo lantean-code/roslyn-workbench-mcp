@@ -9,7 +9,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
     private readonly Lock _syncRoot;
     private WorkspaceHostSnapshot _snapshot;
     private long _nextWorkspaceEpoch;
-    private long _nextWorkspaceSnapshotId;
     private long _nextWorkspaceTransactionId;
 
     public WorkspaceSessionStore(
@@ -52,8 +51,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public WorkspaceSnapshotId AllocateWorkspaceSnapshotId()
     {
-        var value = Interlocked.Increment(ref _nextWorkspaceSnapshotId);
-        return new WorkspaceSnapshotId(value);
+        return new WorkspaceSnapshotId(Guid.NewGuid());
     }
 
     public WorkspaceTransactionId AllocateWorkspaceTransactionId()

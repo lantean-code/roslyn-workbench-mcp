@@ -169,7 +169,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
+                    ["expectedSnapshot"] = AcceptanceProtocol.GetSnapshot(renameResult),
                 },
                 TestContext.Current.CancellationToken);
 

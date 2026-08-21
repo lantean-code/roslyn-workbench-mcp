@@ -112,7 +112,11 @@ public sealed class GetSymbolMembersToolTests
             {
                 if (item.Name == "Decorate")
                 {
-                    var resolvedLocation = new ResolvedLocation();
+                    var resolvedLocation = new ResolvedLocation
+                    {
+                        Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                            Guid.Parse("11111111-1111-1111-1111-111111111111")),
+                    };
                     return SelectorTestFactory.CreateSymbolReference(
                         item.Name,
                         item.Kind,

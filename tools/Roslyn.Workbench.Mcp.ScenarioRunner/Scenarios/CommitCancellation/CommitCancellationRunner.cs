@@ -55,7 +55,7 @@ internal sealed class CommitCancellationRunner
         var monitor = new WorkspaceCommitPhaseMonitor(_repositoryRoot);
         var (requestId, invocation) = _host.StartCancellableToolCall(
             "transaction-commit",
-            CreateMutationArguments(transactionRevision: 1),
+            CreateMutationArguments(),
             cancellationToken);
 
         monitor.WaitForPhase(phase, invocation, cancellationToken);
@@ -233,15 +233,10 @@ internal sealed class CommitCancellationRunner
         };
     }
 
-    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    private Dictionary<string, object?> CreateMutationArguments()
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["expectedSnapshot"] = new Dictionary<string, object?>
-        {
-            ["workspaceId"] = _workspaceId,
-            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
-            ["transactionRevision"] = transactionRevision,
-        };
+        arguments["expectedSnapshot"] = _host.GetSnapshot(_workspaceId);
 
         return arguments;
     }

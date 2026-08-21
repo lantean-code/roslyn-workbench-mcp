@@ -27,8 +27,12 @@ public sealed class CodeActionExecutionContextFactoryTests
     public void GIVEN_RejectedWorkspaceMutation_WHEN_CreatingCodeActionContext_THEN_ShouldMapFailureWithoutContext()
     {
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var request = CreateMutationRequest();
         workspaceFactory
-            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Setup(item => item.CreateMutationContext(
+                null,
+                request.ExpectedSnapshot,
+                CancellationToken.None))
             .Returns(WorkspaceMutationExecutionLease.Rejected(new WorkspaceExecutionFailure
             {
                 Status = WorkspaceOperationStatus.Conflict,
@@ -41,7 +45,7 @@ public sealed class CodeActionExecutionContextFactoryTests
 
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
-        var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
+        var result = target.CreateMutationContext(request, CancellationToken.None);
 
         result.Context.Should().BeNull();
         result.Failure!.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
@@ -109,15 +113,19 @@ public sealed class CodeActionExecutionContextFactoryTests
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
         var resolver = new Mock<IWorkspaceResolver>();
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution, resolver.Object);
+        var request = CreateMutationRequest();
         workspaceFactory
-            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Setup(item => item.CreateMutationContext(
+                null,
+                request.ExpectedSnapshot,
+                CancellationToken.None))
             .Returns(WorkspaceMutationExecutionLease.Acquired(
                 workspaceContext,
                 new Mock<IWorkspaceMutationStager>().Object));
 
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
-        var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
+        var result = target.CreateMutationContext(request, CancellationToken.None);
 
         result.Context.Should().NotBeNull();
         result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
@@ -130,8 +138,12 @@ public sealed class CodeActionExecutionContextFactoryTests
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution, new Mock<IWorkspaceResolver>().Object);
+        var request = CreateMutationRequest();
         workspaceFactory
-            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Setup(item => item.CreateMutationContext(
+                null,
+                request.ExpectedSnapshot,
+                CancellationToken.None))
             .Returns(WorkspaceMutationExecutionLease.Rejected(
                 new WorkspaceExecutionFailure
                 {
@@ -146,7 +158,7 @@ public sealed class CodeActionExecutionContextFactoryTests
 
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
-        var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
+        var result = target.CreateMutationContext(request, CancellationToken.None);
 
         result.Context.Should().NotBeNull();
         result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
@@ -155,24 +167,40 @@ public sealed class CodeActionExecutionContextFactoryTests
 
     private sealed record TestRequest : WorkspaceBoundRequest;
 
+    private sealed record MutationTestRequest : WorkspaceMutationRequest;
+
+    private static MutationTestRequest CreateMutationRequest()
+    {
+        return new MutationTestRequest
+        {
+            ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111")),
+        };
+    }
+
     private static WorkspaceExecutionContext CreateWorkspaceContext(
         Solution solution,
         IWorkspaceResolver resolver)
     {
         var workspacePathService = new Mock<IWorkspacePathService>();
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = 1,
+        };
+        var snapshotIdentity = new WorkspaceSnapshotIdentity(
+            workspaceId,
+            1,
+            WorkspaceSnapshotTestFactory.CreateId(1),
+            transactionId: null);
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(snapshotIdentity, transactionRevision: null);
 
         return new WorkspaceExecutionContext(
             solution,
-            new WorkspaceIdentity
-            {
-                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                WorkspaceEpoch = 1,
-            },
-            new WorkspaceSnapshotIdentity(
-                Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                1,
-                new WorkspaceSnapshotId(1),
-                transactionId: null),
+            workspaceIdentity,
+            snapshotIdentity,
+            snapshot,
             transactionRevision: null,
             defaultMaxResults: 100,
             workspacePathService.Object,

@@ -12,24 +12,26 @@ public sealed class SnapshotGuardTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_SessionWithoutTransaction_WHEN_Validating_THEN_ShouldReturnNoError()
+    public void GIVEN_SessionWithoutTransaction_WHEN_Validating_THEN_ShouldReturnValidResult()
     {
         var session = CreateSession(transaction: null);
         var expectedSnapshot = CreateExpectedSnapshot();
 
         var result = _target.Validate(session, expectedSnapshot);
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
+        result.Error.Should().BeNull();
     }
 
     [Fact]
-    public void GIVEN_NoExpectedSnapshot_WHEN_Validating_THEN_ShouldReturnNoError()
+    public void GIVEN_NoExpectedSnapshot_WHEN_Validating_THEN_ShouldReturnValidResult()
     {
         var session = CreateSession(CreateTransaction());
 
         var result = _target.Validate(session, expectedSnapshot: null);
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
+        result.Error.Should().BeNull();
     }
 
     [Fact]
@@ -42,10 +44,10 @@ public sealed class SnapshotGuardTests : IDisposable
         };
 
         var result = _target.Validate(session, expectedSnapshot);
+        var expectedError = CreateSnapshotMismatchError();
 
-        result!.Code.Should().Be("SnapshotMismatch");
-        result.Message.Should().Be("The request snapshot does not match the current transaction snapshot.");
-        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.IsValid.Should().BeFalse();
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]
@@ -58,9 +60,10 @@ public sealed class SnapshotGuardTests : IDisposable
         };
 
         var result = _target.Validate(session, expectedSnapshot);
+        var expectedError = CreateSnapshotMismatchError();
 
-        result!.Code.Should().Be("SnapshotMismatch");
-        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.IsValid.Should().BeFalse();
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]
@@ -73,9 +76,26 @@ public sealed class SnapshotGuardTests : IDisposable
         };
 
         var result = _target.Validate(session, expectedSnapshot);
+        var expectedError = CreateSnapshotMismatchError();
 
-        result!.Code.Should().Be("SnapshotMismatch");
-        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.IsValid.Should().BeFalse();
+        result.Error.Should().BeEquivalentTo(expectedError);
+    }
+
+    [Fact]
+    public void GIVEN_DifferentSnapshotIdAtSameRevision_WHEN_Validating_THEN_ShouldReturnSnapshotMismatch()
+    {
+        var session = CreateSession(CreateTransaction());
+        var expectedSnapshot = CreateExpectedSnapshot() with
+        {
+            SnapshotId = WorkspaceSnapshotTestFactory.CreateGuid(3),
+        };
+
+        var result = _target.Validate(session, expectedSnapshot);
+        var expectedError = CreateSnapshotMismatchError();
+
+        result.IsValid.Should().BeFalse();
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]
@@ -88,20 +108,22 @@ public sealed class SnapshotGuardTests : IDisposable
         };
 
         var result = _target.Validate(session, expectedSnapshot);
+        var expectedError = CreateSnapshotMismatchError();
 
-        result!.Code.Should().Be("SnapshotMismatch");
-        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.IsValid.Should().BeFalse();
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]
-    public void GIVEN_ExactSnapshot_WHEN_Validating_THEN_ShouldReturnNoError()
+    public void GIVEN_ExactSnapshot_WHEN_Validating_THEN_ShouldReturnValidResult()
     {
         var session = CreateSession(CreateTransaction());
         var expectedSnapshot = CreateExpectedSnapshot();
 
         var result = _target.Validate(session, expectedSnapshot);
 
-        result.Should().BeNull();
+        result.IsValid.Should().BeTrue();
+        result.Error.Should().BeNull();
     }
 
     public void Dispose()
@@ -111,7 +133,7 @@ public sealed class SnapshotGuardTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var state = WorkspaceLifecycleState.Ready;
         if (transaction is not null)
         {
@@ -146,7 +168,7 @@ public sealed class SnapshotGuardTests : IDisposable
     {
         var revision = new WorkspaceTransactionRevision
         {
-            SnapshotId = new WorkspaceSnapshotId(2),
+            SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
             Solution = _workspace.CurrentSolution,
             Changes = new ChangeSummary(),
             Operation = "Operation",
@@ -157,7 +179,7 @@ public sealed class SnapshotGuardTests : IDisposable
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions = [revision],
             CurrentRevision = 1,
@@ -166,11 +188,19 @@ public sealed class SnapshotGuardTests : IDisposable
 
     private static SnapshotPrecondition CreateExpectedSnapshot()
     {
-        return new SnapshotPrecondition
+        return WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            snapshotId: 2,
+            transactionRevision: 1);
+    }
+
+    private static WorkspaceOperationError CreateSnapshotMismatchError()
+    {
+        return new WorkspaceOperationError
         {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 1,
-            TransactionRevision = 1,
+            Code = "SnapshotMismatch",
+            Message = "The request snapshot does not match the current transaction snapshot.",
+            RequiredAction = RequiredAction.ResolveTargetAgain,
         };
     }
 }

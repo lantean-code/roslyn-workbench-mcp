@@ -5,5 +5,5 @@ internal interface IWorkspaceResolverFactory
     IWorkspaceResolver Create(
         Solution solution,
         WorkspaceIdentity? workspaceIdentity,
-        int? transactionRevision);
+        SnapshotPrecondition? snapshot);
 }

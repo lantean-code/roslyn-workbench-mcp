@@ -29,11 +29,8 @@ public sealed class ListCodeActionsToolTests
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
-        _snapshot = new SnapshotPrecondition
-        {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 1,
-        };
+        _snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
         _workspaceResolver.Setup(item => item.ValidateSnapshot(_snapshot)).Returns(SnapshotMatchResult.Matched());

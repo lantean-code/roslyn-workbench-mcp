@@ -155,7 +155,8 @@ public sealed class WorkspaceOperationResultFactoryTests
     {
         return new WorkspaceOperationContext
         {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111")),
         };
     }
 
@@ -175,7 +176,11 @@ public sealed class WorkspaceOperationResultFactoryTests
             Id = "Id",
             Severity = global::Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Warning,
             Message = "Message",
-            Location = new ResolvedLocation(),
+            Location = new ResolvedLocation
+            {
+                Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
+            },
         };
     }
 

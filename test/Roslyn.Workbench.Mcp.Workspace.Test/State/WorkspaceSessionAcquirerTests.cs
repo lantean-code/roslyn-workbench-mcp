@@ -178,7 +178,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
     private WorkspaceSessionSnapshot CreateSession(IWorkspaceOperationGate gate)
     {
         var workspace = new Mock<ILoadedWorkspace>();
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),

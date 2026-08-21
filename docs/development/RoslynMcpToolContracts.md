@@ -55,13 +55,13 @@ Every tool shares the same minimal machine-readable failure and continuation bas
 }
 ```
 
-Every successful result uses the same outer envelope and publishes its family-specific payload under `data`:
+Every successful result uses the same outer envelope and publishes its family-specific payload under `data`. Workspace-bound plugin and Code Action query or mutation successes also publish the required authoritative `snapshot`; server-owned successes publish it when a Workspace context is available:
 
-- Direct lifecycle and status results: `{ ok: true, data: { ...response dto... } }`
-- Query tools: `{ ok: true, data: { ...response dto... } }`
-- Staged mutations: `{ ok: true, data: { staged: boolean, summary?: string, transaction?: { revision: int } } }`
+- Direct lifecycle and status results: `{ ok: true, snapshot?: SnapshotPrecondition, data: { ...response dto... } }`
+- Workspace-bound query tools: `{ ok: true, snapshot: SnapshotPrecondition, data: { ...response dto... } }`
+- Staged mutations: `{ ok: true, snapshot: SnapshotPrecondition, data: { staged: boolean, summary?: string, transaction?: { revision: int } } }`
 
-Clients therefore need only one boundary rule: inspect `ok`, then read `data` on success or `error` and optional `continuation` on failure. Payloads remain compact and family-specific within `data`; the host does not expose the richer internal `ToolResult<TData>` envelope.
+Clients therefore need only one boundary rule: inspect `ok`, then read `data` and any published `snapshot` on success or `error` and optional `continuation` on failure. Handled failures do not publish a replacement snapshot. Payloads remain compact and family-specific within `data`; the host does not expose the richer internal `ToolResult<TData>` envelope.
 
 Every continuation contains a required natural-language `instruction` and exactly one of five closed machine-readable variants. `CallTool` requires the named registered tool as the next action. `ChooseTool` requires exactly one of the named registered tools. `RetryRequest` requires the same request to be repeated. `ReviseRequest` requires the caller to change the request as instructed before retrying. `ResolveExternally` identifies a condition that cannot be completed through a single MCP tool call. The Host maps internal `RequiredAction` values to this contract and is the sole owner of registered tool names.
 
@@ -93,14 +93,14 @@ The server resolves every selector against the effective solution: the loaded ba
 | `WorkspaceSelector` | `workspaceId?: string`, `alias?: string`, `path?: string`. At least one is required; multiple values must resolve to one loaded workspace session. |
 | `DocumentSelector` | `path?: string`, `documentId?: string`, `project?: ProjectSelector`. Exactly one document identity is required. `path` is normalised and workspace-relative. The optional project scope disambiguates linked or multi-target documents and must resolve to the project containing the selected document. |
 | `ProjectSelector` | `projectId?: string`, `name?: string`, `path?: string`, `targetFramework?: string`. At least one is required; multiple values must resolve to one project. `targetFramework` selects the target-specific Roslyn project produced for multi-target builds. |
-| `SnapshotPrecondition` | `{ workspaceId?: string, workspaceEpoch: long, transactionRevision?: int }`. It asserts the effective solution snapshot on which a prior location, selection or symbol result was obtained. |
+| `SnapshotPrecondition` | `{ workspaceId: UUID, workspaceEpoch: long, snapshotId: UUID, transactionRevision: int? }`. It is the complete opaque identity of the effective immutable solution snapshot on which a prior location, selection or symbol result was obtained. Callers echo the object unchanged rather than reconstructing it from individual fields. |
 | `TextSpanSelector` | `document: DocumentSelector`, `start: int`, `length: int`. |
 | `TextSelectionSelector` | `document: DocumentSelector`, `selectedText: string`, `contextBefore?: string`, `contextAfter?: string`. A unique match becomes a canonical `TextSpanSelector`. |
 | `LocationSelector` | `span?: TextSpanSelector`, `selection?: TextSelectionSelector`. Exactly one is required. |
 | `SymbolSelector` | `project?: ProjectSelector`, `location?: LocationSelector`, `documentationCommentId?: string`. Query tools accept exactly one resolver; mutations require `location`. The optional project scope is resolved first and disambiguates linked source and declarations visible through multiple compilations. A documentation ID is accepted only when it resolves to one source symbol owned by the selected project, when supplied. It cannot identify a local symbol or a particular declaration of a partial symbol. |
 | `ScopeSelector` | `kind: Solution \| Project \| Document \| Projects`, `project?: ProjectSelector`, `document?: DocumentSelector`, `projects?: ProjectSelector[]`. The additional selector must match `kind`. |
 | `ProjectRelativePath` | `value: string`. A relative path beneath the owning project's canonical directory. Absolute paths, `..` traversal, and a canonical path that escapes through a symlink are rejected. |
-| `ResolvedLocation` | `{ workspaceId?: string, document: DocumentReference, span: { start: int, length: int }, line: int, column: int, workspaceEpoch: long, transactionRevision?: int }` |
+| `ResolvedLocation` | `{ document?: DocumentReference, span?: { start: int, length: int }, line: int, column: int, snapshot: SnapshotPrecondition }`. The nested snapshot is the exact identity against which the location was resolved. |
 | `DocumentReference` | `{ documentId: string, path: string, projectId: string }` |
 | `SymbolReference` | `{ displayName: string, kind: string, documentationCommentId?: string, location?: ResolvedLocation }`. Metadata names may be returned in descriptive text, but are never accepted as identity selectors. |
 | `CodeActionListItem` | `{ actionId: string, title: string, kind: CodeFix \| Refactoring, location: { document: DocumentReference, span: { start: int, length: int }, line: int, column: int }, diagnostics?: BoundedCollection<{ id: string, message: string }>, fixAllScopes?: (Document \| Project \| Solution)[] }`. `location` is the precise target even when discovery used a broader range. Internal provider and replay identity is not published. |
@@ -126,7 +126,7 @@ All tools use `openWorld = false` and task support `Forbidden`.
 
 ## Snapshot, Path and Result-Limit Preconditions
 
-Every mutation request includes `expectedSnapshot: SnapshotPrecondition`. Every query that accepts a `LocationSelector`, `TextSpanSelector`, or a location-based `SymbolSelector` also includes it. Fresh discovery queries that only select a document, project or scope do not require it, but may accept it as an assertion. A mismatch returns `Conflict` with `SnapshotMismatch` and `ResolveTargetAgain`; the server never reinterprets an old source span against a newer revision.
+Every mutation request includes `expectedSnapshot: SnapshotPrecondition`. Every query that accepts a `LocationSelector`, `TextSpanSelector`, or a location-based `SymbolSelector` also includes it. Fresh discovery queries that only select a document, project or scope do not require it, but may accept it as an assertion. Successful workspace-bound result envelopes publish the authoritative `snapshot`; resolved locations also carry the exact nested snapshot against which they were produced. Callers pass the complete published object back as `expectedSnapshot` and must not synthesise a replacement from an epoch or transaction revision. Handled failures do not publish a replacement snapshot. A mismatch in any identity component returns `Conflict` with `SnapshotMismatch` and `ResolveTargetAgain`; the server never reinterprets an old source span against a different immutable solution snapshot.
 
 `targetPath` fields use `ProjectRelativePath`, relative to the project owning the source type unless the tool explicitly names a target project. The coordinator verifies project ownership and the canonical path for every source document creation, deletion and relocation. Linked or escaping document paths are rejected for those operations in v1.
 
@@ -136,7 +136,7 @@ Code Action IDs are opaque GUID references to revalidation recipes in a bounded,
 
 Every request that executes against a loaded workspace may include `workspace?: WorkspaceSelector`. When exactly one workspace is loaded, the selector may be omitted and the server routes the request there. When more than one workspace is loaded, omitting it is rejected with `WorkspaceSelectorRequired`.
 
-The output tables below name the successful response payload for each tool. Successful query results now always publish as `{ ok: true, data: <payload> }`. Mutation and server-owned tools continue to use their existing structured result envelopes.
+The output tables below name the successful response payload for each tool. Successful workspace-bound query results publish as `{ ok: true, snapshot: SnapshotPrecondition, data: <payload> }`; results that do not execute against a workspace may omit `snapshot`. Mutation and server-owned tools continue to use their existing structured result envelopes, publishing the authoritative snapshot whenever one is available.
 
 Contract ownership follows the production boundary: Workspace owns selector, snapshot, diagnostic, mutation and transaction models; Plugins.Core owns inspection DTOs and collection limits; CodeActions owns Code Action discovery, preparation and staging requests; Plugins owns plugin metadata and execution results; Host owns MCP envelopes, schemas, binding and lifecycle requests. Code Actions are Host-owned and are not reported as a plugin by `server-status`.
 

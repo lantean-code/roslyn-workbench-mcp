@@ -44,7 +44,7 @@ public sealed class MutationPipelineIntegrationTests
                     DocumentationCommentId = "T:Sample.StateHolder",
                 },
                 NewName = "SessionState",
-                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, startResult.Data!.Transaction.Revision),
+                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(startResult),
             }, TestContext.Current.CancellationToken);
 
         var formatDocument = await session.ExecuteMutationAsync(
@@ -55,7 +55,7 @@ public sealed class MutationPipelineIntegrationTests
                 {
                     Path = "Usings.cs",
                 },
-                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, rename.Data!.Transaction!.Revision),
+                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(rename),
             }, TestContext.Current.CancellationToken);
 
         var transactionPreview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);

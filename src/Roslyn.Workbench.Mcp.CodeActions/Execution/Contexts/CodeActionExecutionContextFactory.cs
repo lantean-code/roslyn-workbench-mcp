@@ -32,10 +32,13 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
     }
 
     public CodeActionMutationExecutionLease CreateMutationContext(
-        WorkspaceBoundRequest request,
+        WorkspaceMutationRequest request,
         CancellationToken cancellationToken)
     {
-        var workspaceLease = _workspaceFactory.CreateMutationContext(request.Workspace, cancellationToken);
+        var workspaceLease = _workspaceFactory.CreateMutationContext(
+            request.Workspace,
+            request.ExpectedSnapshot,
+            cancellationToken);
         if (workspaceLease.HasFailure)
         {
             var context = workspaceLease.Context is null

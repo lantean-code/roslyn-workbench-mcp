@@ -57,7 +57,9 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
             using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
             {
                 return CreateStructuredResult(
-                    McpPublishedResultSerializer.SerializeCodeActionQuery(result),
+                    McpPublishedResultSerializer.SerializeCodeActionQuery(
+                        result,
+                        context.Snapshot),
                     result.HasError);
             }
         }

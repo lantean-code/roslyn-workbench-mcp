@@ -19,10 +19,13 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
     }
 
     public PluginMutationExecutionLease CreateMutationContext(
-        WorkspaceBoundRequest request,
+        WorkspaceMutationRequest request,
         CancellationToken cancellationToken)
     {
-        var workspaceLease = _workspaceFactory.CreateMutationContext(request.Workspace, cancellationToken);
+        var workspaceLease = _workspaceFactory.CreateMutationContext(
+            request.Workspace,
+            request.ExpectedSnapshot,
+            cancellationToken);
         if (workspaceLease.HasFailure)
         {
             var context = workspaceLease.Context is null

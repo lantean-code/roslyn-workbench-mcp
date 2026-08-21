@@ -91,7 +91,8 @@ public sealed class ToolSchemaBuilderTests
         var result = ToolSchemaBuilder.CreateDirectOutputSchema(
             valueSchema,
             CreateObjectSchema("code"),
-            CreatePrimitiveSchema("string"));
+            CreatePrimitiveSchema("string"),
+            CreateObjectSchema("workspaceId"));
 
         var success = GetSuccessVariant(result);
 
@@ -108,11 +109,12 @@ public sealed class ToolSchemaBuilderTests
         var result = ToolSchemaBuilder.CreateDirectOutputSchema(
             CreatePrimitiveSchema("string"),
             CreateObjectSchema("code"),
-            CreatePrimitiveSchema("string"));
+            CreatePrimitiveSchema("string"),
+            CreateObjectSchema("workspaceId"));
 
         var success = GetSuccessVariant(result);
 
-        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data");
+        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data", "snapshot");
         var data = success.GetProperty("properties").GetProperty("data");
         AllowsNull(data).Should().BeTrue();
         data.GetProperty("type").EnumerateArray().Select(static item => item.GetString()).Should().Equal("string", "null");

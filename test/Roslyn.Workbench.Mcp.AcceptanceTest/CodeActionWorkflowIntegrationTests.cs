@@ -109,7 +109,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 {
                     ["workspace"] = workspaceSelector,
                     ["actionId"] = actionId,
-                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
+                    ["expectedSnapshot"] = AcceptanceProtocol.GetSnapshot(stageResult),
                 },
                 TestContext.Current.CancellationToken);
 
@@ -625,7 +625,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 target,
                 workspaceSelector,
                 stringLiteralStart,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(firstStage));
 
             currentList.IsError.Should().NotBeTrue();
             var staleStage = await target.CallToolAsync(
@@ -634,7 +634,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 {
                     ["workspace"] = workspaceSelector,
                     ["actionId"] = staleActionId,
-                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
+                    ["expectedSnapshot"] = AcceptanceProtocol.GetSnapshot(firstStage),
                 },
                 TestContext.Current.CancellationToken);
 

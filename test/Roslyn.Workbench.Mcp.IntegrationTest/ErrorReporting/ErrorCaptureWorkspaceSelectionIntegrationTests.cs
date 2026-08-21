@@ -160,7 +160,7 @@ public sealed class ErrorCaptureWorkspaceSelectionIntegrationTests : IDisposable
         string loadedPath,
         long workspaceEpoch)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = new WorkspaceSnapshotId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = workspaceId,

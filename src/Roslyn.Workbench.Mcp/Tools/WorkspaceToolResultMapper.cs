@@ -4,9 +4,7 @@ internal static class WorkspaceToolResultMapper
 {
     public static ToolResult<TTarget> Map<TSource, TTarget>(WorkspaceOperationResult<TSource> result, Func<TSource, TTarget> mapData)
     {
-        var workspaceId = result.Context.WorkspaceId;
-        var workspaceEpoch = result.Context.WorkspaceEpoch;
-        var transactionRevision = result.Context.TransactionRevision;
+        var snapshot = result.Context.Snapshot;
 
         switch (result.Status)
         {
@@ -14,9 +12,7 @@ internal static class WorkspaceToolResultMapper
                 var mappedData = mapData(result.Data);
                 return ToolResult.Succeeded(
                     mappedData,
-                    workspaceId: workspaceId,
-                    workspaceEpoch: workspaceEpoch,
-                    transactionRevision: transactionRevision,
+                    snapshot: snapshot,
                     diagnostics: result.Diagnostics,
                     warnings: result.Warnings);
 
@@ -25,9 +21,7 @@ internal static class WorkspaceToolResultMapper
                 return ToolResult.Rejected<TTarget>(
                     rejectedError,
                     result.Error.RequiredAction,
-                    workspaceId: workspaceId,
-                    workspaceEpoch: workspaceEpoch,
-                    transactionRevision: transactionRevision,
+                    snapshot: snapshot,
                     diagnostics: result.Diagnostics,
                     warnings: result.Warnings);
 
@@ -36,9 +30,7 @@ internal static class WorkspaceToolResultMapper
                 return ToolResult.Conflict<TTarget>(
                     conflictError,
                     result.Error.RequiredAction,
-                    workspaceId: workspaceId,
-                    workspaceEpoch: workspaceEpoch,
-                    transactionRevision: transactionRevision,
+                    snapshot: snapshot,
                     diagnostics: result.Diagnostics,
                     warnings: result.Warnings);
 
@@ -47,9 +39,7 @@ internal static class WorkspaceToolResultMapper
                 return ToolResult.Faulted<TTarget>(
                     faultError,
                     result.Error.RequiredAction,
-                    workspaceId: workspaceId,
-                    workspaceEpoch: workspaceEpoch,
-                    transactionRevision: transactionRevision,
+                    snapshot: snapshot,
                     diagnostics: result.Diagnostics,
                     warnings: result.Warnings);
 
@@ -61,9 +51,7 @@ internal static class WorkspaceToolResultMapper
                 }
 
                 return ToolResult.NoChange(
-                    workspaceId: workspaceId,
-                    workspaceEpoch: workspaceEpoch,
-                    transactionRevision: transactionRevision,
+                    snapshot: snapshot,
                     data: noChangeData,
                     diagnostics: result.Diagnostics,
                     warnings: result.Warnings);

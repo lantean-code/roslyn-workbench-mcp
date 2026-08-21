@@ -43,7 +43,7 @@ internal sealed class CrashRecoveryRunner
 
         var commitTask = _host.CallToolAsync(
             "transaction-commit",
-            CreateMutationArguments(transactionRevision: 1),
+            CreateMutationArguments(),
             cancellationToken).AsTask();
 
         targetMonitor.WaitForChangeAndTerminate(
@@ -209,15 +209,10 @@ internal sealed class CrashRecoveryRunner
         };
     }
 
-    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    private Dictionary<string, object?> CreateMutationArguments()
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["expectedSnapshot"] = new Dictionary<string, object?>
-        {
-            ["workspaceId"] = _workspaceId,
-            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
-            ["transactionRevision"] = transactionRevision,
-        };
+        arguments["expectedSnapshot"] = _host.GetSnapshot(_workspaceId);
 
         return arguments;
     }

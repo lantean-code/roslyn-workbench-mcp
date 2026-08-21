@@ -8,6 +8,8 @@ internal interface ICodeActionExecutionContext
 
     WorkspaceSnapshotIdentity SnapshotIdentity { get; }
 
+    SnapshotPrecondition Snapshot { get; }
+
     int? TransactionRevision { get; }
 
     int DefaultMaxResults { get; }

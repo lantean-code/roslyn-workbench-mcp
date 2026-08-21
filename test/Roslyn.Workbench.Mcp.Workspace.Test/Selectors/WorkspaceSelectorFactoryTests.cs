@@ -42,6 +42,8 @@ public sealed class WorkspaceSelectorFactoryTests
 
         var resolvedLocation = new ResolvedLocation
         {
+            Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Document = document,
             Span = span,
         };
@@ -66,6 +68,8 @@ public sealed class WorkspaceSelectorFactoryTests
     {
         var resolvedLocation = new ResolvedLocation
         {
+            Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Document = new DocumentReference
             {
                 DocumentId = documentId,

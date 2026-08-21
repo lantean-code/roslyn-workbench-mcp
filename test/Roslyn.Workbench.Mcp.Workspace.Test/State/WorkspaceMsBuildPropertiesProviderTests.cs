@@ -48,7 +48,7 @@ public sealed class WorkspaceMsBuildPropertiesProviderTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceMsBuildProperties properties)
     {
-        var snapshotId = new WorkspaceSnapshotId(1);
+        var snapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspace = new WorkspaceIdentity
         {
             WorkspaceId = _workspaceId,

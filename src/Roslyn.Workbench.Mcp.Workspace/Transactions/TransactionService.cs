@@ -53,7 +53,7 @@ internal sealed class TransactionService : ITransactionService
         using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
 
-        var context = CreateContext(session);
+        var context = WorkspaceOperationContextFactory.Create(session);
         if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
             return _resultFactory.Conflict<TransactionStartOutcome>(
@@ -120,7 +120,7 @@ internal sealed class TransactionService : ITransactionService
             Transaction = transaction.ToInfo(conflicted: false),
         };
 
-        var updatedContext = CreateContext(updatedSession);
+        var updatedContext = WorkspaceOperationContextFactory.Create(updatedSession);
 
         return _resultFactory.Succeeded(outcome, updatedContext);
     }
@@ -150,7 +150,7 @@ internal sealed class TransactionService : ITransactionService
             WorkspaceOperationContext? rejectionContext = null;
             if (session is not null)
             {
-                rejectionContext = CreateContext(session);
+                rejectionContext = WorkspaceOperationContextFactory.Create(session);
             }
 
             return _resultFactory.Rejected<TransactionPreviewOutcome>(
@@ -160,12 +160,15 @@ internal sealed class TransactionService : ITransactionService
                 rejectionContext);
         }
 
+        var snapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            session.Transaction.CurrentRevision);
         var resolver = _resolverFactory.Create(
             session.Transaction.CurrentSolution,
             session.Workspace,
-            session.Transaction.CurrentRevision);
+            snapshot);
 
-        var context = CreateContext(session);
+        var context = WorkspaceOperationContextFactory.Create(session);
         DocumentReference? diffDocument = null;
         if (includeDiff)
         {
@@ -269,11 +272,11 @@ internal sealed class TransactionService : ITransactionService
                 RequiredAction.StartTransaction);
         }
 
-        var context = CreateContext(session);
-        var snapshotMismatch = _snapshotGuard.Validate(session, expectedSnapshot);
-        if (snapshotMismatch is not null)
+        var context = WorkspaceOperationContextFactory.Create(session);
+        var snapshotValidation = _snapshotGuard.Validate(session, expectedSnapshot);
+        if (!snapshotValidation.IsValid)
         {
-            return _resultFactory.Conflict<TransactionHistoryOutcome>(snapshotMismatch, context);
+            return _resultFactory.Conflict<TransactionHistoryOutcome>(snapshotValidation.Error, context);
         }
 
         if (session.State == WorkspaceLifecycleState.TransactionConflicted)
@@ -319,7 +322,7 @@ internal sealed class TransactionService : ITransactionService
             Transaction = updatedTransaction.ToInfo(conflicted: false),
         };
 
-        var updatedContext = CreateContext(updatedSession);
+        var updatedContext = WorkspaceOperationContextFactory.Create(updatedSession);
 
         return _resultFactory.Succeeded(outcome, updatedContext);
     }
@@ -390,7 +393,7 @@ internal sealed class TransactionService : ITransactionService
         var completion = _sessionStore.TryCompleteTransaction(updatedSession);
         if (!completion.IsCompleted)
         {
-            var context = CreateContext(session);
+            var context = WorkspaceOperationContextFactory.Create(session);
             return _resultFactory.Faulted<TransactionRollbackOutcome>(
                 "TransactionOwnershipChanged",
                 completion.Failure.Message,
@@ -409,7 +412,7 @@ internal sealed class TransactionService : ITransactionService
             State = rollbackState,
         };
 
-        var updatedContext = CreateContext(updatedSession);
+        var updatedContext = WorkspaceOperationContextFactory.Create(updatedSession);
 
         return _resultFactory.Succeeded(outcome, updatedContext);
     }
@@ -452,16 +455,6 @@ internal sealed class TransactionService : ITransactionService
         };
     }
 
-    private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)
-    {
-        return new WorkspaceOperationContext
-        {
-            WorkspaceId = session.Workspace.WorkspaceId,
-            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
-            TransactionRevision = session.Transaction?.CurrentRevision,
-        };
-    }
-
     private WorkspaceOperationResult<TOutcome> CreateAcquisitionFailureResult<TOutcome>(
         WorkspaceSessionAcquisition acquisition,
         WorkspaceOperationError error)
@@ -469,7 +462,7 @@ internal sealed class TransactionService : ITransactionService
         WorkspaceOperationContext? context = null;
         if (acquisition.ContextSession is not null)
         {
-            context = CreateContext(acquisition.ContextSession);
+            context = WorkspaceOperationContextFactory.Create(acquisition.ContextSession);
         }
 
         return _resultFactory.Rejected<TOutcome>(error, context);

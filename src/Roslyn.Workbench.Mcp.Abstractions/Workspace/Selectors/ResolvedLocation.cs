@@ -6,11 +6,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 public sealed record ResolvedLocation
 {
     /// <summary>
-    /// Gets the workspace identifier associated with this location.
-    /// </summary>
-    public Guid? WorkspaceId { get; init; }
-
-    /// <summary>
     /// Gets the resolved document.
     /// </summary>
     public DocumentReference? Document { get; init; }
@@ -31,12 +26,7 @@ public sealed record ResolvedLocation
     public int Column { get; init; }
 
     /// <summary>
-    /// Gets the workspace epoch associated with this location.
+    /// Gets the exact immutable workspace snapshot associated with this location.
     /// </summary>
-    public long WorkspaceEpoch { get; init; }
-
-    /// <summary>
-    /// Gets the transaction revision associated with this location, when available.
-    /// </summary>
-    public int? TransactionRevision { get; init; }
+    public required SnapshotPrecondition Snapshot { get; init; }
 }

@@ -38,6 +38,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     public WorkspaceMutationExecutionLease CreateMutationContext(
         WorkspaceSelector? workspace,
+        SnapshotPrecondition expectedSnapshot,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -86,6 +87,22 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             {
                 return WorkspaceMutationExecutionLease.Rejected(
                     validation.Failure,
+                    context,
+                    _mutationStager,
+                    acquisition.Lease);
+            }
+
+            var snapshotMatch = context.WorkspaceResolver.ValidateSnapshot(expectedSnapshot);
+            if (snapshotMatch.Kind != SnapshotMatchKind.Matched)
+            {
+                var failure = CreateFailure(
+                    WorkspaceOperationStatus.Conflict,
+                    WorkspaceErrorCodes.SnapshotMismatch,
+                    "The request snapshot does not match the current workspace snapshot.",
+                    RequiredAction.ResolveTargetAgain);
+
+                return WorkspaceMutationExecutionLease.Rejected(
+                    failure,
                     context,
                     _mutationStager,
                     acquisition.Lease);
@@ -173,16 +190,22 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)
     {
         var workspacePathService = _pathServiceFactory.Create(session.Workspace);
+        var transactionRevision = session.Transaction?.CurrentRevision;
+        var snapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            transactionRevision);
+
         var resolver = _resolverFactory.Create(
             session.CurrentSolution,
             session.Workspace,
-            session.Transaction?.CurrentRevision);
+            snapshot);
 
         return new WorkspaceExecutionContext(
             session.CurrentSolution,
             session.Workspace,
             session.CurrentSnapshotIdentity,
-            session.Transaction?.CurrentRevision,
+            snapshot,
+            transactionRevision,
             _options.DefaultMaxResults,
             workspacePathService,
             resolver);

@@ -78,11 +78,15 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
             WorkspaceRoot = "WorkspaceRoot",
         };
 
-        var snapshotId = new WorkspaceSnapshotId(1);
+        var snapshotId = new WorkspaceSnapshotId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var inputManifest = new WorkspaceInputManifest
         {
             ChangeMonitor = inputChangeMonitor.Object,
         };
+        var snapshotIdentity = WorkspaceSnapshotIdentity.Create(
+            workspaceIdentity,
+            snapshotId,
+            transaction: null);
 
         var session = new WorkspaceSessionSnapshot
         {
@@ -93,7 +97,7 @@ public sealed class WorkspaceShutdownLifecycleServiceIntegrationTests
             CurrentSolution = workspace.CurrentSolution,
             InputManifest = inputManifest,
             OperationGate = operationGate.Object,
-            CurrentSnapshotIdentity = WorkspaceSnapshotIdentity.Create(workspaceIdentity, snapshotId, transaction: null),
+            CurrentSnapshotIdentity = snapshotIdentity,
         };
 
         var sessionStore = new WorkspaceSessionStore(queryCache.Object, []);

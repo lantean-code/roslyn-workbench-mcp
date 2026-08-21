@@ -2,9 +2,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Operations;
 
 internal sealed class WorkspaceOperationContext
 {
-    public Guid? WorkspaceId { get; init; }
+    public SnapshotPrecondition? Snapshot { get; init; }
 
-    public long? WorkspaceEpoch { get; init; }
+    public Guid? WorkspaceId => Snapshot?.WorkspaceId;
 
-    public int? TransactionRevision { get; init; }
+    public long? WorkspaceEpoch => Snapshot?.WorkspaceEpoch;
+
+    public int? TransactionRevision => Snapshot?.TransactionRevision;
 }

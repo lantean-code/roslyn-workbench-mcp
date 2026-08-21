@@ -8,10 +8,19 @@ internal static class ToolSchemaBuilder
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
-        JsonElement continuationSchema)
+        JsonElement continuationSchema,
+        JsonElement snapshotSchema)
     {
-        var successSchema = CreateNullableSuccessSchema(valueSchema);
-        return CreateResponseSchema(successSchema, [valueSchema], errorSchema, continuationSchema);
+        var successSchema = CreateNullableSuccessSchema(
+            valueSchema,
+            snapshotSchema,
+            snapshotRequired: false);
+
+        return CreateResponseSchema(
+            successSchema,
+            [valueSchema, snapshotSchema],
+            errorSchema,
+            continuationSchema);
     }
 
     public static JsonElement CreateResponseSchema(
@@ -137,9 +146,15 @@ internal static class ToolSchemaBuilder
         };
     }
 
-    public static JsonObject CreateNullableSuccessSchema(JsonElement dataSchema)
+    public static JsonObject CreateNullableSuccessSchema(
+        JsonElement dataSchema,
+        JsonElement snapshotSchema,
+        bool snapshotRequired)
     {
-        return CreateSuccessSchema(AllowNull(dataSchema));
+        return CreateSuccessSchema(
+            AllowNull(dataSchema),
+            snapshotSchema,
+            snapshotRequired);
     }
 
     public static JsonElement NormalizeExportedSchema(JsonElement schemaNode, JsonElement root)
@@ -160,7 +175,10 @@ internal static class ToolSchemaBuilder
         return JsonSerializer.SerializeToElement(schemaObject);
     }
 
-    public static JsonObject CreateSuccessSchema(JsonNode? dataSchema)
+    public static JsonObject CreateSuccessSchema(
+        JsonNode? dataSchema,
+        JsonElement snapshotSchema,
+        bool snapshotRequired)
     {
         var okSchema = new JsonObject
         {
@@ -171,9 +189,15 @@ internal static class ToolSchemaBuilder
         {
             ["ok"] = okSchema,
             ["data"] = dataSchema,
+            ["snapshot"] = ParseNode(snapshotSchema),
         };
 
         var requiredProperties = new JsonArray("ok", "data");
+        if (snapshotRequired)
+        {
+            requiredProperties.Add("snapshot");
+        }
+
         return new JsonObject
         {
             ["type"] = "object",

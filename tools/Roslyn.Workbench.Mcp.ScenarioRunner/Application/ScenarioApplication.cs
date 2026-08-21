@@ -162,8 +162,8 @@ internal static class ScenarioApplication
                 hostPath,
                 repositoryRoot,
                 stateDirectory,
-                cancellationToken,
-                options.PluginDirectory);
+                options.PluginDirectory,
+                cancellationToken);
             Guid? workspaceId = null;
             ExceptionDispatchInfo? runFailure = null;
             var workspaceClosed = false;
@@ -648,6 +648,7 @@ internal static class ScenarioApplication
             hostPath,
             repositoryRoot,
             stateDirectory,
+            pluginDirectory: null,
             cancellationToken);
         Guid? workspaceId = null;
         CommitCancellationRunner? runner = null;
@@ -914,6 +915,7 @@ internal static class ScenarioApplication
             hostPath,
             repositoryRoot,
             stateDirectory,
+            pluginDirectory: null,
             cancellationToken);
         Guid? workspaceId = null;
         StateSequenceExecution? execution = null;
@@ -1071,6 +1073,7 @@ internal static class ScenarioApplication
             hostPath,
             repositoryRoot,
             stateDirectory,
+            pluginDirectory: null,
             cancellationToken);
         Guid? workspaceId = null;
         DurableCommitRunner? runner = null;
@@ -1346,6 +1349,7 @@ internal static class ScenarioApplication
             hostPath,
             repositoryRoot,
             stateDirectory,
+            pluginDirectory: null,
             cancellationToken);
         Guid? workspaceId = null;
         ConflictExecution? execution = null;
@@ -1609,6 +1613,7 @@ internal static class ScenarioApplication
                 hostPath,
                 repositoryRoot,
                 stateDirectory,
+                pluginDirectory: null,
                 cancellationToken);
 
             var workspaceId = await OpenWorkspaceAsync(
@@ -1651,6 +1656,7 @@ internal static class ScenarioApplication
                 hostPath,
                 repositoryRoot,
                 stateDirectory,
+                pluginDirectory: null,
                 cancellationToken);
 
             recoveryStartupStopwatch.Stop();
@@ -2185,11 +2191,6 @@ internal static class ScenarioApplication
                 throw new InvalidDataException("workspace-open returned an empty workspaceId.");
             }
 
-            var workspaceEpoch = workspace
-                .GetProperty("workspaceEpoch")
-                .GetInt64();
-
-            host.RegisterWorkspace(workspaceId, workspaceEpoch);
             return workspaceId;
         }
 

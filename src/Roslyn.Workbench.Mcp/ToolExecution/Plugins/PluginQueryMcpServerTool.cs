@@ -77,7 +77,9 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
             using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
             {
                 return CreateStructuredResult(
-                    McpPublishedResultSerializer.SerializePluginQuery(result),
+                    McpPublishedResultSerializer.SerializePluginQuery(
+                        result,
+                        context.Snapshot),
                     result.HasError);
             }
         }

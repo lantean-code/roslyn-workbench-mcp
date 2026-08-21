@@ -87,7 +87,11 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
                     diagnostics: proposalResult.Diagnostics,
                     warnings: proposalResult.Warnings);
 
-                return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
+                return CreateStructuredResult(
+                    McpPublishedResultSerializer.SerializePluginMutation(
+                        noChange,
+                        context.Snapshot),
+                    isError: false);
             }
 
             PluginExecutionResult<MutationData> stagedResult;
@@ -104,7 +108,9 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
             using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
             {
                 return CreateStructuredResult(
-                    McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
+                    McpPublishedResultSerializer.SerializePluginMutation(
+                        stagedResult,
+                        context.Snapshot),
                     stagedResult.HasError);
             }
         }

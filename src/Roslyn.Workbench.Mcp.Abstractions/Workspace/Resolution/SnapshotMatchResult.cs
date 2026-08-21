@@ -35,6 +35,18 @@ public sealed record SnapshotMatchResult
     }
 
     /// <summary>
+    /// Creates an opaque snapshot identifier mismatch result.
+    /// </summary>
+    /// <returns>The match result.</returns>
+    public static SnapshotMatchResult SnapshotIdMismatch()
+    {
+        return new SnapshotMatchResult
+        {
+            Kind = SnapshotMatchKind.SnapshotIdMismatch,
+        };
+    }
+
+    /// <summary>
     /// Creates a transaction revision mismatch result.
     /// </summary>
     /// <returns>The match result.</returns>

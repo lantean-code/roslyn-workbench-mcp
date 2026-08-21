@@ -29,10 +29,8 @@ public sealed class TransactionCommitToolTests
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var expectedSnapshot = new SnapshotPrecondition
-        {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-        };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var boundRequest = new TransactionCommitRequest
         {
             Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
@@ -53,7 +51,7 @@ public sealed class TransactionCommitToolTests
             service.Object);
 
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
-        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")));
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

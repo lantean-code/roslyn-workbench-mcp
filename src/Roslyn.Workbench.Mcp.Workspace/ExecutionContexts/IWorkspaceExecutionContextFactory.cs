@@ -8,6 +8,7 @@ internal interface IWorkspaceExecutionContextFactory
 
     WorkspaceMutationExecutionLease CreateMutationContext(
         WorkspaceSelector? workspace,
+        SnapshotPrecondition expectedSnapshot,
         CancellationToken cancellationToken);
 
     WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(Guid workspaceId);

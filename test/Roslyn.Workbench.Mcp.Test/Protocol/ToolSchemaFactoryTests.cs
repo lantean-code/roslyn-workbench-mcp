@@ -14,6 +14,9 @@ public sealed class ToolSchemaFactoryTests
         _schemaProvider
             .Setup(item => item.GetValueSchema<ToolError>())
             .Returns(CreateObjectSchema("code"));
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<SnapshotPrecondition>())
+            .Returns(CreateObjectSchema("snapshotId"));
 
         _target = new ToolSchemaFactory(_schemaProvider.Object);
     }
@@ -48,6 +51,7 @@ public sealed class ToolSchemaFactoryTests
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        successVariant.GetProperty("properties").TryGetProperty("snapshot", out _).Should().BeTrue();
         var dataSchema = successVariant.GetProperty("properties").GetProperty("data");
         dataSchema.GetRawText().Should().Contain("value");
         AllowsNull(dataSchema).Should().BeTrue();
@@ -67,7 +71,7 @@ public sealed class ToolSchemaFactoryTests
         var successVariant = variants.Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
         var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
-        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data", "snapshot"]);
         var dataSchema = successVariant.GetProperty("properties").GetProperty("data");
         dataSchema.GetRawText().Should().Contain("value");
         AllowsNull(dataSchema).Should().BeTrue();
@@ -85,7 +89,7 @@ public sealed class ToolSchemaFactoryTests
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
         var data = successVariant.GetProperty("properties").GetProperty("data");
-        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data", "snapshot"]);
         data.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("summary", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();

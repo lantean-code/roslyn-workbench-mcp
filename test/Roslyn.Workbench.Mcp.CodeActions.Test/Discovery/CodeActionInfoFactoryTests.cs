@@ -297,7 +297,11 @@ public sealed class CodeActionInfoFactoryTests
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             new Mock<ICodeActionExecutionContext>().Object,
             roslyn.Document,
-            new ResolvedLocation());
+            new ResolvedLocation
+            {
+                Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
+            });
 
         result.IsSucceeded.Should().BeFalse();
         result.Status.Should().Be(CodeActionInfoCreationStatus.LocationUnavailable);
@@ -327,7 +331,7 @@ public sealed class CodeActionInfoFactoryTests
 
     private static WorkspaceSnapshotIdentity CreateSnapshotIdentity()
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(2);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(2);
         var transactionId = new WorkspaceTransactionId(1);
 
         return new WorkspaceSnapshotIdentity(

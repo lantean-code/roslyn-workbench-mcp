@@ -406,7 +406,11 @@ public sealed class SearchSymbolsToolTests
                         DisplayName = item.Name,
                         Kind = item.Kind.ToString(),
                         DocumentationCommentId = item.GetDocumentationCommentId(),
-                        Location = new ResolvedLocation(),
+                        Location = new ResolvedLocation
+                        {
+                            Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                                Guid.Parse("11111111-1111-1111-1111-111111111111")),
+                        },
                     };
                 }
 

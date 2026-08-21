@@ -9,6 +9,7 @@ internal static class ToolExecutionContextMockHelper
     {
         context.SetupGet(item => item.CurrentSolution).Returns(solution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(CreateWorkspaceIdentity());
+        context.SetupGet(item => item.Snapshot).Returns(CreateSnapshot());
         context.SetupGet(item => item.TransactionRevision).Returns(2);
     }
 
@@ -17,6 +18,7 @@ internal static class ToolExecutionContextMockHelper
     {
         context.SetupGet(item => item.CurrentSolution).Returns(solution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(CreateWorkspaceIdentity());
+        context.SetupGet(item => item.Snapshot).Returns(CreateSnapshot());
         context.SetupGet(item => item.TransactionRevision).Returns(2);
     }
 
@@ -29,5 +31,13 @@ internal static class ToolExecutionContextMockHelper
             LoadedPath = "C:\\Workspace\\Solution.sln",
             WorkspaceRoot = "C:\\Workspace",
         };
+    }
+
+    private static SnapshotPrecondition CreateSnapshot()
+    {
+        return WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            workspaceEpoch: 3,
+            transactionRevision: 2);
     }
 }

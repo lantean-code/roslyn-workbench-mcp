@@ -8,6 +8,7 @@ internal sealed class PluginMutationContext : IMutationContext
     {
         CurrentSolution = workspaceContext.CurrentSolution;
         WorkspaceIdentity = workspaceContext.WorkspaceIdentity;
+        Snapshot = workspaceContext.Snapshot;
         TransactionRevision = workspaceContext.TransactionRevision;
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
         WorkspacePathService = workspaceContext.WorkspacePathService;
@@ -18,6 +19,8 @@ internal sealed class PluginMutationContext : IMutationContext
     public Solution CurrentSolution { get; }
 
     public WorkspaceIdentity WorkspaceIdentity { get; }
+
+    public SnapshotPrecondition Snapshot { get; }
 
     public int? TransactionRevision { get; }
 

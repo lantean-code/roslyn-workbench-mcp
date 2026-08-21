@@ -53,7 +53,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_NewStore_WHEN_AllocatingSnapshotAndTransactionIds_THEN_ShouldReturnDistinctMonotonicIds()
+    public void GIVEN_NewStore_WHEN_AllocatingSnapshotAndTransactionIds_THEN_ShouldReturnUniqueSnapshotsAndMonotonicTransactions()
     {
         var target = CreateStore();
 
@@ -62,8 +62,9 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var firstTransaction = target.AllocateWorkspaceTransactionId();
         var secondTransaction = target.AllocateWorkspaceTransactionId();
 
-        firstSnapshot.Value.Should().Be(1);
-        secondSnapshot.Value.Should().Be(2);
+        firstSnapshot.Value.Should().NotBe(Guid.Empty);
+        secondSnapshot.Value.Should().NotBe(Guid.Empty);
+        firstSnapshot.Should().NotBe(secondSnapshot);
         firstTransaction.Value.Should().Be(1);
         secondTransaction.Value.Should().Be(2);
     }
@@ -71,16 +72,14 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     [Fact]
     public void GIVEN_SnapshotAndTransactionIdentityTypes_WHEN_UsingInvalidValues_THEN_ShouldReserveDefaultAndRejectNonPositiveValues()
     {
-        default(WorkspaceSnapshotId).Value.Should().Be(0);
+        default(WorkspaceSnapshotId).Value.Should().Be(Guid.Empty);
         default(WorkspaceTransactionId).Value.Should().Be(0);
 
-        var zeroSnapshotAction = () => new WorkspaceSnapshotId(0);
-        var negativeSnapshotAction = () => new WorkspaceSnapshotId(-1);
+        var emptySnapshotAction = () => new WorkspaceSnapshotId(Guid.Empty);
         var zeroTransactionAction = () => new WorkspaceTransactionId(0);
         var negativeTransactionAction = () => new WorkspaceTransactionId(-1);
 
-        zeroSnapshotAction.Should().Throw<ArgumentOutOfRangeException>();
-        negativeSnapshotAction.Should().Throw<ArgumentOutOfRangeException>();
+        emptySnapshotAction.Should().Throw<ArgumentOutOfRangeException>();
         zeroTransactionAction.Should().Throw<ArgumentOutOfRangeException>();
         negativeTransactionAction.Should().Throw<ArgumentOutOfRangeException>();
     }
@@ -90,7 +89,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
     {
         const int allocationCount = 100;
         var target = CreateStore();
-        var snapshotIds = new long[allocationCount];
+        var snapshotIds = new Guid[allocationCount];
         var transactionIds = new long[allocationCount];
 
         Parallel.For(0, allocationCount, index =>
@@ -101,7 +100,6 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         snapshotIds.Should().OnlyHaveUniqueItems();
         transactionIds.Should().OnlyHaveUniqueItems();
-        snapshotIds.Should().BeEquivalentTo(Enumerable.Range(1, allocationCount).Select(value => (long)value));
         transactionIds.Should().BeEquivalentTo(Enumerable.Range(1, allocationCount).Select(value => (long)value));
     }
 
@@ -463,7 +461,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         var transaction = CreateTransaction();
         var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
-        var committedSnapshotId = new WorkspaceSnapshotId(2);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(2);
         var replacement = session with
         {
             State = WorkspaceLifecycleState.Ready,
@@ -501,7 +499,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alias", transaction: transaction);
         var target = CreateStoreWithSession(session);
-        var committedSnapshotId = new WorkspaceSnapshotId(2);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(2);
         var replacement = session with
         {
             State = WorkspaceLifecycleState.Ready,
@@ -537,7 +535,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
 
         var appendResult = transaction.Append(new WorkspaceTransactionRevision
         {
-            SnapshotId = new WorkspaceSnapshotId(2),
+            SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
             Solution = changedSolution,
             Changes = new ChangeSummary(),
             Operation = "Operation",
@@ -678,7 +676,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 transaction.Revisions[0],
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(4),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(4),
                     Solution = _workspace.CurrentSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
@@ -698,12 +696,12 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                     session.CommittedSnapshotId,
                     replacementTransaction),
             },
-            [new WorkspaceSnapshotId(3)]);
+            [WorkspaceSnapshotTestFactory.CreateId(3)]);
 
         var expectedIdentity = new WorkspaceSnapshotIdentity(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
-            new WorkspaceSnapshotId(3),
+            WorkspaceSnapshotTestFactory.CreateId(3),
             transaction.TransactionId);
 
         _lifecycleObserver.Verify(
@@ -810,7 +808,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         long committedSnapshotId = 1,
         WorkspaceTransaction? transaction = null)
     {
-        var snapshotId = new WorkspaceSnapshotId(committedSnapshotId);
+        var snapshotId = WorkspaceSnapshotTestFactory.CreateId(committedSnapshotId);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = workspaceId,
@@ -851,13 +849,13 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = baselineSolution,
             Revisions =
             [
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(2),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
                     Solution = firstRevisionSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
@@ -866,7 +864,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                 },
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(3),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(3),
                     Solution = secondRevisionSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",

@@ -64,7 +64,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-004 — Reused public revision numbers can validate stale snapshots against another solution
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-21
 **Severity:** P1  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/SnapshotPrecondition.cs:6-22`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/SnapshotGuard.cs:14`; `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceTransaction.cs:21-41`
@@ -75,7 +75,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Abstractions, Workspace, Plugins/Core, external plugins and Host protocol.  
 **Remediation direction:** Publish/require opaque snapshot identity or make public revision identity monotonic and non-reusable; add stale-branch and old-transaction adapter tests.  
-**Origin/history:** Unit 2, 2026-08-16; current contracts/history/guard/consumers inspected; existing mismatch tests do not create tuple aliasing.
+**Origin/history:** Unit 2, 2026-08-16; current contracts/history/guard/consumers inspected; existing mismatch tests did not create tuple aliasing. Remediated on 2026-08-21 by publishing and validating an opaque immutable-solution snapshot ID across all execution boundaries, adding stale branch/replacement coverage, and aligning agent and plugin guidance; the final staged implementation received an independent Review Agent pass with no findings.
 
 ### RWMCP3-005 — Add/delete commits do not preserve explicitly itemised project graphs
 

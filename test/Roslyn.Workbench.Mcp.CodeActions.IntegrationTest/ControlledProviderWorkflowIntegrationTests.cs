@@ -24,7 +24,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             CreateListRequest(
                 fixture.GetLocation("StateHolder"),
                 CodeActionKindSelection.All,
-                BundledComponentWorkspaceFactory.CreateSnapshot(open, 0)),
+                BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open)),
             TestContext.Current.CancellationToken);
 
         listed.Data!.Actions.Items.Should().ContainSingle(static action => action.Title == "Apply test refactoring");
@@ -45,7 +45,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var refactorings = await ListActionsAsync(
             session,
             fixture.GetLocation("StateHolder"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             includeCodeFixes: false);
         var refactoringActionId = refactorings.Data!.Actions.Items
             .Single(static action => action.Title == "Apply test refactoring")
@@ -54,13 +54,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var stagedRefactoring = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = refactoringActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            BundledComponentWorkspaceFactory.CreateSnapshot(stagedRefactoring),
             includeRefactorings: false);
         var codeFixActionId = codeFixes.Data!.Actions.Items
             .Single(static action => action.Title == "Apply test code fix")
@@ -69,7 +69,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var stagedCodeFix = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = codeFixActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(stagedRefactoring),
         }, TestContext.Current.CancellationToken);
 
         var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
@@ -94,20 +94,20 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             includeRefactorings: false);
 
         var prepared = await session.PrepareFixAllAsync(new PrepareFixAllRequest
         {
             ActionId = codeFixes.Data!.Actions.Items.Single(static action => action.Title == "Apply test code fix").ActionId,
             Scope = CodeActionFixAllScope.Solution,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var result = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = prepared.Data!.ActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
@@ -130,7 +130,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             includeRefactorings: false);
         var originActionId = codeFixes.Data!.Actions.Items
             .Single(static action => action.Title == "Apply test code fix")
@@ -140,7 +140,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         {
             ActionId = originActionId,
             Scope = CodeActionFixAllScope.Solution,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var sourceAfterPreparation = await File.ReadAllTextAsync(
@@ -150,7 +150,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = prepared.Data!.ActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
@@ -186,7 +186,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
-        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var snapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
@@ -235,7 +235,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
-        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var snapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
@@ -301,7 +301,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
-        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var snapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
@@ -331,7 +331,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
 
         await coordinator.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(open, 1));
+            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(staged));
 
         var committedBytes = await File.ReadAllBytesAsync(
             fixture.DocumentPath,
@@ -351,28 +351,28 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
 
-        var revisionZeroSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var revisionZeroSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var firstListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), revisionZeroSnapshot, includeCodeFixes: false);
         var firstActionId = firstListing.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId;
         var retainedListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), revisionZeroSnapshot, includeCodeFixes: false);
         var retainedActionId = retainedListing.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
-        await session.StageCodeActionAsync(new StageCodeActionRequest
+        var stagedFirstAction = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = firstActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var redoBranchListing = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            BundledComponentWorkspaceFactory.CreateSnapshot(stagedFirstAction),
             includeRefactorings: false);
         var redoBranchActionId = redoBranchListing.Data!.Actions.Items.Single(static action => action.Title == "Apply test code fix").ActionId;
         var nonCurrentResult = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = retainedActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(stagedFirstAction),
         }, TestContext.Current.CancellationToken);
 
         nonCurrentResult.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
@@ -387,7 +387,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var restoredResult = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = retainedActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         restoredResult.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
@@ -408,7 +408,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var listing = await ListActionsAsync(
             session,
             fixture.GetLocation("StateHolder"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             includeCodeFixes: false);
         var actionId = listing.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
@@ -428,23 +428,23 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
 
-        var revisionZeroSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0);
+        var revisionZeroSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var firstListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), revisionZeroSnapshot, includeCodeFixes: false);
         var stagedActionId = firstListing.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId;
         var retainedListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), revisionZeroSnapshot, includeCodeFixes: false);
         var retainedActionId = retainedListing.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
-        await session.StageCodeActionAsync(new StageCodeActionRequest
+        var stagedAction = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = stagedActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         referenceStore.TryGet(retainedActionId, out _).Should().BeTrue();
 
         await coordinator.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(open, 1));
+            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(stagedAction));
 
         referenceStore.TryGet(retainedActionId, out _).Should().BeFalse();
     }
@@ -463,18 +463,18 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var refactorings = await ListActionsAsync(
             session,
             fixture.GetLocation("StateHolder"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             includeCodeFixes: false);
-        await session.StageCodeActionAsync(new StageCodeActionRequest
+        var stagedRevisionOne = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = refactorings.Data!.Actions.Items.Single(static action => action.Title == "Apply test refactoring").ActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var codeFixes = await ListActionsAsync(
             session,
             fixture.GetLocation("unused"),
-            BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            BundledComponentWorkspaceFactory.CreateSnapshot(stagedRevisionOne),
             includeRefactorings: false);
         var revisionOneActionId = codeFixes.Data!.Actions.Items.Single(static action => action.Title == "Apply test code fix").ActionId;
 
@@ -485,21 +485,21 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var nonCurrentResult = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = revisionOneActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         nonCurrentResult.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         nonCurrentResult.Error!.Code.Should().Be("SnapshotMismatch");
         referenceStore.TryGet(revisionOneActionId, out _).Should().BeTrue();
 
-        await coordinator.MoveTransactionHistoryAsync(
+        var redoResult = await coordinator.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Redo,
             TestContext.Current.CancellationToken);
 
         var restoredResult = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = revisionOneActionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(redoResult),
         }, TestContext.Current.CancellationToken);
 
         restoredResult.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);

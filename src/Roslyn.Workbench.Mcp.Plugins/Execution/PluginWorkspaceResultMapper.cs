@@ -48,8 +48,12 @@ internal static class PluginWorkspaceResultMapper
         WorkspaceOperationResult<MutationStagingOutcome> result,
         MutationStagingOutcome outcome)
     {
+        var snapshot = result.Context.Snapshot
+            ?? throw new InvalidOperationException("A successful mutation result must identify its workspace snapshot.");
+
         var data = new MutationData
         {
+            Snapshot = snapshot,
             Operation = outcome.Operation,
             Summary = outcome.Summary,
             Transaction = outcome.Transaction,

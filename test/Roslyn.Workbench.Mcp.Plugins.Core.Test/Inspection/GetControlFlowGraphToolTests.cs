@@ -416,6 +416,8 @@ public sealed class GetControlFlowGraphToolTests
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns(new ResolvedLocation
             {
+                Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
                 Document = new DocumentReference(),
             });
 

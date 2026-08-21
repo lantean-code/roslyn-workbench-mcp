@@ -409,7 +409,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         return new WorkspaceSnapshotIdentity(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch,
-            new WorkspaceSnapshotId(snapshotId),
+            WorkspaceSnapshotTestFactory.CreateId(snapshotId),
             typedTransactionId);
     }
 }

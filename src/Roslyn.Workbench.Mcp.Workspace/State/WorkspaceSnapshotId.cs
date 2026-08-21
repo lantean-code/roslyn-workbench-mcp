@@ -2,11 +2,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal readonly record struct WorkspaceSnapshotId
 {
-    public long Value { get; }
+    public Guid Value { get; }
 
-    public WorkspaceSnapshotId(long value)
+    public WorkspaceSnapshotId(Guid value)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        ArgumentOutOfRangeException.ThrowIfEqual(value, Guid.Empty);
         Value = value;
     }
 }

@@ -77,7 +77,7 @@ internal sealed class ConflictRunner
         var commitStopwatch = Stopwatch.StartNew();
         var result = await _host.CallToolAsync(
             "transaction-commit",
-            CreateMutationArguments(transactionRevision: 1),
+            CreateMutationArguments(),
             cancellationToken);
         commitStopwatch.Stop();
 
@@ -118,7 +118,7 @@ internal sealed class ConflictRunner
         var injectionTask = InjectWhenApplyingAsync(cancellationToken);
         var commitTask = _host.CallToolAsync(
             "transaction-commit",
-            CreateMutationArguments(transactionRevision: 1),
+            CreateMutationArguments(),
             cancellationToken).AsTask();
 
         var externalMutation = await injectionTask;
@@ -292,15 +292,10 @@ internal sealed class ConflictRunner
         };
     }
 
-    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    private Dictionary<string, object?> CreateMutationArguments()
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["expectedSnapshot"] = new Dictionary<string, object?>
-        {
-            ["workspaceId"] = _workspaceId,
-            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
-            ["transactionRevision"] = transactionRevision,
-        };
+        arguments["expectedSnapshot"] = _host.GetSnapshot(_workspaceId);
 
         return arguments;
     }

@@ -18,9 +18,12 @@ internal static class ToolResultEnvelopeSerializer
     /// Creates a successful envelope that publishes the response payload under the shared data property.
     /// </summary>
     /// <param name="data">The successful response payload.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot, when available.</param>
     /// <returns>The structured JSON payload.</returns>
     /// <typeparam name="TData">The successful response payload type.</typeparam>
-    public static JsonElement CreateSuccess<TData>(TData? data)
+    public static JsonElement CreateSuccess<TData>(
+        TData? data,
+        SnapshotPrecondition? snapshot = null)
     {
         return BuildPayload(writer =>
         {
@@ -37,6 +40,8 @@ internal static class ToolResultEnvelopeSerializer
                 SerializeObject(data).WriteTo(writer);
             }
 
+            WriteSnapshot(writer, snapshot);
+
             writer.WriteEndObject();
         });
     }
@@ -52,9 +57,17 @@ internal static class ToolResultEnvelopeSerializer
     /// </summary>
     /// <param name="data">The successful mutation payload.</param>
     /// <param name="staged">A value indicating whether a mutation was staged.</param>
+    /// <param name="currentSnapshot">The snapshot acquired before invoking the mutation handler.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateMutationSuccess(MutationData? data, bool staged)
+    public static JsonElement CreateMutationSuccess(
+        MutationData? data,
+        bool staged,
+        SnapshotPrecondition currentSnapshot)
     {
+        var snapshot = staged && data is not null
+            ? data.Snapshot
+            : currentSnapshot;
+
         return BuildPayload(writer =>
         {
             writer.WriteStartObject();
@@ -76,6 +89,7 @@ internal static class ToolResultEnvelopeSerializer
             }
 
             writer.WriteEndObject();
+            WriteSnapshot(writer, snapshot);
             writer.WriteEndObject();
         });
     }
@@ -196,5 +210,18 @@ internal static class ToolResultEnvelopeSerializer
         }
 
         throw new InvalidOperationException($"Published response type '{typeof(TData).FullName}' must serialize as a JSON object.");
+    }
+
+    private static void WriteSnapshot(
+        Utf8JsonWriter writer,
+        SnapshotPrecondition? snapshot)
+    {
+        if (snapshot is null)
+        {
+            return;
+        }
+
+        writer.WritePropertyName("snapshot");
+        JsonSerializer.Serialize(writer, snapshot, _serializerOptions);
     }
 }

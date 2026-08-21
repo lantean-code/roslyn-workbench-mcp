@@ -41,7 +41,8 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             type => ToolSchemaBuilder.CreateDirectOutputSchema(
                 _schemaProvider.GetValueSchema(type),
                 _schemaProvider.GetValueSchema<ToolError>(),
-                _continuationSchema));
+                _continuationSchema,
+                _schemaProvider.GetValueSchema<SnapshotPrecondition>()));
     }
 
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
@@ -64,9 +65,13 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
     private JsonElement CreateQueryResponseSchema(Type responseType)
     {
         var valueSchema = _schemaProvider.GetValueSchema(responseType);
-        var successSchema = ToolSchemaBuilder.CreateNullableSuccessSchema(valueSchema);
+        var snapshotSchema = _schemaProvider.GetValueSchema<SnapshotPrecondition>();
+        var successSchema = ToolSchemaBuilder.CreateNullableSuccessSchema(
+            valueSchema,
+            snapshotSchema,
+            snapshotRequired: true);
 
-        return CreateResponseSchema(successSchema, [valueSchema]);
+        return CreateResponseSchema(successSchema, [valueSchema, snapshotSchema]);
     }
 
     private JsonElement CreateMutationResponseSchema()
@@ -110,8 +115,13 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             ["properties"] = mutationProperties,
         };
 
-        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(mutationDataSchema);
-        return CreateResponseSchema(successSchema, []);
+        var snapshotSchema = _schemaProvider.GetValueSchema<SnapshotPrecondition>();
+        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(
+            mutationDataSchema,
+            snapshotSchema,
+            snapshotRequired: true);
+
+        return CreateResponseSchema(successSchema, [snapshotSchema]);
     }
 
     private JsonElement CreateResponseSchema(JsonObject successSchema, IReadOnlyList<JsonElement> componentSchemas)

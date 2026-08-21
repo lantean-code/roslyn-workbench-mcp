@@ -16,7 +16,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
 
         var request = new TestRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
+            ExpectedSnapshot = openResult.Context.Snapshot!,
         };
 
         await using var lease = workspace.CreateQueryContext(
@@ -56,7 +56,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
         var startResult = await workspace.StartTransactionAsync(TestContext.Current.CancellationToken);
         var request = new TestRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
+            ExpectedSnapshot = startResult.Context.Snapshot!,
         };
 
         await using var lease = workspace.CreateMutationContext(

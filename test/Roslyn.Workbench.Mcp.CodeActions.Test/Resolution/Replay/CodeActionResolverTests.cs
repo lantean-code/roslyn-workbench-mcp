@@ -91,7 +91,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Fact]
     public async Task GIVEN_SnapshotDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldReturnSnapshotConflict()
     {
-        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(expectedSnapshot))
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
@@ -137,7 +137,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 SnapshotIdentity = new WorkspaceSnapshotIdentity(
                     Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
                     1,
-                    new WorkspaceSnapshotId(2),
+                    WorkspaceSnapshotTestFactory.CreateId(2),
                     new WorkspaceTransactionId(1)),
             },
             WorkspaceMismatch.WorkspaceEpoch => recipe with
@@ -145,7 +145,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 SnapshotIdentity = new WorkspaceSnapshotIdentity(
                     Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     2,
-                    new WorkspaceSnapshotId(2),
+                    WorkspaceSnapshotTestFactory.CreateId(2),
                     new WorkspaceTransactionId(1)),
             },
             _ => recipe,
@@ -168,7 +168,7 @@ public sealed class CodeActionResolverTests : IDisposable
             SnapshotIdentity = new WorkspaceSnapshotIdentity(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 1,
-                new WorkspaceSnapshotId(3),
+                WorkspaceSnapshotTestFactory.CreateId(3),
                 new WorkspaceTransactionId(1)),
         };
 
@@ -492,7 +492,7 @@ public sealed class CodeActionResolverTests : IDisposable
         return new WorkspaceSnapshotIdentity(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,
-            new WorkspaceSnapshotId(2),
+            WorkspaceSnapshotTestFactory.CreateId(2),
             new WorkspaceTransactionId(1));
     }
 

@@ -16,6 +16,11 @@ public interface IToolExecutionContext
     WorkspaceIdentity WorkspaceIdentity { get; }
 
     /// <summary>
+    /// Gets the exact immutable workspace snapshot for this invocation.
+    /// </summary>
+    SnapshotPrecondition Snapshot { get; }
+
+    /// <summary>
     /// Gets the effective transaction revision, when available.
     /// </summary>
     int? TransactionRevision { get; }

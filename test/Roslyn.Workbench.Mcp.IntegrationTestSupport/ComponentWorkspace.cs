@@ -146,7 +146,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
     }
 
     public PluginMutationExecutionLease CreateMutationContext(
-        WorkspaceBoundRequest request,
+        WorkspaceMutationRequest request,
         CancellationToken cancellationToken)
     {
         return PluginContextFactory.CreateMutationContext(request, cancellationToken);

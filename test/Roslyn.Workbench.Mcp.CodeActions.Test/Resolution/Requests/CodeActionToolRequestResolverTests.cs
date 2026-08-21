@@ -20,7 +20,7 @@ public sealed class CodeActionToolRequestResolverTests
     public async Task GIVEN_LocationSelectorHasSnapshotMismatch_WHEN_ResolvingSymbol_THEN_ShouldRejectConflict()
     {
         var selector = new SymbolSelector { Location = new LocationSelector() };
-        var snapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceEpoch = 1 };
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(snapshot))
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
@@ -50,7 +50,7 @@ public sealed class CodeActionToolRequestResolverTests
 
         var result = await _target.ResolveSymbolAsync<TestResponse>(
             selector,
-            new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"), WorkspaceEpoch = 1 },
+            WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             _context.Object,
             TestContext.Current.CancellationToken);
 

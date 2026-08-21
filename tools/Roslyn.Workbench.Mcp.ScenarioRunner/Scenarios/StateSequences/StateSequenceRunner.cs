@@ -464,7 +464,7 @@ internal sealed class StateSequenceRunner
             var undo = await InvokeRequiredAsync(
                 "history-undo",
                 "transaction-history",
-                CreateHistoryArguments("Undo", transactionRevision: 2),
+                CreateHistoryArguments("Undo"),
                 cancellationToken);
 
             steps.Add(undo);
@@ -477,7 +477,7 @@ internal sealed class StateSequenceRunner
             var redo = await InvokeRequiredAsync(
                 "history-redo",
                 "transaction-history",
-                CreateHistoryArguments("Redo", transactionRevision: 1),
+                CreateHistoryArguments("Redo"),
                 cancellationToken);
 
             steps.Add(redo);
@@ -490,7 +490,7 @@ internal sealed class StateSequenceRunner
             var commit = await InvokeRequiredAsync(
                 "transaction-commit",
                 "transaction-commit",
-                CreateMutationArguments(transactionRevision: 2),
+                CreateMutationArguments(),
                 cancellationToken);
 
             steps.Add(commit);
@@ -608,24 +608,17 @@ internal sealed class StateSequenceRunner
         };
     }
 
-    private Dictionary<string, object?> CreateHistoryArguments(
-        string direction,
-        int transactionRevision)
+    private Dictionary<string, object?> CreateHistoryArguments(string direction)
     {
-        var arguments = CreateMutationArguments(transactionRevision);
+        var arguments = CreateMutationArguments();
         arguments["direction"] = direction;
         return arguments;
     }
 
-    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    private Dictionary<string, object?> CreateMutationArguments()
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["expectedSnapshot"] = new Dictionary<string, object?>
-        {
-            ["workspaceId"] = _workspaceId,
-            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
-            ["transactionRevision"] = transactionRevision,
-        };
+        arguments["expectedSnapshot"] = _host.GetSnapshot(_workspaceId);
 
         return arguments;
     }

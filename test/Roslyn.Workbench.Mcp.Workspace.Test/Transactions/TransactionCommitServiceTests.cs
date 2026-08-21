@@ -40,10 +40,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
-            .Returns(new WorkspaceSnapshotId(3));
+            .Returns(WorkspaceSnapshotTestFactory.CreateId(3));
         _sessionStore
             .Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
             .Returns(TransactionCompletionResult.Completed());
+        _snapshotGuard
+            .Setup(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()))
+            .Returns(SnapshotValidationResult.Valid());
 
         _recoveryStore
             .Setup(item => item.PersistPlanAsync(
@@ -163,10 +166,11 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Mismatch" };
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
-        _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(mismatch);
+        var snapshotValidation = SnapshotValidationResult.Invalid(mismatch);
+        _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(snapshotValidation);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(mismatch, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
-        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var result = await _target.CommitAsync(CreateSelection(session), expectedSnapshot, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
@@ -344,11 +348,11 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _sessionStore.Verify(item => item.TryCompleteTransaction(
             It.Is<WorkspaceSessionSnapshot>(value =>
                 value.Transaction == null
-                && value.CommittedSnapshotId == new WorkspaceSnapshotId(3)
+                && value.CommittedSnapshotId == WorkspaceSnapshotTestFactory.CreateId(3)
                 && value.CurrentSolution == transaction.CurrentSolution
                 && value.InputManifest == inputManifest
                 && value.CurrentSnapshotIdentity.TransactionId == null
-                && value.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3))), Times.Once);
+                && value.CurrentSnapshotIdentity.SnapshotId == WorkspaceSnapshotTestFactory.CreateId(3))), Times.Once);
 
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
         commitLock.Verify(item => item.Dispose(), Times.Once);
@@ -1083,7 +1087,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         var baseline = _workspace.CurrentSolution;
         var current = baseline.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var transaction = new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
@@ -1093,7 +1097,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
             [
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(2),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
                     Solution = current,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -15,7 +16,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
     private readonly Process _process;
     private readonly StringBuilder _standardError = new();
     private readonly object _terminationLock = new();
-    private readonly Dictionary<Guid, long> _workspaceEpochs = [];
+    private readonly ConcurrentDictionary<Guid, ScenarioSnapshot> _workspaceSnapshots = [];
     private McpClient? _client;
     private int? _exitCode;
     private long _lastCancellationRequestId;
@@ -31,24 +32,35 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
     public long GetWorkspaceEpoch(Guid workspaceId)
     {
-        return _workspaceEpochs.TryGetValue(workspaceId, out var workspaceEpoch)
-            ? workspaceEpoch
+        return _workspaceSnapshots.TryGetValue(workspaceId, out var snapshot)
+            ? snapshot.WorkspaceEpoch
             : throw new InvalidOperationException(
                 $"Workspace '{workspaceId}' has no recorded epoch.");
     }
 
-    public void RegisterWorkspace(Guid workspaceId, long workspaceEpoch)
+    public IReadOnlyDictionary<string, object?> GetSnapshot(Guid workspaceId)
     {
-        _workspaceEpochs[workspaceId] = workspaceEpoch;
+        if (_workspaceSnapshots.TryGetValue(workspaceId, out var snapshot))
+        {
+            return CreateSnapshotArguments(snapshot);
+        }
+
+        throw new InvalidOperationException(
+            $"Workspace '{workspaceId}' has no recorded snapshot.");
     }
 
-    public ValueTask<CallToolResult> CallToolAsync(
+    public async ValueTask<CallToolResult> CallToolAsync(
         string tool,
         IReadOnlyDictionary<string, object?> arguments,
         CancellationToken cancellationToken)
     {
         var client = _client ?? throw new InvalidOperationException("The MCP client is not connected.");
-        return client.CallToolAsync(tool, arguments, cancellationToken: cancellationToken);
+        var result = await client.CallToolAsync(
+            tool,
+            PrepareArguments(arguments),
+            cancellationToken: cancellationToken);
+        ObserveSnapshot(result);
+        return result;
     }
 
     public (RequestId RequestId, Task<CallToolResult> Completion) StartCancellableToolCall(
@@ -58,8 +70,9 @@ internal sealed class ScenarioHost : IAsyncDisposable
     {
         var client = _client ?? throw new InvalidOperationException("The MCP client is not connected.");
         var requestId = new RequestId($"scenario-cancellation-{Interlocked.Increment(ref _lastCancellationRequestId)}");
-        var requestArguments = new Dictionary<string, JsonElement>(arguments.Count);
-        foreach (var (name, value) in arguments)
+        var preparedArguments = PrepareArguments(arguments);
+        var requestArguments = new Dictionary<string, JsonElement>(preparedArguments.Count);
+        foreach (var (name, value) in preparedArguments)
         {
             requestArguments.Add(name, JsonSerializer.SerializeToElement(value, value?.GetType() ?? typeof(object)));
         }
@@ -70,13 +83,58 @@ internal sealed class ScenarioHost : IAsyncDisposable
             Arguments = requestArguments,
         };
 
-        var completion = client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
+        var completion = ObserveCompletionAsync(client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
             RequestMethods.ToolsCall,
             request,
             requestId: requestId,
-            cancellationToken: cancellationToken).AsTask();
+            cancellationToken: cancellationToken).AsTask());
 
         return (requestId, completion);
+    }
+
+    private async Task<CallToolResult> ObserveCompletionAsync(Task<CallToolResult> completion)
+    {
+        var result = await completion;
+        ObserveSnapshot(result);
+        return result;
+    }
+
+    private void ObserveSnapshot(CallToolResult result)
+    {
+        if (result.IsError == true
+            || result.StructuredContent is not JsonElement content
+            || !content.TryGetProperty("snapshot", out var snapshot))
+        {
+            return;
+        }
+
+        var workspaceSnapshot = new ScenarioSnapshot
+        {
+            WorkspaceId = snapshot.GetProperty("workspaceId").GetGuid(),
+            WorkspaceEpoch = snapshot.GetProperty("workspaceEpoch").GetInt64(),
+            SnapshotId = snapshot.GetProperty("snapshotId").GetGuid(),
+            TransactionRevision = snapshot.GetProperty("transactionRevision").ValueKind == JsonValueKind.Null
+                ? null
+                : snapshot.GetProperty("transactionRevision").GetInt32(),
+        };
+
+        _workspaceSnapshots[workspaceSnapshot.WorkspaceId] = workspaceSnapshot;
+    }
+
+    private IReadOnlyDictionary<string, object?> PrepareArguments(
+        IReadOnlyDictionary<string, object?> arguments)
+    {
+        if (!TryGetExpectedSnapshotWorkspaceId(arguments, out var workspaceId))
+        {
+            return arguments;
+        }
+
+        var preparedArguments = new Dictionary<string, object?>(arguments, StringComparer.Ordinal)
+        {
+            ["expectedSnapshot"] = GetSnapshot(workspaceId),
+        };
+
+        return preparedArguments;
     }
 
     public Task CancelToolCallAsync(RequestId requestId, CancellationToken cancellationToken)
@@ -225,8 +283,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string hostPath,
         string workingDirectory,
         string stateDirectory,
-        CancellationToken cancellationToken,
-        string? pluginDirectory = null)
+        string? pluginDirectory,
+        CancellationToken cancellationToken)
     {
         CreateStateDirectory(stateDirectory);
         var startInfo = CreateStartInfo(
@@ -273,6 +331,40 @@ internal sealed class ScenarioHost : IAsyncDisposable
             await target.DisposeAsync();
             throw;
         }
+    }
+
+    private static Dictionary<string, object?> CreateSnapshotArguments(ScenarioSnapshot snapshot)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            ["workspaceId"] = snapshot.WorkspaceId,
+            ["workspaceEpoch"] = snapshot.WorkspaceEpoch,
+            ["snapshotId"] = snapshot.SnapshotId,
+            ["transactionRevision"] = snapshot.TransactionRevision,
+        };
+
+        return arguments;
+    }
+
+    private static bool TryGetExpectedSnapshotWorkspaceId(
+        IReadOnlyDictionary<string, object?> arguments,
+        out Guid workspaceId)
+    {
+        workspaceId = Guid.Empty;
+        if (!arguments.TryGetValue("expectedSnapshot", out var expectedSnapshotValue)
+            || expectedSnapshotValue is not IReadOnlyDictionary<string, object?> expectedSnapshot)
+        {
+            return false;
+        }
+
+        if (!expectedSnapshot.TryGetValue("workspaceId", out var workspaceIdValue)
+            || workspaceIdValue is not Guid value)
+        {
+            return false;
+        }
+
+        workspaceId = value;
+        return true;
     }
 
     private static ProcessStartInfo CreateStartInfo(

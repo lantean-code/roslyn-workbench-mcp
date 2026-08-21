@@ -7,6 +7,6 @@ internal interface ICodeActionExecutionContextFactory
         CancellationToken cancellationToken);
 
     CodeActionMutationExecutionLease CreateMutationContext(
-        WorkspaceBoundRequest request,
+        WorkspaceMutationRequest request,
         CancellationToken cancellationToken);
 }

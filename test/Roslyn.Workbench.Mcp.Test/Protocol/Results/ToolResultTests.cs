@@ -7,6 +7,9 @@ public sealed class ToolResultTests
     [Fact]
     public void GIVEN_SucceededResult_WHEN_SerializedAndDeserialized_THEN_ShouldRoundTripCoreState()
     {
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            workspaceEpoch: 42);
         var result = ToolResult.Succeeded(
             new WorkspaceStatusData
             {
@@ -15,8 +18,7 @@ public sealed class ToolResultTests
                 DocumentCount = 2,
                 ReloadRequired = false,
             },
-            workspaceId: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-            workspaceEpoch: 42,
+            snapshot,
             diagnostics:
             [
                 new DiagnosticInfo
@@ -40,8 +42,7 @@ public sealed class ToolResultTests
 
         roundTripped.Should().NotBeNull();
         roundTripped!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        roundTripped.WorkspaceId.Should().Be(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
-        roundTripped.WorkspaceEpoch.Should().Be(42);
+        roundTripped.Snapshot.Should().Be(snapshot);
         roundTripped.Data.Should().NotBeNull();
         roundTripped.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         roundTripped.Diagnostics.Should().ContainSingle();
@@ -49,25 +50,29 @@ public sealed class ToolResultTests
     }
 
     [Fact]
-    public void GIVEN_RejectedResult_WHEN_CreatedWithWorkspaceIdentity_THEN_ShouldExposeWorkspaceIdentity()
+    public void GIVEN_RejectedResult_WHEN_CreatedWithSnapshot_THEN_ShouldExposeSnapshot()
     {
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            workspaceEpoch: 42);
         var result = ToolResult.Rejected<WorkspaceStatusData>(
             new ToolError
             {
                 Code = "Code",
                 Message = "Message",
             },
-            workspaceId: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-            workspaceEpoch: 42);
+            snapshot: snapshot);
 
-        result.WorkspaceId.Should().Be(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
-        result.WorkspaceEpoch.Should().Be(42);
+        result.Snapshot.Should().Be(snapshot);
     }
 
     [Fact]
     public void GIVEN_NoChangeResult_WHEN_Validated_THEN_ShouldHaveNoValidationErrors()
     {
-        var result = ToolResult.NoChange<WorkspaceStatusData>(workspaceEpoch: 42);
+        var result = ToolResult.NoChange<WorkspaceStatusData>(
+            WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                workspaceEpoch: 42));
 
         var errors = ContractValidator.Validate(result);
 

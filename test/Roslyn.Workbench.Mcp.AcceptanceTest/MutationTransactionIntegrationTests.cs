@@ -137,7 +137,7 @@ public sealed class MutationTransactionIntegrationTests
                 workspaceSelector,
                 "T:Sample.Class2",
                 "Class3",
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(firstMutation));
             secondMutation.IsError.Should().NotBeTrue();
 
             var revisionTwo = AcceptanceProtocol.GetSuccessData(await PreviewAsync(target, workspaceSelector))
@@ -149,7 +149,7 @@ public sealed class MutationTransactionIntegrationTests
                 target,
                 workspaceSelector,
                 "Undo",
-                workspace.CreateSnapshot(transactionRevision: 2));
+                AcceptanceProtocol.GetSnapshot(secondMutation));
             var undoTransaction = AcceptanceProtocol.GetSuccessData(undoResult).GetProperty("transaction");
             undoTransaction.GetProperty("revision").GetInt32().Should().Be(1);
             undoTransaction.GetProperty("canRedo").GetBoolean().Should().BeTrue();
@@ -159,7 +159,7 @@ public sealed class MutationTransactionIntegrationTests
                 target,
                 workspaceSelector,
                 "Redo",
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(undoResult));
             var redoTransaction = AcceptanceProtocol.GetSuccessData(redoResult).GetProperty("transaction");
             redoTransaction.GetProperty("revision").GetInt32().Should().Be(2);
             redoTransaction.GetProperty("canUndo").GetBoolean().Should().BeTrue();
@@ -169,6 +169,62 @@ public sealed class MutationTransactionIntegrationTests
 
             (await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken)).Should().Equal(originalBytes);
             GetSymbolItems(await SearchSymbolsAsync(target, workspaceSelector, "Class1")).Should().ContainSingle();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_DiscardedAndReplacementBranchesShareRevision_WHEN_UsingDiscardedSnapshot_THEN_ShouldRejectSnapshot()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            var workspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+
+            var discardedBranch = await RenameAsync(
+                target,
+                workspaceSelector,
+                "T:Sample.Class1",
+                "DiscardedBranchClass",
+                workspace.CreateSnapshot(transactionRevision: 0));
+            discardedBranch.IsError.Should().NotBeTrue();
+            var discardedSnapshot = AcceptanceProtocol.GetSnapshot(discardedBranch);
+
+            var undoResult = await MoveHistoryAsync(
+                target,
+                workspaceSelector,
+                "Undo",
+                discardedSnapshot);
+            undoResult.IsError.Should().NotBeTrue();
+
+            var replacementBranch = await RenameAsync(
+                target,
+                workspaceSelector,
+                "T:Sample.Class1",
+                "ReplacementBranchClass",
+                AcceptanceProtocol.GetSnapshot(undoResult));
+            replacementBranch.IsError.Should().NotBeTrue();
+            var replacementSnapshot = AcceptanceProtocol.GetSnapshot(replacementBranch);
+
+            discardedSnapshot["transactionRevision"].Should().Be(replacementSnapshot["transactionRevision"]);
+            discardedSnapshot["snapshotId"].Should().NotBe(replacementSnapshot["snapshotId"]);
+
+            var staleResult = await RenameAsync(
+                target,
+                workspaceSelector,
+                "T:Sample.ReplacementBranchClass",
+                "StaleRename",
+                discardedSnapshot);
+
+            staleResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(staleResult).GetProperty("code").GetString().Should().Be("SnapshotMismatch");
         }
         catch
         {

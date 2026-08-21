@@ -238,11 +238,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         if (session.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
         {
+            var rejectionContext = WorkspaceOperationContextFactory.Create(session);
+
             return _resultFactory.Rejected<WorkspaceCloseOutcome>(
                 "TransactionOpen",
                 "Commit or roll back the active transaction before invoking this tool.",
                 RequiredAction.CommitOrRollback,
-                CreateContext(session));
+                rejectionContext);
         }
 
         var removedSession = _sessionStore.RemoveWorkspace(acquisition.Selection.WorkspaceId);
@@ -260,7 +262,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             ClosedPath = removedSession.Workspace.LoadedPath,
         };
 
-        var context = CreateContext(removedSession);
+        var context = WorkspaceOperationContextFactory.Create(removedSession);
 
         return _resultFactory.Succeeded(outcome, context);
     }
@@ -337,7 +339,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             session.Workspace.WorkspaceRoot,
             cancellationToken);
 
-        return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instanceStatus), CreateContext(session));
+        var outcome = CreateStatusOutcome(session, detail, instanceStatus);
+        var context = WorkspaceOperationContextFactory.Create(session);
+        return _resultFactory.Succeeded(outcome, context);
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -354,7 +358,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         using var leaseScope = acquisition.Lease;
         var currentSession = acquisition.Session;
 
-        var context = CreateContext(currentSession);
+        var context = WorkspaceOperationContextFactory.Create(currentSession);
         if (currentSession.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
         {
             return _resultFactory.Rejected<WorkspaceReloadOutcome>(
@@ -465,7 +469,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             LoadDiagnostics = reloadedSession.LoadDiagnostics,
         };
 
-        var reloadedContext = CreateContext(reloadedSession);
+        var reloadedContext = WorkspaceOperationContextFactory.Create(reloadedSession);
 
         return _resultFactory.Succeeded(outcome, reloadedContext);
     }
@@ -568,7 +572,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             LoadDiagnostics = openDiagnostics,
         };
 
-        var context = CreateContext(session);
+        var context = WorkspaceOperationContextFactory.Create(session);
 
         return _resultFactory.Succeeded(outcome, context);
     }
@@ -790,16 +794,6 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         };
     }
 
-    private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)
-    {
-        return new WorkspaceOperationContext
-        {
-            WorkspaceId = session.Workspace.WorkspaceId,
-            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
-            TransactionRevision = session.Transaction?.CurrentRevision,
-        };
-    }
-
     private WorkspaceOperationResult<TOutcome> CreateAcquisitionFailureResult<TOutcome>(
         WorkspaceSessionAcquisition acquisition,
         WorkspaceOperationError error)
@@ -807,7 +801,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceOperationContext? context = null;
         if (acquisition.ContextSession is not null)
         {
-            context = CreateContext(acquisition.ContextSession);
+            context = WorkspaceOperationContextFactory.Create(acquisition.ContextSession);
         }
 
         return _resultFactory.Rejected<TOutcome>(error, context);

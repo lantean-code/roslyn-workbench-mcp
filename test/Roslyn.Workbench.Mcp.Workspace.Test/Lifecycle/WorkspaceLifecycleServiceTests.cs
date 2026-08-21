@@ -69,7 +69,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
-            .Returns(new WorkspaceSnapshotId(17));
+            .Returns(WorkspaceSnapshotTestFactory.CreateId(17));
 
         _instanceStatusPublisher
             .Setup(item => item.OpenAsync(
@@ -583,7 +583,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 session.Workspace.Alias == "Alias"
                 && session.Workspace.WorkspaceRoot == "/workspace"
                 && session.MsBuildProperties == resolvedProperties
-                && session.CommittedSnapshotId == new WorkspaceSnapshotId(17)
+                && session.CommittedSnapshotId == WorkspaceSnapshotTestFactory.CreateId(17)
                 && session.OperationGate is WorkspaceOperationGate),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
     }
@@ -1532,7 +1532,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             && replacement.OperationGate == gate.Object
             && replacement.Workspace.Alias == "Alias"
             && replacement.MsBuildProperties == properties
-            && replacement.CommittedSnapshotId == new WorkspaceSnapshotId(17))), Times.Once);
+            && replacement.CommittedSnapshotId == WorkspaceSnapshotTestFactory.CreateId(17))), Times.Once);
 
         _instanceStatusPublisher.Verify(item => item.UpdateAsync(
             session.Workspace.WorkspaceId,
@@ -1901,7 +1901,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var directory = Path.GetDirectoryName(path);
         var workspaceRoot = string.IsNullOrWhiteSpace(directory) ? path : directory;
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = workspaceId,
@@ -1944,7 +1944,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = _workspace.CurrentSolution,
             MaxRevisions = 3,
         };

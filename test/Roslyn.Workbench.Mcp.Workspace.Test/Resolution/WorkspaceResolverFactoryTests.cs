@@ -36,7 +36,10 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             WorkspaceRoot = "WorkspaceRoot",
         };
 
-        var result = _target.Create(document.Project.Solution, identity, 3);
+        var result = _target.Create(
+            document.Project.Solution,
+            identity,
+            WorkspaceSnapshotTestFactory.CreatePrecondition(identity.WorkspaceId, identity.WorkspaceEpoch, transactionRevision: 3));
         var resolution = result.ResolveDocument(new DocumentSelector { DocumentId = document.Id.Id.ToString() });
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);

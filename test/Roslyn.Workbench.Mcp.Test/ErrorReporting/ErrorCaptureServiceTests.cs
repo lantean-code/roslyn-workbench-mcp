@@ -359,7 +359,7 @@ public sealed class ErrorCaptureServiceTests : IDisposable
     private WorkspaceSessionSnapshot CreateSession()
     {
         var workspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = workspaceId,

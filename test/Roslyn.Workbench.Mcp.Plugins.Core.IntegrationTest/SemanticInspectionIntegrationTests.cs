@@ -32,12 +32,7 @@ public sealed class SemanticInspectionIntegrationTests
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
-        var snapshot = new SnapshotPrecondition
-        {
-            WorkspaceId = openResult.Context.WorkspaceId
-                ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
-            WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
-        };
+        var snapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult);
 
         var diagnostics = await session.ExecuteQueryAsync<GetDiagnosticsRequest, DiagnosticsData>(
             "get-diagnostics",

@@ -26,7 +26,7 @@ internal static class McpServerToolTestData
     public static Dictionary<string, JsonElement> CreateMutationArguments()
     {
         var arguments = CreateArguments();
-        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")));
         return arguments;
     }
 

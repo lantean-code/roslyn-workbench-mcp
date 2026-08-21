@@ -66,6 +66,9 @@ public sealed class PluginExecutionContextTests
                 Revision = 1,
             },
         };
+        var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            transactionRevision: 1);
 
         stager
             .Setup(item => item.StageAsync(
@@ -74,7 +77,7 @@ public sealed class PluginExecutionContextTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult.Succeeded(outcome));
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(outcome, stagingContext));
 
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext, stager.Object);
         var toolExecutionServices = new Mock<IToolExecutionServices>();
@@ -156,19 +159,24 @@ public sealed class PluginExecutionContextTests
     {
         var workspacePathService = new Mock<IWorkspacePathService>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceEpoch = 1,
+        };
+        var snapshotIdentity = new WorkspaceSnapshotIdentity(
+            workspaceId,
+            1,
+            WorkspaceSnapshotTestFactory.CreateId(1),
+            new WorkspaceTransactionId(1));
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(snapshotIdentity, transactionRevision: 2);
 
         return new WorkspaceExecutionContext(
             solution,
-            new WorkspaceIdentity
-            {
-                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                WorkspaceEpoch = 1,
-            },
-            new WorkspaceSnapshotIdentity(
-                Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                1,
-                new WorkspaceSnapshotId(1),
-                new WorkspaceTransactionId(1)),
+            workspaceIdentity,
+            snapshotIdentity,
+            snapshot,
             transactionRevision: 2,
             defaultMaxResults: 100,
             workspacePathService.Object,

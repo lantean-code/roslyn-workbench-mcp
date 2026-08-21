@@ -26,7 +26,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         _candidateIdentityService = new Mock<IWorkspaceMutationCandidateIdentityService>();
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
-            .Returns(new WorkspaceSnapshotId(3));
+            .Returns(WorkspaceSnapshotTestFactory.CreateId(3));
 
         _candidateProcessor
             .Setup(item => item.ProcessAsync(
@@ -416,7 +416,9 @@ public sealed class MutationStagingServiceTests : IDisposable
         _resultFactory
             .Setup(item => item.Succeeded(
                 It.IsAny<MutationStagingOutcome>(),
-                null,
+                It.Is<WorkspaceOperationContext>(context =>
+                    context.Snapshot != null
+                    && context.Snapshot.SnapshotId == WorkspaceSnapshotTestFactory.CreateGuid(3)),
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>()))
             .Returns(expected);
@@ -446,7 +448,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             [
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(2),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
                     Solution = currentSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
@@ -479,7 +481,10 @@ public sealed class MutationStagingServiceTests : IDisposable
                     && outcome.Summary == "Summary"
                     && outcome.Changes == changes
                     && outcome.Transaction.Revision == 1),
-                null,
+                It.Is<WorkspaceOperationContext>(context =>
+                    context.Snapshot != null
+                    && context.Snapshot.SnapshotId == WorkspaceSnapshotTestFactory.CreateGuid(3)
+                    && context.Snapshot.TransactionRevision == 1),
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.Is<IReadOnlyList<WarningInfo>>(items => items.SequenceEqual(new[] { handlerWarning, proposalWarning }))))
             .Returns(expected);
@@ -503,11 +508,11 @@ public sealed class MutationStagingServiceTests : IDisposable
                 && replacement.Transaction != null
                 && replacement.Transaction.CurrentRevision == 1
                 && replacement.Transaction.Revisions.Count == 1
-                && replacement.Transaction.CurrentSnapshotId == new WorkspaceSnapshotId(3)
+                && replacement.Transaction.CurrentSnapshotId == WorkspaceSnapshotTestFactory.CreateId(3)
                 && replacement.CurrentSnapshotIdentity.TransactionId == replacement.Transaction.TransactionId
-                && replacement.CurrentSnapshotIdentity.SnapshotId == new WorkspaceSnapshotId(3)),
+                && replacement.CurrentSnapshotIdentity.SnapshotId == WorkspaceSnapshotTestFactory.CreateId(3)),
             It.Is<IReadOnlyList<WorkspaceSnapshotId>>(snapshotIds =>
-                snapshotIds.SequenceEqual(new[] { new WorkspaceSnapshotId(2) }))), Times.Once);
+                snapshotIds.SequenceEqual(new[] { WorkspaceSnapshotTestFactory.CreateId(2) }))), Times.Once);
     }
 
     public void Dispose()
@@ -587,7 +592,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -616,7 +621,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = solution,
             CurrentRevision = 0,
             MaxRevisions = 3,

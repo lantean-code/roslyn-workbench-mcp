@@ -7,6 +7,7 @@ internal sealed class CodeActionMutationContext : ICodeActionMutationContext
         CurrentSolution = workspaceContext.CurrentSolution;
         WorkspaceIdentity = workspaceContext.WorkspaceIdentity;
         SnapshotIdentity = workspaceContext.SnapshotIdentity;
+        Snapshot = workspaceContext.Snapshot;
         TransactionRevision = workspaceContext.TransactionRevision;
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
         WorkspacePathService = workspaceContext.WorkspacePathService;
@@ -18,6 +19,8 @@ internal sealed class CodeActionMutationContext : ICodeActionMutationContext
     public WorkspaceIdentity WorkspaceIdentity { get; }
 
     public WorkspaceSnapshotIdentity SnapshotIdentity { get; }
+
+    public SnapshotPrecondition Snapshot { get; }
 
     public int? TransactionRevision { get; }
 

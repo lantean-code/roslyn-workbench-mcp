@@ -79,7 +79,7 @@ public sealed class DurableMutationIntegrationTests
             var commitResult = await CommitAsync(
                 target,
                 workspaceSelector,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(mutationResult));
             commitResult.IsError.Should().NotBeTrue();
             AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
             File.Exists(createdPath).Should().BeTrue();
@@ -135,7 +135,7 @@ public sealed class DurableMutationIntegrationTests
             var commitResult = await CommitAsync(
                 target,
                 workspaceSelector,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(renameResult));
 
             commitResult.IsError.Should().NotBeTrue();
             AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
@@ -192,7 +192,7 @@ public sealed class DurableMutationIntegrationTests
             var commitResult = await CommitAsync(
                 target,
                 workspaceSelector,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(renameResult));
             commitResult.IsError.Should().NotBeTrue();
             (await File.ReadAllTextAsync(appPath, TestContext.Current.CancellationToken)).Should().Contain("ITextFormatter");
             (await File.ReadAllTextAsync(libraryPath, TestContext.Current.CancellationToken)).Should().Contain("ITextFormatter");
@@ -252,7 +252,7 @@ public sealed class DurableMutationIntegrationTests
             var commitResult = await CommitAsync(
                 target,
                 workspaceSelector,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(renameResult));
             commitResult.IsError.Should().NotBeTrue();
 
             var committedText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
@@ -300,7 +300,7 @@ public sealed class DurableMutationIntegrationTests
             var commitResult = await CommitAsync(
                 target,
                 workspaceSelector,
-                workspace.CreateSnapshot(transactionRevision: 1));
+                AcceptanceProtocol.GetSnapshot(renameResult));
             commitResult.IsError.Should().BeTrue();
             var error = AcceptanceProtocol.GetError(commitResult);
             error.GetProperty("code").GetString().Should().Be("TransactionConflicted");

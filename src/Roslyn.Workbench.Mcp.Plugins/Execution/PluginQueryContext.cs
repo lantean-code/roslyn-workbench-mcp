@@ -9,6 +9,7 @@ internal sealed class PluginQueryContext : IQueryContext
     {
         CurrentSolution = workspaceContext.CurrentSolution;
         WorkspaceIdentity = workspaceContext.WorkspaceIdentity;
+        Snapshot = workspaceContext.Snapshot;
         TransactionRevision = workspaceContext.TransactionRevision;
         DefaultMaxResults = workspaceContext.DefaultMaxResults;
         WorkspacePathService = workspaceContext.WorkspacePathService;
@@ -20,6 +21,8 @@ internal sealed class PluginQueryContext : IQueryContext
     public Solution CurrentSolution { get; }
 
     public WorkspaceIdentity WorkspaceIdentity { get; }
+
+    public SnapshotPrecondition Snapshot { get; }
 
     public int? TransactionRevision { get; }
 

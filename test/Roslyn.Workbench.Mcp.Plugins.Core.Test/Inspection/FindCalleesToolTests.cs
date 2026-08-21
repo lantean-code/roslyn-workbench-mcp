@@ -166,11 +166,8 @@ public sealed class FindCalleesToolTests
         var result = await target.ExecuteAsync(new FindCalleesRequest
         {
             Location = new LocationSelector(),
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                WorkspaceEpoch = 1,
-            },
+            ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111")),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);

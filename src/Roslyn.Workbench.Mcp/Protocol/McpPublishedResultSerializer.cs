@@ -20,7 +20,9 @@ internal static class McpPublishedResultSerializer
             result.Warnings);
     }
 
-    public static JsonElement SerializePluginQuery<TResponse>(PluginExecutionResult<TResponse> result)
+    public static JsonElement SerializePluginQuery<TResponse>(
+        PluginExecutionResult<TResponse> result,
+        SnapshotPrecondition snapshot)
     {
         if (result.HasError)
         {
@@ -28,10 +30,12 @@ internal static class McpPublishedResultSerializer
             return SerializePluginFailure(failure);
         }
 
-        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
     }
 
-    public static JsonElement SerializePluginMutation(PluginExecutionResult<MutationData> result)
+    public static JsonElement SerializePluginMutation(
+        PluginExecutionResult<MutationData> result,
+        SnapshotPrecondition currentSnapshot)
     {
         if (result.HasError)
         {
@@ -40,7 +44,10 @@ internal static class McpPublishedResultSerializer
         }
 
         var staged = result.Outcome != PluginExecutionOutcome.NoChange && result.Data is not null;
-        return ToolResultEnvelopeSerializer.CreateMutationSuccess(result.Data, staged);
+        return ToolResultEnvelopeSerializer.CreateMutationSuccess(
+            result.Data,
+            staged,
+            currentSnapshot);
     }
 
     public static JsonElement SerializeCodeActionFailure(CodeActionExecutionFailure result)
@@ -59,7 +66,9 @@ internal static class McpPublishedResultSerializer
             result.Warnings);
     }
 
-    public static JsonElement SerializeCodeActionQuery<TResponse>(CodeActionExecutionResult<TResponse> result)
+    public static JsonElement SerializeCodeActionQuery<TResponse>(
+        CodeActionExecutionResult<TResponse> result,
+        SnapshotPrecondition snapshot)
     {
         if (result.HasError)
         {
@@ -67,10 +76,12 @@ internal static class McpPublishedResultSerializer
             return SerializeCodeActionFailure(failure);
         }
 
-        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
     }
 
-    public static JsonElement SerializeCodeActionMutation(CodeActionExecutionResult<MutationData> result)
+    public static JsonElement SerializeCodeActionMutation(
+        CodeActionExecutionResult<MutationData> result,
+        SnapshotPrecondition currentSnapshot)
     {
         if (result.HasError)
         {
@@ -79,7 +90,10 @@ internal static class McpPublishedResultSerializer
         }
 
         var staged = result.Outcome != CodeActionExecutionOutcome.NoChange && result.Data is not null;
-        return ToolResultEnvelopeSerializer.CreateMutationSuccess(result.Data, staged);
+        return ToolResultEnvelopeSerializer.CreateMutationSuccess(
+            result.Data,
+            staged,
+            currentSnapshot);
     }
 
     private static ToolExecutionFailureResult CreatePluginFailure<TResponse>(

@@ -20,7 +20,7 @@ Prefer standard compiler and analyzer diagnostics when assessing code quality. `
 
 ## Workspace state
 
-Workspace epochs, transaction revisions and structured next actions are authoritative. When a result says the workspace or selector is stale, reload or resolve the target again. Do not reuse source spans, symbol locations, opaque Code Action references or other snapshot-bound values against a newer state.
+The complete `snapshot` object and structured next actions are authoritative. For a later mutation or snapshot-sensitive query, pass the published object back unchanged as `expectedSnapshot`, including its workspace ID, workspace epoch, opaque snapshot ID and nullable transaction revision. Resolved locations carry the same complete identity in their nested `snapshot`; do not reconstruct it from individual fields. When a result says the workspace or selector is stale, reload or resolve the target again. Do not reuse source spans, symbol locations, opaque Code Action references or other snapshot-bound values against a different snapshot.
 
 Multiple workspaces may be open, but only one may own the active transaction slot. Cross-process status is advisory; follow reported coordination guidance and allow the commit pipeline to enforce its durable boundary.
 

@@ -33,6 +33,9 @@ public sealed class TransactionServiceTests : IDisposable
         SetupWorkspaceRequiredAcquisitions();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _snapshotGuard = new Mock<ISnapshotGuard>();
+        _snapshotGuard
+            .Setup(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()))
+            .Returns(SnapshotValidationResult.Valid());
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _commitService = new Mock<ITransactionCommitService>();
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
@@ -527,10 +530,17 @@ public sealed class TransactionServiceTests : IDisposable
         };
 
         var expected = CreateResult<TransactionPreviewOutcome>();
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
-        _resolverFactory.Setup(item => item.Create(transaction.CurrentSolution, session.Workspace, transaction.CurrentRevision))
+        _resolverFactory.Setup(item => item.Create(
+            transaction.CurrentSolution,
+            session.Workspace,
+            snapshot))
             .Returns(_resolver.Object);
 
         _diffBuilder.Setup(item => item.CreateChangeSummaryAsync(
@@ -815,7 +825,8 @@ public sealed class TransactionServiceTests : IDisposable
         var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Message" };
         var expected = CreateResult<TransactionHistoryOutcome>();
         SetupHistory(session, gate, operationLease);
-        _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(mismatch);
+        var snapshotValidation = SnapshotValidationResult.Invalid(mismatch);
+        _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(snapshotValidation);
         _resultFactory.Setup(item => item.Conflict<TransactionHistoryOutcome>(
             mismatch,
             It.IsAny<WorkspaceOperationContext>(),
@@ -827,7 +838,7 @@ public sealed class TransactionServiceTests : IDisposable
             null,
             null,
             TransactionHistoryDirection.Undo,
-            new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
+            WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
@@ -969,7 +980,7 @@ public sealed class TransactionServiceTests : IDisposable
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
-        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var expected = CreateResult<TransactionCommitOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
@@ -1227,10 +1238,17 @@ public sealed class TransactionServiceTests : IDisposable
         Mock<IWorkspaceOperationGate> gate,
         Mock<IWorkspaceOperationLease> operationLease)
     {
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
-        _resolverFactory.Setup(item => item.Create(transaction.CurrentSolution, session.Workspace, transaction.CurrentRevision))
+        _resolverFactory.Setup(item => item.Create(
+            transaction.CurrentSolution,
+            session.Workspace,
+            snapshot))
             .Returns(_resolver.Object);
 
         _diffBuilder.Setup(item => item.CreateChangeSummaryAsync(
@@ -1296,7 +1314,7 @@ public sealed class TransactionServiceTests : IDisposable
 
     private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -1328,7 +1346,7 @@ public sealed class TransactionServiceTests : IDisposable
         return new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = document.Project.Solution,
             CurrentRevision = 0,
             MaxRevisions = 5,
@@ -1341,7 +1359,7 @@ public sealed class TransactionServiceTests : IDisposable
         var revisions = Enumerable.Range(1, revisionCount)
             .Select(index => new WorkspaceTransactionRevision
             {
-                SnapshotId = new WorkspaceSnapshotId(index),
+                SnapshotId = WorkspaceSnapshotTestFactory.CreateId(index),
                 Solution = transaction.BaselineSolution,
                 Changes = new ChangeSummary(),
                 Operation = "Operation",

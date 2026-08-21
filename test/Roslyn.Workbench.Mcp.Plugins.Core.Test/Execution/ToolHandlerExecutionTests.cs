@@ -12,7 +12,7 @@ public sealed class ToolHandlerExecutionTests
 
         var request = new TestWorkspaceBoundRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
+            ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
         };
         var action = async () => await target.ExecuteAsync(request, context.Object, cancellationTokenSource.Token);
 
@@ -29,7 +29,7 @@ public sealed class ToolHandlerExecutionTests
 
         var request = new TestWorkspaceBoundRequest
         {
-            ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") },
+            ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
         };
         var action = async () => await target.ExecuteAsync(request, context.Object, cancellationTokenSource.Token);
 

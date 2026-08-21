@@ -44,6 +44,15 @@ public sealed class CodeActionExecutionLeaseTests
         var diagnostics = new[] { new DiagnosticInfo { Id = "DiagnosticId", Message = "Message" } };
         var warnings = new[] { new WarningInfo { Code = "WarningCode", Message = "WarningMessage" } };
         var stager = new Mock<IWorkspaceMutationStager>();
+        var stagingOutcome = new MutationStagingOutcome
+        {
+            Operation = "Operation",
+            Summary = "Summary",
+        };
+        var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            transactionRevision: 1);
+
         stager
             .Setup(item => item.StageAsync(
                 "OperationName",
@@ -51,11 +60,7 @@ public sealed class CodeActionExecutionLeaseTests
                 diagnostics,
                 warnings,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new MutationStagingOutcome
-            {
-                Operation = "Operation",
-                Summary = "Summary",
-            }));
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(stagingOutcome, stagingContext));
 
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,

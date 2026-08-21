@@ -119,7 +119,7 @@ public sealed class WorkspaceSessionCleanupTests : IDisposable
             WorkspaceRoot = "WorkspaceRoot",
         };
 
-        var snapshotId = new WorkspaceSnapshotId(1);
+        var snapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var inputManifest = new WorkspaceInputManifest
         {
             ChangeMonitor = inputChangeMonitor.Object,

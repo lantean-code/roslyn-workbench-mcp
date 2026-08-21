@@ -43,7 +43,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
         {
             Document = span.Document,
             Range = range,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             Kinds = CodeActionKindSelection.Refactorings,
         };
 
@@ -100,7 +100,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             {
                 Path = "CandidateCodeFixes.cs",
             },
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             Kinds = CodeActionKindSelection.CodeFixes,
             DiagnosticIds = ["CS0266"],
         }, TestContext.Current.CancellationToken);
@@ -110,7 +110,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
         var result = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = actionId,
-            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
         }, TestContext.Current.CancellationToken);
 
         var preview = await coordinator.PreviewTransactionAsync(

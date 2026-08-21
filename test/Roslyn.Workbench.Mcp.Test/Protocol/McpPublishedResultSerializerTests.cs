@@ -7,7 +7,7 @@ public sealed class McpPublishedResultSerializerTests
     {
         var result = PluginExecutionResult.Success("Value");
 
-        var action = () => McpPublishedResultSerializer.SerializePluginQuery(result);
+        var action = () => McpPublishedResultSerializer.SerializePluginQuery(result, CreateSnapshot());
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Published response type 'System.String' must serialize as a JSON object.");
@@ -72,7 +72,7 @@ public sealed class McpPublishedResultSerializerTests
                 },
             ]);
 
-        var published = McpPublishedResultSerializer.SerializePluginQuery(result);
+        var published = McpPublishedResultSerializer.SerializePluginQuery(result, CreateSnapshot());
 
         published.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
         published.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
@@ -104,7 +104,7 @@ public sealed class McpPublishedResultSerializerTests
                 },
             ]);
 
-        var published = McpPublishedResultSerializer.SerializeCodeActionQuery(result);
+        var published = McpPublishedResultSerializer.SerializeCodeActionQuery(result, CreateSnapshot());
 
         published.GetProperty("diagnostics")[0].GetProperty("id").GetString().Should().Be("Id");
         published.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
@@ -113,4 +113,10 @@ public sealed class McpPublishedResultSerializerTests
 #pragma warning disable CA1812 // Payload fixture is consumed through generic serializer metadata.
     private sealed record TestData;
 #pragma warning restore CA1812
+
+    private static SnapshotPrecondition CreateSnapshot()
+    {
+        return WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+    }
 }

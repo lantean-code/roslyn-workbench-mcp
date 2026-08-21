@@ -227,7 +227,7 @@ public sealed class QueryResultCacheScopeTests
 
     private static WorkspaceSnapshotIdentity CreateSnapshot(long snapshotId = 1)
     {
-        var typedSnapshotId = new WorkspaceSnapshotId(snapshotId);
+        var typedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(snapshotId);
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             1,

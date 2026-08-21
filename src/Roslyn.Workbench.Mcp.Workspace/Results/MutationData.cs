@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Results;
 public sealed record MutationData
 {
     /// <summary>
+    /// Gets the exact immutable workspace snapshot after the staging operation.
+    /// </summary>
+    public required SnapshotPrecondition Snapshot { get; init; }
+
+    /// <summary>
     /// Gets the mutation operation name.
     /// </summary>
     public string Operation { get; init; } = string.Empty;

@@ -99,7 +99,7 @@ The planned implementation source and dependency for each tool is recorded in [R
 - Mutating tools require an active transaction. A successful mutation stages a new revision, returns a bounded preview, and never writes to disk directly.
 - Mutations and workspace or transaction lifecycle operations require exclusive access. They do not wait for active queries or another exclusive operation; an unavailable operation gate returns `WorkspaceBusy` with `Retry`.
 - `transaction-commit` is the only public operation that writes staged source changes to disk.
-- A mutation, or a query that reuses a prior source location or symbol, includes the response's workspace epoch and transaction revision as a snapshot precondition. A stale span is rejected rather than reinterpreted at the same offset in a newer solution. Symbol names and metadata names are search inputs, not source identity.
+- A mutation, or a query that reuses a prior source location or symbol, echoes the response's complete `SnapshotPrecondition`, including its opaque snapshot ID. A stale span is rejected rather than reinterpreted at the same offset in a different immutable solution snapshot, even when other lifecycle counters appear unchanged. Symbol names and metadata names are search inputs, not source identity.
 - Collection and graph queries accept explicit named per-collection limits. Each bundled tool owns a curated default for each distinct collection, including repeated nested collections, publishes it in the MCP input schema and applies the same value at execution before expensive enrichment. `0` means “return none from this collection”. Results have a documented deterministic order. Published collections use `BoundedCollection<TItem>` wherever an independent collection bound and truncation state must cross the wire; recursive trees additionally have a global node limit and a safe maximum depth. `BoundedCollection<TItem>` carries `items`, `hasMore` and an optional `totalCount` when the complete post-filter count is already known or cheaply available. The Host `DefaultMaxResults` remains available only as a compatibility baseline for third-party plugins. A larger limit recomputes from the start. There are no cursors or generic paging.
 - Large code and diff results use explicit document and range selectors, exact source pointers or a focused follow-up call rather than embedding source text solely for navigation or pagination.
 
@@ -373,15 +373,15 @@ Use common, strongly typed contracts for:
 - `DocumentSelector`: a workspace-local Roslyn `DocumentId` or normalised workspace-relative path, with an optional `ProjectSelector` that disambiguates linked or multi-target documents.
 - `TextSpanSelector`: a document selector plus zero-based UTF-16 `start` and `length`, directly matching Roslyn's `TextSpan` model.
 - `TextSelectionSelector`: an agent-friendly input locator containing a document selector, copied selected text, and optional short text before and after the selection. The host resolves it against the current effective source text before invoking Roslyn.
-- `SnapshotPrecondition`: the workspace epoch and optional transaction revision from a prior result. It is required for mutations and prior-location queries.
+- `SnapshotPrecondition`: the required workspace ID, workspace epoch, opaque immutable-solution snapshot ID and nullable transaction revision from a prior result. It is required for mutations and prior-location queries and is echoed unchanged rather than reconstructed by callers.
 - `SymbolSelector`: a Roslyn-derived source location and text span. A documentation comment ID is permitted for a query only when it resolves to a single source symbol; it cannot name locals or one declaration of a partial symbol. Symbol names and metadata names are search inputs, not identity.
 - `ScopeSelector`: solution, Roslyn `ProjectId`, document, or selected project set.
 - `ProjectRelativePath`: a target path relative to the owning project's canonical directory. It rejects absolute paths, traversal and symlink escape.
-- `ResolvedLocation`: a response model containing document identity, text span, display line/column information and the effective solution snapshot identity. It is valid only for that snapshot; a staged change or reload requires the caller to supply its snapshot precondition or resolve it again.
+- `ResolvedLocation`: a response model containing optional document identity and text span, display line/column information and a nested complete `SnapshotPrecondition`. It is valid only for that exact immutable snapshot; a staged change or reload requires the caller to supply the nested precondition unchanged or resolve it again.
 
 `TextSelectionSelector` is a convenience only. A unique match resolves to a canonical `TextSpanSelector`; no match returns `SelectionNotFound`; multiple matches return `AmbiguousSelection` and candidate locations. The server never guesses which repeated text the caller intended. `resolve-symbol` accepts this selector so an agent can turn copied source text into a canonical location and symbol without calculating a character offset itself.
 
-- Published tool response: a family-specific structured MCP payload with a shared machine-readable failure base and compact success projection.
+- Published tool response: a family-specific structured MCP payload with a shared machine-readable failure base and compact success projection. Successful workspace-bound operations publish the authoritative top-level snapshot; handled failures do not publish a replacement snapshot.
 - `MutationCandidate`: a plugin-produced candidate changed `Solution`, summary, warnings and optional intended changed-symbol selectors. It does not contain diffs, content hashes, transaction state or disk-write instructions.
 - `MutationResult`: operation summary, revision information and preview.
 
@@ -407,13 +407,13 @@ All tools share the same minimal failure and continuation base:
 }
 ```
 
-Every successful result publishes its family-specific payload under the same `data` property:
+Every successful result publishes its family-specific payload under the same `data` property. Workspace-bound plugin and Code Action query or mutation successes also require the authoritative `snapshot`; server-owned successes include it when a Workspace context is available:
 
-- direct lifecycle and status tools publish `{ ok: true, data: { ...response dto... } }`
-- query tools publish `{ ok: true, data: { ...response dto... } }`
-- staged mutations publish `{ ok: true, data: { staged, summary?, transaction? } }`
+- direct lifecycle and status tools publish `{ ok: true, snapshot?: SnapshotPrecondition, data: { ...response dto... } }`
+- workspace-bound query tools publish `{ ok: true, snapshot: SnapshotPrecondition, data: { ...response dto... } }`
+- staged mutations publish `{ ok: true, snapshot: SnapshotPrecondition, data: { staged, summary?, transaction? } }`
 
-This gives clients a uniform outer parsing rule without restoring the verbose internal `ToolResult<TData>` envelope. The payload within `data` remains compact and specific to the tool family.
+This gives clients a uniform outer parsing rule without restoring the verbose internal `ToolResult<TData>` envelope. The payload within `data` remains compact and specific to the tool family. Handled failures publish `error` and optional `continuation`, but no replacement snapshot.
 
 This keeps the default path compact:
 

@@ -3,28 +3,25 @@ namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 internal sealed class WorkspaceResolver : IWorkspaceResolver
 {
     private readonly Solution _solution;
-    private readonly WorkspaceIdentity? _workspaceIdentity;
-    private readonly int? _transactionRevision;
+    private readonly SnapshotPrecondition? _snapshot;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
 
     public WorkspaceResolver(
         Solution solution,
-        WorkspaceIdentity? workspaceIdentity,
-        int? transactionRevision,
+        SnapshotPrecondition? snapshot,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathService workspacePathService)
     {
         _solution = solution;
-        _workspaceIdentity = workspaceIdentity;
-        _transactionRevision = transactionRevision;
+        _snapshot = snapshot;
         _workspacePathComparison = workspacePathComparison;
         _workspacePathService = workspacePathService;
     }
 
     public ResolvedLocation? CreateResolvedLocation(Location location)
     {
-        if (!location.IsInSource || location.SourceTree is null || _workspaceIdentity is null)
+        if (!location.IsInSource || location.SourceTree is null || _snapshot is null)
         {
             return null;
         }
@@ -36,7 +33,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         return new ResolvedLocation
         {
-            WorkspaceId = _workspaceIdentity.WorkspaceId,
             Document = document is null ? null : CreateDocumentReference(document),
             Span = new TextSpanRange
             {
@@ -45,8 +41,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             },
             Line = linePosition.Line + 1,
             Column = linePosition.Character + 1,
-            WorkspaceEpoch = _workspaceIdentity.WorkspaceEpoch,
-            TransactionRevision = _transactionRevision,
+            Snapshot = _snapshot,
         };
     }
 
@@ -85,22 +80,27 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SnapshotMatchResult.Matched();
         }
 
-        if (_workspaceIdentity is null)
+        if (_snapshot is null)
         {
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }
 
-        if (precondition.WorkspaceId != _workspaceIdentity.WorkspaceId)
+        if (precondition.WorkspaceId != _snapshot.WorkspaceId)
         {
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }
 
-        if (precondition.WorkspaceEpoch != _workspaceIdentity.WorkspaceEpoch)
+        if (precondition.WorkspaceEpoch != _snapshot.WorkspaceEpoch)
         {
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }
 
-        if (precondition.TransactionRevision != _transactionRevision)
+        if (precondition.SnapshotId != _snapshot.SnapshotId)
+        {
+            return SnapshotMatchResult.SnapshotIdMismatch();
+        }
+
+        if (precondition.TransactionRevision != _snapshot.TransactionRevision)
         {
             return SnapshotMatchResult.TransactionRevisionMismatch();
         }

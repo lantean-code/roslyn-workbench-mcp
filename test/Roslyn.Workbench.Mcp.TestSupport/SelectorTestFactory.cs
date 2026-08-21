@@ -66,7 +66,8 @@ public static class SelectorTestFactory
         int start,
         int length,
         string documentId = "DocumentId",
-        string projectId = "ProjectId")
+        string projectId = "ProjectId",
+        SnapshotPrecondition? snapshot = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentException.ThrowIfNullOrWhiteSpace(documentId);
@@ -74,8 +75,12 @@ public static class SelectorTestFactory
         ArgumentOutOfRangeException.ThrowIfNegative(start);
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
+        var resolvedSnapshot = snapshot ?? WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
         return new ResolvedLocation
         {
+            Snapshot = resolvedSnapshot,
             Document = new DocumentReference
             {
                 DocumentId = documentId,

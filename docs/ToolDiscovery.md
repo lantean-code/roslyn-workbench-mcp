@@ -28,16 +28,22 @@ Error-report preparation is read-only and performs no network activity, but each
 
 ## Result envelope
 
-Successful calls use a common structured envelope:
+Successful calls use a common structured envelope. Workspace-bound plugin and Code Action query or mutation successes include the required authoritative `snapshot`; server-owned successes include it when a Workspace context is available, while successes unrelated to a Workspace omit it:
 
 ```json
 {
   "ok": true,
+  "snapshot": {
+    "workspaceId": "11111111-1111-1111-1111-111111111111",
+    "workspaceEpoch": 1,
+    "snapshotId": "22222222-2222-2222-2222-222222222222",
+    "transactionRevision": 0
+  },
   "data": {}
 }
 ```
 
-Failures return `ok: false`, a structured `error`, and an optional `continuation`. Its `kind` distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language `instruction`. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when it is disabled or suppressed. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
+Handled failures return `ok: false`, a structured `error`, and an optional `continuation`; they do not publish a replacement snapshot. Its `kind` distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language `instruction`. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when it is disabled or suppressed. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
 
 ## Bounded collections
 

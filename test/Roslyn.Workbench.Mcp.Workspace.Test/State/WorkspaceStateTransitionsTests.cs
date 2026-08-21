@@ -53,7 +53,7 @@ public sealed class WorkspaceStateTransitionsTests
 
     private static WorkspaceSessionSnapshot CreateSession(WorkspaceLifecycleState state)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),

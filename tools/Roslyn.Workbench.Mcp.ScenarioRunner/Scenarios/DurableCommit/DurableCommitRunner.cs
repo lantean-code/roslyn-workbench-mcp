@@ -76,7 +76,7 @@ internal sealed class DurableCommitRunner
         DurableCommitPreparation preparation,
         CancellationToken cancellationToken)
     {
-        var workspaceArguments = CreateMutationArguments(transactionRevision: 1);
+        var workspaceArguments = CreateMutationArguments();
         var before = _host.CaptureSnapshot();
         await using var memorySampler = _host.StartMemorySampling();
         var commitStopwatch = Stopwatch.StartNew();
@@ -124,15 +124,10 @@ internal sealed class DurableCommitRunner
         };
     }
 
-    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    private Dictionary<string, object?> CreateMutationArguments()
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["expectedSnapshot"] = new Dictionary<string, object?>
-        {
-            ["workspaceId"] = _workspaceId,
-            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
-            ["transactionRevision"] = transactionRevision,
-        };
+        arguments["expectedSnapshot"] = _host.GetSnapshot(_workspaceId);
 
         return arguments;
     }

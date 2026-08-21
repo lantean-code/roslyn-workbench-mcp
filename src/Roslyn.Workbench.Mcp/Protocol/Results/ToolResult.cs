@@ -12,19 +12,9 @@ internal sealed record ToolResult<TData>
     public ToolOutcome Outcome { get; init; }
 
     /// <summary>
-    /// Gets the effective workspace identifier, when available.
+    /// Gets the exact immutable workspace snapshot, when available.
     /// </summary>
-    public Guid? WorkspaceId { get; init; }
-
-    /// <summary>
-    /// Gets the current workspace epoch, when available.
-    /// </summary>
-    public long? WorkspaceEpoch { get; init; }
-
-    /// <summary>
-    /// Gets the current transaction revision, when available.
-    /// </summary>
-    public int? TransactionRevision { get; init; }
+    public SnapshotPrecondition? Snapshot { get; init; }
 
     /// <summary>
     /// Gets the tool-specific payload.
@@ -66,18 +56,14 @@ internal static class ToolResult
     /// Creates a successful tool result.
     /// </summary>
     /// <param name="data">The tool-specific payload.</param>
-    /// <param name="workspaceId">The workspace identifier.</param>
-    /// <param name="workspaceEpoch">The workspace epoch.</param>
-    /// <param name="transactionRevision">The transaction revision.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot.</param>
     /// <param name="changes">The optional change summary.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A successful tool result.</returns>
     public static ToolResult<TData> Succeeded<TData>(
         TData data,
-        Guid? workspaceId = null,
-        long? workspaceEpoch = null,
-        int? transactionRevision = null,
+        SnapshotPrecondition? snapshot = null,
         ChangeSummary? changes = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
@@ -85,9 +71,7 @@ internal static class ToolResult
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Succeeded,
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = workspaceEpoch,
-            TransactionRevision = transactionRevision,
+            Snapshot = snapshot,
             Data = data,
             Changes = changes,
             Diagnostics = diagnostics ?? [],
@@ -98,17 +82,13 @@ internal static class ToolResult
     /// <summary>
     /// Creates a no-change tool result.
     /// </summary>
-    /// <param name="workspaceId">The workspace identifier.</param>
-    /// <param name="workspaceEpoch">The workspace epoch.</param>
-    /// <param name="transactionRevision">The transaction revision.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot.</param>
     /// <param name="data">The optional tool-specific payload.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A no-change tool result.</returns>
     public static ToolResult<TData> NoChange<TData>(
-        Guid? workspaceId = null,
-        long? workspaceEpoch = null,
-        int? transactionRevision = null,
+        SnapshotPrecondition? snapshot = null,
         TData? data = default,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
@@ -116,9 +96,7 @@ internal static class ToolResult
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.NoChange,
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = workspaceEpoch,
-            TransactionRevision = transactionRevision,
+            Snapshot = snapshot,
             Data = data,
             Diagnostics = diagnostics ?? [],
             Warnings = warnings ?? [],
@@ -130,27 +108,21 @@ internal static class ToolResult
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
-    /// <param name="workspaceId">The workspace identifier.</param>
-    /// <param name="workspaceEpoch">The workspace epoch.</param>
-    /// <param name="transactionRevision">The transaction revision.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A rejected tool result.</returns>
     public static ToolResult<TData> Rejected<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        Guid? workspaceId = null,
-        long? workspaceEpoch = null,
-        int? transactionRevision = null,
+        SnapshotPrecondition? snapshot = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Rejected,
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = workspaceEpoch,
-            TransactionRevision = transactionRevision,
+            Snapshot = snapshot,
             Diagnostics = diagnostics ?? [],
             Warnings = warnings ?? [],
             Error = error,
@@ -163,27 +135,21 @@ internal static class ToolResult
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
-    /// <param name="workspaceId">The workspace identifier.</param>
-    /// <param name="workspaceEpoch">The workspace epoch.</param>
-    /// <param name="transactionRevision">The transaction revision.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A conflicted tool result.</returns>
     public static ToolResult<TData> Conflict<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        Guid? workspaceId = null,
-        long? workspaceEpoch = null,
-        int? transactionRevision = null,
+        SnapshotPrecondition? snapshot = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Conflict,
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = workspaceEpoch,
-            TransactionRevision = transactionRevision,
+            Snapshot = snapshot,
             Diagnostics = diagnostics ?? [],
             Warnings = warnings ?? [],
             Error = error,
@@ -196,27 +162,21 @@ internal static class ToolResult
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
-    /// <param name="workspaceId">The workspace identifier.</param>
-    /// <param name="workspaceEpoch">The workspace epoch.</param>
-    /// <param name="transactionRevision">The transaction revision.</param>
+    /// <param name="snapshot">The exact immutable workspace snapshot.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A faulted tool result.</returns>
     public static ToolResult<TData> Faulted<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
-        Guid? workspaceId = null,
-        long? workspaceEpoch = null,
-        int? transactionRevision = null,
+        SnapshotPrecondition? snapshot = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Faulted,
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = workspaceEpoch,
-            TransactionRevision = transactionRevision,
+            Snapshot = snapshot,
             Diagnostics = diagnostics ?? [],
             Warnings = warnings ?? [],
             Error = error,

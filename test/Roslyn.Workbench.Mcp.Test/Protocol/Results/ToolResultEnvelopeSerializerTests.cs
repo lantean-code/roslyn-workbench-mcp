@@ -14,7 +14,13 @@ public sealed class ToolResultEnvelopeSerializerTests
     [Fact]
     public void GIVEN_StagedMutationWithoutData_WHEN_Serializing_THEN_ShouldOmitMutationDetails()
     {
-        var result = ToolResultEnvelopeSerializer.CreateMutationSuccess(data: null, staged: true);
+        var currentSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
+        var result = ToolResultEnvelopeSerializer.CreateMutationSuccess(
+            data: null,
+            staged: true,
+            currentSnapshot: currentSnapshot);
 
         var data = result.GetProperty("data");
         data.GetProperty("staged").GetBoolean().Should().BeTrue();
@@ -24,12 +30,20 @@ public sealed class ToolResultEnvelopeSerializerTests
     [Fact]
     public void GIVEN_StagedMutationWithoutTransaction_WHEN_Serializing_THEN_ShouldPublishSummaryWithoutTransaction()
     {
+        var stagedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        var currentSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("22222222-2222-2222-2222-222222222222"));
+        var mutation = new MutationData
+        {
+            Snapshot = stagedSnapshot,
+            Summary = "Summary",
+        };
+
         var result = ToolResultEnvelopeSerializer.CreateMutationSuccess(
-            new MutationData
-            {
-                Summary = "Summary",
-            },
-            staged: true);
+            mutation,
+            staged: true,
+            currentSnapshot: currentSnapshot);
 
         var data = result.GetProperty("data");
         data.GetProperty("summary").GetString().Should().Be("Summary");
@@ -174,7 +188,11 @@ public sealed class ToolResultEnvelopeSerializerTests
         var root = new OperationNode
         {
             Kind = "Literal",
-            Location = new ResolvedLocation(),
+            Location = new ResolvedLocation
+            {
+                Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
+            },
         };
 
         for (var depth = 24; depth > 0; depth--)
@@ -182,7 +200,11 @@ public sealed class ToolResultEnvelopeSerializerTests
             root = new OperationNode
             {
                 Kind = "Invocation",
-                Location = new ResolvedLocation(),
+                Location = new ResolvedLocation
+                {
+                    Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                        Guid.Parse("11111111-1111-1111-1111-111111111111")),
+                },
                 Children = [root],
             };
         }

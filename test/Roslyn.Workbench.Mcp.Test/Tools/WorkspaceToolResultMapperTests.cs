@@ -22,9 +22,10 @@ public sealed class WorkspaceToolResultMapperTests
         });
 
         mapped.Outcome.Should().Be(expectedOutcome);
-        mapped.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
-        mapped.WorkspaceEpoch.Should().Be(2);
-        mapped.TransactionRevision.Should().Be(3);
+        mapped.Snapshot.Should().Be(WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            workspaceEpoch: 2,
+            transactionRevision: 3));
         mapped.Diagnostics.Should().ContainSingle().Which.Id.Should().Be("Id");
         mapped.Warnings.Should().ContainSingle().Which.Code.Should().Be("Code");
         if (expectedOutcome.IsError())
@@ -57,9 +58,10 @@ public sealed class WorkspaceToolResultMapperTests
     {
         var context = new WorkspaceOperationContext
         {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 2,
-            TransactionRevision = 3,
+            Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                workspaceEpoch: 2,
+                transactionRevision: 3),
         };
 
         var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };

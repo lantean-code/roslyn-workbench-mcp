@@ -14,10 +14,16 @@ public sealed record SnapshotPrecondition
     /// <summary>
     /// Gets the expected workspace epoch.
     /// </summary>
-    public long WorkspaceEpoch { get; init; }
+    public required long WorkspaceEpoch { get; init; }
+
+    /// <summary>
+    /// Gets the opaque identifier of the expected immutable solution snapshot.
+    /// </summary>
+    [NonEmptyGuid]
+    public required Guid SnapshotId { get; init; }
 
     /// <summary>
     /// Gets the expected transaction revision, when available.
     /// </summary>
-    public int? TransactionRevision { get; init; }
+    public required int? TransactionRevision { get; init; }
 }

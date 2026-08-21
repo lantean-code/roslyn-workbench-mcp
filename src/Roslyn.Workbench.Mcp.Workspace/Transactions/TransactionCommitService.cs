@@ -71,7 +71,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         using var applicationCertification = _workspaceChangeDetector.BeginCertification(
             session.Workspace.WorkspaceRoot);
-        var context = CreateContext(session);
+        var context = WorkspaceOperationContextFactory.Create(session);
         WorkspaceCommitLockAcquisition lockAcquisition;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
             WorkbenchPerformanceEventSource.TransactionCommitOperation,
@@ -114,11 +114,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken)
     {
-        var context = CreateContext(session);
-        var snapshotMismatch = _snapshotGuard.Validate(session, expectedSnapshot);
-        if (snapshotMismatch is not null)
+        var context = WorkspaceOperationContextFactory.Create(session);
+        var snapshotValidation = _snapshotGuard.Validate(session, expectedSnapshot);
+        if (!snapshotValidation.IsValid)
         {
-            return _resultFactory.Conflict<TransactionCommitOutcome>(snapshotMismatch, context);
+            return _resultFactory.Conflict<TransactionCommitOutcome>(snapshotValidation.Error, context);
         }
 
         if (session.State == WorkspaceLifecycleState.TransactionConflicted)
@@ -155,11 +155,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitId: null,
             commitPhase: null);
 
+        var conflictedContext = WorkspaceOperationContextFactory.Create(conflictedSession);
+
         return _resultFactory.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
             "The transaction conflicted with external workspace changes.",
             RequiredAction.RollbackTransaction,
-            CreateContext(conflictedSession));
+            conflictedContext);
     }
 
     private async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitUnderLockAsync(
@@ -395,7 +397,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 Committed = true,
             };
 
-            var committedContext = CreateContext(committedSession);
+            var committedContext = WorkspaceOperationContextFactory.Create(committedSession);
 
             return _resultFactory.Succeeded(outcome, committedContext);
         }
@@ -710,11 +712,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitId: null,
             commitPhase: WorkspaceLifecycleState.TransactionConflicted.ToString());
 
+        var context = WorkspaceOperationContextFactory.Create(conflictedSession);
+
         return _resultFactory.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
             failureMessage,
             RequiredAction.RollbackTransaction,
-            CreateContext(conflictedSession));
+            context);
     }
 
     private ValueTask PublishCommitPhaseAsync(
@@ -814,13 +818,4 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         return exception is IOException or UnauthorizedAccessException;
     }
 
-    private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)
-    {
-        return new WorkspaceOperationContext
-        {
-            WorkspaceId = session.Workspace.WorkspaceId,
-            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
-            TransactionRevision = session.Transaction?.CurrentRevision,
-        };
-    }
 }

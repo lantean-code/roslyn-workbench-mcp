@@ -53,18 +53,34 @@ internal static class BundledComponentWorkspaceFactory
         return ComponentWorkspace.Create(options, composition);
     }
 
-    public static SnapshotPrecondition CreateSnapshot(
-        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
-        int? transactionRevision = null)
+    public static SnapshotPrecondition CreateSnapshot<TOutcome>(
+        WorkspaceOperationResult<TOutcome> result)
     {
-        var workspaceId = openResult.Context.WorkspaceId
-            ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier.");
+        return result.Context.Snapshot
+            ?? throw new InvalidOperationException("The workspace operation did not return a snapshot.");
+    }
 
-        return new SnapshotPrecondition
+    public static SnapshotPrecondition CreateTransactionStartSnapshot<TOutcome>(
+        WorkspaceOperationResult<TOutcome> result)
+    {
+        var snapshot = CreateSnapshot(result);
+        if (snapshot.TransactionRevision is not null)
         {
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
-            TransactionRevision = transactionRevision,
-        };
+            throw new InvalidOperationException("The workspace operation snapshot is already within a transaction.");
+        }
+
+        return snapshot with { TransactionRevision = 0 };
+    }
+
+    public static SnapshotPrecondition CreateSnapshot(PluginExecutionResult<MutationData> result)
+    {
+        return result.Data?.Snapshot
+            ?? throw new InvalidOperationException("The plugin mutation did not return a snapshot.");
+    }
+
+    public static SnapshotPrecondition CreateSnapshot(CodeActionExecutionResult<MutationData> result)
+    {
+        return result.Data?.Snapshot
+            ?? throw new InvalidOperationException("The code action mutation did not return a snapshot.");
     }
 }

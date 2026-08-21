@@ -62,14 +62,9 @@ public sealed class WorkspaceResolverTests
         var workspacePathService = new WorkspacePathService(workspaceRoot, pathNormalizer.Object);
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
-            new WorkspaceIdentity
-            {
-                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                WorkspaceEpoch = 2,
-                LoadedPath = Path.Combine(workspaceRoot, "src", "Workspace.sln"),
-                WorkspaceRoot = workspaceRoot,
-            },
-            transactionRevision: null,
+            WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                workspaceEpoch: 2),
             pathComparison.Object,
             workspacePathService);
 
@@ -103,18 +98,11 @@ public sealed class WorkspaceResolverTests
 
         var pathNormalizer = CreatePathNormalizer();
         var workspacePathService = new WorkspacePathService(workspaceRoot, pathNormalizer.Object);
-        var workspaceIdentity = new WorkspaceIdentity
-        {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 2,
-            LoadedPath = Path.Combine(workspaceRoot, "Workspace.sln"),
-            WorkspaceRoot = workspaceRoot,
-        };
-
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
-            workspaceIdentity,
-            transactionRevision: null,
+            WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                workspaceEpoch: 2),
             pathComparison.Object,
             workspacePathService);
 
@@ -164,14 +152,14 @@ public sealed class WorkspaceResolverTests
 
         var result = target.CreateResolvedLocation(location);
 
-        result!.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        result!.Snapshot.WorkspaceId.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         result.Document!.DocumentId.Should().Be(document.Id.Id.ToString());
         result.Span!.Start.Should().Be(6);
         result.Span.Length.Should().Be(1);
         result.Line.Should().Be(1);
         result.Column.Should().Be(7);
-        result.WorkspaceEpoch.Should().Be(2);
-        result.TransactionRevision.Should().Be(3);
+        result.Snapshot.WorkspaceEpoch.Should().Be(2);
+        result.Snapshot.TransactionRevision.Should().Be(3);
     }
 
     [Fact]
@@ -183,8 +171,7 @@ public sealed class WorkspaceResolverTests
         var pathNormalizer = CreatePathNormalizer();
         var targetWithoutIdentity = new WorkspaceResolver(
             workspace.CurrentSolution,
-            workspaceIdentity: null,
-            transactionRevision: null,
+            snapshot: null,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
@@ -208,12 +195,10 @@ public sealed class WorkspaceResolverTests
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot(), transactionRevision: 3);
         var precondition = workspaceId is null
             ? null
-            : new SnapshotPrecondition
-            {
-                WorkspaceId = Guid.Parse(workspaceId),
-                WorkspaceEpoch = 2,
-                TransactionRevision = 3,
-            };
+            : WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse(workspaceId),
+                workspaceEpoch: 2,
+                transactionRevision: 3);
 
         var result = target.ValidateSnapshot(precondition);
 
@@ -228,12 +213,11 @@ public sealed class WorkspaceResolverTests
         var pathNormalizer = CreatePathNormalizer();
         var target = new WorkspaceResolver(
             workspace.CurrentSolution,
-            workspaceIdentity: null,
-            transactionRevision: null,
+            snapshot: null,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
-        var result = target.ValidateSnapshot(new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") });
+        var result = target.ValidateSnapshot(WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")));
 
         result.Kind.Should().Be(SnapshotMatchKind.WorkspaceEpochMismatch);
     }
@@ -244,12 +228,10 @@ public sealed class WorkspaceResolverTests
         using var workspace = new AdhocWorkspace();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot(), transactionRevision: 3);
 
-        var result = target.ValidateSnapshot(new SnapshotPrecondition
-        {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 4,
-            TransactionRevision = 3,
-        });
+        var result = target.ValidateSnapshot(WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            workspaceEpoch: 4,
+            transactionRevision: 3));
 
         result.Kind.Should().Be(SnapshotMatchKind.WorkspaceEpochMismatch);
     }
@@ -260,14 +242,27 @@ public sealed class WorkspaceResolverTests
         using var workspace = new AdhocWorkspace();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot(), transactionRevision: 3);
 
-        var result = target.ValidateSnapshot(new SnapshotPrecondition
-        {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 2,
-            TransactionRevision = 4,
-        });
+        var result = target.ValidateSnapshot(WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            workspaceEpoch: 2,
+            transactionRevision: 4));
 
         result.Kind.Should().Be(SnapshotMatchKind.TransactionRevisionMismatch);
+    }
+
+    [Fact]
+    public void GIVEN_DifferentSnapshotIdAtSameRevision_WHEN_ValidatingSnapshot_THEN_ShouldReturnSnapshotIdMismatch()
+    {
+        using var workspace = new AdhocWorkspace();
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot(), transactionRevision: 3);
+
+        var result = target.ValidateSnapshot(WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            workspaceEpoch: 2,
+            snapshotId: 2,
+            transactionRevision: 3));
+
+        result.Kind.Should().Be(SnapshotMatchKind.SnapshotIdMismatch);
     }
 
     [Fact]
@@ -1313,14 +1308,10 @@ public sealed class WorkspaceResolverTests
 
         return new WorkspaceResolver(
             solution,
-            new WorkspaceIdentity
-            {
-                WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                WorkspaceEpoch = 2,
-                LoadedPath = Path.Combine(workspaceRoot, "Workspace.sln"),
-                WorkspaceRoot = workspaceRoot,
-            },
-            transactionRevision,
+            WorkspaceSnapshotTestFactory.CreatePrecondition(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                workspaceEpoch: 2,
+                transactionRevision: transactionRevision),
             comparison.Object,
             new WorkspacePathService(workspaceRoot, pathNormalizer.Object));
     }

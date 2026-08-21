@@ -50,7 +50,7 @@ internal static class BuiltInCodeActionAuditHarness
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
-        var expectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, transactionRevision: 0);
+        var expectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
         var location = auditCase.LocationFactory(fixture);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
             CreateListRequest(location, auditCase.Kind, expectedSnapshot),
@@ -213,9 +213,7 @@ internal static class BuiltInCodeActionAuditHarness
                     "Successful production staging did not consume the replay reference.");
             }
 
-            var stagedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(
-                open,
-                staged.Data.Transaction.Revision);
+            var stagedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(staged);
 
             await using var stagedQueryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
                 CreateListRequest(location, auditCase.Kind, stagedSnapshot),

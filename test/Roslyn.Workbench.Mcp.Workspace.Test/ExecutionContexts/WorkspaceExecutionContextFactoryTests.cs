@@ -37,9 +37,12 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _workspacePathService = new Mock<IWorkspacePathService>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
+        _resolver
+            .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition>()))
+            .Returns(SnapshotMatchResult.Matched());
         _loadedWorkspace = new Mock<ILoadedWorkspace>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
-        _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
+        _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<SnapshotPrecondition>()))
             .Returns(_resolver.Object);
         _pathServiceFactory.Setup(item => item.Create(It.IsAny<WorkspaceIdentity>()))
             .Returns(_workspacePathService.Object);
@@ -73,7 +76,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
 
-        var action = () => _target.CreateMutationContext(workspace: null, cancellationSource.Token);
+        var action = () => _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: cancellationSource.Token);
 
         action.Should().Throw<OperationCanceledException>();
     }
@@ -110,7 +116,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             .Setup(item => item.HasChanged(session.InputManifest, cancellationSource.Token))
             .Throws(new OperationCanceledException(cancellationSource.Token));
 
-        var action = () => _target.CreateMutationContext(workspace: null, cancellationSource.Token);
+        var action = () => _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: cancellationSource.Token);
 
         action.Should().Throw<OperationCanceledException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
@@ -133,7 +142,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot());
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Context.Should().BeNull();
         result.Stager.Should().BeNull();
@@ -164,7 +176,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(null)).Returns(WorkspaceSessionAcquisition.Rejected(error));
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Should().BeSameAs(error);
     }
@@ -191,7 +206,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object);
         SetupSelection(session);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceBusy);
     }
@@ -221,7 +239,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object);
         SetupSelection(session, sessionRemains: false);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
         await result.DisposeAsync();
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceNotOpen);
@@ -409,7 +430,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object, state);
         SetupSelection(session);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Context.Should().NotBeNull();
         result.Stager.Should().NotBeNull();
@@ -427,7 +451,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object, hasTransaction: false);
         SetupSelection(session);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionRequired);
         result.Failure.Error.RequiredAction.Should().Be(RequiredAction.StartTransaction);
@@ -457,7 +484,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
 
         SetupSelection(session, ownerWorkspaceId: Guid.Parse("77777777-7777-7777-7777-777777777777"), ownerSession: ownerSession);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionOwner);
         result.Failure.Error.Message.Should().Contain(expectedDisplayName);
@@ -481,7 +511,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(true);
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionConflicted);
         result.Context!.CurrentSolution.Should().BeSameAs(transitionedSolution);
@@ -496,7 +529,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object);
         SetupSelection(session, ownerWorkspaceId: Guid.Parse("77777777-7777-7777-7777-777777777777"), ownerSession: null);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionOwner);
         result.Failure.Error.Message.Should().Contain("unknown");
@@ -510,13 +546,13 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var transaction = new WorkspaceTransaction
         {
             TransactionId = new WorkspaceTransactionId(1),
-            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions =
             [
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(2),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
                     Solution = _workspace.CurrentSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
@@ -525,7 +561,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 },
                 new WorkspaceTransactionRevision
                 {
-                    SnapshotId = new WorkspaceSnapshotId(3),
+                    SnapshotId = WorkspaceSnapshotTestFactory.CreateId(3),
                     Solution = _workspace.CurrentSolution,
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
@@ -540,7 +576,10 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object, transaction: transaction);
         SetupSelection(session);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionCapacity);
         result.Failure.Error.RequiredAction.Should().Be(RequiredAction.ReduceTransactionHistory);
@@ -554,12 +593,41 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var session = CreateSession(gate.Object);
         SetupSelection(session);
 
-        var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            expectedSnapshot: CreateExpectedSnapshot(),
+            cancellationToken: CancellationToken.None);
 
         result.Failure.Should().BeNull();
         result.Context.Should().NotBeNull();
         result.Stager.Should().BeOfType<WorkspaceMutationStager>();
         result.Context.Should().NotBeAssignableTo<IWorkspaceMutationStager>();
+    }
+
+    [Fact]
+    public async Task GIVEN_StaleSnapshot_WHEN_CreatingMutationContext_THEN_ShouldReturnConflictBeforeHandlerExecution()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
+        var session = CreateSession(gate.Object);
+        SetupSelection(session);
+        _resolver
+            .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition>()))
+            .Returns(SnapshotMatchResult.SnapshotIdMismatch());
+
+        var result = _target.CreateMutationContext(
+            workspace: null,
+            CreateExpectedSnapshot(),
+            CancellationToken.None);
+        await result.DisposeAsync();
+
+        result.Failure!.Status.Should().Be(WorkspaceOperationStatus.Conflict);
+        result.Failure.Error.Code.Should().Be(WorkspaceErrorCodes.SnapshotMismatch);
+        result.Failure.Error.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.Context.Should().NotBeNull();
+        result.Stager.Should().NotBeNull();
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     public void Dispose()
@@ -646,13 +714,21 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         };
     }
 
+    private static SnapshotPrecondition CreateExpectedSnapshot()
+    {
+        return WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            snapshotId: 2,
+            transactionRevision: 1);
+    }
+
     private WorkspaceSessionSnapshot CreateSession(
         IWorkspaceOperationGate gate,
         WorkspaceLifecycleState state = WorkspaceLifecycleState.Ready,
         WorkspaceTransaction? transaction = default,
         bool hasTransaction = true)
     {
-        var committedSnapshotId = new WorkspaceSnapshotId(1);
+        var committedSnapshotId = WorkspaceSnapshotTestFactory.CreateId(1);
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -673,7 +749,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 [
                     new WorkspaceTransactionRevision
                     {
-                        SnapshotId = new WorkspaceSnapshotId(2),
+                        SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
                         Solution = _workspace.CurrentSolution,
                         Changes = new ChangeSummary(),
                         Operation = "Operation",

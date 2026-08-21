@@ -24,7 +24,7 @@ internal interface IToolExecutionContextFactory
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The acquired or rejected mutation lease.</returns>
     PluginMutationExecutionLease CreateMutationContext(
-        WorkspaceBoundRequest request,
+        WorkspaceMutationRequest request,
         CancellationToken cancellationToken);
 
     /// <summary>Detects a plugin-induced change to the underlying Roslyn Workspace.</summary>

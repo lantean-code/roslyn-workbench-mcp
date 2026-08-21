@@ -98,8 +98,13 @@ public sealed class CodeActionWorkspaceResultMapperTests
                 },
             };
 
+            var context = WorkspaceSnapshotTestFactory.CreateContext(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                transactionRevision: 1);
+
             return WorkspaceOperationResult.Succeeded(
                 data,
+                context,
                 diagnostics: diagnostics,
                 warnings: warnings);
         }

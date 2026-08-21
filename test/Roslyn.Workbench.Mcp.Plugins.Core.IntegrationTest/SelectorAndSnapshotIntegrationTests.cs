@@ -25,12 +25,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
                         SelectedText = "Format",
                     },
                 },
-                ExpectedSnapshot = new SnapshotPrecondition
-                {
-                    WorkspaceId = openResult.Context.WorkspaceId
-                        ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
-                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
-                },
+                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult),
             }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
@@ -50,12 +45,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
             new ResolveSymbolRequest
             {
                 Location = fixture.GetLocation("ToUpperInvariant"),
-                ExpectedSnapshot = new SnapshotPrecondition
-                {
-                    WorkspaceId = openResult.Context.WorkspaceId
-                        ?? throw new InvalidOperationException("The opened workspace did not return a workspace identifier."),
-                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
-                },
+                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult),
             }, TestContext.Current.CancellationToken);
 
         var resolvedSelector = resolved.Data?.Selector

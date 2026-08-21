@@ -63,7 +63,11 @@ public sealed class PluginWorkspaceResultMapperTests
                 Preview = new MutationPreview(),
             };
 
-            return WorkspaceOperationResult.Succeeded(data);
+            var context = WorkspaceSnapshotTestFactory.CreateContext(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                transactionRevision: 1);
+
+            return WorkspaceOperationResult.Succeeded(data, context);
         }
 
         if (status == WorkspaceOperationStatus.NoChange)

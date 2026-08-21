@@ -16,12 +16,11 @@ internal sealed class WorkspaceResolverFactory : IWorkspaceResolverFactory
     public IWorkspaceResolver Create(
         Solution solution,
         WorkspaceIdentity? workspaceIdentity,
-        int? transactionRevision)
+        SnapshotPrecondition? snapshot)
     {
         return new WorkspaceResolver(
             solution,
-            workspaceIdentity,
-            transactionRevision,
+            snapshot,
             _workspacePathComparison,
             _workspacePathServiceFactory.Create(workspaceIdentity));
     }

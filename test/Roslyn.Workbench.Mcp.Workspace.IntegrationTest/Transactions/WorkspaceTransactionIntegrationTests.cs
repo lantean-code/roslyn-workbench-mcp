@@ -1,5 +1,6 @@
 using System.Text;
 using Moq;
+using Roslyn.Workbench.Mcp.Workspace.State;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
@@ -402,19 +403,29 @@ public sealed class WorkspaceTransactionIntegrationTests
         var workspaceId = context.WorkspaceId
             ?? throw new InvalidOperationException("The workspace operation did not return a workspace identifier.");
 
-        return new SnapshotPrecondition
-        {
-            WorkspaceId = workspaceId,
-            WorkspaceEpoch = context.WorkspaceEpoch!.Value,
-            TransactionRevision = context.TransactionRevision,
-        };
+        return context.Snapshot
+            ?? throw new InvalidOperationException($"Workspace '{workspaceId}' did not return a snapshot.");
     }
 
     private static async Task<PluginExecutionResult<MutationData>> StageMutationAsync(
         ComponentWorkspace target,
         bool stageEveryDocument = false)
     {
-        await using var lease = target.CreateMutationContext(new StageMutationRequest(), TestContext.Current.CancellationToken);
+        var session = target.GetRequiredService<IWorkspaceSessionStore>()
+            .ReadSnapshot()
+            .Workspaces
+            .Values
+            .Single();
+
+        var expectedSnapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            session.Transaction?.CurrentRevision);
+
+        var request = new StageMutationRequest
+        {
+            ExpectedSnapshot = expectedSnapshot,
+        };
+        await using var lease = target.CreateMutationContext(request, TestContext.Current.CancellationToken);
         lease.HasFailure.Should().BeFalse();
         var candidateSolution = lease.Context!.CurrentSolution;
         var documents = candidateSolution.Projects.SelectMany(static project => project.Documents);
@@ -466,5 +477,5 @@ public sealed class WorkspaceTransactionIntegrationTests
         return observedState;
     }
 
-    private sealed record StageMutationRequest : WorkspaceBoundRequest;
+    private sealed record StageMutationRequest : WorkspaceMutationRequest;
 }

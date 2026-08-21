@@ -195,6 +195,7 @@ public sealed class PluginPublicApiContractTests
         [
             nameof(IToolExecutionContext.CurrentSolution),
             nameof(IToolExecutionContext.DefaultMaxResults),
+            nameof(IToolExecutionContext.Snapshot),
             nameof(IToolExecutionContext.ToolExecutionServices),
             nameof(IToolExecutionContext.TransactionRevision),
             nameof(IToolExecutionContext.WorkspaceIdentity),

@@ -35,7 +35,7 @@ public sealed class CodeActionStagerTests
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var result = await _target.StageAsync(
-            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") }, ActionId = Guid.Empty },
+            new StageCodeActionRequest { ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")), ActionId = Guid.Empty },
             _context.Object,
             CancellationToken.None);
 
@@ -51,7 +51,7 @@ public sealed class CodeActionStagerTests
     public async Task GIVEN_ResolvedRefactoring_WHEN_StagingCodeAction_THEN_ShouldCreateMutationCandidate()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var action = CreateAction(roslyn.Solution);
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _resolver
@@ -84,7 +84,7 @@ public sealed class CodeActionStagerTests
     public async Task GIVEN_PreparedFixAllReference_WHEN_StagingCodeAction_THEN_ShouldResolvePreparedAction()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var expectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var action = CreateAction(roslyn.Solution);
         var preparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData();
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
@@ -139,7 +139,7 @@ public sealed class CodeActionStagerTests
                 CodeActionResolutionFailureKind.InvalidReference));
 
         var result = await _target.StageAsync(
-            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") }, ActionId = Guid.Empty },
+            new StageCodeActionRequest { ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")), ActionId = Guid.Empty },
             _context.Object,
             CancellationToken.None);
 
@@ -169,7 +169,7 @@ public sealed class CodeActionStagerTests
             .ReturnsAsync(CodeActionResolution.Rejected(conflict));
 
         var result = await _target.StageAsync(
-            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") }, ActionId = Guid.Empty },
+            new StageCodeActionRequest { ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")), ActionId = Guid.Empty },
             _context.Object,
             CancellationToken.None);
 
@@ -198,7 +198,7 @@ public sealed class CodeActionStagerTests
                 "Unsupported action operation."));
 
         var result = await _target.StageAsync(
-            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition { WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111") }, ActionId = Guid.Empty },
+            new StageCodeActionRequest { ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")), ActionId = Guid.Empty },
             _context.Object,
             CancellationToken.None);
 
@@ -232,10 +232,8 @@ public sealed class CodeActionStagerTests
         var result = await _target.StageAsync(
             new StageCodeActionRequest
             {
-                ExpectedSnapshot = new SnapshotPrecondition
-                {
-                    WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                },
+                ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
                 ActionId = Guid.Empty,
             },
             _context.Object,

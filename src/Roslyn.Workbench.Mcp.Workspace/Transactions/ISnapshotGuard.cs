@@ -2,5 +2,5 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal interface ISnapshotGuard
 {
-    WorkspaceOperationError? Validate(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot);
+    SnapshotValidationResult Validate(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot);
 }

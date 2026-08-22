@@ -6,6 +6,7 @@ These files are engineering records. They may describe intended, intermediate, h
 
 ## Active references
 
+- [Product operating model](ProductOperatingModel.md) defines the supported user, agent, concurrency and trust scenarios used for implementation and review decisions.
 - [Future tasks](FutureTasks.md) is the prioritised engineering backlog.
 - [Testing strategy](TestingStrategy.md) defines the current test architecture and execution policy.
 - [Tool test inventory](Tool%20Test%20Inventory.md) records current tool-test ownership and known partial branch coverage.

@@ -81,6 +81,7 @@
 
 1. Read this file, then the relevant folder `AGENTS.md` (`src` or `test`).
 2. Read the relevant design docs under `./docs/development` before making structural or contract changes.
+   - Use [`./docs/development/ProductOperatingModel.md`](./docs/development/ProductOperatingModel.md) when assessing supported actors, concurrency, trust boundaries, failure scenarios and whether a review finding represents a product defect.
 3. When working on C#, .NET SDK, Roslyn, or MCP contract behaviour:
    - Use Microsoft Learn for current official .NET guidance.
    - Use Roslyn-backed tooling for solution inspection, symbol lookup, and safe refactor planning where available.
@@ -122,6 +123,7 @@
 ## Communication and assumptions
 
 - Do not guess. If any requirement, API contract, or behaviour is unclear, ask for clarification.
+- Evaluate implementation and review concerns against [`./docs/development/ProductOperatingModel.md`](./docs/development/ProductOperatingModel.md). For each finding, identify the actor, concrete action, plausibility, existing controls and user-visible impact; do not promote a theoretical interleaving outside the supported operating model into a product defect without a realistic failure scenario.
 - When reviewing pull request feedback, only unresolved review threads/comments are actionable by default unless the user explicitly asks to revisit resolved items.
 - Prefer concise diffs and explicit rationale in commit messages and PR descriptions.
 - When generating PR summaries, commit messages, review replies, release notes, or other GitHub-facing repository text, use British English spelling and phrasing.

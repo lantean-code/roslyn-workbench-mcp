@@ -4,9 +4,9 @@ Date: 2026-08-16
 
 ## Repository-level assessment
 
-The repository has a coherent acyclic architecture, clear ownership of Host, Workspace, plugin and Code Action concerns, disciplined process/resource lifetimes, a strong normal durable-commit protocol and credible component/published-Host coverage. Independent validation nevertheless retained nineteen concrete findings: two P1 correctness/concurrency defects and seventeen P2 contract, lifecycle, filesystem, tool, performance and operational-evidence defects. No candidate was rejected or merged as a duplicate.
+The repository has a coherent acyclic architecture, clear ownership of Host, Workspace, plugin and Code Action concerns, disciplined process/resource lifetimes, a strong normal durable-commit protocol and credible component/published-Host coverage. Independent validation initially retained nineteen concrete findings: two P1 correctness/concurrency defects and seventeen P2 contract, lifecycle, filesystem, tool, performance and operational-evidence candidates. Remediation subsequently rejected RWMCP3-007 as outside the accepted local operating model while retaining its technical evidence and rationale.
 
-The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Both have since been remediated and independently reviewed. The filesystem directory-swap issue is real but was reduced to P2 because native exploitability and impact have not been reproduced.
+The most urgent release risks identified by the review were non-atomic global transaction admission and reusable public snapshot identities. Both have since been remediated and independently reviewed. The filesystem directory-swap interleaving is technically possible, but concurrent structural repository changes during the short application phases of `transaction-commit` and automatic startup recovery are outside the supported concurrency model.
 
 ## Remediation work items
 
@@ -17,7 +17,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 1 | RWMCP3-002 | Correct target-framework project resolution | Complete |
 | 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Complete |
 | 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Complete |
-| 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Incomplete |
+| 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Complete — rejected as outside operating model |
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Incomplete |
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Incomplete |
 | 7 | RWMCP3-014 | Reject undeclared request members at binding | Incomplete |
@@ -178,11 +178,13 @@ Each project recursively enumerates all descendant directories before applying e
 
 Containment is revalidated by pathname, then asynchronous artifact work occurs before temporary-file creation and rename. Another local process can swap a parent directory for a link/reparse point in that interval; no stable directory handle/no-follow mutation binds validation to the write. Use handle-relative/no-follow operations or otherwise bind verified filesystem identity to mutation. Native reproduction and platform-specific impact remain unproved, which limits severity and confidence.
 
+**Disposition:** Rejected as a product defect on 2026-08-22. Normal agent mutations are coordinated through the transaction pipeline and ordinary user or IDE changes are covered by change detection, snapshot semantics and commit revalidation. The non-cancellable application phases of `transaction-commit` and automatic startup recovery are short coordinated boundaries during which the user and other tools must not switch branches, check out or reset paths, move directory trees, or replace directories with links. After starting or restarting the Host, callers must wait for initialisation and recovery status before structural repository work. Supporting concurrent structural changes during those application phases would require substantial Windows and POSIX handle-relative native mutation rather than another racy pathname check. The scenario is an accepted residual risk in the [product operating model](../ProductOperatingModel.md); existing containment checks remain required for ordinary and pre-existing link escapes.
+
 ## Notable test gaps
 
-Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission, deterministic directory swaps and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file, format-range and Code Action provider cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
+Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file, format-range and Code Action provider cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
 
 ## Areas not reviewed confidently
 
-Arbitrary third-party plugin, project analyser and MSBuild logic remains trusted and open-ended. Native filesystem race and durability semantics were not reproduced across every supported platform. Remote Sentry delivery after SDK queue acceptance is provider-owned. External-repository scenario suites were inspected but not executed during this review, and the read-only dogfood Workspace reported missing package/analyser inputs that limited broad semantic querying. These limits do not undermine the validated source-level call paths above but should inform remediation validation.
+Arbitrary third-party plugin, project analyser and MSBuild logic remains trusted and open-ended. Handle-relative native filesystem mutation was not reviewed because concurrent structural repository operations during commit application or startup recovery are outside the accepted product operating model. Remote Sentry delivery after SDK queue acceptance is provider-owned. External-repository scenario suites were inspected but not executed during this review, and the read-only dogfood Workspace reported missing package/analyser inputs that limited broad semantic querying. These limits do not undermine the validated source-level call paths above but should inform remediation validation.
 

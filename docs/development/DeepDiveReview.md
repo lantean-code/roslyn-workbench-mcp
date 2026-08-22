@@ -188,8 +188,8 @@ The review is complete only when:
 
 After the final RWMCP3 findings are accepted, remediate each approved work item through this sequence:
 
-1. Select the first incomplete finding in the approved implementation order and revalidate it against current source.
-2. Explain the failure scenario, examples, affected boundaries and evidence.
+1. Select the first incomplete finding in the approved implementation order and revalidate it against current source and the [product operating model](ProductOperatingModel.md).
+2. Explain the actor, concrete action, plausibility, existing controls, failure scenario, examples, affected boundaries and evidence.
 3. Propose the complete production, contract, documentation and test design, including alternatives and material trade-offs.
 4. Obtain explicit user approval before changing production code.
 5. Implement the approved change and run the required formatting, build, analyser and test validation.
@@ -199,5 +199,7 @@ After the final RWMCP3 findings are accepted, remediate each approved work item 
 9. Present the final implementation, review findings and corrections for the user's second review and final confirmation.
 10. Update durable status only after final confirmation. The user commits the independently reviewed item from a clean, fully staged baseline.
 11. Before selecting another item, publish the exact committed `HEAD` to a new dogfood candidate, smoke-test it, promote the configured `current` target and restart the MCP client connection.
+
+If remediation discussion establishes or clarifies a supported user, agent, concurrency or trust scenario, update the product operating model before closing the item. A technically possible interleaving may be rejected as a product defect when it falls outside that model, but both finding ledgers must retain the evidence and explicit disposition so a later review does not raise it without new evidence or a changed operating model.
 
 No finding is ready to commit while actionable Review Agent feedback or a material validation gap remains.

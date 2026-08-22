@@ -36,6 +36,8 @@ Use this sequence for mutations:
 
 Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.
 
+Coordinate filesystem activity with the user. While `transaction-commit` is in progress, neither the user nor another development tool should edit the source paths shown in `transaction-preview`, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.
+
 `transaction-commit` writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.
 
 Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reconcile those changes after reload. If the project explicitly includes, removes or excludes an affected source path, update the project file separately before relying on the reloaded project graph.
@@ -47,6 +49,8 @@ Small, frequent Workbench transactions keep previews reviewable and bound the te
 Follow the structured next action returned by a failed tool call. Do not retry stale inputs unchanged when the server asks for a reload, a new selector, a newer revision or rollback.
 
 Use `get-error-details` only for an unexpected correlated failure. Unfinished durable recovery is reported by `server-status`; resolve it before attempting further mutations.
+
+Automatic recovery runs during Host startup before MCP transport is available. Do not coordinate a Host restart with Workspace writes, structural Git or directory-tree operations already in progress. After a start or restart, avoid those operations until MCP initialisation completes, then call `server-status` with full detail. A completed initialisation means the automatic recovery attempt has finished; an unfinished `recovery` entry means its state still requires resolution before Workspace writes, mutations or structural repository work proceed.
 
 ## More documentation
 

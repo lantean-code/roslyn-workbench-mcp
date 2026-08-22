@@ -2,7 +2,7 @@
 
 Date created: 2026-08-16
 
-**Status:** Independent validation complete — nineteen findings validated; none rejected or duplicated.
+**Status:** Independent validation initially validated nineteen candidates without rejection or duplication; remediation subsequently rejected RWMCP3-007 as outside the product operating model.
 
 **Next identifier:** `RWMCP3-020`
 
@@ -12,7 +12,7 @@ This ledger records only candidates independently established from the current r
 
 ## Candidate requirements
 
-Each candidate must record its stable identifier, status, severity, confidence, exact file and line range, concrete failure scenario, supporting call path or evidence, affected projects/subsystems, concise remediation direction, originating review unit and complete validation/rejection history. Identifiers are monotonically allocated and never reused. Rejected and duplicate candidates remain here with their disposition but are excluded from the final validated report.
+Each candidate must record its stable identifier, status, severity, confidence, exact file and line range, concrete failure scenario, supporting call path or evidence, affected projects/subsystems, concise remediation direction, originating review unit and complete validation/rejection history. Identifiers are monotonically allocated and never reused. Candidates rejected or merged during independent validation remain here with their disposition but are excluded from the final validated report; a finding rejected later during remediation remains in both ledgers with its complete history and final disposition.
 
 ## Candidates
 
@@ -110,7 +110,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-007 — Directory-swap races can invalidate containment before atomic writes
 
-**Status:** Validated  
+**Status:** Complete — rejected as outside the product operating model on 2026-08-22
 **Severity:** P2  
 **Confidence:** Medium  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/Transactions/WorkspaceCommitWriter.cs:43-100`; `src/Roslyn.Workbench.Mcp.Workspace/IO/AtomicFileWriter.cs:105-143`; `src/Roslyn.Workbench.Mcp.Workspace/IO/PhysicalPathContainment.cs:51-64`; `src/Roslyn.Workbench.Mcp.Workspace/IO/NativeAtomicFileCommitter.cs:18-60`
@@ -121,7 +121,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Workspace containment, commit writer, atomic IO, recovery and cross-process security.  
 **Remediation direction:** Mutate relative to verified directory handles with no-follow/reparse protections or otherwise bind validation/rename to stable filesystem identities; add deterministic directory-swap tests.  
-**Origin/history:** Unit 2, 2026-08-16; static call path substantiated, executable race not reproduced; Unit 8 platform validation required.
+**Origin/history:** Unit 2, 2026-08-16; static call path substantiated, executable race not reproduced. Remediation review confirmed that normal agent mutations are coordinated through the transaction pipeline and ordinary user or IDE changes are covered by change detection, snapshot semantics and commit revalidation. The non-cancellable application phases of `transaction-commit` and automatic startup recovery are short coordinated boundaries during which the user and other tools must not switch branches, check out or reset paths, move directory trees, or replace directories with links. After starting or restarting the Host, callers must wait for initialisation and recovery status before structural repository work. Supporting concurrent structural changes during those application phases would require substantial Windows and POSIX handle-relative native mutation rather than another racy pathname check. The scenario was therefore rejected as a product defect and recorded as an accepted residual risk in the [product operating model](../ProductOperatingModel.md); existing pre-write containment remains required for ordinary and pre-existing link escapes.
 
 ### RWMCP3-008 — Location-based CFG requests can throw for ordinary executable locations
 

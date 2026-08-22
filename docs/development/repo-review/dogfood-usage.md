@@ -187,3 +187,53 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"alias":"rwmcp3"},"query":"WorkspaceOperationException","kinds":["NamedType"],"symbolsLimit":20}`
 
 **Outcome:** Succeeded with the production exception and its Workspace unit tests.
+
+## RWMCP3-007
+
+### 1. `workspace-list`
+
+**Purpose:** Validate the restarted dogfood process and inspect its loaded Workspace state before beginning the next finding.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces. The client exposed no visible text content for the structured response.
+
+### 2. `workspace-list`
+
+**Purpose:** Repeat the Workspace inventory while explicitly inspecting the structured response after the first projection was blank.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and confirmed that the restarted process had no loaded Workspaces and no transaction owner.
+
+### 3. `workspace-open`
+
+**Purpose:** Open the current solution for investigation of the atomic-write containment finding.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** Succeeded. Opened Workspace `7c39b922-8a03-449a-9093-3b27e5b085eb` at epoch 1 and snapshot `690489f3-8770-4b00-889c-005921d110b2`, with 30 projects and 1,577 documents. The server warned about one unresolved generated analyser reference and WSL access through the Windows filesystem.
+
+### 4. `search-symbols`
+
+**Purpose:** Resolve the production atomic writer and its interface and tests before tracing consumers.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"AtomicFileWriter","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the production implementation and interface, the unit test class and the integration test class.
+
+### 5. `find-references`
+
+**Purpose:** Identify the production registration and direct test construction sites for `AtomicFileWriter`.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"symbol":{"location":{"span":{"document":{"documentId":"08694a16-f290-4d0e-9f58-6cb1d12ba9ca"},"start":132,"length":16}}},"includeDefinitions":true,"includeContext":true,"referencesLimit":100}`
+
+**Outcome:** Succeeded with 17 references. Production construction is container-owned, while the remaining direct constructions are confined to test projects.
+
+### 6. `search-symbols`
+
+**Purpose:** Locate recovery-related production types and methods during the independent review of the startup-recovery guidance.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"Recovery","kinds":["NamedType","Method"],"symbolsLimit":50}`
+
+**Outcome:** Failed with `WorkspaceNotOpen` because the review process had no open Workspace. The response instructed the caller to invoke `workspace-open`; the reviewer made no follow-up request.

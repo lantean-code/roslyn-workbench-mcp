@@ -18,7 +18,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 2 | RWMCP3-005, RWMCP3-010 | Preserve durable file topology and explicit project membership | Complete |
 | 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Complete |
 | 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Complete — rejected as outside operating model |
-| 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Incomplete |
+| 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Complete |
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Incomplete |
 | 7 | RWMCP3-014 | Reject undeclared request members at binding | Incomplete |
 | 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Incomplete |
@@ -90,15 +90,23 @@ Invalid recovery records preserve raw nonblank identities. Admission later calls
 
 ### RWMCP3-008 — Location-based CFG requests throw for ordinary executable locations
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
+
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetControlFlowGraphTool.cs:41-67`; `src/Roslyn.Workbench.Mcp/ToolExecution/Plugins/PluginQueryMcpServerTool.cs:53-94`
 
 A valid location inside a statement or expression resolves to a non-root operation. Passing it to `ControlFlowGraph.Create` throws `ArgumentException` and becomes a generic correlated failure. Independent validation reproduced this through the current Host. Resolve a supported enclosing executable root or reject the location, with handler and protocol tests for nested/unsupported positions.
 
+**Remediation:** A dedicated `ControlFlowGraphResolver` now finds the enclosing supported operation root, derives its owner from the same syntax node and semantic model, and descends through real local-function and anonymous-function graph membership. Standalone parameter-initializer graphs owned by local or anonymous functions are retained rather than used as invalid containers for nested descent. Independent resolver tests cover all current C# CFG root shapes, unsupported and operation-free targets, method/local/lambda nesting, branch-value lambdas and both nested optional-parameter shapes; handler and component integration tests cover the tool boundary. Plugins.Core unit tests passed 339/339, Plugins.Core integration tests passed 12/12, resolver coverage measured 94.23% line and 93.33% branch with only documented Roslyn defensive guards remaining, affected `latest-all` analyser builds were clean and the final fresh staged review found no defects.
+
 ### RWMCP3-009 — Maximum permitted `afterLines` overflows the code-context window
+
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
 
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetCodeContextRequest.cs:17-28`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetCodeContextTool.cs:24-33`
 
 The schema permits `afterLines = int.MaxValue`; adding it to the selected end line overflows and produces a negative `Enumerable.Range` count. Independent validation reproduced the failure through the current Host. Use overflow-safe remaining-line arithmetic and a meaningful output bound; cover maximum, near-maximum and end-of-file requests.
+
+**Remediation:** Both context-window inputs now use the repository's nullable optional-limit pattern with effective defaults and a published maximum of 100 lines. Window calculation bounds each side against the available document lines before addition, preventing integer overflow and oversized responses. Unit tests cover defaults, explicit bounds, maximum values and end-of-file behaviour, while Host schema integration verifies the published defaults and ranges. The grouped validation and independent review evidence is recorded under RWMCP3-008.
 
 ### RWMCP3-010 — `renameFile=true` cannot complete a durable same-document path transition
 
@@ -112,9 +120,13 @@ Roslyn produces a same-document-ID text/path change. Staging accepts it because 
 
 ### RWMCP3-011 — Format range silently ignores its document binding
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
+
 **Location:** `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/TextSpanSelector.cs:8-25`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FormatDocumentRequest.cs:6-16`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Refactorings/FormatDocumentTool.cs:11-45`
 
 A request can bind its top-level selector to document A and nested range selector to B. Both validate, but the handler resolves only A and applies B's numeric range to A. Use a documentless nested span or require both selectors to resolve identically; add handler and protocol mismatch tests.
+
+**Remediation:** `TextSpanRange` is now the document-independent range contract, while `TextSpanSelector` composes a required document and required range for location identity. Formatting accepts only `TextSpanRange`, so a request cannot express a competing nested document. Selector creation, recursive validation, schema publication, Workspace resolution, plugin/Code Action consumers and tests were migrated to the composed contract shape. The grouped validation and independent review evidence is recorded under RWMCP3-008.
 
 ### RWMCP3-012 — Sibling Code Fix roots can become permanently ambiguous during replay
 

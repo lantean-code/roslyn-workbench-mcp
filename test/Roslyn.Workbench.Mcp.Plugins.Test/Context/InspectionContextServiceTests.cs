@@ -32,7 +32,10 @@ public sealed class InspectionContextServiceTests
         var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
-        var result = await target.ReadContextAsync(document, new TextSpan(workspace.GetLocationSelector("return value.Trim();").Span!.Start, 1), TestContext.Current.CancellationToken);
+        var selector = workspace.GetLocationSelector("return value.Trim();");
+        var span = new TextSpan(selector.Span!.Range.Start, 1);
+
+        var result = await target.ReadContextAsync(document, span, TestContext.Current.CancellationToken);
 
         result.Should().Be("return value.Trim();");
     }
@@ -68,7 +71,7 @@ public sealed class InspectionContextServiceTests
         var document = workspace.Solution.Projects.Single().Documents.Single();
         var selector = workspace.GetLocationSelector("Trim");
 
-        var result = await target.TryCreateContainingSymbolAsync(document, selector.Span!.Start, TestContext.Current.CancellationToken);
+        var result = await target.TryCreateContainingSymbolAsync(document, selector.Span!.Range.Start, TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("Trim");

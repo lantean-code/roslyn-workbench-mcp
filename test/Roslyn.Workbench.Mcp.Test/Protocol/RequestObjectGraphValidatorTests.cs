@@ -23,7 +23,13 @@ public sealed class RequestObjectGraphValidatorTests
     {
         var project = new ProjectSelector { Name = "Name" };
         var document = new DocumentSelector { Path = "Path" };
-        var span = new TextSpanSelector();
+        var range = new TextSpanRange();
+        var span = new TextSpanSelector
+        {
+            Document = document,
+            Range = range,
+        };
+
         var location = new LocationSelector { Span = span };
         var workspace = new WorkspaceSelector { Alias = "Alias" };
         var symbol = new SymbolSelector { Location = location };
@@ -81,7 +87,14 @@ public sealed class RequestObjectGraphValidatorTests
     public void GIVEN_SelectorAndAttributeFailures_WHEN_Validating_THEN_ShouldReturnBothFailureKinds()
     {
         var document = new DocumentSelector { Path = "Path", DocumentId = "DocumentId" };
-        var span = new TextSpanSelector { Start = -1 };
+        var spanDocument = new DocumentSelector { Path = "SpanPath" };
+        var range = new TextSpanRange { Start = -1 };
+        var span = new TextSpanSelector
+        {
+            Document = spanDocument,
+            Range = range,
+        };
+
         var request = new SelectorRequest
         {
             Document = document,
@@ -91,7 +104,7 @@ public sealed class RequestObjectGraphValidatorTests
         var result = _target.TryCreateInvalidRequestError(request, _serializerOptions, out var errorMessage);
 
         result.Should().BeTrue();
-        errorMessage.Should().Contain("'span.start': The field Start must be between 0 and 2147483647.");
+        errorMessage.Should().Contain("'span.range.start': The field Start must be between 0 and 2147483647.");
         errorMessage.Should().Contain("'document.documentId', 'document.path': DocumentSelector");
     }
 

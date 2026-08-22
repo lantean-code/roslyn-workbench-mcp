@@ -118,21 +118,36 @@ public sealed class SemanticInspectionIntegrationTests
                 MaxBlocks = 1,
             }, TestContext.Current.CancellationToken);
 
+        var graphLocation = fixture.GetLocation("var upper = trimmed.ToUpperInvariant()");
+        var locationGraphRequest = new GetControlFlowGraphRequest
+        {
+            Location = graphLocation,
+            ExpectedSnapshot = snapshot,
+        };
+
+        var locationGraph = await session.ExecuteQueryAsync<GetControlFlowGraphRequest, ControlFlowGraphData>(
+            "get-control-flow-graph",
+            locationGraphRequest,
+            TestContext.Current.CancellationToken);
+
         diagnostics.Data!.Diagnostics.Items.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
         asyncDiagnostics.Data!.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer01");
         asyncDiagnostics.Data.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer03");
         operation.Data!.Root!.Kind.Should().Contain("Invocation");
         flow.Data!.Exits.Should().NotBeEmpty();
-        flow.Data.Region!.Span!.Start.Should().Be(controlFlowLocation.Span!.Start);
-        flow.Data.Region.Span.Length.Should().Be(controlFlowLocation.Span.Length);
+        flow.Data.Region!.Span!.Start.Should().Be(controlFlowLocation.Span!.Range.Start);
+        flow.Data.Region.Span.Length.Should().Be(controlFlowLocation.Span.Range.Length);
         partialFlow.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         partialFlow.Error!.Code.Should().Be("InvalidRequest");
         dataFlow.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        dataFlow.Data!.Region!.Span!.Start.Should().Be(dataFlowLocation.Span!.Start);
-        dataFlow.Data.Region.Span.Length.Should().Be(dataFlowLocation.Span.Length);
+        dataFlow.Data!.Region!.Span!.Start.Should().Be(dataFlowLocation.Span!.Range.Start);
+        dataFlow.Data.Region.Span.Length.Should().Be(dataFlowLocation.Span.Range.Length);
         dataFlow.Data.ReadInside.Select(static symbol => symbol.DisplayName).Should().Contain("trimmed");
         exceptionalGraph.Data!.Regions.Select(static region => region.Kind).Should().Contain(static kind => kind.Contains("Try", StringComparison.Ordinal) || kind.Contains("Catch", StringComparison.Ordinal) || kind.Contains("Finally", StringComparison.Ordinal));
         boundedGraph.Data!.Blocks.Should().HaveCount(1);
         boundedGraph.Data.BlocksTruncated.Should().BeTrue();
+        locationGraph.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        locationGraph.Data!.Owner!.DisplayName.Should().Contain("Analyse");
+        locationGraph.Data.Blocks.Should().NotBeEmpty();
     }
 }

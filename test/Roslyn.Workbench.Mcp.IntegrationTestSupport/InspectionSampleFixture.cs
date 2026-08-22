@@ -148,17 +148,26 @@ internal sealed class InspectionSampleFixture : IDisposable
             return new LocationSelector();
         }
 
+        var document = new DocumentSelector
+        {
+            Path = Path.GetFileName(DocumentPath),
+        };
+
+        var range = new TextSpanRange
+        {
+            Start = start,
+            Length = (end - start) + endText.Length,
+        };
+
+        var span = new TextSpanSelector
+        {
+            Document = document,
+            Range = range,
+        };
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = Path.GetFileName(DocumentPath),
-                },
-                Start = start,
-                Length = (end - start) + endText.Length,
-            },
+            Span = span,
         };
     }
 
@@ -199,17 +208,26 @@ internal sealed class InspectionSampleFixture : IDisposable
 
     private static LocationSelector CreateSelector(string documentPath, int start, int length)
     {
+        var document = new DocumentSelector
+        {
+            Path = documentPath,
+        };
+
+        var range = new TextSpanRange
+        {
+            Start = start,
+            Length = length,
+        };
+
+        var span = new TextSpanSelector
+        {
+            Document = document,
+            Range = range,
+        };
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = documentPath,
-                },
-                Start = start,
-                Length = length,
-            },
+            Span = span,
         };
     }
 

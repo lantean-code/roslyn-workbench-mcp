@@ -351,7 +351,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         Project? project,
         CancellationToken cancellationToken)
     {
-        if (selector.Document is null || string.IsNullOrEmpty(selector.SelectedText))
+        if (string.IsNullOrEmpty(selector.SelectedText))
         {
             return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }
@@ -408,11 +408,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         Project? project,
         CancellationToken cancellationToken)
     {
-        if (selector.Document is null)
-        {
-            return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
-        }
-
         var documentResolution = ResolveDocument(selector.Document, project);
         if (!documentResolution.IsResolved)
         {
@@ -421,9 +416,9 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         var document = documentResolution.Value;
         var sourceText = await document.GetTextAsync(cancellationToken);
-        if (selector.Start < 0
-            || selector.Length < 0
-            || selector.Start > sourceText.Length - selector.Length)
+        if (selector.Range.Start < 0
+            || selector.Range.Length < 0
+            || selector.Range.Start > sourceText.Length - selector.Range.Length)
         {
             return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }
@@ -431,7 +426,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var resolvedSpan = new ResolvedDocumentSpan
         {
             Document = document,
-            Span = new TextSpan(selector.Start, selector.Length),
+            Span = new TextSpan(selector.Range.Start, selector.Range.Length),
         };
 
         return SelectorResolveResult.Resolved(resolvedSpan);

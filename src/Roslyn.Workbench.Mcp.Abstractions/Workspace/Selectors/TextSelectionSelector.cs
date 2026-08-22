@@ -8,7 +8,7 @@ public sealed record TextSelectionSelector
     /// <summary>
     /// Gets the selected document.
     /// </summary>
-    public DocumentSelector? Document { get; init; }
+    public required DocumentSelector Document { get; init; }
 
     /// <summary>
     /// Gets the copied selected text.

@@ -61,7 +61,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
-        var graph = ControlFlowGraph.Create(node, semanticModel, cancellationToken);
+        var graph = ControlFlowGraphResolver.Resolve(node, semanticModel, cancellationToken);
         if (graph is null)
         {
             return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");

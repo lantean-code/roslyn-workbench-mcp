@@ -33,14 +33,10 @@ public sealed class WorkspaceResolverTests
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var document = new DocumentSelector { Path = "\0Document.cs" };
         var selector = new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector { Path = "\0Document.cs" },
-                Start = 0,
-                Length = 1,
-            },
+            Span = SelectorTestFactory.CreateTextSpanSelector(document, start: 0, length: 1),
         };
 
         var result = await target.ResolveLocationAsync(selector, TestContext.Current.CancellationToken);
@@ -619,12 +615,12 @@ public sealed class WorkspaceResolverTests
 
         var resolved = await target.ResolveLocationAsync(new LocationSelector
         {
-            Span = new TextSpanSelector { Document = documentSelector, Start = 6, Length = 1 },
+            Span = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1),
         }, TestContext.Current.CancellationToken);
 
         var notFound = await target.ResolveLocationAsync(new LocationSelector
         {
-            Span = new TextSpanSelector { Document = documentSelector, Start = -1, Length = 1 },
+            Span = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: -1, length: 1),
         }, TestContext.Current.CancellationToken);
 
         resolved.Status.Should().Be(SelectorResolveStatus.Resolved);
@@ -673,21 +669,18 @@ public sealed class WorkspaceResolverTests
             Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
 
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector
+        {
+            Path = "FirstProject/Document.cs",
+            Project = new ProjectSelector
+            {
+                Name = "SecondProject",
+            },
+        };
+
         var selector = new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = "FirstProject/Document.cs",
-                    Project = new ProjectSelector
-                    {
-                        Name = "SecondProject",
-                    },
-                },
-                Start = 6,
-                Length = 1,
-            },
+            Span = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1),
         };
 
         var result = await target.ResolveLocationAsync(selector, TestContext.Current.CancellationToken);
@@ -772,19 +765,6 @@ public sealed class WorkspaceResolverTests
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
 
-    [Fact]
-    public async Task GIVEN_SpanWithoutDocument_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
-    {
-        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var result = await target.ResolveLocationAsync(
-            new LocationSelector { Span = new TextSpanSelector { Start = 0, Length = 1 } },
-            TestContext.Current.CancellationToken);
-
-        result.Status.Should().Be(SelectorResolveStatus.NotFound);
-    }
-
     [Theory]
     [InlineData(0, -1)]
     [InlineData(100, 1)]
@@ -793,29 +773,26 @@ public sealed class WorkspaceResolverTests
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start, length);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
-        var result = await target.ResolveLocationAsync(new LocationSelector
-        {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
-                Start = start,
-                Length = length,
-            },
-        }, TestContext.Current.CancellationToken);
+        var result = await target.ResolveLocationAsync(locationSelector, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
 
     [Fact]
-    public async Task GIVEN_SelectionWithoutDocumentOrText_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
+    public async Task GIVEN_SelectionWithoutText_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var selectionSelector = new TextSelectionSelector { Document = documentSelector };
+        var locationSelector = new LocationSelector { Selection = selectionSelector };
 
-        var result = await target.ResolveLocationAsync(
-            new LocationSelector { Selection = new TextSelectionSelector() },
-            TestContext.Current.CancellationToken);
+        var result = await target.ResolveLocationAsync(locationSelector, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
@@ -932,7 +909,7 @@ public sealed class WorkspaceResolverTests
 
         var spanResult = await target.ResolveLocationAsync(new LocationSelector
         {
-            Span = new TextSpanSelector { Document = documentSelector, Start = 0, Length = 1 },
+            Span = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 0, length: 1),
         }, TestContext.Current.CancellationToken);
 
         var selectionResult = await target.ResolveLocationAsync(new LocationSelector
@@ -1005,18 +982,13 @@ public sealed class WorkspaceResolverTests
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.Resolved);
@@ -1041,18 +1013,13 @@ public sealed class WorkspaceResolverTests
         var secondProject = AddProject(workspace, "SecondProject");
         AddDocument(workspace, secondProject, "Document.cs", "class D { }", Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { Path = "FirstProject/Document.cs" };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { Path = "FirstProject/Document.cs" },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.Ambiguous);
@@ -1064,18 +1031,13 @@ public sealed class WorkspaceResolverTests
         using var workspace = CreateWorkspace("Project", "Document.cs", "// comment");
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 3, length: 0);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
-                    Start = 3,
-                    Length = 0,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
@@ -1121,19 +1083,14 @@ public sealed class WorkspaceResolverTests
         var secondProject = AddProject(workspace, "SecondProject");
         AddDocument(workspace, secondProject, "Document.cs", "class D { }", Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { Path = "FirstProject/Document.cs" };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
             Project = new ProjectSelector { Name = "SecondProject" },
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { Path = "FirstProject/Document.cs" },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.Resolved);
@@ -1146,19 +1103,14 @@ public sealed class WorkspaceResolverTests
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { string Value = string.Empty; }");
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 10, length: 6);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
             Project = new ProjectSelector { Name = "Project" },
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
-                    Start = 10,
-                    Length = 6,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.Resolved);
@@ -1223,19 +1175,14 @@ public sealed class WorkspaceResolverTests
         var firstDocument = workspace.CurrentSolution.Projects.Single().Documents.Single();
         AddProject(workspace, "SecondProject");
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentSelector = new DocumentSelector { DocumentId = firstDocument.Id.Id.ToString() };
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
 
         var result = await target.ResolveSymbolAsync(new SymbolSelector
         {
             Project = new ProjectSelector { Name = "SecondProject" },
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector { DocumentId = firstDocument.Id.Id.ToString() },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         }, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
@@ -1255,22 +1202,18 @@ public sealed class WorkspaceResolverTests
 
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
         var projectSelector = new ProjectSelector { Name = "SecondProject" };
+        var documentSelector = new DocumentSelector
+        {
+            Path = "FirstProject/Document.cs",
+            Project = projectSelector,
+        };
+
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
         var selector = new SymbolSelector
         {
             Project = projectSelector,
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector
-                    {
-                        Path = "FirstProject/Document.cs",
-                        Project = projectSelector,
-                    },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         };
 
         var result = await target.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);
@@ -1292,22 +1235,19 @@ public sealed class WorkspaceResolverTests
             Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
 
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var documentProjectSelector = new ProjectSelector { Name = "SecondProject" };
+        var documentSelector = new DocumentSelector
+        {
+            Path = "FirstProject/Document.cs",
+            Project = documentProjectSelector,
+        };
+
+        var spanSelector = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start: 6, length: 1);
+        var locationSelector = new LocationSelector { Span = spanSelector };
         var selector = new SymbolSelector
         {
             Project = new ProjectSelector { Name = "FirstProject" },
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector
-                    {
-                        Path = "FirstProject/Document.cs",
-                        Project = new ProjectSelector { Name = "SecondProject" },
-                    },
-                    Start = 6,
-                    Length = 1,
-                },
-            },
+            Location = locationSelector,
         };
 
         var result = await target.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);

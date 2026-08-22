@@ -113,18 +113,41 @@ public static class SelectorTestFactory
         ArgumentOutOfRangeException.ThrowIfNegative(start);
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
+        var document = new DocumentSelector
+        {
+            Path = path,
+            DocumentId = documentId,
+        };
+
+        var span = CreateTextSpanSelector(document, start, length);
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = path,
-                    DocumentId = documentId,
-                },
-                Start = start,
-                Length = length,
-            },
+            Span = span,
+        };
+    }
+
+    /// <summary>
+    /// Creates a document-bound text span selector.
+    /// </summary>
+    /// <param name="document">The selected document.</param>
+    /// <param name="start">The zero-based UTF-16 start position.</param>
+    /// <param name="length">The zero-based UTF-16 length.</param>
+    /// <returns>The created text span selector.</returns>
+    public static TextSpanSelector CreateTextSpanSelector(DocumentSelector document, int start, int length)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        var range = new TextSpanRange
+        {
+            Start = start,
+            Length = length,
+        };
+
+        return new TextSpanSelector
+        {
+            Document = document,
+            Range = range,
         };
     }
 

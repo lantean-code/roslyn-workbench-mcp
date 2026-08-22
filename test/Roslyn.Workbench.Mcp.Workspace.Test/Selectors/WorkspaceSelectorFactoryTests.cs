@@ -101,16 +101,24 @@ public sealed class WorkspaceSelectorFactoryTests
             Path = expectedPath,
             Project = expectedProject,
         };
-        var expectedSpan = new TextSpanSelector
+
+        var expectedRange = new TextSpanRange
         {
-            Document = expectedDocument,
             Start = 1,
             Length = 2,
         };
+
+        var expectedSpan = new TextSpanSelector
+        {
+            Document = expectedDocument,
+            Range = expectedRange,
+        };
+
         var expectedLocation = new LocationSelector
         {
             Span = expectedSpan,
         };
+
         var expectedSymbol = new SymbolSelector
         {
             Location = expectedLocation,

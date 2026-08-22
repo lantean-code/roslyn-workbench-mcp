@@ -559,19 +559,10 @@ internal static class BuiltInCodeActionAuditHarness
         var span = location.Span
             ?? throw new InvalidOperationException("The audit location must be span-backed.");
 
-        var document = span.Document
-            ?? throw new InvalidOperationException("The audit location must identify a document.");
-
-        var range = new TextSpanRange
-        {
-            Start = span.Start,
-            Length = span.Length,
-        };
-
         return new ListCodeActionsRequest
         {
-            Document = document,
-            Range = range,
+            Document = span.Document,
+            Range = span.Range,
             ExpectedSnapshot = expectedSnapshot,
             Kinds = kind == BuiltInCodeActionAuditKind.CodeFix
                 ? CodeActionKindSelection.CodeFixes

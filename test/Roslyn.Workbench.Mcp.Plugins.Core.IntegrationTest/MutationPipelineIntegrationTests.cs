@@ -122,6 +122,12 @@ public sealed class MutationPipelineIntegrationTests
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(startResult),
             }, TestContext.Current.CancellationToken);
 
+        var formatRange = new TextSpanRange
+        {
+            Start = 0,
+            Length = unformattedSource.Length,
+        };
+
         var formatDocument = await session.ExecuteMutationAsync(
             "format-document",
             new FormatDocumentRequest
@@ -130,6 +136,7 @@ public sealed class MutationPipelineIntegrationTests
                 {
                     Path = "Usings.cs",
                 },
+                Range = formatRange,
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(rename),
             }, TestContext.Current.CancellationToken);
 

@@ -7,6 +7,7 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
 {
     private const int _defaultAfterLines = 10;
     private const int _defaultBeforeLines = 10;
+    private const int _maximumContextLines = 100;
 
     /// <summary>
     /// Gets the location selector.
@@ -14,18 +15,18 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     public required LocationSelector Location { get; init; }
 
     /// <summary>
-    /// Gets the number of lines to include before the selected location.
+    /// Gets the optional number of lines to include before the selected location.
     /// </summary>
-    [Range(0, int.MaxValue)]
+    [Range(0, _maximumContextLines)]
     [DefaultValue(_defaultBeforeLines)]
-    public int BeforeLines { get; init; } = _defaultBeforeLines;
+    public int? BeforeLines { get; init; } = _defaultBeforeLines;
 
     /// <summary>
-    /// Gets the number of lines to include after the selected location.
+    /// Gets the optional number of lines to include after the selected location.
     /// </summary>
-    [Range(0, int.MaxValue)]
+    [Range(0, _maximumContextLines)]
     [DefaultValue(_defaultAfterLines)]
-    public int AfterLines { get; init; } = _defaultAfterLines;
+    public int? AfterLines { get; init; } = _defaultAfterLines;
 
     /// <summary>
     /// Gets a value indicating whether the enclosing symbol chain should be included.
@@ -41,4 +42,8 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// Gets the expected workspace snapshot.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveBeforeLines => ResultLimit.GetEffectiveValue(BeforeLines, _defaultBeforeLines);
+
+    internal int EffectiveAfterLines => ResultLimit.GetEffectiveValue(AfterLines, _defaultAfterLines);
 }

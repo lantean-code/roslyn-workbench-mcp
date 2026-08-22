@@ -28,21 +28,15 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var location = fixture.GetCursorInDocument("EnableNullable.cs", "#nullable enable");
-        if (location.Span is not { Document: not null } span)
+        if (location.Span is not { } span)
         {
             throw new InvalidOperationException("The nullable-refactoring fixture location must be span-backed.");
         }
 
-        var range = new TextSpanRange
-        {
-            Start = span.Start,
-            Length = span.Length,
-        };
-
         var request = new ListCodeActionsRequest
         {
             Document = span.Document,
-            Range = range,
+            Range = span.Range,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open),
             Kinds = CodeActionKindSelection.Refactorings,
         };

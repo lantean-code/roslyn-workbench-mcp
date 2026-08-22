@@ -1,9 +1,14 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class GetControlFlowGraphToolTests
 {
+    private const int _anonymousFunctionScope = 2;
+    private const int _localFunctionScope = 1;
+    private const int _methodScope = 0;
+
     [Fact]
     public async Task GIVEN_SymbolAndLocationAreBothMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
@@ -554,6 +559,146 @@ public sealed class GetControlFlowGraphToolTests
         result.Data.BlocksTruncated.Should().BeTrue();
         result.Data.Regions.Should().ContainSingle();
         result.Data.RegionsTruncated.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(_methodScope)]
+    [InlineData(_localFunctionScope)]
+    [InlineData(_anonymousFunctionScope)]
+    public async Task GIVEN_LocationResolvesInsideExecutableScope_WHEN_CallingExecuteAsync_THEN_ShouldReturnContainingControlFlowGraph(int executableScope)
+    {
+        const string source = """
+            using System;
+
+            class Formatter
+            {
+                void Run()
+                {
+                    int value = 0;
+                    value++;
+
+                    void Local()
+                    {
+                        int localValue = 0;
+                        localValue++;
+                    }
+
+                    Action action = () =>
+                    {
+                        int lambdaValue = 0;
+                        lambdaValue++;
+                    };
+                }
+            }
+            """;
+
+        var (selectedText, expectedOwner) = executableScope switch
+        {
+            _methodScope => ("value++;", "Run"),
+            _localFunctionScope => ("localValue++;", "Local"),
+            _anonymousFunctionScope => ("lambdaValue++;", "AnonymousFunction"),
+            _ => throw new InvalidOperationException($"Unsupported executable scope kind '{executableScope}'."),
+        };
+
+        using var document = RoslynTestFactory.CreateDocument(source);
+        var target = new GetControlFlowGraphTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var sourceText = await document.Document.GetTextAsync(TestContext.Current.CancellationToken);
+        var sourceTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        if (sourceTree is null)
+        {
+            throw new InvalidOperationException("The test document did not produce a syntax tree.");
+        }
+
+        var selectedStart = sourceText.ToString().IndexOf(selectedText, StringComparison.Ordinal);
+        var selectedSpan = new TextSpan(selectedStart, selectedText.Length);
+        var location = Location.Create(sourceTree, selectedSpan);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<ControlFlowGraphData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<ControlFlowGraphData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => new SymbolReference
+            {
+                DisplayName = string.IsNullOrEmpty(item.Name) ? "AnonymousFunction" : item.Name,
+                Kind = item.Kind.ToString(),
+                DocumentationCommentId = item.GetDocumentationCommentId(),
+            });
+
+        var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Blocks.Should().NotBeEmpty();
+        result.Data.Owner.Should().NotBeNull();
+        result.Data.Owner.DisplayName.Should().Be(expectedOwner);
+    }
+
+    [Fact]
+    public async Task GIVEN_LocationDoesNotResolveInsideExecutableScope_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
+    {
+        const string source = "class Formatter { }";
+        using var document = RoslynTestFactory.CreateDocument(source);
+        var target = new GetControlFlowGraphTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var sourceTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        if (sourceTree is null)
+        {
+            throw new InvalidOperationException("The test document did not produce a syntax tree.");
+        }
+
+        var selectedSpan = new TextSpan(source.IndexOf("Formatter", StringComparison.Ordinal), "Formatter".Length);
+        var location = Location.Create(sourceTree, selectedSpan);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<ControlFlowGraphData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<ControlFlowGraphData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        var expectedError = new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "The selected target does not support control-flow graph generation.",
+        };
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]

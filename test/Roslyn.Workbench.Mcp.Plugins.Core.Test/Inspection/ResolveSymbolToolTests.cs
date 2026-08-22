@@ -205,9 +205,12 @@ public sealed class ResolveSymbolToolTests
                     item.SourceSpan.Length);
             });
 
+        var sourceDocumentSelector = new DocumentSelector { Path = "Path" };
+        var sourceRange = new TextSpanRange { Start = firstSourceLocation.SourceSpan.Start };
         var sourceSpanSelector = new TextSpanSelector
         {
-            Start = firstSourceLocation.SourceSpan.Start,
+            Document = sourceDocumentSelector,
+            Range = sourceRange,
         };
 
         var sourceLocationSelector = new LocationSelector
@@ -231,7 +234,7 @@ public sealed class ResolveSymbolToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Formatter");
-        result.Data.Selector!.Location!.Span!.Start.Should().Be(firstSourceLocation.SourceSpan.Start);
+        result.Data.Selector!.Location!.Span!.Range.Start.Should().Be(firstSourceLocation.SourceSpan.Start);
         result.Data.Declarations.Select(item => item.Document!.Path).Should().Equal(expectedPaths!);
     }
 
@@ -283,9 +286,12 @@ public sealed class ResolveSymbolToolTests
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item == usageLocation)))
             .Returns(resolvedUsageLocation);
 
+        var fallbackDocumentSelector = new DocumentSelector { Path = "Path" };
+        var fallbackRange = new TextSpanRange { Start = usageLocation.SourceSpan.Start };
         var fallbackSpanSelector = new TextSpanSelector
         {
-            Start = usageLocation.SourceSpan.Start,
+            Document = fallbackDocumentSelector,
+            Range = fallbackRange,
         };
 
         var fallbackLocationSelector = new LocationSelector
@@ -309,7 +315,7 @@ public sealed class ResolveSymbolToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("ToUpperInvariant");
-        result.Data.Selector!.Location!.Span!.Start.Should().Be(usageLocation.SourceSpan.Start);
+        result.Data.Selector!.Location!.Span!.Range.Start.Should().Be(usageLocation.SourceSpan.Start);
         result.Data.Declarations.Should().BeEmpty();
     }
 }

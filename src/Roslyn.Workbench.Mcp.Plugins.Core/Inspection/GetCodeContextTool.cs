@@ -26,8 +26,11 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var startLine = lines.GetLineFromPosition(resolvedLocation.Location.SourceSpan.Start).LineNumber;
         var endPosition = Math.Max(resolvedLocation.Location.SourceSpan.Start, resolvedLocation.Location.SourceSpan.End - 1);
         var endLine = lines.GetLineFromPosition(endPosition).LineNumber;
-        var windowStart = Math.Max(0, startLine - request.BeforeLines);
-        var windowEnd = Math.Min(lines.Count - 1, endLine + request.AfterLines);
+        var includedBeforeLines = Math.Min(startLine, request.EffectiveBeforeLines);
+        var availableAfterLines = lines.Count - 1 - endLine;
+        var includedAfterLines = Math.Min(availableAfterLines, request.EffectiveAfterLines);
+        var windowStart = startLine - includedBeforeLines;
+        var windowEnd = endLine + includedAfterLines;
         var windowText = string.Join(
             Environment.NewLine,
             Enumerable.Range(windowStart, windowEnd - windowStart + 1).Select(index => lines[index].ToString()));

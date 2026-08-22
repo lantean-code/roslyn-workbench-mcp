@@ -237,3 +237,61 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"alias":"rwmcp3"},"query":"Recovery","kinds":["NamedType","Method"],"symbolsLimit":50}`
 
 **Outcome:** Failed with `WorkspaceNotOpen` because the review process had no open Workspace. The response instructed the caller to invoke `workspace-open`; the reviewer made no follow-up request.
+
+## RWMCP3-008, RWMCP3-009 and RWMCP3-011
+
+### 1. `workspace-list`
+
+**Purpose:** Inspect the current dogfood process before tracing the grouped Core tool findings.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 2. `workspace-open`
+
+**Purpose:** Open the current solution for symbol-backed investigation of the three affected bundled tools.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** Succeeded. Opened Workspace `a30c5045-b82a-496e-810f-ece7d973d434` at epoch 1 and snapshot `79d27c64-4ac1-4091-9dbd-7a2b45cb56c7`, with 30 projects and 1,577 documents. The server warned about one unresolved generated analyser reference and WSL access through the Windows filesystem.
+
+### 3. `search-symbols`
+
+**Purpose:** Locate the control-flow graph tool and its unit tests before tracing location handling.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"GetControlFlowGraphTool","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the production tool and its unit test type.
+
+### 4. `search-symbols`
+
+**Purpose:** Locate the code-context tool and its unit tests before tracing context-window arithmetic.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"GetCodeContextTool","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the production tool and its unit test type.
+
+### 5. `search-symbols`
+
+**Purpose:** Locate the formatting tool and its unit tests before tracing the competing document selectors.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"FormatDocumentTool","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the production tool and its unit test type.
+
+### 6. `workspace-list`
+
+**Purpose:** Recheck the dogfood Workspace state while validating the selector composition refinement.
+
+**Request:** `{}`
+
+**Outcome:** The request completed successfully, but the client exposed no visible response content.
+
+### 7. `get-symbol-info`
+
+**Purpose:** Inspect the existing `TextSpanRange` contract through the dogfood symbol model after choosing composition over inheritance.
+
+**Request:** `{"workspace":{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange"},"includeDocumentation":true}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.

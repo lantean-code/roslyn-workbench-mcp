@@ -100,15 +100,17 @@ public sealed class FormatDocumentToolTests
     {
         using var document = RoslynTestFactory.CreateDocument("class C {}", "Sample.cs");
         var contextMocks = MutationContextMockHelper.Create();
+        var range = new TextSpanRange
+        {
+            Start = start,
+            Length = length,
+        };
+
         var request = new FormatDocumentRequest
         {
             ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Document = new DocumentSelector(),
-            Range = new TextSpanSelector
-            {
-                Start = start,
-                Length = length,
-            },
+            Range = range,
         };
 
         var target = new FormatDocumentTool();
@@ -122,13 +124,14 @@ public sealed class FormatDocumentToolTests
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        var expectedError = new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "The range must identify a span within the selected document.",
-        });
+        };
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(expectedError);
     }
 
     [Fact]
@@ -137,15 +140,17 @@ public sealed class FormatDocumentToolTests
         const string source = "class Sample{void Execute(){var value=1;}}";
         using var document = RoslynTestFactory.CreateDocument(source, "Sample.cs");
         var contextMocks = MutationContextMockHelper.Create();
+        var range = new TextSpanRange
+        {
+            Start = 0,
+            Length = source.Length,
+        };
+
         var request = new FormatDocumentRequest
         {
             ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")),
             Document = new DocumentSelector(),
-            Range = new TextSpanSelector
-            {
-                Start = 0,
-                Length = source.Length,
-            },
+            Range = range,
         };
 
         var target = new FormatDocumentTool();

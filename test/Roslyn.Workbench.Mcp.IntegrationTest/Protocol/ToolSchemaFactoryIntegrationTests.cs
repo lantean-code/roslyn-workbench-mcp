@@ -36,6 +36,8 @@ public sealed class ToolSchemaFactoryIntegrationTests
         GetProperty(typeHierarchySchema, "maxDepth").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(codeContextSchema, "beforeLines").GetProperty("default").GetInt32().Should().Be(10);
         GetProperty(codeContextSchema, "afterLines").GetProperty("default").GetInt32().Should().Be(10);
+        GetProperty(codeContextSchema, "beforeLines").GetProperty("maximum").GetInt32().Should().Be(100);
+        GetProperty(codeContextSchema, "afterLines").GetProperty("maximum").GetInt32().Should().Be(100);
         GetProperty(transactionPreviewSchema, "contextLines").GetProperty("default").GetInt32().Should().Be(3);
         GetProperty(prepareFixAllSchema, "maxChanges").GetProperty("default").GetInt32().Should().Be(50);
         GetProperty(prepareFixAllSchema, "affectedDocumentsLimit").GetProperty("default").GetInt32().Should().Be(20);
@@ -163,6 +165,55 @@ public sealed class ToolSchemaFactoryIntegrationTests
         GetProperty(projectProperty, "name").ValueKind.Should().NotBe(JsonValueKind.Undefined);
         GetProperty(projectProperty, "path").ValueKind.Should().NotBe(JsonValueKind.Undefined);
         GetProperty(projectProperty, "targetFramework").ValueKind.Should().NotBe(JsonValueKind.Undefined);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_FormatDocumentRange_WHEN_ExportingInputSchema_THEN_ShouldPublishDocumentlessRange()
+    {
+        var target = CreateTarget();
+
+        var result = target.CreateInputSchema<FormatDocumentRequest>();
+        var rangeProperties = GetProperty(result, "range").GetProperty("properties");
+
+        rangeProperties.TryGetProperty("start", out _).Should().BeTrue();
+        rangeProperties.TryGetProperty("length", out _).Should().BeTrue();
+        rangeProperties.TryGetProperty("document", out _).Should().BeFalse();
+        rangeProperties.GetProperty("start").GetProperty("minimum").GetInt32().Should().Be(0);
+        rangeProperties.GetProperty("length").GetProperty("minimum").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_DocumentBoundLocationSelectors_WHEN_ExportingInputSchema_THEN_ShouldPublishRequiredDocumentAndRangeConstraints()
+    {
+        var target = CreateTarget();
+
+        var result = target.CreateInputSchema<GetCodeContextRequest>();
+        var location = GetProperty(result, "location");
+        var span = GetProperty(location, "span");
+        var spanProperties = span.GetProperty("properties");
+        var spanRequiredProperties = span.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+        var range = spanProperties.GetProperty("range");
+        var rangeProperties = range.GetProperty("properties");
+        var selection = GetProperty(location, "selection");
+        var selectionProperties = selection.GetProperty("properties");
+        var selectionRequiredProperties = selection.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        spanRequiredProperties.Should().Contain("document");
+        spanRequiredProperties.Should().Contain("range");
+        AllowsNull(spanProperties.GetProperty("document")).Should().BeFalse();
+        AllowsNull(range).Should().BeFalse();
+        rangeProperties.GetProperty("start").GetProperty("minimum").GetInt32().Should().Be(0);
+        rangeProperties.GetProperty("length").GetProperty("minimum").GetInt32().Should().Be(0);
+        selectionRequiredProperties.Should().Contain("document");
+        AllowsNull(selectionProperties.GetProperty("document")).Should().BeFalse();
     }
 
     [Fact]

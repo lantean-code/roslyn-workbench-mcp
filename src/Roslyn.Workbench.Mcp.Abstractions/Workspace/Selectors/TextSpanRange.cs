@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 /// <summary>
@@ -8,10 +10,12 @@ public sealed record TextSpanRange
     /// <summary>
     /// Gets the zero-based UTF-16 start position.
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int Start { get; init; }
 
     /// <summary>
     /// Gets the zero-based UTF-16 length.
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int Length { get; init; }
 }

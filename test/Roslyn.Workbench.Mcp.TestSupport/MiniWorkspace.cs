@@ -33,17 +33,16 @@ internal sealed class MiniWorkspace : IDisposable
             throw new InvalidOperationException($"The text '{text}' could not be found in '{path}'.");
         }
 
+        var documentSelector = new DocumentSelector
+        {
+            Path = path,
+        };
+
+        var span = SelectorTestFactory.CreateTextSpanSelector(documentSelector, start, text.Length);
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = path,
-                },
-                Start = start,
-                Length = text.Length,
-            },
+            Span = span,
         };
     }
 

@@ -5,6 +5,20 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetCodeContextToolTests
 {
     [Fact]
+    public void GIVEN_ContextLineLimitsAreNull_WHEN_GettingEffectiveValues_THEN_ShouldUseDeclaredDefaults()
+    {
+        var target = new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+            BeforeLines = null,
+            AfterLines = null,
+        };
+
+        target.EffectiveBeforeLines.Should().Be(10);
+        target.EffectiveAfterLines.Should().Be(10);
+    }
+
+    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new GetCodeContextTool();
@@ -211,5 +225,61 @@ public sealed class GetCodeContextToolTests
         result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter.Run(string)");
         result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter");
         result.Data.Diagnostics.Select(item => item.Id).Should().Contain("CS0219");
+    }
+
+    [Theory]
+    [InlineData(99)]
+    [InlineData(100)]
+    [InlineData(int.MaxValue)]
+    public async Task GIVEN_ContextWindowExtendsBeyondDocument_WHEN_CallingExecuteAsync_THEN_ShouldClampWithoutOverflow(int contextLines)
+    {
+        const string source = """
+            class Formatter
+            {
+                void Run()
+                {
+                    int value = 0;
+                }
+            }
+            """;
+
+        using var document = RoslynTestFactory.CreateDocument(source);
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var sourceText = await document.Document.GetTextAsync(TestContext.Current.CancellationToken);
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (LocalDeclarationStatementSyntax item) => item.ToString().Contains("value", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+            BeforeLines = contextLines,
+            AfterLines = contextLines,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Text.Split(Environment.NewLine).Should().HaveCount(sourceText.Lines.Count);
+        result.Data.Text.Should().Contain("class Formatter");
+        result.Data.Text.Should().Contain("int value = 0;");
     }
 }

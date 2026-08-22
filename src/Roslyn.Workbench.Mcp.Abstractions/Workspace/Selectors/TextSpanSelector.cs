@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 /// <summary>
@@ -10,17 +8,10 @@ public sealed record TextSpanSelector
     /// <summary>
     /// Gets the selected document.
     /// </summary>
-    public DocumentSelector? Document { get; init; }
+    public required DocumentSelector Document { get; init; }
 
     /// <summary>
-    /// Gets the zero-based UTF-16 start position.
+    /// Gets the selected range within the document.
     /// </summary>
-    [Range(0, int.MaxValue)]
-    public int Start { get; init; }
-
-    /// <summary>
-    /// Gets the zero-based UTF-16 length.
-    /// </summary>
-    [Range(0, int.MaxValue)]
-    public int Length { get; init; }
+    public required TextSpanRange Range { get; init; }
 }

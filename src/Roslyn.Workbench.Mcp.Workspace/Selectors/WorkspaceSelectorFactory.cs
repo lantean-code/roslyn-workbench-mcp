@@ -11,11 +11,16 @@ internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
         }
 
         var documentSelector = CreateDocumentSelector(document);
+        var range = new TextSpanRange
+        {
+            Start = resolvedSpan.Start,
+            Length = resolvedSpan.Length,
+        };
+
         var spanSelector = new TextSpanSelector
         {
             Document = documentSelector,
-            Start = resolvedSpan.Start,
-            Length = resolvedSpan.Length,
+            Range = range,
         };
 
         return new LocationSelector

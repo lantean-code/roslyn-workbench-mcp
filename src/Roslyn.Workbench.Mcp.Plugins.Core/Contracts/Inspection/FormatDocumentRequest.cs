@@ -13,5 +13,5 @@ internal sealed record FormatDocumentRequest : WorkspaceMutationRequest
     /// <summary>
     /// Gets the optional range to format.
     /// </summary>
-    public TextSpanSelector? Range { get; init; }
+    public TextSpanRange? Range { get; init; }
 }

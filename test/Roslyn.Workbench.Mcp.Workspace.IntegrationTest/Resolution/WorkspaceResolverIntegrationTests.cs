@@ -125,18 +125,16 @@ public sealed class WorkspaceResolverIntegrationTests
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
         await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
-        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(new LocationSelector
+        var document = new DocumentSelector { Path = fixture.DocumentPath };
+        var range = new TextSpanRange { Start = start, Length = "Class1".Length };
+        var span = new TextSpanSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = new DocumentSelector
-                {
-                    Path = fixture.DocumentPath,
-                },
-                Start = start,
-                Length = "Class1".Length,
-            },
-        }, TestContext.Current.CancellationToken);
+            Document = document,
+            Range = range,
+        };
+
+        var selector = new LocationSelector { Span = span };
+        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(selector, TestContext.Current.CancellationToken);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
@@ -159,21 +157,17 @@ public sealed class WorkspaceResolverIntegrationTests
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
         await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
-        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
+        var document = new DocumentSelector { Path = "Class1.cs" };
+        var range = new TextSpanRange { Start = start, Length = "Class1".Length };
+        var span = new TextSpanSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector
-                    {
-                        Path = "Class1.cs",
-                    },
-                    Start = start,
-                    Length = "Class1".Length,
-                },
-            },
-        }, TestContext.Current.CancellationToken);
+            Document = document,
+            Range = range,
+        };
+
+        var location = new LocationSelector { Span = span };
+        var selector = new SymbolSelector { Location = location };
+        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
@@ -197,21 +191,17 @@ public sealed class WorkspaceResolverIntegrationTests
         var start = source.IndexOf("String", StringComparison.Ordinal);
 
         await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
-        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
+        var document = new DocumentSelector { Path = "Class1.cs" };
+        var range = new TextSpanRange { Start = start, Length = "String".Length };
+        var span = new TextSpanSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = new DocumentSelector
-                    {
-                        Path = "Class1.cs",
-                    },
-                    Start = start,
-                    Length = "String".Length,
-                },
-            },
-        }, TestContext.Current.CancellationToken);
+            Document = document,
+            Range = range,
+        };
+
+        var location = new LocationSelector { Span = span };
+        var selector = new SymbolSelector { Location = location };
+        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();

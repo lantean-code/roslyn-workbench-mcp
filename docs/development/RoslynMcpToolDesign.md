@@ -372,7 +372,8 @@ Use common, strongly typed contracts for:
 - `IToolExecutionContext`: immutable current `Solution`, snapshot identity, selector-resolution helpers, result limits and invocation-scoped logging.
 - `IQueryContext` and `IMutationContext`: extend `IToolExecutionContext`. They remain intentionally similar; the tool's query or mutation contract, rather than ambient services, determines what it is permitted to return.
 - `DocumentSelector`: a workspace-local Roslyn `DocumentId` or normalised workspace-relative path, with an optional `ProjectSelector` that disambiguates linked or multi-target documents.
-- `TextSpanSelector`: a document selector plus zero-based UTF-16 `start` and `length`, directly matching Roslyn's `TextSpan` model.
+- `TextSpanRange`: zero-based UTF-16 `start` and `length` values, directly matching Roslyn's `TextSpan` model without binding the range to a document.
+- `TextSpanSelector`: a document selector plus a required `TextSpanRange` named `range`.
 - `TextSelectionSelector`: an agent-friendly input locator containing a document selector, copied selected text, and optional short text before and after the selection. The host resolves it against the current effective source text before invoking Roslyn.
 - `SnapshotPrecondition`: the required workspace ID, workspace epoch, opaque immutable-solution snapshot ID and nullable transaction revision from a prior result. It is required for mutations and prior-location queries and is echoed unchanged rather than reconstructed by callers.
 - `SymbolSelector`: a Roslyn-derived source location and text span. A documentation comment ID is permitted for a query only when it resolves to a single source symbol; it cannot name locals or one declaration of a partial symbol. Symbol names and metadata names are search inputs, not identity.

@@ -89,6 +89,81 @@ public sealed class ToolRequestBinderTests
     }
 
     [Fact]
+    public void GIVEN_UnknownTopLevelProperty_WHEN_Binding_THEN_ShouldReturnContractError()
+    {
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["unknownProperty"] = JsonSerializer.SerializeToElement("Value"),
+        };
+
+        var result = _target.TryBind<TestRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
+        _requestObjectGraphValidator.Verify(item => item.TryCreateInvalidRequestError(
+            It.IsAny<object>(),
+            It.IsAny<JsonSerializerOptions>(),
+            out It.Ref<string?>.IsAny), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_UnknownNestedProperty_WHEN_Binding_THEN_ShouldReturnContractError()
+    {
+        using var document = JsonDocument.Parse("""
+            {
+              "unknownProperty": "Value"
+            }
+            """);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["nested"] = document.RootElement.Clone(),
+        };
+
+        var result = _target.TryBind<NestedRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
+        _requestObjectGraphValidator.Verify(item => item.TryCreateInvalidRequestError(
+            It.IsAny<object>(),
+            It.IsAny<JsonSerializerOptions>(),
+            out It.Ref<string?>.IsAny), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_ExtensionDataContract_WHEN_BindingUnknownProperty_THEN_ShouldCaptureExtensionData()
+    {
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["extensionProperty"] = JsonSerializer.SerializeToElement("Value"),
+        };
+
+        var result = _target.TryBind<ExtensibleRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        request.ExtensionData.Should().ContainKey("extensionProperty");
+        request.ExtensionData["extensionProperty"].GetString().Should().Be("Value");
+        errorMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ExplicitlyOpenProjection_WHEN_BindingUnknownProperty_THEN_ShouldIgnoreUnknownProperty()
+    {
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["unknownProperty"] = JsonSerializer.SerializeToElement("Value"),
+        };
+
+        var result = _target.TryBind<OpenProjectionRequest>(arguments, out var request, out var errorMessage);
+
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        errorMessage.Should().BeNull();
+    }
+
+    [Fact]
     public void GIVEN_UnknownWorkspaceMsBuildProperty_WHEN_Binding_THEN_ShouldReturnContractError()
     {
         using var document = JsonDocument.Parse("""
@@ -183,16 +258,27 @@ public sealed class ToolRequestBinderTests
     }
 
     [Fact]
-    public void GIVEN_EnumArgumentIsValidNullOrOmitted_WHEN_Binding_THEN_ShouldBindRequest()
+    public void GIVEN_EnumArgumentsAreDefinedNullOrOmitted_WHEN_Binding_THEN_ShouldBindRequest()
     {
-        AssertEnumRequestBinds(new Dictionary<string, JsonElement>
+        var definedArguments = new Dictionary<string, JsonElement>
+        {
+            ["optional"] = JsonSerializer.SerializeToElement(TestEnum.Value),
+        };
+
+        AssertEnumRequestBinds(definedArguments);
+
+        var nullArguments = new Dictionary<string, JsonElement>
         {
             ["signedFlags"] = JsonSerializer.SerializeToElement(TestSignedFlags.First | TestSignedFlags.Second),
             ["unsignedFlags"] = JsonSerializer.SerializeToElement(TestUnsignedFlags.First | TestUnsignedFlags.Second),
             ["optional"] = JsonSerializer.SerializeToElement((TestEnum?)null),
-        });
+        };
 
-        AssertEnumRequestBinds(new Dictionary<string, JsonElement>());
+        AssertEnumRequestBinds(nullArguments);
+
+        var omittedArguments = new Dictionary<string, JsonElement>();
+
+        AssertEnumRequestBinds(omittedArguments);
     }
 
     [Fact]
@@ -355,6 +441,34 @@ public sealed class ToolRequestBinderTests
         public required string Name { get; init; }
 
         public required string Scope { get; init; }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record NestedRequest
+    {
+        public TestRequest? Nested { get; init; }
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record ExtensibleRequest
+    {
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement> ExtensionData { get; init; } = [];
+    }
+
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Skip)]
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record OpenProjectionRequest
+    {
     }
 
     [SuppressMessage(

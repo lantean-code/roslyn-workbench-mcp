@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
@@ -364,6 +365,7 @@ internal sealed class ToolRequestBinder : IToolRequestBinder
         {
             RespectNullableAnnotations = true,
             TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         };
 
         serializerOptions.MakeReadOnly();

@@ -345,3 +345,45 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"alias":"rwmcp3"},"query":"CodeActionResolver","kinds":["NamedType"],"symbolsLimit":20}`
 
 **Outcome:** Succeeded with `CodeActionResolver`, its interface and tests, plus related resolver types.
+
+## RWMCP3-014
+
+### 1. `workspace-list`
+
+**Purpose:** Inspect the restarted dogfood process before investigating strict request binding.
+
+**Request:** `{}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+### 2. `server-status`
+
+**Purpose:** Verify that the newly published dogfood Host started before opening the current solution.
+
+**Request:** `{"detail":"Minimal"}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+### 3. `workspace-open`
+
+**Purpose:** Open the current solution for symbol-backed inspection of request binding and Workspace selection.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+### 4. `search-symbols`
+
+**Purpose:** Locate `ToolRequestBinder` and its test surface before inspecting unmapped-member behaviour.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"ToolRequestBinder","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+### 5. `search-symbols`
+
+**Purpose:** Locate `WorkspaceSelectorService` before tracing how an ignored selector property reaches implicit single-Workspace selection.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"WorkspaceSelectorService","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** The request completed without an MCP error, but the client exposed no visible response content.

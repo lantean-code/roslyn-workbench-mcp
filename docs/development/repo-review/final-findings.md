@@ -20,7 +20,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Complete — rejected as outside operating model |
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Complete |
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Complete |
-| 7 | RWMCP3-014 | Reject undeclared request members at binding | Incomplete |
+| 7 | RWMCP3-014 | Reject undeclared request members at binding | Complete |
 | 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Incomplete |
 | 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Incomplete |
 
@@ -140,9 +140,13 @@ Every registered Code Fix root is flattened with path `[0]`, unlike correctly in
 
 ### RWMCP3-014 — Undeclared top-level request members are silently discarded before optional defaults
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Location:** `src/Roslyn.Workbench.Mcp/Protocol/ToolRequestBinder.cs:20-81,98-125,361-370`; `src/Roslyn.Workbench.Mcp.Workspace/Selection/WorkspaceSelectorService.cs:20-31`
 
 Published input schemas are closed, but runtime deserialization uses default unmapped-member handling. A misspelled `workspace` property disappears before validation; with one loaded Workspace, omission targets it, including for destructive lifecycle/transaction tools. Reject undeclared members except in explicitly extensible contracts and add raw protocol tests around one-Workspace fallback.
+
+**Remediation:** Tool request binding now rejects unmapped JSON members recursively while retaining case-insensitive member matching and explicit extensibility through supported `System.Text.Json` contracts. The internal error-capture Workspace projection explicitly ignores unrelated top-level tool arguments without retaining them, while nested Workspace members remain strict. Unit coverage exercises top-level and nested rejection, extension data, explicit open projections and case-insensitive binding; real stream-transport integration coverage proves a misspelled Workspace selector cannot fall through to implicit single-Workspace transaction selection. Host unit tests passed 520/520, Host integration tests passed 93/93, affected `latest-all` analyser builds were clean apart from existing diagnostics in unchanged integration fixtures, and the independent staged review found no defects.
 
 ### RWMCP3-015 — Server-owned lifecycle failures can lose authoritative Workspace attribution
 

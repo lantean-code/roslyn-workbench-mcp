@@ -19,21 +19,6 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         _pathComparison = pathComparison;
     }
 
-    public WorkspaceInputManifest BuildManifest(
-        Solution solution,
-        string loadedPath,
-        string workspaceRoot,
-        WorkspaceMsBuildProperties? msBuildProperties = null)
-    {
-        using var certification = BeginCertification(workspaceRoot);
-        return BuildManifest(
-            solution,
-            loadedPath,
-            workspaceRoot,
-            certification,
-            msBuildProperties);
-    }
-
     public IWorkspaceInputCertification BeginCertification(string workspaceRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -59,7 +44,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         string loadedPath,
         string workspaceRoot,
         IWorkspaceInputCertification certification,
-        WorkspaceMsBuildProperties? msBuildProperties = null)
+        WorkspaceMsBuildProperties? msBuildProperties,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(loadedPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -72,7 +58,9 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             solution,
             loadedPath,
             workspaceRoot,
-            msBuildProperties);
+            msBuildProperties,
+            cancellationToken);
+
         return certification.Complete(manifest);
     }
 
@@ -165,7 +153,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         Solution solution,
         string loadedPath,
         string workspaceRoot,
-        WorkspaceMsBuildProperties? msBuildProperties)
+        WorkspaceMsBuildProperties? msBuildProperties,
+        CancellationToken cancellationToken)
     {
         var files = new Dictionary<FileSystemPathKey, WorkspaceInputFileFingerprint>();
         var directories = new Dictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint>();
@@ -181,10 +170,13 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
         foreach (var project in solution.Projects)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var inputResolution = ResolveProjectInputs(
                 project.FilePath,
                 msBuildProperties,
                 resolutionCache);
+
             projectResolutions.Add(project.Id, inputResolution);
             if (!inputResolution.IsSucceeded)
             {
@@ -207,22 +199,30 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             _pathComparison);
 
         AddFile(files, directories, loadedPath, pathPolicy);
+        AddProjectDirectories(
+            directories,
+            solution.Projects,
+            pathPolicy,
+            cancellationToken);
 
         foreach (var project in solution.Projects)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             AddFile(files, directories, project.FilePath, pathPolicy);
-            AddProjectDirectories(directories, project.FilePath, pathPolicy);
-            AddDocuments(files, directories, project.Documents, pathPolicy);
-            AddDocuments(files, directories, project.AdditionalDocuments, pathPolicy);
-            AddDocuments(files, directories, project.AnalyzerConfigDocuments, pathPolicy);
+            AddDocuments(files, directories, project.Documents, pathPolicy, cancellationToken);
+            AddDocuments(files, directories, project.AdditionalDocuments, pathPolicy, cancellationToken);
+            AddDocuments(files, directories, project.AnalyzerConfigDocuments, pathPolicy, cancellationToken);
 
             foreach (var analyzerReference in project.AnalyzerReferences)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 AddFile(files, directories, analyzerReference.Display, pathPolicy);
             }
 
             foreach (var metadataReference in project.MetadataReferences.OfType<PortableExecutableReference>())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 AddFile(files, directories, metadataReference.FilePath, pathPolicy);
             }
 
@@ -231,6 +231,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             {
                 foreach (var importPath in inputResolution.ImportedPaths)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     AddFile(files, directories, importPath, pathPolicy);
                 }
             }
@@ -239,7 +240,8 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         var externalInputMemberships = CreateExternalInputMemberships(
             solution,
             projectResolutions,
-            workspaceRoot);
+            workspaceRoot,
+            cancellationToken);
 
         var manifest = new WorkspaceInputManifest
         {
@@ -256,12 +258,14 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     private List<WorkspaceExternalInputMembership> CreateExternalInputMemberships(
         Solution solution,
         IReadOnlyDictionary<ProjectId, WorkspaceProjectInputResolution> projectResolutions,
-        string workspaceRoot)
+        string workspaceRoot,
+        CancellationToken cancellationToken)
     {
         var externalGlobRoots = new List<(WorkspaceEvaluatedItemGlob Glob, FileSystemPathKey Root)>();
         var uniqueRoots = new HashSet<FileSystemPathKey>();
         foreach (var resolution in projectResolutions.Values)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!resolution.IsSucceeded)
             {
                 continue;
@@ -269,8 +273,10 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
             foreach (var itemGlob in resolution.ItemGlobs)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var searchRoot in itemGlob.SearchRoots)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var normalizedSearchRoot = _fileSystem.Path.TrimEndingDirectorySeparator(
                         _fileSystem.Path.GetFullPath(searchRoot));
 
@@ -292,15 +298,21 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         }
 
         var minimalRoots = RemoveNestedRoots(uniqueRoots);
-        var loadedDocumentPaths = GetLoadedDocumentPaths(solution);
+        var loadedDocumentPaths = GetLoadedDocumentPaths(solution, cancellationToken);
         var memberships = new List<WorkspaceExternalInputMembership>(minimalRoots.Count);
         foreach (var minimalRoot in minimalRoots)
         {
-            var globs = GetGlobsForRoot(minimalRoot, externalGlobRoots);
+            cancellationToken.ThrowIfCancellationRequested();
+            var globs = GetGlobsForRoot(
+                minimalRoot,
+                externalGlobRoots,
+                cancellationToken);
+
             var loadedPaths = GetLoadedPathsForGlobs(
                 minimalRoot,
                 globs,
-                loadedDocumentPaths);
+                loadedDocumentPaths,
+                cancellationToken);
 
             var membership = new WorkspaceExternalInputMembership(
                 minimalRoot,
@@ -315,12 +327,14 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     private List<WorkspaceEvaluatedItemGlob> GetGlobsForRoot(
         FileSystemPathKey minimalRoot,
-        IEnumerable<(WorkspaceEvaluatedItemGlob Glob, FileSystemPathKey Root)> externalGlobRoots)
+        IEnumerable<(WorkspaceEvaluatedItemGlob Glob, FileSystemPathKey Root)> externalGlobRoots,
+        CancellationToken cancellationToken)
     {
         var globs = new List<WorkspaceEvaluatedItemGlob>();
         var uniqueGlobs = new HashSet<WorkspaceEvaluatedItemGlob>();
         foreach (var (glob, root) in externalGlobRoots)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ContainsPath(minimalRoot.Path, root.Path) && uniqueGlobs.Add(glob))
             {
                 globs.Add(glob);
@@ -333,11 +347,13 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     private HashSet<FileSystemPathKey> GetLoadedPathsForGlobs(
         FileSystemPathKey root,
         IReadOnlyList<WorkspaceEvaluatedItemGlob> globs,
-        IEnumerable<FileSystemPathKey> loadedDocumentPaths)
+        IEnumerable<FileSystemPathKey> loadedDocumentPaths,
+        CancellationToken cancellationToken)
     {
         var loadedPaths = new HashSet<FileSystemPathKey>();
         foreach (var path in loadedDocumentPaths)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!ContainsPath(root.Path, path.Path))
             {
                 continue;
@@ -345,6 +361,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
             foreach (var glob in globs)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!glob.Matches(path.Path))
                 {
                     continue;
@@ -358,14 +375,17 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         return loadedPaths;
     }
 
-    private FileSystemPathKey[] GetLoadedDocumentPaths(Solution solution)
+    private FileSystemPathKey[] GetLoadedDocumentPaths(
+        Solution solution,
+        CancellationToken cancellationToken)
     {
         var paths = new HashSet<FileSystemPathKey>();
         foreach (var project in solution.Projects)
         {
-            AddDocumentPaths(paths, project.Documents);
-            AddDocumentPaths(paths, project.AdditionalDocuments);
-            AddDocumentPaths(paths, project.AnalyzerConfigDocuments);
+            cancellationToken.ThrowIfCancellationRequested();
+            AddDocumentPaths(paths, project.Documents, cancellationToken);
+            AddDocumentPaths(paths, project.AdditionalDocuments, cancellationToken);
+            AddDocumentPaths(paths, project.AnalyzerConfigDocuments, cancellationToken);
         }
 
         return paths.ToArray();
@@ -373,10 +393,12 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     private void AddDocumentPaths(
         HashSet<FileSystemPathKey> paths,
-        IEnumerable<TextDocument> documents)
+        IEnumerable<TextDocument> documents,
+        CancellationToken cancellationToken)
     {
         foreach (var document in documents)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(document.FilePath))
             {
                 paths.Add(_pathComparison.CreateKey(document.FilePath));
@@ -461,30 +483,91 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     private void AddProjectDirectories(
         IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
-        string? projectPath,
-        WorkspaceInputPathPolicy pathPolicy)
+        IEnumerable<Project> projects,
+        WorkspaceInputPathPolicy pathPolicy,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(projectPath))
+        var projectDirectoryRoots = GetProjectDirectoryRoots(projects, cancellationToken);
+        var minimalRoots = RemoveNestedRoots(projectDirectoryRoots);
+        var visitedDirectories = new HashSet<FileSystemPathKey>();
+        foreach (var root in minimalRoots)
         {
-            return;
+            AddProjectDirectoryTree(
+                directories,
+                root.Path,
+                pathPolicy,
+                visitedDirectories,
+                cancellationToken);
+        }
+    }
+
+    private HashSet<FileSystemPathKey> GetProjectDirectoryRoots(
+        IEnumerable<Project> projects,
+        CancellationToken cancellationToken)
+    {
+        var roots = new HashSet<FileSystemPathKey>();
+        foreach (var project in projects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(project.FilePath))
+            {
+                continue;
+            }
+
+            var projectFile = _fileSystem.FileInfo.New(project.FilePath);
+            if (!projectFile.Exists)
+            {
+                continue;
+            }
+
+            var projectDirectory = _fileSystem.Path.GetDirectoryName(projectFile.FullName);
+            if (!string.IsNullOrWhiteSpace(projectDirectory))
+            {
+                roots.Add(_pathComparison.CreateKey(projectDirectory));
+            }
         }
 
-        var projectFile = _fileSystem.FileInfo.New(projectPath);
-        if (!projectFile.Exists)
-        {
-            return;
-        }
+        return roots;
+    }
 
-        var projectDirectory = _fileSystem.Path.GetDirectoryName(projectFile.FullName);
-        var directory = AddDirectory(directories, projectDirectory, pathPolicy);
-        if (directory is null)
+    private void AddProjectDirectoryTree(
+        IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
+        string root,
+        WorkspaceInputPathPolicy pathPolicy,
+        HashSet<FileSystemPathKey> visitedDirectories,
+        CancellationToken cancellationToken)
+    {
+        var pendingDirectories = new Stack<string>();
+        pendingDirectories.Push(root);
+        while (pendingDirectories.TryPop(out var path))
         {
-            return;
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var directoryPath in _fileSystem.Directory.EnumerateDirectories(directory.Path, "*", SearchOption.AllDirectories))
-        {
-            AddDirectory(directories, directoryPath, pathPolicy);
+            var pathKey = _pathComparison.CreateKey(path);
+            if (!visitedDirectories.Add(pathKey))
+            {
+                continue;
+            }
+
+            var directory = AddDirectory(directories, path, pathPolicy);
+            if (directory is null)
+            {
+                continue;
+            }
+
+            var childPaths = _fileSystem.Directory.EnumerateDirectories(
+                directory.Path,
+                "*",
+                SearchOption.TopDirectoryOnly);
+
+            foreach (var childPath in childPaths)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (pathPolicy.ShouldMonitor(childPath))
+                {
+                    pendingDirectories.Push(childPath);
+                }
+            }
         }
     }
 
@@ -518,10 +601,12 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         Dictionary<FileSystemPathKey, WorkspaceInputFileFingerprint> files,
         IDictionary<FileSystemPathKey, WorkspaceInputDirectoryFingerprint> directories,
         IEnumerable<TextDocument> documents,
-        WorkspaceInputPathPolicy pathPolicy)
+        WorkspaceInputPathPolicy pathPolicy,
+        CancellationToken cancellationToken)
     {
         foreach (var document in documents)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFile(files, directories, document.FilePath, pathPolicy);
         }
     }

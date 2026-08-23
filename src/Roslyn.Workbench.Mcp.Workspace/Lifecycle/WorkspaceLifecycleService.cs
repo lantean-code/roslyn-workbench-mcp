@@ -127,7 +127,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 request.LoadedPath,
                 request.WorkspaceRoot,
                 inputCertification,
-                request.MsBuildProperties);
+                request.MsBuildProperties,
+                cancellationToken);
 
             if (!inputManifest.IsComplete)
             {
@@ -402,7 +403,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 currentSession.Workspace.LoadedPath,
                 currentSession.Workspace.WorkspaceRoot,
                 inputCertification,
-                currentSession.MsBuildProperties);
+                currentSession.MsBuildProperties,
+                cancellationToken);
+
             if (!inputManifest.IsComplete)
             {
                 inputManifest.Dispose();

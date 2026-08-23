@@ -8,14 +8,9 @@ internal interface IWorkspaceChangeDetector
         Solution solution,
         string loadedPath,
         string workspaceRoot,
-        WorkspaceMsBuildProperties? msBuildProperties = null);
-
-    WorkspaceInputManifest BuildManifest(
-        Solution solution,
-        string loadedPath,
-        string workspaceRoot,
         IWorkspaceInputCertification certification,
-        WorkspaceMsBuildProperties? msBuildProperties = null);
+        WorkspaceMsBuildProperties? msBuildProperties,
+        CancellationToken cancellationToken);
 
     bool HasChanged(WorkspaceInputManifest manifest, CancellationToken cancellationToken);
 }

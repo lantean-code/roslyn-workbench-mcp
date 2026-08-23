@@ -662,7 +662,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace/New.sln",
             "/workspace",
             _inputCertification.Object,
-            resolvedProperties))
+            resolvedProperties,
+            TestContext.Current.CancellationToken))
             .Returns(inputManifest);
         _readOnlyDocumentValidator
             .Setup(item => item.ValidateAsync(solution, "/workspace", TestContext.Current.CancellationToken))
@@ -805,7 +806,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                "/workspace/New.sln",
+                "/workspace",
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Faulted<WorkspaceOpenOutcome>(
@@ -847,7 +854,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                "/workspace/New.sln",
+                "/workspace",
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
 
         _changeDetector.Setup(item => item.HasChanged(manifest, TestContext.Current.CancellationToken))
@@ -884,7 +897,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                "/workspace/New.sln",
+                "/workspace",
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
         _readOnlyDocumentValidator
             .Setup(item => item.ValidateAsync(solution, "/workspace", TestContext.Current.CancellationToken))
@@ -915,7 +934,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var solution = CreateSolutionWithProject("/workspace/Project.csproj");
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/New.sln", "/workspace", _inputCertification.Object))
+        _changeDetector.Setup(item => item.BuildManifest(
+            solution,
+            "/workspace/New.sln",
+            "/workspace",
+            _inputCertification.Object,
+            null,
+            TestContext.Current.CancellationToken))
             .Throws(new InvalidOperationException("Failure"));
 
         var action = async () => await _target.OpenAsync("Path", null, null, null, TestContext.Current.CancellationToken);
@@ -1634,7 +1659,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             solutionPath,
             workspaceRoot,
             _inputCertification.Object,
-            properties))
+            properties,
+            TestContext.Current.CancellationToken))
             .Returns(manifest);
         _readOnlyDocumentValidator
             .Setup(item => item.ValidateAsync(solution, workspaceRoot, TestContext.Current.CancellationToken))
@@ -1772,7 +1798,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                solutionPath,
+                workspaceRoot,
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
 
         _changeDetector.Setup(item => item.HasChanged(manifest, TestContext.Current.CancellationToken))
@@ -1823,7 +1855,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                solutionPath,
+                workspaceRoot,
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
         _readOnlyDocumentValidator
             .Setup(item => item.ValidateAsync(solution, workspaceRoot, TestContext.Current.CancellationToken))
@@ -1869,7 +1907,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, solutionPath, workspaceRoot, _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                solutionPath,
+                workspaceRoot,
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Faulted<WorkspaceReloadOutcome>(
@@ -1911,7 +1955,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         SetupLoadedWorkspace(solutionPath, _workspace.CurrentSolution, newWorkspace, workspaceRoot);
         using var manifest = new WorkspaceInputManifest();
-        _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, solutionPath, workspaceRoot, _inputCertification.Object))
+        _changeDetector.Setup(item => item.BuildManifest(
+            _workspace.CurrentSolution,
+            solutionPath,
+            workspaceRoot,
+            _inputCertification.Object,
+            null,
+            TestContext.Current.CancellationToken))
             .Returns(manifest);
 
         _resultFactory.Setup(item => item.Succeeded(
@@ -1963,7 +2013,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 []));
 
         _changeDetector
-            .Setup(item => item.BuildManifest(solution, path, workspaceRoot, _inputCertification.Object))
+            .Setup(item => item.BuildManifest(
+                solution,
+                path,
+                workspaceRoot,
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
             .Returns(new WorkspaceInputManifest());
     }
 

@@ -327,7 +327,8 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 "/workspace/solution.slnx",
                 "/workspace",
                 _promotionCertification.Object,
-                properties))
+                properties,
+                CancellationToken.None))
             .Returns(inputManifest);
 
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
@@ -359,6 +360,82 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_RequestCancelledAfterApplicationStarts_WHEN_Committing_THEN_ShouldCompleteNonCancellably()
+    {
+        var session = CreateSession();
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("The test session must have an active transaction.");
+
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
+        using var inputManifest = new WorkspaceInputManifest();
+        using var cancellationSource = new CancellationTokenSource();
+        SetupProtocol(session, plan);
+        _commitWriter
+            .Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
+            .Callback(cancellationSource.Cancel)
+            .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
+        _changeDetector
+            .Setup(item => item.BuildManifest(
+                transaction.CurrentSolution,
+                "/workspace/solution.slnx",
+                "/workspace",
+                _promotionCertification.Object,
+                null,
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                Solution solution,
+                string loadedPath,
+                string workspaceRoot,
+                IWorkspaceInputCertification certification,
+                WorkspaceMsBuildProperties? properties,
+                CancellationToken cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return inputManifest;
+            });
+
+        _commitWriter
+            .Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>()))
+            .ReturnsAsync(true);
+
+        _resultFactory
+            .Setup(item => item.Succeeded(
+                It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
+                It.IsAny<WorkspaceOperationContext>(),
+                null,
+                null))
+            .Returns(expected);
+
+        var result = await _target.CommitAsync(
+            CreateSelection(session),
+            expectedSnapshot: null,
+            cancellationSource.Token);
+
+        result.Should().BeSameAs(expected);
+        cancellationSource.IsCancellationRequested.Should().BeTrue();
+        _changeDetector.Verify(item => item.BuildManifest(
+            transaction.CurrentSolution,
+            "/workspace/solution.slnx",
+            "/workspace",
+            _promotionCertification.Object,
+            null,
+            CancellationToken.None), Times.Once);
+
+        _commitWriter.Verify(
+            item => item.CompleteAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed)),
+            Times.Once);
+
+        _sessionStore.Verify(item => item.TryCompleteTransaction(
+            It.Is<WorkspaceSessionSnapshot>(value =>
+                value.Transaction == null
+                && value.CurrentSolution == transaction.CurrentSolution
+                && value.InputManifest == inputManifest)), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_InputEvaluationFailureAfterApplyingCommit_WHEN_Committing_THEN_ShouldMarkCommittedWorkspaceOutOfDate()
     {
         var session = CreateSession();
@@ -379,7 +456,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
         SetupProtocol(session, plan);
-        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx", "/workspace", _promotionCertification.Object))
+        _changeDetector.Setup(item => item.BuildManifest(
+            transaction.CurrentSolution,
+            "/workspace/solution.slnx",
+            "/workspace",
+            _promotionCertification.Object,
+            null,
+            CancellationToken.None))
             .Returns(inputManifest);
 
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(It.Is<WorkspaceSessionSnapshot>(value =>
@@ -583,7 +666,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 It.IsAny<Solution>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<IWorkspaceInputCertification>()),
+                It.IsAny<IWorkspaceInputCertification>(),
+                It.IsAny<WorkspaceMsBuildProperties?>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
 
         _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
@@ -613,7 +698,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 transaction.CurrentSolution,
                 "/workspace/solution.slnx",
                 "/workspace",
-                _promotionCertification.Object))
+                _promotionCertification.Object,
+                null,
+                CancellationToken.None))
             .Returns(inputManifest);
 
         _changeDetector.Setup(item => item.HasChanged(inputManifest, CancellationToken.None))
@@ -656,7 +743,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 transaction.CurrentSolution,
                 "/workspace/solution.slnx",
                 "/workspace",
-                _promotionCertification.Object))
+                _promotionCertification.Object,
+                null,
+                CancellationToken.None))
             .Returns(inputManifest);
 
         _changeDetector.Setup(item => item.HasChanged(inputManifest, CancellationToken.None))
@@ -1213,7 +1302,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 It.IsAny<Solution>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                _promotionCertification.Object))
+                _promotionCertification.Object,
+                It.IsAny<WorkspaceMsBuildProperties?>(),
+                It.IsAny<CancellationToken>()))
             .Returns(new WorkspaceInputManifest());
 
         _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);

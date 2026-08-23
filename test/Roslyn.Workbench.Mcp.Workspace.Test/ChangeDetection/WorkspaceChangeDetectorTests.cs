@@ -36,6 +36,10 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _fileSystem.SetupGet(item => item.DirectoryInfo).Returns(_directoryInfoFactory.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
+        _directory
+            .Setup(item => item.EnumerateDirectories(It.IsAny<string>(), "*", SearchOption.TopDirectoryOnly))
+            .Returns([]);
+
         _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => Path.GetDirectoryName(path));
         _path.Setup(item => item.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
         _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
@@ -66,7 +70,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     [InlineData(" ")]
     public void GIVEN_InvalidLoadedPath_WHEN_BuildingManifest_THEN_ShouldThrowArgumentException(string loadedPath)
     {
-        var action = () => _target.BuildManifest(_workspace.CurrentSolution, loadedPath, "/Workspace");
+        var action = () => BuildCertifiedManifest(_workspace.CurrentSolution, loadedPath, "/Workspace");
 
         action.Should().Throw<ArgumentException>();
     }
@@ -116,11 +120,17 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _projectInputResolver.Setup(item => item.Resolve(projectPath, properties))
             .Returns(WorkspaceProjectInputResolution.Succeeded([importPath]));
 
-        _directory.Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories)).Returns(
+        _directory.Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly)).Returns(
             [sourceDirectory, binDirectory, objDirectory]);
 
         using var certification = _target.BeginCertification(root);
-        var result = _target.BuildManifest(solution, solutionPath, root, certification, properties);
+        var result = _target.BuildManifest(
+            solution,
+            solutionPath,
+            root,
+            certification,
+            properties,
+            TestContext.Current.CancellationToken);
 
         result.Files.Select(item => item.Path).Should().BeEquivalentTo(
             solutionPath,
@@ -139,6 +149,183 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _changeMonitor.Verify(item => item.Start(), Times.Once);
         _changeMonitor.Verify(item => item.Track(result), Times.Once);
         _projectInputResolver.Verify(item => item.Resolve(projectPath, properties), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ExcludedDirectoryTree_WHEN_BuildingManifest_THEN_ShouldNotEnterExcludedRoot()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(workspaceRoot, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var sourceDirectory = Path.Combine(projectDirectory, "Source");
+        var artifactDirectory = Path.Combine(projectDirectory, "obj");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var projectId = ProjectId.CreateNewId();
+        var projectInfo = ProjectInfo.Create(
+            projectId,
+            VersionStamp.Default,
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: projectPath);
+
+        var solution = _workspace.CurrentSolution.AddProject(projectInfo);
+
+        SetupFile(solutionPath);
+        SetupFile(projectPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(projectDirectory);
+        SetupDirectory(sourceDirectory);
+        SetupDirectory(artifactDirectory);
+        _directory
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
+            .Returns([sourceDirectory, artifactDirectory]);
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded(artifactRoots: [artifactDirectory]));
+
+        using var manifest = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
+
+        var manifestDirectoryPaths = manifest.Directories.Select(static directory => directory.Path);
+        manifestDirectoryPaths.Should().Contain(sourceDirectory);
+        manifestDirectoryPaths.Should().NotContain(artifactDirectory);
+        _directory.Verify(
+            item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+
+        _directory.Verify(
+            item => item.EnumerateDirectories(sourceDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+
+        _directory.Verify(
+            item => item.EnumerateDirectories(artifactDirectory, It.IsAny<string>(), It.IsAny<SearchOption>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_NestedProjectRoots_WHEN_BuildingManifest_THEN_ShouldTraverseEachDirectoryOnce()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var parentDirectory = Path.Combine(workspaceRoot, "Project");
+        var nestedDirectory = Path.Combine(parentDirectory, "Nested");
+        var sourceDirectory = Path.Combine(nestedDirectory, "Source");
+        var parentProjectPath = Path.Combine(parentDirectory, "Parent.csproj");
+        var nestedProjectPath = Path.Combine(nestedDirectory, "Nested.csproj");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var parentProject = ProjectInfo.Create(
+            ProjectId.CreateNewId(),
+            VersionStamp.Default,
+            "Parent",
+            "Parent",
+            LanguageNames.CSharp,
+            filePath: parentProjectPath);
+
+        var nestedProject = ProjectInfo.Create(
+            ProjectId.CreateNewId(),
+            VersionStamp.Default,
+            "Nested",
+            "Nested",
+            LanguageNames.CSharp,
+            filePath: nestedProjectPath);
+
+        var solution = _workspace.CurrentSolution
+            .AddProject(parentProject)
+            .AddProject(nestedProject);
+
+        SetupFile(solutionPath);
+        SetupFile(parentProjectPath);
+        SetupFile(nestedProjectPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(parentDirectory);
+        SetupDirectory(nestedDirectory);
+        SetupDirectory(sourceDirectory);
+        _directory
+            .Setup(item => item.EnumerateDirectories(parentDirectory, "*", SearchOption.TopDirectoryOnly))
+            .Returns([nestedDirectory, nestedDirectory]);
+
+        _directory
+            .Setup(item => item.EnumerateDirectories(nestedDirectory, "*", SearchOption.TopDirectoryOnly))
+            .Returns([sourceDirectory]);
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(parentProjectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(nestedProjectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        using var manifest = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
+
+        var manifestDirectoryPaths = manifest.Directories.Select(static directory => directory.Path);
+        manifestDirectoryPaths.Should().Contain(parentDirectory, nestedDirectory, sourceDirectory);
+        _directory.Verify(
+            item => item.EnumerateDirectories(parentDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+
+        _directory.Verify(
+            item => item.EnumerateDirectories(nestedDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+
+        _directory.Verify(
+            item => item.EnumerateDirectories(sourceDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_CancellationDuringDirectoryTraversal_WHEN_BuildingManifest_THEN_ShouldPropagateCancellation()
+    {
+        var workspaceRoot = Path.GetFullPath("/Workspace");
+        var projectDirectory = Path.Combine(workspaceRoot, "Project");
+        var projectPath = Path.Combine(projectDirectory, "Project.csproj");
+        var childDirectory = Path.Combine(projectDirectory, "Child");
+        var solutionPath = Path.Combine(workspaceRoot, "Workspace.sln");
+        var projectInfo = ProjectInfo.Create(
+            ProjectId.CreateNewId(),
+            VersionStamp.Default,
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: projectPath);
+
+        var solution = _workspace.CurrentSolution.AddProject(projectInfo);
+        using var cancellationSource = new CancellationTokenSource();
+
+        SetupFile(solutionPath);
+        SetupFile(projectPath);
+        SetupDirectory(workspaceRoot);
+        SetupDirectory(projectDirectory);
+        SetupDirectory(childDirectory);
+        _directory
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
+            .Returns(() =>
+            {
+                cancellationSource.Cancel();
+                return [childDirectory];
+            });
+
+        _projectInputResolver
+            .Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
+
+        using var certification = _target.BeginCertification(workspaceRoot);
+        var action = () => _target.BuildManifest(
+            solution,
+            solutionPath,
+            workspaceRoot,
+            certification,
+            null,
+            cancellationSource.Token);
+
+        action.Should().Throw<OperationCanceledException>();
+        _directory.Verify(
+            item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly),
+            Times.Once);
+
+        _directory.Verify(
+            item => item.EnumerateDirectories(childDirectory, It.IsAny<string>(), It.IsAny<SearchOption>()),
+            Times.Never);
     }
 
     [Fact]
@@ -171,12 +358,12 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         }
 
         _directory
-            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
             .Returns([]);
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        using var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        using var manifest = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
 
         manifest.Files.Select(static file => file.Path).Should().Contain(
             upperCaseExternalPath,
@@ -210,7 +397,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupDirectory(workspaceRoot);
         SetupDirectory(nestedRoot);
         _directory
-            .Setup(item => item.EnumerateDirectories(nestedRoot, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(nestedRoot, "*", SearchOption.TopDirectoryOnly))
             .Returns([]);
 
         _projectInputResolver
@@ -221,7 +408,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .Setup(item => item.Resolve(lowerCaseProjectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        using var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        using var manifest = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
 
         _projectInputResolver.Verify(item => item.Resolve(upperCaseProjectPath), Times.Once);
         _projectInputResolver.Verify(item => item.Resolve(lowerCaseProjectPath), Times.Once);
@@ -234,7 +421,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .Setup(item => item.New("/Workspace/Workspace.sln"))
             .Throws(new IOException());
 
-        var action = () => _target.BuildManifest(
+        var action = () => BuildCertifiedManifest(
             _workspace.CurrentSolution,
             "/Workspace/Workspace.sln",
             "/Workspace");
@@ -319,14 +506,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         }
 
         _directory
-            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
             .Returns([conventionalObjDirectory, customObjDirectory]);
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(
                 artifactRoots: [Path.Combine(projectDirectory, "custom-bin"), customObjDirectory]));
 
-        var result = _target.BuildManifest(solution, solutionPath, root);
+        var result = BuildCertifiedManifest(solution, solutionPath, root);
 
         result.Files.Select(static file => file.Path).Should().Contain(conventionalNamedSourcePath, generatedPath);
         result.Directories.Select(static directory => directory.Path).Should().Contain(conventionalObjDirectory);
@@ -363,14 +550,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupDirectory(root);
         SetupDirectory(projectDirectory);
         _directory
-            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
             .Returns([]);
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(
                 artifactRoots: [Path.Combine(projectDirectory, "bin"), Path.Combine(projectDirectory, "obj")]));
 
-        using var result = _target.BuildManifest(solution, solutionPath, root);
+        using var result = BuildCertifiedManifest(solution, solutionPath, root);
 
         result.IsComplete.Should().BeTrue();
         _projectInputResolver.Verify(item => item.Resolve(projectPath), Times.Once);
@@ -428,14 +615,14 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupDirectory(externalRoot);
         SetupDirectory(nestedExternalRoot);
         _directory
-            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
             .Returns([]);
 
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(itemGlobs: [externalGlob, nestedGlob]));
 
-        using var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        using var result = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
 
         var membership = result.ExternalInputMemberships.Should().ContainSingle().Which;
         membership.SearchRoot.Should().Be(externalRoot);
@@ -484,13 +671,13 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupDirectory(firstExternalRoot);
         SetupDirectory(secondExternalRoot);
         _directory
-            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.AllDirectories))
+            .Setup(item => item.EnumerateDirectories(projectDirectory, "*", SearchOption.TopDirectoryOnly))
             .Returns([]);
         _projectInputResolver
             .Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded(itemGlobs: [glob]));
 
-        using var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        using var result = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
 
         result.ExternalInputMemberships.Should().HaveCount(2);
         var firstMembership = result.ExternalInputMemberships.Single(item => item.SearchRoot == firstExternalRoot);
@@ -516,7 +703,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _projectInputResolver.Setup(item => item.Resolve("/Missing/Project.csproj"))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        var result = _target.BuildManifest(solution, "/Missing/Workspace.sln", "/Missing");
+        var result = BuildCertifiedManifest(solution, "/Missing/Workspace.sln", "/Missing");
 
         result.Files.Should().BeEmpty();
         result.Directories.Should().BeEmpty();
@@ -545,7 +732,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        var result = _target.BuildManifest(solution, missingSolutionPath, missingRoot);
+        var result = BuildCertifiedManifest(solution, missingSolutionPath, missingRoot);
 
         result.Files.Should().ContainSingle();
         result.Directories.Should().BeEmpty();
@@ -558,7 +745,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupFile("Workspace.sln");
         _path.Setup(item => item.GetDirectoryName("Workspace.sln")).Returns((string?)null);
 
-        var result = _target.BuildManifest(_workspace.CurrentSolution, "Workspace.sln", "/Workspace");
+        var result = BuildCertifiedManifest(_workspace.CurrentSolution, "Workspace.sln", "/Workspace");
 
         result.Files.Should().ContainSingle();
         result.Directories.Should().BeEmpty();
@@ -571,7 +758,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupFile("Workspace.sln");
         _path.Setup(item => item.GetDirectoryName("Workspace.sln")).Returns(" ");
 
-        var result = _target.BuildManifest(_workspace.CurrentSolution, "Workspace.sln", "/Workspace");
+        var result = BuildCertifiedManifest(_workspace.CurrentSolution, "Workspace.sln", "/Workspace");
 
         result.Files.Should().ContainSingle();
         result.Directories.Should().BeEmpty();
@@ -593,7 +780,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _projectInputResolver.Setup(item => item.Resolve(null))
             .Returns(WorkspaceProjectInputResolution.Succeeded());
 
-        var result = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        var result = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
 
         result.Files.Should().ContainSingle().Which.Path.Should().Be(solutionPath);
     }
@@ -616,11 +803,11 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupFile(solutionPath);
         SetupFile(projectPath);
         SetupDirectory(workspaceRoot);
-        _directory.Setup(item => item.EnumerateDirectories(workspaceRoot, "*", SearchOption.AllDirectories)).Returns([]);
+        _directory.Setup(item => item.EnumerateDirectories(workspaceRoot, "*", SearchOption.TopDirectoryOnly)).Returns([]);
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Failed(projectPath, "Message"));
 
-        var manifest = _target.BuildManifest(solution, solutionPath, workspaceRoot);
+        var manifest = BuildCertifiedManifest(solution, solutionPath, workspaceRoot);
         var hasChanged = _target.HasChanged(manifest, TestContext.Current.CancellationToken);
 
         manifest.IsComplete.Should().BeFalse();
@@ -737,6 +924,22 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     public void Dispose()
     {
         _workspace.Dispose();
+    }
+
+    private WorkspaceInputManifest BuildCertifiedManifest(
+        Solution solution,
+        string loadedPath,
+        string workspaceRoot,
+        WorkspaceMsBuildProperties? msBuildProperties = null)
+    {
+        using var certification = _target.BeginCertification(workspaceRoot);
+        return _target.BuildManifest(
+            solution,
+            loadedPath,
+            workspaceRoot,
+            certification,
+            msBuildProperties,
+            TestContext.Current.CancellationToken);
     }
 
     private void SetupFile(

@@ -21,7 +21,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Complete |
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Complete |
 | 7 | RWMCP3-014 | Reject undeclared request members at binding | Complete |
-| 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Incomplete |
+| 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Complete |
 | 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Incomplete |
 
 ## P1 — High confidence
@@ -190,9 +190,13 @@ Provider calls for refactoring computation, fixable diagnostic IDs and fix regis
 
 ### RWMCP3-019 — Manifest construction recursively traverses excluded and overlapping directory trees
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceChangeDetector.cs:162-215,277-303`; `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceInputPathPolicy.cs:29-47`
 
 Each project recursively enumerates all descendant directories before applying exclusions to yielded paths. Excluded roots are not pruned, overlapping project roots repeat traversal and enumeration is uncancellable during open, reload and post-commit rebuilding. Prune while traversing, deduplicate roots and propagate cancellation; measure large/overlapping trees.
+
+**Remediation:** Manifest construction now reduces normalised project-directory roots, traverses one directory level at a time, prunes excluded trees before entering them and visits each filesystem-aware directory key once. Open and reload propagate request cancellation throughout manifest construction, while post-application commit promotion remains intentionally non-cancellable so applied files cannot be left with an unfinished transaction and `Applying` recovery state. Unit and physical integration coverage exercises exclusions, descendants, overlapping and duplicate roots, cancellation and lifecycle/commit propagation; Workspace tests passed 1,151/1,151, Workspace integration tests passed 112/112, affected `latest-all` analyzer builds were clean, and like-for-like EF Core watcher-stress runs found no material time, CPU or peak-memory regression against committed `HEAD`. The first independent review found and prompted correction of post-application cancellation propagation; a second fresh review found no remaining defects.
 
 ## P2 — Medium confidence
 
@@ -206,7 +210,7 @@ Containment is revalidated by pathname, then asynchronous artifact work occurs b
 
 ## Notable test gaps
 
-Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file and format-range cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
+Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload and malformed recovery admission. Tool coverage lacks the validated CFG, code-context, rename-file and format-range cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
 
 ## Areas not reviewed confidently
 

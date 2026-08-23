@@ -147,10 +147,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
             changeMonitorFactory,
             pathComparison);
 
-        using var manifest = target.BuildManifest(
+        using var manifest = BuildCertifiedManifest(
+            target,
             initialProject.Solution,
             projectPath,
-            workspaceRoot);
+            workspaceRoot,
+            cancellationToken);
 
         target.HasChanged(manifest, cancellationToken).Should().BeFalse();
         await File.WriteAllTextAsync(createdExternalPath, "internal sealed class Created { }", cancellationToken);
@@ -227,10 +229,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
             changeMonitorFactory,
             pathComparison);
 
-        using var manifest = target.BuildManifest(
+        using var manifest = BuildCertifiedManifest(
+            target,
             project.Solution,
             projectPath,
-            workspaceRoot);
+            workspaceRoot,
+            cancellationToken);
 
         target.HasChanged(manifest, cancellationToken).Should().BeFalse();
         Directory.Move(sourceDirectory, insertedDirectory);
@@ -310,7 +314,12 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 changeMonitorFactory,
                 pathComparison);
 
-            using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
+            using var manifest = BuildCertifiedManifest(
+                target,
+                solution,
+                projectPath,
+                directoryPath,
+                TestContext.Current.CancellationToken);
 
             manifest.Files.Select(static file => file.Path).Should().Contain(importedPropsPath);
             manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, ".vs"));
@@ -405,10 +414,21 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 changeMonitorFactory,
                 pathComparison);
 
-            using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
+            using var manifest = BuildCertifiedManifest(
+                target,
+                solution,
+                projectPath,
+                directoryPath,
+                TestContext.Current.CancellationToken);
 
             manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "artifacts"));
             manifest.PathPolicy.ExcludedDirectoryRoots.Should().Contain(Path.Combine(directoryPath, "intermediate"));
+            var manifestDirectoryPaths = manifest.Directories.Select(static directory => directory.Path);
+            manifestDirectoryPaths.Should().Contain(projectDirectoryPath);
+            manifestDirectoryPaths.Should().NotContain(
+                Path.Combine(directoryPath, "artifacts"),
+                Path.Combine(directoryPath, "intermediate"));
+
             manifest.Files.Select(static file => file.Path).Should().Contain(
                 conventionalNamedSourcePath,
                 customIntermediatePath,
@@ -458,7 +478,13 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 changeMonitorFactory,
                 pathComparison);
 
-            using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
+            using var manifest = BuildCertifiedManifest(
+                target,
+                solution,
+                projectPath,
+                directoryPath,
+                TestContext.Current.CancellationToken);
+
             var hasChanged = target.HasChanged(manifest, TestContext.Current.CancellationToken);
 
             manifest.IsComplete.Should().BeFalse();
@@ -519,7 +545,7 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 changeMonitorFactory,
                 pathComparison);
 
-            using var manifest = target.BuildManifest(solution, projectPath, directoryPath);
+            using var manifest = BuildCertifiedManifest(target, solution, projectPath, directoryPath, TestContext.Current.CancellationToken);
 
             File.WriteAllText(documentPath, "class B { }");
             File.SetLastWriteTimeUtc(documentPath, originalWriteTime);
@@ -578,7 +604,13 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
             using var certification = target.BeginCertification(directoryPath);
             File.WriteAllText(documentPath, "class B { }");
             File.SetLastWriteTimeUtc(documentPath, originalWriteTime);
-            using var manifest = target.BuildManifest(solution, projectPath, directoryPath, certification);
+            using var manifest = target.BuildManifest(
+                solution,
+                projectPath,
+                directoryPath,
+                certification,
+                null,
+                TestContext.Current.CancellationToken);
 
             var hasChanged = SpinWait.SpinUntil(
                 () => target.HasChanged(manifest, TestContext.Current.CancellationToken),
@@ -680,6 +712,23 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-manifest-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
         return directoryPath;
+    }
+
+    private static WorkspaceInputManifest BuildCertifiedManifest(
+        WorkspaceChangeDetector target,
+        Solution solution,
+        string loadedPath,
+        string workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        using var certification = target.BeginCertification(workspaceRoot);
+        return target.BuildManifest(
+            solution,
+            loadedPath,
+            workspaceRoot,
+            certification,
+            null,
+            cancellationToken);
     }
 
     private static void DeleteDirectory(string directoryPath)

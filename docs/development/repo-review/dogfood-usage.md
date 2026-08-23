@@ -387,3 +387,37 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"alias":"rwmcp3"},"query":"WorkspaceSelectorService","kinds":["NamedType"],"symbolsLimit":20}`
 
 **Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+## RWMCP3-019
+
+### 1. `server-status`
+
+**Purpose:** Validate the newly published dogfood Host before investigating manifest traversal.
+
+**Request:** `{"detail":"Standard"}`
+
+**Outcome:** Succeeded. The Host reported MSBuild 10.0.102, Roslyn 5.6.0.0, 56 tools and an available Code Action subsystem composed from 81 refactoring providers and 169 code-fix providers.
+
+### 2. `workspace-list`
+
+**Purpose:** Confirm that the restarted process had no stale Workspace or transaction state before opening the current solution.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 3. `workspace-open`
+
+**Purpose:** Open the current solution for symbol-backed investigation of manifest construction.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** Succeeded. Opened Workspace `2f974c4c-5ed8-4171-a61b-1ec8803ea8ad` at epoch 1 and snapshot `6054758f-8034-489c-97ca-3d3c3c7c26ba`, with 30 projects and 1,589 documents. The server warned about one unresolved generated analyser reference and WSL access through the Windows filesystem.
+
+### 4. `search-symbols`
+
+**Purpose:** Locate the project-directory manifest traversal before tracing its filesystem behaviour and callers.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"AddProjectDirectories","symbolsLimit":10}`
+
+**Outcome:** Succeeded with the private `WorkspaceChangeDetector.AddProjectDirectories` implementation at line 462.

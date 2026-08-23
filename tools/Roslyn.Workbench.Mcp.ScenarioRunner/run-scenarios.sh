@@ -61,13 +61,19 @@ fi
 runner_path="$runner_output/Roslyn.Workbench.Mcp.ScenarioRunner"
 echo "Temporary published binaries: $publish_root"
 
+runner_arguments=("$@")
+command_name="${runner_arguments[0],,}"
+case "$command_name" in
+    list|prepare|help|--help|-h)
+        ;;
+    *)
+        runner_arguments+=(--host "$host_path" --framework-root "$repository_root" --plugin-directory "$plugin_root")
+        ;;
+esac
+
 if [[ -x "$runner_path" ]]; then
-    "$runner_path" "$@" --host "$host_path" --framework-root "$repository_root" --plugin-directory "$plugin_root"
+    "$runner_path" "${runner_arguments[@]}"
     exit $?
 fi
 
-dotnet "$runner_output/Roslyn.Workbench.Mcp.ScenarioRunner.dll" \
-    "$@" \
-    --host "$host_path" \
-    --framework-root "$repository_root" \
-    --plugin-directory "$plugin_root"
+dotnet "$runner_output/Roslyn.Workbench.Mcp.ScenarioRunner.dll" "${runner_arguments[@]}"

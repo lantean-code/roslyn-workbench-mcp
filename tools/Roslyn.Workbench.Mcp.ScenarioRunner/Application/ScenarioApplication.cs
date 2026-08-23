@@ -270,7 +270,7 @@ internal static class ScenarioApplication
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            await Console.Error.WriteLineAsync(exception.Message);
+            await Console.Error.WriteLineAsync(exception.ToString());
             return 1;
         }
         finally

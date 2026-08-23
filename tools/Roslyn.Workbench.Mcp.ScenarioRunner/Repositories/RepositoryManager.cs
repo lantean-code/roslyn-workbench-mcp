@@ -90,7 +90,15 @@ internal sealed class RepositoryManager
 
     public static string GetNuGetPackagesDirectory(string repositoryRoot)
     {
-        return Path.Combine(repositoryRoot, ".performance", "nuget-packages");
+        var repositoryDirectory = new DirectoryInfo(repositoryRoot);
+        var repositoryCacheDirectory = repositoryDirectory.Parent
+            ?? throw new InvalidOperationException(
+                $"Repository root '{repositoryRoot}' does not have a cache directory.");
+
+        return Path.Combine(
+            repositoryCacheDirectory.FullName,
+            ".packages",
+            repositoryDirectory.Name);
     }
 
     private void EnsureNuGetConfigurationIsolation()
@@ -210,18 +218,18 @@ internal sealed class RepositoryManager
         }
 
         var status = await GitCommand.RunAsync(
-            ["status", "--porcelain", "--untracked-files=no"],
+            ["status", "--porcelain", "--untracked-files=normal"],
             repositoryRoot,
             cancellationToken);
         if (status.ExitCode != 0)
         {
-            return $"Unable to inspect tracked changes in repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{status.StandardError}";
+            return $"Unable to inspect changes in repository cache '{repositoryRoot}' {validationPoint}.{Environment.NewLine}{status.StandardError}";
         }
 
-        var trackedChanges = status.StandardOutput.Trim();
-        if (!string.IsNullOrWhiteSpace(trackedChanges))
+        var changes = status.StandardOutput.Trim();
+        if (!string.IsNullOrWhiteSpace(changes))
         {
-            return $"Repository cache '{repositoryRoot}' contains tracked changes {validationPoint}.{Environment.NewLine}{trackedChanges}";
+            return $"Repository cache '{repositoryRoot}' contains tracked or untracked changes {validationPoint}.{Environment.NewLine}{changes}";
         }
 
         return null;

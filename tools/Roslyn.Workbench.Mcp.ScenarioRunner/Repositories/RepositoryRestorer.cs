@@ -8,26 +8,17 @@ internal sealed class RepositoryRestorer
 {
     private const int _restoreBatchSize = 100;
 
-    private static StringComparer PathComparer => OperatingSystem.IsWindows()
-        ? StringComparer.OrdinalIgnoreCase
-        : StringComparer.Ordinal;
-
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase
         : StringComparison.Ordinal;
 
-    private readonly IReadOnlySet<string> _baselineUntrackedPaths;
     private readonly string _commit;
     private readonly string _repositoryRoot;
 
-    private RepositoryRestorer(
-        string repositoryRoot,
-        string commit,
-        IReadOnlySet<string> baselineUntrackedPaths)
+    private RepositoryRestorer(string repositoryRoot, string commit)
     {
         _repositoryRoot = repositoryRoot;
         _commit = commit;
-        _baselineUntrackedPaths = baselineUntrackedPaths;
     }
 
     public static async Task<RepositoryRestorer> CreateAsync(
@@ -46,7 +37,13 @@ internal sealed class RepositoryRestorer
         }
 
         var untrackedPaths = await GetUntrackedPathsAsync(repositoryRoot, cancellationToken);
-        return new RepositoryRestorer(repositoryRoot, commit, untrackedPaths);
+        if (untrackedPaths.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Repository '{repositoryRoot}' contains untracked files before durable commit measurement.");
+        }
+
+        return new RepositoryRestorer(repositoryRoot, commit);
     }
 
     public async Task<RepositoryChangeSet> CaptureChangesAsync(CancellationToken cancellationToken)
@@ -55,11 +52,8 @@ internal sealed class RepositoryRestorer
             _repositoryRoot,
             ["diff", "--name-only", "-z", "--no-renames", _commit, "--"],
             cancellationToken);
-        var currentUntrackedPaths = await GetUntrackedPathsAsync(_repositoryRoot, cancellationToken);
-        var createdPaths = currentUntrackedPaths
-            .Except(_baselineUntrackedPaths, PathComparer)
-            .ToArray();
-        var files = new List<DurableCommitFileChange>(trackedPaths.Count + createdPaths.Length);
+        var createdPaths = await GetUntrackedPathsAsync(_repositoryRoot, cancellationToken);
+        var files = new List<DurableCommitFileChange>(trackedPaths.Count + createdPaths.Count);
 
         foreach (var path in trackedPaths)
         {
@@ -153,13 +147,10 @@ internal sealed class RepositoryRestorer
         }
 
         var currentUntrackedPaths = await GetUntrackedPathsAsync(_repositoryRoot, cancellationToken);
-        var newUntrackedPaths = currentUntrackedPaths
-            .Except(_baselineUntrackedPaths, PathComparer)
-            .ToArray();
-        if (newUntrackedPaths.Length > 0)
+        if (currentUntrackedPaths.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Repository restoration left new untracked files: {string.Join(", ", newUntrackedPaths)}.");
+                $"Repository restoration left untracked files: {string.Join(", ", currentUntrackedPaths)}.");
         }
     }
 
@@ -231,23 +222,14 @@ internal sealed class RepositoryRestorer
         }
     }
 
-    private static Task<IReadOnlySet<string>> GetUntrackedPathsAsync(
+    private static Task<IReadOnlyList<string>> GetUntrackedPathsAsync(
         string repositoryRoot,
         CancellationToken cancellationToken)
     {
-        return GetGitPathSetAsync(
+        return GetGitPathsAsync(
             repositoryRoot,
             ["ls-files", "--others", "--exclude-standard", "-z"],
             cancellationToken);
-    }
-
-    private static async Task<IReadOnlySet<string>> GetGitPathSetAsync(
-        string repositoryRoot,
-        IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken)
-    {
-        var paths = await GetGitPathsAsync(repositoryRoot, arguments, cancellationToken);
-        return paths.ToHashSet(PathComparer);
     }
 
     private static async Task<IReadOnlyList<string>> GetGitPathsAsync(

@@ -84,16 +84,16 @@ internal static class RunStateValidator
         }
 
         var status = await GitCommand.RunAsync(
-            ["status", "--porcelain", "--untracked-files=no"],
+            ["status", "--porcelain", "--untracked-files=normal"],
             repositoryRoot,
             cancellationToken);
         if (status.ExitCode != 0)
         {
-            issues.Add("Unable to validate the repository's tracked state.");
+            issues.Add("Unable to validate the repository state.");
         }
         else if (!string.IsNullOrWhiteSpace(status.StandardOutput))
         {
-            issues.Add("The repository contains tracked changes after the run.");
+            issues.Add("The repository contains tracked or untracked changes after the run.");
         }
 
         var stateFiles = Directory.Exists(stateDirectory)

@@ -44,8 +44,18 @@ internal sealed class ScenarioOptions
 
     public static ScenarioOptions Parse(IReadOnlyList<string> arguments)
     {
-        if (arguments.Count == 0 || IsHelp(arguments[0]))
+        if (arguments.Count == 0)
         {
+            return new ScenarioOptions { Command = ScenarioCommand.Help };
+        }
+
+        if (IsHelp(arguments[0]))
+        {
+            if (arguments.Count > 1)
+            {
+                throw new ArgumentException("The help command does not accept options.");
+            }
+
             return new ScenarioOptions { Command = ScenarioCommand.Help };
         }
 
@@ -61,19 +71,36 @@ internal sealed class ScenarioOptions
                 throw new ArgumentException($"Unexpected argument '{argument}'. Options must start with '--'.");
             }
 
-            if (string.Equals(argument, "--skip-prepare", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(argument, "--capture-trace", StringComparison.OrdinalIgnoreCase))
+            if (!IsKnownOption(argument))
             {
-                switches.Add(argument);
+                throw new ArgumentException($"Unknown option '{argument}'.");
+            }
+
+            if (!IsAllowedForCommand(command, argument))
+            {
+                throw new ArgumentException($"Option '{argument}' is not valid for the '{arguments[0]}' command.");
+            }
+
+            if (IsSwitch(argument))
+            {
+                if (!switches.Add(argument))
+                {
+                    throw new ArgumentException($"Option '{argument}' was specified more than once.");
+                }
+
                 continue;
             }
 
-            if (++index == arguments.Count)
+            if (++index == arguments.Count
+                || arguments[index].StartsWith("--", StringComparison.Ordinal))
             {
                 throw new ArgumentException($"Option '{argument}' requires a value.");
             }
 
-            values[argument] = arguments[index];
+            if (!values.TryAdd(argument, arguments[index]))
+            {
+                throw new ArgumentException($"Option '{argument}' was specified more than once.");
+            }
         }
 
         return new ScenarioOptions
@@ -100,6 +127,68 @@ internal sealed class ScenarioOptions
     private static bool IsHelp(string value)
     {
         return value is "help" or "--help" or "-h";
+    }
+
+    private static bool IsKnownOption(string value)
+    {
+        return value.Equals("--repository", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--scenario", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--host", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--cache", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--output", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--framework-root", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--plugin-directory", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--iterations", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--parallelism", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--warmups", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--duration", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--cancel-after", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--profile", StringComparison.OrdinalIgnoreCase)
+            || IsSwitch(value);
+    }
+
+    private static bool IsSwitch(string value)
+    {
+        return value.Equals("--skip-prepare", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("--capture-trace", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAllowedForCommand(ScenarioCommand command, string option)
+    {
+        if (command == ScenarioCommand.List)
+        {
+            return false;
+        }
+
+        if (option.Equals("--repository", StringComparison.OrdinalIgnoreCase)
+            || option.Equals("--cache", StringComparison.OrdinalIgnoreCase)
+            || option.Equals("--framework-root", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (option.Equals("--parallelism", StringComparison.OrdinalIgnoreCase))
+        {
+            return command == ScenarioCommand.Concurrency;
+        }
+
+        if (option.Equals("--duration", StringComparison.OrdinalIgnoreCase)
+            || option.Equals("--profile", StringComparison.OrdinalIgnoreCase))
+        {
+            return command == ScenarioCommand.Profile;
+        }
+
+        if (option.Equals("--cancel-after", StringComparison.OrdinalIgnoreCase))
+        {
+            return command == ScenarioCommand.Cancel;
+        }
+
+        if (option.Equals("--capture-trace", StringComparison.OrdinalIgnoreCase))
+        {
+            return command == ScenarioCommand.Commit;
+        }
+
+        return command != ScenarioCommand.Prepare;
     }
 
     private static ScenarioCommand ParseCommand(string value)

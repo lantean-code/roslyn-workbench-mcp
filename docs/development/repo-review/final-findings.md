@@ -22,7 +22,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Complete |
 | 7 | RWMCP3-014 | Reject undeclared request members at binding | Complete |
 | 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Complete |
-| 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Incomplete |
+| 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Complete |
 
 ## P1 — High confidence
 
@@ -160,21 +160,33 @@ Close removes a session before cleanup; reload replaces the epoch before old-res
 
 ### RWMCP3-016 — Baseline untracked files can be mutated without restoration
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryRestorer.cs:19-61,93-163,234-265`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryManager.cs:168-204`; `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Validation/RunStateValidator.cs:67-97`
 
 Cache validation ignores untracked files and restoration records only their baseline pathnames. A wildcard-loaded baseline untracked file can be changed or deleted without capture or verification, contaminating later exact-commit runs. Preserve baseline content/identity, reject mutable baseline untracked inputs or use disposable per-run worktrees.
 
+**Remediation:** Per-repository, per-commit NuGet packages now live beside the Git checkout, allowing preparation, durable-commit admission, restoration verification and terminal validation to enforce a completely clean tracked and untracked baseline. Existing caches using the former in-checkout `.performance` package directory are rejected and recreated. WSL and Windows validation migrated and prepared all three repositories, completed every measurement set and command family, and left each pinned checkout clean; the focused GuardClauses and final combined independent reviews found no remaining defect.
+
 ### RWMCP3-017 — Scenario failures can discard the evidence needed to diagnose them
+
+**Status:** Rejected — not a product defect under the accepted operating model on 2026-08-23
 
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs:271-278,450-529`
 
 Family writers run only after all iterations. Earlier workload, Host, EventPipe, restoration or validation failure reaches an outer catch that records only `exception.Message`, after which transient state can be recursively deleted. Persist structured failure evidence—invocation, completed measurements, exception, stderr, cleanup/validation and artifact paths—before cleanup.
 
+**Disposition:** The ScenarioRunner is a manually invoked development and release-validation tool, and a failed run is not valid release evidence; the supported response is to correct the development or environment failure and rerun the complete scenario. Persisting partial measurements would add journalling complexity and risk presenting incomplete output as authoritative. The runner now prints the complete exception, including stack and inner exceptions, while retaining any result files that were already written and continuing to remove transient execution state.
+
 ### RWMCP3-018 — Unknown ScenarioRunner options silently run a different workload
+
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
 
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioOptions.cs:45-97,185-228`
 
 Unknown `--name value` pairs are retained but never checked for consumption. `--iteratons 20` therefore succeeds with the default iteration count, and other misspellings silently alter release evidence. Validate names and command applicability, reject ambiguous duplicates and add parser tests.
+
+**Remediation:** Parsing now rejects unknown names, duplicate value options, duplicate switches and options that do not apply to the selected command. The platform wrappers inject Host-only paths solely for execution commands and preserve the parser's case-insensitive command behaviour. Published-runner validation covered valid `list` and `prepare` forms plus misspelling, duplication and applicability failures; complete WSL and Windows scenario validation exercised every command family. A dedicated test project remains deliberately excluded because this manual runner is itself development and release-validation infrastructure.
 
 ## P2 — Medium-high confidence
 
@@ -210,9 +222,9 @@ Containment is revalidated by pathname, then asynchronous artifact work occurs b
 
 ## Notable test gaps
 
-Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload and malformed recovery admission. Tool coverage lacks the validated CFG, code-context, rename-file and format-range cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
+Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload and malformed recovery admission. Tool coverage lacks the validated CFG, code-context, rename-file and format-range cases. ScenarioRunner deliberately has no owning automated test project and is not executed in CI; its release-validation contract instead relies on published-runner invocation across the pinned external repositories.
 
 ## Areas not reviewed confidently
 
-Arbitrary third-party plugin, project analyser and MSBuild logic remains trusted and open-ended. Handle-relative native filesystem mutation was not reviewed because concurrent structural repository operations during commit application or startup recovery are outside the accepted product operating model. Remote Sentry delivery after SDK queue acceptance is provider-owned. External-repository scenario suites were inspected but not executed during this review, and the read-only dogfood Workspace reported missing package/analyser inputs that limited broad semantic querying. These limits do not undermine the validated source-level call paths above but should inform remediation validation.
+Arbitrary third-party plugin, project analyser and MSBuild logic remains trusted and open-ended. Handle-relative native filesystem mutation was not reviewed because concurrent structural repository operations during commit application or startup recovery are outside the accepted product operating model. Remote Sentry delivery after SDK queue acceptance is provider-owned. The original review did not execute the external-repository scenario suites, and its read-only dogfood Workspace reported missing package/analyser inputs that limited broad semantic querying; remediation subsequently completed the WSL and Windows suites across all pinned repositories and command families. These limits do not undermine the validated source-level call paths above but should inform release validation on other supported platforms.
 

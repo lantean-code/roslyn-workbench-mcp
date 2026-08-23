@@ -421,3 +421,77 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"alias":"rwmcp3"},"query":"AddProjectDirectories","symbolsLimit":10}`
 
 **Outcome:** Succeeded with the private `WorkspaceChangeDetector.AddProjectDirectories` implementation at line 462.
+
+## RWMCP3-016, RWMCP3-017 and RWMCP3-018
+
+### 1. `server-status`
+
+**Purpose:** Validate the newly published dogfood Host before investigating the final ScenarioRunner group.
+
+**Request:** `{"detail":"Standard"}`
+
+**Outcome:** Succeeded, but the client projection exposed no visible text content.
+
+### 2. `workspace-list`
+
+**Purpose:** Inspect the restarted process for stale Workspace or transaction state.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded, but the client projection exposed no visible text content.
+
+### 3. `server-status`
+
+**Purpose:** Repeat Host validation through the structured response after the first projection was blank.
+
+**Request:** `{"detail":"Minimal"}`
+
+**Outcome:** Succeeded. The Host reported MSBuild 10.0.102, Roslyn 5.6.0.0, 56 tools and an available Code Action subsystem composed from 81 refactoring providers and 169 code-fix providers.
+
+### 4. `workspace-list`
+
+**Purpose:** Repeat the Workspace inventory through the structured response.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 5. `workspace-open`
+
+**Purpose:** Open the current solution for symbol-backed investigation of the ScenarioRunner restoration, failure and option-parsing paths.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** Succeeded. Opened Workspace `5c14c3e4-73db-4d00-9ce7-13775865a1bb` at epoch 1 and snapshot `98ffd0c8-1e51-4013-8456-1015f63b755d`, with 30 projects and 1,589 documents. The server warned about one unresolved generated analyser reference and WSL access through the Windows filesystem.
+
+### 6. `search-symbols`
+
+**Purpose:** Locate `RepositoryRestorer` before tracing its baseline and restoration invariants.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"RepositoryRestorer","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the ScenarioRunner implementation in `Repositories/RepositoryRestorer.cs`.
+
+### 7. `search-symbols`
+
+**Purpose:** Locate `ScenarioApplication` while the other ScenarioRunner types were queried concurrently.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"ScenarioApplication","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Failed with `WorkspaceBusy` because the concurrent requests exceeded the Workspace query slots.
+
+### 8. `search-symbols`
+
+**Purpose:** Locate `ScenarioOptions` before tracing option consumption and command applicability.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"ScenarioOptions","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the ScenarioRunner implementation in `Application/ScenarioOptions.cs`.
+
+### 9. `search-symbols`
+
+**Purpose:** Retry discovery of `ScenarioApplication` after the concurrent request completed.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"ScenarioApplication","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the ScenarioRunner implementation in `Application/ScenarioApplication.cs`.

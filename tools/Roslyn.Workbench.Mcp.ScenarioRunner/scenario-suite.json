@@ -847,8 +847,10 @@
                     "targetFramework": "net10.0"
                   }
                 },
-                "start": 20180,
-                "length": 21
+                "range": {
+                  "start": 20180,
+                  "length": 21
+                }
               }
             },
             "maxDepth": 8

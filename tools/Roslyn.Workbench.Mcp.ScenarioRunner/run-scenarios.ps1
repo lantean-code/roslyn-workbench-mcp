@@ -87,14 +87,24 @@ try
     $runnerPath = Join-Path $runnerOutput 'Roslyn.Workbench.Mcp.ScenarioRunner.exe'
     Write-Host "Temporary published binaries: $publishRoot"
 
+    $injectedArguments = @()
+    if ($runnerArguments[0] -notin @('list', 'prepare', 'help', '--help', '-h'))
+    {
+        $injectedArguments = @(
+            '--host', $hostPath,
+            '--framework-root', $repositoryRoot,
+            '--plugin-directory', $pluginRoot
+        )
+    }
+
     if (Test-Path $runnerPath -PathType Leaf)
     {
-        & $runnerPath @runnerArguments --host $hostPath --framework-root $repositoryRoot --plugin-directory $pluginRoot
+        & $runnerPath @runnerArguments @injectedArguments
     }
     else
     {
         $runnerDll = Join-Path $runnerOutput 'Roslyn.Workbench.Mcp.ScenarioRunner.dll'
-        & $dotnetPath $runnerDll @runnerArguments --host $hostPath --framework-root $repositoryRoot --plugin-directory $pluginRoot
+        & $dotnetPath $runnerDll @runnerArguments @injectedArguments
     }
 
     $runnerExitCode = $LASTEXITCODE

@@ -2,38 +2,30 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal interface ICodeActionDiscoveryService
 {
-    IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId);
+    CodeActionProviderInvocationResult<CodeFixProviderMetadata> ReadCodeFixProviderMetadata(
+        CodeFixProvider provider,
+        CancellationToken cancellationToken);
 
-    IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId);
-
-    CodeRefactoringProvider? FindRefactoringProvider(string providerId);
-
-    CodeFixProvider? FindCodeFixProvider(string providerId);
-
-    string GetProviderId(CodeFixProvider provider);
-
-    string GetProviderId(CodeRefactoringProvider provider);
-
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
+    ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
         TextSpan span,
         CancellationToken cancellationToken);
 
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
-        CodeFixProvider provider,
+    ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverCodeFixesAsync(
+        CodeFixProviderMetadata providerMetadata,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken);
 
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverRefactoringsAsync(
+    ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
         TextSpan span,
         CancellationToken cancellationToken);
 
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverCodeFixesAsync(
-        CodeFixProvider provider,
+    ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverCodeFixesAsync(
+        CodeFixProviderMetadata providerMetadata,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken);

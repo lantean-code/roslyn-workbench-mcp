@@ -19,7 +19,7 @@ The outstanding findings are grouped below by shared production boundary and val
 | 3 | RWMCP3-006, RWMCP3-015 | Preserve structured lifecycle failures and authoritative Workspace context | Complete |
 | 4 | RWMCP3-007 | Bind filesystem containment validation to atomic writes | Complete — rejected as outside operating model |
 | 5 | RWMCP3-008, RWMCP3-009, RWMCP3-011 | Correct Core tool location, bounds and document-binding behaviour | Complete |
-| 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Incomplete |
+| 6 | RWMCP3-012, RWMCP3-013 | Make Code Action discovery and replay resilient | Complete |
 | 7 | RWMCP3-014 | Reject undeclared request members at binding | Incomplete |
 | 8 | RWMCP3-019 | Prune and deduplicate manifest traversal | Incomplete |
 | 9 | RWMCP3-016, RWMCP3-017, RWMCP3-018 | Make ScenarioRunner restoration, evidence and option parsing reliable | Incomplete |
@@ -130,9 +130,13 @@ A request can bind its top-level selector to document A and nested range selecto
 
 ### RWMCP3-012 — Sibling Code Fix roots can become permanently ambiguous during replay
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Discovery/CodeActionDiscoveryService.cs:212-249`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/CodeActionResolver.cs:186-229`
 
 Every registered Code Fix root is flattened with path `[0]`, unlike correctly indexed refactoring roots. Siblings with otherwise matching identity receive colliding recipes and replay returns `ActionAmbiguous` for an action just published. Include the actual root index and add a controlled sibling-root discovery/replay test.
+
+**Remediation:** Code Fix registration now captures each root's context-local registration index and carries it through discovery, replay and the built-in compatibility audit. Controlled integration coverage proves that otherwise identical sibling roots remain independently replayable. The grouped Code Actions unit suite passed 310/310 with 100% line and branch coverage for the discovery, catalogue, resolver and staging implementations; integration tests passed 25/25 and the complete compatibility audit passed 120/120. Repeated independent review corrected provider-owned projection, cancellation and transient replay semantics before the final fresh review reported no findings.
 
 ### RWMCP3-014 — Undeclared top-level request members are silently discarded before optional defaults
 
@@ -172,9 +176,13 @@ Unknown `--name value` pairs are retained but never checked for consumption. `--
 
 ### RWMCP3-013 — One throwing Code Action provider aborts discovery for all providers
 
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Tools/ListCodeActionsTool.cs:110-166,192-215,405-430`; `src/Roslyn.Workbench.Mcp.CodeActions/Discovery/CodeActionDiscoveryService.cs:145-170,173-249,349-365`
 
 Provider calls for refactoring computation, fixable diagnostic IDs and fix registration execute without a per-provider fault boundary. One exception aborts aggregate discovery and hides unaffected providers. Add cancellation-preserving provider isolation, discard only failed-provider partial state and surface bounded diagnostics; cover mixed throwing/successful providers.
+
+**Remediation:** Provider catalogue lookup is separated from discovery and replay, and every provider-owned metadata, registration, Fix All and action-projection boundary now returns a typed invocation result while preserving request cancellation. Aggregate listing discards only the failed provider's partial actions, retains healthy-provider results and publishes at most twenty structured warnings. Replay distinguishes a missing provider from a transient invocation failure: missing providers invalidate the reference, while failures retain it and return retry guidance. The grouped validation and independent review evidence is recorded under RWMCP3-012.
 
 ### RWMCP3-019 — Manifest construction recursively traverses excluded and overlapping directory trees
 
@@ -194,7 +202,7 @@ Containment is revalidated by pathname, then asynchronous artifact work occurs b
 
 ## Notable test gaps
 
-Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file, format-range and Code Action provider cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
+Simultaneous multi-Workspace transaction admission is now covered at the store and component-service boundaries; a published MCP protocol concurrency test remains a lower-level residual gap. The most consequential remaining missing evidence is stale public snapshot aliasing, explicit-item add/delete reload, malformed recovery admission and large overlapping manifest traversal. Tool coverage lacks the validated CFG, code-context, rename-file and format-range cases. ScenarioRunner has no owning tests despite destructive restoration, process/EventPipe and evidence responsibilities, and it is not executed in CI.
 
 ## Areas not reviewed confidently
 

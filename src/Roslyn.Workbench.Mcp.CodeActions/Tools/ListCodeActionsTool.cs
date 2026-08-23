@@ -5,11 +5,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>
 {
     private const string _toolName = "list-code-actions";
+    private const int _warningLimit = 20;
 
     private readonly ICodeActionComposition _composition;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionInfoFactory _infoFactory;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
@@ -18,6 +20,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionInfoFactory infoFactory,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionReferenceStore referenceStore,
         ICodeActionToolRequestResolver requestResolver)
     {
@@ -25,6 +28,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _infoFactory = infoFactory;
+        _providerCatalog = providerCatalog;
         _referenceStore = referenceStore;
         _requestResolver = requestResolver;
     }
@@ -68,47 +72,49 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             span,
             cancellationToken);
 
-        var (discovered, diagnosticWarnings) = discoveryResult;
+        var (discovered, warnings) = discoveryResult;
         var result = await CreateResultAsync(
             discovered,
             document,
             request.EffectiveLimit,
             context,
-            diagnosticWarnings,
+            warnings,
             cancellationToken);
 
         return result;
     }
 
-    private async ValueTask<(List<DiscoveredCodeAction> Actions, IReadOnlyList<string> DiagnosticWarnings)> DiscoverActionsAsync(
+    private async ValueTask<(List<DiscoveredCodeAction> Actions, IReadOnlyList<WarningInfo> Warnings)> DiscoverActionsAsync(
         ListCodeActionsRequest request,
         Document document,
         TextSpan span,
         CancellationToken cancellationToken)
     {
         var actions = new List<DiscoveredCodeAction>();
-        IReadOnlyList<string> diagnosticWarnings = [];
+        var warnings = new List<WarningInfo>();
 
         if (IncludesRefactorings(request.Kinds))
         {
-            await AddDiscoveredRefactoringsAsync(actions, document, span, cancellationToken);
+            await AddDiscoveredRefactoringsAsync(actions, warnings, document, span, cancellationToken);
         }
 
         if (IncludesCodeFixes(request.Kinds))
         {
-            diagnosticWarnings = await AddDiscoveredCodeFixesAsync(
+            await AddDiscoveredCodeFixesAsync(
                 actions,
+                warnings,
                 request,
                 document,
                 span,
                 cancellationToken);
         }
 
-        return (actions, diagnosticWarnings);
+        return (actions, warnings);
     }
 
     private async ValueTask AddDiscoveredRefactoringsAsync(
         List<DiscoveredCodeAction> actions,
+        List<WarningInfo> warnings,
         Document document,
         TextSpan span,
         CancellationToken cancellationToken)
@@ -117,38 +123,50 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             _toolName,
             WorkbenchPerformanceEventSource.RefactoringDiscoveryPhase))
         {
-            var providers = _discoveryService.GetMatchingRefactoringProviders(providerId: null);
+            var providers = _providerCatalog.GetMatchingRefactoringProviders(providerId: null);
             foreach (var provider in providers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var discovered = await _discoveryService.DiscoverRefactoringsAsync(
+                var discovery = await _discoveryService.DiscoverRefactoringsAsync(
                     provider,
                     document,
                     span,
                     cancellationToken);
 
-                actions.AddRange(discovered);
+                if (!discovery.IsSuccessful)
+                {
+                    AddProviderWarning(warnings, discovery.Failure);
+                    continue;
+                }
+
+                actions.AddRange(discovery.Value);
             }
         }
     }
 
-    private async ValueTask<IReadOnlyList<string>> AddDiscoveredCodeFixesAsync(
+    private async ValueTask AddDiscoveredCodeFixesAsync(
         List<DiscoveredCodeAction> actions,
+        List<WarningInfo> warnings,
         ListCodeActionsRequest request,
         Document document,
         TextSpan span,
         CancellationToken cancellationToken)
     {
-        var providers = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
+        var providers = _providerCatalog.GetMatchingCodeFixProviders(providerId: null);
         if (providers.Count == 0)
         {
-            return [];
+            return;
         }
 
-        var diagnosticIds = GetEffectiveDiagnosticIds(providers, request.DiagnosticIds);
+        var inspection = InspectCodeFixProviders(
+            providers,
+            request.DiagnosticIds,
+            warnings,
+            cancellationToken);
+        var (providerMetadata, diagnosticIds) = inspection;
         if (diagnosticIds.Count == 0)
         {
-            return [];
+            return;
         }
 
         var diagnosticCollection = await CollectDiagnosticsAsync(
@@ -158,14 +176,15 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             diagnosticIds,
             cancellationToken);
 
+        AddDiagnosticWarnings(warnings, diagnosticCollection.Warnings);
+
         await AddCodeFixActionsAsync(
             actions,
-            providers,
+            warnings,
+            providerMetadata,
             document,
             diagnosticCollection.Diagnostics,
             cancellationToken);
-
-        return diagnosticCollection.Warnings;
     }
 
     private async ValueTask<CodeActionDiagnosticCollection> CollectDiagnosticsAsync(
@@ -191,7 +210,8 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
     private async ValueTask AddCodeFixActionsAsync(
         List<DiscoveredCodeAction> actions,
-        IReadOnlyList<CodeFixProvider> providers,
+        List<WarningInfo> warnings,
+        IReadOnlyList<CodeFixProviderMetadata> providers,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
@@ -203,13 +223,19 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             foreach (var provider in providers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var discovered = await _discoveryService.DiscoverCodeFixesAsync(
+                var discovery = await _discoveryService.DiscoverCodeFixesAsync(
                     provider,
                     document,
                     diagnostics,
                     cancellationToken);
 
-                actions.AddRange(discovered);
+                if (!discovery.IsSuccessful)
+                {
+                    AddProviderWarning(warnings, discovery.Failure);
+                    continue;
+                }
+
+                actions.AddRange(discovery.Value);
             }
         }
     }
@@ -219,7 +245,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         Document document,
         int limit,
         ICodeActionQueryContext context,
-        IReadOnlyList<string> diagnosticWarnings,
+        IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
     {
         var actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, limit));
@@ -241,7 +267,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 return result;
             }
 
-            result = CreateSuccessResult(actionItems, totalCount, diagnosticWarnings);
+            result = CreateSuccessResult(actionItems, totalCount, warnings);
             return result;
         }
         finally
@@ -328,6 +354,48 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         }
     }
 
+    private (List<CodeFixProviderMetadata> Providers, List<string> DiagnosticIds) InspectCodeFixProviders(
+        IReadOnlyList<CodeFixProvider> providers,
+        IReadOnlyList<string>? requestedDiagnosticIds,
+        List<WarningInfo> warnings,
+        CancellationToken cancellationToken)
+    {
+        HashSet<string>? requestedDiagnosticIdSet = null;
+        if (requestedDiagnosticIds is { Count: > 0 })
+        {
+            requestedDiagnosticIdSet = new HashSet<string>(requestedDiagnosticIds, StringComparer.Ordinal);
+        }
+
+        var availableProviders = new List<CodeFixProviderMetadata>(providers.Count);
+        var effectiveDiagnosticIds = new List<string>();
+        var seenDiagnosticIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var provider in providers)
+        {
+            var inspection = _discoveryService.ReadCodeFixProviderMetadata(provider, cancellationToken);
+            if (!inspection.IsSuccessful)
+            {
+                AddProviderWarning(warnings, inspection.Failure);
+                continue;
+            }
+
+            availableProviders.Add(inspection.Value);
+            foreach (var diagnosticId in inspection.Value.FixableDiagnosticIds)
+            {
+                if (requestedDiagnosticIdSet is not null && !requestedDiagnosticIdSet.Contains(diagnosticId))
+                {
+                    continue;
+                }
+
+                if (seenDiagnosticIds.Add(diagnosticId))
+                {
+                    effectiveDiagnosticIds.Add(diagnosticId);
+                }
+            }
+        }
+
+        return (availableProviders, effectiveDiagnosticIds);
+    }
+
     private static CodeActionExecutionResult<CodeActionListData> CreateProjectionFailure(
         CodeActionInfoCreationStatus status)
     {
@@ -351,7 +419,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private static CodeActionExecutionResult<CodeActionListData> CreateSuccessResult(
         IReadOnlyList<CodeActionListItem> actionItems,
         int totalCount,
-        IReadOnlyList<string> diagnosticWarnings)
+        IReadOnlyList<WarningInfo> warnings)
     {
         var boundedActions = BoundedCollection.CreatePrebounded(actionItems, totalCount);
         var data = new CodeActionListData
@@ -359,24 +427,42 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             Actions = boundedActions,
         };
 
-        var warnings = CreateWarnings(diagnosticWarnings);
         return CodeActionExecutionResult.Success(data, warnings: warnings);
     }
 
-    private static List<WarningInfo> CreateWarnings(
+    private static void AddProviderWarning(
+        List<WarningInfo> warnings,
+        CodeActionProviderFailure failure)
+    {
+        if (warnings.Count == _warningLimit)
+        {
+            return;
+        }
+
+        warnings.Add(new WarningInfo
+        {
+            Code = "CodeActionProviderWarning",
+            Message = $"Code Action provider '{failure.ProviderId}' failed while {failure.Operation} ({failure.ExceptionType}).",
+        });
+    }
+
+    private static void AddDiagnosticWarnings(
+        List<WarningInfo> warnings,
         IReadOnlyList<string> diagnosticWarnings)
     {
-        var warnings = new List<WarningInfo>(diagnosticWarnings.Count);
-        foreach (var warning in diagnosticWarnings)
+        foreach (var diagnosticWarning in diagnosticWarnings)
         {
+            if (warnings.Count == _warningLimit)
+            {
+                return;
+            }
+
             warnings.Add(new WarningInfo
             {
                 Code = "CodeActionDiagnosticWarning",
-                Message = warning,
+                Message = diagnosticWarning,
             });
         }
-
-        return warnings;
     }
 
     private static CodeActionExecutionResult<CodeActionListData> CreateProjectionFault(
@@ -400,37 +486,6 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private static bool IncludesRefactorings(CodeActionKindSelection kinds)
     {
         return kinds is CodeActionKindSelection.Refactorings or CodeActionKindSelection.All;
-    }
-
-    private static List<string> GetEffectiveDiagnosticIds(
-        IReadOnlyList<CodeFixProvider> providers,
-        IReadOnlyList<string>? requestedDiagnosticIds)
-    {
-        HashSet<string>? requestedDiagnosticIdSet = null;
-        if (requestedDiagnosticIds is { Count: > 0 })
-        {
-            requestedDiagnosticIdSet = new HashSet<string>(requestedDiagnosticIds, StringComparer.Ordinal);
-        }
-
-        var effectiveDiagnosticIds = new List<string>();
-        var seenDiagnosticIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var provider in providers)
-        {
-            foreach (var diagnosticId in provider.FixableDiagnosticIds)
-            {
-                if (requestedDiagnosticIdSet is not null && !requestedDiagnosticIdSet.Contains(diagnosticId))
-                {
-                    continue;
-                }
-
-                if (seenDiagnosticIds.Add(diagnosticId))
-                {
-                    effectiveDiagnosticIds.Add(diagnosticId);
-                }
-            }
-        }
-
-        return effectiveDiagnosticIds;
     }
 
     private static int CompareActions(DiscoveredCodeAction left, DiscoveredCodeAction right)

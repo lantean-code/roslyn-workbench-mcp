@@ -185,7 +185,8 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-012 — Sibling Code Fix roots can become permanently ambiguous during replay
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Discovery/CodeActionDiscoveryService.cs:212-249`; `src/Roslyn.Workbench.Mcp.CodeActions/Resolution/Replay/CodeActionResolver.cs:186-214`
@@ -196,11 +197,12 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Code Action discovery, opaque replay and Host staging.  
 **Remediation direction:** Include the actual root registration index in the recipe and add controlled provider discovery-to-replay coverage.  
-**Origin/history:** Unit 5, 2026-08-16; current discovery/replay trace; independently validated in Stage 4.
+**Origin/history:** Unit 5, 2026-08-16; current discovery/replay trace; independently validated in Stage 4. Remediated on 2026-08-23 by preserving context-local Code Fix root registration indices through discovery, replay and the built-in compatibility audit. Controlled sibling-root integration coverage proves independently replayable recipes. Grouped unit tests passed 310/310, integration tests passed 25/25, the compatibility audit passed 120/120 and the final fresh independent review found no defects after prior review corrections.
 
 ### RWMCP3-013 — One throwing Code Action provider aborts discovery for all providers
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
+
 **Severity:** P2  
 **Confidence:** Medium-high  
 **Location:** `src/Roslyn.Workbench.Mcp.CodeActions/Tools/ListCodeActionsTool.cs:120-130,192-213`; `src/Roslyn.Workbench.Mcp.CodeActions/Discovery/CodeActionDiscoveryService.cs:145-160,173-224,349-364`
@@ -211,7 +213,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Code Action discovery, Host adapter/error boundary and MCP clients.  
 **Remediation direction:** Add a cancellation-preserving per-provider fault boundary, discard failed-provider partial results, continue unaffected providers and surface bounded diagnostics; add controlled throwing-provider coverage.  
-**Origin/history:** Unit 5, 2026-08-16; corroborated independently by Unit 6 consumer trace and validated in Stage 4.
+**Origin/history:** Unit 5, 2026-08-16; corroborated independently by Unit 6 consumer trace and validated in Stage 4. Remediated on 2026-08-23 with typed, cancellation-preserving provider invocation boundaries around metadata, registration, Fix All and action projection. Aggregate discovery retains healthy-provider results and emits bounded structured warnings; replay retains references and returns retry guidance for transient provider failures while invalidating references for missing providers. The grouped validation and independent review evidence is recorded under RWMCP3-012.
 
 ### RWMCP3-014 — Undeclared top-level request members are silently discarded before optional defaults
 

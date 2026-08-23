@@ -7,9 +7,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 public sealed class PrepareFixAllToolTests
 {
     private readonly Mock<ICodeActionComposition> _composition;
-    private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<IFixAllActionFactory> _fixAllActionFactory;
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionSolutionChangeCounter> _solutionChangeCounter;
@@ -23,9 +23,9 @@ public sealed class PrepareFixAllToolTests
     public PrepareFixAllToolTests()
     {
         _composition = new Mock<ICodeActionComposition>();
-        _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _fixAllActionFactory = new Mock<IFixAllActionFactory>();
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _resolver = new Mock<ICodeActionResolver>();
         _solutionChangeCounter = new Mock<ICodeActionSolutionChangeCounter>();
@@ -47,9 +47,9 @@ public sealed class PrepareFixAllToolTests
 
         _target = new PrepareFixAllTool(
             _composition.Object,
-            _discoveryService.Object,
             _evaluator.Object,
             _fixAllActionFactory.Object,
+            _providerCatalog.Object,
             _referenceStore.Object,
             _resolver.Object,
             _solutionChangeCounter.Object,
@@ -511,7 +511,7 @@ public sealed class PrepareFixAllToolTests
         var provider = new Mock<CodeFixProvider>();
         var fixAllProvider = new Mock<FixAllProvider>();
         provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
-        _discoveryService.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(provider.Object);
+        _providerCatalog.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(provider.Object);
         SetupResolution(CreateResolution(document, DiscoveredActionKind.CodeFix, [scope]));
         return (provider.Object, fixAllProvider.Object);
     }

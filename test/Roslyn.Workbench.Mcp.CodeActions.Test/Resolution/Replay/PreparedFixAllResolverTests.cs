@@ -5,21 +5,21 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Resolution.Replay;
 
 public sealed class PreparedFixAllResolverTests
 {
-    private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<IFixAllActionFactory> _fixAllActionFactory;
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly PreparedFixAllResolver _target;
 
     public PreparedFixAllResolverTests()
     {
-        _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _fixAllActionFactory = new Mock<IFixAllActionFactory>();
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _resolver = new Mock<ICodeActionResolver>();
         _context = new Mock<ICodeActionExecutionContext>();
         _target = new PreparedFixAllResolver(
-            _discoveryService.Object,
             _fixAllActionFactory.Object,
+            _providerCatalog.Object,
             _resolver.Object);
     }
 
@@ -96,7 +96,7 @@ public sealed class PreparedFixAllResolverTests
             CodeActionFixAllScope.Document,
             [CodeActionFixAllScope.Document]));
 
-        _discoveryService
+        _providerCatalog
             .Setup(item => item.FindCodeFixProvider("ProviderId"))
             .Returns(new Mock<CodeFixProvider>().Object);
 
@@ -210,7 +210,7 @@ public sealed class PreparedFixAllResolverTests
         var provider = new Mock<CodeFixProvider>();
         var fixAllProvider = new Mock<FixAllProvider>();
         provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
-        _discoveryService.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(provider.Object);
+        _providerCatalog.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(provider.Object);
         return (provider.Object, fixAllProvider.Object);
     }
 

@@ -4,17 +4,17 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 
 internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
 {
-    private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly IFixAllActionFactory _fixAllActionFactory;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionResolver _resolver;
 
     public PreparedFixAllResolver(
-        ICodeActionDiscoveryService discoveryService,
         IFixAllActionFactory fixAllActionFactory,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionResolver resolver)
     {
-        _discoveryService = discoveryService;
         _fixAllActionFactory = fixAllActionFactory;
+        _providerCatalog = providerCatalog;
         _resolver = resolver;
     }
 
@@ -43,7 +43,7 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
             return Unavailable<T>("The prepared Fix All scope is no longer available.");
         }
 
-        var provider = _discoveryService.FindCodeFixProvider(resolution.Action.ProviderId);
+        var provider = _providerCatalog.FindCodeFixProvider(resolution.Action.ProviderId);
         var fixAllProvider = provider?.GetFixAllProvider();
         if (provider is null || fixAllProvider is null)
         {

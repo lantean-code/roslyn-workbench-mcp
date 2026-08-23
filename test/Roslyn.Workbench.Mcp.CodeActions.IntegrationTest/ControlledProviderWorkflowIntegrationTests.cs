@@ -11,6 +11,84 @@ public sealed class ControlledProviderWorkflowIntegrationTests
 {
     private static readonly ICodeActionComposition _composition = BundledComponentWorkspaceFactory.CreateTestCodeActionComposition();
 
+    [Theory]
+    [InlineData(0, "_ = 1;")]
+    [InlineData(1, "_ = 2;")]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_SiblingCodeFixRootsShareIdentity_WHEN_StagingSelectedAction_THEN_ShouldReplaySelectedRoot(
+        int actionIndex,
+        string expectedSource)
+    {
+        var provider = new SiblingRootCodeFixProvider();
+        var composition = new Mock<ICodeActionComposition>();
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        composition.SetupGet(item => item.WorkspaceHostServices).Returns(_composition.WorkspaceHostServices);
+        composition.SetupGet(item => item.RefactoringProviders).Returns([]);
+        composition.SetupGet(item => item.CodeFixProviders).Returns([provider]);
+
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(composition.Object);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var snapshot = BundledComponentWorkspaceFactory.CreateTransactionStartSnapshot(open);
+        var listed = await ListActionsAsync(
+            session,
+            fixture.GetLocation("unused"),
+            snapshot,
+            includeRefactorings: false);
+
+        var siblingActions = listed.Data!.Actions.Items
+            .Where(static action => action.Title == "Apply sibling code fix")
+            .ToArray();
+
+        siblingActions.Should().HaveCount(2);
+
+        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = siblingActions[actionIndex].ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+
+        await coordinator.CommitTransactionAsync(
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(staged));
+
+        var committedSource = await File.ReadAllTextAsync(
+            fixture.DocumentPath,
+            TestContext.Current.CancellationToken);
+
+        staged.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        committedSource.Should().Contain(expectedSource);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ThrowingAndHealthyCodeFixProviders_WHEN_ListingActions_THEN_ShouldRetainHealthyProviderActions()
+    {
+        var throwingProvider = new ThrowingCodeFixProvider();
+        var healthyProvider = new TestCodeFixProvider();
+        var composition = new Mock<ICodeActionComposition>();
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        composition.SetupGet(item => item.WorkspaceHostServices).Returns(_composition.WorkspaceHostServices);
+        composition.SetupGet(item => item.RefactoringProviders).Returns([]);
+        composition.SetupGet(item => item.CodeFixProviders).Returns([throwingProvider, healthyProvider]);
+
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(composition.Object);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var listed = await ListActionsAsync(
+            session,
+            fixture.GetLocation("unused"),
+            BundledComponentWorkspaceFactory.CreateSnapshot(open),
+            includeRefactorings: false);
+
+        listed.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        listed.Data!.Actions.Items.Should().ContainSingle(static action => action.Title == "Apply test code fix");
+        listed.Warnings.Should().ContainSingle(static warning => warning.Code == "CodeActionProviderWarning");
+    }
+
     [Fact]
     public async Task GIVEN_ControlledProviderHasOptionBackedActions_WHEN_ListingActions_THEN_ShouldOmitOptionBackedLeaves()
     {

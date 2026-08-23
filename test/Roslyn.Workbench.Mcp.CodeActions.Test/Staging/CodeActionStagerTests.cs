@@ -178,6 +178,41 @@ public sealed class CodeActionStagerTests
     }
 
     [Fact]
+    public async Task GIVEN_ProviderFailsDuringResolution_WHEN_StagingAction_THEN_ShouldRetainReferenceForRetry()
+    {
+        var error = new CodeActionExecutionError
+        {
+            Code = "ActionUnavailable",
+            Message = "Message",
+        };
+        var rejection = CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(
+            error,
+            RequiredAction.Retry);
+
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                Guid.Empty,
+                It.IsAny<SnapshotPrecondition>(),
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CodeActionResolution.Rejected(rejection));
+
+        var result = await _target.StageAsync(
+            new StageCodeActionRequest
+            {
+                ExpectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+                    Guid.Parse("11111111-1111-1111-1111-111111111111")),
+                ActionId = Guid.Empty,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Should().BeSameAs(rejection);
+        result.RequiredAction.Should().Be(RequiredAction.Retry);
+        _referenceStore.Verify(item => item.Remove(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_EvaluatorRejectsAction_WHEN_StagingCodeAction_THEN_ShouldReturnEvaluatorFailure()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");

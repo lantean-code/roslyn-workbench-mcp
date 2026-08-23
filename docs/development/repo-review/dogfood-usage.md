@@ -295,3 +295,53 @@ This log records every request sent to the published dogfood server while remedi
 **Request:** `{"workspace":{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange"},"includeDocumentation":true}`
 
 **Outcome:** The request completed without an MCP error, but the client exposed no visible response content.
+
+## RWMCP3-012 and RWMCP3-013
+
+### 1. `workspace-list`
+
+**Purpose:** Inspect the restarted dogfood process before investigating Code Action discovery and replay.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded, but the client projection exposed no visible text content.
+
+### 2. `server-status`
+
+**Purpose:** Confirm that the restarted dogfood Host had composed its Code Action catalogue before reviewing provider discovery behaviour.
+
+**Request:** `{"detail":"Minimal"}`
+
+**Outcome:** Succeeded. The Host reported Roslyn 5.6.0.0, 56 tools and an available Code Action subsystem composed from 81 refactoring providers and 169 code-fix providers.
+
+### 3. `workspace-list`
+
+**Purpose:** Recheck the Workspace inventory through the structured response before opening the current solution.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 4. `workspace-open`
+
+**Purpose:** Open the current solution for symbol-backed investigation of Code Action discovery and replay.
+
+**Request:** `{"path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","alias":"rwmcp3","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-dogfood"}}`
+
+**Outcome:** Succeeded. Opened Workspace `3d5a02bd-754a-44ae-8741-86c131580145` at epoch 1 and snapshot `78b70c82-5b8a-414e-add1-825adead1f48`, with 30 projects and 1,579 documents. The server warned about one unresolved generated analyser reference and WSL access through the Windows filesystem.
+
+### 5. `search-symbols`
+
+**Purpose:** Locate Code Action discovery contracts, implementation and tests before tracing provider fault boundaries.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"CodeActionDiscoveryService","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the discovery implementation and interface plus its unit and integration test types.
+
+### 6. `search-symbols`
+
+**Purpose:** Locate Code Action replay implementations and tests before tracing recipe path resolution.
+
+**Request:** `{"workspace":{"alias":"rwmcp3"},"query":"CodeActionResolver","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with `CodeActionResolver`, its interface and tests, plus related resolver types.

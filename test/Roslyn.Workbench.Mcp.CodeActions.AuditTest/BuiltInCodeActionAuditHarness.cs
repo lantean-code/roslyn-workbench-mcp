@@ -309,7 +309,7 @@ internal static class BuiltInCodeActionAuditHarness
             return [];
         }
 
-        var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)>();
+        var discovered = new List<(CodeAction Action, TextSpan TargetSpan, int RootIndex)>();
         foreach (var diagnosticGroup in matchingDiagnostics.GroupBy(static diagnostic => diagnostic.Location.SourceSpan))
         {
             await RegisterCodeFixesAsync(
@@ -322,7 +322,11 @@ internal static class BuiltInCodeActionAuditHarness
         }
 
         return discovered
-            .SelectMany(entry => Flatten([entry.Action], CodeActionProviderIdentity.GetId(provider), entry.TargetSpan))
+            .SelectMany(entry => FlattenCodeFix(
+                entry.Action,
+                CodeActionProviderIdentity.GetId(provider),
+                entry.TargetSpan,
+                entry.RootIndex))
             .ToArray();
     }
 
@@ -331,14 +335,19 @@ internal static class BuiltInCodeActionAuditHarness
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)> discovered,
+        List<(CodeAction Action, TextSpan TargetSpan, int RootIndex)> discovered,
         CancellationToken cancellationToken)
     {
+        var rootIndex = 0;
         var context = new CodeFixContext(
             document,
             requestedSpan,
             diagnostics,
-            (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics, requestedSpan)),
+            (action, _) =>
+            {
+                discovered.Add((action, requestedSpan, rootIndex));
+                rootIndex++;
+            },
             cancellationToken);
 
         await provider.RegisterCodeFixesAsync(context);
@@ -356,6 +365,17 @@ internal static class BuiltInCodeActionAuditHarness
             FlattenCore(rootActions[index], providerId, targetSpan, [index], discovered);
         }
 
+        return discovered;
+    }
+
+    private static List<DiscoveredAuditCodeAction> FlattenCodeFix(
+        CodeAction rootAction,
+        string providerId,
+        TextSpan targetSpan,
+        int rootIndex)
+    {
+        var discovered = new List<DiscoveredAuditCodeAction>();
+        FlattenCore(rootAction, providerId, targetSpan, [rootIndex], discovered);
         return discovered;
     }
 

@@ -1,92 +1,57 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
-    private readonly ICodeActionProviderSelection _providerSelection;
     private readonly ICodeActionPolicy _policy;
 
-    public CodeActionDiscoveryService(
-        ICodeActionProviderSelection providerSelection,
-        ICodeActionPolicy policy)
+    public CodeActionDiscoveryService(ICodeActionPolicy policy)
     {
-        _providerSelection = providerSelection;
         _policy = policy;
     }
 
-    public IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId)
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    public CodeActionProviderInvocationResult<CodeFixProviderMetadata> ReadCodeFixProviderMetadata(
+        CodeFixProvider provider,
+        CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(providerId))
+        var providerId = CodeActionProviderIdentity.GetId(provider);
+        try
         {
-            if (_providerSelection.RefactoringProviders.TryGetValue(providerId, out var provider)
-                && IsDiscoverableProvider(providerId))
+            var fixableDiagnosticIds = provider.FixableDiagnosticIds;
+            if (fixableDiagnosticIds.IsDefault)
             {
-                return [provider];
+                fixableDiagnosticIds = [];
             }
 
-            return [];
-        }
-
-        var matchingProviders = new List<CodeRefactoringProvider>();
-        foreach (var (candidateProviderId, provider) in _providerSelection.RefactoringProviders)
-        {
-            if (IsDiscoverableProvider(candidateProviderId))
+            var metadata = new CodeFixProviderMetadata
             {
-                matchingProviders.Add(provider);
-            }
+                Provider = provider,
+                FixableDiagnosticIds = fixableDiagnosticIds,
+            };
+
+            return CodeActionProviderInvocationResult.Success(metadata);
         }
-
-        return matchingProviders;
-    }
-
-    public IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId)
-    {
-        if (!string.IsNullOrWhiteSpace(providerId))
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            if (_providerSelection.CodeFixProviders.TryGetValue(providerId, out var provider)
-                && IsDiscoverableProvider(providerId))
-            {
-                return [provider];
-            }
-
-            return [];
+            throw;
         }
-
-        var matchingProviders = new List<CodeFixProvider>();
-        foreach (var (candidateProviderId, provider) in _providerSelection.CodeFixProviders)
+        catch (Exception exception)
         {
-            if (IsDiscoverableProvider(candidateProviderId))
-            {
-                matchingProviders.Add(provider);
-            }
+            return ProviderFailure<CodeFixProviderMetadata>(
+                providerId,
+                "reading fixable diagnostic IDs",
+                exception);
         }
-
-        return matchingProviders;
     }
 
-    public CodeRefactoringProvider? FindRefactoringProvider(string providerId)
-    {
-        return _providerSelection.RefactoringProviders.GetValueOrDefault(providerId);
-    }
-
-    public CodeFixProvider? FindCodeFixProvider(string providerId)
-    {
-        return _providerSelection.CodeFixProviders.GetValueOrDefault(providerId);
-    }
-
-    public string GetProviderId(CodeFixProvider provider)
-    {
-        return CodeActionProviderIdentity.GetId(provider);
-    }
-
-    public string GetProviderId(CodeRefactoringProvider provider)
-    {
-        return CodeActionProviderIdentity.GetId(provider);
-    }
-
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
+    public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
         TextSpan span,
@@ -100,21 +65,21 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
     }
 
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
-        CodeFixProvider provider,
+    public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverCodeFixesAsync(
+        CodeFixProviderMetadata providerMetadata,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
         return await DiscoverCodeFixesCoreAsync(
-            provider,
+            providerMetadata,
             document,
             diagnostics,
             enforcePolicy: true,
             cancellationToken);
     }
 
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverRefactoringsAsync(
+    public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
         TextSpan span,
@@ -128,64 +93,80 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
     }
 
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverCodeFixesAsync(
-        CodeFixProvider provider,
+    public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverCodeFixesAsync(
+        CodeFixProviderMetadata providerMetadata,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
         return await DiscoverCodeFixesCoreAsync(
-            provider,
+            providerMetadata,
             document,
             diagnostics,
             enforcePolicy: false,
             cancellationToken);
     }
 
-    private async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsCoreAsync(
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    private async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverRefactoringsCoreAsync(
         CodeRefactoringProvider provider,
         Document document,
         TextSpan span,
         bool enforcePolicy,
         CancellationToken cancellationToken)
     {
-        var providerId = GetProviderId(provider);
+        var providerId = CodeActionProviderIdentity.GetId(provider);
         if (enforcePolicy && !_policy.EvaluateProvider(providerId).IsAllowed)
         {
-            return [];
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>([]);
         }
 
         var rootActions = new List<CodeAction>();
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
-        await provider.ComputeRefactoringsAsync(context);
+        try
+        {
+            await provider.ComputeRefactoringsAsync(context);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return ProviderFailure<IReadOnlyList<DiscoveredCodeAction>>(
+                providerId,
+                "computing refactorings",
+                exception);
+        }
 
-        return Flatten(
+        return FlattenRefactorings(
             rootActions,
             providerId,
-            DiscoveredActionKind.Refactoring,
             span,
-            diagnosticIds: [],
-            diagnostics: [],
-            fixAllScopes: [],
-            enforcePolicy);
+            enforcePolicy,
+            cancellationToken);
     }
 
-    private async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesCoreAsync(
-        CodeFixProvider provider,
+    private async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverCodeFixesCoreAsync(
+        CodeFixProviderMetadata providerMetadata,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
         bool enforcePolicy,
         CancellationToken cancellationToken)
     {
-        var providerId = GetProviderId(provider);
+        var provider = providerMetadata.Provider;
+        var providerId = CodeActionProviderIdentity.GetId(provider);
         if (enforcePolicy && !_policy.EvaluateProvider(providerId).IsAllowed)
         {
-            return [];
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>([]);
         }
 
         var diagnosticsBySpan = new Dictionary<TextSpan, List<Diagnostic>>();
         var orderedSpans = new List<TextSpan>();
-        var fixableDiagnosticIds = provider.FixableDiagnosticIds;
+        var fixableDiagnosticIds = providerMetadata.FixableDiagnosticIds;
         foreach (var diagnostic in diagnostics)
         {
             if (!IsFixableDiagnostic(fixableDiagnosticIds, diagnostic.Id))
@@ -206,49 +187,134 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
         if (orderedSpans.Count == 0)
         {
-            return [];
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>([]);
         }
 
-        var registeredActions = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)>();
+        var registeredActions = new List<RegisteredCodeFix>();
         foreach (var diagnosticSpan in orderedSpans)
         {
             var groupedDiagnostics = diagnosticsBySpan[diagnosticSpan].ToImmutableArray();
 
-            await RegisterCodeFixesAsync(
+            var registration = await RegisterCodeFixesAsync(
                 provider,
+                providerId,
                 document,
                 diagnosticSpan,
                 groupedDiagnostics,
-                registeredActions,
                 cancellationToken);
-        }
 
-        var discoveredActions = new List<DiscoveredCodeAction>();
-        var fixAllScopes = GetFixAllScopes(provider);
-        foreach (var (action, actionDiagnostics, targetSpan) in registeredActions)
-        {
-            var diagnosticIds = GetDistinctDiagnosticIds(actionDiagnostics);
-            var diagnosticIdentities = GetDiagnosticIdentities(actionDiagnostics);
-            IReadOnlyList<CodeActionFixAllScope> actionFixAllScopes = [];
-            if (!string.IsNullOrWhiteSpace(action.EquivalenceKey))
+            if (!registration.IsSuccessful)
             {
-                actionFixAllScopes = fixAllScopes;
+                return CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(registration.Failure);
             }
 
-            FlattenCore(
-                action,
-                providerId,
-                DiscoveredActionKind.CodeFix,
-                targetSpan,
-                diagnosticIds,
-                diagnosticIdentities,
-                actionFixAllScopes,
-                [0],
-                discoveredActions,
-                enforcePolicy);
+            registeredActions.AddRange(registration.Value);
         }
 
-        return discoveredActions;
+        var fixAllScopeResult = GetFixAllScopes(provider, providerId, cancellationToken);
+        if (!fixAllScopeResult.IsSuccessful)
+        {
+            return CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(fixAllScopeResult.Failure);
+        }
+
+        return FlattenCodeFixes(
+            registeredActions,
+            fixAllScopeResult.Value,
+            providerId,
+            enforcePolicy,
+            cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    private CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>> FlattenRefactorings(
+        List<CodeAction> rootActions,
+        string providerId,
+        TextSpan span,
+        bool enforcePolicy,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var actions = Flatten(
+                rootActions,
+                providerId,
+                DiscoveredActionKind.Refactoring,
+                span,
+                diagnosticIds: [],
+                diagnostics: [],
+                fixAllScopes: [],
+                enforcePolicy);
+
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>(actions);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return ProviderFailure<IReadOnlyList<DiscoveredCodeAction>>(
+                providerId,
+                "projecting refactorings",
+                exception);
+        }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    private CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>> FlattenCodeFixes(
+        IReadOnlyList<RegisteredCodeFix> registeredActions,
+        IReadOnlyList<CodeActionFixAllScope> fixAllScopes,
+        string providerId,
+        bool enforcePolicy,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var discoveredActions = new List<DiscoveredCodeAction>();
+            foreach (var registeredAction in registeredActions)
+            {
+                var action = registeredAction.Action;
+                var actionDiagnostics = registeredAction.Diagnostics;
+                var diagnosticIds = GetDistinctDiagnosticIds(actionDiagnostics);
+                var diagnosticIdentities = GetDiagnosticIdentities(actionDiagnostics);
+                IReadOnlyList<CodeActionFixAllScope> actionFixAllScopes = [];
+                if (!string.IsNullOrWhiteSpace(action.EquivalenceKey))
+                {
+                    actionFixAllScopes = fixAllScopes;
+                }
+
+                FlattenCore(
+                    action,
+                    providerId,
+                    DiscoveredActionKind.CodeFix,
+                    registeredAction.TargetSpan,
+                    diagnosticIds,
+                    diagnosticIdentities,
+                    actionFixAllScopes,
+                    [registeredAction.RootIndex],
+                    discoveredActions,
+                    enforcePolicy);
+            }
+
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>(discoveredActions);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return ProviderFailure<IReadOnlyList<DiscoveredCodeAction>>(
+                providerId,
+                "projecting code fixes",
+                exception);
+        }
     }
 
     private List<DiscoveredCodeAction> Flatten(
@@ -341,27 +407,56 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         });
     }
 
-    private bool IsDiscoverableProvider(string providerId)
-    {
-        return _policy.EvaluateProvider(providerId).IsAllowed;
-    }
-
-    private static async Task RegisterCodeFixesAsync(
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    private static async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<RegisteredCodeFix>>> RegisterCodeFixesAsync(
         CodeFixProvider provider,
+        string providerId,
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)> discovered,
         CancellationToken cancellationToken)
     {
+        var registeredActions = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
         var context = new CodeFixContext(
             document,
             requestedSpan,
             diagnostics,
-            (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics, requestedSpan)),
+            (action, actionDiagnostics) => registeredActions.Add((action, actionDiagnostics)),
             cancellationToken);
 
-        await provider.RegisterCodeFixesAsync(context);
+        try
+        {
+            await provider.RegisterCodeFixesAsync(context);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return ProviderFailure<IReadOnlyList<RegisteredCodeFix>>(
+                providerId,
+                "registering code fixes",
+                exception);
+        }
+
+        var registeredCodeFixes = new List<RegisteredCodeFix>(registeredActions.Count);
+        for (var rootIndex = 0; rootIndex < registeredActions.Count; rootIndex++)
+        {
+            var (action, actionDiagnostics) = registeredActions[rootIndex];
+            registeredCodeFixes.Add(new RegisteredCodeFix
+            {
+                Action = action,
+                Diagnostics = actionDiagnostics,
+                TargetSpan = requestedSpan,
+                RootIndex = rootIndex,
+            });
+        }
+
+        return CodeActionProviderInvocationResult.Success<IReadOnlyList<RegisteredCodeFix>>(registeredCodeFixes);
     }
 
     private static bool IsFixableDiagnostic(ImmutableArray<string> fixableDiagnosticIds, string diagnosticId)
@@ -417,16 +512,44 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         return identities;
     }
 
-    private static List<CodeActionFixAllScope> GetFixAllScopes(CodeFixProvider provider)
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action providers are trusted external extensions; one provider failure must not suppress actions from unrelated providers.")]
+    private static CodeActionProviderInvocationResult<IReadOnlyList<CodeActionFixAllScope>> GetFixAllScopes(
+        CodeFixProvider provider,
+        string providerId,
+        CancellationToken cancellationToken)
     {
-        var fixAllProvider = provider.GetFixAllProvider();
+        FixAllProvider? fixAllProvider;
+        FixAllScope[] supportedScopes = [];
+        try
+        {
+            fixAllProvider = provider.GetFixAllProvider();
+            if (fixAllProvider is not null)
+            {
+                supportedScopes = fixAllProvider.GetSupportedFixAllScopes().ToArray();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return ProviderFailure<IReadOnlyList<CodeActionFixAllScope>>(
+                providerId,
+                "reading Fix-All capabilities",
+                exception);
+        }
+
         if (fixAllProvider is null)
         {
-            return [];
+            return CodeActionProviderInvocationResult.Success<IReadOnlyList<CodeActionFixAllScope>>([]);
         }
 
         var scopes = new List<CodeActionFixAllScope>();
-        foreach (var scope in fixAllProvider.GetSupportedFixAllScopes())
+        foreach (var scope in supportedScopes)
         {
             var projectedScope = scope switch
             {
@@ -442,6 +565,22 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             }
         }
 
-        return scopes;
+        return CodeActionProviderInvocationResult.Success<IReadOnlyList<CodeActionFixAllScope>>(scopes);
+    }
+
+    private static CodeActionProviderInvocationResult<T> ProviderFailure<T>(
+        string providerId,
+        string operation,
+        Exception exception)
+        where T : class
+    {
+        var failure = new CodeActionProviderFailure
+        {
+            ProviderId = providerId,
+            Operation = operation,
+            ExceptionType = exception.GetType().Name,
+        };
+
+        return CodeActionProviderInvocationResult.Failed<T>(failure);
     }
 }

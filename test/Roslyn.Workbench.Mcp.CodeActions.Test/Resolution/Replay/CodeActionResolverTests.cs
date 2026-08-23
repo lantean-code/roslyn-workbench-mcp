@@ -12,11 +12,13 @@ public sealed class CodeActionResolverTests : IDisposable
 
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly Mock<CodeRefactoringProvider> _refactoringProvider;
     private readonly Mock<CodeFixProvider> _codeFixProvider;
+    private readonly CodeFixProviderMetadata _codeFixProviderMetadata;
     private readonly InMemoryRoslynDocument _roslyn;
     private readonly DiscoveredCodeAction _matchingAction;
     private readonly CodeActionResolver _target;
@@ -25,11 +27,18 @@ public sealed class CodeActionResolverTests : IDisposable
     {
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _refactoringProvider = new Mock<CodeRefactoringProvider>();
         _codeFixProvider = new Mock<CodeFixProvider>();
+        _codeFixProviderMetadata = new CodeFixProviderMetadata
+        {
+            Provider = _codeFixProvider.Object,
+            FixableDiagnosticIds = ["DiagnosticId"],
+        };
+
         _roslyn = RoslynTestFactory.CreateDocument("class C { }");
 
         _matchingAction = CreateAction();
@@ -51,7 +60,7 @@ public sealed class CodeActionResolverTests : IDisposable
 
         _context.SetupGet(item => item.TransactionRevision).Returns(2);
         _context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
-        _discoveryService
+        _providerCatalog
             .Setup(item => item.FindRefactoringProvider("ProviderId"))
             .Returns(_refactoringProvider.Object);
 
@@ -61,13 +70,20 @@ public sealed class CodeActionResolverTests : IDisposable
                 _roslyn.Document,
                 new TextSpan(3, 4),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync([_matchingAction]);
+            .ReturnsAsync(SuccessfulDiscovery(_matchingAction));
+
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(
+                _codeFixProvider.Object,
+                It.IsAny<CancellationToken>()))
+            .Returns(CodeActionProviderInvocationResult.Success(_codeFixProviderMetadata));
 
         SetupReference(CreateRecipe());
 
         _target = new CodeActionResolver(
             _discoveryService.Object,
             _diagnosticService.Object,
+            _providerCatalog.Object,
             _referenceStore.Object,
             new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
@@ -236,7 +252,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Fact]
     public async Task GIVEN_RefactoringProviderIsUnavailable_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
     {
-        _discoveryService
+        _providerCatalog
             .Setup(item => item.FindRefactoringProvider("ProviderId"))
             .Returns((CodeRefactoringProvider?)null);
 
@@ -255,7 +271,7 @@ public sealed class CodeActionResolverTests : IDisposable
     public async Task GIVEN_CodeFixProviderIsUnavailable_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
     {
         SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
-        _discoveryService
+        _providerCatalog
             .Setup(item => item.FindCodeFixProvider("ProviderId"))
             .Returns((CodeFixProvider?)null);
 
@@ -263,6 +279,52 @@ public sealed class CodeActionResolverTests : IDisposable
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.ProviderUnavailable);
+        _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan>(),
+            It.IsAny<IReadOnlyList<string>?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RefactoringProviderFailsDuringRediscovery_WHEN_ResolvingAction_THEN_ShouldReportUnavailableAction()
+    {
+        var failure = CreateProviderFailure("computing refactorings");
+        _discoveryService
+            .Setup(item => item.RediscoverRefactoringsAsync(
+                _refactoringProvider.Object,
+                _roslyn.Document,
+                new TextSpan(3, 4),
+                CancellationToken.None))
+            .ReturnsAsync(CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(failure));
+
+        var result = await ResolveAsync();
+
+        result.Rejection!.Error!.Code.Should().Be("ActionUnavailable");
+        result.Rejection.RequiredAction.Should().Be(RequiredAction.Retry);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
+    }
+
+    [Fact]
+    public async Task GIVEN_CodeFixProviderMetadataFailsDuringRediscovery_WHEN_ResolvingAction_THEN_ShouldReportUnavailableAction()
+    {
+        SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
+        _providerCatalog
+            .Setup(item => item.FindCodeFixProvider("ProviderId"))
+            .Returns(_codeFixProvider.Object);
+
+        var failure = CreateProviderFailure("reading fixable diagnostic IDs");
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(
+                _codeFixProvider.Object,
+                CancellationToken.None))
+            .Returns(CodeActionProviderInvocationResult.Failed<CodeFixProviderMetadata>(failure));
+
+        var result = await ResolveAsync();
+
+        result.Rejection!.Error!.Code.Should().Be("ActionUnavailable");
+        result.Rejection.RequiredAction.Should().Be(RequiredAction.Retry);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
         _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
@@ -313,7 +375,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 _roslyn.Document,
                 new TextSpan(3, 4),
                 CancellationToken.None))
-            .ReturnsAsync([action]);
+            .ReturnsAsync(SuccessfulDiscovery(action));
 
         var result = await ResolveAsync();
 
@@ -330,7 +392,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 _roslyn.Document,
                 new TextSpan(3, 4),
                 CancellationToken.None))
-            .ReturnsAsync([_matchingAction, _matchingAction]);
+            .ReturnsAsync(SuccessfulDiscovery(_matchingAction, _matchingAction));
 
         var result = await ResolveAsync();
 
@@ -371,7 +433,7 @@ public sealed class CodeActionResolverTests : IDisposable
 
         var codeFixAction = _matchingAction with { Kind = DiscoveredActionKind.CodeFix };
         SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
-        _discoveryService
+        _providerCatalog
             .Setup(item => item.FindCodeFixProvider("ProviderId"))
             .Returns(_codeFixProvider.Object);
 
@@ -385,11 +447,11 @@ public sealed class CodeActionResolverTests : IDisposable
 
         _discoveryService
             .Setup(item => item.RediscoverCodeFixesAsync(
-                _codeFixProvider.Object,
+                _codeFixProviderMetadata,
                 _roslyn.Document,
                 diagnostics,
                 CancellationToken.None))
-            .ReturnsAsync([codeFixAction]);
+            .ReturnsAsync(SuccessfulDiscovery(codeFixAction));
 
         var result = await ResolveAsync();
 
@@ -402,10 +464,43 @@ public sealed class CodeActionResolverTests : IDisposable
             CancellationToken.None), Times.Once);
 
         _discoveryService.Verify(item => item.RediscoverCodeFixesAsync(
-            _codeFixProvider.Object,
+            _codeFixProviderMetadata,
             _roslyn.Document,
             diagnostics,
             CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CodeFixProviderFailsDuringRediscovery_WHEN_ResolvingAction_THEN_ShouldReportUnavailableAction()
+    {
+        IReadOnlyList<Diagnostic> diagnostics = [];
+        SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
+        _providerCatalog
+            .Setup(item => item.FindCodeFixProvider("ProviderId"))
+            .Returns(_codeFixProvider.Object);
+
+        _diagnosticService
+            .Setup(item => item.GetDocumentDiagnosticsAsync(
+                _roslyn.Document,
+                new TextSpan(3, 4),
+                It.IsAny<IReadOnlyList<string>>(),
+                CancellationToken.None))
+            .ReturnsAsync(diagnostics);
+
+        var failure = CreateProviderFailure("registering code fixes");
+        _discoveryService
+            .Setup(item => item.RediscoverCodeFixesAsync(
+                _codeFixProviderMetadata,
+                _roslyn.Document,
+                diagnostics,
+                CancellationToken.None))
+            .ReturnsAsync(CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(failure));
+
+        var result = await ResolveAsync();
+
+        result.Rejection!.Error!.Code.Should().Be("ActionUnavailable");
+        result.Rejection.RequiredAction.Should().Be(RequiredAction.Retry);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
     }
 
     public void Dispose()
@@ -420,6 +515,22 @@ public sealed class CodeActionResolverTests : IDisposable
             expectedSnapshot: null,
             _context.Object,
             CancellationToken.None);
+    }
+
+    private static CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>> SuccessfulDiscovery(
+        params DiscoveredCodeAction[] actions)
+    {
+        return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>(actions);
+    }
+
+    private static CodeActionProviderFailure CreateProviderFailure(string operation)
+    {
+        return new CodeActionProviderFailure
+        {
+            ProviderId = "ProviderId",
+            Operation = operation,
+            ExceptionType = nameof(InvalidOperationException),
+        };
     }
 
     private void SetupReference(CodeActionReplayRecipe recipe)

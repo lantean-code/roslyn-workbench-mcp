@@ -6,9 +6,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixAllRequest, PrepareFixAllData>
 {
     private readonly ICodeActionComposition _composition;
-    private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionEvaluator _evaluator;
     private readonly IFixAllActionFactory _fixAllActionFactory;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
@@ -19,9 +19,9 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
 
     public PrepareFixAllTool(
         ICodeActionComposition composition,
-        ICodeActionDiscoveryService discoveryService,
         ICodeActionEvaluator evaluator,
         IFixAllActionFactory fixAllActionFactory,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionReferenceStore referenceStore,
         ICodeActionResolver resolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter,
@@ -31,9 +31,9 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         IOptions<CodeActionExecutionOptions> options)
     {
         _composition = composition;
-        _discoveryService = discoveryService;
         _evaluator = evaluator;
         _fixAllActionFactory = fixAllActionFactory;
+        _providerCatalog = providerCatalog;
         _referenceStore = referenceStore;
         _resolver = resolver;
         _solutionChangeCounter = solutionChangeCounter;
@@ -73,7 +73,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             return resolutionRejection;
         }
 
-        var provider = _discoveryService.FindCodeFixProvider(resolution.Action.ProviderId);
+        var provider = _providerCatalog.FindCodeFixProvider(resolution.Action.ProviderId);
         var fixAllProvider = provider?.GetFixAllProvider();
         if (provider is null || fixAllProvider is null)
         {

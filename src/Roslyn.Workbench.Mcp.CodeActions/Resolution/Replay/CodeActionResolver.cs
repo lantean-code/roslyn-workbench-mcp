@@ -6,17 +6,20 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 {
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
     public CodeActionResolver(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionReferenceStore referenceStore,
         ICodeActionToolRequestResolver requestResolver)
     {
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
+        _providerCatalog = providerCatalog;
         _referenceStore = referenceStore;
         _requestResolver = requestResolver;
     }
@@ -64,11 +67,17 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         }
 
         var rediscovery = await RediscoverActionsAsync(referenceResolution.Context, cancellationToken);
-        if (!rediscovery.ProviderAvailable)
+        if (!rediscovery.IsSuccessful)
         {
+            if (rediscovery.Status == CodeActionRediscoveryStatus.ProviderUnavailable)
+            {
+                return RejectedResolution(
+                    ActionAmbiguous<T>(),
+                    CodeActionResolutionFailureKind.ProviderUnavailable);
+            }
+
             return RejectedResolution(
-                ActionAmbiguous<T>(),
-                CodeActionResolutionFailureKind.ProviderUnavailable);
+                ProviderFailed<T>());
         }
 
         var action = SelectUniqueAction(rediscovery.Actions, referenceResolution.Context.Reference.Recipe);
@@ -139,10 +148,10 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         var recipe = referenceContext.Reference.Recipe;
         if (recipe.Kind == DiscoveredActionKind.Refactoring)
         {
-            var provider = _discoveryService.FindRefactoringProvider(recipe.ProviderId);
+            var provider = _providerCatalog.FindRefactoringProvider(recipe.ProviderId);
             if (provider is null)
             {
-                return new CodeActionRediscovery();
+                return CodeActionRediscovery.ProviderUnavailable();
             }
 
             var refactorings = await _discoveryService.RediscoverRefactoringsAsync(
@@ -151,17 +160,24 @@ internal sealed class CodeActionResolver : ICodeActionResolver
                 referenceContext.Span,
                 cancellationToken);
 
-            return new CodeActionRediscovery
+            if (!refactorings.IsSuccessful)
             {
-                ProviderAvailable = true,
-                Actions = refactorings,
-            };
+                return CodeActionRediscovery.ProviderFailed();
+            }
+
+            return CodeActionRediscovery.Succeeded(refactorings.Value);
         }
 
-        var codeFixProvider = _discoveryService.FindCodeFixProvider(recipe.ProviderId);
+        var codeFixProvider = _providerCatalog.FindCodeFixProvider(recipe.ProviderId);
         if (codeFixProvider is null)
         {
-            return new CodeActionRediscovery();
+            return CodeActionRediscovery.ProviderUnavailable();
+        }
+
+        var inspection = _discoveryService.ReadCodeFixProviderMetadata(codeFixProvider, cancellationToken);
+        if (!inspection.IsSuccessful)
+        {
+            return CodeActionRediscovery.ProviderFailed();
         }
 
         var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
@@ -171,16 +187,17 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             cancellationToken);
 
         var codeFixes = await _discoveryService.RediscoverCodeFixesAsync(
-            codeFixProvider,
+            inspection.Value,
             referenceContext.Document,
             diagnostics,
             cancellationToken);
 
-        return new CodeActionRediscovery
+        if (!codeFixes.IsSuccessful)
         {
-            ProviderAvailable = true,
-            Actions = codeFixes,
-        };
+            return CodeActionRediscovery.ProviderFailed();
+        }
+
+        return CodeActionRediscovery.Succeeded(codeFixes.Value);
     }
 
     private static DiscoveredCodeAction? SelectUniqueAction(
@@ -229,12 +246,12 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             RequiredAction.ResolveTargetAgain);
     }
 
-    private static CodeActionExecutionResult<T> ActionUnavailable<T>()
+    private static CodeActionExecutionResult<T> ProviderFailed<T>()
     {
         return CodeActionExecutionResultFactory.Rejected<T>(
             "ActionUnavailable",
-            "The selected action is not available in this server build.",
-            RequiredAction.ResolveTargetAgain);
+            "The selected action could not be reproduced because its provider failed. Retry the same request.",
+            RequiredAction.Retry);
     }
 
     private sealed record CodeActionReferenceContextResolution
@@ -269,10 +286,43 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         public required TextSpan Span { get; init; }
     }
 
-    private sealed record CodeActionRediscovery
+    private sealed class CodeActionRediscovery
     {
-        public bool ProviderAvailable { get; init; }
+        public CodeActionRediscoveryStatus Status { get; }
 
-        public IReadOnlyList<DiscoveredCodeAction> Actions { get; init; } = [];
+        public IReadOnlyList<DiscoveredCodeAction>? Actions { get; }
+
+        [MemberNotNullWhen(true, nameof(Actions))]
+        public bool IsSuccessful => Status == CodeActionRediscoveryStatus.Succeeded;
+
+        private CodeActionRediscovery(
+            CodeActionRediscoveryStatus status,
+            IReadOnlyList<DiscoveredCodeAction>? actions)
+        {
+            Status = status;
+            Actions = actions;
+        }
+
+        public static CodeActionRediscovery Succeeded(IReadOnlyList<DiscoveredCodeAction> actions)
+        {
+            return new CodeActionRediscovery(CodeActionRediscoveryStatus.Succeeded, actions);
+        }
+
+        public static CodeActionRediscovery ProviderUnavailable()
+        {
+            return new CodeActionRediscovery(CodeActionRediscoveryStatus.ProviderUnavailable, actions: null);
+        }
+
+        public static CodeActionRediscovery ProviderFailed()
+        {
+            return new CodeActionRediscovery(CodeActionRediscoveryStatus.ProviderFailed, actions: null);
+        }
+    }
+
+    private enum CodeActionRediscoveryStatus
+    {
+        Succeeded,
+        ProviderUnavailable,
+        ProviderFailed,
     }
 }

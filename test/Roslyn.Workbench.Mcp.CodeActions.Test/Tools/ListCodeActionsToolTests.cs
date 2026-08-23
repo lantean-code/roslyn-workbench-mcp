@@ -14,6 +14,7 @@ public sealed class ListCodeActionsToolTests
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
     private readonly Mock<ICodeActionInfoFactory> _infoFactory;
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
@@ -26,6 +27,7 @@ public sealed class ListCodeActionsToolTests
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _infoFactory = new Mock<ICodeActionInfoFactory>();
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
@@ -45,6 +47,7 @@ public sealed class ListCodeActionsToolTests
             _discoveryService.Object,
             _diagnosticService.Object,
             _infoFactory.Object,
+            _providerCatalog.Object,
             _referenceStore.Object,
             new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
@@ -86,7 +89,7 @@ public sealed class ListCodeActionsToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         result.Error!.Code.Should().Be("SnapshotMismatch");
         _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
-        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
+        _providerCatalog.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
 
     [Theory]
@@ -124,7 +127,7 @@ public sealed class ListCodeActionsToolTests
             TestContext.Current.CancellationToken);
 
         result.Error!.Code.Should().Be("InvalidRange");
-        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
+        _providerCatalog.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
@@ -136,21 +139,27 @@ public sealed class ListCodeActionsToolTests
         var refactoringProvider = new Mock<CodeRefactoringProvider>();
         var codeFixProvider = new Mock<CodeFixProvider>();
         codeFixProvider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DIAG001"]);
+        var providerMetadata = CreateProviderMetadata(codeFixProvider.Object, "DIAG001");
         var refactoring = CreateAction(roslyn.Solution, "Refactoring", DiscoveredActionKind.Refactoring, new TextSpan(0, source.Length));
         var codeFix = CreateAction(roslyn.Solution, "Code fix", DiscoveredActionKind.CodeFix, new TextSpan(10, 5));
         var refactoringItem = CreateItem("Refactoring", CodeActionKind.Refactoring, 0, source.Length);
         var codeFixItem = CreateItem("Code fix", CodeActionKind.CodeFix, 10, 5);
         var diagnosticCollection = new CodeActionDiagnosticCollection([], []);
 
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([refactoringProvider.Object]);
-        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([refactoringProvider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(
+                codeFixProvider.Object,
+                TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(providerMetadata));
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 refactoringProvider.Object,
                 roslyn.Document,
                 new TextSpan(0, source.Length),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([refactoring]);
+            .ReturnsAsync(SuccessfulDiscovery(refactoring));
 
         _diagnosticService
             .Setup(item => item.CollectDocumentDiagnosticsAsync(
@@ -162,11 +171,11 @@ public sealed class ListCodeActionsToolTests
 
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
-                codeFixProvider.Object,
+                providerMetadata,
                 roslyn.Document,
                 diagnosticCollection.Diagnostics,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([codeFix]);
+            .ReturnsAsync(SuccessfulDiscovery(codeFix));
 
         SetupProjection(refactoring, roslyn.Document, refactoringItem);
         SetupProjection(codeFix, roslyn.Document, codeFixItem);
@@ -193,14 +202,14 @@ public sealed class ListCodeActionsToolTests
         var selector = SetupDocument(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
         var span = new TextSpan(start, length);
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 span,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([]);
+            .ReturnsAsync(SuccessfulDiscovery());
 
         var result = await _target.ExecuteAsync(
             CreateRequest(
@@ -232,7 +241,13 @@ public sealed class ListCodeActionsToolTests
         var provider = new Mock<CodeFixProvider>();
         var span = new TextSpan(2, 3);
         provider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DIAG001", "DIAG002"]);
-        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([provider.Object]);
+        var providerMetadata = CreateProviderMetadata(provider.Object, "DIAG001", "DIAG002");
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(
+                provider.Object,
+                TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(providerMetadata));
         _diagnosticService
             .Setup(item => item.CollectDocumentDiagnosticsAsync(
                 roslyn.Document,
@@ -243,11 +258,11 @@ public sealed class ListCodeActionsToolTests
 
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
-                provider.Object,
+                providerMetadata,
                 roslyn.Document,
                 It.IsAny<IReadOnlyList<Diagnostic>>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([]);
+            .ReturnsAsync(SuccessfulDiscovery());
 
         var result = await _target.ExecuteAsync(
             CreateRequest(
@@ -260,7 +275,7 @@ public sealed class ListCodeActionsToolTests
 
         result.Data!.Actions.Items.Should().BeEmpty();
         result.Warnings.Should().ContainSingle().Which.Message.Should().Be("Warning");
-        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
+        _providerCatalog.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
@@ -272,14 +287,14 @@ public sealed class ListCodeActionsToolTests
         var first = CreateAction(roslyn.Solution, "A", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
         var second = CreateAction(roslyn.Solution, "B", DiscoveredActionKind.Refactoring, new TextSpan(1, 1));
         var firstItem = CreateItem("A", CodeActionKind.Refactoring, 0, 1);
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([second, first]);
+            .ReturnsAsync(SuccessfulDiscovery(second, first));
 
         SetupProjection(first, roslyn.Document, firstItem);
 
@@ -305,14 +320,14 @@ public sealed class ListCodeActionsToolTests
         var selector = SetupDocument(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
         var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([action]);
+            .ReturnsAsync(SuccessfulDiscovery(action));
 
         _workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -339,14 +354,14 @@ public sealed class ListCodeActionsToolTests
         var selector = SetupDocument(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
         var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([action]);
+            .ReturnsAsync(SuccessfulDiscovery(action));
 
         _infoFactory
             .Setup(item => item.Create(
@@ -389,14 +404,14 @@ public sealed class ListCodeActionsToolTests
             _ => throw new InvalidOperationException("The test requires a projection failure status."),
         };
 
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([action]);
+            .ReturnsAsync(SuccessfulDiscovery(action));
 
         _infoFactory
             .Setup(item => item.Create(
@@ -425,14 +440,14 @@ public sealed class ListCodeActionsToolTests
         var second = CreateAction(roslyn.Solution, "B", DiscoveredActionKind.Refactoring, new TextSpan(1, 1));
         var firstItem = CreateItem("A", CodeActionKind.Refactoring, 0, 1);
 
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 provider.Object,
                 roslyn.Document,
                 It.IsAny<TextSpan>(),
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync([first, second]);
+            .ReturnsAsync(SuccessfulDiscovery(first, second));
 
         SetupProjection(first, roslyn.Document, firstItem);
         _infoFactory
@@ -453,6 +468,190 @@ public sealed class ListCodeActionsToolTests
         _referenceStore.Verify(item => item.Remove(firstItem.ActionId), Times.Once);
     }
 
+    [Fact]
+    public async Task GIVEN_OneRefactoringProviderFails_WHEN_Executing_THEN_ShouldPublishHealthyActionsAndWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var failedProvider = new Mock<CodeRefactoringProvider>();
+        var healthyProvider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var item = CreateItem("Title", CodeActionKind.Refactoring, 0, 1);
+        var failure = CreateProviderFailure("computing refactorings");
+        _providerCatalog
+            .Setup(item => item.GetMatchingRefactoringProviders(null))
+            .Returns([failedProvider.Object, healthyProvider.Object]);
+
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                failedProvider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(failure));
+
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                healthyProvider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(action));
+
+        SetupProjection(action, roslyn.Document, item);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().ContainSingle().Which.Should().BeSameAs(item);
+        result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
+        {
+            Code = "CodeActionProviderWarning",
+            Message = "Code Action provider 'ProviderId' failed while computing refactorings (InvalidOperationException).",
+        });
+    }
+
+    [Fact]
+    public async Task GIVEN_CodeFixProviderMetadataFails_WHEN_Executing_THEN_ShouldSkipProviderAndReturnWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeFixProvider>();
+        var failure = CreateProviderFailure("reading fixable diagnostic IDs");
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(provider.Object, TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Failed<CodeFixProviderMetadata>(failure));
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.CodeFixes, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        result.Warnings.Should().ContainSingle().Which.Code.Should().Be("CodeActionProviderWarning");
+        _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan?>(),
+            It.IsAny<IReadOnlyList<string>?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_OneCodeFixProviderFails_WHEN_Executing_THEN_ShouldPublishHealthyActionsAndWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var failedProvider = new Mock<CodeFixProvider>();
+        var healthyProvider = new Mock<CodeFixProvider>();
+        var failedMetadata = CreateProviderMetadata(failedProvider.Object, "DIAG001");
+        var healthyMetadata = CreateProviderMetadata(healthyProvider.Object, "DIAG001");
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.CodeFix, new TextSpan(0, 1));
+        var item = CreateItem("Title", CodeActionKind.CodeFix, 0, 1);
+        var failure = CreateProviderFailure("registering code fixes");
+        _providerCatalog
+            .Setup(item => item.GetMatchingCodeFixProviders(null))
+            .Returns([failedProvider.Object, healthyProvider.Object]);
+
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(failedProvider.Object, TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(failedMetadata));
+
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(healthyProvider.Object, TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(healthyMetadata));
+
+        _diagnosticService
+            .Setup(item => item.CollectDocumentDiagnosticsAsync(
+                roslyn.Document,
+                null,
+                It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_firstDiagnosticIds)),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(new CodeActionDiagnosticCollection([], []));
+
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(
+                failedMetadata,
+                roslyn.Document,
+                It.IsAny<IReadOnlyList<Diagnostic>>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(failure));
+
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(
+                healthyMetadata,
+                roslyn.Document,
+                It.IsAny<IReadOnlyList<Diagnostic>>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(action));
+
+        SetupProjection(action, roslyn.Document, item);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.CodeFixes, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().ContainSingle().Which.Should().BeSameAs(item);
+        result.Warnings.Should().ContainSingle().Which.Code.Should().Be("CodeActionProviderWarning");
+    }
+
+    [Fact]
+    public async Task GIVEN_MoreProviderFailuresThanWarningLimit_WHEN_Executing_THEN_ShouldBoundWarnings()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var providers = new List<CodeRefactoringProvider>();
+        for (var index = 0; index < 21; index++)
+        {
+            var provider = new Mock<CodeRefactoringProvider>();
+            providers.Add(provider.Object);
+        }
+
+        var codeFixProvider = new Mock<CodeFixProvider>();
+        var providerMetadata = CreateProviderMetadata(codeFixProvider.Object, "DIAG001");
+        var failure = CreateProviderFailure("computing refactorings");
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns(providers);
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(codeFixProvider.Object, TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(providerMetadata));
+
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                It.IsAny<CodeRefactoringProvider>(),
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(CodeActionProviderInvocationResult.Failed<IReadOnlyList<DiscoveredCodeAction>>(failure));
+
+        _diagnosticService
+            .Setup(item => item.CollectDocumentDiagnosticsAsync(
+                roslyn.Document,
+                null,
+                It.IsAny<IReadOnlyList<string>>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(new CodeActionDiagnosticCollection([], ["Diagnostic warning"]));
+
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(
+                providerMetadata,
+                roslyn.Document,
+                It.IsAny<IReadOnlyList<Diagnostic>>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.All, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        result.Warnings.Should().HaveCount(20);
+    }
+
     private DocumentSelector SetupDocument(Document document)
     {
         var selector = new DocumentSelector { Path = "Code.cs" };
@@ -461,6 +660,33 @@ public sealed class ListCodeActionsToolTests
             .Returns(SelectorResolveResult.Resolved(document));
 
         return selector;
+    }
+
+    private static CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>> SuccessfulDiscovery(
+        params DiscoveredCodeAction[] actions)
+    {
+        return CodeActionProviderInvocationResult.Success<IReadOnlyList<DiscoveredCodeAction>>(actions);
+    }
+
+    private static CodeFixProviderMetadata CreateProviderMetadata(
+        CodeFixProvider provider,
+        params string[] fixableDiagnosticIds)
+    {
+        return new CodeFixProviderMetadata
+        {
+            Provider = provider,
+            FixableDiagnosticIds = [.. fixableDiagnosticIds],
+        };
+    }
+
+    private static CodeActionProviderFailure CreateProviderFailure(string operation)
+    {
+        return new CodeActionProviderFailure
+        {
+            ProviderId = "ProviderId",
+            Operation = operation,
+            ExceptionType = nameof(InvalidOperationException),
+        };
     }
 
     private void SetupProjection(

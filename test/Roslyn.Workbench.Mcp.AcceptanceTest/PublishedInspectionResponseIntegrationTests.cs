@@ -242,8 +242,11 @@ public sealed class PublishedInspectionResponseIntegrationTests
                     ["span"] = new Dictionary<string, object?>
                     {
                         ["document"] = documentSelector,
-                        ["start"] = expressionStart,
-                        ["length"] = "value.Trim()".Length,
+                        ["range"] = new Dictionary<string, object?>
+                        {
+                            ["start"] = expressionStart,
+                            ["length"] = "value.Trim()".Length,
+                        },
                     },
                 },
                 ["nodesLimit"] = 1,

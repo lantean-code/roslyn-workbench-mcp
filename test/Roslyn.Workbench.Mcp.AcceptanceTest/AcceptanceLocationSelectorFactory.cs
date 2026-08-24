@@ -159,8 +159,7 @@ internal sealed class AcceptanceLocationSelectorFactory
             ["span"] = new Dictionary<string, object?>
             {
                 ["document"] = CreateDocument(documentPath),
-                ["start"] = start,
-                ["length"] = length,
+                ["range"] = CreateRange(start, length),
             },
         };
     }

@@ -96,8 +96,11 @@ public sealed class WorkspaceReloadIntegrationTests
                             {
                                 ["path"] = "Class1.cs",
                             },
-                            ["start"] = updatedText.IndexOf("Class2", StringComparison.Ordinal),
-                            ["length"] = "Class2".Length,
+                            ["range"] = new Dictionary<string, object?>
+                            {
+                                ["start"] = updatedText.IndexOf("Class2", StringComparison.Ordinal),
+                                ["length"] = "Class2".Length,
+                            },
                         },
                     },
                     ["expectedSnapshot"] = initialWorkspace.CreateSnapshot(transactionRevision: 0),

@@ -138,8 +138,11 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
                     ["span"] = new Dictionary<string, object?>
                     {
                         ["document"] = documentSelector,
-                        ["start"] = symbolStart,
-                        ["length"] = "SharedFormatter".Length,
+                        ["range"] = new Dictionary<string, object?>
+                        {
+                            ["start"] = symbolStart,
+                            ["length"] = "SharedFormatter".Length,
+                        },
                     },
                 });
             var copiedSelectionResult = await ResolveSymbolAsync(

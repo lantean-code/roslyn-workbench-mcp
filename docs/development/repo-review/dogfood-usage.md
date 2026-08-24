@@ -2,6 +2,8 @@
 
 This log records every request sent to the published dogfood server while remediating RWMCP3 findings. Failed requests are retained because they are part of the actual usage and expose contract usability.
 
+The completed usage analysis and approved improvement worklist are recorded in [RWMCP3 dogfood analysis and improvement plan](dogfood-analysis.md).
+
 ## RWMCP3-006 and RWMCP3-015
 
 ### 1. `workspace-open`

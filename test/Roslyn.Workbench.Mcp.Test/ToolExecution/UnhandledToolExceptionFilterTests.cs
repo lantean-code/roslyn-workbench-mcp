@@ -262,7 +262,7 @@ public sealed class UnhandledToolExceptionFilterTests : IDisposable
         string sensitiveMessage,
         CapturedWorkspaceContext? workspaceContext = null)
     {
-        result.Content.Should().BeEmpty();
+        McpServerToolResultAssertions.AssertTextContentMatchesStructuredContent(result);
         result.IsError.Should().BeTrue();
         result.StructuredContent.Should().NotBeNull();
         var structuredContent = result.StructuredContent.GetValueOrDefault();

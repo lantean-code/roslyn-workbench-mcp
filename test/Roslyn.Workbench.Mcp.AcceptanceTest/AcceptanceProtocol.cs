@@ -74,6 +74,16 @@ internal sealed record AcceptanceWorkspaceIdentity
 
 internal static class AcceptanceProtocol
 {
+    public static void AssertTextContentMatchesStructuredContent(CallToolResult result)
+    {
+        result.StructuredContent.Should().NotBeNull();
+        result.Content.Should().ContainSingle();
+        var textContent = result.Content[0].Should().BeOfType<TextContentBlock>().Subject;
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+
+        textContent.Text.Should().Be(structuredContent.GetRawText());
+    }
+
     public static JsonElement GetSuccessData(CallToolResult result)
     {
         return result.StructuredContent?.GetProperty("data")

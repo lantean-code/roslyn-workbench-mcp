@@ -78,7 +78,8 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
                     Warnings = proposalResult.Warnings,
                 };
 
-                return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
+                var content = McpPublishedResultSerializer.SerializePluginFailure(failure);
+                return CreateStructuredResult(content, isError: true);
             }
 
             if (!proposalResult.IsSucceeded)

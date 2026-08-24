@@ -45,6 +45,7 @@ public sealed class PublishedHostProtocolIntegrationTests
 
             statusResult.IsError.Should().NotBeTrue();
             statusResult.StructuredContent.Should().NotBeNull();
+            AcceptanceProtocol.AssertTextContentMatchesStructuredContent(statusResult);
 
             var status = AcceptanceProtocol.GetSuccessData(statusResult);
             var serverVersion = status.GetProperty("serverVersion").GetString();

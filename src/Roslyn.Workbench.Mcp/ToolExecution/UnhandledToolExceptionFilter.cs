@@ -119,14 +119,11 @@ internal sealed partial class UnhandledToolExceptionFilter
             record.Workspace?.WorkspaceEpoch,
             supportsElicitation);
 
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(
-                correlationId,
-                availability),
-            IsError = true,
-        };
+        var content = ToolResultEnvelopeSerializer.CreateUnhandledException(
+            correlationId,
+            availability);
+
+        return CallToolResultFactory.CreateStructured(content, isError: true);
     }
 
     [LoggerMessage(

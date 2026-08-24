@@ -53,6 +53,14 @@
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.
   - Docs-only or markdown-only edits do not require restore/build/test unless explicitly requested.
 
+## Dogfood usage logging
+
+- Record every request sent to the configured published Roslyn Workbench dogfood server in [`./docs/development/repo-review/dogfood-improvement-usage.md`](./docs/development/repo-review/dogfood-improvement-usage.md) until the user explicitly ends this requirement.
+- This applies to all repository work, not only implementation of the DOGFOOD improvement worklist, and includes lifecycle, query and mutation requests.
+- Record calls in execution order with the related work item or activity, tool name, purpose, request and outcome. Retain failed calls, retries, blank client projections and abandoned approaches because they are usage evidence.
+- Redact machine-specific repository roots, temporary paths and other incidental local values where their exact value is not material; retain contract fields, response codes, continuations and other evidence needed to understand the interaction.
+- Do not add shell commands, Microsoft Learn queries or other non-dogfood tool use to this ledger.
+
 ## Coding and test standards
 
 - Source code rules and generation constraints live in `./src/AGENTS.md` and are authoritative for code style, architecture boundaries, and documentation.

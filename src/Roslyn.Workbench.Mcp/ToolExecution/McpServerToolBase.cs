@@ -81,12 +81,7 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
 
     protected static CallToolResult CreateStructuredResult(JsonElement content, bool isError)
     {
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = content,
-            IsError = isError,
-        };
+        return CallToolResultFactory.CreateStructured(content, isError);
     }
 
     private bool TryBindRequest(

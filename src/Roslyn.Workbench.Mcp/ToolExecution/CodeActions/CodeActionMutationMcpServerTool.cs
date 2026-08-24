@@ -70,7 +70,8 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                     Warnings = proposalResult.Warnings,
                 };
 
-                return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionFailure(failure), isError: true);
+                var content = McpPublishedResultSerializer.SerializeCodeActionFailure(failure);
+                return CreateStructuredResult(content, isError: true);
             }
 
             if (!proposalResult.IsSucceeded)

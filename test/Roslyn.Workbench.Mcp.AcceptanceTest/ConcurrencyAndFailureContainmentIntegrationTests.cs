@@ -198,6 +198,7 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             correlationId.Should().NotBeNullOrWhiteSpace();
             var structuredContent = throwingResult.StructuredContent;
             structuredContent.Should().NotBeNull();
+            AcceptanceProtocol.AssertTextContentMatchesStructuredContent(throwingResult);
             var structuredError = structuredContent.GetValueOrDefault();
             structuredError
                 .GetProperty("diagnostics")

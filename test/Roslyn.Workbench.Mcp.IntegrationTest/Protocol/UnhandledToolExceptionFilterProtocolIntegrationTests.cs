@@ -451,6 +451,7 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
             result.IsError.Should().BeTrue();
             result.StructuredContent.Should().NotBeNull();
             var structuredContent = result.StructuredContent.GetValueOrDefault();
+            AssertTextContentMatchesStructuredContent(result);
             var error = structuredContent.GetProperty("error");
             error.GetProperty("code").GetString().Should().Be("UnhandledException");
             var correlationId = error.GetProperty("correlationId").GetGuid();
@@ -832,6 +833,16 @@ public sealed class UnhandledToolExceptionFilterProtocolIntegrationTests
     private static ValueTask<PluginExecutionResult<AdapterFailureResponse>> ThrowAdapterFailure()
     {
         throw new InvalidOperationException("Sensitive adapter failure");
+    }
+
+    private static void AssertTextContentMatchesStructuredContent(CallToolResult result)
+    {
+        result.StructuredContent.Should().NotBeNull();
+        result.Content.Should().ContainSingle();
+        var textContent = result.Content[0].Should().BeOfType<TextContentBlock>().Subject;
+        var structuredContent = result.StructuredContent.GetValueOrDefault();
+
+        textContent.Text.Should().Be(structuredContent.GetRawText());
     }
 
 #pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.

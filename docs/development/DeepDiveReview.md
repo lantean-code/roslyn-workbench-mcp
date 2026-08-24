@@ -203,3 +203,13 @@ After the final RWMCP3 findings are accepted, remediate each approved work item 
 If remediation discussion establishes or clarifies a supported user, agent, concurrency or trust scenario, update the product operating model before closing the item. A technically possible interleaving may be rejected as a product defect when it falls outside that model, but both finding ledgers must retain the evidence and explicit disposition so a later review does not raise it without new evidence or a changed operating model.
 
 No finding is ready to commit while actionable Review Agent feedback or a material validation gap remains.
+
+## Post-remediation dogfood analysis
+
+After completing the RWMCP3 remediation work, analyse the durable dogfood log independently from the original review findings. Quantify tool use, successful and failed calls, client-visible response behaviour, avoidable contract friction, expected lifecycle responses and unexercised workflows. Do not treat every failed call as a product defect; evaluate it against the product operating model, the published continuation and the caller's action.
+
+Record confirmed interoperability issues, deferred hypotheses, workflow guidance and explicitly rejected changes in a separate worklist so the completed RWMCP3 finding ledger remains stable. Implement approved dogfood improvements through the same two-confirmation remediation and independent-review process above.
+
+**Status:** Complete — analysis and approved worklist: [RWMCP3 dogfood analysis and improvement plan](repo-review/dogfood-analysis.md)
+
+Continue recording every published dogfood request, including calls made for unrelated repository operations, in the [post-RWMCP3 dogfood usage log](repo-review/dogfood-improvement-usage.md) until the user explicitly ends the logging requirement.

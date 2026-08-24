@@ -333,6 +333,7 @@ public sealed class PluginQueryMcpServerToolTests : IDisposable
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
+        McpServerToolResultAssertions.AssertTextContentMatchesStructuredContent(result);
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");

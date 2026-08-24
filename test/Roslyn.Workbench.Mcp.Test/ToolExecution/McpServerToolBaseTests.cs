@@ -86,6 +86,7 @@ public sealed class McpServerToolBaseTests
 
         var result = await target.InvokeAsync(requestContext, CancellationToken.None);
 
+        McpServerToolResultAssertions.AssertTextContentMatchesStructuredContent(result);
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Value");
     }

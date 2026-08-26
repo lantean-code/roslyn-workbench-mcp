@@ -373,6 +373,54 @@ public sealed class ToolSchemaFactoryIntegrationTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_PreviouslyOpaqueRequests_WHEN_ExportingInputSchemas_THEN_ShouldResolveEveryLocalReference()
+    {
+        var target = CreateTarget();
+
+        var references = target.CreateInputSchema<FindReferencesRequest>();
+        var controlFlow = target.CreateInputSchema<GetControlFlowGraphRequest>();
+        var nullability = target.CreateInputSchema<AnalyzeNullabilityRequest>();
+
+        AssertLocalReferencesResolve(references);
+        AssertLocalReferencesResolve(controlFlow);
+        AssertLocalReferencesResolve(nullability);
+
+        GetProperty(references, "symbol").ValueKind.Should().Be(JsonValueKind.Object);
+        GetProperty(controlFlow, "location").ValueKind.Should().Be(JsonValueKind.Object);
+        GetProperty(nullability, "scope").ValueKind.Should().Be(JsonValueKind.Object);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_BundledRequestContracts_WHEN_ExportingInputSchemas_THEN_ShouldResolveEveryLocalReference()
+    {
+        var target = CreateTarget();
+        var requestAssemblies = new[]
+        {
+            typeof(TransactionPreviewRequest).Assembly,
+            typeof(StageCodeActionRequest).Assembly,
+            typeof(FindCalleesRequest).Assembly,
+        };
+
+        var requestTypes = requestAssemblies
+            .Distinct()
+            .SelectMany(static assembly => assembly.GetTypes())
+            .Where(static type => !type.IsAbstract
+                && !type.ContainsGenericParameters
+                && type.Name.EndsWith("Request", StringComparison.Ordinal)
+                && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
+            .ToArray();
+
+        requestTypes.Should().HaveCountGreaterThan(50);
+        foreach (var requestType in requestTypes)
+        {
+            var schema = target.CreateInputSchemaForType(requestType);
+            AssertLocalReferencesResolve(schema);
+        }
+    }
+
+    [Fact]
     [Trait("Category", "Contract")]
     public void GIVEN_BuiltInToolRequests_WHEN_AuditingLimitProperties_THEN_EveryLimitShouldDeclareAndPublishItsDefault()
     {
@@ -470,6 +518,94 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var schemaProvider = new McpSdkSchemaProvider();
 
         return new ToolSchemaFactory(schemaProvider);
+    }
+
+    private static void AssertLocalReferencesResolve(JsonElement schema)
+    {
+        foreach (var reference in EnumerateLocalReferences(schema))
+        {
+            TryResolveLocalReference(schema, reference).Should().BeTrue(
+                $"local reference '{reference}' should resolve from the published input-schema root");
+        }
+    }
+
+    private static IEnumerable<string> EnumerateLocalReferences(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, "$ref", StringComparison.Ordinal)
+                    && property.Value.ValueKind == JsonValueKind.String)
+                {
+                    var reference = property.Value.GetString();
+                    if (reference is not null
+                        && (string.Equals(reference, "#", StringComparison.Ordinal)
+                            || reference.StartsWith("#/", StringComparison.Ordinal)))
+                    {
+                        yield return reference;
+                    }
+                }
+
+                foreach (var reference in EnumerateLocalReferences(property.Value))
+                {
+                    yield return reference;
+                }
+            }
+
+            yield break;
+        }
+
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (var item in element.EnumerateArray())
+        {
+            foreach (var reference in EnumerateLocalReferences(item))
+            {
+                yield return reference;
+            }
+        }
+    }
+
+    private static bool TryResolveLocalReference(JsonElement root, string reference)
+    {
+        if (string.Equals(reference, "#", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var current = root;
+        foreach (var encodedToken in reference[2..].Split('/'))
+        {
+            var token = Uri.UnescapeDataString(encodedToken)
+                .Replace("~1", "/", StringComparison.Ordinal)
+                .Replace("~0", "~", StringComparison.Ordinal);
+
+            if (current.ValueKind == JsonValueKind.Object)
+            {
+                if (!current.TryGetProperty(token, out current))
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (current.ValueKind != JsonValueKind.Array
+                || !int.TryParse(token, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index)
+                || index < 0
+                || index >= current.GetArrayLength())
+            {
+                return false;
+            }
+
+            current = current[index];
+        }
+
+        return true;
     }
 
     private static void AssertRequiredNonNullableProperties(ToolSchemaFactory target, IReadOnlyList<PropertyInfo> targetSelectorProperties)

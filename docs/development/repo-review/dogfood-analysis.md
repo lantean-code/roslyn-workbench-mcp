@@ -72,10 +72,10 @@ The initialisation instructions contain approximately 967 characters and 138 wor
 | Order | Identifier | Improvement | Status |
 |---:|---|---|---|
 | 1 | DOGFOOD-001 | Publish an equivalent JSON `TextContent` fallback with every structured result | Complete |
-| 2 | DOGFOOD-002 | Make composed input schemas project into complete, usable agent-facing declarations | Incomplete |
+| 2 | DOGFOOD-002 | [Make composed input schemas project into complete, usable agent-facing declarations](dogfood-002-schema-publication-design.md) | Confirmed through published dogfood and acceptance validation |
 | 3 | DOGFOOD-003 | Compact repeated server instructions while retaining essential safety guidance and the Agent Guide link | Incomplete |
-| 4 | DOGFOOD-004 | Repeat selector workflows and reconsider selector composability only if material friction remains | Blocked by DOGFOOD-002 |
-| 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Blocked by DOGFOOD-002 |
+| 4 | DOGFOOD-004 | Repeat selector workflows and reconsider selector composability only if material friction remains | Incomplete |
+| 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Incomplete |
 
 ### DOGFOOD-001 — Structured-result text fallback
 

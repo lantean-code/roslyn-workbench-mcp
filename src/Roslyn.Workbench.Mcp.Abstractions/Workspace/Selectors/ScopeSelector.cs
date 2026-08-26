@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 /// <summary>
@@ -8,6 +10,7 @@ public sealed record ScopeSelector
     /// <summary>
     /// Gets the scope kind.
     /// </summary>
+    [DefaultValue(ScopeKind.Solution)]
     public ScopeKind Kind { get; init; }
 
     /// <summary>

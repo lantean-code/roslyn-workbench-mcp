@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.AI;
+using Roslyn.Workbench.Mcp.Workspace.Selectors;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Contracts.Schema;
@@ -12,265 +13,122 @@ namespace Roslyn.Workbench.Mcp.Test.Contracts.Schema;
 [Trait("Category", "Contract")]
 public sealed class InputContractSchemaTransformerTests
 {
-    private readonly ToolSchemaFactory _target = new(new McpSdkSchemaProvider());
+    private readonly McpSdkSchemaProvider _target = new();
 
-    [Theory]
-    [InlineData("workspace", "anyOf", 3)]
-    [InlineData("project", "anyOf", 4)]
-    [InlineData("document", "oneOf", 2)]
-    [InlineData("location", "oneOf", 2)]
-    [InlineData("symbol", "oneOf", 2)]
-    public void GIVEN_WorkspaceSelectorProperty_WHEN_PublishingSchema_THEN_ShouldPublishSemanticAlternatives(
-        string propertyName,
-        string alternativeKeyword,
-        int expectedAlternativeCount)
+    [Fact]
+    public void GIVEN_CrossMemberSelectors_WHEN_PublishingSchema_THEN_ShouldRetainSingleCompleteObjects()
     {
-        var schema = _target.CreateInputSchema<SelectorSchemaRequest>();
+        var schema = _target.GetInputSchema<SelectorSchemaRequest>();
+        var workspace = ResolvePropertySchema(schema, "workspace");
+        var location = ResolvePropertySchema(schema, "location");
 
-        var selectorSchema = ResolvePropertyObjectSchema(schema, propertyName);
-        var constraint = selectorSchema.GetProperty("allOf")[0];
-
-        constraint.GetProperty(alternativeKeyword).GetArrayLength().Should().Be(expectedAlternativeCount);
+        GetPropertyNames(workspace).Should().BeEquivalentTo("alias", "path", "workspaceId");
+        GetPropertyNames(location).Should().BeEquivalentTo("selection", "span");
+        workspace.TryGetProperty("anyOf", out _).Should().BeFalse();
+        workspace.TryGetProperty("oneOf", out _).Should().BeFalse();
+        location.TryGetProperty("anyOf", out _).Should().BeFalse();
+        location.TryGetProperty("oneOf", out _).Should().BeFalse();
     }
 
     [Fact]
-    public void GIVEN_ScopeSelector_WHEN_PublishingSchema_THEN_ShouldPublishKindSpecificRequirements()
+    public void GIVEN_ScopeSelector_WHEN_PublishingSchema_THEN_ShouldRetainCompleteGuidanceObject()
     {
-        var schema = _target.CreateInputSchema<SelectorSchemaRequest>();
+        var schema = _target.GetInputSchema<SelectorSchemaRequest>();
+        var scope = ResolvePropertySchema(schema, "scope");
+        var properties = scope.GetProperty("properties");
 
-        var scopeSchema = ResolvePropertyObjectSchema(schema, "scope");
-        var constraints = scopeSchema.GetProperty("allOf");
-
-        constraints.GetArrayLength().Should().Be(6);
-        AssertRequiredWhenConstraint(constraints[0], "Project", "project");
-        AssertProhibitedUnlessConstraint(constraints[1], "Project", "project");
-        AssertRequiredWhenConstraint(constraints[2], "Document", "document");
-        AssertProhibitedUnlessConstraint(constraints[3], "Document", "document");
-        AssertRequiredWhenConstraint(constraints[4], "Projects", "projects");
-        AssertProhibitedUnlessConstraint(constraints[5], "Projects", "projects");
-        constraints[4]
-            .GetProperty("then")
-            .GetProperty("properties")
-            .GetProperty("projects")
-            .GetProperty("minItems")
-            .GetInt32()
-            .Should()
-            .Be(1);
+        GetPropertyNames(scope).Should().BeEquivalentTo("document", "kind", "project", "projects");
+        properties.GetProperty("kind").GetProperty("default").GetString().Should().Be("Solution");
+        scope.TryGetProperty("anyOf", out _).Should().BeFalse();
+        scope.TryGetProperty("oneOf", out _).Should().BeFalse();
+        scope.TryGetProperty("if", out _).Should().BeFalse();
     }
 
     [Fact]
-    public void GIVEN_ProjectSelectorsInDictionary_WHEN_PublishingSchema_THEN_ShouldPublishValueConstraint()
+    public void GIVEN_DefaultAndNullabilityMetadata_WHEN_PublishingSchema_THEN_ShouldPublishPropertyLocalMetadata()
     {
-        var schema = _target.CreateInputSchema<ProjectDictionarySchemaRequest>();
-        var projectsSchema = ResolvePropertyObjectSchema(schema, "projects");
-        var valueSchema = ResolveObjectSchema(schema, projectsSchema.GetProperty("additionalProperties"));
-        var constraint = valueSchema.GetProperty("allOf")[0];
-
-        constraint.GetProperty("anyOf").GetArrayLength().Should().Be(4);
-    }
-
-    [Theory]
-    [InlineData("document", 0, "documentId")]
-    [InlineData("document", 1, "path")]
-    [InlineData("symbol", 0, "documentationCommentId")]
-    public void GIVEN_ExclusiveStringSelector_WHEN_PublishingSchema_THEN_ShouldAllowUnusedBlankAlternative(
-        string selectorName,
-        int branchIndex,
-        string unusedPropertyName)
-    {
-        var schema = _target.CreateInputSchema<SelectorSchemaRequest>();
-        var selectorSchema = ResolvePropertyObjectSchema(schema, selectorName);
-        var branch = selectorSchema.GetProperty("allOf")[0].GetProperty("oneOf")[branchIndex];
-        var unusedProperty = branch.GetProperty("properties").GetProperty(unusedPropertyName);
-
-        unusedProperty.GetProperty("not").GetProperty("pattern").GetString().Should().Be(@"\S");
-    }
-
-    [Fact]
-    public void GIVEN_ProjectSelectorsInCollection_WHEN_PublishingSchema_THEN_ShouldPublishElementConstraint()
-    {
-        var schema = _target.CreateInputSchema<ProjectCollectionSchemaRequest>();
-        var projectsSchema = ResolvePropertyObjectSchema(schema, "projects");
-        var itemSchema = ResolveObjectSchema(schema, projectsSchema.GetProperty("items"));
-        var constraint = itemSchema.GetProperty("allOf")[0];
-
-        constraint.GetProperty("anyOf").GetArrayLength().Should().Be(4);
-    }
-
-    [Fact]
-    public void GIVEN_NonEmptyGuidAttribute_WHEN_PublishingSchema_THEN_ShouldExcludeEmptyGuid()
-    {
-        var schema = _target.CreateInputSchema<SelectorSchemaRequest>();
-        var workspaceSchema = ResolvePropertyObjectSchema(schema, "workspace");
-        var constraints = workspaceSchema.GetProperty("allOf");
-
-        constraints[1]
-            .GetProperty("properties")
-            .GetProperty("workspaceId")
-            .GetProperty("not")
-            .GetProperty("const")
-            .GetGuid()
-            .Should()
-            .Be(Guid.Empty);
-    }
-
-    [Fact]
-    public void GIVEN_PluginDefinedAttributedContract_WHEN_PublishingSchema_THEN_ShouldUseSerializedPropertyNames()
-    {
-        var schema = _target.CreateInputSchema<PluginSchemaRequest>();
-        var selectorSchema = ResolvePropertyObjectSchema(schema, "selector");
-        var branches = selectorSchema.GetProperty("allOf")[0].GetProperty("oneOf");
-
-        branches[0].GetProperty("required")[0].GetString().Should().Be("first-value");
-        branches[1].GetProperty("required")[0].GetString().Should().Be("second");
-    }
-
-    [Fact]
-    public void GIVEN_IncompatibleConditionalValue_WHEN_PublishingSchema_THEN_ShouldRejectConfiguration()
-    {
-        var action = () => _target.CreateInputSchema<InvalidConditionalSchemaRequest>();
-
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("*not compatible*");
-    }
-
-    [Fact]
-    public void GIVEN_UnknownAttributedMember_WHEN_PublishingSchema_THEN_ShouldRejectConfiguration()
-    {
-        var action = () => _target.CreateInputSchema<UnknownMemberSchemaRequest>();
-
-        action.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Unknown*");
-    }
-
-    [Fact]
-    public void GIVEN_DictionaryGroupMember_WHEN_PublishingSchema_THEN_ShouldRequireNonEmptyObject()
-    {
-        var schema = _target.CreateInputSchema<DictionaryGroupSchemaRequest>();
-        var selectorSchema = ResolvePropertyObjectSchema(schema, "selector");
-        var valuesConstraint = selectorSchema
-            .GetProperty("allOf")[0]
-            .GetProperty("anyOf")[0]
-            .GetProperty("properties")
-            .GetProperty("values");
-
-        valuesConstraint.GetProperty("type").GetString().Should().Be("object");
-        valuesConstraint.GetProperty("minProperties").GetInt32().Should().Be(1);
-    }
-
-    [Fact]
-    public void GIVEN_NullableConditionalController_WHEN_PublishingSchema_THEN_ShouldPublishExpectedValue()
-    {
-        var schema = _target.CreateInputSchema<NullableConditionalSchemaRequest>();
-        var requestSchema = ResolveObjectSchema(schema, schema);
-        var constraint = requestSchema.GetProperty("allOf")[0];
-
-        constraint.GetProperty("if").GetProperty("properties").GetProperty("kind").GetProperty("const").GetInt32().Should().Be(1);
-    }
-
-    [Fact]
-    public void GIVEN_OmittedValueTypeConditionalController_WHEN_PublishingSchema_THEN_ShouldUseDeserializedDefault()
-    {
-        var schema = _target.CreateInputSchema<DefaultedConditionalControllerSchemaRequest>();
-        var constraints = schema.GetProperty("allOf");
-        var requiredAtDefaultCondition = constraints[0].GetProperty("if");
-        var prohibitedOutsideDefaultCondition = constraints[1].GetProperty("if").GetProperty("not");
-        var requiredAtOtherCondition = constraints[2].GetProperty("if");
-
-        requiredAtDefaultCondition.TryGetProperty("required", out _).Should().BeFalse();
-        prohibitedOutsideDefaultCondition.TryGetProperty("required", out _).Should().BeFalse();
-        requiredAtOtherCondition.GetProperty("required")[0].GetString().Should().Be("kind");
-    }
-
-    [Fact]
-    public void GIVEN_DefaultedGroupMembers_WHEN_PublishingSchema_THEN_ShouldModelValuesAfterOmission()
-    {
-        var schema = _target.CreateInputSchema<DefaultedGroupSchemaRequest>();
-        var constraints = schema.GetProperty("allOf");
-        var atLeastOneBranches = constraints[0].GetProperty("anyOf");
-        var exactlyOneBranches = constraints[1].GetProperty("oneOf");
-
-        atLeastOneBranches[0].TryGetProperty("required", out _).Should().BeFalse();
-        atLeastOneBranches[1].GetProperty("required")[0].GetString().Should().Be("otherValue");
-        exactlyOneBranches[0].TryGetProperty("required", out _).Should().BeFalse();
-        exactlyOneBranches[1]
-            .GetProperty("required")
-            .EnumerateArray()
-            .Select(static item => item.GetString())
-            .Should()
-            .BeEquivalentTo(["otherValue", "defaultValue"]);
-    }
-
-    [Fact]
-    public void GIVEN_DefaultedConditionalTargets_WHEN_PublishingSchema_THEN_ShouldModelValuesAfterOmission()
-    {
-        var schema = _target.CreateInputSchema<DefaultedConditionalTargetSchemaRequest>();
-        var constraints = schema.GetProperty("allOf");
-        var requiredConsequence = constraints[0].GetProperty("then");
-        var prohibitedConsequence = constraints[1].GetProperty("then");
-
-        requiredConsequence.TryGetProperty("required", out _).Should().BeFalse();
-        prohibitedConsequence.GetProperty("required")[0].GetString().Should().Be("prohibitedValue");
-    }
-
-    [Fact]
-    public void GIVEN_DefaultValueAttributes_WHEN_PublishingInputSchema_THEN_ShouldPublishDefaultsThroughoutContractGraph()
-    {
-        var schema = _target.CreateInputSchema<DefaultedSchemaRequest>();
+        var schema = _target.GetInputSchema<MetadataSchemaRequest>();
         var properties = schema.GetProperty("properties");
-        var nestedSchema = ResolveObjectSchema(schema, properties.GetProperty("nested"));
-        var itemsSchema = ResolveObjectSchema(schema, properties.GetProperty("items"));
-        var itemSchema = ResolveObjectSchema(schema, itemsSchema.GetProperty("items"));
-        var valuesSchema = ResolveObjectSchema(schema, properties.GetProperty("values"));
-        var valueSchema = ResolveObjectSchema(schema, valuesSchema.GetProperty("additionalProperties"));
+        var nested = ResolveSchema(schema, properties.GetProperty("nested"));
 
         properties.GetProperty("limit").GetProperty("default").GetInt32().Should().Be(25);
-        nestedSchema.GetProperty("properties").GetProperty("name").GetProperty("default").GetString().Should().Be("NestedDefault");
-        itemSchema.GetProperty("properties").GetProperty("name").GetProperty("default").GetString().Should().Be("NestedDefault");
-        valueSchema.GetProperty("properties").GetProperty("count").GetProperty("default").GetInt32().Should().Be(7);
-    }
-
-    [Fact]
-    public void GIVEN_NullabilityAnnotations_WHEN_PublishingInputSchema_THEN_ShouldPreserveNullabilityState()
-    {
-        var schema = _target.CreateInputSchema<NullabilitySchemaRequest>();
-        var properties = schema.GetProperty("properties");
-
+        nested.GetProperty("properties").GetProperty("name").GetProperty("default").GetString().Should().Be("NestedDefault");
         AllowsNull(properties.GetProperty("nonNullable")).Should().BeFalse();
         AllowsNull(properties.GetProperty("nullable")).Should().BeTrue();
-        AllowsNull(properties.GetProperty("notNullAnnotated")).Should().BeTrue();
     }
 
     [Fact]
-    public void GIVEN_AttributedOutputContract_WHEN_PublishingValueSchema_THEN_ShouldNotApplyInputContractMetadata()
+    public void GIVEN_NonEmptyGuidAttribute_WHEN_PublishingSchema_THEN_ShouldRetainSdkUuidShape()
     {
-        var provider = new McpSdkSchemaProvider();
+        var schema = _target.GetInputSchema<SelectorSchemaRequest>();
+        var workspace = ResolvePropertySchema(schema, "workspace");
+        var workspaceId = workspace.GetProperty("properties").GetProperty("workspaceId");
 
-        var schema = provider.GetValueSchema<AttributedOutputContract>();
+        workspaceId.GetProperty("format").GetString().Should().Be("uuid");
+        workspaceId.TryGetProperty("not", out _).Should().BeFalse();
+    }
 
-        schema.TryGetProperty("allOf", out _).Should().BeFalse();
+    [Fact]
+    public void GIVEN_SerializedPropertyName_WHEN_ValidatingCrossMemberAttribute_THEN_ShouldRetainSerializedName()
+    {
+        var schema = _target.GetInputSchema<SerializedNameSchemaRequest>();
+        var properties = schema.GetProperty("properties");
+
+        properties.TryGetProperty("first-value", out _).Should().BeTrue();
+        properties.TryGetProperty("first", out _).Should().BeFalse();
+        schema.TryGetProperty("oneOf", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_ValidConditionalAttributes_WHEN_PublishingSchema_THEN_ShouldRetainSdkObjectShape()
+    {
+        var schema = _target.GetInputSchema<ConditionalSchemaRequest>();
+
+        GetPropertyNames(schema).Should().BeEquivalentTo("kind", "nullableKind", "otherValue", "value");
+        schema.TryGetProperty("anyOf", out _).Should().BeFalse();
+        schema.TryGetProperty("oneOf", out _).Should().BeFalse();
+        schema.TryGetProperty("if", out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(typeof(UnknownAtLeastOneMemberSchemaRequest))]
+    [InlineData(typeof(UnknownExactlyOneMemberSchemaRequest))]
+    [InlineData(typeof(UnknownRequiredWhenMemberSchemaRequest))]
+    [InlineData(typeof(UnknownProhibitedUnlessMemberSchemaRequest))]
+    public void GIVEN_UnknownValidationMember_WHEN_PublishingSchema_THEN_ShouldRejectConfiguration(Type requestType)
+    {
+        var action = () => _target.GetInputSchemaForType(requestType);
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*is not included in the JSON contract*");
+    }
+
+    [Theory]
+    [InlineData(typeof(IncompatibleRequiredWhenValueSchemaRequest))]
+    [InlineData(typeof(IncompatibleProhibitedUnlessValueSchemaRequest))]
+    public void GIVEN_IncompatibleConditionalValue_WHEN_PublishingSchema_THEN_ShouldRejectConfiguration(Type requestType)
+    {
+        var action = () => _target.GetInputSchemaForType(requestType);
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*is not compatible*");
+    }
+
+    [Fact]
+    public void GIVEN_AttributedOutputContract_WHEN_PublishingValueSchema_THEN_ShouldNotApplyInputMetadata()
+    {
+        var schema = _target.GetValueSchema<AttributedOutputContract>();
+
         schema.GetProperty("properties").GetProperty("value").TryGetProperty("default", out _).Should().BeFalse();
     }
 
     [Fact]
     public void GIVEN_NonObjectSchemaNode_WHEN_TransformingSchema_THEN_ShouldLeaveNodeUnchanged()
     {
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
-        };
+        var serializerOptions = CreateSerializerOptions();
         var createOptions = new AIJsonSchemaCreateOptions
         {
-            TransformSchemaNode = static (context, _) =>
-            {
-                var replacement = JsonValue.Create("schema");
-                if (replacement is null)
-                {
-                    throw new InvalidOperationException("The replacement schema node was not created.");
-                }
-
-                return InputContractSchemaTransformer.Transform(context, replacement);
-            },
+            TransformSchemaNode = static (context, _) => InputContractSchemaTransformer.Transform(context, JsonValue.Create("schema")),
         };
 
         var schema = AIJsonUtilities.CreateJsonSchema(
@@ -285,7 +143,7 @@ public sealed class InputContractSchemaTransformerTests
     }
 
     [Fact]
-    public void GIVEN_PropertyWithoutAttributeProvider_WHEN_TransformingSchema_THEN_ShouldPublishBaseSchema()
+    public void GIVEN_PropertyWithoutAttributeProvider_WHEN_TransformingSchema_THEN_ShouldRetainSdkSchema()
     {
         var resolver = new DefaultJsonTypeInfoResolver();
         resolver.Modifiers.Add(static typeInfo =>
@@ -295,10 +153,8 @@ public sealed class InputContractSchemaTransformerTests
                 property.AttributeProvider = null;
             }
         });
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            TypeInfoResolver = resolver,
-        };
+
+        var serializerOptions = CreateSerializerOptions(resolver);
         var createOptions = new AIJsonSchemaCreateOptions
         {
             TransformSchemaNode = InputContractSchemaTransformer.Transform,
@@ -315,10 +171,116 @@ public sealed class InputContractSchemaTransformerTests
         schema.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
     }
 
-    private static JsonElement ResolvePropertyObjectSchema(JsonElement root, string propertyName)
+    [Fact]
+    public void GIVEN_SdkSchemaWithoutProperties_WHEN_TransformingSchema_THEN_ShouldRetainObjectSchema()
     {
-        var propertySchema = root.GetProperty("properties").GetProperty(propertyName);
-        return ResolveObjectSchema(root, propertySchema);
+        var serializerOptions = CreateSerializerOptions();
+        var createOptions = new AIJsonSchemaCreateOptions
+        {
+            TransformSchemaNode = static (context, node) =>
+            {
+                if (context.TypeInfo.Type == typeof(MetadataSchemaRequest) && node is JsonObject schema)
+                {
+                    schema.Remove("properties");
+                }
+
+                return InputContractSchemaTransformer.Transform(context, node);
+            },
+        };
+
+        var schema = AIJsonUtilities.CreateJsonSchema(
+            typeof(MetadataSchemaRequest),
+            description: null,
+            hasDefaultValue: false,
+            defaultValue: null,
+            serializerOptions,
+            createOptions);
+
+        schema.TryGetProperty("properties", out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("multiple", JsonValueKind.Array)]
+    [InlineData("nullNode", JsonValueKind.Array)]
+    public void GIVEN_UnusualNonNullableTypeArray_WHEN_TransformingSchema_THEN_ShouldRetainRemainingTypes(string mode, JsonValueKind expectedKind)
+    {
+        var serializerOptions = CreateSerializerOptions();
+        var createOptions = new AIJsonSchemaCreateOptions
+        {
+            TransformSchemaNode = (context, node) =>
+            {
+                if (context.TypeInfo.Type == typeof(UnattributedSchemaRequest)
+                    && node is JsonObject schema
+                    && schema["properties"] is JsonObject properties
+                    && properties["value"] is JsonObject value)
+                {
+                    value["type"] = mode == "multiple"
+                        ? new JsonArray("string", "integer", "null")
+                        : new JsonArray(null, "null");
+                }
+
+                return InputContractSchemaTransformer.Transform(context, node);
+            },
+        };
+
+        var schema = AIJsonUtilities.CreateJsonSchema(
+            typeof(UnattributedSchemaRequest),
+            description: null,
+            hasDefaultValue: false,
+            defaultValue: null,
+            serializerOptions,
+            createOptions);
+
+        schema.GetProperty("properties").GetProperty("value").GetProperty("type").ValueKind.Should().Be(expectedKind);
+    }
+
+    private static JsonSerializerOptions CreateSerializerOptions(IJsonTypeInfoResolver? resolver = null)
+    {
+        return new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            RespectNullableAnnotations = true,
+            TypeInfoResolver = resolver ?? new DefaultJsonTypeInfoResolver(),
+        };
+    }
+
+    private static JsonElement ResolvePropertySchema(JsonElement root, string propertyName)
+    {
+        var property = root.GetProperty("properties").GetProperty(propertyName);
+        return ResolveSchema(root, property);
+    }
+
+    private static JsonElement ResolveSchema(JsonElement root, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("$ref", out var referenceElement))
+        {
+            return schema;
+        }
+
+        var reference = referenceElement.GetString();
+        if (reference is null || !reference.StartsWith("#/", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The test schema reference was not a local JSON Pointer.");
+        }
+
+        var current = root;
+        foreach (var encodedToken in reference[2..].Split('/'))
+        {
+            var token = encodedToken
+                .Replace("~1", "/", StringComparison.Ordinal)
+                .Replace("~0", "~", StringComparison.Ordinal);
+
+            current = current.GetProperty(token);
+        }
+
+        return current;
+    }
+
+    private static string[] GetPropertyNames(JsonElement schema)
+    {
+        return schema.GetProperty("properties")
+            .EnumerateObject()
+            .Select(static property => property.Name)
+            .ToArray();
     }
 
     private static bool AllowsNull(JsonElement schema)
@@ -328,130 +290,48 @@ public sealed class InputContractSchemaTransformerTests
             return false;
         }
 
-        return type.ValueKind switch
+        if (type.ValueKind == JsonValueKind.String)
         {
-            JsonValueKind.String => string.Equals(type.GetString(), "null", StringComparison.Ordinal),
-            JsonValueKind.Array => type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal)),
-            _ => false,
-        };
-    }
-
-    private static void AssertRequiredWhenConstraint(JsonElement constraint, string kind, string propertyName)
-    {
-        constraint.GetProperty("if").GetProperty("properties").GetProperty("kind").GetProperty("const").GetString().Should().Be(kind);
-        constraint.GetProperty("then").GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().Contain(propertyName);
-    }
-
-    private static void AssertProhibitedUnlessConstraint(JsonElement constraint, string kind, string propertyName)
-    {
-        constraint
-            .GetProperty("if")
-            .GetProperty("not")
-            .GetProperty("properties")
-            .GetProperty("kind")
-            .GetProperty("const")
-            .GetString()
-            .Should()
-            .Be(kind);
-        constraint
-            .GetProperty("then")
-            .GetProperty("properties")
-            .GetProperty(propertyName)
-            .GetProperty("not")
-            .Should()
-            .NotBeNull();
-    }
-
-    private static JsonElement ResolveObjectSchema(JsonElement root, JsonElement schema)
-    {
-        if (schema.TryGetProperty("$ref", out var reference))
-        {
-            return ResolveReference(root, reference.GetString());
+            return string.Equals(type.GetString(), "null", StringComparison.Ordinal);
         }
 
-        if (schema.TryGetProperty("anyOf", out var alternatives))
-        {
-            foreach (var alternative in alternatives.EnumerateArray())
-            {
-                if (alternative.TryGetProperty("$ref", out reference))
-                {
-                    return ResolveReference(root, reference.GetString());
-                }
-
-                if (alternative.TryGetProperty("type", out var type)
-                    && type.ValueKind == JsonValueKind.String
-                    && type.GetString() != "null")
-                {
-                    return alternative;
-                }
-            }
-        }
-
-        return schema;
+        return type.ValueKind == JsonValueKind.Array
+            && type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal));
     }
 
-    private static JsonElement ResolveReference(JsonElement root, [NotNull] string? reference)
-    {
-        reference.Should().StartWith("#/$defs/");
-        var definitionName = reference["#/$defs/".Length..]
-            .Replace("~1", "/", StringComparison.Ordinal)
-            .Replace("~0", "~", StringComparison.Ordinal);
-
-        return root.GetProperty("$defs").GetProperty(definitionName);
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
     private sealed record SelectorSchemaRequest
     {
         public WorkspaceSelector? Workspace { get; init; }
 
-        public ProjectSelector? Project { get; init; }
-
-        public DocumentSelector? Document { get; init; }
-
         public LocationSelector? Location { get; init; }
-
-        public SymbolSelector? Symbol { get; init; }
 
         public ScopeSelector? Scope { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record ProjectCollectionSchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record MetadataSchemaRequest
     {
-        public IReadOnlyList<ProjectSelector>? Projects { get; init; }
+        [DefaultValue(25)]
+        public int? Limit { get; init; } = 25;
+
+        public string NonNullable { get; init; } = string.Empty;
+
+        public string? Nullable { get; init; }
+
+        public MetadataNestedContract? Nested { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record ProjectDictionarySchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record MetadataNestedContract
     {
-        public IReadOnlyDictionary<string, ProjectSelector>? Projects { get; init; }
+        [DefaultValue("NestedDefault")]
+        public string? Name { get; init; } = "NestedDefault";
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record PluginSchemaRequest
-    {
-        public PluginSelector? Selector { get; init; }
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
     [RequiresExactlyOne(nameof(First), nameof(Second))]
-    private sealed record PluginSelector
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record SerializedNameSchemaRequest
     {
         [JsonPropertyName("first-value")]
         public string? First { get; init; }
@@ -459,53 +339,18 @@ public sealed class InputContractSchemaTransformerTests
         public string? Second { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record InvalidConditionalSchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record ConditionalSchemaRequest
     {
-        public int Kind { get; init; }
+        public ConditionalKind Kind { get; init; }
 
-        [RequiredWhen(nameof(Kind), "Invalid")]
-        public string? Value { get; init; }
-    }
+        public int? NullableKind { get; init; }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    [RequiresAtLeastOne("Unknown")]
-    private sealed record UnknownMemberSchemaRequest;
+        [RequiredWhen(nameof(NullableKind), 1)]
+        public string? OtherValue { get; init; }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DictionaryGroupSchemaRequest
-    {
-        public DictionaryGroupSelector? Selector { get; init; }
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    [RequiresAtLeastOne(nameof(Values))]
-    private sealed record DictionaryGroupSelector
-    {
-        public IReadOnlyDictionary<string, string>? Values { get; init; }
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record NullableConditionalSchemaRequest
-    {
-        public int? Kind { get; init; }
-
-        [RequiredWhen(nameof(Kind), 1)]
+        [RequiredWhen(nameof(Kind), ConditionalKind.Other)]
+        [ProhibitedUnless(nameof(Kind), ConditionalKind.Other)]
         public string? Value { get; init; }
     }
 
@@ -515,122 +360,60 @@ public sealed class InputContractSchemaTransformerTests
         Other,
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DefaultedConditionalControllerSchemaRequest
+    [RequiresAtLeastOne("Unknown")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record UnknownAtLeastOneMemberSchemaRequest;
+
+    [RequiresExactlyOne(nameof(Value), "Unknown")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record UnknownExactlyOneMemberSchemaRequest
     {
-        public ConditionalKind Kind { get; init; }
-
-        [RequiredWhen(nameof(Kind), ConditionalKind.Default)]
-        public string? RequiredAtDefault { get; init; }
-
-        [ProhibitedUnless(nameof(Kind), ConditionalKind.Default)]
-        public string? ProhibitedOutsideDefault { get; init; }
-
-        [RequiredWhen(nameof(Kind), ConditionalKind.Other)]
-        public string? RequiredAtOther { get; init; }
+        public string? Value { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    [RequiresAtLeastOne(nameof(DefaultValue), nameof(OtherValue))]
-    [RequiresExactlyOne(nameof(DefaultValue), nameof(OtherValue))]
-    private sealed record DefaultedGroupSchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record UnknownRequiredWhenMemberSchemaRequest
     {
-        [DefaultValue("Default")]
-        public string? DefaultValue { get; init; } = "Default";
-
-        public string? OtherValue { get; init; }
+        [RequiredWhen("Unknown", ConditionalKind.Other)]
+        public string? Value { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DefaultedConditionalTargetSchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record UnknownProhibitedUnlessMemberSchemaRequest
     {
-        public ConditionalKind Kind { get; init; }
-
-        [DefaultValue("Default")]
-        [RequiredWhen(nameof(Kind), ConditionalKind.Other)]
-        public string? RequiredValue { get; init; } = "Default";
-
-        [DefaultValue("Default")]
-        [ProhibitedUnless(nameof(Kind), ConditionalKind.Other)]
-        public string? ProhibitedValue { get; init; } = "Default";
+        [ProhibitedUnless("Unknown", ConditionalKind.Other)]
+        public string? Value { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DefaultedSchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record IncompatibleRequiredWhenValueSchemaRequest
     {
-        [DefaultValue(25)]
-        public int? Limit { get; init; } = 25;
+        public int Kind { get; init; }
 
-        public DefaultedNestedContract? Nested { get; init; }
-
-        public IReadOnlyList<DefaultedNestedContract>? Items { get; init; }
-
-        public IReadOnlyDictionary<string, DefaultedDictionaryValueContract>? Values { get; init; }
+        [RequiredWhen(nameof(Kind), "Invalid")]
+        public string? Value { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record NullabilitySchemaRequest
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record IncompatibleProhibitedUnlessValueSchemaRequest
     {
-        public string NonNullable { get; init; } = string.Empty;
+        public int Kind { get; init; }
 
-        public string? Nullable { get; init; }
-
-        [NotNull]
-        public string? NotNullAnnotated { get; init; }
+        [ProhibitedUnless(nameof(Kind), "Invalid")]
+        public string? Value { get; init; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DefaultedNestedContract
-    {
-        [DefaultValue("NestedDefault")]
-        public string? Name { get; init; } = "NestedDefault";
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic schema path exercised by this test.")]
-    private sealed record DefaultedDictionaryValueContract
-    {
-        [DefaultValue(7)]
-        public int Count { get; init; } = 7;
-    }
-
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The MCP schema exporter creates the contract through the generic value-schema path exercised by this test.")]
     [RequiresAtLeastOne(nameof(Value))]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
     private sealed record AttributedOutputContract
     {
         [DefaultValue("Default")]
         public string? Value { get; init; } = "Default";
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "The schema exporter creates the contract through the type-based schema path exercised by this test.")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
     private sealed record UnattributedSchemaRequest
     {
-        public string? Value { get; init; }
+        public string Value { get; init; } = string.Empty;
     }
 }

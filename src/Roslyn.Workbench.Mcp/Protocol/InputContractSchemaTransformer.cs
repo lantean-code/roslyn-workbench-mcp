@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -10,6 +11,8 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal static class InputContractSchemaTransformer
 {
+    private static readonly JsonNode _nullType = JsonValue.Create("null");
+
     public static JsonNode Transform(AIJsonSchemaCreateContext context, JsonNode schema)
     {
         if (schema is not JsonObject schemaObject || context.TypeInfo.Kind != JsonTypeInfoKind.Object)
@@ -17,12 +20,12 @@ internal static class InputContractSchemaTransformer
             return schema;
         }
 
-        var propertiesByMemberName = CreatePropertyMap(context.TypeInfo);
-        var nullabilityContext = new NullabilityInfoContext();
-        PublishTypeConstraints(schemaObject, context.TypeInfo.Type, propertiesByMemberName, context.TypeInfo.Options);
-        PublishPropertyConstraints(schemaObject, context.TypeInfo, propertiesByMemberName, nullabilityContext);
+        var properties = CreatePropertyMap(context.TypeInfo);
+        ValidateContractRules(context.TypeInfo, properties);
 
-        return schema;
+        var nullabilityContext = new NullabilityInfoContext();
+        PublishPropertyMetadata(schemaObject, context.TypeInfo, nullabilityContext);
+        return schemaObject;
     }
 
     private static Dictionary<string, JsonPropertyInfo> CreatePropertyMap(JsonTypeInfo typeInfo)
@@ -39,354 +42,75 @@ internal static class InputContractSchemaTransformer
         return properties;
     }
 
-    private static void PublishTypeConstraints(
-        JsonObject schema,
-        Type contractType,
-        IReadOnlyDictionary<string, JsonPropertyInfo> properties,
-        JsonSerializerOptions serializerOptions)
-    {
-        var atLeastOneAttributes = contractType.GetCustomAttributes<RequiresAtLeastOneAttribute>(inherit: true);
-        foreach (var attribute in atLeastOneAttributes)
-        {
-            var members = ResolveMembers(contractType, attribute.MemberNames, properties);
-            var branches = members
-                .Select(member => CreateRequiredPropertyBranch(member, serializerOptions, forbiddenMembers: []))
-                .ToArray();
-
-            AddConstraint(schema, CreateAlternativeConstraint("anyOf", branches));
-        }
-
-        var exactlyOneAttributes = contractType.GetCustomAttributes<RequiresExactlyOneAttribute>(inherit: true);
-        foreach (var attribute in exactlyOneAttributes)
-        {
-            var members = ResolveMembers(contractType, attribute.MemberNames, properties);
-            var branches = members
-                .Select(member => CreateRequiredPropertyBranch(
-                    member,
-                    serializerOptions,
-                    members.Where(candidate => !ReferenceEquals(candidate, member))))
-                .ToArray();
-
-            AddConstraint(schema, CreateAlternativeConstraint("oneOf", branches));
-        }
-    }
-
-    private static void PublishPropertyConstraints(
-        JsonObject schema,
+    private static void ValidateContractRules(
         JsonTypeInfo contractTypeInfo,
-        IReadOnlyDictionary<string, JsonPropertyInfo> properties,
-        NullabilityInfoContext nullabilityContext)
+        IReadOnlyDictionary<string, JsonPropertyInfo> properties)
     {
+        var contractType = contractTypeInfo.Type;
+        foreach (var attribute in contractType.GetCustomAttributes<RequiresAtLeastOneAttribute>(inherit: true))
+        {
+            ValidateMembers(contractType, attribute.MemberNames, properties);
+        }
+
+        foreach (var attribute in contractType.GetCustomAttributes<RequiresExactlyOneAttribute>(inherit: true))
+        {
+            ValidateMembers(contractType, attribute.MemberNames, properties);
+        }
+
         foreach (var property in contractTypeInfo.Properties)
         {
-            PublishNullability(schema, property, nullabilityContext);
-            PublishDefaultValue(schema, contractTypeInfo, property);
-            PublishRequiredWhenConstraints(schema, contractTypeInfo, properties, property);
-            PublishProhibitedUnlessConstraints(schema, contractTypeInfo, properties, property);
-            PublishNonEmptyGuidConstraint(schema, contractTypeInfo, property);
+            ValidateConditionalAttributes(contractType, property, properties);
         }
     }
 
-    private static void PublishNullability(
-        JsonObject schema,
+    private static void ValidateConditionalAttributes(
+        Type contractType,
         JsonPropertyInfo property,
-        NullabilityInfoContext nullabilityContext)
+        IReadOnlyDictionary<string, JsonPropertyInfo> properties)
     {
-        if (property.AttributeProvider is not PropertyInfo reflectedProperty
-            || nullabilityContext.Create(reflectedProperty).WriteState != NullabilityState.NotNull
-            || schema["properties"] is not JsonObject schemaProperties
-            || schemaProperties[property.Name] is not JsonObject propertySchema)
+        if (property.AttributeProvider is null)
         {
             return;
         }
 
-        RemoveNullType(propertySchema);
-    }
-
-    private static void PublishDefaultValue(
-        JsonObject schema,
-        JsonTypeInfo contractTypeInfo,
-        JsonPropertyInfo property)
-    {
-        var attribute = GetAttributes<DefaultValueAttribute>(property).SingleOrDefault();
-        if (attribute is null
-            || schema["properties"] is not JsonObject schemaProperties
-            || schemaProperties[property.Name] is not JsonObject propertySchema)
+        var attributes = property.AttributeProvider.GetCustomAttributes(inherit: true);
+        foreach (var attribute in attributes)
         {
-            return;
-        }
-
-        propertySchema["default"] = JsonSerializer.SerializeToNode(
-            attribute.Value,
-            property.PropertyType,
-            contractTypeInfo.Options);
-    }
-
-    private static void PublishRequiredWhenConstraints(
-        JsonObject schema,
-        JsonTypeInfo contractTypeInfo,
-        IReadOnlyDictionary<string, JsonPropertyInfo> properties,
-        JsonPropertyInfo property)
-    {
-        foreach (var attribute in GetAttributes<RequiredWhenAttribute>(property))
-        {
-            var controllingProperty = ResolveMember(contractTypeInfo.Type, attribute.OtherProperty, properties);
-            ValidateExpectedValue(contractTypeInfo.Type, controllingProperty, attribute.ExpectedValue);
-
-            var condition = CreateEqualityCondition(controllingProperty, attribute.ExpectedValue, contractTypeInfo.Options);
-            var constrainedProperties = new JsonObject
+            if (attribute is RequiredWhenAttribute requiredWhen)
             {
-                [property.Name] = CreateProvidedSchema(property, contractTypeInfo.Options),
-            };
-            var consequence = new JsonObject
+                ValidateExpectedValue(contractType, requiredWhen.OtherProperty, requiredWhen.ExpectedValue, properties);
+            }
+            else if (attribute is ProhibitedUnlessAttribute prohibitedUnless)
             {
-                ["properties"] = constrainedProperties,
-            };
-            RequireExplicitMemberWhenOmissionIsNotProvided(consequence, property);
-
-            var constraint = new JsonObject
-            {
-                ["if"] = condition,
-                ["then"] = consequence,
-            };
-
-            AddConstraint(schema, constraint);
-        }
-    }
-
-    private static void PublishProhibitedUnlessConstraints(
-        JsonObject schema,
-        JsonTypeInfo contractTypeInfo,
-        IReadOnlyDictionary<string, JsonPropertyInfo> properties,
-        JsonPropertyInfo property)
-    {
-        foreach (var attribute in GetAttributes<ProhibitedUnlessAttribute>(property))
-        {
-            var controllingProperty = ResolveMember(contractTypeInfo.Type, attribute.OtherProperty, properties);
-            ValidateExpectedValue(contractTypeInfo.Type, controllingProperty, attribute.ExpectedValue);
-
-            var allowedCondition = CreateEqualityCondition(controllingProperty, attribute.ExpectedValue, contractTypeInfo.Options);
-            var prohibitedProperties = new JsonObject
-            {
-                [property.Name] = CreateAbsentSchema(property, contractTypeInfo.Options),
-            };
-            var consequence = new JsonObject
-            {
-                ["properties"] = prohibitedProperties,
-            };
-            RequireExplicitMemberWhenOmissionIsProvided(consequence, property);
-
-            var constraint = new JsonObject
-            {
-                ["if"] = new JsonObject
-                {
-                    ["not"] = allowedCondition,
-                },
-                ["then"] = consequence,
-            };
-
-            AddConstraint(schema, constraint);
-        }
-    }
-
-    private static void PublishNonEmptyGuidConstraint(
-        JsonObject schema,
-        JsonTypeInfo contractTypeInfo,
-        JsonPropertyInfo property)
-    {
-        if (!GetAttributes<NonEmptyGuidAttribute>(property).Any())
-        {
-            return;
-        }
-
-        var emptyGuid = JsonSerializer.SerializeToNode(Guid.Empty, contractTypeInfo.Options);
-        var propertyConstraint = new JsonObject
-        {
-            ["not"] = new JsonObject
-            {
-                ["const"] = emptyGuid,
-            },
-        };
-        var properties = new JsonObject
-        {
-            [property.Name] = propertyConstraint,
-        };
-
-        AddConstraint(schema, new JsonObject { ["properties"] = properties });
-    }
-
-    private static JsonObject CreateRequiredPropertyBranch(
-        JsonPropertyInfo requiredMember,
-        JsonSerializerOptions serializerOptions,
-        IEnumerable<JsonPropertyInfo> forbiddenMembers)
-    {
-        var properties = new JsonObject
-        {
-            [requiredMember.Name] = CreateProvidedSchema(requiredMember, serializerOptions),
-        };
-        var explicitlyRequiredMembers = new JsonArray();
-        if (!HasProvidedDefault(requiredMember))
-        {
-            explicitlyRequiredMembers.Add(requiredMember.Name);
-        }
-
-        foreach (var forbiddenMember in forbiddenMembers)
-        {
-            properties[forbiddenMember.Name] = CreateAbsentSchema(forbiddenMember, serializerOptions);
-            if (HasProvidedDefault(forbiddenMember))
-            {
-                explicitlyRequiredMembers.Add(forbiddenMember.Name);
+                ValidateExpectedValue(contractType, prohibitedUnless.OtherProperty, prohibitedUnless.ExpectedValue, properties);
             }
         }
-
-        var branch = new JsonObject
-        {
-            ["properties"] = properties,
-        };
-        if (explicitlyRequiredMembers.Count > 0)
-        {
-            branch["required"] = explicitlyRequiredMembers;
-        }
-
-        return branch;
     }
 
-    private static JsonObject CreateAlternativeConstraint(string keyword, JsonObject[] branches)
-    {
-        return new JsonObject
-        {
-            [keyword] = new JsonArray(branches),
-        };
-    }
-
-    private static JsonObject CreateEqualityCondition(
-        JsonPropertyInfo property,
-        object expectedValue,
-        JsonSerializerOptions serializerOptions)
-    {
-        var serializedValue = JsonSerializer.SerializeToNode(expectedValue, property.PropertyType, serializerOptions);
-        var propertyConstraint = new JsonObject
-        {
-            ["const"] = serializedValue,
-        };
-        var properties = new JsonObject
-        {
-            [property.Name] = propertyConstraint,
-        };
-
-        var condition = new JsonObject
-        {
-            ["properties"] = properties,
-        };
-        if (!TryGetEffectiveDefaultValue(property, out var defaultValue)
-            || !Equals(defaultValue, expectedValue))
-        {
-            condition["required"] = new JsonArray(property.Name);
-        }
-
-        return condition;
-    }
-
-    private static JsonObject CreateProvidedSchema(JsonPropertyInfo property, JsonSerializerOptions serializerOptions)
-    {
-        if (property.PropertyType == typeof(string))
-        {
-            return new JsonObject
-            {
-                ["type"] = "string",
-                ["pattern"] = @"\S",
-            };
-        }
-
-        var propertyTypeInfo = serializerOptions.GetTypeInfo(property.PropertyType);
-        if (propertyTypeInfo.Kind == JsonTypeInfoKind.Enumerable)
-        {
-            return new JsonObject
-            {
-                ["type"] = "array",
-                ["minItems"] = 1,
-            };
-        }
-
-        if (propertyTypeInfo.Kind == JsonTypeInfoKind.Dictionary)
-        {
-            return new JsonObject
-            {
-                ["type"] = "object",
-                ["minProperties"] = 1,
-            };
-        }
-
-        return new JsonObject
-        {
-            ["not"] = new JsonObject
-            {
-                ["type"] = "null",
-            },
-        };
-    }
-
-    private static JsonObject CreateAbsentSchema(JsonPropertyInfo property, JsonSerializerOptions serializerOptions)
-    {
-        return new JsonObject
-        {
-            ["not"] = CreateProvidedSchema(property, serializerOptions),
-        };
-    }
-
-    private static void RequireExplicitMemberWhenOmissionIsNotProvided(JsonObject schema, JsonPropertyInfo property)
-    {
-        if (!HasProvidedDefault(property))
-        {
-            schema["required"] = new JsonArray(property.Name);
-        }
-    }
-
-    private static void RequireExplicitMemberWhenOmissionIsProvided(JsonObject schema, JsonPropertyInfo property)
-    {
-        if (HasProvidedDefault(property))
-        {
-            schema["required"] = new JsonArray(property.Name);
-        }
-    }
-
-    private static bool HasProvidedDefault(JsonPropertyInfo property)
-    {
-        return TryGetEffectiveDefaultValue(property, out var defaultValue)
-            && ValidationMemberAccess.IsProvided(defaultValue);
-    }
-
-    private static bool TryGetEffectiveDefaultValue(JsonPropertyInfo property, out object? defaultValue)
-    {
-        var defaultValueAttribute = GetAttributes<DefaultValueAttribute>(property).SingleOrDefault();
-        if (defaultValueAttribute is not null)
-        {
-            defaultValue = defaultValueAttribute.Value;
-            return true;
-        }
-
-        if (property.PropertyType.IsValueType && Nullable.GetUnderlyingType(property.PropertyType) is null)
-        {
-            defaultValue = Activator.CreateInstance(property.PropertyType);
-            return true;
-        }
-
-        defaultValue = null;
-        return false;
-    }
-
-    private static JsonPropertyInfo[] ResolveMembers(
+    private static void ValidateMembers(
         Type contractType,
         IReadOnlyList<string> memberNames,
         IReadOnlyDictionary<string, JsonPropertyInfo> properties)
     {
-        var members = new JsonPropertyInfo[memberNames.Count];
-        for (var index = 0; index < memberNames.Count; index++)
+        foreach (var memberName in memberNames)
         {
-            members[index] = ResolveMember(contractType, memberNames[index], properties);
+            ResolveMember(contractType, memberName, properties);
         }
+    }
 
-        return members;
+    private static void ValidateExpectedValue(
+        Type contractType,
+        string memberName,
+        object expectedValue,
+        IReadOnlyDictionary<string, JsonPropertyInfo> properties)
+    {
+        var property = ResolveMember(contractType, memberName, properties);
+        var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        if (!propertyType.IsInstanceOfType(expectedValue))
+        {
+            throw new InvalidOperationException(
+                $"Validation value '{expectedValue}' is not compatible with '{contractType.FullName}.{property.Name}' of type '{propertyType.FullName}'.");
+        }
     }
 
     private static JsonPropertyInfo ResolveMember(
@@ -403,34 +127,86 @@ internal static class InputContractSchemaTransformer
         return property;
     }
 
-    private static void ValidateExpectedValue(Type contractType, JsonPropertyInfo property, object expectedValue)
+    private static void PublishPropertyMetadata(
+        JsonObject schema,
+        JsonTypeInfo contractTypeInfo,
+        NullabilityInfoContext nullabilityContext)
     {
-        var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-        if (!propertyType.IsInstanceOfType(expectedValue))
+        foreach (var property in contractTypeInfo.Properties)
         {
-            throw new InvalidOperationException(
-                $"Validation value '{expectedValue}' is not compatible with '{contractType.FullName}.{property.Name}' of type '{propertyType.FullName}'.");
+            PublishNullability(schema, property, nullabilityContext);
+            PublishDefaultValue(schema, contractTypeInfo, property);
         }
     }
 
-    private static IEnumerable<TAttribute> GetAttributes<TAttribute>(JsonPropertyInfo property)
-        where TAttribute : Attribute
+    private static void PublishNullability(
+        JsonObject schema,
+        JsonPropertyInfo property,
+        NullabilityInfoContext nullabilityContext)
     {
-        return property.AttributeProvider?
-            .GetCustomAttributes(typeof(TAttribute), inherit: true)
-            .OfType<TAttribute>()
-            ?? [];
-    }
-
-    private static void AddConstraint(JsonObject schema, JsonObject constraint)
-    {
-        if (schema["allOf"] is not JsonArray constraints)
+        if (property.AttributeProvider is not PropertyInfo reflectedProperty)
         {
-            constraints = [];
-            schema["allOf"] = constraints;
+            return;
         }
 
-        constraints.Add(constraint);
+        var nullability = nullabilityContext.Create(reflectedProperty);
+        if (nullability.WriteState != NullabilityState.NotNull)
+        {
+            return;
+        }
+
+        if (TryGetPropertySchema(schema, property, out var propertySchema))
+        {
+            RemoveNullType(propertySchema);
+        }
+    }
+
+    private static void PublishDefaultValue(
+        JsonObject schema,
+        JsonTypeInfo contractTypeInfo,
+        JsonPropertyInfo property)
+    {
+        var defaultValue = GetDefaultValue(property);
+        if (defaultValue is null || !TryGetPropertySchema(schema, property, out var propertySchema))
+        {
+            return;
+        }
+
+        propertySchema["default"] = JsonSerializer.SerializeToNode(
+            defaultValue.Value,
+            property.PropertyType,
+            contractTypeInfo.Options);
+    }
+
+    private static DefaultValueAttribute? GetDefaultValue(JsonPropertyInfo property)
+    {
+        if (property.AttributeProvider is null)
+        {
+            return null;
+        }
+
+        var attributes = property.AttributeProvider.GetCustomAttributes(typeof(DefaultValueAttribute), inherit: true);
+        if (attributes.Length == 0)
+        {
+            return null;
+        }
+
+        return (DefaultValueAttribute)attributes[0];
+    }
+
+    private static bool TryGetPropertySchema(
+        JsonObject schema,
+        JsonPropertyInfo property,
+        [NotNullWhen(true)] out JsonObject? propertySchema)
+    {
+        propertySchema = null;
+        if (schema["properties"] is not JsonObject schemaProperties)
+        {
+            return false;
+        }
+
+        propertySchema = schemaProperties[property.Name] as JsonObject;
+        return propertySchema is not null;
     }
 
     private static void RemoveNullType(JsonObject schema)
@@ -440,13 +216,23 @@ internal static class InputContractSchemaTransformer
             return;
         }
 
-        var nullType = JsonValue.Create("null");
         for (var index = types.Count - 1; index >= 0; index--)
         {
-            if (JsonNode.DeepEquals(types[index], nullType))
+            if (JsonNode.DeepEquals(types[index], _nullType))
             {
                 types.RemoveAt(index);
             }
+        }
+
+        if (types.Count != 1)
+        {
+            return;
+        }
+
+        var remainingType = types[0];
+        if (remainingType is not null)
+        {
+            schema["type"] = remainingType.DeepClone();
         }
     }
 }

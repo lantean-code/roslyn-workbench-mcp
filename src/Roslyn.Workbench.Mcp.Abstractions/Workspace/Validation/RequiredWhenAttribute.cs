@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Validation;
 /// </summary>
 /// <remarks>
 /// A value is provided when it is non-null and, for strings and collections, non-empty. Whitespace-only strings are not provided.
-/// Roslyn Workbench publishes the same constraint in MCP input schemas.
+/// Roslyn Workbench validates the configured member and expected value during MCP schema generation and enforces the constraint at runtime.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
 public sealed class RequiredWhenAttribute : ValidationAttribute

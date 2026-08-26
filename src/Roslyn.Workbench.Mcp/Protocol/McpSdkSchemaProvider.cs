@@ -58,9 +58,7 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
             });
 
         var root = tool.ProtocolTool.InputSchema;
-        var requestSchema = root.GetProperty("properties").GetProperty("request");
-
-        return ToolSchemaBuilder.NormalizeExportedSchema(requestSchema, root);
+        return InputSchemaExporter.ExtractRequestSchema(root);
     }
 
     private JsonElement CreateValueSchemaCore(Type valueType)

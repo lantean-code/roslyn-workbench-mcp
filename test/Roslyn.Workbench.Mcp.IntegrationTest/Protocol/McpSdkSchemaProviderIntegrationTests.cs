@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -22,6 +24,16 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
         result.GetProperty("type").GetString().Should().Be("object");
         result.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_EmptyRequestContract_WHEN_ExportingInputSchema_THEN_ShouldPublishClosedObject()
+    {
+        var result = _target.GetInputSchema<WorkspaceListRequest>();
+
+        result.GetProperty("type").GetString().Should().Be("object");
+        result.GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
     }
 
     [Fact]
@@ -81,6 +93,17 @@ public sealed class McpSdkSchemaProviderIntegrationTests
             .GetInt32()
             .Should()
             .Be(25);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void GIVEN_ReferenceHeavyRequest_WHEN_ExportingInputSchema_THEN_ShouldRebaseReferencesToPublishedRoot()
+    {
+        var result = _target.GetInputSchema<FindReferencesRequest>();
+        var json = result.GetRawText();
+
+        json.Should().Contain("\"$ref\":\"#/properties/");
+        json.Should().NotContain("#/properties/request/");
     }
 
     [Fact]
@@ -189,6 +212,7 @@ public sealed class McpSdkSchemaProviderIntegrationTests
         [DefaultValue(25)]
         public int? Limit { get; init; } = 25;
     }
+
 #pragma warning restore CA1812
 
     private readonly record struct TestStruct

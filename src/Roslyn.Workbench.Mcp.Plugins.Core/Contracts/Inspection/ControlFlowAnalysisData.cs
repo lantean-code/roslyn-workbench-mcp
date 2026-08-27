@@ -23,10 +23,10 @@ internal sealed record ControlFlowAnalysisData : IQueryResponse
     /// <summary>
     /// Gets the projected exit points.
     /// </summary>
-    public IReadOnlyList<ControlFlowExit> Exits { get; init; } = [];
+    public BoundedCollection<ControlFlowExit> Exits { get; init; } = BoundedCollection.Empty<ControlFlowExit>();
 
     /// <summary>
     /// Gets the projected return statements.
     /// </summary>
-    public IReadOnlyList<ResolvedLocation> Returns { get; init; } = [];
+    public BoundedCollection<ResolvedLocation> Returns { get; init; } = BoundedCollection.Empty<ResolvedLocation>();
 }

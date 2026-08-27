@@ -14,21 +14,21 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxBlocks)]
-    public int MaxBlocks { get; init; } = _defaultMaxBlocks;
+    public int? MaxBlocks { get; init; } = _defaultMaxBlocks;
 
     /// <summary>
     /// Gets the maximum number of projected flow regions.
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxRegions)]
-    public int MaxRegions { get; init; } = _defaultMaxRegions;
+    public int? MaxRegions { get; init; } = _defaultMaxRegions;
 
     /// <summary>
     /// Gets the maximum number of projected operations in each basic block.
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxOperationsPerBlock)]
-    public int MaxOperationsPerBlock { get; init; } = _defaultMaxOperationsPerBlock;
+    public int? MaxOperationsPerBlock { get; init; } = _defaultMaxOperationsPerBlock;
 
     /// <summary>
     /// Gets the optional symbol selector.
@@ -44,4 +44,10 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveMaxBlocks => ResultLimit.GetEffectiveValue(MaxBlocks, _defaultMaxBlocks);
+
+    internal int EffectiveMaxRegions => ResultLimit.GetEffectiveValue(MaxRegions, _defaultMaxRegions);
+
+    internal int EffectiveMaxOperationsPerBlock => ResultLimit.GetEffectiveValue(MaxOperationsPerBlock, _defaultMaxOperationsPerBlock);
 }

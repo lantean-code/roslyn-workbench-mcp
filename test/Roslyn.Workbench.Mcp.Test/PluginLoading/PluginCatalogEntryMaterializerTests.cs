@@ -1,22 +1,56 @@
+using Microsoft.Extensions.Logging;
+
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class PluginCatalogEntryMaterializerTests
 {
     private readonly Mock<IPluginToolRegistrationMaterializer> _toolRegistrationMaterializer;
     private readonly Mock<IPluginTransportSchemaPreflight> _schemaPreflight;
+    private readonly Mock<ILogger<PluginCatalogEntryMaterializer>> _logger;
     private readonly PluginCatalogEntryMaterializer _target;
 
     public PluginCatalogEntryMaterializerTests()
     {
         _toolRegistrationMaterializer = new Mock<IPluginToolRegistrationMaterializer>();
         _schemaPreflight = new Mock<IPluginTransportSchemaPreflight>();
+        _logger = new Mock<ILogger<PluginCatalogEntryMaterializer>>();
         _schemaPreflight
             .Setup(preflight => preflight.Preflight(It.IsAny<IReadOnlyList<PreparedPluginTool>>()))
             .Returns(PluginTransportSchemaPreflightResult.Success());
 
         _target = new PluginCatalogEntryMaterializer(
             _toolRegistrationMaterializer.Object,
-            _schemaPreflight.Object);
+            _schemaPreflight.Object,
+            _logger.Object);
+    }
+
+    [Fact]
+    public void GIVEN_QueryResponseAuthoringWarning_WHEN_MaterializingEntry_THEN_ShouldLogOnceWithoutAddingStatusDiagnostic()
+    {
+        var plugin = CreatePreparedPlugin(ToolKind.Query, typeof(RawQueryResponse));
+        var registration = new Mock<IRegisteredPluginTool>();
+        registration.SetupGet(static value => value.Tool).Returns(plugin.Preparation.Tools.Single().Tool);
+        _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation)).Returns(new PluginMaterializationResult
+        {
+            Tools = [registration.Object],
+        });
+
+        _logger.Setup(item => item.IsEnabled(LogLevel.Warning)).Returns(true);
+
+        var result = _target.Materialize(plugin);
+
+        result.Status.Enabled.Should().BeTrue();
+        result.Status.Diagnostics.Should().BeEmpty();
+        _logger.Verify(
+            item => item.Log(
+                LogLevel.Warning,
+                new EventId(1),
+                It.Is<It.IsAnyType>((value, _) =>
+                    value.ToString() == "Plugin authoring warning RWMCP014 for plugin plugin, tool tool: Response 'RawQueryResponse' publishes unbounded top-level collections: Items. Prefer BoundedCollection<TItem> for agent-facing top-level collections."
+                    && HasLogProperty(value, "RuleId", "RWMCP014")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
@@ -146,7 +180,21 @@ public sealed class PluginCatalogEntryMaterializerTests
             Times.Never);
     }
 
-    private static PreparedCatalogPlugin CreatePreparedPlugin()
+    private static bool HasLogProperty(object value, string propertyName, object expectedValue)
+    {
+        if (value is not IReadOnlyList<KeyValuePair<string, object?>> properties)
+        {
+            return false;
+        }
+
+        return properties.Any(property =>
+            string.Equals(property.Key, propertyName, StringComparison.Ordinal)
+            && Equals(property.Value, expectedValue));
+    }
+
+    private static PreparedCatalogPlugin CreatePreparedPlugin(
+        ToolKind kind = ToolKind.Mutation,
+        Type? responseType = null)
     {
         var metadata = new PluginMetadata
         {
@@ -176,13 +224,20 @@ public sealed class PluginCatalogEntryMaterializerTests
                                 Title = "Title",
                                 Description = "Description",
                             },
-                            Kind = ToolKind.Mutation,
+                            Kind = kind,
                             RequestType = typeof(WorkspaceBoundRequest),
-                            ResponseType = typeof(MutationData),
+                            ResponseType = responseType ?? typeof(MutationData),
                         },
                     },
                 ],
             },
         };
     }
+
+#pragma warning disable CA1812 // Response fixture is inspected through reflection metadata without construction.
+    private sealed record RawQueryResponse
+    {
+        public IReadOnlyList<string> Items { get; init; } = [];
+    }
+#pragma warning restore CA1812
 }

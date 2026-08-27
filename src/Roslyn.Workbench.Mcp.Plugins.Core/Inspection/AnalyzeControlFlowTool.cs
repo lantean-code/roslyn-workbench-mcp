@@ -29,6 +29,11 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         var exits = new List<ControlFlowExit>();
         foreach (var exitPoint in analysis.ExitPoints)
         {
+            if (exits.Count == request.EffectiveExitsLimit)
+            {
+                break;
+            }
+
             exits.Add(new ControlFlowExit
             {
                 Kind = exitPoint.Kind().ToString(),
@@ -39,6 +44,11 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         var returns = new List<ResolvedLocation>();
         foreach (var returnStatement in analysis.ReturnStatements)
         {
+            if (returns.Count == request.EffectiveReturnsLimit)
+            {
+                break;
+            }
+
             var returnLocation = context.WorkspaceResolver.CreateResolvedLocation(returnStatement.GetLocation());
             if (returnLocation is not null)
             {
@@ -51,11 +61,10 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             Region = resolvedRegion.ResolvedLocation,
             EntryReachable = analysis.StartPointIsReachable,
             ExitReachable = analysis.EndPointIsReachable,
-            Exits = exits,
-            Returns = returns,
+            Exits = BoundedCollection.CreatePrebounded(exits, analysis.ExitPoints.Length),
+            Returns = BoundedCollection.CreatePrebounded(returns, analysis.ReturnStatements.Length),
         };
 
         return PluginExecutionResult.Success(data);
     }
-
 }

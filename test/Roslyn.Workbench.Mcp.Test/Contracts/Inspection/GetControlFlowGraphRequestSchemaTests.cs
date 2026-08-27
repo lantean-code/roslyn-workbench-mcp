@@ -25,9 +25,18 @@ public sealed class GetControlFlowGraphRequestSchemaTests
 
         symbolProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        maxBlocksProperty.GetProperty("type").GetString().Should().Be("integer");
-        maxOperationsPerBlockProperty.GetProperty("type").GetString().Should().Be("integer");
-        maxRegionsProperty.GetProperty("type").GetString().Should().Be("integer");
+        GetPublishedTypes(maxBlocksProperty).Should().BeEquivalentTo("integer", "null");
+        GetPublishedTypes(maxOperationsPerBlockProperty).Should().BeEquivalentTo("integer", "null");
+        GetPublishedTypes(maxRegionsProperty).Should().BeEquivalentTo("integer", "null");
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+    }
+
+    private static string?[] GetPublishedTypes(JsonElement property)
+    {
+        return property
+            .GetProperty("type")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
     }
 }

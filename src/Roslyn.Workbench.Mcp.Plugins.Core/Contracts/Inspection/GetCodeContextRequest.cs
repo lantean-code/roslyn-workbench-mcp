@@ -7,6 +7,8 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
 {
     private const int _defaultAfterLines = 10;
     private const int _defaultBeforeLines = 10;
+    private const int _defaultDiagnosticsMaxResults = 50;
+    private const int _defaultEnclosingSymbolsMaxResults = 16;
     private const int _maximumContextLines = 100;
 
     /// <summary>
@@ -39,6 +41,20 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     public bool IncludeDiagnostics { get; init; }
 
     /// <summary>
+    /// Gets the optional enclosing symbols limit.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    [DefaultValue(_defaultEnclosingSymbolsMaxResults)]
+    public int? EnclosingSymbolsLimit { get; init; } = _defaultEnclosingSymbolsMaxResults;
+
+    /// <summary>
+    /// Gets the optional diagnostics limit.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    [DefaultValue(_defaultDiagnosticsMaxResults)]
+    public int? DiagnosticsLimit { get; init; } = _defaultDiagnosticsMaxResults;
+
+    /// <summary>
     /// Gets the expected workspace snapshot.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
@@ -46,4 +62,8 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     internal int EffectiveBeforeLines => ResultLimit.GetEffectiveValue(BeforeLines, _defaultBeforeLines);
 
     internal int EffectiveAfterLines => ResultLimit.GetEffectiveValue(AfterLines, _defaultAfterLines);
+
+    internal int EffectiveEnclosingSymbolsLimit => ResultLimit.GetEffectiveValue(EnclosingSymbolsLimit, _defaultEnclosingSymbolsMaxResults);
+
+    internal int EffectiveDiagnosticsLimit => ResultLimit.GetEffectiveValue(DiagnosticsLimit, _defaultDiagnosticsMaxResults);
 }

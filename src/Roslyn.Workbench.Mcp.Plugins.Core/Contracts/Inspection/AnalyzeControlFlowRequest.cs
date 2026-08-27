@@ -5,13 +5,34 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
 {
+    private const int _defaultExitsMaxResults = 100;
+    private const int _defaultReturnsMaxResults = 100;
+
     /// <summary>
     /// Gets an exact complete statement or contiguous statement range to analyze.
     /// </summary>
     public required LocationSelector Location { get; init; }
 
     /// <summary>
+    /// Gets the optional exit points limit.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    [DefaultValue(_defaultExitsMaxResults)]
+    public int? ExitsLimit { get; init; } = _defaultExitsMaxResults;
+
+    /// <summary>
+    /// Gets the optional return statements limit.
+    /// </summary>
+    [Range(0, int.MaxValue)]
+    [DefaultValue(_defaultReturnsMaxResults)]
+    public int? ReturnsLimit { get; init; } = _defaultReturnsMaxResults;
+
+    /// <summary>
     /// Gets the expected snapshot for the selected location.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveExitsLimit => ResultLimit.GetEffectiveValue(ExitsLimit, _defaultExitsMaxResults);
+
+    internal int EffectiveReturnsLimit => ResultLimit.GetEffectiveValue(ReturnsLimit, _defaultReturnsMaxResults);
 }

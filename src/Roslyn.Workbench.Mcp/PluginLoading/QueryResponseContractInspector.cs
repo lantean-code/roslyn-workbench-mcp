@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
@@ -21,32 +22,30 @@ internal static class QueryResponseContractInspector
         typeof(IAsyncEnumerable<>),
     ];
 
-    public static IReadOnlyList<DiagnosticInfo> Inspect(RegisteredTool tool)
+    public static string? Inspect(RegisteredTool tool)
     {
         if (tool.Kind != ToolKind.Query
             || string.Equals(tool.Metadata.Name, "list-code-actions", StringComparison.Ordinal))
         {
-            return [];
+            return null;
         }
 
         var responseType = tool.ResponseType;
         if (IsBoundedCollection(responseType))
         {
-            return [];
+            return null;
         }
 
         if (IsRawCollection(responseType))
         {
-            var responseDiagnostic = CreateDiagnostic(
-                $"Tool '{tool.Metadata.Name}' publishes unbounded collection response '{responseType.Name}'. Prefer BoundedCollection<TItem> for agent-facing collections.");
-
-            return [responseDiagnostic];
+            return $"Response '{responseType.Name}' is an unbounded collection. Prefer BoundedCollection<TItem> for agent-facing collections.";
         }
 
         var offendingProperties = new List<string>();
         foreach (var property in responseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (IsRawCollection(property.PropertyType))
+            if (IsRawCollection(property.PropertyType)
+                && !HasQueryResponseCollectionSuppression(property))
             {
                 offendingProperties.Add(property.Name);
             }
@@ -54,26 +53,26 @@ internal static class QueryResponseContractInspector
 
         if (offendingProperties.Count == 0)
         {
-            return [];
+            return null;
         }
 
         var propertyNames = string.Join(", ", offendingProperties);
-        var diagnostic = CreateDiagnostic(
-            $"Tool '{tool.Metadata.Name}' publishes unbounded top-level collections on response '{responseType.Name}': {propertyNames}. Prefer BoundedCollection<TItem> for agent-facing top-level collections.");
-
-        return [diagnostic];
+        return $"Response '{responseType.Name}' publishes unbounded top-level collections: {propertyNames}. Prefer BoundedCollection<TItem> for agent-facing top-level collections.";
     }
 
-    private static DiagnosticInfo CreateDiagnostic(string message)
+    private static bool HasQueryResponseCollectionSuppression(PropertyInfo property)
     {
-        var diagnostic = new DiagnosticInfo
+        foreach (var suppression in property.GetCustomAttributes<UnconditionalSuppressMessageAttribute>(inherit: true))
         {
-            Id = "QueryResponseContract",
-            Severity = DiagnosticSeverity.Warning,
-            Message = message,
-        };
+            if (string.Equals(suppression.Category, "RoslynWorkbench.PluginAuthoring", StringComparison.Ordinal)
+                && (string.Equals(suppression.CheckId, "RWMCP014", StringComparison.Ordinal)
+                    || suppression.CheckId.StartsWith("RWMCP014:", StringComparison.Ordinal)))
+            {
+                return true;
+            }
+        }
 
-        return diagnostic;
+        return false;
     }
 
     private static bool IsRawCollection(Type type)

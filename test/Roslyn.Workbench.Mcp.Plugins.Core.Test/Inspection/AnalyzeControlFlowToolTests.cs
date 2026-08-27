@@ -7,6 +7,29 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeControlFlowToolTests
 {
     [Fact]
+    public void GIVEN_CollectionLimitsAreNullOrZero_WHEN_GettingEffectiveValues_THEN_ShouldUseDefaultsOrZero()
+    {
+        var target = new AnalyzeControlFlowRequest
+        {
+            Location = new LocationSelector(),
+            ExitsLimit = null,
+            ReturnsLimit = null,
+        };
+
+        target.EffectiveExitsLimit.Should().Be(100);
+        target.EffectiveReturnsLimit.Should().Be(100);
+
+        target = target with
+        {
+            ExitsLimit = 0,
+            ReturnsLimit = 0,
+        };
+
+        target.EffectiveExitsLimit.Should().Be(0);
+        target.EffectiveReturnsLimit.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new AnalyzeControlFlowTool();
@@ -319,29 +342,22 @@ public sealed class AnalyzeControlFlowToolTests
         var result = await target.ExecuteAsync(new AnalyzeControlFlowRequest
         {
             Location = new LocationSelector(),
+            ExitsLimit = 0,
+            ReturnsLimit = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data.Should().BeEquivalentTo(new ControlFlowAnalysisData
-        {
-            Region = region,
-            EntryReachable = true,
-            ExitReachable = true,
-            Exits =
-            [
-                new ControlFlowExit
-                {
-                    Kind = nameof(SyntaxKind.ReturnStatement),
-                    Location = projectedReturn,
-                },
-            ],
-            Returns =
-            [
-                projectedReturn,
-            ],
-        });
+        result.Data!.Region.Should().Be(region);
+        result.Data.EntryReachable.Should().BeTrue();
+        result.Data.ExitReachable.Should().BeTrue();
+        result.Data.Exits.Items.Should().BeEmpty();
+        result.Data.Exits.HasMore.Should().BeTrue();
+        result.Data.Exits.TotalCount.Should().Be(1);
+        result.Data.Returns.Items.Should().BeEmpty();
+        result.Data.Returns.HasMore.Should().BeTrue();
+        result.Data.Returns.TotalCount.Should().Be(1);
 
-        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(3));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Once);
     }
 
     [Fact]
@@ -398,20 +414,24 @@ public sealed class AnalyzeControlFlowToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data.Should().BeEquivalentTo(new ControlFlowAnalysisData
-        {
-            Region = region,
-            EntryReachable = true,
-            ExitReachable = true,
-            Exits =
-            [
+        var expectedExits = BoundedCollection.CreatePrebounded(
+            new[]
+            {
                 new ControlFlowExit
                 {
                     Kind = nameof(SyntaxKind.ReturnStatement),
                     Location = projectedExit,
                 },
-            ],
-            Returns = [],
+            },
+            totalCount: 1);
+
+        result.Data.Should().BeEquivalentTo(new ControlFlowAnalysisData
+        {
+            Region = region,
+            EntryReachable = true,
+            ExitReachable = true,
+            Exits = expectedExits,
+            Returns = BoundedCollection.CreatePrebounded(Array.Empty<ResolvedLocation>(), totalCount: 1),
         });
 
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(

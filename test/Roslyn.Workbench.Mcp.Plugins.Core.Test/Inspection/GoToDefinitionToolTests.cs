@@ -3,6 +3,22 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GoToDefinitionToolTests
 {
     [Fact]
+    public void GIVEN_DefinitionsLimitIsNullOrZero_WHEN_GettingEffectiveValue_THEN_ShouldUseDefaultOrZero()
+    {
+        var target = new GoToDefinitionRequest
+        {
+            Symbol = new SymbolSelector(),
+            DefinitionsLimit = null,
+        };
+
+        target.EffectiveDefinitionsLimit.Should().Be(32);
+
+        target = target with { DefinitionsLimit = 0 };
+
+        target.EffectiveDefinitionsLimit.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GoToDefinitionTool();
@@ -118,11 +134,14 @@ public sealed class GoToDefinitionToolTests
         var result = await target.ExecuteAsync(new GoToDefinitionRequest
         {
             Symbol = new SymbolSelector(),
+            DefinitionsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.Definitions.Should().HaveCount(2);
-        result.Data.Definitions.Select(item => item.Location!.Document!.Path).Should().Equal("A.cs", "C.cs");
+        result.Data!.Definitions.Items.Should().ContainSingle();
+        result.Data.Definitions.Items.Select(item => item.Location!.Document!.Path).Should().Equal("A.cs");
+        result.Data.Definitions.HasMore.Should().BeTrue();
+        result.Data.Definitions.TotalCount.Should().BeNull();
         result.Data.Symbol!.DisplayName.Should().Be("Formatter");
     }
 
@@ -170,9 +189,21 @@ public sealed class GoToDefinitionToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.Definitions.Should().ContainSingle();
-        result.Data.Definitions[0].IsMetadata.Should().BeTrue();
-        result.Data.Definitions[0].MetadataName.Should().Contain("string.ToUpperInvariant");
+        result.Data!.Definitions.Items.Should().ContainSingle();
+        result.Data.Definitions.Items[0].IsMetadata.Should().BeTrue();
+        result.Data.Definitions.Items[0].MetadataName.Should().Contain("string.ToUpperInvariant");
+        result.Data.Definitions.HasMore.Should().BeFalse();
+        result.Data.Definitions.TotalCount.Should().Be(1);
         result.Data.Symbol!.DisplayName.Should().Be("ToUpperInvariant");
+
+        var zeroLimitResult = await target.ExecuteAsync(new GoToDefinitionRequest
+        {
+            Symbol = new SymbolSelector(),
+            DefinitionsLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        zeroLimitResult.Data!.Definitions.Items.Should().BeEmpty();
+        zeroLimitResult.Data.Definitions.HasMore.Should().BeTrue();
+        zeroLimitResult.Data.Definitions.TotalCount.Should().Be(1);
     }
 }

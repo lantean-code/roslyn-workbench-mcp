@@ -13,5 +13,5 @@ internal sealed record DefinitionData : IQueryResponse
     /// <summary>
     /// Gets the resolved definitions.
     /// </summary>
-    public IReadOnlyList<DefinitionLocation> Definitions { get; init; } = [];
+    public BoundedCollection<DefinitionLocation> Definitions { get; init; } = BoundedCollection.Empty<DefinitionLocation>();
 }

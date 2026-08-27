@@ -1289,3 +1289,33 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"}}`
 
 **Outcome:** Succeeded and closed the solution Workspace at the original base snapshot with no transaction.
+
+### 159. `workspace-open`
+
+**Activity:** DOGFOOD-006 design discovery.
+
+**Purpose:** Open the trusted repository solution for semantic discovery of the bundled query-response contracts and their existing analyser and runtime-warning paths.
+
+**Request:** `{"alias":"dogfood-006-design-discovery","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents at Workspace epoch 5. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 160. `search-symbols`
+
+**Activity:** DOGFOOD-006 design discovery.
+
+**Purpose:** Semantically inventory the response DTOs in the bundled core plugin whose names end in `Data`, including the seven types reported by the runtime query-response inspector.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-design-discovery"},"query":"Data","kinds":["NamedType"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"symbolsLimit":100}`
+
+**Outcome:** Succeeded with all 39 matching named types. The results located `CodeContextData`, `ResolveSymbolData`, `SymbolInfoData`, `DefinitionData`, `ControlFlowAnalysisData`, `DataFlowAnalysisData` and `ControlFlowGraphData` in the bundled inspection contracts and confirmed their associated handler locations.
+
+### 161. `workspace-close`
+
+**Activity:** DOGFOOD-006 design discovery.
+
+**Purpose:** Close the read-only discovery Workspace after the response contracts, handlers and runtime warning path had been traced.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-design-discovery"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace at the unchanged epoch-5 snapshot with no transaction.

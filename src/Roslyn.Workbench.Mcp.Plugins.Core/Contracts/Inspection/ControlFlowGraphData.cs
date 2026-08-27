@@ -13,20 +13,10 @@ internal sealed record ControlFlowGraphData : IQueryResponse
     /// <summary>
     /// Gets the projected basic blocks.
     /// </summary>
-    public IReadOnlyList<BasicBlockInfo> Blocks { get; init; } = [];
-
-    /// <summary>
-    /// Gets a value indicating whether the basic block list was truncated.
-    /// </summary>
-    public bool BlocksTruncated { get; init; }
+    public BoundedCollection<BasicBlockInfo> Blocks { get; init; } = BoundedCollection.Empty<BasicBlockInfo>();
 
     /// <summary>
     /// Gets the projected flow regions.
     /// </summary>
-    public IReadOnlyList<FlowRegionInfo> Regions { get; init; } = [];
-
-    /// <summary>
-    /// Gets a value indicating whether the flow region list was truncated.
-    /// </summary>
-    public bool RegionsTruncated { get; init; }
+    public BoundedCollection<FlowRegionInfo> Regions { get; init; } = BoundedCollection.Empty<FlowRegionInfo>();
 }

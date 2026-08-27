@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("analyze-data-flow", "Analyze Data Flow", "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.")]
@@ -36,12 +38,13 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             return PluginExecutionResult.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region does not support data-flow analysis.");
         }
 
-        var variablesDeclared = CreateSymbolReferences(analysis.VariablesDeclared, context.WorkspaceResolver);
-        var readInside = CreateSymbolReferences(analysis.ReadInside, context.WorkspaceResolver);
-        var writtenInside = CreateSymbolReferences(analysis.WrittenInside, context.WorkspaceResolver);
-        var dataFlowsIn = CreateSymbolReferences(analysis.DataFlowsIn, context.WorkspaceResolver);
-        var dataFlowsOut = CreateSymbolReferences(analysis.DataFlowsOut, context.WorkspaceResolver);
-        var captured = CreateSymbolReferences(analysis.Captured, context.WorkspaceResolver);
+        var maxResults = request.EffectiveSymbolsPerCategoryLimit;
+        var variablesDeclared = CreateSymbolReferences(analysis.VariablesDeclared, maxResults, context.WorkspaceResolver);
+        var readInside = CreateSymbolReferences(analysis.ReadInside, maxResults, context.WorkspaceResolver);
+        var writtenInside = CreateSymbolReferences(analysis.WrittenInside, maxResults, context.WorkspaceResolver);
+        var dataFlowsIn = CreateSymbolReferences(analysis.DataFlowsIn, maxResults, context.WorkspaceResolver);
+        var dataFlowsOut = CreateSymbolReferences(analysis.DataFlowsOut, maxResults, context.WorkspaceResolver);
+        var captured = CreateSymbolReferences(analysis.Captured, maxResults, context.WorkspaceResolver);
         var data = new DataFlowAnalysisData
         {
             Region = resolvedRegion.ResolvedLocation,
@@ -56,15 +59,22 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         return PluginExecutionResult.Success(data);
     }
 
-    private static List<SymbolReference> CreateSymbolReferences(IEnumerable<ISymbol> symbols, IWorkspaceResolver workspaceResolver)
+    private static BoundedCollection<SymbolReference> CreateSymbolReferences(
+        ImmutableArray<ISymbol> symbols,
+        int maxResults,
+        IWorkspaceResolver workspaceResolver)
     {
         var references = new List<SymbolReference>();
         foreach (var symbol in symbols)
         {
+            if (references.Count == maxResults)
+            {
+                break;
+            }
+
             references.Add(workspaceResolver.CreateSymbolReference(symbol));
         }
 
-        return references;
+        return BoundedCollection.CreatePrebounded(references, symbols.Length);
     }
-
 }

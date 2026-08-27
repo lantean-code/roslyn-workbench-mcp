@@ -2,17 +2,22 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
-internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer
+internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer
 {
+    private const string _queryResponseContractRuleId = "RWMCP014";
+
     private readonly IPluginToolRegistrationMaterializer _toolRegistrationMaterializer;
     private readonly IPluginTransportSchemaPreflight _schemaPreflight;
+    private readonly ILogger<PluginCatalogEntryMaterializer> _logger;
 
     public PluginCatalogEntryMaterializer(
         IPluginToolRegistrationMaterializer toolRegistrationMaterializer,
-        IPluginTransportSchemaPreflight schemaPreflight)
+        IPluginTransportSchemaPreflight schemaPreflight,
+        ILogger<PluginCatalogEntryMaterializer> logger)
     {
         _toolRegistrationMaterializer = toolRegistrationMaterializer;
         _schemaPreflight = schemaPreflight;
+        _logger = logger;
     }
 
     [SuppressMessage(
@@ -36,8 +41,8 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
             }
 
             materialization = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
-            var diagnostics = CreateDiagnostics(materialization);
-            var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, diagnostics);
+            ReportQueryResponseContractWarnings(plugin.Metadata.PluginId, materialization.Tools);
+            var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, materialization.Diagnostics);
 
             return new PluginCatalogEntryMaterialization
             {
@@ -92,14 +97,34 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         return $"{message} Plugin service cleanup also failed because {disposalException.GetType().Name} was raised.";
     }
 
-    private static DiagnosticInfo[] CreateDiagnostics(PluginMaterializationResult result)
+    private void ReportQueryResponseContractWarnings(
+        string pluginId,
+        IReadOnlyList<IRegisteredPluginTool> tools)
     {
-        var diagnostics = new List<DiagnosticInfo>(result.Diagnostics);
-        foreach (var tool in result.Tools)
+        foreach (var tool in tools)
         {
-            diagnostics.AddRange(QueryResponseContractInspector.Inspect(tool.Tool));
+            var registeredTool = tool.Tool;
+            var warning = QueryResponseContractInspector.Inspect(registeredTool);
+            if (warning is not null)
+            {
+                LogQueryResponseContractWarning(
+                    _logger,
+                    _queryResponseContractRuleId,
+                    pluginId,
+                    registeredTool.Metadata.Name,
+                    warning);
+            }
         }
-
-        return diagnostics.ToArray();
     }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Warning,
+        Message = "Plugin authoring warning {RuleId} for plugin {PluginId}, tool {ToolName}: {WarningMessage}")]
+    private static partial void LogQueryResponseContractWarning(
+        ILogger logger,
+        string ruleId,
+        string pluginId,
+        string toolName,
+        string warningMessage);
 }

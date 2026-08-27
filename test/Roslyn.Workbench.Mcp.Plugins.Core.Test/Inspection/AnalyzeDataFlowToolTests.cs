@@ -6,6 +6,22 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeDataFlowToolTests
 {
     [Fact]
+    public void GIVEN_SymbolsPerCategoryLimitIsNullOrZero_WHEN_GettingEffectiveValue_THEN_ShouldUseDefaultOrZero()
+    {
+        var target = new AnalyzeDataFlowRequest
+        {
+            Location = new LocationSelector(),
+            SymbolsPerCategoryLimit = null,
+        };
+
+        target.EffectiveSymbolsPerCategoryLimit.Should().Be(50);
+
+        target = target with { SymbolsPerCategoryLimit = 0 };
+
+        target.EffectiveSymbolsPerCategoryLimit.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new AnalyzeDataFlowTool();
@@ -315,33 +331,17 @@ public sealed class AnalyzeDataFlowToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        var getReference = SelectorTestFactory.CreateSymbolReference("get", SymbolKind.Local);
+        var trimmedReference = SelectorTestFactory.CreateSymbolReference("trimmed", SymbolKind.Local);
         result.Data.Should().BeEquivalentTo(new DataFlowAnalysisData
         {
             Region = region,
-            VariablesDeclared =
-            [
-                SelectorTestFactory.CreateSymbolReference("get", SymbolKind.Local),
-            ],
-            ReadInside =
-            [
-                SelectorTestFactory.CreateSymbolReference("trimmed", SymbolKind.Local),
-            ],
-            WrittenInside =
-            [
-                SelectorTestFactory.CreateSymbolReference("get", SymbolKind.Local),
-            ],
-            DataFlowsIn =
-            [
-                SelectorTestFactory.CreateSymbolReference("trimmed", SymbolKind.Local),
-            ],
-            DataFlowsOut =
-            [
-                SelectorTestFactory.CreateSymbolReference("get", SymbolKind.Local),
-            ],
-            Captured =
-            [
-                SelectorTestFactory.CreateSymbolReference("trimmed", SymbolKind.Local),
-            ],
+            VariablesDeclared = BoundedCollection.CreatePrebounded([getReference], totalCount: 1),
+            ReadInside = BoundedCollection.CreatePrebounded([trimmedReference], totalCount: 1),
+            WrittenInside = BoundedCollection.CreatePrebounded([getReference], totalCount: 1),
+            DataFlowsIn = BoundedCollection.CreatePrebounded([trimmedReference], totalCount: 1),
+            DataFlowsOut = BoundedCollection.CreatePrebounded([getReference], totalCount: 1),
+            Captured = BoundedCollection.CreatePrebounded([trimmedReference], totalCount: 1),
         });
     }
 
@@ -392,7 +392,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Region.Should().Be(region);
-        result.Data.ReadInside.Should().ContainSingle(item => item.DisplayName == "value");
+        result.Data.ReadInside.Items.Should().ContainSingle(item => item.DisplayName == "value");
     }
 
     [Fact]
@@ -444,11 +444,14 @@ public sealed class AnalyzeDataFlowToolTests
         var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
         {
             Location = new LocationSelector(),
+            SymbolsPerCategoryLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Region.Should().Be(region);
-        result.Data.VariablesDeclared.Select(item => item.DisplayName).Should().Equal("first", "second");
+        result.Data.VariablesDeclared.Items.Select(item => item.DisplayName).Should().Equal("first");
+        result.Data.VariablesDeclared.HasMore.Should().BeTrue();
+        result.Data.VariablesDeclared.TotalCount.Should().Be(2);
     }
 
     [Fact]

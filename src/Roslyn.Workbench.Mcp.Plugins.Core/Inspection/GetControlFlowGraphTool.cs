@@ -67,23 +67,30 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
-        var maxBlocks = request.MaxBlocks;
-        var blocks = CreateBlocks(graph, maxBlocks, request.MaxOperationsPerBlock, context.WorkspaceResolver, cancellationToken);
-        var regions = CreateRegions(graph, request.MaxRegions, out var regionsTruncated);
+        var blocks = CreateBlocks(
+            graph,
+            request.EffectiveMaxBlocks,
+            request.EffectiveMaxOperationsPerBlock,
+            context.WorkspaceResolver,
+            cancellationToken);
+        var regions = CreateRegions(graph, request.EffectiveMaxRegions);
 
         var data = new ControlFlowGraphData
         {
             Owner = context.WorkspaceResolver.CreateSymbolReference(ownerSymbol),
             Blocks = blocks,
-            BlocksTruncated = blocks.Count < graph.Blocks.Length,
             Regions = regions,
-            RegionsTruncated = regionsTruncated,
         };
 
         return PluginExecutionResult.Success(data);
     }
 
-    private static List<BasicBlockInfo> CreateBlocks(ControlFlowGraph graph, int maxBlocks, int maxOperationsPerBlock, IWorkspaceResolver workspaceResolver, CancellationToken cancellationToken)
+    private static BoundedCollection<BasicBlockInfo> CreateBlocks(
+        ControlFlowGraph graph,
+        int maxBlocks,
+        int maxOperationsPerBlock,
+        IWorkspaceResolver workspaceResolver,
+        CancellationToken cancellationToken)
     {
         var blocks = new List<BasicBlockInfo>();
         foreach (var block in graph.Blocks)
@@ -124,15 +131,15 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             blocks.Add(blockInfo);
         }
 
-        return blocks;
+        return BoundedCollection.CreatePrebounded(blocks, graph.Blocks.Length);
     }
 
-    private static List<FlowRegionInfo> CreateRegions(ControlFlowGraph graph, int maxRegions, out bool hasMore)
+    private static BoundedCollection<FlowRegionInfo> CreateRegions(ControlFlowGraph graph, int maxRegions)
     {
         var regions = new List<FlowRegionInfo>();
         var nextId = 0;
-        hasMore = !AddRegion(graph.Root, regions, maxRegions, ref nextId);
-        return regions;
+        var hasMore = !AddRegion(graph.Root, regions, maxRegions, ref nextId);
+        return BoundedCollection.CreatePrebounded(regions, hasMore);
     }
 
     private static bool AddRegion(ControlFlowRegion region, ICollection<FlowRegionInfo> regions, int maxRegions, ref int nextId)

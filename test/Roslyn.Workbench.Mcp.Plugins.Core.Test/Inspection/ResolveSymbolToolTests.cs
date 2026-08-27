@@ -5,6 +5,22 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class ResolveSymbolToolTests
 {
     [Fact]
+    public void GIVEN_DeclarationsLimitIsNullOrZero_WHEN_GettingEffectiveValue_THEN_ShouldUseDefaultOrZero()
+    {
+        var target = new ResolveSymbolRequest
+        {
+            Location = new LocationSelector(),
+            DeclarationsLimit = null,
+        };
+
+        target.EffectiveDeclarationsLimit.Should().Be(32);
+
+        target = target with { DeclarationsLimit = 0 };
+
+        target.EffectiveDeclarationsLimit.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_SnapshotValidationHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new ResolveSymbolTool();
@@ -230,12 +246,15 @@ public sealed class ResolveSymbolToolTests
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
             Location = requestLocation,
+            DeclarationsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Formatter");
         result.Data.Selector!.Location!.Span!.Range.Start.Should().Be(firstSourceLocation.SourceSpan.Start);
-        result.Data.Declarations.Select(item => item.Document!.Path).Should().Equal(expectedPaths!);
+        result.Data.Declarations.Items.Select(item => item.Document!.Path).Should().Equal(expectedPaths!.Take(1));
+        result.Data.Declarations.HasMore.Should().BeTrue();
+        result.Data.Declarations.TotalCount.Should().BeNull();
     }
 
     [Fact]
@@ -316,6 +335,8 @@ public sealed class ResolveSymbolToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("ToUpperInvariant");
         result.Data.Selector!.Location!.Span!.Range.Start.Should().Be(usageLocation.SourceSpan.Start);
-        result.Data.Declarations.Should().BeEmpty();
+        result.Data.Declarations.Items.Should().BeEmpty();
+        result.Data.Declarations.HasMore.Should().BeFalse();
+        result.Data.Declarations.TotalCount.Should().Be(0);
     }
 }

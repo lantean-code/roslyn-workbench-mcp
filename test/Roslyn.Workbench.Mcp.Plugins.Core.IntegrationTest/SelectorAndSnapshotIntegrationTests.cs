@@ -66,7 +66,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
                 SymbolsLimit = 1,
             }, TestContext.Current.CancellationToken);
 
-        definition.Data!.Definitions.Should().ContainSingle(static location => location.IsMetadata);
+        definition.Data!.Definitions.Items.Should().ContainSingle(static location => location.IsMetadata);
         search.Data!.Symbols.Items.Should().HaveCount(1);
         search.Data.Symbols.HasMore.Should().BeTrue();
     }

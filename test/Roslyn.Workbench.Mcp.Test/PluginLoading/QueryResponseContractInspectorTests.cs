@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class QueryResponseContractInspectorTests
@@ -14,7 +16,7 @@ public sealed class QueryResponseContractInspectorTests
 
         var result = QueryResponseContractInspector.Inspect(tool);
 
-        result.Should().BeEmpty();
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -24,7 +26,17 @@ public sealed class QueryResponseContractInspectorTests
 
         var result = QueryResponseContractInspector.Inspect(tool);
 
-        result.Should().BeEmpty();
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_FixedCollectionHasExplicitSuppression_WHEN_Inspecting_THEN_ShouldReturnNoDiagnostics()
+    {
+        var tool = CreateTool(ToolKind.Query, "query", typeof(FixedCollectionResponse));
+
+        var result = QueryResponseContractInspector.Inspect(tool);
+
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -37,7 +49,7 @@ public sealed class QueryResponseContractInspectorTests
 
         var result = QueryResponseContractInspector.Inspect(tool);
 
-        result.Should().BeEmpty();
+        result.Should().BeNull();
     }
 
     [Theory]
@@ -49,13 +61,14 @@ public sealed class QueryResponseContractInspectorTests
     public void GIVEN_RawCollectionResponse_WHEN_Inspecting_THEN_ShouldReportDiagnostic(
         Type responseType)
     {
+        ArgumentNullException.ThrowIfNull(responseType);
+
         var tool = CreateTool(ToolKind.Query, "query", responseType);
 
         var result = QueryResponseContractInspector.Inspect(tool);
 
-        var diagnostic = result.Should().ContainSingle().Subject;
-        diagnostic.Id.Should().Be("QueryResponseContract");
-        diagnostic.Message.Should().Contain("unbounded collection response");
+        result.Should().Contain("unbounded collection");
+        result.Should().Contain(responseType.Name);
     }
 
     [Fact]
@@ -65,19 +78,16 @@ public sealed class QueryResponseContractInspectorTests
 
         var result = QueryResponseContractInspector.Inspect(tool);
 
-        var diagnostic = result.Should().ContainSingle().Subject;
-        diagnostic.Id.Should().Be("QueryResponseContract");
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
-        diagnostic.Message.Should().Contain("ArrayItems");
-        diagnostic.Message.Should().Contain("ReadOnlyListItems");
-        diagnostic.Message.Should().Contain("ReadOnlyCollectionItems");
-        diagnostic.Message.Should().Contain("EnumerableItems");
-        diagnostic.Message.Should().Contain("CollectionItems");
-        diagnostic.Message.Should().Contain("ListInterfaceItems");
-        diagnostic.Message.Should().Contain("ListItems");
-        diagnostic.Message.Should().Contain("SetItems");
-        diagnostic.Message.Should().Contain("DictionaryItems");
-        diagnostic.Message.Should().Contain("AsyncItems");
+        result.Should().Contain("ArrayItems");
+        result.Should().Contain("ReadOnlyListItems");
+        result.Should().Contain("ReadOnlyCollectionItems");
+        result.Should().Contain("EnumerableItems");
+        result.Should().Contain("CollectionItems");
+        result.Should().Contain("ListInterfaceItems");
+        result.Should().Contain("ListItems");
+        result.Should().Contain("SetItems");
+        result.Should().Contain("DictionaryItems");
+        result.Should().Contain("AsyncItems");
     }
 
     private static RegisteredTool CreateTool(ToolKind kind, string name, Type responseType)
@@ -101,6 +111,15 @@ public sealed class QueryResponseContractInspectorTests
         public int Count { get; init; }
 
         public BoundedCollection<string> BoundedItems { get; init; } = BoundedCollection.Empty<string>();
+    }
+
+    private sealed record FixedCollectionResponse
+    {
+        [UnconditionalSuppressMessage(
+            "RoslynWorkbench.PluginAuthoring",
+            "RWMCP014:Bound agent-facing query collections",
+            Justification = "The fixture models a known fixed collection.")]
+        public IReadOnlyList<string> FixedItems { get; init; } = [];
     }
 
     private sealed record RawCollectionResponse

@@ -1,7 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- Bundled contracts are intentionally internal; this project enables only the response-bounding authoring rule. -->
+    <NoWarn>$(NoWarn);RWMCP001;RWMCP002;RWMCP003;RWMCP004;RWMCP005;RWMCP006;RWMCP007;RWMCP008;RWMCP009;RWMCP010;RWMCP011;RWMCP012;RWMCP013;RWMCP015;RWMCP016;RWMCP017;RWMCP018;RWMCP019;RWMCP020;RWMCP021;RWMCP022;RWMCP023</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
     <PackageReference Include="AsyncFixer"

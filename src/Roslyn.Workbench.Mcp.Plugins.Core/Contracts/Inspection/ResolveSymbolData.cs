@@ -18,5 +18,5 @@ internal sealed record ResolveSymbolData : IQueryResponse
     /// <summary>
     /// Gets the source declarations for the symbol.
     /// </summary>
-    public IReadOnlyList<ResolvedLocation> Declarations { get; init; } = [];
+    public BoundedCollection<ResolvedLocation> Declarations { get; init; } = BoundedCollection.Empty<ResolvedLocation>();
 }

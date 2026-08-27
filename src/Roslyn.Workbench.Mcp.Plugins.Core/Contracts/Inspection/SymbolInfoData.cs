@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 /// <summary>
@@ -18,6 +20,10 @@ internal sealed record SymbolInfoData : IQueryResponse
     /// <summary>
     /// Gets the symbol modifiers.
     /// </summary>
+    [UnconditionalSuppressMessage(
+        "RoslynWorkbench.PluginAuthoring",
+        "RWMCP014:Bound agent-facing query collections",
+        Justification = "Roslyn symbol modifiers are a fixed, small language-defined set rather than an unbounded result collection.")]
     public IReadOnlyList<string> Modifiers { get; init; } = [];
 
     /// <summary>
@@ -28,7 +34,7 @@ internal sealed record SymbolInfoData : IQueryResponse
     /// <summary>
     /// Gets the callable parameter information, when applicable.
     /// </summary>
-    public IReadOnlyList<ParameterInfo>? Parameters { get; init; }
+    public BoundedCollection<ParameterInfo>? Parameters { get; init; }
 
     /// <summary>
     /// Gets the return type information, when applicable.
@@ -43,5 +49,5 @@ internal sealed record SymbolInfoData : IQueryResponse
     /// <summary>
     /// Gets the source declarations for the symbol.
     /// </summary>
-    public IReadOnlyList<ResolvedLocation> Declarations { get; init; } = [];
+    public BoundedCollection<ResolvedLocation> Declarations { get; init; } = BoundedCollection.Empty<ResolvedLocation>();
 }

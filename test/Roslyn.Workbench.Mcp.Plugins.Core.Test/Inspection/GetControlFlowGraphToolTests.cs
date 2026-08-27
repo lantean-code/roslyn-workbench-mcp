@@ -10,6 +10,32 @@ public sealed class GetControlFlowGraphToolTests
     private const int _methodScope = 0;
 
     [Fact]
+    public void GIVEN_GraphLimitsAreNullOrZero_WHEN_GettingEffectiveValues_THEN_ShouldUseDefaultsOrZero()
+    {
+        var target = new GetControlFlowGraphRequest
+        {
+            MaxBlocks = null,
+            MaxRegions = null,
+            MaxOperationsPerBlock = null,
+        };
+
+        target.EffectiveMaxBlocks.Should().Be(64);
+        target.EffectiveMaxRegions.Should().Be(32);
+        target.EffectiveMaxOperationsPerBlock.Should().Be(32);
+
+        target = target with
+        {
+            MaxBlocks = 0,
+            MaxRegions = 0,
+            MaxOperationsPerBlock = 0,
+        };
+
+        target.EffectiveMaxBlocks.Should().Be(0);
+        target.EffectiveMaxRegions.Should().Be(0);
+        target.EffectiveMaxOperationsPerBlock.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GIVEN_SymbolAndLocationAreBothMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new GetControlFlowGraphTool();
@@ -233,8 +259,9 @@ public sealed class GetControlFlowGraphToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.Regions.Should().ContainSingle();
-        result.Data.RegionsTruncated.Should().BeTrue();
+        result.Data!.Regions.Items.Should().ContainSingle();
+        result.Data.Regions.HasMore.Should().BeTrue();
+        result.Data.Regions.TotalCount.Should().BeNull();
     }
 
     [Fact]
@@ -290,8 +317,9 @@ public sealed class GetControlFlowGraphToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.Regions.Should().HaveCountGreaterThan(1);
-        result.Data.RegionsTruncated.Should().BeFalse();
+        result.Data!.Regions.Items.Should().HaveCountGreaterThan(1);
+        result.Data.Regions.HasMore.Should().BeFalse();
+        result.Data.Regions.TotalCount.Should().Be(result.Data.Regions.Items.Count);
     }
 
     [Fact]
@@ -555,10 +583,12 @@ public sealed class GetControlFlowGraphToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Owner!.DisplayName.Should().Contain("Formatter");
-        result.Data.Blocks.Should().ContainSingle();
-        result.Data.BlocksTruncated.Should().BeTrue();
-        result.Data.Regions.Should().ContainSingle();
-        result.Data.RegionsTruncated.Should().BeFalse();
+        result.Data.Blocks.Items.Should().ContainSingle();
+        result.Data.Blocks.HasMore.Should().BeTrue();
+        result.Data.Blocks.TotalCount.Should().BeGreaterThan(1);
+        result.Data.Regions.Items.Should().ContainSingle();
+        result.Data.Regions.HasMore.Should().BeFalse();
+        result.Data.Regions.TotalCount.Should().Be(1);
     }
 
     [Theory]
@@ -647,7 +677,7 @@ public sealed class GetControlFlowGraphToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.Blocks.Should().NotBeEmpty();
+        result.Data!.Blocks.Items.Should().NotBeEmpty();
         result.Data.Owner.Should().NotBeNull();
         result.Data.Owner.DisplayName.Should().Be(expectedOwner);
     }
@@ -755,7 +785,7 @@ public sealed class GetControlFlowGraphToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        var boundedBlock = result.Data!.Blocks.Single(item => item.Operations.HasMore);
+        var boundedBlock = result.Data!.Blocks.Items.Single(item => item.Operations.HasMore);
         boundedBlock.Operations.Items.Should().ContainSingle();
         boundedBlock.Operations.Items[0].Kind.Should().NotBeEmpty();
         boundedBlock.Operations.Items[0].Location.Should().NotBeNull();
@@ -769,7 +799,7 @@ public sealed class GetControlFlowGraphToolTests
             MaxRegions = 32,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        var zeroOperationsBlock = zeroOperationsResult.Data!.Blocks.First(item => item.Operations.HasMore);
+        var zeroOperationsBlock = zeroOperationsResult.Data!.Blocks.Items.First(item => item.Operations.HasMore);
         zeroOperationsBlock.Operations.Items.Should().BeEmpty();
     }
 }

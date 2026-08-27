@@ -134,7 +134,7 @@ public sealed class SemanticInspectionIntegrationTests
         asyncDiagnostics.Data!.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer01");
         asyncDiagnostics.Data.Findings.Items.Should().Contain(static finding => finding.Diagnostic!.Id == "AsyncFixer03");
         operation.Data!.Root!.Kind.Should().Contain("Invocation");
-        flow.Data!.Exits.Should().NotBeEmpty();
+        flow.Data!.Exits.Items.Should().NotBeEmpty();
         flow.Data.Region!.Span!.Start.Should().Be(controlFlowLocation.Span!.Range.Start);
         flow.Data.Region.Span.Length.Should().Be(controlFlowLocation.Span.Range.Length);
         partialFlow.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
@@ -142,12 +142,12 @@ public sealed class SemanticInspectionIntegrationTests
         dataFlow.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         dataFlow.Data!.Region!.Span!.Start.Should().Be(dataFlowLocation.Span!.Range.Start);
         dataFlow.Data.Region.Span.Length.Should().Be(dataFlowLocation.Span.Range.Length);
-        dataFlow.Data.ReadInside.Select(static symbol => symbol.DisplayName).Should().Contain("trimmed");
-        exceptionalGraph.Data!.Regions.Select(static region => region.Kind).Should().Contain(static kind => kind.Contains("Try", StringComparison.Ordinal) || kind.Contains("Catch", StringComparison.Ordinal) || kind.Contains("Finally", StringComparison.Ordinal));
-        boundedGraph.Data!.Blocks.Should().HaveCount(1);
-        boundedGraph.Data.BlocksTruncated.Should().BeTrue();
+        dataFlow.Data.ReadInside.Items.Select(static symbol => symbol.DisplayName).Should().Contain("trimmed");
+        exceptionalGraph.Data!.Regions.Items.Select(static region => region.Kind).Should().Contain(static kind => kind.Contains("Try", StringComparison.Ordinal) || kind.Contains("Catch", StringComparison.Ordinal) || kind.Contains("Finally", StringComparison.Ordinal));
+        boundedGraph.Data!.Blocks.Items.Should().HaveCount(1);
+        boundedGraph.Data.Blocks.HasMore.Should().BeTrue();
         locationGraph.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         locationGraph.Data!.Owner!.DisplayName.Should().Contain("Analyse");
-        locationGraph.Data.Blocks.Should().NotBeEmpty();
+        locationGraph.Data.Blocks.Items.Should().NotBeEmpty();
     }
 }

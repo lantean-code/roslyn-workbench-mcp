@@ -14,12 +14,20 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var resolvedLocation = locationResolution.Value;
 
         var enclosingSymbols = request.IncludeEnclosingSymbols
-            ? GetEnclosingSymbols(resolvedLocation.SemanticModel, resolvedLocation.Node, context)
-            : [];
+            ? GetEnclosingSymbols(
+                resolvedLocation.SemanticModel,
+                resolvedLocation.Node,
+                request.EffectiveEnclosingSymbolsLimit,
+                context)
+            : BoundedCollection.Empty<SymbolReference>();
 
         var diagnostics = request.IncludeDiagnostics
-            ? CreateDiagnostics(resolvedLocation, context, cancellationToken)
-            : [];
+            ? CreateDiagnostics(
+                resolvedLocation,
+                request.EffectiveDiagnosticsLimit,
+                context,
+                cancellationToken)
+            : BoundedCollection.Empty<DiagnosticInfo>();
 
         var text = await resolvedLocation.Document.GetTextAsync(cancellationToken);
         var lines = text.Lines;
@@ -46,9 +54,14 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         return PluginExecutionResult.Success(data);
     }
 
-    private static List<SymbolReference> GetEnclosingSymbols(SemanticModel semanticModel, SyntaxNode node, IQueryContext context)
+    private static BoundedCollection<SymbolReference> GetEnclosingSymbols(
+        SemanticModel semanticModel,
+        SyntaxNode node,
+        int maxResults,
+        IQueryContext context)
     {
         var symbols = new List<SymbolReference>();
+        var totalCount = 0;
         for (var current = semanticModel.GetEnclosingSymbol(node.SpanStart); current is not null; current = current.ContainingSymbol)
         {
             if (current is INamespaceSymbol { IsGlobalNamespace: true })
@@ -56,22 +69,41 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                 continue;
             }
 
-            symbols.Add(context.WorkspaceResolver.CreateSymbolReference(current));
+            totalCount++;
+            if (symbols.Count < maxResults)
+            {
+                symbols.Add(context.WorkspaceResolver.CreateSymbolReference(current));
+            }
         }
 
-        return symbols;
+        return BoundedCollection.CreatePrebounded(symbols, totalCount);
     }
 
-    private static DiagnosticInfo[] CreateDiagnostics(ResolvedCodeContext resolvedLocation, IQueryContext context, CancellationToken cancellationToken)
+    private static BoundedCollection<DiagnosticInfo> CreateDiagnostics(
+        ResolvedCodeContext resolvedLocation,
+        int maxResults,
+        IQueryContext context,
+        CancellationToken cancellationToken)
     {
         var sourceDiagnostics = resolvedLocation.SemanticModel.GetDiagnostics(resolvedLocation.Location.SourceSpan, cancellationToken);
         var uniqueDiagnostics = new HashSet<Diagnostic>(DiagnosticLocationComparer.Instance);
-        var diagnostics = new List<DiagnosticInfo>();
         foreach (var diagnostic in sourceDiagnostics)
         {
-            if (!uniqueDiagnostics.Add(diagnostic))
+            uniqueDiagnostics.Add(diagnostic);
+        }
+
+        var orderedDiagnostics = uniqueDiagnostics
+            .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
+            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
+            .ToArray();
+
+        var diagnostics = new List<DiagnosticInfo>();
+        foreach (var diagnostic in orderedDiagnostics)
+        {
+            if (diagnostics.Count == maxResults)
             {
-                continue;
+                break;
             }
 
             diagnostics.Add(new DiagnosticInfo
@@ -83,11 +115,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             });
         }
 
-        return diagnostics
-            .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
-            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
-            .ToArray();
+        return BoundedCollection.CreatePrebounded(diagnostics, orderedDiagnostics.Length);
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedCodeContext, CodeContextData>> ResolveLocationAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)

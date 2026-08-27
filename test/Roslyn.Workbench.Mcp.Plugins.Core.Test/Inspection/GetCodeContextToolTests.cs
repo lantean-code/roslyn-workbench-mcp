@@ -12,10 +12,23 @@ public sealed class GetCodeContextToolTests
             Location = new LocationSelector(),
             BeforeLines = null,
             AfterLines = null,
+            EnclosingSymbolsLimit = null,
+            DiagnosticsLimit = null,
         };
 
         target.EffectiveBeforeLines.Should().Be(10);
         target.EffectiveAfterLines.Should().Be(10);
+        target.EffectiveEnclosingSymbolsLimit.Should().Be(16);
+        target.EffectiveDiagnosticsLimit.Should().Be(50);
+
+        target = target with
+        {
+            EnclosingSymbolsLimit = 0,
+            DiagnosticsLimit = 0,
+        };
+
+        target.EffectiveEnclosingSymbolsLimit.Should().Be(0);
+        target.EffectiveDiagnosticsLimit.Should().Be(0);
     }
 
     [Fact]
@@ -218,13 +231,29 @@ public sealed class GetCodeContextToolTests
             IncludeEnclosingSymbols = true,
             BeforeLines = 1,
             AfterLines = 1,
+            EnclosingSymbolsLimit = 1,
+            DiagnosticsLimit = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Text.Should().Contain("var unused = 42;");
-        result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter.Run(string)");
-        result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter");
-        result.Data.Diagnostics.Select(item => item.Id).Should().Contain("CS0219");
+        result.Data.EnclosingSymbols.Items.Select(item => item.DisplayName).Should().Equal("Formatter.Run(string)");
+        result.Data.EnclosingSymbols.HasMore.Should().BeTrue();
+        result.Data.EnclosingSymbols.TotalCount.Should().Be(4);
+        result.Data.Diagnostics.Items.Should().BeEmpty();
+        result.Data.Diagnostics.HasMore.Should().BeTrue();
+        result.Data.Diagnostics.TotalCount.Should().Be(1);
+
+        var projectedDiagnosticsResult = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+            IncludeDiagnostics = true,
+            DiagnosticsLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        projectedDiagnosticsResult.Data!.Diagnostics.Items.Select(item => item.Id).Should().Equal("CS0219");
+        projectedDiagnosticsResult.Data.Diagnostics.HasMore.Should().BeFalse();
+        projectedDiagnosticsResult.Data.Diagnostics.TotalCount.Should().Be(1);
     }
 
     [Theory]

@@ -13,30 +13,30 @@ internal sealed record DataFlowAnalysisData : IQueryResponse
     /// <summary>
     /// Gets the variables declared within the region.
     /// </summary>
-    public IReadOnlyList<SymbolReference> VariablesDeclared { get; init; } = [];
+    public BoundedCollection<SymbolReference> VariablesDeclared { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the symbols read within the region.
     /// </summary>
-    public IReadOnlyList<SymbolReference> ReadInside { get; init; } = [];
+    public BoundedCollection<SymbolReference> ReadInside { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the symbols written within the region.
     /// </summary>
-    public IReadOnlyList<SymbolReference> WrittenInside { get; init; } = [];
+    public BoundedCollection<SymbolReference> WrittenInside { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the symbols flowing into the region.
     /// </summary>
-    public IReadOnlyList<SymbolReference> DataFlowsIn { get; init; } = [];
+    public BoundedCollection<SymbolReference> DataFlowsIn { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the symbols flowing out of the region.
     /// </summary>
-    public IReadOnlyList<SymbolReference> DataFlowsOut { get; init; } = [];
+    public BoundedCollection<SymbolReference> DataFlowsOut { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the captured symbols.
     /// </summary>
-    public IReadOnlyList<SymbolReference> Captured { get; init; } = [];
+    public BoundedCollection<SymbolReference> Captured { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

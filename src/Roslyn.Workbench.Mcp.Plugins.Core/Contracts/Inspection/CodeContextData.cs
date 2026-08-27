@@ -18,10 +18,10 @@ internal sealed record CodeContextData : IQueryResponse
     /// <summary>
     /// Gets the enclosing symbol chain from the innermost symbol outward.
     /// </summary>
-    public IReadOnlyList<SymbolReference> EnclosingSymbols { get; init; } = [];
+    public BoundedCollection<SymbolReference> EnclosingSymbols { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the diagnostics projected for the selected location.
     /// </summary>
-    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
+    public BoundedCollection<DiagnosticInfo> Diagnostics { get; init; } = BoundedCollection.Empty<DiagnosticInfo>();
 }

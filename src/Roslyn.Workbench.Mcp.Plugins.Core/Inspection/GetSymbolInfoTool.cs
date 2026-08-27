@@ -14,52 +14,73 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
         }
 
         var symbol = symbolResolution.Value;
-        IReadOnlyList<ParameterInfo>? parameters = null;
+        BoundedCollection<ParameterInfo>? parameters = null;
         ContractTypeInfo? returnType = null;
         if (symbol is IMethodSymbol methodSymbol)
         {
             var projectedParameters = new List<ParameterInfo>();
             foreach (var parameter in methodSymbol.Parameters)
             {
+                if (projectedParameters.Count == request.EffectiveParametersLimit)
+                {
+                    break;
+                }
+
                 projectedParameters.Add(InspectionProjectionFactory.CreateParameterInfo(parameter));
             }
 
-            parameters = projectedParameters;
+            parameters = BoundedCollection.CreatePrebounded(projectedParameters, methodSymbol.Parameters.Length);
             returnType = InspectionProjectionFactory.CreateTypeInfo(methodSymbol.ReturnType);
         }
 
-        var declarations = new List<ResolvedLocation>();
-        foreach (var location in symbol.Locations)
-        {
-            if (!location.IsInSource)
-            {
-                continue;
-            }
-
-            var declaration = context.WorkspaceResolver.CreateResolvedLocation(location);
-            if (declaration is not null)
-            {
-                declarations.Add(declaration);
-            }
-        }
-
-        var orderedDeclarations = declarations
-            .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static location => location.Span?.Start)
-            .ToArray();
+        var modifiers = InspectionProjectionFactory.GetModifiers(symbol);
+        var declarations = CreateDeclarations(
+            symbol,
+            request.EffectiveDeclarationsLimit,
+            context.WorkspaceResolver);
 
         var data = new SymbolInfoData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Accessibility = symbol.DeclaredAccessibility.ToString(),
-            Modifiers = InspectionProjectionFactory.GetModifiers(symbol),
+            Modifiers = modifiers,
             Type = InspectionProjectionFactory.CreateAssociatedTypeInfo(symbol),
             Parameters = parameters,
             ReturnType = returnType,
             Documentation = request.IncludeDocumentation ? symbol.GetDocumentationCommentXml(cancellationToken: cancellationToken) : null,
-            Declarations = orderedDeclarations,
+            Declarations = declarations,
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static BoundedCollection<ResolvedLocation> CreateDeclarations(
+        ISymbol symbol,
+        int maxResults,
+        IWorkspaceResolver workspaceResolver)
+    {
+        var orderedLocations = symbol.Locations
+            .Where(static location => location.IsInSource)
+            .OrderBy(static location => location.SourceTree?.FilePath, StringComparer.Ordinal)
+            .ThenBy(static location => location.SourceSpan.Start);
+
+        var declarations = new List<ResolvedLocation>();
+        foreach (var location in orderedLocations)
+        {
+            var declaration = workspaceResolver.CreateResolvedLocation(location);
+            if (declaration is null)
+            {
+                continue;
+            }
+
+            if (declarations.Count == maxResults)
+            {
+                return BoundedCollection.CreatePrebounded(declarations, hasMore: true);
+            }
+
+            declarations.Add(declaration);
+        }
+
+        return BoundedCollection.CreatePrebounded(declarations, hasMore: false);
     }
 }

@@ -19,9 +19,249 @@ public sealed class SearchSymbolsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Project>, SymbolSearchData>(expected));
 
-        var result = await target.ExecuteAsync(new SearchSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = new ProjectSelector
+                {
+                    Name = "Project",
+                },
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
+    {
+        var target = new SearchSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var expected = PluginExecutionResult.Rejected<SymbolSearchData>(new PluginExecutionError
+        {
+            Code = "DocumentNotFound",
+            Message = "DocumentNotFound",
+        });
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocument<SymbolSearchData>(
+                It.IsAny<DocumentSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Rejected<Document, SymbolSearchData>(expected));
+
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "AlphaTwo.cs",
+                },
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Should().BeEquivalentTo(expected);
+        queryContextMocks.RequestResolver.Verify(item => item.ResolveProjects<SymbolSearchData>(
+            It.IsAny<ScopeSelector?>(),
+            It.IsAny<IQueryContext>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_SolutionScope_WHEN_CallingExecuteAsync_THEN_ShouldReturnMatchesFromEveryProject()
+    {
+        using var solution = CreateScopedSearchSolution();
+        var target = new SearchSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(CreateSearchSymbolReference);
+
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Kinds = ["NamedType"],
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Solution,
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(static item => item.DisplayName).Should().Equal(
+            "ScopeTargetAlphaOne",
+            "ScopeTargetAlphaTwo",
+            "ScopeTargetBetaOne",
+            "ScopeTargetBetaTwo",
+            "ScopeTargetGammaOne",
+            "ScopeTargetShared");
+        result.Data.Symbols.HasMore.Should().BeFalse();
+        result.Data.Symbols.TotalCount.Should().Be(6);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectScope_WHEN_CallingExecuteAsync_THEN_ShouldReturnMatchesFromSelectedProject()
+    {
+        using var solution = CreateScopedSearchSolution();
+        var selectedProject = solution.Solution.Projects.Single(static project => project.Name == "Alpha");
+        var target = new SearchSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProjects<SymbolSearchData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, SymbolSearchData>([selectedProject]));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(CreateSearchSymbolReference);
+
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Kinds = ["NamedType"],
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = new ProjectSelector
+                {
+                    Name = "Alpha",
+                },
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(static item => item.DisplayName).Should().Equal(
+            "ScopeTargetAlphaOne",
+            "ScopeTargetAlphaTwo",
+            "ScopeTargetShared");
+        result.Data.Symbols.HasMore.Should().BeFalse();
+        result.Data.Symbols.TotalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectsScope_WHEN_CallingExecuteAsync_THEN_ShouldReturnMatchesFromSelectedProjects()
+    {
+        using var solution = CreateScopedSearchSolution();
+        var selectedProjects = solution.Solution.Projects
+            .Where(static project => project.Name is "Alpha" or "Gamma")
+            .ToArray();
+
+        var target = new SearchSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProjects<SymbolSearchData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, SymbolSearchData>(selectedProjects));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(CreateSearchSymbolReference);
+
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Kinds = ["NamedType"],
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Projects,
+                Projects =
+                [
+                    new ProjectSelector
+                    {
+                        Name = "Alpha",
+                    },
+                    new ProjectSelector
+                    {
+                        Name = "Gamma",
+                    },
+                ],
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(static item => item.DisplayName).Should().Equal(
+            "ScopeTargetAlphaOne",
+            "ScopeTargetAlphaTwo",
+            "ScopeTargetGammaOne",
+            "ScopeTargetShared");
+        result.Data.Symbols.HasMore.Should().BeFalse();
+        result.Data.Symbols.TotalCount.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentScopeAndLowLimit_WHEN_CallingExecuteAsync_THEN_ShouldFilterBeforeBounding()
+    {
+        using var solution = CreateScopedSearchSolution();
+        var selectedDocument = solution.Solution.Projects
+            .Single(static project => project.Name == "Alpha")
+            .Documents
+            .Single(static document => document.Name == "AlphaTwo.cs");
+
+        var target = new SearchSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocument<SymbolSearchData>(
+                It.IsAny<DocumentSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(ToolResolutionResult.Resolved<Document, SymbolSearchData>(selectedDocument));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(CreateSearchSymbolReference);
+
+        var request = new SearchSymbolsRequest
+        {
+            Query = "ScopeTarget",
+            Kinds = ["NamedType"],
+            SymbolsLimit = 1,
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "AlphaTwo.cs",
+                },
+            },
+        };
+
+        var result = await target.ExecuteAsync(request, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Symbols.Items.Should().ContainSingle().Which.DisplayName.Should().Be("ScopeTargetAlphaTwo");
+        result.Data.Symbols.HasMore.Should().BeTrue();
+        result.Data.Symbols.TotalCount.Should().Be(2);
     }
 
     [Fact]
@@ -559,6 +799,87 @@ public sealed class SearchSymbolsToolTests
                                 public void Format()
                                 {
                                 }
+                            }
+                            """,
+                    },
+                ],
+            },
+        ]);
+    }
+
+    private static InMemoryRoslynSolution CreateScopedSearchSolution()
+    {
+        return RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Alpha",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "AlphaOne.cs",
+                        Source = """
+                            public sealed class ScopeTargetAlphaOne
+                            {
+                            }
+
+                            public partial class ScopeTargetShared
+                            {
+                            }
+                            """,
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "AlphaTwo.cs",
+                        Source = """
+                            public sealed class ScopeTargetAlphaTwo
+                            {
+                            }
+
+                            public partial class ScopeTargetShared
+                            {
+                            }
+                            """,
+                    },
+                ],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Beta",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "BetaOne.cs",
+                        Source = """
+                            public sealed class ScopeTargetBetaOne
+                            {
+                            }
+                            """,
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "BetaTwo.cs",
+                        Source = """
+                            public sealed class ScopeTargetBetaTwo
+                            {
+                            }
+                            """,
+                    },
+                ],
+            },
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Gamma",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "GammaOne.cs",
+                        Source = """
+                            public sealed class ScopeTargetGammaOne
+                            {
                             }
                             """,
                     },

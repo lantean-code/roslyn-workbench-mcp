@@ -1319,3 +1319,253 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-006-design-discovery"}}`
 
 **Outcome:** Succeeded and closed the solution Workspace at the unchanged epoch-5 snapshot with no transaction.
+
+### 162. Candidate `initialize`
+
+**Activity:** DOGFOOD-006 committed-candidate publication.
+
+**Purpose:** Start an isolated protocol smoke test against the Release candidate published from committed `HEAD` before promoting the configured dogfood target.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-006-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded against the isolated candidate. Host logs confirmed that the `initialize` handler completed for client `dogfood-006-smoke`; the process later shut down cleanly on end of input.
+
+### 163. Candidate `tools/list`
+
+**Activity:** DOGFOOD-006 committed-candidate publication.
+
+**Purpose:** Confirm the isolated committed candidate can materialise and publish its complete MCP tool catalogue before promotion.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded. Host logs confirmed that the candidate's `tools/list` handler completed without an authoring-warning failure or catalogue materialisation error.
+
+### 164. Candidate `initialize`
+
+**Activity:** DOGFOOD-006 committed-candidate publication retry.
+
+**Purpose:** Repeat the isolated handshake while retaining input briefly after each protocol message to rule out immediate end-of-input as the reason the shell capture did not display response JSON.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-006-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded again. The candidate completed the `initialize` handler and retained the same Host and client identity; the shell projection continued to expose lifecycle logs rather than protocol response JSON.
+
+### 165. Candidate `tools/list`
+
+**Activity:** DOGFOOD-006 committed-candidate publication retry.
+
+**Purpose:** Repeat catalogue materialisation during the delayed-input smoke session before promoting the candidate.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded again. The candidate completed `tools/list` without a catalogue failure and shut down cleanly after input closed. The configured `current` symlink was then atomically promoted to this candidate; desktop validation remains pending a Codex restart.
+
+### 166. `server-status`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Confirm the restarted desktop connection is running the exact committed candidate and that query-response authoring warnings are absent from agent-facing plugin diagnostics.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with core plugin version `1.0.0+b49e58030c5ffae5b0b211ab2015e0edffd34177`, 56 published tools, no startup warnings and an empty core-plugin diagnostics collection. This confirmed both the exact committed build and the corrected runtime warning channel.
+
+### 167. `workspace-open`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Open the trusted committed repository for representative low-limit calls across every remediated response family.
+
+**Request:** `{"alias":"dogfood-006-validation","path":"<repo-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo-root>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents at Workspace epoch 1. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 168. `get-code-context`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify independently bounded enclosing-symbol and diagnostic branches with an explicit one-item and zero-item limit.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs"},"selectedText":"var maxResults = request.EffectiveSymbolsPerCategoryLimit;"}},"beforeLines":1,"afterLines":1,"includeEnclosingSymbols":true,"includeDiagnostics":true,"enclosingSymbolsLimit":1,"diagnosticsLimit":0}`
+
+**Outcome:** Succeeded. `enclosingSymbols` returned one item with `hasMore: true` and `totalCount: 10`; `diagnostics` returned an empty complete collection with `hasMore: false` and `totalCount: 0`.
+
+### 169. `analyze-data-flow`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Prove the single per-category effective limit is applied independently to all six data-flow collections.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs"},"selectedText":"var maxResults = request.EffectiveSymbolsPerCategoryLimit;"}},"symbolsPerCategoryLimit":0}`
+
+**Outcome:** Succeeded. `variablesDeclared`, `readInside`, `writtenInside`, `dataFlowsIn` and `dataFlowsOut` each returned zero items with `hasMore: true` and `totalCount: 1`; `captured` independently returned an empty complete collection with `totalCount: 0`.
+
+### 170. `get-control-flow-graph`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify nullable defaulted CFG limits accept explicit low values through their effective-value path and publish bounded block, operation and region shapes.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs"},"selectedText":"var maxResults = request.EffectiveSymbolsPerCategoryLimit;"}},"maxBlocks":1,"maxRegions":1,"maxOperationsPerBlock":0}`
+
+**Outcome:** Succeeded. `blocks` returned one of 13 items with `hasMore: true` and `totalCount: 13`; its operations collection was empty and complete. `regions` returned one item with `hasMore: true` and intentionally omitted `totalCount`.
+
+### 171. `get-symbol-info`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify parameters and declarations are independently bounded while the fixed, language-defined modifier set remains an ordinary list.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"symbol":{"documentationCommentId":"M:Roslyn.Workbench.Mcp.Plugins.Core.Inspection.AnalyzeDataFlowTool.ExecuteCoreAsync(Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.AnalyzeDataFlowRequest,Roslyn.Workbench.Mcp.Plugins.IQueryContext,System.Threading.CancellationToken)","project":{"projectId":"<core-project-id>"}},"includeDocumentation":false,"parametersLimit":1,"declarationsLimit":0}`
+
+**Outcome:** Succeeded. `modifiers` was the plain list `["async","override"]`; `parameters` returned one of three items with `hasMore: true` and `totalCount: 3`; `declarations` returned zero items with `hasMore: true` and intentionally omitted `totalCount`.
+
+### 172. `go-to-definition`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify an explicit zero definition limit publishes the bounded source-definition shape without unnecessary projection.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"symbol":{"documentationCommentId":"M:Roslyn.Workbench.Mcp.Plugins.Core.Inspection.AnalyzeDataFlowTool.ExecuteCoreAsync(Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.AnalyzeDataFlowRequest,Roslyn.Workbench.Mcp.Plugins.IQueryContext,System.Threading.CancellationToken)","project":{"projectId":"<core-project-id>"}},"definitionsLimit":0}`
+
+**Outcome:** Succeeded with zero definition items, `hasMore: true` and intentionally omitted `totalCount`.
+
+### 173. `resolve-symbol`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify an explicit zero declaration limit while resolving a source symbol and its canonical selector.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs"},"selectedText":"ExecuteCoreAsync"}},"declarationsLimit":0}`
+
+**Outcome:** Succeeded with the expected method and canonical source selector; `declarations` returned zero items with `hasMore: true` and intentionally omitted `totalCount`.
+
+### 174. `analyze-control-flow`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Verify explicit zero exit and return limits preserve their cheap complete counts without projecting result locations.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs"},"selectedText":"return PluginExecutionResult.Success(data);"}},"exitsLimit":0,"returnsLimit":0}`
+
+**Outcome:** Succeeded. Both `exits` and `returns` returned zero items with `hasMore: true` and `totalCount: 1`.
+
+### 175. `workspace-close`
+
+**Activity:** DOGFOOD-006 published validation.
+
+**Purpose:** Close the read-only validation Workspace after every remediated response family passed its published low-limit check.
+
+**Request:** `{"workspace":{"alias":"dogfood-006-validation"}}`
+
+**Outcome:** Succeeded and closed the Workspace at its unchanged epoch-1 snapshot with no transaction.
+
+### 176. `workspace-open`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Open the trusted repository solution against the newly published Host to revalidate symbol-search scope behaviour and trace the implementation semantically.
+
+**Request:** `{"alias":"dogfood-007-design-discovery","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents. A subsequent minimal status request confirmed the Workspace was ready at epoch 2.
+
+### 177. `workspace-status`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Confirm the discovery Workspace completed loading after the initial client projection was truncated.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"detail":"Minimal"}`
+
+**Outcome:** Succeeded with state `Ready`, 30 projects, 1,637 documents, no transaction and no reload requirement.
+
+### 178. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Reproduce the reported document-scope failure with a low result bound.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Document","document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs"}}}`
+
+**Outcome:** Succeeded incorrectly with the first 10 of 43 fields from other documents in `Roslyn.Workbench.Mcp.Workspace.Test`; the selected document was not enforced before bounding.
+
+### 179. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Check whether the same query is correctly constrained by a single project scope.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}}}`
+
+**Outcome:** Returned `WorkspaceBusy` with a retry continuation because this request was intentionally issued concurrently with the other scope probes.
+
+### 180. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Check whether the same query is correctly constrained by a multi-project scope.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Workspace.Test"},{"name":"Roslyn.Workbench.Mcp.Plugins.Core.Test"}]}}`
+
+**Outcome:** Returned `WorkspaceBusy` with a retry continuation because this request was intentionally issued concurrently with the other scope probes.
+
+### 181. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Establish the solution-wide baseline for the document, project and projects probes.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with the deterministic first 10 of 91 solution-wide matching fields.
+
+### 182. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Retry the single-project probe after the concurrent `WorkspaceBusy` response.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}}}`
+
+**Outcome:** Succeeded with the first 10 of 43 matching fields, all from the selected Workspace test project. Project scope is already enforced before bounding.
+
+### 183. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Retry the multi-project probe after the concurrent `WorkspaceBusy` response.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Workspace.Test"},{"name":"Roslyn.Workbench.Mcp.Plugins.Core.Test"}]}}`
+
+**Outcome:** Succeeded with the first 10 of 43 matching fields, all from the selected project set; the second selected project had no matching field. Multi-project scope is already enforced before bounding.
+
+### 184. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Locate the `search-symbols` request, handler and current test ownership through semantic discovery.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"SearchSymbols","kinds":["NamedType","Method"],"symbolsLimit":30,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with the production `SearchSymbolsRequest` and `SearchSymbolsTool`, the unit-test owner, the existing Plugins.Core integration call and published-Host helper methods.
+
+### 185. `search-symbols`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Locate existing document-resolution services before choosing an implementation boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"},"query":"ResolveDocument","kinds":["Method"],"symbolsLimit":50,"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Plugins"},{"name":"Roslyn.Workbench.Mcp.Plugins.Core"},{"name":"Roslyn.Workbench.Mcp.Workspace"}]}}`
+
+**Outcome:** Succeeded with `IToolRequestResolver.ResolveDocument` and `ResolveDocuments`, their `ToolRequestResolver` implementation, and the underlying Workspace resolver methods. No new public resolver API is required.
+
+### 186. `workspace-close`
+
+**Activity:** DOGFOOD-007 design discovery.
+
+**Purpose:** Close the read-only discovery Workspace after reproducing the defect and tracing the implementation boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"}}`
+
+**Outcome:** Succeeded and closed the Workspace at its unchanged epoch-2 snapshot with no transaction.

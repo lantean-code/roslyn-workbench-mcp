@@ -76,8 +76,8 @@ The initialisation instructions contain approximately 967 characters and 138 wor
 | 3 | DOGFOOD-003 | Keep essential server instructions within Codex's first 512 characters | Complete |
 | 4 | DOGFOOD-004 | [Publish a canonical selector with resolved source locations](dogfood-004-selector-composability-design.md) | Confirmed through published dogfood and acceptance validation |
 | 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Confirmed through published dogfood validation |
-| 6 | DOGFOOD-006 | [Enforce query-response authoring warnings during bundled plugin builds and route runtime warnings to operator logging](dogfood-006-query-response-authoring-design.md) | Implementation confirmed; review complete |
-| 7 | DOGFOOD-007 | Honour `search-symbols` project and document scopes before bounding results | Incomplete |
+| 6 | DOGFOOD-006 | [Enforce query-response authoring warnings during bundled plugin builds and route runtime warnings to operator logging](dogfood-006-query-response-authoring-design.md) | Confirmed through published dogfood validation |
+| 7 | DOGFOOD-007 | [Honour `search-symbols` scopes before bounding results](dogfood-007-symbol-search-scope-design.md) | Confirmed and ready to commit; published dogfood validation pending |
 
 ### DOGFOOD-001 — Structured-result text fallback
 

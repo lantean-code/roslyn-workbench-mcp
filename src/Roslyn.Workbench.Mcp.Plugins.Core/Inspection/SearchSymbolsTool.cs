@@ -9,10 +9,29 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
     protected override async ValueTask<PluginExecutionResult<SymbolSearchData>> ExecuteCoreAsync(SearchSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<SymbolSearchData>(request.Scope, context);
-        if (scopeResolution.HasRejection)
+        Document? scopedDocument = null;
+        IReadOnlyList<Project> scopedProjects = [];
+
+        if (request.Scope?.Kind == ScopeKind.Document)
         {
-            return scopeResolution.Rejection;
+            var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<SymbolSearchData>(request.Scope.Document, context);
+            if (documentResolution.HasRejection)
+            {
+                return documentResolution.Rejection;
+            }
+
+            scopedDocument = documentResolution.Value;
+            scopedProjects = [scopedDocument.Project];
+        }
+        else if (request.Scope is not null && request.Scope.Kind != ScopeKind.Solution)
+        {
+            var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<SymbolSearchData>(request.Scope, context);
+            if (projectResolution.HasRejection)
+            {
+                return projectResolution.Rejection;
+            }
+
+            scopedProjects = projectResolution.Value;
         }
 
         var pattern = !string.IsNullOrWhiteSpace(request.Query)
@@ -48,11 +67,13 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
                     request,
                     requestedKinds,
                     requestedAccessibilities,
+                    scopedDocument,
+                    context.CurrentSolution,
                     matchedSymbols);
             }
             else
             {
-                foreach (var project in scopeResolution.Value)
+                foreach (var project in scopedProjects)
                 {
                     var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(
                         project,
@@ -65,6 +86,8 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
                         request,
                         requestedKinds,
                         requestedAccessibilities,
+                        scopedDocument,
+                        context.CurrentSolution,
                         matchedSymbols);
                 }
             }
@@ -112,15 +135,36 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         SearchSymbolsRequest request,
         HashSet<string>? requestedKinds,
         HashSet<string>? requestedAccessibilities,
+        Document? scopedDocument,
+        Solution solution,
         HashSet<ISymbol> matchedSymbols)
     {
         foreach (var symbol in declarations)
         {
+            if (scopedDocument is not null && !IsDeclaredInDocument(symbol, scopedDocument, solution))
+            {
+                continue;
+            }
+
             if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
             {
                 matchedSymbols.Add(symbol);
             }
         }
+    }
+
+    private static bool IsDeclaredInDocument(ISymbol symbol, Document scopedDocument, Solution solution)
+    {
+        foreach (var declaration in symbol.DeclaringSyntaxReferences)
+        {
+            var declaringDocument = solution.GetDocument(declaration.SyntaxTree);
+            if (declaringDocument?.Id == scopedDocument.Id)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool MatchesSymbolFilters(

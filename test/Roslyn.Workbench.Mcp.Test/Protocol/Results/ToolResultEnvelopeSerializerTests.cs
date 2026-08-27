@@ -138,6 +138,81 @@ public sealed class ToolResultEnvelopeSerializerTests
     }
 
     [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_CanonicalResolvedLocationSelector_WHEN_SerializingSuccess_THEN_ShouldPublishResultMetadataAndSpanOnlySelector()
+    {
+        var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        var documentReference = new DocumentReference
+        {
+            DocumentId = "DocumentId",
+            Path = "DocumentPath",
+            ProjectId = "ProjectId",
+        };
+
+        var resolvedSpan = new TextSpanRange
+        {
+            Start = 1,
+            Length = 2,
+        };
+
+        var projectSelector = new ProjectSelector
+        {
+            ProjectId = "ProjectId",
+        };
+
+        var documentSelector = new DocumentSelector
+        {
+            DocumentId = "DocumentId",
+            Project = projectSelector,
+        };
+
+        var selectorRange = new TextSpanRange
+        {
+            Start = 1,
+            Length = 2,
+        };
+
+        var spanSelector = new TextSpanSelector
+        {
+            Document = documentSelector,
+            Range = selectorRange,
+        };
+
+        var locationSelector = new CanonicalLocationSelector
+        {
+            Span = spanSelector,
+        };
+
+        var location = new ResolvedLocation
+        {
+            Document = documentReference,
+            Span = resolvedSpan,
+            Line = 3,
+            Column = 4,
+            Snapshot = snapshot,
+            Selector = locationSelector,
+        };
+
+        var result = ToolResultEnvelopeSerializer.CreateSuccess(location);
+
+        var data = result.GetProperty("data");
+        data.GetProperty("document").GetProperty("documentId").GetString().Should().Be("DocumentId");
+        data.GetProperty("document").GetProperty("path").GetString().Should().Be("DocumentPath");
+        data.GetProperty("span").GetProperty("start").GetInt32().Should().Be(1);
+        data.GetProperty("line").GetInt32().Should().Be(3);
+        data.GetProperty("column").GetInt32().Should().Be(4);
+
+        var selector = data.GetProperty("selector");
+        var selectorSpan = selector.GetProperty("span");
+        selectorSpan.GetProperty("document").GetProperty("documentId").GetString().Should().Be("DocumentId");
+        selectorSpan.GetProperty("document").GetProperty("project").GetProperty("projectId").GetString().Should().Be("ProjectId");
+        selectorSpan.GetProperty("range").GetProperty("start").GetInt32().Should().Be(1);
+        selectorSpan.GetProperty("range").GetProperty("length").GetInt32().Should().Be(2);
+        selector.GetRawText().Should().NotContainAny("selection", "selectedText", "contextBefore", "contextAfter");
+    }
+
+    [Fact]
     public void GIVEN_MaximumDepthInspectionTrees_WHEN_SerializingSuccess_THEN_ShouldRemainWithinSerializerDepthAndOmitSourceText()
     {
         var outlineData = CreateMaximumDepthOutlineData();

@@ -5,6 +5,79 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 public sealed class WorkspaceWorkflowIntegrationTests
 {
     [Fact]
+    public async Task GIVEN_PublishedResolvedLocation_WHEN_ReusingCanonicalSelector_THEN_ShouldResolveSameSymbolWithoutReshaping()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspaceSelector = AcceptanceWorkspaceIdentity.FromOpenResult(openResult).CreateSelector();
+            var searchResult = await target.CallToolAsync(
+                "search-symbols",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["query"] = "Class1",
+                    ["symbolsLimit"] = 10,
+                },
+                TestContext.Current.CancellationToken);
+
+            searchResult.IsError.Should().NotBeTrue();
+            var symbol = AcceptanceProtocol.GetSuccessData(searchResult).GetProperty("symbols").GetProperty("items")[0];
+            var location = symbol.GetProperty("location");
+            var selector = location.GetProperty("selector");
+            var selectorSpan = selector.GetProperty("span");
+            var selectorDocument = selectorSpan.GetProperty("document");
+            var selectorRange = selectorSpan.GetProperty("range");
+            var resolvedSpan = location.GetProperty("span");
+
+            selector.EnumerateObject().Select(static property => property.Name).Should().Equal("span");
+            selectorDocument.GetProperty("documentId").GetGuid().Should().NotBe(Guid.Empty);
+            selectorDocument.GetProperty("path").ValueKind.Should().Be(JsonValueKind.Null);
+            selectorDocument.GetProperty("project").GetProperty("projectId").GetGuid().Should().NotBe(Guid.Empty);
+            selectorRange.GetProperty("start").GetInt32().Should().Be(resolvedSpan.GetProperty("start").GetInt32());
+            selectorRange.GetProperty("length").GetInt32().Should().Be(resolvedSpan.GetProperty("length").GetInt32());
+
+            var membersResult = await target.CallToolAsync(
+                "get-symbol-members",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["symbol"] = new Dictionary<string, object?>
+                    {
+                        ["location"] = selector,
+                    },
+                    ["expectedSnapshot"] = location.GetProperty("snapshot"),
+                    ["membersLimit"] = 10,
+                },
+                TestContext.Current.CancellationToken);
+
+            membersResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(membersResult)
+                .GetProperty("symbol")
+                .GetProperty("displayName")
+                .GetString()
+                .Should()
+                .Be("Sample.Class1");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_CopiedWorkspace_WHEN_UsingLifecycleAndQueryTools_THEN_ShouldReturnSemanticResultsAndCloseWorkspace()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);

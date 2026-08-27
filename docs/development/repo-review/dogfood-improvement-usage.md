@@ -823,3 +823,251 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood003-design-discovery"}}`
 
 **Outcome:** Succeeded and closed the solution Workspace.
+
+### 101. `workspace-list`
+
+**Purpose:** Confirm the published dogfood process has no loaded Workspace or transaction owner before repeating the DOGFOOD-004 selector workflows.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with an empty `workspaces` collection and no transaction owner.
+
+### 102. `workspace-open`
+
+**Purpose:** Open the solution on the published DOGFOOD-002 build for repeated selector-workflow evidence before deciding whether DOGFOOD-004 needs a contract change.
+
+**Request:** `{"alias":"dogfood004-design-discovery","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,636 documents. The explicit WSL artefacts path produced a complete load with only the expected Windows-filesystem performance warning.
+
+### 103. `get-symbol-members`
+
+**Purpose:** Repeat the original documentation-comment workflow against a type present in multiple projects and assess whether an ambiguity response is sufficient to recover without a separate search.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore"},"includeInherited":false,"membersLimit":100,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Failed with `SymbolAmbiguous`. The response said only that multiple results matched and instructed the caller to resolve the target and replace the selector; it supplied no bounded candidates or project identities. A separate discovery query was still necessary.
+
+### 104. `search-symbols`
+
+**Purpose:** Recover from the documentation-comment ambiguity and obtain the production type's project, document, span and snapshot identity for the returned-location reuse workflow.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"query":"CommitRecoveryStore","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with three search results. The production `CommitRecoveryStore` result included a source location containing a document selector, flat `span.start` and `span.length`, line and column, plus the complete snapshot identity.
+
+### 105. `get-symbol-members`
+
+**Purpose:** Test whether the source `location` returned by `search-symbols` can be passed unchanged as the next tool's symbol-location selector.
+
+**Request:** The production search result's complete `location` object was passed unchanged as `symbol.location`, alongside its returned snapshot as `expectedSnapshot`.
+
+**Outcome:** Failed with `InvalidRequest` because the returned location's top-level `document` property does not map to `LocationSelector`. The output uses `location.document` plus flat `location.span.start` and `location.span.length`; the input requires `location.span.document` plus `location.span.range`. The returned location is therefore not directly reusable despite the corrected callable declaration.
+
+### 106. `get-symbol-members`
+
+**Purpose:** Retry with the returned location manually reshaped into `LocationSelector.span`, retaining its document ID, path and project ID to preserve all supplied identity.
+
+**Request:** `symbol.location` was rebuilt as `{"span":{"document":{"documentId":"<document-id>","path":"src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs","project":{"projectId":"<project-id>"}},"range":{"start":163,"length":19}}}` with the returned snapshot precondition.
+
+**Outcome:** Failed with `InvalidRequest` because `DocumentSelector` requires exactly one of `path` or `documentId`. Reusing the output requires the caller not only to restructure the location but also to discard one of the two document identities returned by the server.
+
+### 107. `get-symbol-members`
+
+**Purpose:** Complete the returned-location workflow after converting the output into the input contract and retaining only the document ID plus project ID.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"symbol":{"location":{"span":{"document":{"documentId":"<document-id>","project":{"projectId":"<project-id>"}},"range":{"start":163,"length":19}}}},"includeInherited":false,"membersLimit":100,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Succeeded and returned the production `CommitRecoveryStore` member inventory. The workflow is possible, but it required knowledge of two different location shapes, manual field movement, renaming `span` to `range`, transferring the snapshot into a separate precondition and discarding the returned path.
+
+### 108. `search-symbols`
+
+**Purpose:** Locate the public input-side `LocationSelector` contract and its acceptance helper before comparing selector and result-location ownership.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"query":"LocationSelector","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the public abstractions contract and the acceptance-test selector factory.
+
+### 109. `search-symbols`
+
+**Purpose:** Locate the existing selector-projection service and tests after the replay showed that callers must manually convert `ResolvedLocation` output into `LocationSelector` input.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"query":"WorkspaceSelectorFactory","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the public factory interface, internal implementation and focused unit-test type. The implementation already contains the canonical conversion from `ResolvedLocation` to `LocationSelector` and deliberately chooses document ID over path.
+
+### 110. `search-symbols`
+
+**Purpose:** Identify the precise public and internal `CreateLocationSelector` methods before tracing whether result projection already exposes the canonical conversion broadly.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"query":"CreateLocationSelector","kinds":["Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the public interface method, internal implementation and test-support helper.
+
+### 111. `find-references`
+
+**Purpose:** Determine how broadly the existing `ResolvedLocation`-to-`LocationSelector` conversion is used before choosing the DOGFOOD-004 publication boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"},"symbol":{"documentationCommentId":"M:Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory.CreateLocationSelector(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation)","project":{"projectId":"<abstractions-project-id>"}},"includeDefinitions":true,"includeContext":true,"referencesLimit":100,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Succeeded with the interface and implementation definitions, the internal reuse by `CreateSymbolSelector`, the API-surface assertion and focused factory tests. Result models do not automatically expose the conversion; production currently uses the factory selectively, including the dedicated `resolve-symbol` workflow.
+
+### 112. `workspace-close`
+
+**Purpose:** Close the DOGFOOD-004 design-discovery Workspace after completing the repeated selector workflows and semantic inspection.
+
+**Request:** `{"workspace":{"alias":"dogfood004-design-discovery"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.
+
+### 113. `workspace-open`
+
+**Purpose:** Open the solution for Roslyn-backed inspection while adding the newly approved published-Host acceptance boundary for DOGFOOD-004.
+
+**Request:** `{"alias":"dogfood-004-acceptance-design","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>"}`
+
+**Outcome:** Succeeded with a usable Workspace, but reported incomplete-package load diagnostics because this request omitted the WSL artefacts path used by the repository restore. The affected acceptance test project remained available for semantic queries.
+
+### 114. `search-symbols`
+
+**Purpose:** Locate the acceptance test class that already owns published inspection-response pointer assertions before selecting the focused round-trip test boundary.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"},"query":"PublishedInspectionResponseIntegrationTests","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single acceptance test type and its resolved source location. The published DOGFOOD-002 result retained the pre-DOGFOOD-004 location shape, as expected.
+
+### 115. `get-symbol-members`
+
+**Purpose:** Inspect the semantic structure of the existing published inspection-response acceptance class and confirm that its shared pointer assertion does not own selector reuse.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.AcceptanceTest.PublishedInspectionResponseIntegrationTests"},"membersLimit":30,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Succeeded and showed that `AssertPointer` is limited to output pointer fields, while `WorkspaceWorkflowIntegrationTests` is the clearer owner for a focused search-to-members published workflow.
+
+### 116. `workspace-close`
+
+**Purpose:** Close the temporary DOGFOOD-004 acceptance-design Workspace after semantic inspection completed.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.
+
+### 117. `workspace-open`
+
+**Purpose:** Open the solution for Roslyn-backed ownership and call-site inspection while reviewing whether canonical result-selector creation belongs in `IWorkspaceSelectorFactory`.
+
+**Request:** `{"alias":"dogfood004-factory-review","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents. The explicit WSL artefacts path produced a complete load with only the expected Windows-filesystem performance warning.
+
+### 118. `search-symbols`
+
+**Purpose:** Locate every `CreateLocationSelector` declaration before assessing whether a separate canonical-result factory method would clarify ownership.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"},"query":"CreateLocationSelector","kinds":["Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the public interface method, internal implementation and unrelated test-support helper.
+
+### 119. `find-references`
+
+**Purpose:** Determine the production and public-contract impact of adding a separate canonical-result selector factory method.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"},"symbol":{"documentationCommentId":"M:Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory.CreateLocationSelector(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation)","project":{"projectId":"<abstractions-project-id>"}},"includeDefinitions":true,"includeContext":false,"referencesLimit":100,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Succeeded with 12 definitions and references. Production use is limited to the factory's symbol-selector composition and the new `WorkspaceResolver` projection; the interface is also deliberately locked as public plugin API, so another method would be an additive public capability rather than a purely internal extraction.
+
+### 120. `workspace-close`
+
+**Purpose:** Close the temporary selector-factory review Workspace after semantic inspection completed.
+
+**Request:** `{"workspace":{"workspaceId":"<workspace-id>"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.
+
+### 121. `workspace-list`
+
+**Purpose:** Confirm that no published dogfood Workspace remained open when beginning the independent staged review of DOGFOOD-004.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with an empty `workspaces` collection and no transaction owner.
+
+### 122. `server-status`
+
+**Purpose:** Confirm the restarted published dogfood server is healthy before validating the staged DOGFOOD-004 selector-composability change.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, Roslyn `5.6.0.0`, MSBuild `10.0.102`, 56 published tools and no startup warnings. An operating-system process check separately confirmed that the live executable resolved to the new `dogfood-004-precommit-OKJuTo` publish.
+
+### 123. `workspace-open`
+
+**Purpose:** Open the solution on the new DOGFOOD-004 publish so a returned canonical selector can be reused through the live Codex MCP client.
+
+**Request:** `{"alias":"dogfood-004-validation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<dogfood-artifacts-path>"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,593 documents. The load reported the expected WSL Windows-filesystem performance warning and one unresolved analyser reference in a Host query-plugin fixture; the production projects required for selector validation loaded successfully.
+
+### 124. `search-symbols`
+
+**Purpose:** Obtain a live resolved source location for `WorkspaceResolver` and verify that DOGFOOD-004 publishes a canonical selector alongside the descriptive location fields.
+
+**Request:** `{"workspace":{"alias":"dogfood-004-validation"},"query":"WorkspaceResolver","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with 10 of 15 matching types. The production `WorkspaceResolver` result contained its descriptive document, flat span, line, column and snapshot fields plus `location.selector.span`, using only the document ID and project ID with `range.start` `78` and `range.length` `17`.
+
+### 125. `get-code-context`
+
+**Purpose:** Validate the DOGFOOD-004 agent workflow by passing the `WorkspaceResolver` result's canonical selector unchanged into a second published tool.
+
+**Request:** `{"workspace":{"alias":"dogfood-004-validation"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"project":{"projectId":"<project-id>","name":null,"path":null,"targetFramework":null},"path":null,"documentId":"<document-id>"},"range":{"start":78,"length":17}}},"beforeLines":2,"afterLines":8,"includeEnclosingSymbols":true,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded without reshaping or discarding selector fields. The tool resolved `src/Roslyn.Workbench.Mcp.Workspace/Resolution/WorkspaceResolver.cs` at the same span, returned the expected class context and republished an identical canonical selector, confirming direct unchanged-selector reuse through the live Codex client.
+
+### 126. `workspace-close`
+
+**Purpose:** Close the DOGFOOD-004 validation Workspace after the unchanged-selector workflow completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-004-validation"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.
+
+### 127. `workspace-open`
+
+**Purpose:** Open the solution for Roslyn-backed inspection of whether the reported query-response contract warnings belong in plugin status diagnostics, application logging or compile-time analyser output.
+
+**Request:** `{"alias":"dogfood-response-diagnostic-review","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<repository-artifacts-path>"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents. The explicit WSL artefacts path produced a complete load with only the expected Windows-filesystem performance warning.
+
+### 128. `search-symbols`
+
+**Purpose:** Locate the runtime inspector that produces `QueryResponseContract` warnings and its focused tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-response-diagnostic-review"},"query":"QueryResponseContractInspector","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production `QueryResponseContractInspector` in the Host plugin-loading layer and its unit-test class.
+
+### 129. `search-symbols`
+
+**Purpose:** Check whether the compile-time counterpart used the expected response-contract-analyser type name before inspecting the analyser project directly.
+
+**Request:** `{"workspace":{"alias":"dogfood-response-diagnostic-review"},"query":"ResponseContractAnalyzer","kinds":["NamedType"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with no matching type. Subsequent source inspection established that `RWMCP014` is implemented within the broader `PluginInvocationAnalyzer` rather than a dedicated response-contract analyser class.
+
+### 130. `find-references`
+
+**Purpose:** Establish where runtime query-response warnings enter plugin status and whether they have any separate logging or reporting path.
+
+**Request:** `{"workspace":{"alias":"dogfood-response-diagnostic-review"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.PluginLoading.QueryResponseContractInspector","project":{"projectId":"<host-project-id>"}},"includeDefinitions":true,"includeContext":true,"referencesLimit":50,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null}}`
+
+**Outcome:** Succeeded with the single production call in `PluginCatalogEntryMaterializer.CreateDiagnostics`, where inspector warnings are appended to the enabled plugin's catalogue diagnostics. All other references were the definition and focused tests; no application-logging path was present.
+
+### 131. `workspace-close`
+
+**Purpose:** Close the response-diagnostic review Workspace after completing semantic inspection.
+
+**Request:** `{"workspace":{"alias":"dogfood-response-diagnostic-review"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.

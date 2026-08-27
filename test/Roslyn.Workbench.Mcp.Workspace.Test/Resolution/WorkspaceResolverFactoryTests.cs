@@ -2,11 +2,13 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverFactoryTests : IDisposable
 {
+    private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
     private readonly AdhocWorkspace _workspace;
     private readonly WorkspaceResolverFactory _target;
 
     public WorkspaceResolverFactoryTests()
     {
+        _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
         _workspace = new AdhocWorkspace();
         var pathComparison = new Mock<IWorkspacePathComparison>();
         pathComparison
@@ -20,11 +22,12 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
 
         _target = new WorkspaceResolverFactory(
             pathComparison.Object,
-            pathServiceFactory.Object);
+            pathServiceFactory.Object,
+            _selectorFactory.Object);
     }
 
     [Fact]
-    public void GIVEN_SolutionAndSnapshotContext_WHEN_CreatingResolver_THEN_ShouldResolveAgainstSuppliedSolution()
+    public async Task GIVEN_SolutionAndSnapshotContext_WHEN_CreatingResolver_THEN_ShouldResolveAgainstSuppliedSolution()
     {
         var project = _workspace.AddProject("Project", LanguageNames.CSharp);
         var document = _workspace.AddDocument(project.Id, "Document.cs", SourceText.From("class C { }"));
@@ -40,6 +43,17 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             [project.Id] = "net10.0",
         };
         var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
+        var expectedSelector = new CanonicalLocationSelector
+        {
+            Span = SelectorTestFactory.CreateTextSpanSelector(
+                new DocumentSelector { DocumentId = document.Id.Id.ToString() },
+                start: 6,
+                length: 1),
+        };
+
+        _selectorFactory
+            .Setup(item => item.CreateCanonicalLocationSelector(It.IsAny<ResolvedLocation>()))
+            .Returns(expectedSelector);
 
         var result = _target.Create(
             document.Project.Solution,
@@ -48,11 +62,16 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             WorkspaceSnapshotTestFactory.CreatePrecondition(identity.WorkspaceId, identity.WorkspaceEpoch, transactionRevision: 3));
         var resolution = result.ResolveDocument(new DocumentSelector { DocumentId = document.Id.Id.ToString() });
         var projectResolution = result.ResolveProject(new ProjectSelector { TargetFramework = "NET10.0" });
+        var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        var location = syntaxTree!.GetLocation(new TextSpan(6, 1));
+        var resolvedLocation = result.CreateResolvedLocation(location);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().BeSameAs(document);
         projectResolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         projectResolution.Value!.Id.Should().Be(project.Id);
+        resolvedLocation!.Selector!.Span.Should().BeSameAs(expectedSelector.Span);
+        _selectorFactory.Verify(item => item.CreateCanonicalLocationSelector(It.IsAny<ResolvedLocation>()), Times.Once);
     }
 
     public void Dispose()

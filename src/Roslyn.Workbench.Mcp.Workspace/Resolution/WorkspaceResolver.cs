@@ -5,6 +5,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly Solution _solution;
     private readonly SnapshotPrecondition? _snapshot;
     private readonly WorkspaceProjectTargetFrameworkMap _projectTargetFrameworks;
+    private readonly IWorkspaceSelectorFactory _workspaceSelectorFactory;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
 
@@ -12,12 +13,14 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         Solution solution,
         SnapshotPrecondition? snapshot,
         WorkspaceProjectTargetFrameworkMap projectTargetFrameworks,
+        IWorkspaceSelectorFactory workspaceSelectorFactory,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathService workspacePathService)
     {
         _solution = solution;
         _snapshot = snapshot;
         _projectTargetFrameworks = projectTargetFrameworks;
+        _workspaceSelectorFactory = workspaceSelectorFactory;
         _workspacePathComparison = workspacePathComparison;
         _workspacePathService = workspacePathService;
     }
@@ -34,7 +37,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var linePosition = text.Lines.GetLinePosition(span.Start);
         var document = _solution.GetDocument(location.SourceTree);
 
-        return new ResolvedLocation
+        var resolvedLocation = new ResolvedLocation
         {
             Document = document is null ? null : CreateDocumentReference(document),
             Span = new TextSpanRange
@@ -45,6 +48,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             Line = linePosition.Line + 1,
             Column = linePosition.Character + 1,
             Snapshot = _snapshot,
+        };
+
+        return resolvedLocation with
+        {
+            Selector = _workspaceSelectorFactory.CreateCanonicalLocationSelector(resolvedLocation),
         };
     }
 

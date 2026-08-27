@@ -37,6 +37,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Results.ResultLimit",
         "Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo",
         "Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector",
         "Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory",
@@ -233,6 +234,7 @@ public sealed class PluginPublicApiContractTests
 
         selectorFactoryMethods.Should().BeEquivalentTo(
         [
+            nameof(IWorkspaceSelectorFactory.CreateCanonicalLocationSelector),
             nameof(IWorkspaceSelectorFactory.CreateLocationSelector),
             nameof(IWorkspaceSelectorFactory.CreateSymbolSelector),
         ]);

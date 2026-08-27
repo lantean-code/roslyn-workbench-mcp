@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverIntegrationTests
@@ -116,7 +118,8 @@ public sealed class WorkspaceResolverIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_TextSpanLocationSelector_WHEN_ResolvingLocation_THEN_ShouldReturnSourceLocation()
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_TextSpanLocationSelector_WHEN_ResolvingLocation_THEN_ShouldReturnCanonicalWireCompatibleSelector()
     {
         using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
@@ -145,6 +148,19 @@ public sealed class WorkspaceResolverIntegrationTests
         projectedLocation.Should().NotBeNull();
         projectedLocation!.Document!.Path.Should().Be("Class1.cs");
         projectedLocation.Span!.Start.Should().Be(start);
+        projectedLocation.Selector.Should().NotBeNull();
+
+        var selectorJson = JsonSerializer.Serialize(projectedLocation.Selector, JsonSerializerOptions.Web);
+        var inputSelector = JsonSerializer.Deserialize<LocationSelector>(selectorJson, JsonSerializerOptions.Web);
+
+        inputSelector.Should().NotBeNull();
+        var inputResolution = await contextLease.Context.WorkspaceResolver.ResolveLocationAsync(
+            inputSelector!,
+            TestContext.Current.CancellationToken);
+
+        inputResolution.Status.Should().Be(SelectorResolveStatus.Resolved);
+        inputResolution.Value!.SourceSpan.Should().Be(new TextSpan(start, "Class1".Length));
+        inputResolution.Value.SourceTree!.FilePath.Should().Be(fixture.DocumentPath);
     }
 
     [Fact]

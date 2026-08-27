@@ -9,7 +9,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public interface IToolExecutionServices
 {
     /// <summary>
-    /// Gets the factory for projecting resolved workspace identities into replayable selectors.
+    /// Gets the factory for projecting resolved workspace identities into canonical selectors.
     /// </summary>
     IWorkspaceSelectorFactory WorkspaceSelectorFactory { get; }
 

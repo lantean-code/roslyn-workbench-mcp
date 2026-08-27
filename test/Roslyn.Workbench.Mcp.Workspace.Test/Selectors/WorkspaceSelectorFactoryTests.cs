@@ -12,9 +12,11 @@ public sealed class WorkspaceSelectorFactoryTests
     [Fact]
     public void GIVEN_ResolvedLocationIsNull_WHEN_CreatingSelectors_THEN_ShouldReturnNull()
     {
+        var canonicalSelector = _target.CreateCanonicalLocationSelector(null);
         var locationSelector = _target.CreateLocationSelector(null);
         var symbolSelector = _target.CreateSymbolSelector(null);
 
+        canonicalSelector.Should().BeNull();
         locationSelector.Should().BeNull();
         symbolSelector.Should().BeNull();
     }
@@ -48,9 +50,11 @@ public sealed class WorkspaceSelectorFactoryTests
             Span = span,
         };
 
+        var canonicalSelector = _target.CreateCanonicalLocationSelector(resolvedLocation);
         var locationSelector = _target.CreateLocationSelector(resolvedLocation);
         var symbolSelector = _target.CreateSymbolSelector(resolvedLocation);
 
+        canonicalSelector.Should().BeNull();
         locationSelector.Should().BeNull();
         symbolSelector.Should().BeNull();
     }
@@ -83,6 +87,7 @@ public sealed class WorkspaceSelectorFactoryTests
             },
         };
 
+        var canonicalSelector = _target.CreateCanonicalLocationSelector(resolvedLocation);
         var locationSelector = _target.CreateLocationSelector(resolvedLocation);
         var symbolSelector = _target.CreateSymbolSelector(resolvedLocation);
 
@@ -119,11 +124,17 @@ public sealed class WorkspaceSelectorFactoryTests
             Span = expectedSpan,
         };
 
+        var expectedCanonical = new CanonicalLocationSelector
+        {
+            Span = expectedSpan,
+        };
+
         var expectedSymbol = new SymbolSelector
         {
             Location = expectedLocation,
         };
 
+        canonicalSelector.Should().BeEquivalentTo(expectedCanonical);
         locationSelector.Should().BeEquivalentTo(expectedLocation);
         symbolSelector.Should().BeEquivalentTo(expectedSymbol);
     }

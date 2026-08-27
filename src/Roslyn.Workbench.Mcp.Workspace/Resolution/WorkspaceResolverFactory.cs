@@ -4,13 +4,16 @@ internal sealed class WorkspaceResolverFactory : IWorkspaceResolverFactory
 {
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathServiceFactory _workspacePathServiceFactory;
+    private readonly IWorkspaceSelectorFactory _workspaceSelectorFactory;
 
     public WorkspaceResolverFactory(
         IWorkspacePathComparison workspacePathComparison,
-        IWorkspacePathServiceFactory workspacePathServiceFactory)
+        IWorkspacePathServiceFactory workspacePathServiceFactory,
+        IWorkspaceSelectorFactory workspaceSelectorFactory)
     {
         _workspacePathComparison = workspacePathComparison;
         _workspacePathServiceFactory = workspacePathServiceFactory;
+        _workspaceSelectorFactory = workspaceSelectorFactory;
     }
 
     public IWorkspaceResolver Create(
@@ -23,6 +26,7 @@ internal sealed class WorkspaceResolverFactory : IWorkspaceResolverFactory
             solution,
             snapshot,
             projectTargetFrameworks,
+            _workspaceSelectorFactory,
             _workspacePathComparison,
             _workspacePathServiceFactory.Create(workspaceIdentity));
     }

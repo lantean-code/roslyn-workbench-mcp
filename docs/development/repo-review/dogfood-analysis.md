@@ -73,9 +73,10 @@ The initialisation instructions contain approximately 967 characters and 138 wor
 |---:|---|---|---|
 | 1 | DOGFOOD-001 | Publish an equivalent JSON `TextContent` fallback with every structured result | Complete |
 | 2 | DOGFOOD-002 | [Make composed input schemas project into complete, usable agent-facing declarations](dogfood-002-schema-publication-design.md) | Confirmed through published dogfood and acceptance validation |
-| 3 | DOGFOOD-003 | Keep essential server instructions within Codex's first 512 characters | Incomplete |
-| 4 | DOGFOOD-004 | Repeat selector workflows and reconsider selector composability only if material friction remains | Incomplete |
+| 3 | DOGFOOD-003 | Keep essential server instructions within Codex's first 512 characters | Complete |
+| 4 | DOGFOOD-004 | [Publish a canonical selector with resolved source locations](dogfood-004-selector-composability-design.md) | Confirmed through published dogfood and acceptance validation |
 | 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Incomplete |
+| 6 | DOGFOOD-006 | Enforce query-response authoring warnings during bundled plugin builds and route runtime warnings to operator logging | Incomplete |
 
 ### DOGFOOD-001 — Structured-result text fallback
 
@@ -96,6 +97,10 @@ After DOGFOOD-002, repeat the documentation-comment and returned-location workfl
 ### DOGFOOD-005 — Controlled mutation dogfooding
 
 Use a disposable fixture or otherwise reversible Workspace to resolve a target, start a transaction, perform one supported semantic rename, format or Code Action, inspect the preview, roll back and confirm both Workspace and filesystem state returned to the baseline. During later development, use dogfood mutations when the required edit naturally matches an existing semantic tool; do not force unsupported structural edits through the mutation surface merely to increase usage.
+
+### DOGFOOD-006 — Plugin query-response authoring warnings
+
+Run the existing `RWMCP014` analyser when building the bundled core plugin so first-party response-contract violations are visible through the same compile-time feedback supplied to third-party plugin authors. Retain warning severity because an unbounded collection does not invalidate a plugin, but can publish excessive data into an agent's context. Remediate the current bundled-tool warnings and retain the runtime response-contract inspector as a fallback for plugins built without the current analyser or with the rule suppressed. Log runtime authoring warnings once with plugin and tool identity instead of adding them to agent-facing plugin load diagnostics; discovery, loading, composition, schema and enablement failures remain plugin status diagnostics.
 
 ## Explicit non-actions
 

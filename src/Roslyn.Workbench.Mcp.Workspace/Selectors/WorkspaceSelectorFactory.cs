@@ -2,26 +2,27 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
 {
-    public LocationSelector? CreateLocationSelector(ResolvedLocation? resolvedLocation)
+    public CanonicalLocationSelector? CreateCanonicalLocationSelector(ResolvedLocation? resolvedLocation)
     {
-        if (resolvedLocation?.Document is not { } document
-            || resolvedLocation.Span is not { } resolvedSpan)
+        var spanSelector = CreateTextSpanSelector(resolvedLocation);
+        if (spanSelector is null)
         {
             return null;
         }
 
-        var documentSelector = CreateDocumentSelector(document);
-        var range = new TextSpanRange
+        return new CanonicalLocationSelector
         {
-            Start = resolvedSpan.Start,
-            Length = resolvedSpan.Length,
+            Span = spanSelector,
         };
+    }
 
-        var spanSelector = new TextSpanSelector
+    public LocationSelector? CreateLocationSelector(ResolvedLocation? resolvedLocation)
+    {
+        var spanSelector = CreateTextSpanSelector(resolvedLocation);
+        if (spanSelector is null)
         {
-            Document = documentSelector,
-            Range = range,
-        };
+            return null;
+        }
 
         return new LocationSelector
         {
@@ -40,6 +41,28 @@ internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
         return new SymbolSelector
         {
             Location = locationSelector,
+        };
+    }
+
+    private static TextSpanSelector? CreateTextSpanSelector(ResolvedLocation? resolvedLocation)
+    {
+        if (resolvedLocation?.Document is not { } document
+            || resolvedLocation.Span is not { } resolvedSpan)
+        {
+            return null;
+        }
+
+        var documentSelector = CreateDocumentSelector(document);
+        var range = new TextSpanRange
+        {
+            Start = resolvedSpan.Start,
+            Length = resolvedSpan.Length,
+        };
+
+        return new TextSpanSelector
+        {
+            Document = documentSelector,
+            Range = range,
         };
     }
 

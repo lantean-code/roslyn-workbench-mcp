@@ -29,4 +29,9 @@ public sealed record ResolvedLocation
     /// Gets the exact immutable workspace snapshot associated with this location.
     /// </summary>
     public required SnapshotPrecondition Snapshot { get; init; }
+
+    /// <summary>
+    /// Gets the canonical selector that can resolve this source location again.
+    /// </summary>
+    public CanonicalLocationSelector? Selector { get; init; }
 }

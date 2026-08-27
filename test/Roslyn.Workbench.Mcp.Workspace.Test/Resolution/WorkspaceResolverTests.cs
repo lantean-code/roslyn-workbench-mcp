@@ -4,6 +4,13 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverTests
 {
+    private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
+
+    public WorkspaceResolverTests()
+    {
+        _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
+    }
+
     [Fact]
     public void GIVEN_MalformedProjectPath_WHEN_Resolving_THEN_ShouldReturnInvalid()
     {
@@ -62,6 +69,7 @@ public sealed class WorkspaceResolverTests
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _selectorFactory.Object,
             pathComparison.Object,
             workspacePathService);
 
@@ -101,6 +109,7 @@ public sealed class WorkspaceResolverTests
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _selectorFactory.Object,
             pathComparison.Object,
             workspacePathService);
 
@@ -140,12 +149,24 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public async Task GIVEN_SourceLocation_WHEN_CreatingResolvedLocation_THEN_ShouldIncludeDocumentSpanAndSnapshot()
+    public async Task GIVEN_SourceLocation_WHEN_CreatingResolvedLocation_THEN_ShouldIncludeDocumentSpanSnapshotAndSelector()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var tree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
         var location = tree!.GetLocation(new TextSpan(6, 1));
+        var expectedSelector = new CanonicalLocationSelector
+        {
+            Span = SelectorTestFactory.CreateTextSpanSelector(
+                new DocumentSelector { DocumentId = document.Id.Id.ToString() },
+                start: 6,
+                length: 1),
+        };
+
+        _selectorFactory
+            .Setup(item => item.CreateCanonicalLocationSelector(It.IsAny<ResolvedLocation>()))
+            .Returns(expectedSelector);
+
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot(), transactionRevision: 3);
 
         var result = target.CreateResolvedLocation(location);
@@ -158,6 +179,13 @@ public sealed class WorkspaceResolverTests
         result.Column.Should().Be(7);
         result.Snapshot.WorkspaceEpoch.Should().Be(2);
         result.Snapshot.TransactionRevision.Should().Be(3);
+        result.Selector!.Span.Should().BeSameAs(expectedSelector.Span);
+        _selectorFactory.Verify(item => item.CreateCanonicalLocationSelector(It.Is<ResolvedLocation>(resolved =>
+            resolved.Document != null
+            && resolved.Document.DocumentId == document.Id.Id.ToString()
+            && resolved.Span != null
+            && resolved.Span.Start == 6
+            && resolved.Span.Length == 1)), Times.Once);
     }
 
     [Fact]
@@ -171,6 +199,7 @@ public sealed class WorkspaceResolverTests
             workspace.CurrentSolution,
             snapshot: null,
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _selectorFactory.Object,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
@@ -214,6 +243,7 @@ public sealed class WorkspaceResolverTests
             workspace.CurrentSolution,
             snapshot: null,
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _selectorFactory.Object,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
 
@@ -1255,7 +1285,7 @@ public sealed class WorkspaceResolverTests
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
 
-    private static WorkspaceResolver CreateTarget(
+    private WorkspaceResolver CreateTarget(
         Solution solution,
         string workspaceRoot,
         int? transactionRevision = null,
@@ -1272,6 +1302,7 @@ public sealed class WorkspaceResolverTests
                 workspaceEpoch: 2,
                 transactionRevision: transactionRevision),
             projectTargetFrameworks ?? WorkspaceProjectTargetFrameworkMap.Empty,
+            _selectorFactory.Object,
             comparison.Object,
             new WorkspacePathService(workspaceRoot, pathNormalizer.Object));
     }

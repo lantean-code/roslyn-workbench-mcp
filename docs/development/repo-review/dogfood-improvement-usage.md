@@ -2,7 +2,7 @@
 
 **Status:** Active until the user explicitly ends dogfood usage logging.
 
-This log records every request sent to the configured published Roslyn Workbench dogfood server after the RWMCP3 usage analysis. It covers implementation of the [approved dogfood improvement worklist](dogfood-analysis.md) and all other repository operations. Failed requests, retries, blank client projections and abandoned approaches remain part of the evidence.
+This log records every request sent to the configured published Roslyn Workbench dogfood server after the RWMCP3 usage analysis. It covers implementation of the [approved dogfood improvement worklist](dogfood-analysis.md), the [follow-on dogfood validation worklist](dogfood-follow-on-worklist.md) and all other repository operations. Failed requests, retries, blank client projections and abandoned approaches remain part of the evidence.
 
 The completed historical calls that informed the worklist remain in the separate [RWMCP3 dogfood usage log](dogfood-usage.md).
 

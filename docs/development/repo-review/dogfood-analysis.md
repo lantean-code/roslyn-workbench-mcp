@@ -4,6 +4,8 @@
 
 **Evidence:** [RWMCP3 dogfood usage log](dogfood-usage.md) and the continuing [post-RWMCP3 dogfood usage log](dogfood-improvement-usage.md)
 
+The seven approved improvements below are complete. Further published-Host coverage identified from the continuing usage evidence is tracked separately in the [follow-on dogfood validation worklist](dogfood-follow-on-worklist.md).
+
 ## Purpose
 
 This document evaluates how the published Roslyn Workbench Host was used while remediating RWMCP3. It separates confirmed server or client-interoperability problems from expected lifecycle behaviour, records the workflows that were not exercised and defines the dependency-ordered follow-on work without reopening the completed RWMCP3 findings.

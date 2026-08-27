@@ -1659,3 +1659,105 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-007-validation"}}`
 
 **Outcome:** Succeeded and closed the Workspace at its unchanged epoch-1 snapshot with no transaction.
+
+## DOGFOOD-008 — Controlled transaction commit
+
+### 196. `workspace-list`
+
+**Activity:** DOGFOOD-008 design discovery.
+
+**Purpose:** Confirm that the published Host has no existing Workspace or transaction owner before inspecting the transaction-commit workflow.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no open Workspaces and no transaction owner.
+
+### 197. `workspace-open`
+
+**Activity:** DOGFOOD-008 design discovery.
+
+**Purpose:** Open the trusted repository read-only so the published semantic tools can locate the transaction-commit adapter, mutation contract and existing disposable integration fixtures.
+
+**Request:** `{"alias":"dogfood-008-design-discovery","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,638 documents at Workspace epoch 2. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning; no transaction was started.
+
+### 198. `search-symbols`
+
+**Activity:** DOGFOOD-008 design discovery.
+
+**Purpose:** Locate the transaction-commit protocol adapter, its contracts, commit service and existing end-to-end test coverage before choosing the disposable published-Host workflow.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-design-discovery"},"query":"TransactionCommit","kinds":["NamedType","Method"],"symbolsLimit":30,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with 21 results. Material results included `TransactionCommitTool`, `TransactionCommitRequest`, `TransactionCommitService`, the disk-persistence integration test and an existing published-Host acceptance test that renames and commits against a disposable fixture.
+
+### 199. `get-code-context`
+
+**Activity:** DOGFOOD-008 design discovery.
+
+**Purpose:** Inspect the existing published-Host acceptance workflow around its controlled rename and physical transaction commit.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-design-discovery"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.AcceptanceTest/WorkspaceWorkflowIntegrationTests.cs"},"range":{"start":8216,"length":96}}},"beforeLines":10,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"diagnosticsLimit":1}`
+
+**Outcome:** Succeeded and showed the complete workflow: open a copied `Sample.csproj`, start at revision 0, rename `T:Sample.Class1` to `RenamedClass`, verify the one-document preview, commit with the rename result's snapshot, assert the exact file content and query the promoted Workspace state for `Sample.RenamedClass`.
+
+### 200. `workspace-close`
+
+**Activity:** DOGFOOD-008 design discovery.
+
+**Purpose:** Close the read-only repository Workspace after the controlled-commit workflow and its existing coverage had been traced.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-design-discovery"}}`
+
+**Outcome:** Succeeded and closed the repository at its unchanged epoch-2 snapshot with no transaction.
+
+### 201. `workspace-open`
+
+**Activity:** DOGFOOD-008 revised design discovery.
+
+**Purpose:** Reopen the trusted repository read-only to assess the user's proposed real-repository and Scenario Runner alternatives.
+
+**Request:** `{"alias":"dogfood-008-scenario-discovery","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,638 documents at Workspace epoch 3. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning; no transaction was started.
+
+### 202. `search-symbols`
+
+**Activity:** DOGFOOD-008 revised design discovery.
+
+**Purpose:** Locate the Scenario Runner's durable-commit orchestration and reporting types before assessing whether a new large-project scenario is needed.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-scenario-discovery"},"query":"DurableCommit","kinds":["NamedType","Method"],"symbolsLimit":40,"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.ScenarioRunner"}]}}`
+
+**Outcome:** Succeeded with 12 results, including `MeasureDurableCommitsAsync`, `RunDurableCommitIterationAsync`, `DurableCommitRunner` and the commit measurement models. This confirmed that durable commits are already a first-class Scenario Runner workflow rather than a missing scenario family.
+
+### 203. `get-code-context`
+
+**Activity:** DOGFOOD-008 revised design discovery.
+
+**Purpose:** Inspect the complete durable-commit iteration and its cleanup boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-scenario-discovery"},"location":{"span":{"document":{"path":"tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs"},"range":{"start":41443,"length":30}}},"beforeLines":15,"afterLines":150,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3,"diagnosticsLimit":1}`
+
+**Outcome:** Failed with `InvalidRequest` because `afterLines: 150` exceeded the published bound. No Workspace or transaction state changed; the request was corrected for retry.
+
+### 204. `get-code-context`
+
+**Activity:** DOGFOOD-008 revised design discovery.
+
+**Purpose:** Retry inspection of the durable-commit iteration with the supported context bound.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-scenario-discovery"},"location":{"span":{"document":{"path":"tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs"},"range":{"start":41443,"length":30}}},"beforeLines":15,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3,"diagnosticsLimit":1}`
+
+**Outcome:** Succeeded and confirmed that each durable-commit iteration starts a published Host, opens the pinned repository, stages and previews the mutation, commits it, attempts rollback on a pre-commit failure, closes the Workspace and Host, captures actual Git changes, restores them with cancellation disabled, and combines workload, cleanup, restoration and validation failures rather than skipping later cleanup.
+
+### 205. `workspace-close`
+
+**Activity:** DOGFOOD-008 revised design discovery.
+
+**Purpose:** Close the read-only repository Workspace after assessing the existing large-repository durable-commit workflow.
+
+**Request:** `{"workspace":{"alias":"dogfood-008-scenario-discovery"}}`
+
+**Outcome:** Succeeded and closed the repository at its unchanged epoch-3 snapshot with no transaction.

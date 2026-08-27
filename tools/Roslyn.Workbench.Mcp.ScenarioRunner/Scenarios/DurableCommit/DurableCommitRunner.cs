@@ -76,6 +76,7 @@ internal sealed class DurableCommitRunner
         DurableCommitPreparation preparation,
         CancellationToken cancellationToken)
     {
+        var stagedSnapshot = _host.GetSnapshotState(_workspaceId);
         var workspaceArguments = CreateMutationArguments();
         var before = _host.CaptureSnapshot();
         await using var memorySampler = _host.StartMemorySampling();
@@ -89,6 +90,10 @@ internal sealed class DurableCommitRunner
         var after = _host.CaptureSnapshot();
 
         EnsureCommitted(commitResult);
+        var promotedSnapshot = ReadSnapshot(commitResult, "transaction-commit");
+        EnsurePromotedSnapshot(stagedSnapshot, promotedSnapshot);
+        await EnsureWorkspaceReadyAsync(promotedSnapshot, cancellationToken);
+
         var commitObservation = ResponseObservation.Create(commitResult);
         return new DurableCommitExecution
         {
@@ -111,6 +116,40 @@ internal sealed class DurableCommitRunner
             "transaction-rollback",
             CreateWorkspaceArguments(),
             cancellationToken);
+    }
+
+    private async Task EnsureWorkspaceReadyAsync(
+        ScenarioSnapshot promotedSnapshot,
+        CancellationToken cancellationToken)
+    {
+        var arguments = CreateWorkspaceArguments();
+        arguments["detail"] = "Full";
+
+        var result = await InvokeRequiredAsync(
+            "workspace-status",
+            arguments,
+            cancellationToken);
+        var content = GetStructuredContent(result, "workspace-status");
+        var data = content.GetProperty("data");
+
+        if (data.GetProperty("state").GetString() != "Ready")
+        {
+            throw new InvalidOperationException(
+                "workspace-status did not report Ready after transaction-commit.");
+        }
+
+        if (data.GetProperty("transaction").ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidOperationException(
+                "workspace-status reported an active transaction after transaction-commit.");
+        }
+
+        var statusSnapshot = ReadSnapshot(content, "workspace-status");
+        if (statusSnapshot != promotedSnapshot)
+        {
+            throw new InvalidOperationException(
+                "workspace-status did not report the snapshot promoted by transaction-commit.");
+        }
     }
 
     private Dictionary<string, object?> CreateWorkspaceArguments()
@@ -241,8 +280,7 @@ internal sealed class DurableCommitRunner
 
     private static void EnsureCommitted(CallToolResult result)
     {
-        var content = result.StructuredContent
-            ?? throw new InvalidDataException("transaction-commit returned no structured content.");
+        var content = GetStructuredContent(result, "transaction-commit");
         var committed = content
             .GetProperty("data")
             .GetProperty("committed");
@@ -250,5 +288,64 @@ internal sealed class DurableCommitRunner
         {
             throw new InvalidOperationException("transaction-commit completed without committing the staged mutation.");
         }
+    }
+
+    private void EnsurePromotedSnapshot(
+        ScenarioSnapshot stagedSnapshot,
+        ScenarioSnapshot promotedSnapshot)
+    {
+        if (promotedSnapshot.WorkspaceId != _workspaceId)
+        {
+            throw new InvalidOperationException(
+                "transaction-commit returned a snapshot for a different Workspace.");
+        }
+
+        if (promotedSnapshot.WorkspaceEpoch != stagedSnapshot.WorkspaceEpoch)
+        {
+            throw new InvalidOperationException(
+                "transaction-commit changed the Workspace epoch while promoting the committed snapshot.");
+        }
+
+        if (promotedSnapshot.TransactionRevision is not null)
+        {
+            throw new InvalidOperationException(
+                "transaction-commit returned a snapshot that remained in transaction state.");
+        }
+
+        if (promotedSnapshot.SnapshotId == stagedSnapshot.SnapshotId)
+        {
+            throw new InvalidOperationException(
+                "transaction-commit did not promote a new committed snapshot.");
+        }
+    }
+
+    private static ScenarioSnapshot ReadSnapshot(CallToolResult result, string tool)
+    {
+        var content = GetStructuredContent(result, tool);
+        return ReadSnapshot(content, tool);
+    }
+
+    private static ScenarioSnapshot ReadSnapshot(JsonElement content, string tool)
+    {
+        if (!content.TryGetProperty("snapshot", out var snapshot))
+        {
+            throw new InvalidDataException($"{tool} returned no Workspace snapshot.");
+        }
+
+        return new ScenarioSnapshot
+        {
+            WorkspaceId = snapshot.GetProperty("workspaceId").GetGuid(),
+            WorkspaceEpoch = snapshot.GetProperty("workspaceEpoch").GetInt64(),
+            SnapshotId = snapshot.GetProperty("snapshotId").GetGuid(),
+            TransactionRevision = snapshot.GetProperty("transactionRevision").ValueKind == JsonValueKind.Null
+                ? null
+                : snapshot.GetProperty("transactionRevision").GetInt32(),
+        };
+    }
+
+    private static JsonElement GetStructuredContent(CallToolResult result, string tool)
+    {
+        return result.StructuredContent
+            ?? throw new InvalidDataException($"{tool} returned no structured content.");
     }
 }

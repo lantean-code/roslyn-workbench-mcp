@@ -6,22 +6,22 @@
 
 ## Purpose
 
-The original [dogfood improvement worklist](dogfood-analysis.md#approved-improvement-worklist) is complete. Analysis of the continuing usage log found no further confirmed product defect, but it identified important workflows and tools that have not yet received published-Host dogfood coverage. This worklist records those follow-on validation items without reopening the completed DOGFOOD-001 through DOGFOOD-007 improvements.
+The original [dogfood improvement worklist](dogfood-analysis.md#approved-improvement-worklist) is complete. Analysis of the continuing usage log found no further confirmed product defect and identified workflows that were not visible in that log. Absence from the usage log is not evidence that repository tests or scenarios lack coverage. Each follow-on item must therefore validate its claimed gap against the existing unit, integration, acceptance and Scenario Runner coverage before proposing design or implementation work.
 
 ## Worklist
 
 | Order | Identifier | Validation item | Status |
 |---:|---|---|---|
-| 1 | DOGFOOD-008 | Commit a controlled transaction in a disposable Workspace | Ready for design discovery |
-| 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Pending DOGFOOD-008 |
-| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Pending DOGFOOD-009 |
-| 4 | DOGFOOD-011 | Exercise error-reporting workflows with explicit consent | Pending DOGFOOD-010 and explicit user consent |
+| 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
+| 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Pending existing-coverage validation |
+| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Pending existing-coverage validation |
+| 4 | DOGFOOD-011 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
 
 ### DOGFOOD-008 — Controlled transaction commit
 
-Use a disposable Workspace to perform a supported mutation and invoke `transaction-commit`. Validate the preview before committing, confirm the expected physical file change and final Workspace snapshot after the commit, and then dispose of the fixture. The workflow must not target the working repository or any other non-disposable source tree.
+The existing `rename-dbcontext-durable` Scenario Runner scenario already uses a disposable pinned EF Core checkout to perform a supported mutation, preview it, invoke `transaction-commit`, confirm physical file changes and restore the checkout. DOGFOOD-008 was incorrectly classified as missing because the initial recommendation considered only the published dogfood usage log and did not validate the claim against the Scenario Runner before adding the item.
 
-Confirmation requires published-Host evidence for transaction start, mutation staging, preview, commit, the resulting snapshot and filesystem state, plus fixture cleanup.
+The implementation produced an optional hardening of that existing scenario: it now also requires snapshot promotion, lifecycle state `Ready` and no active transaction after commit. Confirmation concerns that hardening only; the controlled durable-commit workflow was already covered.
 
 ### DOGFOOD-009 — Code Action and Fix All workflows
 
@@ -43,7 +43,7 @@ Confirmation requires evidence that the published contract is usable, consent wa
 
 ## Sequence and process
 
-The items are ordered to broaden mutation coverage safely before expanding general query coverage. DOGFOOD-011 remains last because it may have an external side effect and therefore needs separate, explicit consent at execution time.
+Before designing each remaining item, inspect the repository's existing unit, integration and acceptance tests, Scenario Runner definitions and supporting runners. Record the exact existing coverage and the concrete surviving gap. If the requested behaviour is already covered, close or narrow the item rather than inventing duplicate work. Only after this validation may design discovery propose a change or a new dogfood run. DOGFOOD-011 remains last because it may have an external side effect and therefore needs separate, explicit consent at execution time.
 
 For any item that reveals a product change rather than a validation-only workflow, follow the remediation process in [Deep Dive Review](../DeepDiveReview.md): complete design discovery, obtain manual design approval before implementation, implement and validate, obtain user confirmation, stage the confirmed baseline, run the fresh context-free Review Agent, address findings as an unstaged comparison, obtain final confirmation and let the user commit before publishing the next dogfood build.
 

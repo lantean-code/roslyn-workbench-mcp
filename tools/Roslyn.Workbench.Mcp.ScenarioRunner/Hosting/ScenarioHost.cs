@@ -40,9 +40,14 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
     public IReadOnlyDictionary<string, object?> GetSnapshot(Guid workspaceId)
     {
+        return CreateSnapshotArguments(GetSnapshotState(workspaceId));
+    }
+
+    public ScenarioSnapshot GetSnapshotState(Guid workspaceId)
+    {
         if (_workspaceSnapshots.TryGetValue(workspaceId, out var snapshot))
         {
-            return CreateSnapshotArguments(snapshot);
+            return snapshot;
         }
 
         throw new InvalidOperationException(

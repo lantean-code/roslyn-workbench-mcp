@@ -172,7 +172,7 @@
               "workspaceEpoch": "${workspaceEpoch}",
               "transactionRevision": null
             },
-            "kinds": 3
+            "kinds": "All"
           }
         },
         {
@@ -189,7 +189,7 @@
               "workspaceEpoch": "${workspaceEpoch}",
               "transactionRevision": null
             },
-            "kinds": 1
+            "kinds": "CodeFixes"
           }
         },
         {
@@ -217,7 +217,7 @@
                   "document": {
                     "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                   },
-                  "kinds": 1,
+                  "kinds": "CodeFixes",
                   "diagnosticIds": [ "IDE0058" ]
                 }
               },
@@ -231,7 +231,7 @@
                   "workspaceEpoch": "${workspaceEpoch}",
                   "transactionRevision": 0
                 },
-                "kinds": 1,
+                "kinds": "CodeFixes",
                 "diagnosticIds": [ "IDE0058" ]
               }
             }
@@ -248,7 +248,7 @@
           },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": 0,
+            "scope": "Document",
             "expectedSnapshot": {
               "workspaceId": "${workspaceId}",
               "workspaceEpoch": "${workspaceEpoch}",
@@ -281,7 +281,7 @@
                   "document": {
                     "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
                   },
-                  "kinds": 1,
+                  "kinds": "CodeFixes",
                   "diagnosticIds": [ "IDE0058" ]
                 }
               },
@@ -295,7 +295,7 @@
                   "workspaceEpoch": "${workspaceEpoch}",
                   "transactionRevision": 0
                 },
-                "kinds": 1,
+                "kinds": "CodeFixes",
                 "diagnosticIds": [ "IDE0058" ]
               }
             },
@@ -307,7 +307,7 @@
               },
               "arguments": {
                 "workspace": { "workspaceId": "${workspaceId}" },
-                "scope": 0,
+                "scope": "Document",
                 "expectedSnapshot": {
                   "workspaceId": "${workspaceId}",
                   "workspaceEpoch": "${workspaceEpoch}",
@@ -386,7 +386,7 @@
                 "path": "src/GuardClauses/GuardAgainstExpressionExtensions.cs",
                 "project": { "name": "GuardClauses(net8.0)" }
               },
-              "kinds": 2
+              "kinds": "Refactorings"
             }
           },
           "arguments": {
@@ -655,7 +655,7 @@
               "workspaceEpoch": "${workspaceEpoch}",
               "transactionRevision": null
             },
-            "kinds": 1
+            "kinds": "CodeFixes"
           }
         },
         {
@@ -958,7 +958,7 @@
                 "start": 117,
                 "length": 35
               },
-              "kinds": 2
+              "kinds": "Refactorings"
             }
           },
           "arguments": {
@@ -1029,7 +1029,7 @@
                       "start": 117,
                       "length": 35
                     },
-                    "kinds": 2
+                    "kinds": "Refactorings"
                   }
                 },
                 "arguments": {
@@ -1298,7 +1298,7 @@
               "workspaceEpoch": "${workspaceEpoch}",
               "transactionRevision": null
             },
-            "kinds": 1
+            "kinds": "CodeFixes"
           }
         },
         {

@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Defines the response detail level for status-oriented tools.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<StatusDetailLevel>))]
 public enum StatusDetailLevel
 {
     /// <summary>

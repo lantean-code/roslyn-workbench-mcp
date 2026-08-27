@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the direction of transaction history movement.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<TransactionHistoryDirection>))]
 public enum TransactionHistoryDirection
 {
     /// <summary>

@@ -77,7 +77,7 @@ public sealed class WorkspaceStatusToolTests
             service.Object,
             consentService.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
-        arguments["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full);
+        arguments["detail"] = JsonSerializer.SerializeToElement(nameof(StatusDetailLevel.Full));
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -159,7 +159,7 @@ public sealed class WorkspaceStatusToolTests
 
         var arguments = new Dictionary<string, JsonElement>
         {
-            ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
+            ["detail"] = JsonSerializer.SerializeToElement(nameof(StatusDetailLevel.Full)),
         };
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(

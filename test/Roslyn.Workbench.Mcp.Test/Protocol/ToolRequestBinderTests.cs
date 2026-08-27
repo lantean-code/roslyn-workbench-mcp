@@ -242,19 +242,19 @@ public sealed class ToolRequestBinderTests
     }
 
     [Fact]
-    public void GIVEN_RequiredEnumArgumentIsUndefined_WHEN_Binding_THEN_ShouldReturnNamedError()
+    public void GIVEN_NumericEnumArgument_WHEN_Binding_THEN_ShouldReturnContractError()
     {
         var result = _target.TryBind<RequiredEnumRequest>(
             new Dictionary<string, JsonElement>
             {
-                ["value"] = JsonSerializer.SerializeToElement(999),
+                ["value"] = JsonSerializer.SerializeToElement((int)TestEnum.Value),
             },
             out var request,
             out var errorMessage);
 
         result.Should().BeFalse();
         request.Should().BeNull();
-        errorMessage.Should().Be("Unsupported value for tool argument: 'value'.");
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
     }
 
     [Fact]
@@ -262,15 +262,15 @@ public sealed class ToolRequestBinderTests
     {
         var definedArguments = new Dictionary<string, JsonElement>
         {
-            ["optional"] = JsonSerializer.SerializeToElement(TestEnum.Value),
+            ["optional"] = JsonSerializer.SerializeToElement(nameof(TestEnum.Value)),
         };
 
         AssertEnumRequestBinds(definedArguments);
 
         var nullArguments = new Dictionary<string, JsonElement>
         {
-            ["signedFlags"] = JsonSerializer.SerializeToElement(TestSignedFlags.First | TestSignedFlags.Second),
-            ["unsignedFlags"] = JsonSerializer.SerializeToElement(TestUnsignedFlags.First | TestUnsignedFlags.Second),
+            ["signedFlags"] = JsonSerializer.SerializeToElement("First, Second"),
+            ["unsignedFlags"] = JsonSerializer.SerializeToElement("First, Second"),
             ["optional"] = JsonSerializer.SerializeToElement((TestEnum?)null),
         };
 
@@ -282,21 +282,19 @@ public sealed class ToolRequestBinderTests
     }
 
     [Fact]
-    public void GIVEN_FlagsArgumentContainsUndefinedBits_WHEN_Binding_THEN_ShouldReturnNamedError()
+    public void GIVEN_EnumArgumentHasUnknownString_WHEN_Binding_THEN_ShouldReturnContractError()
     {
         var result = _target.TryBind<EnumRequest>(
             new Dictionary<string, JsonElement>
             {
-                ["signedFlags"] = JsonSerializer.SerializeToElement((TestSignedFlags)4),
-                ["unsignedFlags"] = JsonSerializer.SerializeToElement((TestUnsignedFlags)4),
-                ["optional"] = JsonSerializer.SerializeToElement((TestEnum)999),
+                ["optional"] = JsonSerializer.SerializeToElement("Unknown"),
             },
             out var request,
             out var errorMessage);
 
         result.Should().BeFalse();
         request.Should().BeNull();
-        errorMessage.Should().Be("Unsupported values for tool arguments: 'optional', 'signedFlags', 'unsignedFlags'.");
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
     }
 
     [Fact]

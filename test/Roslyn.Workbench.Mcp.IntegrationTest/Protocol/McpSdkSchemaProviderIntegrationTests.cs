@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
@@ -56,6 +57,64 @@ public sealed class McpSdkSchemaProviderIntegrationTests
             .Select(static item => item.GetString())
             .Should()
             .Equal("First", "Second");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_UnattributedEnum_WHEN_ExportingSchemas_THEN_ShouldPublishExactStringValues()
+    {
+        var inputSchema = _target.GetInputSchema<EnumRequest>();
+        var valueSchema = _target.GetValueSchema<EnumResponse>();
+
+        AssertStringEnum(
+            inputSchema.GetProperty("properties").GetProperty("value"),
+            "First",
+            "Second");
+
+        AssertStringEnum(
+            valueSchema.GetProperty("properties").GetProperty("value"),
+            "First",
+            "Second");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_CodeActionEnums_WHEN_ExportingSchemas_THEN_ShouldPublishExactStringValues()
+    {
+        var listRequestSchema = _target.GetInputSchema<ListCodeActionsRequest>();
+        var prepareRequestSchema = _target.GetInputSchema<PrepareFixAllRequest>();
+        var itemSchema = _target.GetValueSchema<CodeActionListItem>();
+        var prepareDataSchema = _target.GetValueSchema<PrepareFixAllData>();
+
+        AssertStringEnum(
+            listRequestSchema.GetProperty("properties").GetProperty("kinds"),
+            "CodeFixes",
+            "Refactorings",
+            "All");
+
+        AssertStringEnum(
+            prepareRequestSchema.GetProperty("properties").GetProperty("scope"),
+            "Document",
+            "Project",
+            "Solution");
+
+        AssertStringEnum(
+            itemSchema.GetProperty("properties").GetProperty("kind"),
+            "CodeFix",
+            "Refactoring");
+
+        var fixAllScopes = itemSchema.GetProperty("properties").GetProperty("fixAllScopes");
+        AssertStringEnum(
+            fixAllScopes.GetProperty("items"),
+            "Document",
+            "Project",
+            "Solution");
+
+        AssertStringEnum(
+            prepareDataSchema.GetProperty("properties").GetProperty("scope"),
+            "Document",
+            "Project",
+            "Solution");
     }
 
     [Fact]
@@ -171,6 +230,16 @@ public sealed class McpSdkSchemaProviderIntegrationTests
         };
     }
 
+    private static void AssertStringEnum(JsonElement schema, params string[] expectedValues)
+    {
+        schema.GetProperty("type").GetString().Should().Be("string");
+        schema.GetProperty("enum")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should()
+            .Equal(expectedValues);
+    }
+
 #pragma warning disable CA1812 // Schema fixtures are consumed through type metadata without construction.
     private sealed record TestRequest
     {
@@ -180,6 +249,16 @@ public sealed class McpSdkSchemaProviderIntegrationTests
     private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
+    }
+
+    private sealed record EnumRequest
+    {
+        public required TestEnum Value { get; init; }
+    }
+
+    private sealed record EnumResponse
+    {
+        public required TestEnum Value { get; init; }
     }
 
     private sealed record AnnotatedRequest
@@ -218,5 +297,11 @@ public sealed class McpSdkSchemaProviderIntegrationTests
     private readonly record struct TestStruct
     {
         public string Value { get; init; }
+    }
+
+    private enum TestEnum
+    {
+        First,
+        Second,
     }
 }

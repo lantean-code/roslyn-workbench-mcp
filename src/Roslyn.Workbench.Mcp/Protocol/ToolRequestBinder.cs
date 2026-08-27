@@ -4,13 +4,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class ToolRequestBinder : IToolRequestBinder
 {
-    private static readonly JsonSerializerOptions _serializerOptions = CreateSerializerOptions();
+    private static readonly JsonSerializerOptions _serializerOptions = McpJsonOptions.RequestBinding;
     private readonly IRequestObjectGraphValidator _requestObjectGraphValidator;
 
     public ToolRequestBinder(IRequestObjectGraphValidator requestObjectGraphValidator)
@@ -357,19 +356,6 @@ internal sealed class ToolRequestBinder : IToolRequestBinder
             enumArgumentArray,
             enumIndexes,
             validationArguments.ToArray());
-    }
-
-    private static JsonSerializerOptions CreateSerializerOptions()
-    {
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            RespectNullableAnnotations = true,
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        };
-
-        serializerOptions.MakeReadOnly();
-        return serializerOptions;
     }
 
     private static class RequestMetadata<TRequest>

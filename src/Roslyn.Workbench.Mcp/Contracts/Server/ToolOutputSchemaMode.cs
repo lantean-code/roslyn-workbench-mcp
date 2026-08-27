@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Contracts.Server;
 
 /// <summary>
 /// Controls how MCP tool output schemas are published in tool metadata.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<ToolOutputSchemaMode>))]
 internal enum ToolOutputSchemaMode
 {
     /// <summary>

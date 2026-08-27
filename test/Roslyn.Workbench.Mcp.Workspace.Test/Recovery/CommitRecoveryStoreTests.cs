@@ -425,12 +425,14 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
-    public async Task GIVEN_CommittedManifestExceedsCapacity_WHEN_PersistingPlan_THEN_ShouldRejectBeforeWriting()
+    public async Task GIVEN_NumericManifestStates_WHEN_PersistingAtPreparedCapacity_THEN_ShouldAcceptCommittedRepresentation()
     {
         var manifest = CreateManifest();
         var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var preparedJson = JsonSerializer.Serialize(manifest, serializerOptions);
         var preparedBytes = Encoding.UTF8.GetByteCount(preparedJson);
+        var committedJson = JsonSerializer.Serialize(manifest with { State = RecoveryState.Committed }, serializerOptions);
+        var committedBytes = Encoding.UTF8.GetByteCount(committedJson);
         var limits = new CommitRecoveryLimits(
             maximumOwnerBytes: long.MaxValue,
             maximumLegacyStatusBytes: long.MaxValue,
@@ -444,12 +446,9 @@ public sealed class CommitRecoveryStoreTests
 
         var result = await target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
 
-        result.IsPersisted.Should().BeFalse();
-        result.ErrorMessage.Should().StartWith("The recovery manifest requires ");
-        result.ErrorMessage.Should().EndWith(
-            $" bytes, exceeding the supported maximum of {preparedBytes} bytes.");
-
-        VerifyPlanWasNotWritten();
+        committedBytes.Should().Be(preparedBytes);
+        result.IsPersisted.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
     }
 
     [Fact]

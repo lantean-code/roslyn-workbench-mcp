@@ -1,19 +1,12 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.AI;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        RespectNullableAnnotations = true,
-        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
-    };
-
     private static readonly AIJsonSchemaCreateOptions _inputSchemaCreateOptions = new()
     {
         TransformSchemaNode = InputContractSchemaTransformer.Transform,
@@ -54,7 +47,7 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
             new McpServerToolCreateOptions
             {
                 SchemaCreateOptions = _inputSchemaCreateOptions,
-                SerializerOptions = _serializerOptions,
+                SerializerOptions = McpJsonOptions.Schema,
             });
 
         var root = tool.ProtocolTool.InputSchema;
@@ -90,7 +83,7 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
             new McpServerToolCreateOptions
             {
                 SchemaCreateOptions = _valueSchemaCreateOptions,
-                SerializerOptions = _serializerOptions,
+                SerializerOptions = McpJsonOptions.Schema,
             });
 
         var root = tool.ProtocolTool.InputSchema;

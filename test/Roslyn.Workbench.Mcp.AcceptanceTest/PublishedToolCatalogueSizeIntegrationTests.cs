@@ -82,7 +82,7 @@ public sealed class PublishedToolCatalogueSizeIntegrationTests
                     ["workspace"] = workspace.CreateSelector(),
                     ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("CandidateCodeFixes.cs"),
                     ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: null),
-                    ["kinds"] = 1,
+                    ["kinds"] = "CodeFixes",
                     ["diagnosticIds"] = _nullableReturnDiagnosticIds,
                 },
                 TestContext.Current.CancellationToken);

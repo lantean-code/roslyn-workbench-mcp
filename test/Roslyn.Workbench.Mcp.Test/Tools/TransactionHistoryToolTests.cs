@@ -51,7 +51,7 @@ public sealed class TransactionHistoryToolTests
             requestBinder.Object,
             service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
-        arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
+        arguments["direction"] = JsonSerializer.SerializeToElement(nameof(TransactionHistoryDirection.Undo));
         arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")));
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(

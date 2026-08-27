@@ -12,6 +12,18 @@ public sealed class ToolResultEnvelopeSerializerTests
     }
 
     [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_UnattributedEnum_WHEN_SerializingSuccess_THEN_ShouldPublishStringValue()
+    {
+        var result = ToolResultEnvelopeSerializer.CreateSuccess(new EnumData
+        {
+            Value = TestEnum.Second,
+        });
+
+        result.GetProperty("data").GetProperty("value").GetString().Should().Be("Second");
+    }
+
+    [Fact]
     public void GIVEN_StagedMutationWithoutData_WHEN_Serializing_THEN_ShouldOmitMutationDetails()
     {
         var currentSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
@@ -294,6 +306,17 @@ public sealed class ToolResultEnvelopeSerializerTests
     private sealed record TestData
     {
         public string Value { get; init; } = string.Empty;
+    }
+
+    private sealed record EnumData
+    {
+        public required TestEnum Value { get; init; }
+    }
+
+    private enum TestEnum
+    {
+        First,
+        Second,
     }
 #pragma warning restore CA1812
 }

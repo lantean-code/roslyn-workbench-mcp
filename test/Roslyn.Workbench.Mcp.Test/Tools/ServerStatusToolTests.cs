@@ -37,7 +37,7 @@ public sealed class ServerStatusToolTests
             "server-status",
             new Dictionary<string, JsonElement>
             {
-                ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
+                ["detail"] = JsonSerializer.SerializeToElement(nameof(StatusDetailLevel.Full)),
             },
             CancellationToken.None);
 

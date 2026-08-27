@@ -9,10 +9,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// </summary>
 internal static class ToolResultEnvelopeSerializer
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
-    };
+    private static readonly JsonSerializerOptions _serializerOptions = McpJsonOptions.Results;
 
     /// <summary>
     /// Creates a successful envelope that publishes the response payload under the shared data property.

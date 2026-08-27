@@ -52,7 +52,7 @@ For example, this request discovers Code Fixes across one document:
     "snapshotId": "22222222-2222-2222-2222-222222222222",
     "transactionRevision": 0
   },
-  "kinds": 1,
+  "kinds": "CodeFixes",
   "diagnosticIds": [
     "IDE0003"
   ],
@@ -101,7 +101,7 @@ Only use `prepare-fix-all` when the selected Code Fix lists the requested scope 
     "workspaceId": "11111111-1111-1111-1111-111111111111"
   },
   "actionId": "33333333-3333-3333-3333-333333333333",
-  "scope": 0,
+  "scope": "Document",
   "maxChanges": 50,
   "affectedDocumentsLimit": 20,
   "expectedSnapshot": {

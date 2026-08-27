@@ -4,6 +4,7 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class StartupAndRecoveryWorkflowIntegrationTests
 {
+    private const int _recoveryConflictState = 4;
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
@@ -49,7 +50,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                         commitId,
                         loadedPath,
                         workspaceRoot = target.WorkspaceRoot,
-                        state = "RecoveryConflict",
+                        state = _recoveryConflictState,
                         entries = Array.Empty<object>(),
                         createdDirectories = Array.Empty<string>(),
                         message = "Acceptance recovery conflict.",
@@ -100,7 +101,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
             using var persistedManifest = JsonDocument.Parse(
                 await File.ReadAllTextAsync(manifestPath, TestContext.Current.CancellationToken));
 
-            persistedManifest.RootElement.GetProperty("state").GetString().Should().Be("RecoveryConflict");
+            persistedManifest.RootElement.GetProperty("state").GetInt32().Should().Be(_recoveryConflictState);
         }
         catch
         {

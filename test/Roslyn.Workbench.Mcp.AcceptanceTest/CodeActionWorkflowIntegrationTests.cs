@@ -5,8 +5,9 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class CodeActionWorkflowIntegrationTests
 {
-    private const int _codeFixKind = 1;
-    private const int _refactoringKind = 2;
+    private const string _codeFixKind = "CodeFixes";
+    private const string _documentFixAllScope = "Document";
+    private const string _refactoringKind = "Refactorings";
 
     private static readonly string[] _builtInIdeDiagnosticIds = ["IDE0003"];
     private static readonly string[] _nullableReturnDiagnosticIds = ["CS8603"];
@@ -463,7 +464,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                         .EnumerateArray()
                         .Any(diagnostic => diagnostic.GetProperty("id").GetString() == "IDE0003")
                     && candidate.TryGetProperty("fixAllScopes", out var scopes)
-                    && scopes.EnumerateArray().Any(scope => scope.GetInt32() == 0));
+                    && scopes.EnumerateArray().Any(scope => scope.GetString() == _documentFixAllScope));
 
             var prepareResult = await target.CallToolAsync(
                 "prepare-fix-all",
@@ -471,7 +472,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 {
                     ["workspace"] = workspaceSelector,
                     ["actionId"] = action.GetProperty("actionId").GetGuid(),
-                    ["scope"] = 0,
+                    ["scope"] = _documentFixAllScope,
                     ["maxChanges"] = 10,
                     ["affectedDocumentsLimit"] = 10,
                     ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
@@ -483,7 +484,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ? AcceptanceProtocol.GetError(prepareResult).GetRawText()
                     : string.Empty);
             var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
-            prepared.GetProperty("scope").GetInt32().Should().Be(0);
+            prepared.GetProperty("scope").GetString().Should().Be(_documentFixAllScope);
             prepared.GetProperty("affectedDocuments")
                 .GetProperty("items")
                 .EnumerateArray()

@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the state of commit recovery.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<RecoveryState>))]
 public enum RecoveryState
 {
     /// <summary>

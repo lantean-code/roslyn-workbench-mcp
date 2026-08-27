@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the resulting workspace state after rollback.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<TransactionRollbackState>))]
 public enum TransactionRollbackState
 {
     /// <summary>

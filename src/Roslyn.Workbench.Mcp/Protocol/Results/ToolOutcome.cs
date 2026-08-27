@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
 /// <summary>
 /// Represents the top-level outcome of a tool invocation.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<ToolOutcome>))]
 internal enum ToolOutcome
 {
     /// <summary>

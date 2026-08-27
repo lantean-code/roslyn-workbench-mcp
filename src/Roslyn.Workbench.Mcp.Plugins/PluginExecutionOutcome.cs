@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
 /// Identifies the outcome of executing a plugin handler.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<PluginExecutionOutcome>))]
 public enum PluginExecutionOutcome
 {
     /// <summary>The handler completed successfully.</summary>

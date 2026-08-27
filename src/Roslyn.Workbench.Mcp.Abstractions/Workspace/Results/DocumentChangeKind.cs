@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the kind of document change recorded in a change summary.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<DocumentChangeKind>))]
 public enum DocumentChangeKind
 {
     /// <summary>

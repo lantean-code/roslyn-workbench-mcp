@@ -213,10 +213,12 @@ public sealed class PublishedInspectionResponseIntegrationTests
             TestContext.Current.CancellationToken);
 
         result.IsError.Should().NotBeTrue();
-        var operations = AcceptanceProtocol.GetSuccessData(result).GetProperty("blocks").EnumerateArray()
+        var blocks = AcceptanceProtocol.GetSuccessData(result).GetProperty("blocks");
+        var operations = blocks.GetProperty("items").EnumerateArray()
             .Select(static block => block.GetProperty("operations"))
             .Single(static collection => collection.GetProperty("hasMore").GetBoolean());
 
+        AssertBoundedCollection(blocks, itemCount: 3, hasMore: false);
         AssertBoundedCollection(operations, itemCount: 1, hasMore: true);
         var operation = operations.GetProperty("items")[0];
         operation.TryGetProperty("syntax", out _).Should().BeFalse();

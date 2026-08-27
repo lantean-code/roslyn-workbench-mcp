@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the severity level of a diagnostic.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<DiagnosticSeverity>))]
 public enum DiagnosticSeverity
 {
     /// <summary>

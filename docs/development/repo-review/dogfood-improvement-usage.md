@@ -1761,3 +1761,717 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-008-scenario-discovery"}}`
 
 **Outcome:** Succeeded and closed the repository at its unchanged epoch-3 snapshot with no transaction.
+
+## DOGFOOD-009 — Existing-coverage validation
+
+### 206. `workspace-list`
+
+**Activity:** DOGFOOD-009 issue validation.
+
+**Purpose:** Confirm that no published dogfood Workspace remained loaded before auditing existing Code Action and Fix All coverage.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 207. `workspace-open`
+
+**Activity:** DOGFOOD-009 issue validation.
+
+**Purpose:** Open the trusted repository read-only in the published dogfood Host so existing Code Action and Fix All tests, scenarios and orchestration can be traced with Roslyn-backed queries.
+
+**Request:** `{"alias":"dogfood-009-coverage-audit","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,638 documents at Workspace epoch 4. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning; no transaction was started.
+
+### 208. `search-symbols`
+
+**Activity:** DOGFOOD-009 issue validation.
+
+**Purpose:** Locate existing Fix All production paths and test coverage before deciding whether the workflow lacks repository validation.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-coverage-audit"},"query":"FixAll","kinds":["NamedType","Method"],"symbolsLimit":100,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with 80 results. The results included extensive `PrepareFixAllToolTests`, integration support, schema tests, production creation and replay components, and the published-Host acceptance test `GIVEN_BuiltInIdeCodeFix_WHEN_PreparingAndStagingFixAll_THEN_ShouldRemainReadOnlyUntilStandardStaging`.
+
+### 209. `get-code-context`
+
+**Activity:** DOGFOOD-009 issue validation.
+
+**Purpose:** Inspect the published-Host acceptance workflow that combines Code Fix discovery, Fix All preparation and standard staging.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-coverage-audit"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.AcceptanceTest/CodeActionWorkflowIntegrationTests.cs"},"range":{"start":17756,"length":100}}},"beforeLines":20,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3,"diagnosticsLimit":1}`
+
+**Outcome:** Succeeded and showed the acceptance test starting a published Host and transaction, discovering a real built-in IDE0003 Code Fix with an advertised document Fix All scope, preparing the bounded Fix All without changing disk or the transaction preview, and then beginning standard staging of the prepared action.
+
+### 210. `workspace-close`
+
+**Activity:** DOGFOOD-009 issue validation.
+
+**Purpose:** Close the read-only repository Workspace after the existing Code Action and Fix All coverage audit.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-coverage-audit"}}`
+
+**Outcome:** Succeeded and closed the repository at its unchanged epoch-4 snapshot with no transaction.
+
+### 211. `workspace-open`
+
+**Activity:** DOGFOOD-009 fixture discovery.
+
+**Purpose:** Open the checked-in InspectionSample project directly from this repository to verify that it can provide the deterministic IDE0003 Fix All target used by acceptance coverage.
+
+**Request:** `{"alias":"dogfood-009-fixture-discovery","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp/dogfood-009"}}`
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the isolated absolute artifacts directory did not yet exist. No Workspace was opened; the directory was created outside the repository before retrying.
+
+### 212. `workspace-open`
+
+**Activity:** DOGFOOD-009 fixture discovery.
+
+**Purpose:** Retry opening the checked-in InspectionSample project after creating its isolated artifacts directory outside the repository.
+
+**Request:** `{"alias":"dogfood-009-fixture-discovery","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp/dogfood-009"}}`
+
+**Outcome:** Succeeded with one project and 29 documents at Workspace epoch 5. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning; no transaction was started.
+
+### 213. `list-code-actions`
+
+**Activity:** DOGFOOD-009 fixture discovery.
+
+**Purpose:** Verify read-only that the checked-in InspectionSample provides a deterministic real Code Fix with Fix All support before proposing it for live client validation.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-fixture-discovery"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":5,"snapshotId":"<snapshot-id>","transactionRevision":null},"kinds":1,"diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with exactly one action, `Remove 'this' qualification`, for IDE0003 at line 9. The action advertised document, project and solution Fix All scopes (`0`, `1`, `2`), confirming that the checked-in repository asset is a deterministic target for both single-action and Fix All dogfood validation.
+
+### 214. `workspace-close`
+
+**Activity:** DOGFOOD-009 fixture discovery.
+
+**Purpose:** Close the checked-in InspectionSample Workspace after confirming its deterministic Code Fix and Fix All target.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-fixture-discovery"}}`
+
+**Outcome:** Succeeded and closed the project at its unchanged epoch-5 snapshot with no transaction.
+
+## DOGFOOD-009 — Live dogfood-client validation
+
+### 215. `workspace-open`
+
+**Activity:** DOGFOOD-009 checked-in-project validation.
+
+**Purpose:** Open the checked-in InspectionSample project directly for the approved rollback-only Code Action and Fix All workflows.
+
+**Request:** `{"alias":"dogfood-009-live-validation","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp/dogfood-009"}}`
+
+**Outcome:** Succeeded with one project and 29 documents at Workspace epoch 6. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 216. `transaction-start`
+
+**Activity:** DOGFOOD-009 direct Code Action validation.
+
+**Purpose:** Start the first rollback-only transaction for direct Code Action staging.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"}}`
+
+**Outcome:** Succeeded at revision 0 with mutation and rollback enabled and commit disabled until a change was staged.
+
+### 217. `list-code-actions`
+
+**Activity:** DOGFOOD-009 direct Code Action validation.
+
+**Purpose:** Rediscover the deterministic IDE0003 action inside the active transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":6,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":1,"diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with exactly one `Remove 'this' qualification` action and document, project and solution Fix All scopes.
+
+### 218. `stage-code-action`
+
+**Activity:** DOGFOOD-009 direct Code Action validation.
+
+**Purpose:** Stage the selected single Code Fix through its opaque action reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"actionId":"<action-id>","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":6,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with summary `Remove 'this' qualification`, transaction revision 1 and a new staged snapshot.
+
+### 219. `transaction-preview`
+
+**Activity:** DOGFOOD-009 direct Code Action validation.
+
+**Purpose:** Inspect the staged single-action change before rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"includeDiff":true,"contextLines":3,"document":{"path":"SimplifyThisOrMe.cs"}}`
+
+**Outcome:** Succeeded with one modified document and one changed line, replacing `var value = this.x;` with `var value = x;`. The diff was not truncated; an external hash check confirmed that disk remained unchanged.
+
+### 220. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 direct Code Action validation.
+
+**Purpose:** Discard the staged single Code Fix without writing the repository.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"}}`
+
+**Outcome:** Succeeded, returned lifecycle state `Ready`, cleared the transaction and restored the original committed snapshot identity.
+
+### 221. `transaction-start`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Start a fresh rollback-only transaction so the Fix All workflow uses newly discovered opaque references.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"}}`
+
+**Outcome:** Succeeded at revision 0 against the same original committed snapshot.
+
+### 222. `list-code-actions`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Rediscover the IDE0003 Code Fix and obtain a fresh originating action reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":6,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":1,"diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with the same single action and Fix All scopes under a new opaque action reference.
+
+### 223. `prepare-fix-all`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Prepare a bounded document-scope Fix All without staging it.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"actionId":"<action-id>","scope":0,"maxChanges":10,"affectedDocumentsLimit":10,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":6,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with a prepared action reference and exactly one affected document, `SimplifyThisOrMe.cs`. The Workspace remained at transaction revision 0 and the file hash remained unchanged.
+
+### 224. `transaction-preview`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Confirm that Fix All preparation had not staged a change.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"includeDiff":true,"contextLines":3}`
+
+**Outcome:** Failed with `InvalidRequest` because `includeDiff: true` requires a document selector. No state changed; the request was corrected for retry.
+
+### 225. `transaction-preview`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Retry the read-only post-preparation preview without requesting a document diff.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"includeDiff":false,"contextLines":3}`
+
+**Outcome:** Succeeded at revision 0 with no changed documents, no diff and commit still disabled, proving that preparation had remained read-only.
+
+### 226. `stage-code-action`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Stage the prepared Fix All through its new opaque reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"actionId":"<prepared-action-id>","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":6,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with summary `Fix all: Remove 'this' qualification`, transaction revision 1 and a new staged snapshot.
+
+### 227. `transaction-preview`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Inspect the staged prepared Fix All before rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"includeDiff":true,"contextLines":3,"document":{"path":"SimplifyThisOrMe.cs"}}`
+
+**Outcome:** Succeeded with the same precise one-document, one-line IDE0003 change as direct staging; the diff was not truncated.
+
+### 228. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 prepared Fix All validation.
+
+**Purpose:** Discard the staged prepared Fix All without writing the repository.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"}}`
+
+**Outcome:** Succeeded, returned lifecycle state `Ready`, cleared the transaction and restored the original committed snapshot identity.
+
+### 229. `workspace-status`
+
+**Activity:** DOGFOOD-009 checked-in-project validation.
+
+**Purpose:** Verify final lifecycle, transaction and snapshot state after both rollbacks.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null`, no reload requirement and the original committed snapshot. External checks confirmed the original SHA-256 file hash and unchanged Git status apart from the intentional worklist and usage-log edits.
+
+### 230. `workspace-close`
+
+**Activity:** DOGFOOD-009 checked-in-project validation.
+
+**Purpose:** Close the InspectionSample Workspace after both rollback-only workflows completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-live-validation"}}`
+
+**Outcome:** Succeeded and closed the project at its unchanged epoch-6 committed snapshot with no transaction.
+
+## DOGFOOD-009 — Main-codebase validation
+
+### 231. `workspace-open`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Open the main solution to find and exercise a real refactoring directly against production or tool code after the checked-in-project workflows passed.
+
+**Request:** `{"alias":"dogfood-009-main-codebase","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,638 documents at Workspace epoch 7. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 232. `list-code-actions`
+
+**Activity:** DOGFOOD-009 main-codebase candidate discovery.
+
+**Purpose:** Find a deterministic refactoring at `ScenarioHost.GetSnapshot` before starting a mutation transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"},"document":{"path":"tools/Roslyn.Workbench.Mcp.ScenarioRunner/Hosting/ScenarioHost.cs"},"range":{"start":1448,"length":0},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":7,"snapshotId":"<snapshot-id>","transactionRevision":null},"kinds":3,"limit":20}`
+
+**Outcome:** Succeeded with exactly one action, `Use expression body for method`, at line 41.
+
+### 233. `transaction-start`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Start a rollback-only transaction for the selected main-codebase refactoring.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"}}`
+
+**Outcome:** Succeeded at revision 0 against the main solution's committed snapshot.
+
+### 234. `list-code-actions`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Rediscover the selected refactoring inside the active transaction and obtain a current opaque reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"},"document":{"path":"tools/Roslyn.Workbench.Mcp.ScenarioRunner/Hosting/ScenarioHost.cs"},"range":{"start":1448,"length":0},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":7,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":3,"limit":20}`
+
+**Outcome:** Succeeded with the same single `Use expression body for method` refactoring under a new action reference.
+
+### 235. `stage-code-action`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Stage the selected main-codebase refactoring through its opaque reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"},"actionId":"<action-id>","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":7,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with summary `Use expression body for method`, transaction revision 1 and a new staged snapshot.
+
+### 236. `transaction-preview`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Inspect the selected refactoring without writing it to the main repository.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"},"includeDiff":true,"contextLines":3,"document":{"path":"tools/Roslyn.Workbench.Mcp.ScenarioRunner/Hosting/ScenarioHost.cs"}}`
+
+**Outcome:** Succeeded with one modified document. The preview replaced the four-line block-bodied `GetSnapshot` method with its single-line expression-bodied equivalent; the diff was not truncated and an external hash check confirmed that disk remained unchanged.
+
+### 237. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Discard the staged main-codebase refactoring without writing it.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"}}`
+
+**Outcome:** Succeeded, returned state `Ready`, cleared the transaction and restored the original committed snapshot identity.
+
+### 238. `workspace-status`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Verify final main-solution lifecycle and transaction state after rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null`, no reload requirement and the original committed snapshot.
+
+### 239. `workspace-close`
+
+**Activity:** DOGFOOD-009 main-codebase validation.
+
+**Purpose:** Close the main solution after successful rollback-only validation.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-main-codebase"}}`
+
+**Outcome:** Succeeded and closed the solution at its unchanged epoch-7 committed snapshot with no transaction.
+
+### 240. `workspace-list`
+
+**Activity:** DOGFOOD-009 final validation.
+
+**Purpose:** Confirm that all Workspaces used by the checked-in-project and main-codebase validation runs were closed and no transaction owner remained.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+## DOGFOOD-009 — Published string-enum validation
+
+Immediately after restart, the configured dogfood processes were running but the dogfood namespace was absent from the task's callable tool registry. The exact promoted `current` executable was exercised directly through stdio MCP before the registry was rechecked. That run is retained as diagnostic transport evidence only and is not accepted as the required Codex dogfood confirmation. The normal Codex MCP tools appeared later in the same task, so the complete workflow was repeated through them below.
+
+### 241. `initialize`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Initialise an MCP session against the newly promoted published executable.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-published-probe","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18`, the expected server identity and tool-list capability.
+
+### 242. `tools/list`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Inspect the newly published Code Action input schemas before exercising them.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded. `list-code-actions.kinds` was a string enum with `CodeFixes`, `Refactorings` and `All`; `prepare-fix-all.scope` was a string enum with `Document`, `Project` and `Solution`.
+
+### 243. `workspace-list`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Confirm the published probe began without a loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 244. `workspace-open`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Open the checked-in InspectionSample project for a rollback-only Code Action workflow.
+
+**Request:** `{"alias":"dogfood-009-string-enum-validation","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"<temp-artifacts>/dogfood-009-string-enum"}}`
+
+**Outcome:** Succeeded with one project and 29 documents. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 245. `transaction-start`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Start the rollback-only transaction used to test the published Code Action binding.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Succeeded at transaction revision 0.
+
+### 246. `list-code-actions`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first attempt.
+
+**Purpose:** Exercise the new string-valued Code Action kind input using the initially assumed singular name.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":"CodeFix","diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Failed with `InvalidRequest` because `CodeFix` is not a member of `CodeActionKindSelection`; the published schema correctly advertises the plural value `CodeFixes`. This was a caller naming error, not numeric fallback.
+
+### 247. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first-attempt cleanup.
+
+**Purpose:** Discard the empty transaction after the rejected request.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Issued by failure cleanup. The next independent session began with no loaded Workspace or transaction owner, and the checked-in file hash remained unchanged.
+
+### 248. `workspace-close`
+
+**Activity:** DOGFOOD-009 published string-enum validation, first-attempt cleanup.
+
+**Purpose:** Close the InspectionSample Workspace after the rejected request.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Issued by failure cleanup. The following session confirmed that no Workspace remained loaded.
+
+### 249. `initialize`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Initialise a fresh session for the corrected end-to-end workflow.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-published-probe","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18` and the expected published server identity.
+
+### 250. `tools/list`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Reconfirm the Code Action string-enum schemas on the fresh session.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with the same exact `CodeFixes`/`Refactorings`/`All` and `Document`/`Project`/`Solution` string enums.
+
+### 251. `workspace-list`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Verify that first-attempt cleanup left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 252. `workspace-open`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Open the checked-in InspectionSample project for the corrected rollback-only workflow.
+
+**Request:** `{"alias":"dogfood-009-string-enum-validation","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"<temp-artifacts>/dogfood-009-string-enum"}}`
+
+**Outcome:** Succeeded with one project and 29 documents at Workspace epoch 1. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 253. `transaction-start`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Start a fresh rollback-only transaction for prepared Fix All.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Succeeded at revision 0 with mutation and rollback enabled.
+
+### 254. `list-code-actions`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Discover the deterministic IDE0003 Code Fix using the published string enum value.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":"CodeFixes","diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with the single `Remove 'this' qualification` action. Its response kind was the string `CodeFix`, and its Fix All scopes were the strings `Document`, `Project` and `Solution`.
+
+### 255. `prepare-fix-all`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Prepare a bounded document Fix All using the published string scope.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"actionId":"<action-id>","scope":"Document","maxChanges":10,"affectedDocumentsLimit":10,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with response scope `Document`, one affected document and no truncation. The response remained at transaction revision 0.
+
+### 256. `transaction-preview`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Confirm that Fix All preparation had not staged a mutation.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"includeDiff":false,"contextLines":3}`
+
+**Outcome:** Succeeded at revision 0 with no changed documents and commit disabled.
+
+### 257. `stage-code-action`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Stage the prepared Fix All through its opaque action reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"actionId":"<prepared-action-id>","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with summary `Fix all: Remove 'this' qualification` and transaction revision 1.
+
+### 258. `transaction-preview`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Inspect the staged Fix All before rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"includeDiff":true,"contextLines":3,"document":{"path":"SimplifyThisOrMe.cs"}}`
+
+**Outcome:** Succeeded with one modified document and one changed line, replacing `var value = this.x;` with `var value = x;`. The diff was not truncated.
+
+### 259. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Discard the staged prepared Fix All without writing the repository.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Succeeded, returned state `Ready`, cleared the transaction and restored the original snapshot identity.
+
+### 260. `workspace-status`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Verify final lifecycle and transaction state after rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null` and no reload requirement.
+
+### 261. `workspace-close`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Close the InspectionSample Workspace after successful validation.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-string-enum-validation"}}`
+
+**Outcome:** Succeeded and closed the project at its unchanged committed snapshot.
+
+### 262. `workspace-list`
+
+**Activity:** DOGFOOD-009 published string-enum validation, corrected run.
+
+**Purpose:** Confirm that the validation left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner. An external SHA-256 comparison confirmed that `SimplifyThisOrMe.cs` remained byte-for-byte unchanged.
+
+## DOGFOOD-009 — Normal Codex MCP string-enum validation
+
+Before invoking a tool, Codex's actual generated declarations were inspected from the task's callable registry. `list-code-actions.kinds` projected as `"CodeFixes" | "Refactorings" | "All"`, and `prepare-fix-all.scope` projected as `"Document" | "Project" | "Solution"`. The following requests were then sent through the configured `mcp__roslyn_workbench_dogfood__*` tools rather than a separately launched client.
+
+### 263. `workspace-list`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Confirm that the configured dogfood server had no loaded Workspace before the normal-client workflow.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 264. `workspace-open`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Open the checked-in InspectionSample project through the configured dogfood tool.
+
+**Request:** `{"alias":"dogfood-009-codex-enum-validation","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"<temp-artifacts>/dogfood-009-codex-enum"}}`
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the isolated absolute artifacts directory did not yet exist. The directory was created outside the repository before retrying.
+
+### 265. `workspace-open`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Retry after creating the isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-009-codex-enum-validation","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"<temp-artifacts>/dogfood-009-codex-enum"}}`
+
+**Outcome:** Succeeded with one project and 29 documents at Workspace epoch 1. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 266. `transaction-start`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Start a rollback-only transaction for the prepared Fix All workflow.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"}}`
+
+**Outcome:** Succeeded at revision 0 with mutation and rollback enabled.
+
+### 267. `list-code-actions`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Exercise the generated `kinds` string union and discover the deterministic IDE0003 Code Fix.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0},"kinds":"CodeFixes","diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with the single `Remove 'this' qualification` action. Codex received response kind `CodeFix` and Fix All scopes `Document`, `Project` and `Solution` as strings.
+
+### 268. `prepare-fix-all`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Exercise the generated `scope` string union by preparing a bounded document Fix All.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"actionId":"<action-id>","scope":"Document","maxChanges":10,"affectedDocumentsLimit":10,"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with response scope `Document`, exactly one affected document and no truncation. Preparation retained transaction revision 0.
+
+### 269. `transaction-preview`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Confirm that preparation remained read-only before staging.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"includeDiff":false,"contextLines":3}`
+
+**Outcome:** Succeeded at revision 0 with no changed documents and commit disabled.
+
+### 270. `stage-code-action`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Stage the prepared Fix All through its opaque reference.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"actionId":"<prepared-action-id>","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":0}}`
+
+**Outcome:** Succeeded with summary `Fix all: Remove 'this' qualification` and transaction revision 1.
+
+### 271. `transaction-preview`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Inspect the staged Fix All through the configured dogfood tool before rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"includeDiff":true,"contextLines":3,"document":{"path":"SimplifyThisOrMe.cs"}}`
+
+**Outcome:** Succeeded with one modified document and one changed line, replacing `var value = this.x;` with `var value = x;`. The diff was not truncated.
+
+### 272. `transaction-rollback`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Discard the staged Fix All without writing the repository.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"}}`
+
+**Outcome:** Succeeded, returned state `Ready`, cleared the transaction and restored the original snapshot identity.
+
+### 273. `workspace-status`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Verify lifecycle and transaction state after rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null` and no reload requirement.
+
+### 274. `workspace-close`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Close the checked-in project after the normal Codex workflow.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-codex-enum-validation"}}`
+
+**Outcome:** Succeeded and closed the project at its unchanged committed snapshot.
+
+### 275. `workspace-list`
+
+**Activity:** DOGFOOD-009 normal Codex MCP validation.
+
+**Purpose:** Confirm that the configured dogfood server retained no Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner. The original SHA-256 hash of `SimplifyThisOrMe.cs` was unchanged and Git reported no change to the file.

@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class DurableMutationIntegrationTests
 {
-    private const int _refactoringKind = 2;
+    private const string _refactoringKind = "Refactorings";
 
     private const UnixFileMode _preservedUnixFileMode = UnixFileMode.UserRead
         | UnixFileMode.UserWrite

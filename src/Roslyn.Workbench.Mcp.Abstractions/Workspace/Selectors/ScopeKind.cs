@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 /// <summary>
 /// Represents the scope kind of a scoped tool request.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<ScopeKind>))]
 public enum ScopeKind
 {
     /// <summary>

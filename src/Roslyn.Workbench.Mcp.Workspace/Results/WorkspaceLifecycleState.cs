@@ -1,11 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Results;
 
 /// <summary>
 /// Represents the lifecycle state of the loaded workspace.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<WorkspaceLifecycleState>))]
 public enum WorkspaceLifecycleState
 {
     /// <summary>

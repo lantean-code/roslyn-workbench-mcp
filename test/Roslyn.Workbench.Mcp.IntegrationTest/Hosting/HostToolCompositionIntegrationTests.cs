@@ -58,17 +58,36 @@ public sealed class HostToolCompositionIntegrationTests
         mcpServerOptions.Filters.Request.CallToolFilters.Should().ContainSingle();
         mcpServerOptions.Handlers.ListToolsHandler.Should().NotBeNull();
         mcpServerOptions.Handlers.CallToolHandler.Should().NotBeNull();
-        mcpServerOptions.ServerInstructions.Should().Contain(
-            "keep it to one coherent change or tightly related set");
+        var serverInstructions = mcpServerOptions.ServerInstructions;
+        serverInstructions.Should().NotBeNull();
+        serverInstructions.Should().Contain(
+            "fully trusted C# workspaces");
 
-        mcpServerOptions.ServerInstructions.Should().Contain(
+        serverInstructions.Should().Contain(
+            "analysers run unsandboxed with Host permissions");
+
+        serverInstructions.Should().Contain(
+            "Prefer queries before mutations");
+
+        serverInstructions.Should().Contain(
+            "Start transactions only when ready");
+
+        serverInstructions.Should().Contain(
+            "keep each to one coherent change or tightly related set");
+
+        serverInstructions.Should().Contain(
+            "inspect transaction-preview");
+
+        serverInstructions.Should().Contain(
             "transaction-commit or transaction-rollback promptly");
 
-        mcpServerOptions.ServerInstructions.Should().Contain(
+        serverInstructions.Should().Contain(
             "does not create a Git commit");
 
-        mcpServerOptions.ServerInstructions.Should().Contain(
+        serverInstructions.Should().Contain(
             "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/v1.0.0/docs/AgentGuide.md");
+
+        serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 
         startupConfiguration.Options.StateDirectory.Should().Be(Path.GetTempPath());
         serviceProvider.GetRequiredService<IWorkspaceLifecycleService>()

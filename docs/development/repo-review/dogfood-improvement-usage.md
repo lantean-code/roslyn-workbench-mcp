@@ -791,3 +791,35 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood002-acceptance-review-fix"}}`
 
 **Outcome:** Succeeded and closed the solution Workspace.
+
+### 97. `workspace-open`
+
+**Purpose:** Open the solution for Roslyn-backed DOGFOOD-003 design discovery around server-instruction construction, registration and coverage.
+
+**Request:** `{"alias":"dogfood003-design-discovery","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,636 documents. The explicit WSL artefacts path allowed a complete load with only the expected advisory warning about accessing a Windows-hosted repository through WSL.
+
+### 98. `search-symbols`
+
+**Purpose:** Locate the single production type that constructs and configures MCP server instructions.
+
+**Request:** `{"query":"RoslynWorkbenchMcpServerOptionsConfiguration","kinds":["NamedType"],"symbolsLimit":20,"workspace":{"alias":"dogfood003-design-discovery"}}`
+
+**Outcome:** Succeeded with the Host options configurator definition.
+
+### 99. `find-references`
+
+**Purpose:** Confirm the configurator's production registration and ensure no additional typed production consumer rewrites its instructions.
+
+**Request:** `{"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Hosting.RoslynWorkbenchMcpServerOptionsConfiguration"},"includeDefinitions":true,"includeContext":true,"referencesLimit":100,"workspace":{"alias":"dogfood003-design-discovery"}}`
+
+**Outcome:** Succeeded with the configurator definition, constructor, static instruction creation and its single dependency-injection registration. No second production instruction-construction path was found.
+
+### 100. `workspace-close`
+
+**Purpose:** Close the DOGFOOD-003 design-discovery Workspace after completing semantic inspection.
+
+**Request:** `{"workspace":{"alias":"dogfood003-design-discovery"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace.

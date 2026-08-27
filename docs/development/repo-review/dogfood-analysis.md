@@ -59,9 +59,9 @@ Fifty-one of the 56 published dogfood tool declarations contained `unknown`; 18 
 
 The C# contracts and current schema tests retain these members and validation rules. The observed problem is therefore compatibility between the composed JSON Schema emitted by the Host and the agent client's callable type projection, not evidence that the underlying contracts lack validation. The attribute-driven single source for schema publication and runtime validation remains the intended design.
 
-### Server instructions consume repeated catalogue context
+### Essential server guidance exceeds Codex's decision window
 
-The initialisation instructions contain approximately 967 characters and 138 words. The dogfood client projects them into every one of the 56 tool descriptions, representing approximately 54,152 repeated characters before tool-specific descriptions and schemas. The trust warning, concise transaction rules, distinction from a Git commit and version-specific Agent Guide link remain valuable, but detailed operational guidance can live solely in the linked guide.
+The initialisation instructions contain approximately 967 characters and 138 words. Codex source analysis supplied during design discovery indicates that Codex stores the instructions as namespace metadata on each internal tool so independently handled and deferred tools retain the server guidance, then coalesces tools from the same server into one namespace before direct model requests and coalesces deferred search results in the same way. The internal copies therefore do not establish that the instructions are repeated in normal model context. OpenAI's Codex documentation instead identifies the actionable constraint: the first 512 characters should be self-contained, while the current Git commit distinction and version-specific Agent Guide link fall after that boundary. The trust warning, concise transaction rules, Git commit distinction and guide link should fit within the documented window, while detailed operational guidance can live solely in the linked guide.
 
 ### Search and lifecycle recovery are effective
 
@@ -73,7 +73,7 @@ The initialisation instructions contain approximately 967 characters and 138 wor
 |---:|---|---|---|
 | 1 | DOGFOOD-001 | Publish an equivalent JSON `TextContent` fallback with every structured result | Complete |
 | 2 | DOGFOOD-002 | [Make composed input schemas project into complete, usable agent-facing declarations](dogfood-002-schema-publication-design.md) | Confirmed through published dogfood and acceptance validation |
-| 3 | DOGFOOD-003 | Compact repeated server instructions while retaining essential safety guidance and the Agent Guide link | Incomplete |
+| 3 | DOGFOOD-003 | Keep essential server instructions within Codex's first 512 characters | Incomplete |
 | 4 | DOGFOOD-004 | Repeat selector workflows and reconsider selector composability only if material friction remains | Incomplete |
 | 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Incomplete |
 
@@ -87,7 +87,7 @@ Begin with focused schema experiments rather than a broad transformer rewrite. P
 
 ### DOGFOOD-003 — Concise server instructions
 
-Retain the fully trusted Workspace warning, query-first guidance, the coherent transaction and prompt commit-or-rollback rule, the distinction between `transaction-commit` and a Git commit, and the version-specific Agent Guide URL. Remove detailed transaction, breadth and stale-state prose already covered by the linked guide. Update the initialisation integration and acceptance assertions to protect the retained guidance without fixing the entire wording unnecessarily.
+Retain the fully trusted Workspace warning, query-first guidance, the coherent transaction and prompt commit-or-rollback rule, the distinction between `transaction-commit` and a Git commit, and the version-specific Agent Guide URL within Codex's documented first 512 characters. Remove detailed transaction, breadth and stale-state prose already covered by the linked guide. Update the initialisation integration and acceptance assertions to protect the retained guidance and size boundary without fixing the entire wording unnecessarily.
 
 ### DOGFOOD-004 — Selector composability reassessment
 

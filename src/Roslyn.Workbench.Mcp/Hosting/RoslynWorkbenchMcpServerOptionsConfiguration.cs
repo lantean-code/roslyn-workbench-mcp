@@ -38,16 +38,12 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
         var agentGuideUrl = $"{_agentGuideUrlPrefix}/{sourceTag}/docs/AgentGuide.md";
 
         return $$"""
-        Roslyn Workbench operates on fully trusted C# workspaces and does not sandbox project build logic or analyzers.
+        Open only fully trusted C# workspaces; build logic and analysers run unsandboxed with Host permissions.
 
-        - Prefer queries before mutations.
-        - For mutations, start a Workbench transaction only when ready to change source, keep it to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.
-        - Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they need its staged state.
-        - Treat broad solution-wide mutations as standalone transactions and roll back an unexpectedly large preview.
-        - Treat workspace epochs, transaction revisions, and structured next actions as authoritative. Reload or resolve targets again when instructed rather than reusing stale spans, symbols, or references.
+        Prefer queries before mutations. Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.
 
         transaction-commit writes source files but does not create a Git commit.
-        For more detailed agent guidance for this Host version, read {{agentGuideUrl}}.
+        Guide: {{agentGuideUrl}}
         """;
     }
 }

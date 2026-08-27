@@ -12,11 +12,19 @@ public sealed class PublishedHostProtocolIntegrationTests
 
         try
         {
-            target.ServerInstructions.Should().Contain("keep it to one coherent change or tightly related set");
-            target.ServerInstructions.Should().Contain("transaction-commit or transaction-rollback promptly");
-            target.ServerInstructions.Should().Contain("does not create a Git commit");
-            target.ServerInstructions.Should().Contain(
+            var serverInstructions = target.ServerInstructions;
+            serverInstructions.Should().NotBeNull();
+            serverInstructions.Should().Contain("fully trusted C# workspaces");
+            serverInstructions.Should().Contain("analysers run unsandboxed with Host permissions");
+            serverInstructions.Should().Contain("Prefer queries before mutations");
+            serverInstructions.Should().Contain("Start transactions only when ready");
+            serverInstructions.Should().Contain("keep each to one coherent change or tightly related set");
+            serverInstructions.Should().Contain("inspect transaction-preview");
+            serverInstructions.Should().Contain("transaction-commit or transaction-rollback promptly");
+            serverInstructions.Should().Contain("does not create a Git commit");
+            serverInstructions.Should().Contain(
                 "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/v1.0.0/docs/AgentGuide.md");
+            serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 
             var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
             var toolNames = tools.Select(static tool => tool.Name).ToArray();

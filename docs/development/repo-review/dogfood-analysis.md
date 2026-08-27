@@ -75,8 +75,9 @@ The initialisation instructions contain approximately 967 characters and 138 wor
 | 2 | DOGFOOD-002 | [Make composed input schemas project into complete, usable agent-facing declarations](dogfood-002-schema-publication-design.md) | Confirmed through published dogfood and acceptance validation |
 | 3 | DOGFOOD-003 | Keep essential server instructions within Codex's first 512 characters | Complete |
 | 4 | DOGFOOD-004 | [Publish a canonical selector with resolved source locations](dogfood-004-selector-composability-design.md) | Confirmed through published dogfood and acceptance validation |
-| 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Incomplete |
+| 5 | DOGFOOD-005 | Exercise a supported mutation through a controlled preview-and-rollback dogfood workflow | Confirmed through published dogfood validation |
 | 6 | DOGFOOD-006 | Enforce query-response authoring warnings during bundled plugin builds and route runtime warnings to operator logging | Incomplete |
+| 7 | DOGFOOD-007 | Honour `search-symbols` project and document scopes before bounding results | Incomplete |
 
 ### DOGFOOD-001 — Structured-result text fallback
 
@@ -101,6 +102,10 @@ Use a disposable fixture or otherwise reversible Workspace to resolve a target, 
 ### DOGFOOD-006 — Plugin query-response authoring warnings
 
 Run the existing `RWMCP014` analyser when building the bundled core plugin so first-party response-contract violations are visible through the same compile-time feedback supplied to third-party plugin authors. Retain warning severity because an unbounded collection does not invalidate a plugin, but can publish excessive data into an agent's context. Remediate the current bundled-tool warnings and retain the runtime response-contract inspector as a fallback for plugins built without the current analyser or with the rule suppressed. Log runtime authoring warnings once with plugin and tool identity instead of adding them to agent-facing plugin load diagnostics; discovery, loading, composition, schema and enablement failures remain plugin status diagnostics.
+
+### DOGFOOD-007 — Symbol-search scope enforcement
+
+Investigate and correct `search-symbols` scope handling after published dogfood accepted a document scope for `WorkspaceSelectorFactoryTests.cs` but returned the first 10 of 43 solution-wide matching fields from unrelated documents. Ensure `Project`, `Document` and `Projects` scopes constrain eligible symbols before deterministic ordering and response bounding, while `Solution` retains the current solution-wide behaviour. Add focused unit and integration coverage for every scope kind and validate a document-scoped search through the published dogfood Host.
 
 ## Explicit non-actions
 

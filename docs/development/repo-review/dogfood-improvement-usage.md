@@ -1071,3 +1071,221 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-response-diagnostic-review"}}`
 
 **Outcome:** Succeeded and closed the solution Workspace.
+
+## DOGFOOD-005 — Controlled mutation dogfooding
+
+### 132. `workspace-open`
+
+**Purpose:** Open the committed clean solution for the approved semantic-rename preview-and-rollback workflow.
+
+**Request:** `{"alias":"dogfood-005-controlled-mutation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<repository-artifacts-path>"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents. The explicit WSL artefacts path produced a complete load with only the expected Windows-filesystem performance warning.
+
+### 133. `workspace-status`
+
+**Purpose:** Enforce the approved mutation gate by confirming lifecycle, transaction and cross-instance state before resolving or mutating the target.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, no transaction, no reload requirement and an empty `instances` collection. The Workspace was safe to use for the controlled mutation.
+
+### 134. `search-symbols`
+
+**Purpose:** Resolve the private `_target` field within the approved `WorkspaceSelectorFactoryTests.cs` document before starting a transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"query":"_target","kinds":["Field"],"scope":{"kind":"Document","document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs"}},"symbolsLimit":10}`
+
+**Outcome:** Succeeded but did not honour the document scope. It returned 10 of 43 solution-wide `_target` or `_targets` fields from unrelated documents and did not include the requested document within the first page. This is separate dogfood evidence of a scope-enforcement defect; no transaction had started.
+
+### 135. `search-symbols`
+
+**Purpose:** Recover safely from the ineffective document scope by combining project and namespace constraints to resolve exactly the approved field.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"query":"_target","namespace":"Roslyn.Workbench.Mcp.Workspace.Test.Selectors","kinds":["Field"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}},"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the single `WorkspaceSelectorFactoryTests._target` field. Its resolved location included the canonical span selector later passed unchanged to `rename-symbol`.
+
+### 136. `transaction-start`
+
+**Purpose:** Open the controlled in-memory transaction only after the Workspace and exact mutation target were verified.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"}}`
+
+**Outcome:** Succeeded at revision `0` with no staged revisions, 20 remaining revisions, mutation and rollback enabled, and commit disabled while the transaction was empty.
+
+### 137. `rename-symbol`
+
+**Purpose:** Exercise one supported semantic mutation by renaming the private test field without expanding to files, overloads, comments or strings.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<base-snapshot-id>","transactionRevision":0},"symbol":{"location":{"span":{"document":{"project":{"projectId":"<workspace-test-project-id>","name":null,"path":null,"targetFramework":null},"path":null,"documentId":"<document-id>"},"range":{"start":160,"length":7}}}},"newName":"_selectorFactoryUnderTest","renameFile":false,"renameInComments":false,"renameInStrings":false,"renameOverloads":false}`
+
+**Outcome:** Succeeded and staged `Rename '_target' to '_selectorFactoryUnderTest'.` at transaction revision `1` with a new staged snapshot.
+
+### 138. `transaction-preview`
+
+**Purpose:** Inspect the complete staged semantic rename before discarding it and confirm the transaction remained eligible for rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs"},"includeDiff":true,"contextLines":2}`
+
+**Outcome:** Succeeded with one modified document, 11 changed lines, four complete diff hunks and no truncation. The transaction reported revision `1`, one revision in the journal, and rollback enabled. Independent SHA-256 and Git checks confirmed the physical file and worktree were unchanged while this preview existed.
+
+### 139. `transaction-rollback`
+
+**Purpose:** Discard the staged semantic rename without writing any source file.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"}}`
+
+**Outcome:** Succeeded with state `Ready`, no transaction revision and the original base snapshot restored. No `transaction-commit` request was sent.
+
+### 140. `workspace-status`
+
+**Purpose:** Verify the Workspace returned fully to its pre-transaction lifecycle and ownership state after rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null`, no reload requirement and no other instances. The snapshot matched the original pre-transaction snapshot; independent checks also confirmed the original file hash and a clean Git worktree.
+
+### 141. `workspace-close`
+
+**Purpose:** Close the controlled-mutation Workspace after rollback and baseline verification completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-controlled-mutation"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace with the original snapshot identity and no transaction.
+
+### 142. `workspace-open`
+
+**Purpose:** Open the committed solution for the approved multi-revision, multi-document extension of DOGFOOD-005.
+
+**Request:** `{"alias":"dogfood-005-multi-revision","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<repository-artifacts-path>"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,637 documents. The complete load reported only the expected WSL Windows-filesystem performance warning.
+
+### 143. `workspace-status`
+
+**Purpose:** Repeat the mutation gate before opening the expanded transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, no transaction, no reload requirement and no other instances.
+
+### 144. `search-symbols`
+
+**Purpose:** Resolve the first approved private field through the known-safe project and namespace constraints.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"query":"_target","namespace":"Roslyn.Workbench.Mcp.Workspace.Test.Selectors","kinds":["Field"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}},"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the single `WorkspaceSelectorFactoryTests._target` field and its canonical location selector.
+
+### 145. `search-symbols`
+
+**Purpose:** Resolve the second approved private field in a different test document before starting the transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"query":"_selectorFactory","namespace":"Roslyn.Workbench.Mcp.Workspace.Test.Resolution","kinds":["Field"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}},"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the resolver-factory and resolver-test fields. The exact `WorkspaceResolverTests._selectorFactory` result and its canonical selector were retained for the second mutation.
+
+### 146. `transaction-start`
+
+**Purpose:** Start the expanded transaction only after both targets and the Workspace state were verified.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"}}`
+
+**Outcome:** Succeeded at revision `0` with 20 remaining revisions, mutation and rollback enabled, and commit disabled for the empty transaction.
+
+### 147. `rename-symbol`
+
+**Purpose:** Stage the first semantic rename using the first search result's canonical selector unchanged.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<base-snapshot-id>","transactionRevision":0},"symbol":{"location":{"span":{"document":{"project":{"projectId":"<workspace-test-project-id>","name":null,"path":null,"targetFramework":null},"path":null,"documentId":"<selector-factory-test-document-id>"},"range":{"start":160,"length":7}}}},"newName":"_selectorFactoryUnderTest","renameFile":false,"renameInComments":false,"renameInStrings":false,"renameOverloads":false}`
+
+**Outcome:** Succeeded and staged the `_target` to `_selectorFactoryUnderTest` rename at transaction revision `1`.
+
+### 148. `rename-symbol`
+
+**Purpose:** Validate revision chaining by staging a second semantic rename against the revision-1 snapshot in another document.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<revision-1-snapshot-id>","transactionRevision":1},"symbol":{"location":{"span":{"document":{"project":{"projectId":"<workspace-test-project-id>","name":null,"path":null,"targetFramework":null},"path":null,"documentId":"<resolver-test-document-id>"},"range":{"start":201,"length":16}}}},"newName":"_workspaceSelectorFactory","renameFile":false,"renameInComments":false,"renameInStrings":false,"renameOverloads":false}`
+
+**Outcome:** Succeeded and staged the `_selectorFactory` to `_workspaceSelectorFactory` rename at transaction revision `2` with a new snapshot.
+
+### 149. `transaction-preview`
+
+**Purpose:** Inspect the accumulated two-revision transaction summary before requesting either document's detailed diff.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"includeDiff":false,"contextLines":2}`
+
+**Outcome:** Succeeded at revision `2` with two journal revisions and two modified documents. The resolver tests reported 9 changed lines and the selector-factory tests reported 11; no lines were added or removed.
+
+### 150. `transaction-preview`
+
+**Purpose:** Inspect the complete detailed diff for the first staged rename within the two-document transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs"},"includeDiff":true,"contextLines":1}`
+
+**Outcome:** Succeeded with five complete, untruncated hunks covering the field declaration, construction and all uses of `_target` in the test class.
+
+### 151. `transaction-preview`
+
+**Purpose:** Inspect the complete detailed diff for the second staged rename within the two-document transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Resolution/WorkspaceResolverTests.cs"},"includeDiff":true,"contextLines":1}`
+
+**Outcome:** Succeeded with nine complete, untruncated hunks covering the mock field declaration, construction, setup, verification and all uses. Independent file hashes and target-specific Git checks confirmed both staged documents remained unchanged on disk.
+
+### 152. `transaction-history`
+
+**Purpose:** Undo the second revision and verify the journal can move backward without discarding the first staged mutation.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"direction":"Undo","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<revision-2-snapshot-id>","transactionRevision":2}}`
+
+**Outcome:** Succeeded at transaction revision `1`, retained both revisions in the journal, and reported both undo and redo as available. The snapshot returned to the exact revision-1 identity.
+
+### 153. `transaction-preview`
+
+**Purpose:** Confirm undo removed only the second document's staged change from the effective transaction.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"includeDiff":false,"contextLines":1}`
+
+**Outcome:** Succeeded at revision `1` with only `WorkspaceSelectorFactoryTests.cs` in the modified-document summary and 11 changed lines.
+
+### 154. `transaction-history`
+
+**Purpose:** Redo the second revision using the revision-1 snapshot returned by undo.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"direction":"Redo","expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<revision-1-snapshot-id>","transactionRevision":1}}`
+
+**Outcome:** Succeeded at revision `2`, restored the exact revision-2 snapshot and disabled further redo while retaining undo and rollback.
+
+### 155. `transaction-preview`
+
+**Purpose:** Confirm redo restored both staged documents before the final rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"includeDiff":false,"contextLines":1}`
+
+**Outcome:** Succeeded at revision `2` with both documents and their original 9- and 11-line change summaries restored.
+
+### 156. `transaction-rollback`
+
+**Purpose:** Discard both semantic mutations and the complete two-revision journal without writing either source file.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"}}`
+
+**Outcome:** Succeeded with state `Ready`, no transaction revision and the original base snapshot restored. No `transaction-commit` request was sent.
+
+### 157. `workspace-status`
+
+**Purpose:** Verify the expanded transaction left no lifecycle, ownership or reload state after rollback.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"},"detail":"Full"}`
+
+**Outcome:** Succeeded with state `Ready`, `transaction: null`, no reload requirement and no other instances. Both physical file hashes matched their pre-transaction values and target-specific Git diffs remained empty.
+
+### 158. `workspace-close`
+
+**Purpose:** Close the expanded DOGFOOD-005 Workspace after all rollback and filesystem checks passed.
+
+**Request:** `{"workspace":{"alias":"dogfood-005-multi-revision"}}`
+
+**Outcome:** Succeeded and closed the solution Workspace at the original base snapshot with no transaction.

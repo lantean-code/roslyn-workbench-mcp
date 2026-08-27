@@ -1569,3 +1569,93 @@ Create a section for each work item or distinct repository activity and number i
 **Request:** `{"workspace":{"alias":"dogfood-007-design-discovery"}}`
 
 **Outcome:** Succeeded and closed the Workspace at its unchanged epoch-2 snapshot with no transaction.
+
+### 187. Candidate `initialize`
+
+**Activity:** DOGFOOD-007 committed-candidate publication.
+
+**Purpose:** Start an isolated protocol smoke test against the Release candidate published from committed `HEAD` before promoting the configured dogfood target.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-007-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded against the isolated candidate published from commit `e2f9bf5fa462dd5e4a1239b0e3de50822aa0b430`. Host logs confirmed that the `initialize` handler completed for client `dogfood-007-smoke`; the candidate later shut down cleanly on end of input.
+
+### 188. Candidate `tools/list`
+
+**Activity:** DOGFOOD-007 committed-candidate publication.
+
+**Purpose:** Confirm the isolated committed candidate can materialise and publish its complete MCP tool catalogue before promotion.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded. Host logs confirmed that `tools/list` completed without catalogue or schema failure and the process exited cleanly. The Core plugin binary exposed informational version `1.0.0+e2f9bf5fa462dd5e4a1239b0e3de50822aa0b430`; the configured `current` symlink was then atomically promoted to this candidate for desktop validation after restart.
+
+### 189. `server-status`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Confirm the restarted desktop connection is running the exact committed candidate before validating symbol-search scopes.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with the Core plugin version `1.0.0+e2f9bf5fa462dd5e4a1239b0e3de50822aa0b430`, 56 published tools, no startup warnings and no plugin diagnostics.
+
+### 190. `workspace-open`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Open the trusted committed repository for live document, project, projects and solution scope checks.
+
+**Request:** `{"alias":"dogfood-007-validation","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"/tmp/artifacts/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,638 documents at Workspace epoch 1. The only load diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 191. `search-symbols`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Repeat the originally failing document-scoped `_target` search against `WorkspaceSelectorFactoryTests.cs`.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-validation"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Document","document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Selectors/WorkspaceSelectorFactoryTests.cs"}}}`
+
+**Outcome:** Succeeded with exactly `WorkspaceSelectorFactoryTests._target`, located in the selected document. The bounded result reported one item, `hasMore: false` and `totalCount: 1`; unrelated declarations no longer consume the bound or count.
+
+### 192. `search-symbols`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Confirm the retained single-project search path still constrains results before bounding.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-validation"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}}}`
+
+**Outcome:** Succeeded with the deterministic first 10 of 43 matching fields, all from `Roslyn.Workbench.Mcp.Workspace.Test`, and reported `hasMore: true` with `totalCount: 43`.
+
+### 193. `search-symbols`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Confirm the retained multi-project path searches the union of selected projects before bounding.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-validation"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Workspace.Test"},{"name":"Roslyn.Workbench.Mcp.CodeActions.Test"}]}}`
+
+**Outcome:** Succeeded with the deterministic first 10 of 61 matching fields from the selected Workspace and CodeActions test projects, and reported `hasMore: true` with `totalCount: 61`.
+
+### 194. `search-symbols`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Confirm solution scope retains the complete solution-wide search baseline after the document correction.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-validation"},"query":"_target","kinds":["Field"],"symbolsLimit":10,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with the deterministic first 10 of 91 solution-wide matching fields and reported `hasMore: true` with `totalCount: 91`, distinct from both restricted project totals.
+
+### 195. `workspace-close`
+
+**Activity:** DOGFOOD-007 published validation.
+
+**Purpose:** Close the read-only validation Workspace after all four scope kinds passed their published checks.
+
+**Request:** `{"workspace":{"alias":"dogfood-007-validation"}}`
+
+**Outcome:** Succeeded and closed the Workspace at its unchanged epoch-1 snapshot with no transaction.

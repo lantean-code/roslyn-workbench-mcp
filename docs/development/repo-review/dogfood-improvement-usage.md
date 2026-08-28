@@ -2475,3 +2475,701 @@ Before invoking a tool, Codex's actual generated declarations were inspected fro
 **Request:** `{}`
 
 **Outcome:** Succeeded with no loaded Workspaces and no transaction owner. The original SHA-256 hash of `SimplifyThisOrMe.cs` was unchanged and Git reported no change to the file.
+
+## DOGFOOD-009 — Committed-build confirmation
+
+The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate and promoted to `current`. After restart, both configured Host processes resolved to that candidate. Codex's normal callable declarations continued to project `list-code-actions.kinds` as `"CodeFixes" | "Refactorings" | "All"` and `prepare-fix-all.scope` as `"Document" | "Project" | "Solution"`.
+
+### 276. `server-status`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Smoke-test the restarted committed Host and its Code Action composition through the normal Codex MCP tool.
+
+**Request:** `{"detail":"Minimal"}`
+
+**Outcome:** Succeeded with server version `1.0.0.0`, Roslyn `5.6.0.0`, MSBuild `10.0.102`, 81 refactoring providers, 169 code-fix providers and 56 published tools.
+
+### 277. `workspace-list`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Confirm that the restarted committed Host had no loaded Workspace before the read-only smoke test.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 278. `workspace-open`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Open the checked-in InspectionSample project read-only through the normal Codex MCP tool.
+
+**Request:** `{"alias":"dogfood-009-committed-smoke","path":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base/Sample.csproj","workspaceRoot":"<repo>/test/TestAssets/Workspaces/InspectionSample/Base","msBuildProperties":{"artifactsPath":"<temp-artifacts>/dogfood-009-committed-smoke"}}`
+
+**Outcome:** Succeeded with one project and 29 documents at Workspace epoch 1. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 279. `list-code-actions`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Confirm that the committed Host accepts the string-valued Code Action kind and returns string-valued response enums through Codex's normal generated declaration.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-committed-smoke"},"document":{"path":"SimplifyThisOrMe.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"kinds":"CodeFixes","diagnosticIds":["IDE0003"],"limit":10}`
+
+**Outcome:** Succeeded with the single `Remove 'this' qualification` action. Its response kind was `CodeFix`, and its Fix All scopes were `Document`, `Project` and `Solution`, all represented as strings.
+
+### 280. `workspace-close`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Close the read-only InspectionSample Workspace after the committed-build smoke test.
+
+**Request:** `{"workspace":{"alias":"dogfood-009-committed-smoke"}}`
+
+**Outcome:** Succeeded and closed the project at its unchanged snapshot with no transaction.
+
+### 281. `workspace-list`
+
+**Activity:** DOGFOOD-009 committed-build confirmation.
+
+**Purpose:** Confirm that the smoke test left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+## DOGFOOD-010 — Existing-coverage validation and sweep design
+
+### 282. `workspace-open`
+
+**Activity:** DOGFOOD-010 existing-coverage validation.
+
+**Purpose:** Open the main solution read-only so the existing bundled-query integration coverage could be inspected through the published dogfood Host.
+
+**Request:** `{"alias":"dogfood-010-coverage-audit","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<temp-artifacts>/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,639 documents at Workspace epoch 2. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 283. `search-symbols`
+
+**Activity:** DOGFOOD-010 existing-coverage validation.
+
+**Purpose:** Locate the real-workspace semantic integration suite used to validate representative bundled query tools.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-coverage-audit"},"query":"SemanticInspectionIntegrationTests","kinds":["NamedType","Method"],"symbolsLimit":20,"scope":{"kind":"Solution"}}`
+
+**Outcome:** Succeeded with the single `SemanticInspectionIntegrationTests` type and its canonical source selector.
+
+### 284. `get-code-context`
+
+**Activity:** DOGFOOD-010 existing-coverage validation.
+
+**Purpose:** Inspect the semantic integration suite around its bundled-query executions.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-coverage-audit"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/SemanticInspectionIntegrationTests.cs"},"range":{"start":73,"length":34}}},"beforeLines":2,"afterLines":180,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3,"diagnosticsLimit":1}`
+
+**Outcome:** Failed with `InvalidRequest` because `afterLines: 180` exceeds the published bound. No state changed; the request was corrected to the maximum of 100.
+
+### 285. `get-code-context`
+
+**Activity:** DOGFOOD-010 existing-coverage validation.
+
+**Purpose:** Retry the semantic-integration inspection within the published context bound.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-coverage-audit"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/SemanticInspectionIntegrationTests.cs"},"range":{"start":73,"length":34}}},"beforeLines":2,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3,"diagnosticsLimit":1}`
+
+**Outcome:** Succeeded and showed real-Workspace execution of `get-diagnostics`, `analyze-async`, `get-operation-tree`, control-flow analysis, data-flow analysis and control-flow-graph projection. The response was bounded and reported additional enclosing symbols through `hasMore`.
+
+### 286. `workspace-close`
+
+**Activity:** DOGFOOD-010 existing-coverage validation.
+
+**Purpose:** Close the read-only main-solution Workspace after validating the surviving DOGFOOD-010 gap.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-coverage-audit"}}`
+
+**Outcome:** Succeeded and closed the solution at its unchanged epoch-2 snapshot with no transaction.
+
+## DOGFOOD-010 — Live representative query-surface sweep
+
+### 287. `workspace-open`
+
+**Activity:** DOGFOOD-010 live client-usability sweep.
+
+**Purpose:** Open the main solution once for the approved read-only query sweep.
+
+**Request:** `{"alias":"dogfood-010-live-sweep","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<temp-artifacts>/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,639 documents at Workspace epoch 3. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 288. `get-solution-structure`
+
+**Activity:** DOGFOOD-010 Workspace and project shape.
+
+**Purpose:** Exercise bounded solution, project, reference and document projection.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"includeDocuments":true,"projectsLimit":2,"documentsPerProjectLimit":2,"projectReferencesPerProjectLimit":2,"foldersLimit":2}`
+
+**Outcome:** Succeeded with two of five folders and two of 30 projects. Both selected projects returned generated `obj` documents as their first two documents, so the low limit hid ordinary source documents.
+
+### 289. `get-project-details`
+
+**Activity:** DOGFOOD-010 Workspace and project shape.
+
+**Purpose:** Inspect one real project's bounded documents, references, metadata and analyzers.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"project":{"name":"Roslyn.Workbench.Mcp.Workspace"},"includeDocuments":true,"documentsLimit":2,"projectReferencesLimit":2,"metadataReferencesLimit":2,"analyzersLimit":2}`
+
+**Outcome:** Succeeded with compilation options, one project reference, two of 225 metadata references and two of 12 analyzers. The two bounded documents were generated `obj` files rather than source files.
+
+### 290. `get-document-options`
+
+**Activity:** DOGFOOD-010 Workspace and project shape.
+
+**Purpose:** Inspect language, parse and analyzer-config options for a real source document.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"document":{"path":"src/Roslyn.Workbench.Mcp/Tools/ToolRequestBinder.cs"}}`
+
+**Outcome:** Succeeded with C# 14, enabled nullable analysis and the effective parse and editor-config options. The complete analyzer-config option map made the otherwise accurate response large.
+
+### 291. `get-api-surface`
+
+**Activity:** DOGFOOD-010 Workspace and project shape.
+
+**Purpose:** Confirm bounded public API projection for the abstractions project.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Abstractions"}},"minimumAccessibility":"Public","includeObsolete":false,"symbolsLimit":2}`
+
+**Outcome:** Succeeded with the first two of 219 public symbols and `hasMore: true`.
+
+### 292. `analyze-async`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise bounded async diagnostics over one production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Document","document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Transactions/TransactionCommitService.cs"}},"findingsLimit":2}`
+
+**Outcome:** Succeeded with no findings.
+
+### 293. `analyze-disposables`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise bounded disposable analysis over one production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Document","document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs"}},"findingsLimit":2}`
+
+**Outcome:** Succeeded with no findings.
+
+### 294. `analyze-nullability`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise bounded nullable-flow diagnostics over one production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Document","document":{"path":"src/Roslyn.Workbench.Mcp/Tools/ToolRequestBinder.cs"}},"findingsLimit":2}`
+
+**Outcome:** Succeeded with no findings.
+
+### 295. `find-dependency-cycles`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Probe the dependency-cycle contract with deliberately low graph limits.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"granularity":"Project","nodesLimit":2,"edgesLimit":2,"cyclesLimit":2}`
+
+**Outcome:** Failed with actionable `AnalysisLimitExceeded`: the node limit is an analysis guard rather than an output-only bound. The response advised narrowing scope or increasing the limit, and the request was retried with two projects.
+
+### 296. `find-duplicate-code`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise bounded duplicate-code analysis over one production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Document","document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Transactions/TransactionCommitService.cs"}},"minimumStatements":3,"groupsLimit":2,"occurrencesPerGroupLimit":2}`
+
+**Outcome:** Succeeded with no duplicate groups.
+
+### 297. `find-unused-symbols`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise bounded unused-symbol analysis on the Host project while excluding generated code.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"includeInternal":true,"excludeGenerated":true,"candidatesLimit":2}`
+
+**Outcome:** Succeeded with no candidates.
+
+### 298. `get-dependency-graph`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Exercise a bounded type-level dependency graph over the Host project.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"granularity":"Type","nodesLimit":2,"edgesLimit":2}`
+
+**Outcome:** Succeeded with two `StartupConfiguration` nodes, one edge and additional nodes reported through `hasMore`.
+
+### 299. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate the generic MCP tool base for hierarchy and override queries.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"McpServerToolBase","kinds":["NamedType","Method"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production generic base and its test type.
+
+### 300. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate `CommitRecoveryStore`, its interface and tests for dependency and impact queries.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"CommitRecoveryStore","symbolsLimit":10}`
+
+**Outcome:** Succeeded with the implementation, interface and test types.
+
+### 301. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate a partial production type.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"FileStreamWorkspaceFileLockProvider","symbolsLimit":10}`
+
+**Outcome:** Succeeded with the partial production class.
+
+### 302. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate a method with several direct callees.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"SerializeJson","symbolsLimit":10}`
+
+**Outcome:** Succeeded with the private generic `CommitRecoveryStore.SerializeJson` method and its canonical selector.
+
+### 303. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate concrete overrides of the generic MCP tool base method.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"ExecuteCoreAsync","kinds":["Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with 20 of 54 matching methods and `hasMore: true`.
+
+### 304. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate overload candidates for `WorkspaceResolver.ResolveDocument`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"ResolveDocument","symbolsLimit":10}`
+
+**Outcome:** Succeeded with seven of 45 substring matches, including the public and private `WorkspaceResolver` overloads.
+
+### 305. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate a source attribute with inspectable metadata.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"RequiresExactlyOneAttribute","symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production attribute and its test type.
+
+### 306. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Locate the generic MCP base method and its overrides.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"InvokeBoundRequestAsync","kinds":["Method"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with nine declarations, including the generic base and concrete overrides.
+
+### 307. `search-symbols`
+
+**Activity:** DOGFOOD-010 symbol-target discovery.
+
+**Purpose:** Narrow the overload lookup to `WorkspaceResolver.ResolveDocument`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"WorkspaceResolver.ResolveDocument","kinds":["Method"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with seven matches, including the exact public and private overloads.
+
+### 308. `find-callees`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded direct callees for `CommitRecoveryStore.SerializeJson`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<SerializeJson documentation ID>","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"includeIndirect":false,"maxDepth":1,"calleesLimit":2}`
+
+**Outcome:** Succeeded with two of three direct callees, `InvalidDataException` construction and `Encoding.GetByteCount`, and `hasMore: true`.
+
+### 309. `find-callers`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded callers and source context for `CommitRecoveryStore.SerializeJson`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<SerializeJson documentation ID>","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"includeContext":true,"callersLimit":2,"callSitesPerCallerLimit":2}`
+
+**Outcome:** Succeeded with the two callers, `WriteManifestAsync` and `WriteStatusAsync`, including bounded call-site context.
+
+### 310. `find-derived-types`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Find direct concrete tools derived from the generic `McpServerToolBase<TRequest>`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Tools.McpServerToolBase\u00601","project":{"name":"Roslyn.Workbench.Mcp"}},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"maxDepth":1,"derivedTypesLimit":2}`
+
+**Outcome:** Succeeded but returned no derived types, despite the repository containing concrete derived tools.
+
+### 311. `find-implementations`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Find implementations of `ICommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.ICommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"scope":{"kind":"Solution"},"implementationsLimit":2}`
+
+**Outcome:** Succeeded with the single `CommitRecoveryStore` implementation.
+
+### 312. `find-overloads`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded overloads for `WorkspaceResolver.ResolveDocument`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<public ResolveDocument documentation ID>","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"overloadsLimit":2}`
+
+**Outcome:** Succeeded with the public and private overloads and no additional results.
+
+### 313. `find-overrides`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return concrete overrides of `McpServerToolBase<TRequest>.InvokeBoundRequestAsync`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<generic InvokeBoundRequestAsync documentation ID>","project":{"name":"Roslyn.Workbench.Mcp"}},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"overridesLimit":2}`
+
+**Outcome:** Succeeded with two of five concrete overrides and `hasMore: true`.
+
+### 314. `get-partial-declarations`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded declarations for the partial file-lock provider.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Locking.FileStreamWorkspaceFileLockProvider","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"declarationsLimit":2}`
+
+**Outcome:** Succeeded with its generated `LibraryImports.g.cs` declaration followed by its source declaration.
+
+### 315. `get-symbol-attributes`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Inspect bounded attribute metadata for `RequiresExactlyOneAttribute`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Contracts.Validation.RequiresExactlyOneAttribute","project":{"name":"Roslyn.Workbench.Mcp"}},"includeInherited":false,"attributesLimit":2}`
+
+**Outcome:** Succeeded with the expected `AttributeUsage` metadata.
+
+### 316. `get-symbol-dependencies`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded source dependencies of `CommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"includeAssemblies":false,"dependenciesLimit":2}`
+
+**Outcome:** Succeeded with `ICommitRecoveryStore` and `object`.
+
+### 317. `get-symbol-dependents`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Return bounded source dependents of `CommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"scope":{"kind":"Solution"},"dependentsLimit":2}`
+
+**Outcome:** Succeeded with two of eight dependents, including service registration and an integration-test reference, and `hasMore: true`.
+
+### 318. `get-type-hierarchy`
+
+**Activity:** DOGFOOD-010 symbol relationships.
+
+**Purpose:** Project the base and derived hierarchy for generic `McpServerToolBase<TRequest>`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Tools.McpServerToolBase\u00601","project":{"name":"Roslyn.Workbench.Mcp"}},"includeDerived":true,"maxDepth":1,"baseTypesLimit":2,"interfacesLimit":2,"derivedTypesLimit":2}`
+
+**Outcome:** Succeeded with the expected SDK base type and interface but no derived tools, matching the unexpected empty result from `find-derived-types`.
+
+### 319. `find-dependency-cycles`
+
+**Activity:** DOGFOOD-010 scope analysis and graphs.
+
+**Purpose:** Retry cycle detection with a scope small enough for the deliberately low analysis limits.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp"},{"name":"Roslyn.Workbench.Mcp.Workspace"}]},"granularity":"Project","nodesLimit":2,"edgesLimit":2,"cyclesLimit":2}`
+
+**Outcome:** Succeeded with no cycles.
+
+### 320. `search-symbols`
+
+**Activity:** DOGFOOD-010 hierarchy control discovery.
+
+**Purpose:** Locate a non-generic base type to distinguish a generic hierarchy problem from a general tool failure.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"ResolvedFlowRegion","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the base type and two concrete derived types.
+
+### 321. `find-derived-types`
+
+**Activity:** DOGFOOD-010 hierarchy control.
+
+**Purpose:** Retry derived-type discovery with the non-generic `ResolvedFlowRegion` base.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<ResolvedFlowRegion documentation ID returned by call 320>","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"maxDepth":1,"derivedTypesLimit":2}`
+
+**Outcome:** Succeeded with both concrete derived types.
+
+### 322. `get-type-hierarchy`
+
+**Activity:** DOGFOOD-010 hierarchy control.
+
+**Purpose:** Retry complete hierarchy projection with the non-generic `ResolvedFlowRegion` base.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"<ResolvedFlowRegion documentation ID returned by call 320>","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"includeDerived":true,"maxDepth":1,"baseTypesLimit":2,"interfacesLimit":2,"derivedTypesLimit":2}`
+
+**Outcome:** Succeeded with `object` as the base and both concrete derived types, isolating the earlier empty results to the generic-base case.
+
+### 323. `get-operation-tree`
+
+**Activity:** DOGFOOD-010 semantic impact.
+
+**Purpose:** Inspect a bounded operation tree for a real serialization invocation.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Recovery/CommitRecoveryStore.cs"},"selectedText":"JsonSerializer.Serialize(owner, _serializerOptions)"}},"maxDepth":1,"nodesLimit":2}`
+
+**Outcome:** Succeeded with an invocation root, one argument child and `truncated: true`.
+
+### 324. `get-change-impact`
+
+**Activity:** DOGFOOD-010 semantic impact.
+
+**Purpose:** Return bounded solution-wide references for `CommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"scope":{"kind":"Solution"},"locationsLimit":2}`
+
+**Outcome:** Succeeded with a reference count of nine, the first two locations and `hasMore: true`.
+
+### 325. `get-test-impact`
+
+**Activity:** DOGFOOD-010 semantic impact.
+
+**Purpose:** Find tests likely affected by changes to `CommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"testScope":{"kind":"Solution"},"includeReasons":true,"testsLimit":2}`
+
+**Outcome:** Succeeded but returned no tests, despite the direct test references visible through `get-change-impact`.
+
+### 326. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the hierarchy service and its tests after the generic-base result.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"TypeHierarchyService","kinds":["NamedType","Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the interface, implementation and test type.
+
+### 327. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the test-impact tool and its tests after the empty result.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"GetTestImpactTool","kinds":["NamedType","Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the tool and its test type.
+
+### 328. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect the hierarchy service's derived-type and depth calculation.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Hierarchy/TypeHierarchyService.cs"},"range":{"start":116,"length":20}}},"beforeLines":2,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded and showed Roslyn's derived-class discovery followed by a parent-chain distance calculation using direct symbol equality. Existing tests inspected separately cover ordinary class and interface hierarchies but not generic bases.
+
+### 329. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect the test-impact tool's request routing.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetTestImpactTool.cs"},"range":{"start":189,"length":17}}},"beforeLines":2,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded and confirmed that the resolved target and scoped documents are delegated directly to `DependencyAnalysisService.FindTestImpactsAsync`.
+
+### 330. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the dependency analysis implementation and tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"DependencyAnalysisService","kinds":["NamedType","Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the implementation, interface and test type.
+
+### 331. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the exact test-impact analysis method.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"FindTestImpactsAsync","kinds":["Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the interface and implementation methods.
+
+### 332. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect test candidate discovery and impact selection.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":1814,"length":20}}},"beforeLines":10,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed that source method declarations in test-named types are collected, then checked for a direct dependency on the normalized target or owning type.
+
+### 333. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the direct-dependency predicate used by test-impact analysis.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"HasTargetDependencyAsync","kinds":["Method"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single private implementation method.
+
+### 334. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect how test method operations are compared with the target.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":8012,"length":24}}},"beforeLines":5,"afterLines":85,"includeEnclosingSymbols":false,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed return types, parameter types and descendant operations being compared through the service's symbol-matching helpers.
+
+### 335. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate owning-type normalization used by the comparison.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"GetOwningTypeSymbol","kinds":["Method"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single private helper.
+
+### 336. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect owning-type normalization for named types and members.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":40660,"length":19}}},"beforeLines":15,"afterLines":25,"includeEnclosingSymbols":false,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed named types and containing types normalized before comparison.
+
+### 337. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Inspect the existing dependency-analysis unit fixture.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Test/Analysis/DependencyAnalysisServiceTests.cs"},"range":{"start":110,"length":30}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":false,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed the service tests; the focused test-impact cases use target and test code in the same in-memory compilation.
+
+### 338. `search-symbols`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Locate the real `CommitRecoveryStoreTests` fixture.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"CommitRecoveryStoreTests","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single Workspace test class.
+
+### 339. `get-code-context`
+
+**Activity:** DOGFOOD-010 finding investigation.
+
+**Purpose:** Confirm that the real test fixture depends directly on `CommitRecoveryStore`.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs"},"range":{"start":306,"length":24}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":false,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed a `CommitRecoveryStore` field initialized by the test-class constructor and used by the fixture's tests.
+
+### 340. `search-symbols`
+
+**Activity:** DOGFOOD-010 response-shaping investigation.
+
+**Purpose:** Locate the solution-structure projection after generated documents dominated its low-limit response.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"scope":{"kind":"Solution"},"query":"GetSolutionStructureTool","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production tool and its test type.
+
+### 341. `get-code-context`
+
+**Activity:** DOGFOOD-010 response-shaping investigation.
+
+**Purpose:** Inspect project and document selection in the solution-structure tool.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":3,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetSolutionStructureTool.cs"},"range":{"start":284,"length":24}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":false,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded. Follow-on source inspection confirmed that document candidates are sorted only by normalized path before the low limit is applied, with no source-versus-generated preference.
+
+### 342. `get-test-impact`
+
+**Activity:** DOGFOOD-010 finding control.
+
+**Purpose:** Retry the missing test-impact result with the exact test project rather than solution scope.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"name":"Roslyn.Workbench.Mcp.Workspace"}},"testScope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Workspace.Test"}},"includeReasons":true,"testsLimit":5}`
+
+**Outcome:** Succeeded but again returned no tests, confirming that broad solution scope was not the cause of the missing result.
+
+### 343. `workspace-close`
+
+**Activity:** DOGFOOD-010 live client-usability sweep.
+
+**Purpose:** Close the main-solution Workspace after all read-only query and investigation calls.
+
+**Request:** `{"workspace":{"alias":"dogfood-010-live-sweep"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-3 Workspace with no transaction.
+
+### 344. `workspace-list`
+
+**Activity:** DOGFOOD-010 live client-usability sweep.
+
+**Purpose:** Confirm that the completed sweep left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.

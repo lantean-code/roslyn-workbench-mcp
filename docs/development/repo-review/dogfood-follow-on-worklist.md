@@ -14,8 +14,10 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 |---:|---|---|---|
 | 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
 | 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Confirmed through normal Codex dogfood validation |
-| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Pending existing-coverage validation |
-| 4 | DOGFOOD-011 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
+| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Live client-usability sweep completed; findings awaiting confirmation |
+| 4 | DOGFOOD-011 | Correct generic-base hierarchy resolution | Pending design discovery |
+| 5 | DOGFOOD-012 | Correct cross-project test-impact matching | Pending design discovery |
+| 6 | DOGFOOD-013 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
 
 ### DOGFOOD-008 — Controlled transaction commit
 
@@ -45,7 +47,31 @@ Exercise the currently unused inspection and analysis tools through the publishe
 
 Confirmation requires a recorded request and intelligible outcome for each query tool that remained unused after DOGFOOD-007. Expected structured failures count as useful evidence when the request intentionally exercises a documented boundary; accidental invalid requests must be corrected and retried.
 
-### DOGFOOD-011 — Error-reporting workflows
+Existing-coverage validation found 25 published query tools with no prior entry in the continuing usage ledger: `analyze-async`, `analyze-disposables`, `analyze-nullability`, `find-callees`, `find-callers`, `find-dependency-cycles`, `find-derived-types`, `find-duplicate-code`, `find-implementations`, `find-overloads`, `find-overrides`, `find-unused-symbols`, `get-api-surface`, `get-change-impact`, `get-dependency-graph`, `get-document-options`, `get-operation-tree`, `get-partial-declarations`, `get-project-details`, `get-solution-structure`, `get-symbol-attributes`, `get-symbol-dependencies`, `get-symbol-dependents`, `get-test-impact` and `get-type-hierarchy`. Every tool has a dedicated bundled-plugin unit-test class. `analyze-async`, `find-duplicate-code`, `get-change-impact`, `get-dependency-graph`, `get-operation-tree`, `get-project-details` and `get-solution-structure` also have checked-in Scenario Runner coverage, while `SemanticInspectionIntegrationTests` exercises representative semantic tools through a real loaded Workspace. The missing evidence is therefore Codex client usability, not repository behaviour coverage, and no new production code, tests or scenarios are proposed.
+
+The proposed live sweep uses one read-only load of the main solution and four bounded groups. Workspace and project shape covers `get-solution-structure`, `get-project-details`, `get-document-options` and `get-api-surface`. Scope analysis and graphs covers the three `analyze-*` tools, dependency cycles, duplicate code, unused symbols and the dependency graph. Symbol relationships covers callers, callees, derived types, implementations, overloads, overrides, partial declarations, attributes, dependencies, dependents and type hierarchy. Semantic impact covers operation tree, change impact and test impact. Candidate symbols and locations are first resolved through bounded `search-symbols` calls, then their canonical selectors and the Workspace snapshot are reused unchanged.
+
+Every available collection limit will be set to `2`; graph depth and hierarchy depth will be `1`; broad analysis will use document or project scope rather than solution scope unless the tool's purpose requires the solution graph. Calls will target real repository constructs selected to produce intelligible non-empty results where practical, while an accurate empty result remains valid evidence for analysis tools. No transaction or mutation tool is required. Accidental invalid requests will be retained and corrected; the run will close the Workspace and require no remaining transaction owner.
+
+The approved live sweep completed against the main solution through Codex's configured dogfood tools. Every one of the 25 previously unused query tools accepted a representative request, and the Workspace was closed with no transaction owner. Empty analysis results and bounded partial results were intelligible; the deliberately undersized dependency-cycle analysis guard returned an actionable `AnalysisLimitExceeded` response and succeeded after the scope was narrowed.
+
+The sweep exposed two behavioural gaps that warrant separate design discovery if confirmed. `find-derived-types` and `get-type-hierarchy` returned no derived types for the generic `McpServerToolBase<TRequest>` even though `find-overrides` found five concrete overrides; both hierarchy tools returned the expected results for the non-generic `ResolvedFlowRegion` control. Existing hierarchy service tests cover class and interface inheritance but not generic bases. `get-test-impact` returned no tests for `CommitRecoveryStore`, both at solution scope and when explicitly restricted to `Roslyn.Workbench.Mcp.Workspace.Test`, despite direct references in `CommitRecoveryStoreTests`; the current unit coverage exercises targets and tests from one compilation, while this live case crosses a project reference boundary.
+
+Two response-shaping observations are retained as lower-priority usability evidence rather than confirmed defects. With a document limit of two, both structure tools returned generated `obj` documents before source documents because candidates are sorted only by normalized path, making a low-limit overview less useful. `get-document-options` returned the complete analyzer-config option map and was correspondingly large, but the response was accurate and the contract does not currently expose a collection limit for that fixed-key data.
+
+### DOGFOOD-011 — Generic-base hierarchy resolution
+
+The DOGFOOD-010 live sweep resolved `McpServerToolBase<TRequest>` successfully but both `find-derived-types` and `get-type-hierarchy` returned no derived types. The same Workspace and scope returned five concrete overrides of the base tool method, proving that derived tools were present. Both hierarchy tools returned the expected two derived types for the non-generic `ResolvedFlowRegion` control. Existing `TypeHierarchyServiceTests` cover ordinary class and interface inheritance but do not cover a generic base.
+
+Design discovery must determine how Roslyn represents the discovered generic base relationship and where original-definition normalization belongs so depth calculation remains correct for both generic and non-generic hierarchies. The proposed design must identify focused service coverage and the tool-level coverage needed to lock both affected query results. Implementation must not begin until the design has received manual approval.
+
+### DOGFOOD-012 — Cross-project test-impact matching
+
+The DOGFOOD-010 live sweep resolved the production `CommitRecoveryStore` type but `get-test-impact` returned no tests at both solution scope and explicit `Roslyn.Workbench.Mcp.Workspace.Test` project scope. `get-change-impact` reported direct test references, and `CommitRecoveryStoreTests` has a strongly typed field that its test methods use. Existing `DependencyAnalysisServiceTests` exercise target and test code in one in-memory compilation, while the failed live case resolves the target in one project and analyses tests through a project reference.
+
+Design discovery must establish whether cross-compilation or retargeted symbol identity is the complete cause, define the supported meaning of a test impact through test-class setup and fields, and choose a comparison strategy that does not introduce name-based false positives. The proposed design must include focused cross-project service coverage and tool-level coverage using a realistic project-reference boundary. Implementation must not begin until the design has received manual approval.
+
+### DOGFOOD-013 — Error-reporting workflows
 
 Exercise the error-reporting tools only after the user gives explicit consent for the concrete submission. Use a controlled, non-sensitive diagnostic payload, explain where the report will be written or sent, and avoid including repository content, machine-specific paths or other incidental data unless the approved workflow specifically requires it.
 
@@ -53,7 +79,7 @@ Confirmation requires evidence that the published contract is usable, consent wa
 
 ## Sequence and process
 
-Before designing each remaining item, inspect the repository's existing unit, integration and acceptance tests, Scenario Runner definitions and supporting runners. Record the exact existing coverage and the concrete surviving gap. If the requested behaviour is already covered, close or narrow the item rather than inventing duplicate work. Only after this validation may design discovery propose a change or a new dogfood run. DOGFOOD-011 remains last because it may have an external side effect and therefore needs separate, explicit consent at execution time.
+Before designing each remaining item, inspect the repository's existing unit, integration and acceptance tests, Scenario Runner definitions and supporting runners. Record the exact existing coverage and the concrete surviving gap. If the requested behaviour is already covered, close or narrow the item rather than inventing duplicate work. Only after this validation may design discovery propose a change or a new dogfood run. DOGFOOD-013 remains last because it may have an external side effect and therefore needs separate, explicit consent at execution time.
 
 For any item that reveals a product change rather than a validation-only workflow, follow the remediation process in [Deep Dive Review](../DeepDiveReview.md): complete design discovery, obtain manual design approval before implementation, implement and validate, obtain user confirmation, stage the confirmed baseline, run the fresh context-free Review Agent, address findings as an unstaged comparison, obtain final confirmation and let the user commit before publishing the next dogfood build.
 

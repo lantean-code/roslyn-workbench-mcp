@@ -15,7 +15,7 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 | 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
 | 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Confirmed through normal Codex dogfood validation |
 | 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Live client-usability sweep completed; findings awaiting confirmation |
-| 4 | DOGFOOD-011 | Correct generic-base hierarchy resolution | Pending design discovery |
+| 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Implementation validated; review remediation awaiting final confirmation |
 | 5 | DOGFOOD-012 | Correct cross-project test-impact matching | Pending design discovery |
 | 6 | DOGFOOD-013 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
 
@@ -64,6 +64,8 @@ Two response-shaping observations are retained as lower-priority usability evide
 The DOGFOOD-010 live sweep resolved `McpServerToolBase<TRequest>` successfully but both `find-derived-types` and `get-type-hierarchy` returned no derived types. The same Workspace and scope returned five concrete overrides of the base tool method, proving that derived tools were present. Both hierarchy tools returned the expected two derived types for the non-generic `ResolvedFlowRegion` control. Existing `TypeHierarchyServiceTests` cover ordinary class and interface inheritance but do not cover a generic base.
 
 Design discovery must determine how Roslyn represents the discovered generic base relationship and where original-definition normalization belongs so depth calculation remains correct for both generic and non-generic hierarchies. The proposed design must identify focused service coverage and the tool-level coverage needed to lock both affected query results. Implementation must not begin until the design has received manual approval.
+
+Design discovery is complete in [DOGFOOD-011 — Generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md). Live validation confirmed the same empty result for generic `IQueryToolHandler<TRequest, TResponse>` while `find-implementations` returned 75 implementations, proving that both class and interface paths are affected. The proposal keeps Roslyn discovery unchanged and compares direct parents with the selected root at `OriginalDefinition` identity during depth calculation, with focused generic class and interface service tests and published dogfood revalidation of both MCP consumers.
 
 ### DOGFOOD-012 — Cross-project test-impact matching
 

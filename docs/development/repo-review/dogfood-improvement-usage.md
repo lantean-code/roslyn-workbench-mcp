@@ -3173,3 +3173,237 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+## DOGFOOD-011 — Generic-base hierarchy design discovery
+
+### 345. `workspace-open`
+
+**Activity:** DOGFOOD-011 issue validation and design discovery.
+
+**Purpose:** Open the main solution read-only to trace the hierarchy implementation, coverage and consumers.
+
+**Request:** `{"alias":"dogfood-011-design","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<temp-artifacts>/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,639 documents at Workspace epoch 4. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 346. `search-symbols`
+
+**Activity:** DOGFOOD-011 implementation discovery.
+
+**Purpose:** Locate the hierarchy service contract, implementation and focused tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"scope":{"kind":"Solution"},"query":"TypeHierarchyService","kinds":["NamedType","Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with `ITypeHierarchyService`, `TypeHierarchyService` and `TypeHierarchyServiceTests`.
+
+### 347. `get-code-context`
+
+**Activity:** DOGFOOD-011 implementation discovery.
+
+**Purpose:** Inspect derived-type discovery, deduplication and hierarchy-depth calculation.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Workspace/Hierarchy/TypeHierarchyService.cs"},"range":{"start":116,"length":20}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded with the complete implementation. `SymbolFinder` discovers transitive types, after which `GetDistance` walks constructed direct parents and compares them directly with the selected root through `SymbolEqualityComparer.Default`; unreachable matches are discarded.
+
+### 348. `get-code-context`
+
+**Activity:** DOGFOOD-011 coverage discovery.
+
+**Purpose:** Inspect the focused hierarchy-service tests for generic-root coverage.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":4,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Hierarchy/TypeHierarchyServiceTests.cs"},"range":{"start":131,"length":25}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed one non-generic class-hierarchy test and one non-generic interface-hierarchy test, with no generic base fixture.
+
+### 349. `search-symbols`
+
+**Activity:** DOGFOOD-011 consumer discovery.
+
+**Purpose:** Resolve the shared service method before tracing every caller.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"scope":{"kind":"Solution"},"query":"FindDerivedTypesAsync","kinds":["Method"],"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the interface and implementation declarations.
+
+### 350. `find-callers`
+
+**Activity:** DOGFOOD-011 consumer discovery.
+
+**Purpose:** Identify production and test consumers of the shared hierarchy method.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"symbol":{"documentationCommentId":"M:Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService.FindDerivedTypesAsync(Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.Solution,System.Collections.Generic.IReadOnlyCollection{Microsoft.CodeAnalysis.Project},System.Threading.CancellationToken)","project":{"name":"Roslyn.Workbench.Mcp.Abstractions"}},"scope":{"kind":"Solution"},"includeContext":true,"callersLimit":10,"callSitesPerCallerLimit":5}`
+
+**Outcome:** Succeeded with six callers. The two production consumers are `FindDerivedTypesTool` and `GetTypeHierarchyTool`; the remaining callers are test wiring and the two existing service tests.
+
+### 351. `search-symbols`
+
+**Activity:** DOGFOOD-011 generic-interface control discovery.
+
+**Purpose:** Resolve the generic `IQueryToolHandler<TRequest, TResponse>` declaration for the interface branch.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"scope":{"kind":"Solution"},"query":"IQueryToolHandler","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the non-generic marker, generic two-argument plugin interface and the separate Code Action interface.
+
+### 352. `find-derived-types`
+
+**Activity:** DOGFOOD-011 generic-interface issue validation.
+
+**Purpose:** Determine whether the generic-root defect also affects the hierarchy service's interface branch.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler\u00602","project":{"name":"Roslyn.Workbench.Mcp.Plugins"}},"scope":{"kind":"Solution"},"maxDepth":1,"derivedTypesLimit":2}`
+
+**Outcome:** Succeeded but returned no derived types.
+
+### 353. `find-implementations`
+
+**Activity:** DOGFOOD-011 generic-interface control.
+
+**Purpose:** Prove that implementations of the same generic interface are present and discoverable by Roslyn.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler\u00602","project":{"name":"Roslyn.Workbench.Mcp.Plugins"}},"scope":{"kind":"Solution"},"implementationsLimit":2}`
+
+**Outcome:** Succeeded with two of 75 implementations and `hasMore: true`, confirming that `find-derived-types` had discarded valid generic-interface discoveries rather than accurately reporting an empty hierarchy.
+
+### 354. `workspace-close`
+
+**Activity:** DOGFOOD-011 issue validation and design discovery.
+
+**Purpose:** Close the read-only main-solution Workspace after design evidence was complete.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-design"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-4 Workspace with no transaction.
+
+### 355. `workspace-list`
+
+**Activity:** DOGFOOD-011 issue validation and design discovery.
+
+**Purpose:** Confirm that design discovery left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+## DOGFOOD-011 — Published pre-commit validation
+
+### 356. `server-status`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Confirm the restarted configured dogfood Host is healthy before exercising the generic hierarchy correction.
+
+**Request:** `{"detail":"Minimal"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, Roslyn `5.6.0.0`, MSBuild `10.0.102`, 56 published tools and available Code Actions. An operating-system process check separately confirmed that both configured Host processes resolved to the new `dogfood-011-precommit-10a5b05-9FzT9t` candidate.
+
+### 357. `workspace-list`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Confirm the restarted Host has no loaded Workspace or transaction owner before opening the main solution.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 358. `workspace-open`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Open the main solution with an isolated artifacts directory for the hierarchy checks.
+
+**Request:** `{"alias":"dogfood-011-validation","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<non-existent-temp-artifacts>"}}`
+
+**Outcome:** Failed accurately with `WorkspaceMsBuildPropertiesInvalid` because the requested absolute artifacts directory did not yet exist.
+
+### 359. `workspace-open`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Retry the main-solution open after creating the isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-011-validation","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<temp-artifacts>/roslyn-workbench-mcp-dogfood-011"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,595 documents at Workspace epoch 1. Diagnostics comprised the expected WSL mounted-Windows-filesystem warning and two skipped analyser references because the isolated artifacts directory intentionally contained no prebuilt analyser output.
+
+### 360. `search-symbols`
+
+**Activity:** DOGFOOD-011 generic-class validation.
+
+**Purpose:** Resolve the generic `McpServerToolBase<TRequest>` declaration through the configured dogfood client.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"query":"McpServerToolBase","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the generic production declaration and its test type; the production result published a reusable documentation-comment selector and canonical location selector.
+
+### 361. `find-derived-types`
+
+**Activity:** DOGFOOD-011 generic-class validation.
+
+**Purpose:** Verify that the corrected hierarchy service retains descendants whose direct parents are constructed forms of `McpServerToolBase<TRequest>`.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.ToolExecution.McpServerToolBase\u00601","project":{"projectId":"<project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"scope":{"kind":"Solution"},"maxDepth":5,"derivedTypesLimit":100}`
+
+**Outcome:** Succeeded with all 19 descendants and no continuation: five generic intermediate bases at depth 1 and fourteen concrete tools at depth 2. Before the correction this generic root returned an empty collection.
+
+### 362. `get-type-hierarchy`
+
+**Activity:** DOGFOOD-011 generic-class validation.
+
+**Purpose:** Exercise the second production consumer of the corrected hierarchy service for `McpServerToolBase<TRequest>`.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.ToolExecution.McpServerToolBase\u00601","project":{"projectId":"<project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"includeDerived":true,"maxDepth":5,"baseTypesLimit":20,"interfacesLimit":20,"derivedTypesLimit":100}`
+
+**Outcome:** Succeeded with the same complete 19-descendant hierarchy and correct depth values, with no continuation.
+
+### 363. `search-symbols`
+
+**Activity:** DOGFOOD-011 generic-interface validation.
+
+**Purpose:** Resolve the generic `IQueryToolHandler<TRequest, TResponse>` interface for the interface branch of hierarchy calculation.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"query":"IQueryToolHandler","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the non-generic marker, the generic two-argument plugin interface and the separate Code Action interface.
+
+### 364. `find-derived-types`
+
+**Activity:** DOGFOOD-011 generic-interface validation.
+
+**Purpose:** Verify that the corrected hierarchy service retains implementations whose direct interfaces are constructed forms of `IQueryToolHandler<TRequest, TResponse>`.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler\u00602","project":{"projectId":"<project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"scope":{"kind":"Solution"},"maxDepth":5,"derivedTypesLimit":100}`
+
+**Outcome:** Succeeded with 38 descendants and no continuation: the generic `QueryToolHandler<TRequest, TResponse>` at depth 1 and 37 concrete inspection tools at depth 2. Before the correction this generic interface returned an empty collection.
+
+### 365. `get-type-hierarchy`
+
+**Activity:** DOGFOOD-011 generic-interface validation.
+
+**Purpose:** Confirm the second hierarchy consumer produces the same corrected generic-interface tree.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler\u00602","project":{"projectId":"<project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"includeDerived":true,"maxDepth":5,"baseTypesLimit":20,"interfacesLimit":20,"derivedTypesLimit":100}`
+
+**Outcome:** Succeeded with the same 38 descendants, correct depth-1 and depth-2 grouping and no continuation.
+
+### 366. `workspace-close`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Close the read-only main-solution Workspace after hierarchy validation completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-011-validation"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-1 Workspace with no transaction.
+
+### 367. `workspace-list`
+
+**Activity:** DOGFOOD-011 published pre-commit validation.
+
+**Purpose:** Confirm the validation run left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.

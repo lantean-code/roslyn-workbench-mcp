@@ -37,6 +37,7 @@ internal sealed class TypeHierarchyService : ITypeHierarchyService
         }
 
         var matches = new List<TypeHierarchyMatch>();
+        var rootDefinition = root.OriginalDefinition;
         var uniqueTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         foreach (var discoveredType in discoveredTypes)
         {
@@ -45,7 +46,7 @@ internal sealed class TypeHierarchyService : ITypeHierarchyService
                 continue;
             }
 
-            var depth = GetDistance(discoveredType, root);
+            var depth = GetDistance(discoveredType, rootDefinition);
             if (depth != int.MaxValue)
             {
                 matches.Add(new TypeHierarchyMatch
@@ -59,7 +60,7 @@ internal sealed class TypeHierarchyService : ITypeHierarchyService
         return matches;
     }
 
-    private static int GetDistance(INamedTypeSymbol symbol, INamedTypeSymbol root)
+    private static int GetDistance(INamedTypeSymbol symbol, INamedTypeSymbol rootDefinition)
     {
         var visited = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default)
         {
@@ -73,7 +74,7 @@ internal sealed class TypeHierarchyService : ITypeHierarchyService
             var (current, depth) = pending.Dequeue();
             foreach (var parent in GetDirectParents(current))
             {
-                if (SymbolEqualityComparer.Default.Equals(parent, root))
+                if (RepresentsTypeDefinition(parent, rootDefinition))
                 {
                     return depth + 1;
                 }
@@ -86,6 +87,11 @@ internal sealed class TypeHierarchyService : ITypeHierarchyService
         }
 
         return int.MaxValue;
+    }
+
+    private static bool RepresentsTypeDefinition(INamedTypeSymbol symbol, INamedTypeSymbol definition)
+    {
+        return SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, definition);
     }
 
     private static IEnumerable<INamedTypeSymbol> GetDirectParents(INamedTypeSymbol symbol)

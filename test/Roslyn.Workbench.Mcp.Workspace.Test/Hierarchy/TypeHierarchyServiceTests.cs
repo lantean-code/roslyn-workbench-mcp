@@ -89,4 +89,92 @@ public sealed class TypeHierarchyServiceTests
                 ["Indirect"] = 2,
             });
     }
+
+    [Fact]
+    public async Task GIVEN_GenericClassHierarchy_WHEN_FindingDerivedTypes_THEN_ShouldMatchConstructedBaseTypesToDefinition()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Hierarchy.cs",
+                        Source = """
+                            class Root<T> { }
+                            class Direct : Root<string> { }
+                            class GenericDirect<T> : Root<T> { }
+                            class Indirect : GenericDirect<int> { }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var root = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Hierarchy.cs"),
+            "Root",
+            TestContext.Current.CancellationToken);
+
+        var result = await _target.FindDerivedTypesAsync(
+            root,
+            solution.Solution,
+            solution.Solution.Projects.ToArray(),
+            TestContext.Current.CancellationToken);
+
+        result.ToDictionary(static item => item.Type.Name, static item => item.Depth).Should().BeEquivalentTo(
+            new Dictionary<string, int>
+            {
+                ["Direct"] = 1,
+                ["GenericDirect"] = 1,
+                ["Indirect"] = 2,
+            });
+    }
+
+    [Fact]
+    public async Task GIVEN_GenericInterfaceHierarchy_WHEN_FindingDerivedTypes_THEN_ShouldMatchConstructedInterfacesToDefinition()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Hierarchy.cs",
+                        Source = """
+                            interface IRoot<T> { }
+                            interface IChild<T> : IRoot<T> { }
+                            class Direct : IRoot<int> { }
+                            class Indirect : IChild<string> { }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var root = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Hierarchy.cs"),
+            "IRoot",
+            TestContext.Current.CancellationToken);
+
+        var result = await _target.FindDerivedTypesAsync(
+            root,
+            solution.Solution,
+            solution.Solution.Projects.ToArray(),
+            TestContext.Current.CancellationToken);
+
+        result.ToDictionary(static item => item.Type.Name, static item => item.Depth).Should().BeEquivalentTo(
+            new Dictionary<string, int>
+            {
+                ["IChild"] = 1,
+                ["Direct"] = 1,
+                ["Indirect"] = 2,
+            });
+    }
 }

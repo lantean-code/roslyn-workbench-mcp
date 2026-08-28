@@ -3407,3 +3407,385 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+## DOGFOOD-012 — Cross-project test-impact design discovery
+
+### 368. `workspace-list`
+
+**Activity:** DOGFOOD-012 design discovery.
+
+**Purpose:** Confirm the published dogfood Host has no loaded Workspace or transaction owner before beginning discovery.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 369. `workspace-open`
+
+**Activity:** DOGFOOD-012 design discovery.
+
+**Purpose:** Open the main solution read-only to inspect the test-impact implementation and existing coverage.
+
+**Request:** `{"alias":"dogfood-012-design","path":"<repo>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repo>","msBuildProperties":{"artifactsPath":"<temp-artifacts>/roslyn-workbench-mcp"}}`
+
+**Outcome:** Succeeded with 30 projects and 1,639 documents at Workspace epoch 2. The only diagnostic was the expected WSL mounted-Windows-filesystem performance warning.
+
+### 370. `search-symbols`
+
+**Activity:** DOGFOOD-012 implementation discovery.
+
+**Purpose:** Locate the dependency-analysis contract, implementation and focused unit tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"DependencyAnalysisService","kinds":["NamedType","Method"],"scope":{"kind":"Solution"},"symbolsLimit":30}`
+
+**Outcome:** Succeeded with `DependencyAnalysisService`, `IDependencyAnalysisService` and `DependencyAnalysisServiceTests`.
+
+### 371. `search-symbols`
+
+**Activity:** DOGFOOD-012 consumer and coverage discovery.
+
+**Purpose:** Locate the test-impact service method, tool, contracts and tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"TestImpact","kinds":["NamedType","Method"],"scope":{"kind":"Solution"},"symbolsLimit":50}`
+
+**Outcome:** Succeeded with `FindTestImpactsAsync`, `GetTestImpactTool`, its request and response contracts, the tool tests and two service test methods that exercise test-impact behaviour.
+
+### 372. `get-code-context`
+
+**Activity:** DOGFOOD-012 implementation discovery.
+
+**Purpose:** Inspect the complete `FindTestImpactsAsync` implementation in one request.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":1814,"length":20}}},"beforeLines":20,"afterLines":220,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Failed accurately with `InvalidRequest` because `afterLines` exceeded the published maximum.
+
+### 373. `get-code-context`
+
+**Activity:** DOGFOOD-012 implementation discovery.
+
+**Purpose:** Retry inspection of `FindTestImpactsAsync` within the published line bound.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":1814,"length":20}}},"beforeLines":20,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed that the selected target is normalised once, candidate test methods are resolved from each test document's semantic model, and every method is compared with the unchanged production-compilation target.
+
+### 374. `search-symbols`
+
+**Activity:** DOGFOOD-012 matching-path discovery.
+
+**Purpose:** Locate the helper that compares candidate method dependencies with the selected target.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"HasTargetDependencyAsync","kinds":["Method"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins"}},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single private implementation in `DependencyAnalysisService`.
+
+### 375. `get-code-context`
+
+**Activity:** DOGFOOD-012 matching-path discovery.
+
+**Purpose:** Inspect signature, operation-tree, owning-type and composite-type matching.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":8012,"length":24}}},"beforeLines":10,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed that method return types, parameter types and all descendant operations are checked. A field access is already eligible through its operation type, so class-held `_target` usage is intended to count.
+
+### 376. `search-symbols`
+
+**Activity:** DOGFOOD-012 identity discovery.
+
+**Purpose:** Locate the final symbol equality helper used by test-impact matching.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"SymbolsMatch","kinds":["Method"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins"}},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the private `SymbolsMatch` method.
+
+### 377. `get-code-context`
+
+**Activity:** DOGFOOD-012 identity discovery.
+
+**Purpose:** Inspect the precise normalisation and equality rule at the failed cross-compilation boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"range":{"start":44272,"length":12}}},"beforeLines":20,"afterLines":30,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed that named types and members are reduced to `OriginalDefinition` and then compared only with `SymbolEqualityComparer.Default`; no symbol is rebound into the candidate test compilation.
+
+### 378. `get-document-outline`
+
+**Activity:** DOGFOOD-012 service-coverage discovery.
+
+**Purpose:** Inventory every `DependencyAnalysisServiceTests` method and identify all existing test-impact scenarios.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Test/Analysis/DependencyAnalysisServiceTests.cs"},"includeMembers":true,"maxDepth":3,"nodesLimit":200}`
+
+**Outcome:** Succeeded with the complete outline. Only the limit-plus-one test and the composite-type test invoke `FindTestImpactsAsync`.
+
+### 379. `get-code-context`
+
+**Activity:** DOGFOOD-012 service-coverage discovery.
+
+**Purpose:** Inspect the existing limit and `hasMore` test-impact fixture.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Test/Analysis/DependencyAnalysisServiceTests.cs"},"range":{"start":4985,"length":108}}},"beforeLines":5,"afterLines":70,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed the production target and all candidate tests in one in-memory document and compilation.
+
+### 380. `get-code-context`
+
+**Activity:** DOGFOOD-012 service-coverage discovery.
+
+**Purpose:** Inspect the existing composite-type test-impact fixture.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Test/Analysis/DependencyAnalysisServiceTests.cs"},"range":{"start":22119,"length":104}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed that arrays and generic types are covered, again with production and test code in one project and compilation.
+
+### 381. `get-code-context`
+
+**Activity:** DOGFOOD-012 tool-boundary discovery.
+
+**Purpose:** Inspect the complete `GetTestImpactTool` execution path and responsibility split.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetTestImpactTool.cs"},"range":{"start":189,"length":17}}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed that the tool resolves the symbol and test documents, delegates all matching to `IDependencyAnalysisService`, and projects the returned values into a bounded response.
+
+### 382. `get-code-context`
+
+**Activity:** DOGFOOD-012 tool-coverage discovery.
+
+**Purpose:** Inspect the successful tool unit test to determine whether it crosses the real service boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetTestImpactToolTests.cs"},"range":{"start":3648,"length":95}}},"beforeLines":10,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and showed that `IDependencyAnalysisService` is mocked. The test covers request delegation and bounded projection but cannot exercise cross-project symbol identity.
+
+### 383. `search-symbols`
+
+**Activity:** DOGFOOD-012 live issue revalidation.
+
+**Purpose:** Resolve the production `CommitRecoveryStore` type and its test class on the current committed build.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"CommitRecoveryStore","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production type, its interface and `CommitRecoveryStoreTests` in the referencing test project.
+
+### 384. `get-test-impact`
+
+**Activity:** DOGFOOD-012 live issue revalidation.
+
+**Purpose:** Reproduce the cross-project empty result against the explicit Workspace test project before proposing a correction.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"projectId":"<production-project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"testScope":{"kind":"Project","project":{"projectId":"<test-project-id>"}},"includeReasons":true,"testsLimit":10}`
+
+**Outcome:** Succeeded but returned zero tests, reproducing the defect on the committed DOGFOOD-011 build.
+
+### 385. `get-code-context`
+
+**Activity:** DOGFOOD-012 live fixture validation.
+
+**Purpose:** Confirm how the real test class holds and accesses the selected production type.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs"},"range":{"start":306,"length":24}}},"beforeLines":8,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed a strongly typed `CommitRecoveryStore _target` field created in the test constructor and accessed by individual test methods.
+
+### 386. `search-symbols`
+
+**Activity:** DOGFOOD-012 test-design discovery.
+
+**Purpose:** Locate the in-memory Roslyn project-definition helper before deciding whether realistic project-reference unit coverage requires new infrastructure.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"query":"InMemoryRoslynProjectDefinition","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the shared TestSupport definition.
+
+### 387. `get-code-context`
+
+**Activity:** DOGFOOD-012 test-design discovery.
+
+**Purpose:** Inspect the shared project-definition capabilities relevant to cross-project service coverage.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.TestSupport/InMemoryRoslynProjectDefinition.cs"},"range":{"start":191,"length":31}}},"beforeLines":5,"afterLines":80,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":4,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed that the existing helper already supports named project references and distinct assembly names; no unit-test infrastructure change is required.
+
+### 388. `workspace-close`
+
+**Activity:** DOGFOOD-012 design discovery.
+
+**Purpose:** Close the read-only main-solution Workspace after the implementation, coverage and live failure paths were established.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-design"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-2 Workspace with no transaction.
+
+### 389. `workspace-list`
+
+**Activity:** DOGFOOD-012 design discovery.
+
+**Purpose:** Confirm that design discovery left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 390. `workspace-list`
+
+**Activity:** DOGFOOD-012 implementation preparation.
+
+**Purpose:** Confirm that no published dogfood Workspace or transaction remained before loading the approved implementation target.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 391. `workspace-open`
+
+**Activity:** DOGFOOD-012 implementation inspection.
+
+**Purpose:** Load the trusted main solution for Roslyn-backed inspection of the approved test-impact change.
+
+**Request:** `{"alias":"dogfood-012-implementation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 3 with 30 projects and 1,639 documents. The expected WSL-on-Windows-filesystem performance warning was reported.
+
+### 392. `get-code-context`
+
+**Activity:** DOGFOOD-012 implementation inspection.
+
+**Purpose:** Inspect the complete current `FindTestImpactsAsync` implementation before applying the approved change.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-implementation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"selectedText":"FindTestImpactsAsync"}},"beforeLines":5,"afterLines":120,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Rejected as `InvalidRequest` because `afterLines` exceeded the supported maximum.
+
+### 393. `get-code-context`
+
+**Activity:** DOGFOOD-012 implementation inspection.
+
+**Purpose:** Retry the implementation inspection with the supported code-window limit.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-implementation"},"location":{"selection":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins/Analysis/DependencyAnalysisService.cs"},"selectedText":"FindTestImpactsAsync"}},"beforeLines":5,"afterLines":100,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5,"includeDiagnostics":false}`
+
+**Outcome:** Succeeded and confirmed the single-compilation target normalisation, candidate discovery, direct dependency checks, result limiting and bounded projection path before modification.
+
+### 394. `workspace-close`
+
+**Activity:** DOGFOOD-012 implementation inspection.
+
+**Purpose:** Close the read-only implementation Workspace after the approved change and local validation were complete.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-implementation"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-3 Workspace with no transaction.
+
+### 395. `workspace-list`
+
+**Activity:** DOGFOOD-012 implementation inspection.
+
+**Purpose:** Confirm that implementation inspection left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 396. Candidate `initialize`
+
+**Activity:** DOGFOOD-012 pre-commit candidate publication.
+
+**Purpose:** Start an isolated protocol smoke test against the Release candidate published from the reviewed staged baseline before promoting the configured dogfood target.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-012-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded against `dogfood-012-precommit-fd28958-QTguJi`. Host logs confirmed that the `initialize` handler completed for client `dogfood-012-smoke`; the candidate later shut down cleanly on end of input.
+
+### 397. Candidate `tools/list`
+
+**Activity:** DOGFOOD-012 pre-commit candidate publication.
+
+**Purpose:** Confirm the isolated candidate can materialise and publish its complete MCP tool catalogue before promotion.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded. Host logs confirmed that the candidate's `tools/list` handler completed without a catalogue materialisation error. The isolated candidate was then promoted atomically to the configured dogfood `current` target.
+
+### 398. `server-status`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Confirm the restarted configured dogfood namespace is healthy before repeating the cross-project test-impact regression.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, Roslyn `5.6.0.0`, MSBuild `10.0.102`, available Code Actions and 56 published tools. An operating-system process check separately confirmed that both configured Host processes resolved to `dogfood-012-precommit-fd28958-QTguJi`.
+
+### 399. `workspace-list`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Confirm the restarted published Host has no loaded Workspace or transaction owner before validation.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 400. `workspace-open`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Open the main solution read-only through Codex's configured dogfood tools so the previously failing real cross-project test-impact request can be repeated.
+
+**Request:** `{"alias":"dogfood-012-validation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 30 projects and 1,641 documents. The expected WSL-on-Windows-filesystem performance warning was reported.
+
+### 401. `search-symbols`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Resolve the production `CommitRecoveryStore` type and its test class using the newly loaded Workspace identities.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-validation"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"query":"CommitRecoveryStore","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Rejected as `InvalidRequest` because `SearchSymbolsRequest` does not contain an `expectedSnapshot` member.
+
+### 402. `search-symbols`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Retry symbol resolution using the actual `search-symbols` contract.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-validation"},"query":"CommitRecoveryStore","kinds":["NamedType"],"scope":{"kind":"Solution"},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production type, its interface and `CommitRecoveryStoreTests`. The production type belonged to the Workspace production project and the test class belonged to the distinct referencing test project.
+
+### 403. `get-test-impact`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Repeat the exact real cross-project regression that returned zero tests on the committed DOGFOOD-011 build.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-validation"},"symbol":{"documentationCommentId":"T:Roslyn.Workbench.Mcp.Workspace.Recovery.CommitRecoveryStore","project":{"projectId":"<production-project-id>"}},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"testScope":{"kind":"Project","project":{"projectId":"<test-project-id>"}},"includeReasons":true,"testsLimit":10}`
+
+**Outcome:** Succeeded with 10 results from `CommitRecoveryStoreTests.cs` and `hasMore: true`. Every returned result carried the reason `Direct reference to the target symbol or its owning type.`, confirming that the production symbol was rebound successfully into the distinct test-project compilation instead of producing the previous empty result.
+
+### 404. `workspace-close`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Close the read-only main-solution Workspace after the decisive regression passed.
+
+**Request:** `{"workspace":{"alias":"dogfood-012-validation"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-1 Workspace with no transaction.
+
+### 405. `workspace-list`
+
+**Activity:** DOGFOOD-012 published validation.
+
+**Purpose:** Confirm the completed dogfood validation left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.

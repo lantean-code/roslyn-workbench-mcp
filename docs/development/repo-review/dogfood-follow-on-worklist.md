@@ -15,8 +15,8 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 | 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
 | 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Confirmed through normal Codex dogfood validation |
 | 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Live client-usability sweep completed; findings awaiting confirmation |
-| 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Implementation validated; review remediation awaiting final confirmation |
-| 5 | DOGFOOD-012 | Correct cross-project test-impact matching | Pending design discovery |
+| 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Confirmed through published dogfood validation |
+| 5 | DOGFOOD-012 | [Correct cross-project test-impact matching](dogfood-012-cross-project-test-impact-design.md) | Confirmed through published dogfood validation |
 | 6 | DOGFOOD-013 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
 
 ### DOGFOOD-008 — Controlled transaction commit
@@ -72,6 +72,12 @@ Design discovery is complete in [DOGFOOD-011 — Generic-base hierarchy resoluti
 The DOGFOOD-010 live sweep resolved the production `CommitRecoveryStore` type but `get-test-impact` returned no tests at both solution scope and explicit `Roslyn.Workbench.Mcp.Workspace.Test` project scope. `get-change-impact` reported direct test references, and `CommitRecoveryStoreTests` has a strongly typed field that its test methods use. Existing `DependencyAnalysisServiceTests` exercise target and test code in one in-memory compilation, while the failed live case resolves the target in one project and analyses tests through a project reference.
 
 Design discovery must establish whether cross-compilation or retargeted symbol identity is the complete cause, define the supported meaning of a test impact through test-class setup and fields, and choose a comparison strategy that does not introduce name-based false positives. The proposed design must include focused cross-project service coverage and tool-level coverage using a realistic project-reference boundary. Implementation must not begin until the design has received manual approval.
+
+Design discovery is complete in [DOGFOOD-012 — Cross-project test-impact matching](dogfood-012-cross-project-test-impact-design.md). The defect is caused by comparing the production compilation's selected symbol directly with the referencing test compilation's corresponding symbol. The proposal uses Roslyn's supported `SymbolFinder.FindSimilarSymbols` API once per candidate project, accepts only a unique rebound symbol, retains the existing direct signature and operation-tree semantics, adds a same-name/different-project false-positive guard, and exercises the real tool through a dedicated project-reference integration fixture.
+
+Implementation now rebinds the selected symbol and its owning type once per candidate project compilation, associates each test method with that compilation-local target pair and preserves the existing direct matching and bounded-result behaviour. Focused unit coverage reports 100% line and branch coverage for the complete test-impact service path and the existing tool handler, while the dedicated real-Workspace integration fixture verifies the published tool path across a project reference.
+
+Published validation through Codex's configured dogfood namespace repeated the previously empty `CommitRecoveryStore` query against the distinct Workspace test project. The corrected build returned 10 bounded direct-reference results with `hasMore: true`, confirming cross-project matching through the real client and published Host boundary.
 
 ### DOGFOOD-013 — Error-reporting workflows
 

@@ -63,7 +63,8 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         var analysisState = new DependencyAnalysisState(context.CurrentSolution);
         var normalizedTarget = NormalizeSymbol(targetSymbol);
         var normalizedTargetType = GetOwningTypeSymbol(targetSymbol);
-        var testMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+        var projectTargets = new Dictionary<ProjectId, CompilationTarget>();
+        var testMethods = new Dictionary<IMethodSymbol, CompilationTarget>(SymbolEqualityComparer.Default);
 
         foreach (var document in documents.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
@@ -75,6 +76,17 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                 continue;
             }
 
+            if (!projectTargets.TryGetValue(document.Project.Id, out var projectTarget))
+            {
+                projectTarget = ResolveCompilationTarget(
+                    normalizedTarget,
+                    normalizedTargetType,
+                    semanticModel.Compilation,
+                    cancellationToken);
+
+                projectTargets.Add(document.Project.Id, projectTarget);
+            }
+
             foreach (var syntaxNode in syntaxRoot.DescendantNodes())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -83,18 +95,18 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                     continue;
                 }
 
-                if (semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is not IMethodSymbol methodSymbol
-                    || methodSymbol.IsImplicitlyDeclared
-                    || !IsTestMethodCandidate(methodSymbol))
+                // A method declaration obtained from a C# syntax root has a declared method symbol.
+                var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken)!;
+                if (!IsTestMethodCandidate(methodSymbol))
                 {
                     continue;
                 }
 
-                testMethods.Add(methodSymbol);
+                testMethods.TryAdd(methodSymbol, projectTarget);
             }
         }
 
-        var orderedTestMethods = testMethods
+        var orderedTestMethods = testMethods.Keys
             .OrderBy(static method => method.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
             .ToArray();
 
@@ -103,10 +115,11 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         foreach (var methodSymbol in orderedTestMethods)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var projectTarget = testMethods[methodSymbol];
             var hasDirectImpact = await HasTargetDependencyAsync(
                 methodSymbol,
-                normalizedTarget,
-                normalizedTargetType,
+                projectTarget.Symbol,
+                projectTarget.OwningType,
                 analysisState,
                 cancellationToken);
 
@@ -120,11 +133,11 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                 return (impacts, true);
             }
 
-            var sourceLocation = methodSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
+            var sourceLocation = methodSymbol.Locations.First(static location => location.IsInSource);
             impacts.Add(new TestImpactInfo
             {
                 Test = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
-                Location = sourceLocation is null ? null : context.WorkspaceResolver.CreateResolvedLocation(sourceLocation),
+                Location = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation),
                 Reasons = includeReasons
                     ? ["Direct reference to the target symbol or its owning type."]
                     : null,
@@ -232,11 +245,8 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
-            var semanticModel = await analysisState.GetSemanticModelAsync(syntax.SyntaxTree, cancellationToken);
-            if (semanticModel is null)
-            {
-                continue;
-            }
+            // Candidate declarations originate from documents in the current solution.
+            var semanticModel = (await analysisState.GetSemanticModelAsync(syntax.SyntaxTree, cancellationToken))!;
 
             var rootOperation = GetRootOperation(semanticModel, syntax, cancellationToken);
 
@@ -247,9 +257,14 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
             foreach (var operation in rootOperation.DescendantsAndSelf())
             {
-                if (IsTargetDependency(operation.Type, sourceSymbol, targetSymbol, targetType)
-                    || GetReferencedSymbol(operation) is { } referencedSymbol
-                        && IsTargetDependency(referencedSymbol, sourceSymbol, targetSymbol, targetType))
+                if (IsTargetDependency(operation.Type, sourceSymbol, targetSymbol, targetType))
+                {
+                    return true;
+                }
+
+                var referencedSymbol = GetReferencedSymbol(operation);
+                if (referencedSymbol is not null
+                    && IsTargetDependency(referencedSymbol, sourceSymbol, targetSymbol, targetType))
                 {
                     return true;
                 }
@@ -259,17 +274,64 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return false;
     }
 
+    private static CompilationTarget ResolveCompilationTarget(
+        ISymbol targetSymbol,
+        INamedTypeSymbol? targetType,
+        Compilation compilation,
+        CancellationToken cancellationToken)
+    {
+        var resolvedSymbol = FindUniqueSimilarSymbolOrOriginal(targetSymbol, compilation, cancellationToken);
+        INamedTypeSymbol? resolvedType = null;
+        if (targetType is not null)
+        {
+            resolvedType = FindUniqueSimilarSymbolOrOriginal(targetType, compilation, cancellationToken);
+        }
+
+        return new CompilationTarget(resolvedSymbol, resolvedType);
+    }
+
+    private static TSymbol FindUniqueSimilarSymbolOrOriginal<TSymbol>(
+        TSymbol targetSymbol,
+        Compilation compilation,
+        CancellationToken cancellationToken)
+        where TSymbol : class, ISymbol
+    {
+        var matches = SymbolFinder.FindSimilarSymbols(targetSymbol, compilation, cancellationToken)
+            .Take(2)
+            .ToArray();
+
+        if (matches.Length != 1)
+        {
+            return targetSymbol;
+        }
+
+        return matches[0];
+    }
+
     private static bool IsTargetDependency(ISymbol? dependency, ISymbol sourceSymbol, ISymbol targetSymbol, INamedTypeSymbol? targetType)
     {
-        if (dependency is null || SymbolsMatch(dependency, sourceSymbol))
+        if (dependency is null)
         {
             return false;
         }
 
-        if (SymbolsMatch(dependency, targetSymbol)
-            || targetType is not null && SymbolsMatch(GetOwningTypeSymbol(dependency), targetType))
+        if (SymbolsMatch(dependency, sourceSymbol))
+        {
+            return false;
+        }
+
+        if (SymbolsMatch(dependency, targetSymbol))
         {
             return true;
+        }
+
+        if (targetType is not null)
+        {
+            var dependencyType = GetOwningTypeSymbol(dependency);
+            if (SymbolsMatch(dependencyType, targetType))
+            {
+                return true;
+            }
         }
 
         return dependency is ITypeSymbol typeSymbol
@@ -306,9 +368,21 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
     private static bool IsTargetType(ITypeSymbol type, ISymbol targetSymbol, INamedTypeSymbol? targetType)
     {
-        return SymbolsMatch(type, targetSymbol)
-            || targetType is not null && SymbolsMatch(GetOwningTypeSymbol(type), targetType)
-            || ContainsTargetType(type, targetSymbol, targetType);
+        if (SymbolsMatch(type, targetSymbol))
+        {
+            return true;
+        }
+
+        if (targetType is not null)
+        {
+            var dependencyType = GetOwningTypeSymbol(type);
+            if (SymbolsMatch(dependencyType, targetType))
+            {
+                return true;
+            }
+        }
+
+        return ContainsTargetType(type, targetSymbol, targetType);
     }
 
     private static ISymbol? GetReferencedSymbol(IOperation operation)
@@ -1155,6 +1229,19 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
             }
 
             return ValueTask.FromResult<SemanticModel?>(null);
+        }
+    }
+
+    private sealed class CompilationTarget
+    {
+        public ISymbol Symbol { get; }
+
+        public INamedTypeSymbol? OwningType { get; }
+
+        public CompilationTarget(ISymbol symbol, INamedTypeSymbol? owningType)
+        {
+            Symbol = symbol;
+            OwningType = owningType;
         }
     }
 

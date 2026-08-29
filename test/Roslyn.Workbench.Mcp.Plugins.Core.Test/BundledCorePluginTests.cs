@@ -72,7 +72,7 @@ public sealed class BundledCorePluginTests
     {
         ["get-solution-structure"] = "Returns bounded solution folders, projects, target frameworks and direct project relationships.",
         ["get-project-details"] = "Returns project metadata, options and selected document details.",
-        ["get-document-options"] = "Returns language, parse and analyzer-config options for a document.",
+        ["get-document-options"] = "Returns language and optional detailed parse and analyzer-config options for a document.",
         ["get-document-outline"] = "Returns a bounded semantic outline for one document.",
         ["get-code-context"] = "Returns a bounded code window with the enclosing semantic context for a selected location.",
         ["search-symbols"] = "Searches declarations by name, metadata name and optional semantic filters.",

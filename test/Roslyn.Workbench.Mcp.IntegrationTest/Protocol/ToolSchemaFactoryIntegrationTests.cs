@@ -231,6 +231,25 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_GetDocumentOptionsRequest_WHEN_ExportingInputSchema_THEN_ShouldPublishOptionalDetailedProjections()
+    {
+        var target = CreateTarget();
+
+        var result = target.CreateInputSchema<GetDocumentOptionsRequest>();
+        var properties = result.GetProperty("properties");
+        var required = result.GetProperty("required")
+            .EnumerateArray()
+            .Select(static item => item.GetString())
+            .ToArray();
+
+        properties.GetProperty("includeParseOptions").GetProperty("type").GetString().Should().Be("boolean");
+        properties.GetProperty("includeAnalyzerConfig").GetProperty("type").GetString().Should().Be("boolean");
+        required.Should().NotContain("includeParseOptions");
+        required.Should().NotContain("includeAnalyzerConfig");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_BundledQueryRequestsWithSoleTargets_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredNonNullableProperties()
     {
         var target = CreateTarget();

@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
@@ -41,6 +42,8 @@ public sealed class WorkspaceProjectionIntegrationTests
                 {
                     Path = "Formatting.cs",
                 },
+                IncludeParseOptions = true,
+                IncludeAnalyzerConfig = true,
             }, TestContext.Current.CancellationToken);
 
         openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
@@ -59,6 +62,7 @@ public sealed class WorkspaceProjectionIntegrationTests
         project.Data.MetadataReferences.Items.Should().NotBeEmpty();
         project.Data.CompilationOptions.Should().NotBeNull();
         document.Data!.AnalyzerConfig!.EditorConfigPaths.Should().Contain(static path => path.EndsWith(".editorconfig", StringComparison.Ordinal));
+        document.Data.ParseOptions!.Language.Should().Be(LanguageNames.CSharp);
         document.Data.AnalyzerConfig.Options.Should().ContainKey("build_property.targetframework");
     }
 

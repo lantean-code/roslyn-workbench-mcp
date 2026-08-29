@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("get-document-options", "Get Document Options", "Returns language, parse and analyzer-config options for a document.")]
+[RoslynTool("get-document-options", "Get Document Options", "Returns language and optional detailed parse and analyzer-config options for a document.")]
 internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptionsRequest, DocumentOptionsData>
 {
     protected override async ValueTask<PluginExecutionResult<DocumentOptionsData>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
@@ -25,13 +25,21 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
             nullableContext = csharpCompilationOptions.NullableContextOptions.ToString();
         }
 
+        AnalyzerConfigInfo? analyzerConfig = null;
+        if (request.IncludeAnalyzerConfig)
+        {
+            analyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken);
+        }
+
         var data = new DocumentOptionsData
         {
             Document = context.WorkspaceResolver.CreateDocumentReference(document),
             LanguageVersion = languageVersion,
             NullableContext = nullableContext,
-            ParseOptions = InspectionProjectionFactory.CreateParseOptionsInfo(parseOptions),
-            AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken),
+            ParseOptions = request.IncludeParseOptions
+                ? InspectionProjectionFactory.CreateParseOptionsInfo(parseOptions)
+                : null,
+            AnalyzerConfig = analyzerConfig,
         };
 
         return PluginExecutionResult.Success(data);

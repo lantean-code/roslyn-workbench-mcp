@@ -5242,3 +5242,363 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 551. `workspace-open`
+
+**Activity:** DOGFOOD-015 issue and existing-coverage validation.
+
+**Purpose:** Load the current committed repository to measure the live `get-document-options` response on a representative source document.
+
+**Request:** `{"alias":"dogfood-015-discovery","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,614 documents. Expected isolated-artifacts analyser-reference warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 552. `get-document-options`
+
+**Activity:** DOGFOOD-015 issue validation.
+
+**Purpose:** Measure the size and composition of the effective analyser-config projection for a representative production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-discovery"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"}}`
+
+**Outcome:** Succeeded with 120 effective analyser-config options. The structured result occupied approximately 9,557 JSON characters, of which the options map occupied 8,223 characters, or 86%. The remaining language, nullable, parse and config-path information was accurate and comparatively small.
+
+### 553. `workspace-close`
+
+**Activity:** DOGFOOD-015 issue-validation cleanup.
+
+**Purpose:** Close the unchanged read-only Workspace after collecting representative response-size evidence.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-discovery"}}`
+
+**Outcome:** Succeeded and closed the repository solution at Workspace epoch 2.
+
+### 554. Candidate `initialize`
+
+**Activity:** DOGFOOD-015 pre-commit publication.
+
+**Purpose:** Confirm that the isolated Release-published candidate starts and negotiates the supported MCP protocol before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and a local dogfood smoke-test client identity.
+
+**Outcome:** The candidate handled the request successfully according to its Host log, but closing piped input immediately prevented the compact response filter from exposing the protocol result. The smoke exchange was retried with an interactive client.
+
+### 555. Candidate `tools/list`
+
+**Activity:** DOGFOOD-015 pre-commit publication.
+
+**Purpose:** Confirm that the isolated candidate publishes its complete tool catalogue before promotion.
+
+**Request:** MCP `tools/list` submitted in the same piped smoke exchange.
+
+**Outcome:** The candidate handled the request successfully according to its Host log, but the compact response filter exposed no protocol result after piped input closed. The smoke exchange was retried with an interactive client.
+
+### 556. Candidate `initialize`
+
+**Activity:** DOGFOOD-015 pre-commit publication diagnostics.
+
+**Purpose:** Retry the candidate initialisation without response filtering to determine why the first smoke client exposed no protocol result.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and the same local dogfood smoke-test identity.
+
+**Outcome:** The candidate again handled the request successfully according to its Host log, but closing piped input immediately still prevented the protocol response from appearing in the client projection.
+
+### 557. Candidate `tools/list`
+
+**Activity:** DOGFOOD-015 pre-commit publication diagnostics.
+
+**Purpose:** Retry catalogue publication without response filtering.
+
+**Request:** MCP `tools/list` submitted in the same unfiltered piped exchange.
+
+**Outcome:** The candidate again handled the request successfully according to its Host log, but the response was not exposed after piped input closed. The next retry kept the client input open until each response completed.
+
+### 558. Candidate `initialize`
+
+**Activity:** DOGFOOD-015 pre-commit publication.
+
+**Purpose:** Perform an ordered interactive initialisation exchange that keeps the client input open until the protocol response is received.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and the local dogfood smoke-test identity.
+
+**Outcome:** Succeeded. The candidate returned protocol version `2025-06-18` and server identity `Roslyn.Workbench.Mcp` version `1.0.0.0`.
+
+### 559. Candidate `tools/list`
+
+**Activity:** DOGFOOD-015 pre-commit publication.
+
+**Purpose:** Confirm catalogue publication after the successful ordered initialisation exchange.
+
+**Request:** MCP `tools/list` after the `notifications/initialized` notification.
+
+**Outcome:** Succeeded with the complete tool catalogue, including the revised `get-document-options` input schema. The candidate then shut down normally and was promoted atomically to the configured dogfood `current` target; the active executable hash matched the smoke-tested candidate.
+
+### 560. `server-status`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Confirm that the restarted Codex task is connected to the promoted candidate.
+
+**Request:** `{"detailLevel":"Full"}`
+
+**Outcome:** Rejected because the published request contract uses `detail`, not `detailLevel`. The corrected request followed immediately.
+
+### 561. `server-status`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Confirm the promoted candidate identity and startup state after correcting the request property.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with server version `1.0.0.0`, 56 tools, bundled-plugin build identity `e80c796`, no startup warnings and output schemas configured as omitted.
+
+### 562. `workspace-open`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Load the repository with isolated artifacts for live document-options response validation.
+
+**Request:** `{"alias":"dogfood-015-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Failed because the requested isolated artifacts directory did not yet exist. The directory was created before retrying.
+
+### 563. `workspace-open`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Retry loading the repository after creating the isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-015-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,614 documents. Expected isolated-artifacts analyser-reference warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 564. `get-document-options`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Validate the concise default response on a representative production document.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"}}`
+
+**Outcome:** Succeeded with no option keys and no option values while retaining language, parse and three config-path inputs. The structured result occupied approximately 1,352 JSON characters, down from the original 9,557-character response.
+
+### 565. `get-document-options`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Validate keys-only discovery without returning effective option values.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeAnalyzerConfigOptionKeys":true}`
+
+**Outcome:** Succeeded with 120 ordered option names and no option values. The structured result occupied approximately 7,839 JSON characters: smaller than the complete map, but only about 18% smaller because the option names themselves are long.
+
+### 566. `get-document-options`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Validate targeted value retrieval, including omission of unknown requested keys.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"analyzerConfigOptionKeys":["build_property.targetframework","dotnet_diagnostic.RWMCP014.severity","missing_option"]}`
+
+**Outcome:** Succeeded with only `build_property.targetframework: net10.0`; the unset diagnostic key and unknown key were omitted. No discovery keys were returned, and the structured result occupied approximately 1,394 JSON characters.
+
+### 567. `get-document-options`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Confirm rejection of conflicting targeted and complete-map selection.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"analyzerConfigOptionKeys":["build_property.targetframework"],"includeAllAnalyzerConfigOptions":true}`
+
+**Outcome:** Rejected with `InvalidRequest` and an actionable message requiring the caller to choose named keys or the complete-map option, not both.
+
+### 568. `get-document-options`
+
+**Activity:** DOGFOOD-015 live pre-commit validation.
+
+**Purpose:** Confirm that explicit complete-map retrieval remains available.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeAllAnalyzerConfigOptions":true}`
+
+**Outcome:** Succeeded with 120 option values, no duplicate discovery-key list and a structured result of approximately 9,573 JSON characters.
+
+### 569. `workspace-close`
+
+**Activity:** DOGFOOD-015 live pre-commit validation cleanup.
+
+**Purpose:** Close the validation Workspace after collecting all response-shape evidence.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-live"}}`
+
+**Outcome:** Succeeded and closed the repository solution at Workspace epoch 1.
+
+### 570. `workspace-list`
+
+**Activity:** DOGFOOD-015 live pre-commit validation cleanup.
+
+**Purpose:** Confirm that validation left no Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 571. `workspace-open`
+
+**Activity:** DOGFOOD-015 full-payload inspection.
+
+**Purpose:** Reopen the repository so the user could inspect a concrete complete document-options payload after the live size comparison showed that keys-only discovery remained large.
+
+**Request:** `{"alias":"dogfood-015-payload","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,614 documents. Expected isolated-artifacts analyser-reference warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 572. `get-document-options`
+
+**Activity:** DOGFOOD-015 full-payload inspection.
+
+**Purpose:** Retrieve the exact complete payload for a representative production document so the response composition could be assessed directly.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-payload"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeAllAnalyzerConfigOptions":true}`
+
+**Outcome:** Succeeded with C# language and parse settings, three applied config paths and 120 effective options. Most of the payload consisted of long naming-rule and naming-style key/value groups, while a smaller portion contained build properties, formatting and C# style values.
+
+### 573. `workspace-close`
+
+**Activity:** DOGFOOD-015 full-payload inspection cleanup.
+
+**Purpose:** Close the read-only Workspace after capturing the requested example.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-payload"}}`
+
+**Outcome:** Succeeded and closed the repository solution at Workspace epoch 2.
+
+### 574. `initialize`
+
+**Activity:** Revised DOGFOOD-015 candidate smoke validation.
+
+**Purpose:** Start the newly published revised candidate and confirm MCP protocol negotiation before promotion.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-015-revised-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18` and server version `1.0.0.0`.
+
+### 575. `tools/list`
+
+**Activity:** Revised DOGFOOD-015 candidate smoke validation.
+
+**Purpose:** Confirm that the newly published candidate could enumerate its MCP catalogue before promotion.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded, but the raw 56-tool response exceeded the client display limit, so a compact schema-focused retry was used for auditable verification.
+
+### 576. `initialize`
+
+**Activity:** Revised DOGFOOD-015 candidate schema verification.
+
+**Purpose:** Start a clean candidate process for a compact, machine-filtered check of the revised request schema.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-015-revised-schema-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18`.
+
+### 577. `tools/list`
+
+**Activity:** Revised DOGFOOD-015 candidate schema verification and promotion.
+
+**Purpose:** Verify the published `get-document-options` request contract without retaining the full tool catalogue in the client output.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with 56 tools. `get-document-options` exposed required `document`, optional `workspace`, and the two boolean fields `includeParseOptions` and `includeAnalyzerConfig`; the rejected named-key, keys-only and full-selection fields were absent. The verified candidate was then atomically promoted to `current`, and the promoted executable hash matched the candidate (`83e048004cf5aa2d7a4f6204109897a994dec2290b2358050722017e1a0c773d`).
+
+### 578. `workspace-open`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Open the repository with isolated build artifacts before exercising the revised response modes.
+
+**Request:** `{"alias":"dogfood-015-revised-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<non-existent-temporary-artifacts-root>"}}`
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the requested absolute artifacts directory did not yet exist.
+
+### 579. `workspace-open`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Retry the repository load with an existing isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-015-revised-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,614 documents. Expected isolated-artifacts analyser-reference warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 580. `get-document-options`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Verify that the default response contains only the generally useful document context.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"}}`
+
+**Outcome:** Succeeded with `document`, language version `14.0` and nullable context `Enable`; both `parseOptions` and `analyzerConfig` were null.
+
+### 581. `get-document-options`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Verify the parse-options-only response mode.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeParseOptions":true}`
+
+**Outcome:** Succeeded with the default document context plus C# parse options and 18 preprocessor symbols; `analyzerConfig` remained null.
+
+### 582. `get-document-options`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Verify the analyzer-config-only response mode while the other independent response reads were in progress.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeAnalyzerConfig":true}`
+
+**Outcome:** Returned retryable `WorkspaceBusy` with `RetryRequest` because concurrent workspace reads were already active.
+
+### 583. `get-document-options`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Retry the unchanged analyzer-config-only request sequentially as instructed by the continuation.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeAnalyzerConfig":true}`
+
+**Outcome:** Succeeded with the default document context and 120 analyzer-config options; `parseOptions` remained null.
+
+### 584. `get-document-options`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation.
+
+**Purpose:** Verify that both explicit payload sections can be requested together.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"},"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetDocumentOptionsTool.cs"},"includeParseOptions":true,"includeAnalyzerConfig":true}`
+
+**Outcome:** Succeeded with both parse options and analyzer config populated, including 18 preprocessor symbols and 120 analyzer-config options.
+
+### 585. `workspace-close`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation cleanup.
+
+**Purpose:** Close the validation Workspace after collecting the revised response-shape evidence.
+
+**Request:** `{"workspace":{"alias":"dogfood-015-revised-live"}}`
+
+**Outcome:** Succeeded and closed the repository solution at Workspace epoch 1.
+
+### 586. `workspace-list`
+
+**Activity:** Revised DOGFOOD-015 live post-restart validation cleanup.
+
+**Purpose:** Confirm that validation left no Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.

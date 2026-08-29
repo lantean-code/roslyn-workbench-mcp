@@ -5,6 +5,15 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal static class ToolSchemaBuilder
 {
+    private const string ItemsDescription = "Items returned in this page.";
+    private const string HasMoreDescription = "Whether additional items were available beyond this page.";
+    private const string TotalCountDescription = "Complete result count, when available without additional expensive work.";
+    private const string OkDescription = "Whether the tool invocation succeeded.";
+    private const string DataDescription = "Tool-specific result payload.";
+    private const string SnapshotDescription = "Exact immutable workspace snapshot associated with the result, when available.";
+    private const string ErrorDescription = "Structured error details when the invocation failed.";
+    private const string ContinuationDescription = "Action the agent should take before retrying or continuing.";
+
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
@@ -57,17 +66,19 @@ internal static class ToolSchemaBuilder
         var hasMoreSchema = new JsonObject
         {
             ["type"] = "boolean",
+            ["description"] = HasMoreDescription,
         };
 
         var totalCountSchema = new JsonObject
         {
             ["type"] = "integer",
             ["minimum"] = 0,
+            ["description"] = TotalCountDescription,
         };
 
         var properties = new JsonObject
         {
-            ["items"] = CreateArraySchema(itemSchema),
+            ["items"] = CreateArraySchema(itemSchema, ItemsDescription),
             ["hasMore"] = hasMoreSchema,
             ["totalCount"] = totalCountSchema,
         };
@@ -88,14 +99,21 @@ internal static class ToolSchemaBuilder
         return JsonSerializer.SerializeToElement(schema);
     }
 
-    public static JsonObject CreateArraySchema(JsonElement itemSchema)
+    public static JsonObject CreateArraySchema(JsonElement itemSchema, string? description = null)
     {
         var parsedItemSchema = ParseNode(itemSchema);
-        return new JsonObject
+        var schema = new JsonObject
         {
             ["type"] = "array",
             ["items"] = parsedItemSchema,
         };
+
+        if (description is not null)
+        {
+            schema["description"] = description;
+        }
+
+        return schema;
     }
 
     public static JsonNode AllowNull(JsonElement schema)
@@ -183,13 +201,14 @@ internal static class ToolSchemaBuilder
         var okSchema = new JsonObject
         {
             ["const"] = true,
+            ["description"] = OkDescription,
         };
 
         var properties = new JsonObject
         {
             ["ok"] = okSchema,
-            ["data"] = dataSchema,
-            ["snapshot"] = ParseNode(snapshotSchema),
+            ["data"] = AddDescription(dataSchema, DataDescription),
+            ["snapshot"] = AddDescription(ParseNode(snapshotSchema), SnapshotDescription),
         };
 
         var requiredProperties = new JsonArray("ok", "data");
@@ -211,13 +230,14 @@ internal static class ToolSchemaBuilder
         var okSchema = new JsonObject
         {
             ["const"] = false,
+            ["description"] = OkDescription,
         };
 
         var properties = new JsonObject
         {
             ["ok"] = okSchema,
-            ["error"] = ParseNode(errorSchema),
-            ["continuation"] = ParseNode(continuationSchema),
+            ["error"] = AddDescription(ParseNode(errorSchema), ErrorDescription),
+            ["continuation"] = AddDescription(ParseNode(continuationSchema), ContinuationDescription),
         };
 
         var requiredProperties = new JsonArray("ok", "error");
@@ -258,6 +278,16 @@ internal static class ToolSchemaBuilder
         }
 
         return schemaObject;
+    }
+
+    private static JsonNode? AddDescription(JsonNode? schema, string description)
+    {
+        if (schema is JsonObject schemaObject)
+        {
+            schemaObject["description"] = description;
+        }
+
+        return schema;
     }
 
     private static JsonNode? ParseNode(JsonElement element)

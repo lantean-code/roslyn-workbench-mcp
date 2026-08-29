@@ -13,16 +13,19 @@ internal sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the document selector.
     /// </summary>
+    [Description("The document selector.")]
     public required DocumentSelector Document { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether member nodes should be included.
     /// </summary>
+    [Description("Whether member nodes should be included.")]
     public bool IncludeMembers { get; init; } = true;
 
     /// <summary>
     /// Gets the maximum semantic hierarchy depth below the document root.
     /// </summary>
+    [Description("The maximum semantic hierarchy depth below the document root.")]
     [Range(0, _maximumMaxDepth)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
@@ -30,6 +33,7 @@ internal sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional maximum total number of projected outline nodes.
     /// </summary>
+    [Description("The optional maximum total number of projected outline nodes.")]
     [Range(0, _maximumNodesMaxResults)]
     [DefaultValue(_defaultNodesMaxResults)]
     public int? NodesLimit { get; init; } = _defaultNodesMaxResults;

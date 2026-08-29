@@ -8,5 +8,6 @@ internal sealed record ServerStatusRequest
     /// <summary>
     /// Gets the requested response detail level.
     /// </summary>
+    [Description("Amount of server status detail to return.")]
     public StatusDetailLevel Detail { get; init; } = StatusDetailLevel.Minimal;
 }

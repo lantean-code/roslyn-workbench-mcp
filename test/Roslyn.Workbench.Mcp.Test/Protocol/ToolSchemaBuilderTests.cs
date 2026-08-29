@@ -101,6 +101,15 @@ public sealed class ToolSchemaBuilderTests
         data.GetProperty("properties").GetProperty("optional").ValueKind.Should().Be(JsonValueKind.Null);
         AllowsNull(data).Should().BeTrue();
         success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Contain(["ok", "data"]);
+        var successProperties = success.GetProperty("properties");
+        successProperties.GetProperty("ok").GetProperty("description").GetString().Should().Be("Whether the tool invocation succeeded.");
+        successProperties.GetProperty("data").GetProperty("description").GetString().Should().Be("Tool-specific result payload.");
+        successProperties.GetProperty("snapshot").GetProperty("description").GetString().Should().Be("Exact immutable workspace snapshot associated with the result, when available.");
+
+        var failure = GetFailureVariant(result);
+        var failureProperties = failure.GetProperty("properties");
+        failureProperties.GetProperty("error").GetProperty("description").GetString().Should().Be("Structured error details when the invocation failed.");
+        failureProperties.GetProperty("continuation").GetProperty("description").GetString().Should().Be("Action the agent should take before retrying or continuing.");
     }
 
     [Fact]
@@ -167,6 +176,9 @@ public sealed class ToolSchemaBuilderTests
         result.GetProperty("properties").GetProperty("hasMore").GetProperty("type").GetString().Should().Be("boolean");
         result.GetProperty("properties").GetProperty("totalCount").GetProperty("type").GetString().Should().Be("integer");
         result.GetProperty("properties").GetProperty("totalCount").GetProperty("minimum").GetInt32().Should().Be(0);
+        result.GetProperty("properties").GetProperty("items").GetProperty("description").GetString().Should().Be("Items returned in this page.");
+        result.GetProperty("properties").GetProperty("hasMore").GetProperty("description").GetString().Should().Be("Whether additional items were available beyond this page.");
+        result.GetProperty("properties").GetProperty("totalCount").GetProperty("description").GetString().Should().Be("Complete result count, when available without additional expensive work.");
         result.GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().NotContain("totalCount");
         result.TryGetProperty("$defs", out _).Should().BeFalse();
     }
@@ -244,6 +256,13 @@ public sealed class ToolSchemaBuilderTests
         return schema.GetProperty("oneOf")
             .EnumerateArray()
             .Single(item => item.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+    }
+
+    private static JsonElement GetFailureVariant(JsonElement schema)
+    {
+        return schema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(item => !item.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
     }
 
     private static bool AllowsNull(JsonElement schema)

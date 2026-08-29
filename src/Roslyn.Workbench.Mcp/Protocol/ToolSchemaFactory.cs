@@ -79,11 +79,13 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
         var stagedSchema = new JsonObject
         {
             ["type"] = "boolean",
+            ["description"] = "Whether the mutation was staged in the active transaction.",
         };
 
         var revisionSchema = new JsonObject
         {
             ["type"] = "integer",
+            ["description"] = "Transaction revision after staging.",
         };
 
         var transactionProperties = new JsonObject
@@ -96,6 +98,7 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
         var transactionSchema = new JsonObject
         {
             ["type"] = transactionTypes,
+            ["description"] = "Transaction state after the mutation, when present.",
             ["required"] = requiredTransactionProperties,
             ["properties"] = transactionProperties,
         };
@@ -103,7 +106,7 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
         var mutationProperties = new JsonObject
         {
             ["staged"] = stagedSchema,
-            ["summary"] = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string"),
+            ["summary"] = CreateMutationSummarySchema(),
             ["transaction"] = transactionSchema,
         };
 
@@ -131,5 +134,12 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             componentSchemas,
             _schemaProvider.GetValueSchema<ToolError>(),
             _continuationSchema);
+    }
+
+    private static JsonObject CreateMutationSummarySchema()
+    {
+        var schema = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string");
+        schema["description"] = "Summary of the staged mutation, when available.";
+        return schema;
     }
 }

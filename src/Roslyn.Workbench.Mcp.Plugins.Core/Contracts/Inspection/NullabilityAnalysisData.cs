@@ -8,5 +8,6 @@ internal sealed record NullabilityAnalysisData : IQueryResponse
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
+    [Description("The returned findings.")]
     public BoundedCollection<NullabilityFinding> Findings { get; init; } = BoundedCollection.Empty<NullabilityFinding>();
 }

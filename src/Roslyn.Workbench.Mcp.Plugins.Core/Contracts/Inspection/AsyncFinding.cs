@@ -8,5 +8,6 @@ internal sealed record AsyncFinding
     /// <summary>
     /// Gets the compiler diagnostic.
     /// </summary>
+    [Description("The compiler diagnostic.")]
     public DiagnosticInfo? Diagnostic { get; init; }
 }

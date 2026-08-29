@@ -14,11 +14,13 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the scope to analyse.
     /// </summary>
+    [Description("The scope to analyse.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the dependency graph granularity.
     /// </summary>
+    [Description("The dependency graph granularity.")]
     [AllowedValues("Project", "Namespace", "Type")]
     [DefaultValue("Type")]
     public string Granularity { get; init; } = "Type";
@@ -26,6 +28,7 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCyclesMaxResults)]
     public int? CyclesLimit { get; init; } = _defaultCyclesMaxResults;
@@ -33,6 +36,7 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of graph nodes to analyse.
     /// </summary>
+    [Description("The maximum number of graph nodes to analyse.")]
     [Range(0, _maximumNodesMaxResults)]
     [DefaultValue(_defaultNodesMaxResults)]
     public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
@@ -40,6 +44,7 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of graph edges to analyse.
     /// </summary>
+    [Description("The maximum number of graph edges to analyse.")]
     [Range(0, _maximumEdgesMaxResults)]
     [DefaultValue(_defaultEdgesMaxResults)]
     public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;

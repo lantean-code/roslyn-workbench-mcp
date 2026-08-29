@@ -10,11 +10,13 @@ internal sealed record ResolveSymbolRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the location selector.
     /// </summary>
+    [Description("The location selector.")]
     public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the optional declarations limit.
     /// </summary>
+    [Description("Maximum number of declarations to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDeclarationsMaxResults)]
     public int? DeclarationsLimit { get; init; } = _defaultDeclarationsMaxResults;
@@ -22,6 +24,7 @@ internal sealed record ResolveSymbolRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected workspace snapshot.
     /// </summary>
+    [Description("The expected workspace snapshot.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveDeclarationsLimit => ResultLimit.GetEffectiveValue(DeclarationsLimit, _defaultDeclarationsMaxResults);

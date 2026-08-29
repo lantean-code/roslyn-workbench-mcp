@@ -13,8 +13,9 @@ The completed post-RWMCP3 worklists addressed every confirmed functional defect 
 | Order | Identifier | Investigation | Status |
 |---:|---|---|---|
 | 1 | DOGFOOD-014 | [Exclude intermediate build documents from agent-facing operations](dogfood-014-bounded-structure-document-selection-design.md) | Implemented, validated and confirmed |
-| 2 | DOGFOOD-015 | [Reduce unnecessary analyser-config context in document-options responses](dogfood-015-document-options-response-design.md) | Implemented and validated; awaiting manual confirmation |
-| 3 | DOGFOOD-016 | Publish agent-visible contract guidance in MCP input and configured output schemas | Issue and existing-coverage validation pending |
+| 2 | DOGFOOD-015 | [Reduce unnecessary analyser-config context in document-options responses](dogfood-015-document-options-response-design.md) | Implemented, validated and confirmed |
+| 3 | DOGFOOD-016 | [Publish agent-visible contract guidance in MCP input and configured output schemas](dogfood-016-agent-visible-contract-guidance-design.md) | Implemented and validated; awaiting manual confirmation |
+| 4 | DOGFOOD-017 | Audit empty-string defaults against required published string contracts | Queued for issue validation and design discovery |
 
 ### DOGFOOD-014 — Bounded structure document selection
 
@@ -38,6 +39,14 @@ Design review of DOGFOOD-015 confirmed that XML documentation on contract proper
 
 Issue validation must inventory every published request and response contract, inspect generated input and configured output schemas across server-owned, Code Action and plugin tools, determine which runtime metadata the SDK carries into property descriptions, and audit existing contract tests for description preservation. Design discovery should establish whether descriptions belong on runtime attributes, in a central schema-enrichment layer or in another SDK-supported source. It must provide a maintainable ownership and enforcement rule, avoid unmanaged duplication between XML and runtime documentation, and cover the complete published contract surface rather than special-casing `get-document-options`. No production or test change should begin until the surviving gap and design receive manual approval.
 
+Issue validation and the approved implementation design are recorded in [DOGFOOD-016 — Agent-visible contract guidance](dogfood-016-agent-visible-contract-guidance-design.md). Live schema inspection confirmed that existing XML summaries are absent from MCP property schemas. The approved design adds adjacent runtime descriptions sourced from those summaries, publishes them through the central input and configured-output schema paths, and enforces completeness independently across server/shared, bundled Core plugin and Code Action contract areas.
+
+### DOGFOOD-017 — Required string contract semantics
+
+Review of Workspace result descriptions found published string properties initialised to `string.Empty`. An empty value may be a legitimate contract state, but using it as a construction default can also conceal data that should always be present and prevent the generated JSON Schema from publishing the property as required.
+
+Issue validation must inventory published request and response string properties across server, Workspace-owned nested contracts, shared abstractions, bundled Core plugins and Code Actions that use `string.Empty` or another implicit empty default. For each property, inspect its producers, supported failure states, serialization behaviour and existing tests to determine whether empty is meaningful. Where a value is contractually required, design discovery should evaluate removing the empty default and using the C# `required` keyword so schema requiredness follows the runtime contract. Where empty is a supported state, retain it only with explicit semantics and coverage. No production or test change should begin until the inventory, surviving gaps and design receive manual approval.
+
 ## Process
 
-For each item, perform issue and existing-coverage validation first and present the evidence and proposed design for manual approval before the expensive implementation and review steps. If the behaviour is already covered and intentional, or the measured context cost is immaterial, close or narrow the item rather than inventing work. Any confirmed behaviour-affecting change follows the repository's normal implementation, validation, user-confirmation, staging and fresh Review Agent process.
+For each item, perform issue and existing-coverage validation first and present the evidence and proposed design for manual approval before the expensive implementation and review steps. If the behaviour is already covered and intentional, or the measured context cost is immaterial, close or narrow the item rather than inventing work. Any confirmed behaviour-affecting change follows the repository's normal implementation, validation and user-confirmation process. Start one fresh Review Agent for the independently confirmed item, then reuse that same reviewer for the item's unstaged remediation loop as recorded in `DeepDiveReview.md`.

@@ -93,6 +93,11 @@ public sealed class ToolSchemaFactoryTests
         data.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("summary", out _).Should().BeTrue();
         data.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
+        var mutationProperties = data.GetProperty("properties");
+        mutationProperties.GetProperty("staged").GetProperty("description").GetString().Should().Be("Whether the mutation was staged in the active transaction.");
+        mutationProperties.GetProperty("summary").GetProperty("description").GetString().Should().Be("Summary of the staged mutation, when available.");
+        mutationProperties.GetProperty("transaction").GetProperty("description").GetString().Should().Be("Transaction state after the mutation, when present.");
+        mutationProperties.GetProperty("transaction").GetProperty("properties").GetProperty("revision").GetProperty("description").GetString().Should().Be("Transaction revision after staging.");
         AllowsNull(data).Should().BeFalse();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");

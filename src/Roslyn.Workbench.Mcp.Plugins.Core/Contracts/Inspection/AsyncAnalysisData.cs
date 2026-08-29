@@ -8,5 +8,6 @@ internal sealed record AsyncAnalysisData : IQueryResponse
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
+    [Description("The returned findings.")]
     public BoundedCollection<AsyncFinding> Findings { get; init; } = BoundedCollection.Empty<AsyncFinding>();
 }

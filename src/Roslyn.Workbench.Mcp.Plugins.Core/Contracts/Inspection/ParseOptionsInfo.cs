@@ -8,20 +8,24 @@ internal sealed record ParseOptionsInfo
     /// <summary>
     /// Gets the language name.
     /// </summary>
+    [Description("The language name.")]
     public string Language { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the language version.
     /// </summary>
+    [Description("The language version.")]
     public string LanguageVersion { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the documentation mode.
     /// </summary>
+    [Description("The documentation mode.")]
     public string DocumentationMode { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the effective preprocessor symbols.
     /// </summary>
+    [Description("The effective preprocessor symbols.")]
     public IReadOnlyList<string> PreprocessorSymbols { get; init; } = [];
 }

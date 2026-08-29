@@ -3,6 +3,10 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to search for symbol declarations.
 /// </summary>
+[RequiresAtLeastOne(
+    nameof(Query),
+    nameof(MetadataName),
+    ErrorMessage = "Search symbols requires query or metadataName.")]
 internal sealed record SearchSymbolsRequest : WorkspaceBoundRequest
 {
     private const int _defaultSymbolsMaxResults = 100;
@@ -10,36 +14,43 @@ internal sealed record SearchSymbolsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the source-name query.
     /// </summary>
+    [Description("Source-name query; provide query, metadataName, or both.")]
     public string? Query { get; init; }
 
     /// <summary>
     /// Gets the metadata-name query.
     /// </summary>
+    [Description("Metadata-name query; provide metadataName, query, or both.")]
     public string? MetadataName { get; init; }
 
     /// <summary>
     /// Gets the optional scope selector.
     /// </summary>
+    [Description("The optional scope selector.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the included symbol kinds.
     /// </summary>
+    [Description("The included symbol kinds.")]
     public IReadOnlyList<string>? Kinds { get; init; }
 
     /// <summary>
     /// Gets the included accessibilities.
     /// </summary>
+    [Description("The included accessibilities.")]
     public IReadOnlyList<string>? Accessibilities { get; init; }
 
     /// <summary>
     /// Gets the optional namespace filter.
     /// </summary>
+    [Description("The optional namespace filter.")]
     public string? Namespace { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultSymbolsMaxResults)]
     public int? SymbolsLimit { get; init; } = _defaultSymbolsMaxResults;

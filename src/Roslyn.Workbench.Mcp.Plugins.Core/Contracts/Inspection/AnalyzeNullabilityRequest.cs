@@ -10,16 +10,19 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("The optional search scope.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the optional location selector.
     /// </summary>
+    [Description("The optional location selector.")]
     public LocationSelector? Location { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
@@ -27,6 +30,7 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
+    [Description("The expected snapshot for location-based selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveFindingsLimit => ResultLimit.GetEffectiveValue(FindingsLimit, _defaultFindingsMaxResults);

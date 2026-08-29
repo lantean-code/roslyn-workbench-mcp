@@ -8,5 +8,6 @@ internal sealed record UnusedSymbolsData : IQueryResponse
     /// <summary>
     /// Gets the returned unused symbol candidates.
     /// </summary>
+    [Description("The returned unused symbol candidates.")]
     public BoundedCollection<UnusedSymbolCandidate> Candidates { get; init; } = BoundedCollection.Empty<UnusedSymbolCandidate>();
 }

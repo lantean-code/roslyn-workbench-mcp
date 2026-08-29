@@ -22,9 +22,16 @@ public sealed class ToolContinuationSchemaTests
         var chooseTool = FindVariant(variants, "ChooseTool");
         var tools = chooseTool.GetProperty("properties").GetProperty("tools");
         tools.GetProperty("type").GetString().Should().Be("array");
+        tools.GetProperty("description").GetString().Should().Be("Allowed tool choices from which the agent must select one.");
         tools.GetProperty("minItems").GetInt32().Should().Be(1);
         tools.GetProperty("uniqueItems").GetBoolean().Should().BeTrue();
+        tools.GetProperty("items").GetProperty("description").GetString().Should().Be("Name of a tool the agent may choose.");
         tools.GetProperty("items").GetProperty("minLength").GetInt32().Should().Be(1);
+
+        var callTool = FindVariant(variants, "CallTool");
+        callTool.GetProperty("properties").GetProperty("tool").GetProperty("description").GetString()
+            .Should()
+            .Be("Tool to call before continuing the original request.");
     }
 
     private static void AssertVariant(IReadOnlyList<JsonElement> variants, string kind, string? actionProperty = null)
@@ -37,6 +44,12 @@ public sealed class ToolContinuationSchemaTests
         required.Should().Contain(["kind", "instruction"]);
 
         var properties = variant.GetProperty("properties");
+        properties.GetProperty("kind").GetProperty("description").GetString()
+            .Should()
+            .Be("Action required before the original request can continue.");
+        properties.GetProperty("instruction").GetProperty("description").GetString()
+            .Should()
+            .Be("Agent-facing instruction explaining how to continue.");
         properties.GetProperty("instruction").GetProperty("minLength").GetInt32().Should().Be(1);
         if (actionProperty is null)
         {

@@ -8,5 +8,6 @@ internal sealed record SymbolSearchData : IQueryResponse
     /// <summary>
     /// Gets the returned symbols.
     /// </summary>
+    [Description("The returned symbols.")]
     public BoundedCollection<SymbolReference> Symbols { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

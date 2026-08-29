@@ -13,15 +13,18 @@ public sealed record SymbolSelector
     /// <summary>
     /// Gets the optional project scope used to disambiguate the symbol.
     /// </summary>
+    [Description("Project used to disambiguate the symbol, when needed.")]
     public ProjectSelector? Project { get; init; }
 
     /// <summary>
     /// Gets the source location selector.
     /// </summary>
+    [Description("Source location that identifies the symbol; provide either location or documentationCommentId, not both.")]
     public LocationSelector? Location { get; init; }
 
     /// <summary>
     /// Gets the documentation comment identifier.
     /// </summary>
+    [Description("Documentation-comment identifier that identifies the symbol; provide either documentationCommentId or location, not both.")]
     public string? DocumentationCommentId { get; init; }
 }

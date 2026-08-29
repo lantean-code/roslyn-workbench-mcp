@@ -8,10 +8,12 @@ internal sealed record OverloadSearchData : IQueryResponse
     /// <summary>
     /// Gets the queried symbol.
     /// </summary>
+    [Description("The queried symbol.")]
     public SymbolReference? Symbol { get; init; }
 
     /// <summary>
     /// Gets the resolved overload signatures.
     /// </summary>
+    [Description("The resolved overload signatures.")]
     public BoundedCollection<CallableSignature> Overloads { get; init; } = BoundedCollection.Empty<CallableSignature>();
 }

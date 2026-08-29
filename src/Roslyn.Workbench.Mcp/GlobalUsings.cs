@@ -1,3 +1,4 @@
+global using System.ComponentModel;
 global using System.IO.Abstractions;
 global using Microsoft.Build.Locator;
 global using Microsoft.Extensions.DependencyInjection;

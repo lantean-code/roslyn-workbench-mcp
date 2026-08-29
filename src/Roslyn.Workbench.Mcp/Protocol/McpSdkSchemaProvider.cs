@@ -12,7 +12,10 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         TransformSchemaNode = InputContractSchemaTransformer.Transform,
     };
 
-    private static readonly AIJsonSchemaCreateOptions _valueSchemaCreateOptions = new();
+    private static readonly AIJsonSchemaCreateOptions _valueSchemaCreateOptions = new()
+    {
+        TransformSchemaNode = ContractDescriptionSchemaTransformer.Transform,
+    };
 
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _valueSchemaCache = [];

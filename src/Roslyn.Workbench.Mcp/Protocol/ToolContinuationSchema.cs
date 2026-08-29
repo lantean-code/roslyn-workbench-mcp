@@ -27,7 +27,7 @@ internal static class ToolContinuationSchema
     private static JsonObject CreateCallToolSchema()
     {
         var properties = CreateCommonProperties(ToolContinuationKind.CallTool);
-        properties["tool"] = CreateNonEmptyStringSchema();
+        properties["tool"] = CreateNonEmptyStringSchema("Tool to call before continuing the original request.");
 
         return CreateObjectSchema(properties, ["kind", "tool", "instruction"]);
     }
@@ -37,9 +37,10 @@ internal static class ToolContinuationSchema
         var toolsSchema = new JsonObject
         {
             ["type"] = "array",
+            ["description"] = "Allowed tool choices from which the agent must select one.",
             ["minItems"] = 1,
             ["uniqueItems"] = true,
-            ["items"] = CreateNonEmptyStringSchema(),
+            ["items"] = CreateNonEmptyStringSchema("Name of a tool the agent may choose."),
         };
 
         var properties = CreateCommonProperties(ToolContinuationKind.ChooseTool);
@@ -61,16 +62,18 @@ internal static class ToolContinuationSchema
             ["kind"] = new JsonObject
             {
                 ["const"] = kind.ToString(),
+                ["description"] = "Action required before the original request can continue.",
             },
-            ["instruction"] = CreateNonEmptyStringSchema(),
+            ["instruction"] = CreateNonEmptyStringSchema("Agent-facing instruction explaining how to continue."),
         };
     }
 
-    private static JsonObject CreateNonEmptyStringSchema()
+    private static JsonObject CreateNonEmptyStringSchema(string description)
     {
         return new JsonObject
         {
             ["type"] = "string",
+            ["description"] = description,
             ["minLength"] = 1,
         };
     }

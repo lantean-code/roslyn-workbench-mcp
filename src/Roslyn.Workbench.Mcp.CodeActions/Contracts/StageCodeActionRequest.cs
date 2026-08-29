@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
@@ -8,5 +10,6 @@ internal sealed record StageCodeActionRequest : WorkspaceMutationRequest, ICodeA
     /// <summary>
     /// Gets the opaque action reference.
     /// </summary>
+    [Description("The opaque action reference.")]
     public required Guid ActionId { get; init; }
 }

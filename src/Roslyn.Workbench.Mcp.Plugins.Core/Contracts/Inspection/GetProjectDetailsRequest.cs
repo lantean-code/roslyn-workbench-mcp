@@ -13,16 +13,19 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the project selector.
     /// </summary>
+    [Description("The project selector.")]
     public required ProjectSelector Project { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether documents should be included.
     /// </summary>
+    [Description("Whether documents should be included.")]
     public bool IncludeDocuments { get; init; }
 
     /// <summary>
     /// Gets the optional documents limit.
     /// </summary>
+    [Description("Maximum number of documents to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDocumentsMaxResults)]
     public int? DocumentsLimit { get; init; } = _defaultDocumentsMaxResults;
@@ -30,6 +33,7 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional project references limit.
     /// </summary>
+    [Description("Maximum number of project references to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultProjectReferencesMaxResults)]
     public int? ProjectReferencesLimit { get; init; } = _defaultProjectReferencesMaxResults;
@@ -37,6 +41,7 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional metadata references limit.
     /// </summary>
+    [Description("Maximum number of metadata references to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMetadataReferencesMaxResults)]
     public int? MetadataReferencesLimit { get; init; } = _defaultMetadataReferencesMaxResults;
@@ -44,6 +49,7 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional analyzers limit.
     /// </summary>
+    [Description("Maximum number of analyzers to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAnalyzersMaxResults)]
     public int? AnalyzersLimit { get; init; } = _defaultAnalyzersMaxResults;

@@ -14,11 +14,13 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the location selector.
     /// </summary>
+    [Description("The location selector.")]
     public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the optional number of lines to include before the selected location.
     /// </summary>
+    [Description("The optional number of lines to include before the selected location.")]
     [Range(0, _maximumContextLines)]
     [DefaultValue(_defaultBeforeLines)]
     public int? BeforeLines { get; init; } = _defaultBeforeLines;
@@ -26,6 +28,7 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional number of lines to include after the selected location.
     /// </summary>
+    [Description("The optional number of lines to include after the selected location.")]
     [Range(0, _maximumContextLines)]
     [DefaultValue(_defaultAfterLines)]
     public int? AfterLines { get; init; } = _defaultAfterLines;
@@ -33,16 +36,19 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether the enclosing symbol chain should be included.
     /// </summary>
+    [Description("Whether the enclosing symbol chain should be included.")]
     public bool IncludeEnclosingSymbols { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether diagnostics should be included for the selected span.
     /// </summary>
+    [Description("Whether diagnostics should be included for the selected span.")]
     public bool IncludeDiagnostics { get; init; }
 
     /// <summary>
     /// Gets the optional enclosing symbols limit.
     /// </summary>
+    [Description("Maximum number of enclosing symbols to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultEnclosingSymbolsMaxResults)]
     public int? EnclosingSymbolsLimit { get; init; } = _defaultEnclosingSymbolsMaxResults;
@@ -50,6 +56,7 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional diagnostics limit.
     /// </summary>
+    [Description("Maximum number of diagnostics to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDiagnosticsMaxResults)]
     public int? DiagnosticsLimit { get; init; } = _defaultDiagnosticsMaxResults;
@@ -57,6 +64,7 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected workspace snapshot.
     /// </summary>
+    [Description("The expected workspace snapshot.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveBeforeLines => ResultLimit.GetEffectiveValue(BeforeLines, _defaultBeforeLines);

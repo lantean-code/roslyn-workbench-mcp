@@ -11,16 +11,19 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
+    [Description("The symbol selector.")]
     public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("The optional search scope.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the maximum traversal depth. Directly derived types are at depth one.
     /// </summary>
+    [Description("The maximum traversal depth. Directly derived types are at depth one.")]
     [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
@@ -28,6 +31,7 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDerivedTypesMaxResults)]
     public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
@@ -35,6 +39,7 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
+    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveDerivedTypesLimit => ResultLimit.GetEffectiveValue(DerivedTypesLimit, _defaultDerivedTypesMaxResults);

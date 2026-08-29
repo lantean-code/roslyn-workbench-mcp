@@ -4,14 +4,30 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
 internal sealed record ToolContinuation
 {
+    /// <summary>
+    /// Gets the Kind.
+    /// </summary>
+    [Description("Action required before the request can continue.")]
     public ToolContinuationKind Kind { get; }
 
+    /// <summary>
+    /// Gets the tool to call, when the continuation requires one.
+    /// </summary>
+    [Description("Tool to call when kind is CallTool.")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Tool { get; }
 
+    /// <summary>
+    /// Gets the tool choices, when the continuation requires a selection.
+    /// </summary>
+    [Description("Allowed tool choices when kind is ChooseTool.")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? Tools { get; }
 
+    /// <summary>
+    /// Gets the Instruction.
+    /// </summary>
+    [Description("Agent-facing instruction explaining how to continue.")]
     public string Instruction { get; }
 
     private ToolContinuation(

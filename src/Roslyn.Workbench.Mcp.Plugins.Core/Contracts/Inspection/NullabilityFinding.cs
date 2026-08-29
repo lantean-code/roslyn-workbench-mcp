@@ -8,5 +8,6 @@ internal sealed record NullabilityFinding
     /// <summary>
     /// Gets the projected diagnostic.
     /// </summary>
+    [Description("The projected diagnostic.")]
     public DiagnosticInfo? Diagnostic { get; init; }
 }

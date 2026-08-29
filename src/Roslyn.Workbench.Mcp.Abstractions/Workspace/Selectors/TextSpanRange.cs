@@ -10,12 +10,14 @@ public sealed record TextSpanRange
     /// <summary>
     /// Gets the zero-based UTF-16 start position.
     /// </summary>
+    [Description("The zero-based UTF-16 start position.")]
     [Range(0, int.MaxValue)]
     public int Start { get; init; }
 
     /// <summary>
     /// Gets the zero-based UTF-16 length.
     /// </summary>
+    [Description("The zero-based UTF-16 length.")]
     [Range(0, int.MaxValue)]
     public int Length { get; init; }
 }

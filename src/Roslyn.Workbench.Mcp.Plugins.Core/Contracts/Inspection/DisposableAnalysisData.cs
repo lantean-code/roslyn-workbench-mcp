@@ -8,5 +8,6 @@ internal sealed record DisposableAnalysisData : IQueryResponse
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
+    [Description("The returned findings.")]
     public BoundedCollection<DisposableFinding> Findings { get; init; } = BoundedCollection.Empty<DisposableFinding>();
 }

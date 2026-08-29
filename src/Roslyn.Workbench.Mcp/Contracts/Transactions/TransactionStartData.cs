@@ -8,5 +8,6 @@ internal sealed record TransactionStartData
     /// <summary>
     /// Gets the active transaction info.
     /// </summary>
+    [Description("The active transaction info.")]
     public TransactionInfo? Transaction { get; init; }
 }

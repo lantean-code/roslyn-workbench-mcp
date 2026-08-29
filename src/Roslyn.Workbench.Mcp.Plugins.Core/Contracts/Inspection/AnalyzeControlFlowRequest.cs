@@ -11,11 +11,13 @@ internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets an exact complete statement or contiguous statement range to analyze.
     /// </summary>
+    [Description("An exact complete statement or contiguous statement range to analyze.")]
     public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the optional exit points limit.
     /// </summary>
+    [Description("Maximum number of exit points to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultExitsMaxResults)]
     public int? ExitsLimit { get; init; } = _defaultExitsMaxResults;
@@ -23,6 +25,7 @@ internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional return statements limit.
     /// </summary>
+    [Description("Maximum number of return statements to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultReturnsMaxResults)]
     public int? ReturnsLimit { get; init; } = _defaultReturnsMaxResults;
@@ -30,6 +33,7 @@ internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for the selected location.
     /// </summary>
+    [Description("The expected snapshot for the selected location.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveExitsLimit => ResultLimit.GetEffectiveValue(ExitsLimit, _defaultExitsMaxResults);

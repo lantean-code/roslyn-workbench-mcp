@@ -8,5 +8,6 @@ internal sealed record DuplicateCodeData : IQueryResponse
     /// <summary>
     /// Gets the returned duplicate groups.
     /// </summary>
+    [Description("The returned duplicate groups.")]
     public BoundedCollection<DuplicateCodeGroup> Groups { get; init; } = BoundedCollection.Empty<DuplicateCodeGroup>();
 }

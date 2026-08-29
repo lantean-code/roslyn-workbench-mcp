@@ -8,5 +8,6 @@ internal sealed record WorkspaceStatusRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the requested response detail level.
     /// </summary>
+    [Description("Amount of workspace status detail to return.")]
     public StatusDetailLevel Detail { get; init; } = StatusDetailLevel.Standard;
 }

@@ -10,11 +10,13 @@ internal sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("The optional search scope.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;

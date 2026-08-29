@@ -8,20 +8,24 @@ internal sealed record FlowRegionInfo
     /// <summary>
     /// Gets the region identifier.
     /// </summary>
+    [Description("The region identifier.")]
     public int Id { get; init; }
 
     /// <summary>
     /// Gets the region kind.
     /// </summary>
+    [Description("The region kind.")]
     public string Kind { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the first block ordinal in the region.
     /// </summary>
+    [Description("The first block ordinal in the region.")]
     public int FirstBlockOrdinal { get; init; }
 
     /// <summary>
     /// Gets the last block ordinal in the region.
     /// </summary>
+    [Description("The last block ordinal in the region.")]
     public int LastBlockOrdinal { get; init; }
 }

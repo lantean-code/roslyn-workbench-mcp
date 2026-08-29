@@ -13,16 +13,19 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the opaque originating Code Fix reference.
     /// </summary>
+    [Description("The opaque originating Code Fix reference.")]
     public required Guid ActionId { get; init; }
 
     /// <summary>
     /// Gets the explicit Fix All scope.
     /// </summary>
+    [Description("The explicit Fix All scope.")]
     public required CodeActionFixAllScope Scope { get; init; }
 
     /// <summary>
     /// Gets the maximum number of changed source documents to allow.
     /// </summary>
+    [Description("The maximum number of changed source documents to allow.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultMaxChanges)]
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
@@ -30,6 +33,7 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum number of affected document identities to return.
     /// </summary>
+    [Description("The maximum number of affected document identities to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultAffectedDocumentsLimit)]
     public int? AffectedDocumentsLimit { get; init; } = _defaultAffectedDocumentsLimit;
@@ -37,6 +41,7 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected Workspace snapshot.
     /// </summary>
+    [Description("The expected Workspace snapshot.")]
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
     internal int EffectiveMaxChanges => ResultLimit.GetEffectiveValue(MaxChanges, _defaultMaxChanges);

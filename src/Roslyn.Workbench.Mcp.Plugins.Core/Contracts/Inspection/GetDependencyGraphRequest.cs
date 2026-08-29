@@ -11,11 +11,13 @@ internal sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the scope to graph.
     /// </summary>
+    [Description("The scope to graph.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the dependency graph granularity.
     /// </summary>
+    [Description("The dependency graph granularity.")]
     [AllowedValues("Project", "Namespace", "Type", "Symbol")]
     [DefaultValue("Type")]
     public string Granularity { get; init; } = "Type";
@@ -23,6 +25,7 @@ internal sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional nodes limit.
     /// </summary>
+    [Description("Maximum number of nodes to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultNodesMaxResults)]
     public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
@@ -30,6 +33,7 @@ internal sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional edges limit.
     /// </summary>
+    [Description("Maximum number of edges to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultEdgesMaxResults)]
     public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;

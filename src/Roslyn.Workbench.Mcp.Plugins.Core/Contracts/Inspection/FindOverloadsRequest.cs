@@ -10,11 +10,13 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
+    [Description("The symbol selector.")]
     public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultOverloadsMaxResults)]
     public int? OverloadsLimit { get; init; } = _defaultOverloadsMaxResults;
@@ -22,6 +24,7 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
+    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveOverloadsLimit => ResultLimit.GetEffectiveValue(OverloadsLimit, _defaultOverloadsMaxResults);

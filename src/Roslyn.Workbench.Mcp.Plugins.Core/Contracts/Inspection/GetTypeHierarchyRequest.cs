@@ -13,16 +13,19 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
+    [Description("The symbol selector.")]
     public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether derived types should be included.
     /// </summary>
+    [Description("Whether derived types should be included.")]
     public bool IncludeDerived { get; init; } = true;
 
     /// <summary>
     /// Gets the maximum base-type and derived-type traversal depth. Direct relationships are at depth one.
     /// </summary>
+    [Description("The maximum base-type and derived-type traversal depth. Direct relationships are at depth one.")]
     [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMaxDepth)]
     public int MaxDepth { get; init; } = _defaultMaxDepth;
@@ -30,6 +33,7 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional base types limit.
     /// </summary>
+    [Description("Maximum number of base types to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultBaseTypesMaxResults)]
     public int? BaseTypesLimit { get; init; } = _defaultBaseTypesMaxResults;
@@ -37,6 +41,7 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional interfaces limit.
     /// </summary>
+    [Description("Maximum number of interfaces to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultInterfacesMaxResults)]
     public int? InterfacesLimit { get; init; } = _defaultInterfacesMaxResults;
@@ -44,6 +49,7 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional derived types limit.
     /// </summary>
+    [Description("Maximum number of derived types to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDerivedTypesMaxResults)]
     public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
@@ -51,6 +57,7 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
+    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveBaseTypesLimit => ResultLimit.GetEffectiveValue(BaseTypesLimit, _defaultBaseTypesMaxResults);

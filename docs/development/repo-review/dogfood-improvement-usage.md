@@ -5602,3 +5602,13 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 587. `workspace-list`
+
+**Activity:** DOGFOOD-016 staged external review.
+
+**Purpose:** Determine whether the configured published dogfood server already had a loaded Workspace available for Roslyn-backed read-only inspection.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner. The reviewer made no further dogfood requests because opening a Workspace would have changed server state during a read-only review.

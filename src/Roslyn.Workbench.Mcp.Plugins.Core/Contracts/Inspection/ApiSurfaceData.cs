@@ -8,5 +8,6 @@ internal sealed record ApiSurfaceData : IQueryResponse
     /// <summary>
     /// Gets the returned exported API symbols.
     /// </summary>
+    [Description("The returned exported API symbols.")]
     public BoundedCollection<ApiSymbolInfo> Symbols { get; init; } = BoundedCollection.Empty<ApiSymbolInfo>();
 }

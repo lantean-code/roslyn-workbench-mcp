@@ -12,11 +12,13 @@ internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("The optional search scope.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets the minimum statement count to consider.
     /// </summary>
+    [Description("The minimum statement count to consider.")]
     [Range(1, int.MaxValue)]
     [DefaultValue(_defaultMinimumStatements)]
     public int MinimumStatements { get; init; } = _defaultMinimumStatements;
@@ -24,6 +26,7 @@ internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
+    [Description("Maximum number of results to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultGroupsMaxResults)]
     public int? GroupsLimit { get; init; } = _defaultGroupsMaxResults;
@@ -31,6 +34,7 @@ internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional occurrence limit applied independently to each returned duplicate group.
     /// </summary>
+    [Description("Maximum number of occurrences to return for each duplicate group.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultOccurrencesPerGroupMaxResults)]
     public int? OccurrencesPerGroupLimit { get; init; } = _defaultOccurrencesPerGroupMaxResults;

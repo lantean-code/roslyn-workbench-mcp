@@ -1,3 +1,4 @@
+global using System.ComponentModel;
 global using System.IO.Abstractions;
 global using DiffPlex;
 global using DiffPlex.Chunkers;

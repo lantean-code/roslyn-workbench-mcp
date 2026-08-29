@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,6 +22,7 @@ internal static class InputContractSchemaTransformer
         var properties = CreatePropertyMap(context.TypeInfo);
         ValidateContractRules(context.TypeInfo, properties);
 
+        ContractDescriptionSchemaTransformer.PublishPropertyDescriptions(schemaObject, context.TypeInfo);
         var nullabilityContext = new NullabilityInfoContext();
         PublishPropertyMetadata(schemaObject, context.TypeInfo, nullabilityContext);
         return schemaObject;
@@ -155,7 +155,7 @@ internal static class InputContractSchemaTransformer
             return;
         }
 
-        if (TryGetPropertySchema(schema, property, out var propertySchema))
+        if (ContractDescriptionSchemaTransformer.TryGetPropertySchema(schema, property, out var propertySchema))
         {
             RemoveNullType(propertySchema);
         }
@@ -167,7 +167,7 @@ internal static class InputContractSchemaTransformer
         JsonPropertyInfo property)
     {
         var defaultValue = GetDefaultValue(property);
-        if (defaultValue is null || !TryGetPropertySchema(schema, property, out var propertySchema))
+        if (defaultValue is null || !ContractDescriptionSchemaTransformer.TryGetPropertySchema(schema, property, out var propertySchema))
         {
             return;
         }
@@ -192,21 +192,6 @@ internal static class InputContractSchemaTransformer
         }
 
         return (DefaultValueAttribute)attributes[0];
-    }
-
-    private static bool TryGetPropertySchema(
-        JsonObject schema,
-        JsonPropertyInfo property,
-        [NotNullWhen(true)] out JsonObject? propertySchema)
-    {
-        propertySchema = null;
-        if (schema["properties"] is not JsonObject schemaProperties)
-        {
-            return false;
-        }
-
-        propertySchema = schemaProperties[property.Name] as JsonObject;
-        return propertySchema is not null;
     }
 
     private static void RemoveNullType(JsonObject schema)

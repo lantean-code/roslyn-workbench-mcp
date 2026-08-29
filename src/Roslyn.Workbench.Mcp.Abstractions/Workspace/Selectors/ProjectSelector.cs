@@ -14,20 +14,24 @@ public sealed record ProjectSelector
     /// <summary>
     /// Gets the workspace-local project identifier.
     /// </summary>
+    [Description("Workspace-local project identifier; at least one project selector field is required.")]
     public string? ProjectId { get; init; }
 
     /// <summary>
     /// Gets the project name.
     /// </summary>
+    [Description("Project name; at least one project selector field is required.")]
     public string? Name { get; init; }
 
     /// <summary>
     /// Gets the normalized workspace-relative project path.
     /// </summary>
+    [Description("Normalised workspace-relative project path; at least one project selector field is required.")]
     public string? Path { get; init; }
 
     /// <summary>
     /// Gets the target framework used to select a target-specific Roslyn project.
     /// </summary>
+    [Description("Target framework used to select a target-specific Roslyn project; at least one project selector field is required.")]
     public string? TargetFramework { get; init; }
 }

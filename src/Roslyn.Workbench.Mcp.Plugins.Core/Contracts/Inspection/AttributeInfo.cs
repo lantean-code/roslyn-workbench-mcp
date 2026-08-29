@@ -8,25 +8,30 @@ internal sealed record AttributeInfo
     /// <summary>
     /// Gets the attribute display name.
     /// </summary>
+    [Description("The attribute display name.")]
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the attribute type information.
     /// </summary>
+    [Description("The attribute type information.")]
     public TypeInfo? Type { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the attribute was inherited from a base type.
     /// </summary>
+    [Description("Whether the attribute was inherited from a base type.")]
     public bool Inherited { get; init; }
 
     /// <summary>
     /// Gets the positional constructor arguments.
     /// </summary>
+    [Description("The positional constructor arguments.")]
     public IReadOnlyList<AttributeArgumentInfo> ConstructorArguments { get; init; } = [];
 
     /// <summary>
     /// Gets the named arguments.
     /// </summary>
+    [Description("The named arguments.")]
     public IReadOnlyList<AttributeArgumentInfo> NamedArguments { get; init; } = [];
 }

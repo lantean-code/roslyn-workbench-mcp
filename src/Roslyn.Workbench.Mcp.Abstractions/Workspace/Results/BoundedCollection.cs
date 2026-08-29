@@ -12,16 +12,19 @@ public sealed record BoundedCollection<TItem>
     /// <summary>
     /// Gets the returned items.
     /// </summary>
+    [Description("Items returned in this page.")]
     public IReadOnlyList<TItem> Items { get; }
 
     /// <summary>
     /// Gets a value indicating whether more items were available.
     /// </summary>
+    [Description("Whether additional items were available beyond this page.")]
     public bool HasMore { get; }
 
     /// <summary>
     /// Gets the complete result count when it was available without additional expensive work.
     /// </summary>
+    [Description("Complete result count, when available without additional expensive work.")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? TotalCount { get; }
 

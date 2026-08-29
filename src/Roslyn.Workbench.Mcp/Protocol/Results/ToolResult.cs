@@ -9,41 +9,49 @@ internal sealed record ToolResult<TData>
     /// <summary>
     /// Gets the outcome of the tool invocation.
     /// </summary>
+    [Description("Overall outcome of the tool invocation.")]
     public ToolOutcome Outcome { get; init; }
 
     /// <summary>
     /// Gets the exact immutable workspace snapshot, when available.
     /// </summary>
+    [Description("Exact immutable workspace snapshot associated with the result, when available.")]
     public SnapshotPrecondition? Snapshot { get; init; }
 
     /// <summary>
     /// Gets the tool-specific payload.
     /// </summary>
+    [Description("Tool-specific result payload.")]
     public TData? Data { get; init; }
 
     /// <summary>
     /// Gets the optional top-level change summary.
     /// </summary>
+    [Description("Summary of source changes made by the tool, when applicable.")]
     public ChangeSummary? Changes { get; init; }
 
     /// <summary>
     /// Gets the diagnostics emitted by the tool.
     /// </summary>
+    [Description("Roslyn or contract diagnostics relevant to the result.")]
     public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
 
     /// <summary>
     /// Gets the warnings emitted by the tool.
     /// </summary>
+    [Description("Non-fatal warnings the agent should consider.")]
     public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
 
     /// <summary>
     /// Gets the structured error payload, when present.
     /// </summary>
+    [Description("Structured error details when the invocation failed.")]
     public ToolError? Error { get; init; }
 
     /// <summary>
     /// Gets the optional continuation hint for the caller.
     /// </summary>
+    [Description("Action the agent should take before retrying or continuing.")]
     public RequiredAction? RequiredAction { get; init; }
 }
 

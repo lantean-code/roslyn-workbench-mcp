@@ -13,11 +13,13 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether documents should be included in project projections.
     /// </summary>
+    [Description("Whether documents should be included in project projections.")]
     public bool IncludeDocuments { get; init; }
 
     /// <summary>
     /// Gets the optional folders limit.
     /// </summary>
+    [Description("Maximum number of folders to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFoldersMaxResults)]
     public int? FoldersLimit { get; init; } = _defaultFoldersMaxResults;
@@ -25,6 +27,7 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional projects limit.
     /// </summary>
+    [Description("Maximum number of projects to return.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultProjectsMaxResults)]
     public int? ProjectsLimit { get; init; } = _defaultProjectsMaxResults;
@@ -32,6 +35,7 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional document limit applied independently to each returned project.
     /// </summary>
+    [Description("Maximum number of documents to return for each project.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDocumentsPerProjectMaxResults)]
     public int? DocumentsPerProjectLimit { get; init; } = _defaultDocumentsPerProjectMaxResults;
@@ -39,6 +43,7 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional direct project-reference limit applied independently to each returned project.
     /// </summary>
+    [Description("Maximum number of direct project references to return for each project.")]
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultProjectReferencesPerProjectMaxResults)]
     public int? ProjectReferencesPerProjectLimit { get; init; } = _defaultProjectReferencesPerProjectMaxResults;

@@ -12,15 +12,18 @@ public sealed record DocumentSelector
     /// <summary>
     /// Gets the optional project scope used to disambiguate the document.
     /// </summary>
+    [Description("Project used to disambiguate the document, when needed.")]
     public ProjectSelector? Project { get; init; }
 
     /// <summary>
     /// Gets the normalized workspace-relative document path.
     /// </summary>
+    [Description("Workspace-relative document path; provide either path or documentId, not both.")]
     public string? Path { get; init; }
 
     /// <summary>
     /// Gets the workspace-local document identifier.
     /// </summary>
+    [Description("Workspace-local document identifier; provide either documentId or path, not both.")]
     public string? DocumentId { get; init; }
 }

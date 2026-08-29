@@ -8,10 +8,12 @@ internal sealed record ControlFlowExit
     /// <summary>
     /// Gets the exit kind.
     /// </summary>
+    [Description("The exit kind.")]
     public string Kind { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the exit location, when available.
     /// </summary>
+    [Description("The exit location, when available.")]
     public ResolvedLocation? Location { get; init; }
 }

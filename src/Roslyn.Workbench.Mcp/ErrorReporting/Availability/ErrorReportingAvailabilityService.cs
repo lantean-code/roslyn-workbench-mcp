@@ -25,10 +25,11 @@ internal sealed class ErrorReportingAvailabilityService : IErrorReportingAvailab
             return Create(ErrorReportingState.DisabledByConfiguration, canPrepare: false);
         }
 
-        var consentState = _consentService.GetState(workspaceId, workspaceEpoch);
-        if (consentState == ErrorReportingConsentState.SuppressedForSession)
+        var consentState = _consentService.GetState();
+
+        if (consentState == ErrorReportingConsentState.Disabled)
         {
-            return Create(ErrorReportingState.SuppressedForSession, canPrepare: false);
+            return Create(ErrorReportingState.DisabledByConfiguration, canPrepare: false);
         }
 
         if (consentState == ErrorReportingConsentState.PromptRequired
@@ -37,13 +38,9 @@ internal sealed class ErrorReportingAvailabilityService : IErrorReportingAvailab
             return Create(ErrorReportingState.ApprovalUnavailable, canPrepare: false);
         }
 
-        var state = consentState switch
-        {
-            ErrorReportingConsentState.AlwaysApproved => ErrorReportingState.AlwaysApproved,
-            ErrorReportingConsentState.AllowedForWorkspace => ErrorReportingState.AllowedForWorkspace,
-            ErrorReportingConsentState.AllowedForSession => ErrorReportingState.AllowedForSession,
-            _ => ErrorReportingState.Available,
-        };
+        var state = consentState == ErrorReportingConsentState.AlwaysApproved
+            ? ErrorReportingState.AlwaysApproved
+            : ErrorReportingState.Available;
 
         return Create(state, canPrepare: true);
     }

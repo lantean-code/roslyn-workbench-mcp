@@ -186,6 +186,8 @@ The review is complete only when:
 
 ## Finding-remediation and commit review gate
 
+This section records the review process currently being refined through the DOGFOOD work. Until that process is promoted into the repository `AGENTS.md` files, its same-reviewer correction loop applies only when the user explicitly authorises it for the current work item; otherwise the root `AGENTS.md` fresh-reviewer rule remains authoritative.
+
 After the final RWMCP3 findings are accepted, remediate each approved work item through this sequence:
 
 1. Select the first incomplete finding in the approved implementation order and revalidate it against current source and the [product operating model](ProductOperatingModel.md).
@@ -194,8 +196,8 @@ After the final RWMCP3 findings are accepted, remediate each approved work item 
 4. Obtain explicit user approval before changing production code.
 5. Implement the approved change and run the required formatting, build, analyser and test validation.
 6. Present the implementation and evidence for the user's first code review; address requested corrections until the user confirms it is ready for independent review.
-7. Stage the complete first-confirmed baseline, verify its scope, then send it to a fresh context-free Review Agent subagent. Supply exact current validation evidence so equivalent commands are not repeated unnecessarily.
-8. Keep any review-driven corrections unstaged so the user can compare them with the first-confirmed staged baseline. Revalidate and repeat the fresh Review Agent pass after material corrections.
+7. Stage the complete first-confirmed baseline, verify its scope, then start one fresh context-free Review Agent subagent dedicated to that work item. Supply exact current validation evidence so equivalent commands are not repeated unnecessarily. Its initial pass must review the complete staged baseline across every applicable correctness, architecture, security, privacy, concurrency, contract, documentation, readability and test-completeness category. Finding one issue must not end or narrow the pass; it must complete the review and report all findings and test gaps together.
+8. Keep any review-driven corrections unstaged so the user can compare them with the first-confirmed staged baseline. Revalidate only evidence made stale or materially affected by the correction, then return the unstaged remediation to the same Review Agent in a follow-up turn. The repeat review verifies its previous findings and reviews the unstaged correction, consulting the staged baseline only where necessary to assess interactions; it does not repeat the complete baseline review. Continue this focused correction loop with the same agent until it reports no findings and no test gaps.
 9. Present the final implementation, review findings and corrections for the user's second review and final confirmation.
 10. Update durable status only after final confirmation. The user commits the independently reviewed item from a clean, fully staged baseline.
 11. Before selecting another item, publish the exact committed `HEAD` to a new dogfood candidate, smoke-test it, promote the configured `current` target and restart the MCP client connection.
@@ -203,6 +205,8 @@ After the final RWMCP3 findings are accepted, remediate each approved work item 
 If remediation discussion establishes or clarifies a supported user, agent, concurrency or trust scenario, update the product operating model before closing the item. A technically possible interleaving may be rejected as a product defect when it falls outside that model, but both finding ledgers must retain the evidence and explicit disposition so a later review does not raise it without new evidence or a changed operating model.
 
 No finding is ready to commit while actionable Review Agent feedback or a material validation gap remains.
+
+Use a new fresh Review Agent for the next independently confirmed work item, not for each correction within the current item. Replace the current item's reviewer only when it is unavailable or when remediation requires an approved architectural redirection that establishes a new review baseline; in either case, make the replacement scope explicit rather than silently restarting the correction loop as a full review.
 
 ## Post-remediation dogfood analysis
 

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,10 +12,7 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
     private const string _level = "error";
     private const string _logger = "roslyn-workbench-mcp";
 
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    private static readonly JsonSerializerOptions _serializerOptions = CreateSerializerOptions();
 
     private readonly ILogger<LoggingErrorReportDispatcher> _loggerInstance;
 
@@ -29,7 +27,12 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
 
     public PreparedDispatchPayload CreatePayload(ExternalErrorReport report)
     {
-        var loggingPayload = CreateLoggingPayload(report);
+        return CreateLoggingPayload(report);
+    }
+
+    private PreparedDispatchPayload<string> CreateLoggingPayload(ExternalErrorReport report)
+    {
+        var loggingPayload = CreateLogEntry(report);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(loggingPayload, _serializerOptions);
         var previewJson = Encoding.UTF8.GetString(bytes);
 
@@ -47,6 +50,7 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
 
     public ValueTask<ErrorDispatchResult> DispatchAsync(
         PreparedDispatchPayload payload,
+        ExceptionMessageHandling messageHandling,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -63,16 +67,35 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
             });
         }
 
-        LogApprovedErrorReport(_loggerInstance, report.ReportId, preparedPayload.DispatchState);
+        PreparedDispatchPayload<string>? dispatchPayload = messageHandling switch
+        {
+            ExceptionMessageHandling.Include => preparedPayload,
+            ExceptionMessageHandling.Remove => CreateLoggingPayload(
+                ExternalErrorReportRedactor.RemoveExceptionMessages(report)),
+            _ => null,
+        };
+        if (dispatchPayload is null)
+        {
+            return ValueTask.FromResult(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Rejected,
+                ErrorCode = "InvalidExceptionMessageHandling",
+                ErrorMessage = "The requested exception-message handling mode is not supported.",
+            });
+        }
+
+        LogApprovedErrorReport(_loggerInstance, report.ReportId, dispatchPayload.DispatchState);
+        var digest = Convert.ToHexStringLower(SHA256.HashData(dispatchPayload.PreviewBytes.AsSpan()));
 
         return ValueTask.FromResult(new ErrorDispatchResult
         {
             Outcome = ErrorDispatchOutcome.Accepted,
             ReportReference = report.ReportId,
+            PayloadDigest = digest,
         });
     }
 
-    private static LoggingPayload CreateLoggingPayload(ExternalErrorReport report)
+    private static LoggingPayload CreateLogEntry(ExternalErrorReport report)
     {
         return new LoggingPayload
         {
@@ -81,6 +104,18 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
             Message = $"Roslyn Workbench reported {report.ExceptionClassification} in {report.Tool}.",
             Report = report,
         };
+    }
+
+    private static JsonSerializerOptions CreateSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+        options.Converters.Add(new JsonStringEnumConverter(
+            namingPolicy: null,
+            allowIntegerValues: false));
+        return options;
     }
 
     [LoggerMessage(

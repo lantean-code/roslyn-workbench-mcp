@@ -94,6 +94,50 @@ public sealed class PreparedSubmissionStoreTests
     }
 
     [Fact]
+    public void GIVEN_SendingSubmission_WHEN_Confirming_THEN_ShouldReturnTrue()
+    {
+        var submission = CreateSubmission(PreparedSubmissionState.Sending);
+        PreparedSubmission? storedSubmission = submission;
+        _entries
+            .Setup(item => item.TryGet(submission.Handle, out storedSubmission))
+            .Returns(true);
+
+        var wasConfirmed = _target.TryConfirmSubmission(submission.Handle);
+
+        wasConfirmed.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData((int)PreparedSubmissionState.Prepared)]
+    [InlineData((int)PreparedSubmissionState.Sent)]
+    public void GIVEN_NonSendingSubmission_WHEN_Confirming_THEN_ShouldReturnFalse(
+        int stateValue)
+    {
+        var submission = CreateSubmission((PreparedSubmissionState)stateValue);
+        PreparedSubmission? storedSubmission = submission;
+        _entries
+            .Setup(item => item.TryGet(submission.Handle, out storedSubmission))
+            .Returns(true);
+
+        var wasConfirmed = _target.TryConfirmSubmission(submission.Handle);
+
+        wasConfirmed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_UnknownOrExpiredSubmission_WHEN_Confirming_THEN_ShouldReturnFalse()
+    {
+        PreparedSubmission? storedSubmission = null;
+        _entries
+            .Setup(item => item.TryGet("Handle", out storedSubmission))
+            .Returns(false);
+
+        var wasConfirmed = _target.TryConfirmSubmission("Handle");
+
+        wasConfirmed.Should().BeFalse();
+    }
+
+    [Fact]
     public void GIVEN_SendingSubmission_WHEN_Completing_THEN_ShouldStoreSentReceipt()
     {
         var submission = CreateSubmission(PreparedSubmissionState.Sending);

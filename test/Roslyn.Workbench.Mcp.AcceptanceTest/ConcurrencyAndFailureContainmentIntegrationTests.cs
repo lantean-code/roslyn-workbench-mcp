@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
@@ -296,7 +297,7 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
             var payloadJson = prepared.GetProperty("payloadJson").GetString()
                 ?? throw new InvalidOperationException("The prepared logging payload must include its JSON representation.");
-            payloadJson.Should().NotContain("Sensitive query failure");
+            payloadJson.Should().Contain("Sensitive query failure.");
             payloadJson.Should().NotContain(target.WorkspaceRoot);
 
             var submitResult = await target.CallToolAsync(
@@ -318,6 +319,116 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken);
             statusResult.IsError.Should().NotBeTrue();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Theory]
+    [InlineData("accept", "send", true, true)]
+    [InlineData("accept", "send-without-exception-messages", true, false)]
+    [InlineData("accept", "do-not-send", false, false)]
+    [InlineData("decline", null, false, false)]
+    [InlineData("cancel", null, false, false)]
+    public async Task GIVEN_ConfiguredPromptReportingWithClientElicitation_WHEN_Submitting_THEN_ShouldHonourTheSelectedConsentAction(
+        string action,
+        string? choice,
+        bool shouldSubmit,
+        bool shouldIncludeExceptionMessage)
+    {
+        ElicitRequestParams? observedElicitation = null;
+
+        ValueTask<ElicitResult> HandleElicitationAsync(
+            ElicitRequestParams? request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            observedElicitation = request
+                ?? throw new InvalidOperationException("The elicitation request was not supplied.");
+            return ValueTask.FromResult(CreateElicitationResult(action, choice));
+        }
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            pluginAssets: [AcceptancePluginAsset.HostQuery],
+            elicitationHandler: HandleElicitationAsync);
+
+        try
+        {
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.csproj"),
+                target.WorkspaceRoot);
+            var throwingResult = await target.CallToolAsync(
+                "host-valid-query",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspace.CreateSelector(),
+                    ["name"] = "Throw",
+                    ["throw"] = true,
+                },
+                TestContext.Current.CancellationToken);
+            var correlationId = AcceptanceProtocol.GetError(throwingResult)
+                .GetProperty("correlationId")
+                .GetString();
+            var prepareResult = await target.CallToolAsync(
+                "prepare-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["correlationId"] = correlationId,
+                },
+                TestContext.Current.CancellationToken);
+            prepareResult.IsError.Should().NotBeTrue();
+            var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
+
+            var submitResult = await target.CallToolAsync(
+                "submit-error-report",
+                new Dictionary<string, object?>
+                {
+                    ["submissionHandle"] = prepared.GetProperty("submissionHandle").GetString(),
+                },
+                TestContext.Current.CancellationToken);
+
+            AssertErrorReportElicitation(observedElicitation, prepared.GetProperty("destination").GetString());
+            if (shouldSubmit)
+            {
+                submitResult.IsError.Should().NotBeTrue();
+            }
+            else
+            {
+                submitResult.IsError.Should().BeTrue();
+                AcceptanceProtocol.GetError(submitResult)
+                    .GetProperty("code")
+                    .GetString()
+                    .Should()
+                    .Be("ErrorReportNotApproved");
+            }
+
+            await target.StopAsync();
+            var standardError = target.GetStandardErrorSnapshot();
+            if (shouldSubmit)
+            {
+                standardError.Should().Contain("User-approved error report");
+                var approvedReportOffset = standardError.IndexOf(
+                    "User-approved error report",
+                    StringComparison.Ordinal);
+                var approvedReportLog = standardError[approvedReportOffset..];
+                if (shouldIncludeExceptionMessage)
+                {
+                    approvedReportLog.Should().Contain("Sensitive query failure.");
+                }
+                else
+                {
+                    approvedReportLog.Should().NotContain("Sensitive query failure.");
+                }
+            }
+            else
+            {
+                standardError.Should().NotContain("User-approved error report");
+            }
         }
         catch
         {
@@ -399,7 +510,7 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             var approvedReportLog = standardError[approvedReportOffset..];
             approvedReportLog.Should().Contain(reportId);
             approvedReportLog.Should().Contain("external-plugin-tool");
-            approvedReportLog.Should().NotContain("Sensitive query failure");
+            approvedReportLog.Should().Contain("Sensitive query failure.");
             approvedReportLog.Should().NotContain(target.WorkspaceRoot);
         }
         catch
@@ -478,6 +589,46 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             ["name"] = name,
             ["controlDirectory"] = controlDirectory,
         };
+    }
+
+    private static ElicitResult CreateElicitationResult(string action, string? choice)
+    {
+        var content = choice is null
+            ? null
+            : new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+            {
+                ["choice"] = JsonSerializer.SerializeToElement(choice),
+            };
+
+        return new ElicitResult
+        {
+            Action = action,
+            Content = content,
+        };
+    }
+
+    private static void AssertErrorReportElicitation(
+        ElicitRequestParams? elicitation,
+        string? destination)
+    {
+        var request = elicitation
+            ?? throw new InvalidOperationException("The error-report elicitation was not observed.");
+        request.Message.Should().Be($"Send this error report to {destination}?");
+        var schema = request.RequestedSchema
+            ?? throw new InvalidOperationException("The error-report elicitation did not include a form schema.");
+        schema.Required.Should().Equal("choice");
+        var choiceSchema = schema.Properties["choice"]
+            .Should()
+            .BeOfType<ElicitRequestParams.TitledSingleSelectEnumSchema>()
+            .Which;
+        choiceSchema.OneOf.Select(option => option.Const).Should().Equal(
+            "send",
+            "send-without-exception-messages",
+            "do-not-send");
+        choiceSchema.OneOf.Select(option => option.Title).Should().Equal(
+            "Yes, send it",
+            "Yes, without exception messages",
+            "No, don't send it");
     }
 
     private static void AssertWorkspaceBusy(ModelContextProtocol.Protocol.CallToolResult result)

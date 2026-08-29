@@ -90,6 +90,34 @@ public sealed class ServerStatusServiceTests
         data.Recovery.Should().ContainSingle().Which.Should().Be(recovery);
     }
 
+    [Theory]
+    [InlineData((int)ErrorReportingConsentMode.Never, (int)ErrorReportingConsentState.Disabled)]
+    [InlineData((int)ErrorReportingConsentMode.Prompt, (int)ErrorReportingConsentState.PromptRequired)]
+    [InlineData((int)ErrorReportingConsentMode.Always, (int)ErrorReportingConsentState.AlwaysApproved)]
+    public async Task GIVEN_ConfiguredErrorReportingMode_WHEN_GettingFullStatus_THEN_ShouldPublishEffectiveConsent(
+        int consentModeValue,
+        int consentStateValue)
+    {
+        var consentMode = (ErrorReportingConsentMode)consentModeValue;
+        var consentState = (ErrorReportingConsentState)consentStateValue;
+        var options = new StartupOptions
+        {
+            ErrorReporting = new ErrorReportingOptions
+            {
+                ConsentMode = consentMode,
+            },
+        };
+        _errorReportingConsentService.Setup(item => item.GetState()).Returns(consentState);
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
+        var target = CreateTarget(options, new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        var errorReporting = result.Data!.Configuration!.ErrorReporting!;
+        errorReporting.ConsentMode.Should().Be(consentMode.ToString());
+        errorReporting.ConsentState.Should().Be(consentState.ToString());
+    }
+
     [Fact]
     public async Task GIVEN_UnavailableCodeActions_WHEN_GettingStatus_THEN_ShouldReturnDisablementDiagnostics()
     {

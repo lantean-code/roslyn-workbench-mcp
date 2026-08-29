@@ -4,8 +4,8 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Projection;
 
 internal sealed record ExternalErrorReport
 {
-    public const int CurrentSchemaVersion = 1;
-    public const int CurrentReportFormatVersion = 1;
+    public const int CurrentSchemaVersion = 2;
+    public const int CurrentReportFormatVersion = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
@@ -27,7 +27,7 @@ internal sealed record ExternalErrorReport
 
     public required string ExceptionClassification { get; init; }
 
-    public ImmutableArray<ExternalStackFrame> StackFrames { get; init; } = [];
+    public ImmutableArray<ExternalException> Exceptions { get; init; } = [];
 
     public ExternalWorkspaceContext? Workspace { get; init; }
 

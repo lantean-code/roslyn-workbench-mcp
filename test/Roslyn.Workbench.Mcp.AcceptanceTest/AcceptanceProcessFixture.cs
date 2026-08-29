@@ -22,6 +22,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private readonly IReadOnlyList<string> _arguments;
     private readonly IReadOnlyDictionary<string, string?> _environmentVariables;
     private readonly bool _retainInitializationFailure;
+    private readonly Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? _elicitationHandler;
     private McpClient? _client;
     private Task<ClientCompletionDetails>? _completion;
     private ClientCompletionDetails? _completionDetails;
@@ -35,12 +36,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string?> environmentVariables,
         string scenarioRoot,
-        bool retainInitializationFailure)
+        bool retainInitializationFailure,
+        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler)
     {
         _command = command;
         _arguments = arguments;
         _environmentVariables = environmentVariables;
         _retainInitializationFailure = retainInitializationFailure;
+        _elicitationHandler = elicitationHandler;
         ScenarioRoot = scenarioRoot;
         WorkspaceRoot = Path.Combine(scenarioRoot, "workspace");
         StateRoot = Path.Combine(scenarioRoot, "state");
@@ -69,7 +72,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string>? additionalArguments = null,
         IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null,
         IReadOnlyDictionary<string, string?>? environmentVariables = null,
-        AcceptanceStateDirectoryPreparation stateDirectoryPreparation = AcceptanceStateDirectoryPreparation.Private)
+        AcceptanceStateDirectoryPreparation stateDirectoryPreparation = AcceptanceStateDirectoryPreparation.Private,
+        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler = null)
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
         var arguments = new List<string>
@@ -93,7 +97,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             environmentVariables,
             stateDirectoryPreparation,
             retainInitializationFailure: true,
-            cancellationToken);
+            elicitationHandler: elicitationHandler,
+            cancellationToken: cancellationToken);
     }
 
     public static Task<AcceptanceProcessFixture> StartCommandAsync(
@@ -109,7 +114,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             environmentVariables: null,
             stateDirectoryPreparation: AcceptanceStateDirectoryPreparation.Private,
             retainInitializationFailure: false,
-            cancellationToken);
+            elicitationHandler: null,
+            cancellationToken: cancellationToken);
     }
 
     public async Task<IList<McpClientTool>> ListToolsAsync(CancellationToken cancellationToken)
@@ -193,6 +199,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     public void RetainRootOnFailure()
     {
         _retainRoot = true;
+    }
+
+    public string GetStandardErrorSnapshot()
+    {
+        return GetStandardError();
     }
 
     public async Task<string> WaitForStandardErrorAsync(
@@ -334,6 +345,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyDictionary<string, string?>? environmentVariables,
         AcceptanceStateDirectoryPreparation stateDirectoryPreparation,
         bool retainInitializationFailure,
+        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler,
         CancellationToken cancellationToken)
     {
         var scenarioRoot = Path.Combine(
@@ -357,7 +369,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             effectiveArguments,
             environmentVariables ?? new Dictionary<string, string?>(),
             scenarioRoot,
-            retainInitializationFailure);
+            retainInitializationFailure,
+            elicitationHandler);
 
         Directory.CreateDirectory(target.WorkspaceRoot);
         AcceptanceStateDirectory.Prepare(target.StateRoot, stateDirectoryPreparation);
@@ -408,12 +421,28 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
         try
         {
+            var clientOptions = new McpClientOptions
+            {
+                InitializationTimeout = _initializationTimeout,
+            };
+            if (_elicitationHandler is not null)
+            {
+                clientOptions.Capabilities = new ClientCapabilities
+                {
+                    Elicitation = new ElicitationCapability
+                    {
+                        Form = new FormElicitationCapability(),
+                    },
+                };
+                clientOptions.Handlers = new McpClientHandlers
+                {
+                    ElicitationHandler = _elicitationHandler,
+                };
+            }
+
             _client = await McpClient.CreateAsync(
                 transport,
-                new McpClientOptions
-                {
-                    InitializationTimeout = _initializationTimeout,
-                },
+                clientOptions,
                 NullLoggerFactory.Instance,
                 timeoutSource.Token);
 

@@ -22,7 +22,7 @@ An `artifactsPath` must name an existing absolute directory because it is an MSB
 
 When the server runs under WSL and opens a workspace on a mounted Windows filesystem, `workspace-open` returns a `WorkspaceOnWindowsFileSystemFromWsl` warning. This layout is supported but can substantially reduce load and query performance. Prefer WSL-native storage or run the server directly on Windows.
 
-`workspace-status` reports the selected workspace state, current transaction, reload requirement, diagnostics, other live Roslyn Workbench instances and the process-local external error-reporting consent state applying to that Workspace epoch. `workspace-list` provides a lightweight identity list and the current global transaction owner; it does not refresh cross-instance diagnostics.
+`workspace-status` reports the selected workspace state, current transaction, reload requirement, diagnostics, other live Roslyn Workbench instances and the effective configured external error-reporting consent state. `workspace-list` provides a lightweight identity list and the current global transaction owner; it does not refresh cross-instance diagnostics.
 
 If source inputs change outside the loaded session, the workspace becomes out of date or its active transaction becomes conflicted. Do not reuse old source locations, spans or symbol results against a different immutable solution snapshot. Echo the complete published `snapshot` object unchanged as `expectedSnapshot`, including its opaque snapshot ID; an epoch and transaction revision are not sufficient identity on their own. Reload or resolve the target again as directed by the structured error.
 

@@ -2,6 +2,8 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 internal sealed record CapturedStackFrame
 {
+    public ErrorReportComponent Component { get; init; }
+
     public string? Assembly { get; init; }
 
     public string? Type { get; init; }

@@ -17,7 +17,7 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 | 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Live client-usability sweep completed; findings awaiting confirmation |
 | 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Confirmed through published dogfood validation |
 | 5 | DOGFOOD-012 | [Correct cross-project test-impact matching](dogfood-012-cross-project-test-impact-design.md) | Confirmed through published dogfood validation |
-| 6 | DOGFOOD-013 | Exercise error-reporting workflows with explicit consent | Pending existing-coverage validation and explicit user consent |
+| 6 | DOGFOOD-013 | [Exercise error-reporting workflows with explicit consent](dogfood-013-error-reporting-validation-design.md) | Remediation implemented; published validation of both consent choices pending |
 
 ### DOGFOOD-008 — Controlled transaction commit
 
@@ -84,6 +84,12 @@ Published validation through Codex's configured dogfood namespace repeated the p
 Exercise the error-reporting tools only after the user gives explicit consent for the concrete submission. Use a controlled, non-sensitive diagnostic payload, explain where the report will be written or sent, and avoid including repository content, machine-specific paths or other incidental data unless the approved workflow specifically requires it.
 
 Confirmation requires evidence that the published contract is usable, consent was obtained before submission, the report reached its documented destination and no unapproved sensitive content was included. If a safe local-only destination is unavailable, record the limitation rather than sending an external report.
+
+Existing coverage validation is complete in [DOGFOOD-013 — Error-reporting client usability](dogfood-013-error-reporting-validation-design.md). Unit, integration and published-host acceptance tests already cover sanitisation, immutable preparation, consent, fail-closed clients, successful Logging dispatch, Sentry mapping and stderr verification. No Scenario Runner definition covers the workflow, but adding one would duplicate the acceptance path without testing Codex.
+
+The surviving gap is therefore a validation-only Codex run. The approved setup temporarily adds the existing deterministic `HostQuery` acceptance fixture to a private dogfood candidate, embeds the user-supplied Sentry DSN at build time, retains `Prompt` consent, captures stderr for Host and SDK evidence and makes no repository code or test change. The run inspects the sensitive local record, prepares and reviews the complete sanitised payload, then stops for separate payload-specific approval before any submission. A successful call must use one-report consent only and be confirmed in the configured Sentry project; an unsupported Codex elicitation path must fail closed and be recorded rather than bypassed.
+
+The initial live run validated the correlated failure, local diagnostic boundary and complete immutable Sentry preparation. The displayed payload excluded the controlled message, correlation ID and repository root, and its independently calculated digest matched. The first attempt incorrectly treated conversational approval as sufficient before invoking the separate elicitation. After the user corrected that process, a fresh payload was displayed and submission was invoked specifically to surface the Host's MCP form. With the task's effective approval policy set to `never`, Codex returned an immediate decline and the Host emitted no report. After the active profile was changed to `on-request`, a later fresh payload surfaced the MCP form and the user-approved Sentry submission returned the exact reviewed event reference and digest. This confirmed that the earlier decline was client-policy behaviour rather than a Codex elicitation defect. The remaining gap is published validation of the remediated three-choice form and both message-retaining and message-free dispatch variants.
 
 ## Sequence and process
 

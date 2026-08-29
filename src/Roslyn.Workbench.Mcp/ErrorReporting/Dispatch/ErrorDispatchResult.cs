@@ -6,6 +6,8 @@ internal sealed record ErrorDispatchResult
 
     public string? ReportReference { get; init; }
 
+    public string? PayloadDigest { get; init; }
+
     public string? ErrorCode { get; init; }
 
     public string? ErrorMessage { get; init; }

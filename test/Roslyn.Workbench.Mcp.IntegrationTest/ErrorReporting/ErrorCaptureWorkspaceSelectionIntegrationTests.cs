@@ -1,9 +1,12 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 using Roslyn.Workbench.Mcp.ErrorReporting.Configuration;
+using Roslyn.Workbench.Mcp.ErrorReporting.Projection;
+using Roslyn.Workbench.Mcp.PluginLoading;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
@@ -110,6 +113,59 @@ public sealed class ErrorCaptureWorkspaceSelectionIntegrationTests : IDisposable
         {
             result.Workspace.Should().BeNull();
         }
+    }
+
+    [Fact]
+    public void GIVEN_ExternalAssemblyWithRoslynName_WHEN_Capturing_THEN_ShouldNotExposePluginImplementationDetails()
+    {
+        var packageDirectory = Path.Combine(AppContext.BaseDirectory, "PluginFixtureAssets", "Lookalike");
+        var entryAssemblyPath = Path.Combine(packageDirectory, "Microsoft.CodeAnalysis.LookalikePluginFixture.dll");
+        var packagePathPolicy = new Mock<IPluginPackagePathPolicy>();
+        var containedEntryAssemblyPath = entryAssemblyPath;
+        packagePathPolicy
+            .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
+            .Returns(true);
+
+        var loadContextFactory = new PluginLoadContextFactory(packagePathPolicy.Object);
+        var created = loadContextFactory.TryCreate(packageDirectory, entryAssemblyPath, out var loadContext);
+        created.Should().BeTrue();
+        var pluginLoadContext = loadContext
+            ?? throw new InvalidOperationException("The plugin load context was not created.");
+        var pluginAssembly = pluginLoadContext.LoadFromAssemblyPath(entryAssemblyPath);
+        var pluginType = pluginAssembly.GetType(
+            "Microsoft.CodeAnalysis.LookalikePluginFixture.LookalikePluginFailure",
+            throwOnError: true);
+        var throwMethod = pluginType?.GetMethod("Throw", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("The lookalike fixture method was not found.");
+
+        var action = () => throwMethod.Invoke(null, null);
+        var invocationException = action.Should().Throw<TargetInvocationException>().Which;
+        var pluginException = invocationException.InnerException
+            ?? throw new InvalidOperationException("The lookalike fixture exception was not retained.");
+        var target = CreateTarget();
+
+        var result = target.Capture(
+            Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            "unknown-tool",
+            arguments: null,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            pluginException);
+
+        result.Exceptions[0].Component.Should().Be(ErrorReportComponent.Unknown);
+        var pluginFrame = result.Exceptions[0].StackFrames.Single(
+            frame => string.Equals(
+                frame.Assembly,
+                "Microsoft.CodeAnalysis.LookalikePluginFixture",
+                StringComparison.Ordinal));
+        pluginFrame.Component.Should().Be(ErrorReportComponent.Unknown);
+        var projector = new ExternalErrorReportProjector();
+
+        var externalReport = projector.Project(result, "ReportId");
+
+        externalReport.ExceptionClassification.Should().Be("ExternalComponentException");
+        externalReport.Exceptions[0].Type.Should().Be("ExternalComponentException");
     }
 
     public void Dispose()

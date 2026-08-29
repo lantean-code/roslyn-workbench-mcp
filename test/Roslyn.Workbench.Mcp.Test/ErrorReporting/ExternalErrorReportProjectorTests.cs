@@ -5,8 +5,22 @@ namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
 
 public sealed class ExternalErrorReportProjectorTests
 {
+    public static TheoryData<string?, string?> SourcePaths
+    {
+        get
+        {
+            return new TheoryData<string?, string?>
+            {
+                { "/source/ServerStatusTool.cs", "ServerStatusTool.cs" },
+                { @"C:\source\ServerStatusTool.cs", "ServerStatusTool.cs" },
+                { "ServerStatusTool.cs", "ServerStatusTool.cs" },
+                { null, null },
+            };
+        }
+    }
+
     [Fact]
-    public void GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldIncludeOnlyAllowListedAnonymousData()
+    public void GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldExcludeExternalImplementationDetails()
     {
         var workspaceIdentity = new WorkspaceIdentity
         {
@@ -62,19 +76,24 @@ public sealed class ExternalErrorReportProjectorTests
         result.ReportId.Should().Be("report-id");
         result.Tool.Should().Be("external-plugin-tool");
         result.ExceptionClassification.Should().Be("ExternalComponentException");
-        result.StackFrames.Should().BeEmpty();
+        result.Exceptions.Should().ContainSingle();
+        result.Exceptions[0].Type.Should().Be("ExternalComponentException");
+        result.Exceptions[0].Message.Should().Be("token=secret /home/user/private/repository.cs");
+        result.Exceptions[0].StackFrames.Should().BeEmpty();
         result.Workspace!.WorkspaceEpoch.Should().Be(7);
         var serialized = JsonSerializer.Serialize(result);
         serialized.Should().NotContain("11111111-1111-1111-1111-111111111111");
         serialized.Should().NotContain("cccccccc-cccc-cccc-cccc-cccccccccccc");
         serialized.Should().NotContain("private-company-tool");
-        serialized.Should().NotContain("token=secret");
-        serialized.Should().NotContain("/home/user");
+        serialized.Should().Contain("token=secret");
         serialized.Should().NotContain("Private.Company");
     }
 
-    [Fact]
-    public void GIVEN_HostAndRoslynFrames_WHEN_Projecting_THEN_ShouldRetainApprovedFrameCategoriesWithoutPaths()
+    [Theory]
+    [MemberData(nameof(SourcePaths))]
+    public void GIVEN_HostAndRoslynFrames_WHEN_Projecting_THEN_ShouldRetainOnlyPortableFileName(
+        string? sourcePath,
+        string? expectedFileName)
     {
         var record = CreateRecord(
             exceptions:
@@ -83,6 +102,7 @@ public sealed class ExternalErrorReportProjectorTests
                 {
                     Type = "System.InvalidOperationException",
                     Message = "Message",
+                    Component = ErrorReportComponent.DotNet,
                     StackFrames =
                     [
                         new CapturedStackFrame
@@ -90,14 +110,16 @@ public sealed class ExternalErrorReportProjectorTests
                             Assembly = "Roslyn.Workbench.Mcp",
                             Type = "Roslyn.Workbench.Mcp.Tools.ServerStatusTool",
                             Method = "ExecuteAsync",
-                            File = "/source/ServerStatusTool.cs",
+                            File = sourcePath,
                             Line = 10,
+                            Component = ErrorReportComponent.RoslynWorkbench,
                         },
                         new CapturedStackFrame
                         {
                             Assembly = "Microsoft.CodeAnalysis.Workspaces",
                             Type = "Microsoft.CodeAnalysis.Workspace",
                             Method = "ApplyChanges",
+                            Component = ErrorReportComponent.Roslyn,
                         },
                     ],
                 },
@@ -108,11 +130,53 @@ public sealed class ExternalErrorReportProjectorTests
         var result = target.Project(record, "report-id");
 
         result.ExceptionClassification.Should().Be("DotNetException");
-        result.StackFrames.Select(item => item.Component).Should().Equal("RoslynWorkbench", "Roslyn");
+        result.Exceptions.Should().ContainSingle();
+        result.Exceptions[0].Message.Should().Be("Message");
+        result.Exceptions[0].StackFrames.Select(item => item.Component).Should().Equal(
+            ErrorReportComponent.RoslynWorkbench,
+            ErrorReportComponent.Roslyn);
+        result.Exceptions[0].StackFrames[0].File.Should().Be(expectedFileName);
+        result.Exceptions[0].StackFrames[0].Line.Should().Be(10);
+        result.Exceptions[0].StackFrames[1].File.Should().BeNull();
+        result.Exceptions[0].StackFrames[1].Line.Should().BeNull();
         var serialized = JsonSerializer.Serialize(result);
-        serialized.Should().NotContain("/source/ServerStatusTool.cs");
-        serialized.Should().NotContain("ServerStatusTool");
-        serialized.Should().NotContain("ExecuteAsync");
+        if (sourcePath is not null && !string.Equals(sourcePath, expectedFileName, StringComparison.Ordinal))
+        {
+            serialized.Should().NotContain(sourcePath);
+        }
+
+        serialized.Should().Contain("ServerStatusTool");
+        serialized.Should().Contain("ExecuteAsync");
+    }
+
+    [Theory]
+    [InlineData(null, (int)ErrorReportComponent.Unknown, "UnexpectedFailure")]
+    [InlineData("System.InvalidOperationException", (int)ErrorReportComponent.DotNet, "DotNetException")]
+    [InlineData("Microsoft.CodeAnalysis.WorkspaceException", (int)ErrorReportComponent.Roslyn, "RoslynException")]
+    [InlineData("Microsoft.CodeAnalysis.LookalikeException", (int)ErrorReportComponent.Unknown, "ExternalComponentException")]
+    [InlineData("Roslyn.Workbench.Mcp.WorkbenchException", (int)ErrorReportComponent.RoslynWorkbench, "RoslynWorkbenchException")]
+    public void GIVEN_ExceptionCategory_WHEN_Projecting_THEN_ShouldPublishExpectedClassification(
+        string? type,
+        int componentValue,
+        string expectedClassification)
+    {
+        var exceptions = type is null
+            ? ImmutableArray<CapturedException>.Empty
+            :
+            [
+                new CapturedException
+                {
+                    Type = type,
+                    Message = "Message",
+                    Component = (ErrorReportComponent)componentValue,
+                },
+            ];
+        var target = new ExternalErrorReportProjector();
+
+        var result = target.Project(CreateRecord(exceptions), "report-id");
+
+        result.ExceptionClassification.Should().Be(expectedClassification);
+        result.Exceptions.Should().HaveCount(exceptions.Length);
     }
 
     private static CapturedErrorRecord CreateRecord(

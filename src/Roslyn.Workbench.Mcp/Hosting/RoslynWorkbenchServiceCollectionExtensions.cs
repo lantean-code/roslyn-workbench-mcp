@@ -196,9 +196,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IExternalErrorReportProjector, ExternalErrorReportProjector>();
         services.AddBoundedExpiringStore<string, PreparedSubmission, PreparedSubmissionRetentionPolicy>();
         services.AddSingleton<IPreparedSubmissionStore, PreparedSubmissionStore>();
-        services.AddSingleton<IErrorReportingConsentStore, ErrorReportingConsentStore>();
         services.AddSingleton<IErrorReportingConsentService, ErrorReportingConsentService>();
-        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver, ErrorReportingConsentLifecycleObserver>();
         services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
         AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();

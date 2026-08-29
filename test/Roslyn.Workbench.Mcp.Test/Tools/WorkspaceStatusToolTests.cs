@@ -57,6 +57,7 @@ public sealed class WorkspaceStatusToolTests
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var consentService = new Mock<IErrorReportingConsentService>();
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
         var boundRequest = new WorkspaceStatusRequest
         {
             Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
@@ -99,6 +100,7 @@ public sealed class WorkspaceStatusToolTests
         data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(9);
         data.GetProperty("instances")[0].GetProperty("instanceId").GetString().Should().Be("other-instance");
         data.GetProperty("instances")[0].GetProperty("commitPhase").GetString().Should().Be("Applying");
+        data.GetProperty("errorReportingConsent").GetString().Should().Be("PromptRequired");
         service.Verify(item => item.GetStatusAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

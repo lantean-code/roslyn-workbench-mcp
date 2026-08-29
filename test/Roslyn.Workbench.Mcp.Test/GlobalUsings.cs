@@ -14,6 +14,7 @@ global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.Contracts.Server;
 global using Roslyn.Workbench.Mcp.Contracts.Transactions;
 global using Roslyn.Workbench.Mcp.Contracts.Validation;
+global using Roslyn.Workbench.Mcp.ErrorReporting;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Availability;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Configuration;

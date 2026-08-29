@@ -68,9 +68,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             ExternalChange = externalChange,
             Instances = outcome.Instances,
             ErrorReportingConsent = _errorReportingConsentService
-                .GetState(
-                    outcome.Workspace.WorkspaceId,
-                    outcome.Workspace.WorkspaceEpoch)
+                .GetState()
                 .ToString(),
         };
     }

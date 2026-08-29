@@ -45,7 +45,11 @@ public sealed class GetErrorDetailsToolTests
         var data = result.StructuredContent!.Value.GetProperty("data");
         data.GetProperty("sensitivity").GetString().Should().Be("LocalDiagnostic");
         data.GetProperty("safeForExternalSubmission").GetBoolean().Should().BeFalse();
-        data.GetProperty("error").GetProperty("correlationId").GetGuid().Should().Be(correlationId);
+        var error = data.GetProperty("error");
+        error.GetProperty("correlationId").GetGuid().Should().Be(correlationId);
+        error.GetProperty("exceptions")[0].GetProperty("component").GetString().Should().Be("DotNet");
+        error.GetProperty("exceptions")[0].GetProperty("stackFrames")[0]
+            .GetProperty("component").GetString().Should().Be("RoslynWorkbench");
     }
 
     [Fact]
@@ -147,6 +151,22 @@ public sealed class GetErrorDetailsToolTests
             ExecutionFamily = "ServerOwned",
             PluginClassification = "Host",
             DurationMilliseconds = 1,
+            Exceptions =
+            [
+                new CapturedException
+                {
+                    Component = ErrorReportComponent.DotNet,
+                    Type = "System.InvalidOperationException",
+                    Message = "Message",
+                    StackFrames =
+                    [
+                        new CapturedStackFrame
+                        {
+                            Component = ErrorReportComponent.RoslynWorkbench,
+                        },
+                    ],
+                },
+            ],
             ServerVersion = "ServerVersion",
             RoslynVersion = "RoslynVersion",
             DotNetVersion = "DotNetVersion",

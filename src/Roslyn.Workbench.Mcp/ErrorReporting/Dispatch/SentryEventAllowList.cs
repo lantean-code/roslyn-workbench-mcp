@@ -22,6 +22,7 @@ internal static class SentryEventAllowList
         "logger",
         "fingerprint",
         "logentry",
+        "exception",
     ];
 
     public static SentryEvent CreateAllowedCopy(SentryEvent source)
@@ -35,8 +36,11 @@ internal static class SentryEventAllowList
 
         foreach (var propertyName in _allowedTopLevelProperties)
         {
-            writer.WritePropertyName(propertyName);
-            sourceRoot.GetProperty(propertyName).WriteTo(writer);
+            if (sourceRoot.TryGetProperty(propertyName, out var property))
+            {
+                writer.WritePropertyName(propertyName);
+                property.WriteTo(writer);
+            }
         }
 
         if (sourceRoot.TryGetProperty("contexts", out var contexts)

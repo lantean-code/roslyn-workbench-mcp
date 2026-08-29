@@ -35,7 +35,10 @@ public sealed class SentryOutboundEnvelopeIntegrationTests
         var target = new SentryErrorReportDispatcher(client, configuration);
         var payload = target.CreatePayload(CreateReport());
 
-        var result = await target.DispatchAsync(payload, TestContext.Current.CancellationToken);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            TestContext.Current.CancellationToken);
         await client.FlushAsync(TimeSpan.FromSeconds(5));
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Accepted);
@@ -44,7 +47,14 @@ public sealed class SentryOutboundEnvelopeIntegrationTests
         var envelopeLines = envelopeJson.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         envelopeLines.Should().HaveCount(3);
         using var eventDocument = JsonDocument.Parse(envelopeLines[2]);
-        eventDocument.RootElement.GetRawText().Should().Be(payload.PreviewJson);
+        var eventRoot = eventDocument.RootElement;
+        eventRoot.GetRawText().Should().Be(payload.PreviewJson);
+        eventRoot.GetProperty("exception").GetProperty("values").EnumerateArray()
+            .Select(item => item.GetProperty("type").GetString())
+            .Should().Equal("InnerException", "System.InvalidOperationException");
+        eventRoot.GetProperty("contexts").GetProperty("roslyn_workbench").GetProperty("exceptions").EnumerateArray()
+            .Select(item => item.GetProperty("type").GetString())
+            .Should().Equal("System.InvalidOperationException", "InnerException");
         envelopeJson.Should().NotContain("threads");
         envelopeJson.Should().NotContain("modules");
         envelopeJson.Should().NotContain("runtime");
@@ -66,10 +76,37 @@ public sealed class SentryOutboundEnvelopeIntegrationTests
             PluginClassification = "Host",
             DurationMilliseconds = 25,
             ExceptionClassification = "System.InvalidOperationException",
-            StackFrames =
+            Exceptions =
             [
-                new ExternalStackFrame { Component = "RoslynWorkbench" },
-                new ExternalStackFrame { Component = "Roslyn" },
+                new ExternalException
+                {
+                    Type = "System.InvalidOperationException",
+                    Message = "Diagnostic message",
+                    StackFrames =
+                    [
+                        new ExternalStackFrame
+                        {
+                            Component = ErrorReportComponent.RoslynWorkbench,
+                            Assembly = "Roslyn.Workbench.Mcp",
+                            Type = "Roslyn.Workbench.Mcp.Tools.ServerStatusTool",
+                            Method = "ExecuteAsync",
+                            File = "ServerStatusTool.cs",
+                            Line = 42,
+                        },
+                        new ExternalStackFrame
+                        {
+                            Component = ErrorReportComponent.Roslyn,
+                            Assembly = "Microsoft.CodeAnalysis.Workspaces",
+                            Type = "Microsoft.CodeAnalysis.Workspace",
+                            Method = "ApplyChanges",
+                        },
+                    ],
+                },
+                new ExternalException
+                {
+                    Type = "InnerException",
+                    Message = "Inner diagnostic message",
+                },
             ],
             ServerVersion = "ServerVersion",
             RoslynVersion = "RoslynVersion",

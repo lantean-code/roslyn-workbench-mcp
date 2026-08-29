@@ -102,7 +102,7 @@ Plugin providers are disposed in reverse materialisation order. External assembl
 - Identical misses are coalesced. Null, disposable, failed and cancelled public plugin-cache values are not retained.
 - Code Action references use a bounded absolute-expiry memory cache, defaulting to five minutes, indexed by Workspace, epoch, transaction and snapshot.
 - Captured errors and prepared submissions use separate bounded, expiring, process-local stores.
-- Reporting consent is process-local; Workspace consent is additionally bound to Workspace ID and epoch.
+- Reporting consent is configured process-wide as `never`, `prompt` or `always`. Prompt mode obtains approval independently for each prepared report through MCP elicitation and creates no Workspace or session override.
 
 ## Major subsystems
 

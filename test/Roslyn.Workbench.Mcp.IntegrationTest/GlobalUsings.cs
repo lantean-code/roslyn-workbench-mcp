@@ -10,6 +10,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Policy;
 global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.Contracts.Server;
 global using Roslyn.Workbench.Mcp.Contracts.Transactions;
+global using Roslyn.Workbench.Mcp.ErrorReporting;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Consent;
 global using Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 global using Roslyn.Workbench.Mcp.Hosting;

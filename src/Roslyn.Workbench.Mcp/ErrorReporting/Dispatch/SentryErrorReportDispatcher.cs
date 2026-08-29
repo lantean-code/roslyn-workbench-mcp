@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sentry;
+using Sentry.Protocol;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 
@@ -14,10 +16,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
     private const string _messageTemplate = "Roslyn Workbench reported {0} in {1}.";
     private static readonly CompositeFormat _messageFormat = CompositeFormat.Parse(_messageTemplate);
 
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    private static readonly JsonSerializerOptions _serializerOptions = CreateSerializerOptions();
 
     private readonly ISentryClient _client;
     private readonly SentryProviderConfiguration _configuration;
@@ -37,6 +36,11 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
     public PreparedDispatchPayload CreatePayload(ExternalErrorReport report)
     {
         var sentryEvent = CreateSentryEvent(report);
+        return CreatePayload(report, sentryEvent);
+    }
+
+    private PreparedDispatchPayload<SentryEvent> CreatePayload(ExternalErrorReport report, SentryEvent sentryEvent)
+    {
         var allowedEvent = SentryEventAllowList.CreateAllowedCopy(sentryEvent);
         var bytes = SentryEventJsonSerializer.Serialize(allowedEvent);
         var previewJson = Encoding.UTF8.GetString(bytes.AsSpan());
@@ -55,6 +59,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 
     public ValueTask<ErrorDispatchResult> DispatchAsync(
         PreparedDispatchPayload payload,
+        ExceptionMessageHandling messageHandling,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -71,7 +76,23 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
             });
         }
 
-        var sentryEvent = SentryEventAllowList.CreateAllowedCopy(preparedPayload.DispatchState);
+        var dispatchPayload = messageHandling switch
+        {
+            ExceptionMessageHandling.Include => preparedPayload,
+            ExceptionMessageHandling.Remove => RemoveExceptionMessages(preparedPayload),
+            _ => null,
+        };
+        if (dispatchPayload is null)
+        {
+            return ValueTask.FromResult(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Rejected,
+                ErrorCode = "InvalidExceptionMessageHandling",
+                ErrorMessage = "The requested exception-message handling mode is not supported.",
+            });
+        }
+
+        var sentryEvent = SentryEventAllowList.CreateAllowedCopy(dispatchPayload.DispatchState);
 
         var eventId = _client.CaptureEvent(sentryEvent, scope: null, hint: null);
         if (eventId == SentryId.Empty)
@@ -88,7 +109,22 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         {
             Outcome = ErrorDispatchOutcome.Accepted,
             ReportReference = eventId.ToString(),
+            PayloadDigest = Convert.ToHexStringLower(
+                SHA256.HashData(dispatchPayload.PreviewBytes.AsSpan())),
         });
+    }
+
+    private PreparedDispatchPayload<SentryEvent> RemoveExceptionMessages(
+        PreparedDispatchPayload<SentryEvent> preparedPayload)
+    {
+        var redactedReport = ExternalErrorReportRedactor.RemoveExceptionMessages(preparedPayload.Report);
+        var redactedEvent = SentryEventAllowList.CreateAllowedCopy(preparedPayload.DispatchState);
+        redactedEvent.SentryExceptions = CreateSentryExceptions(redactedReport);
+        redactedEvent.Contexts["roslyn_workbench"] = JsonSerializer.SerializeToElement(
+            redactedReport,
+            _serializerOptions);
+
+        return CreatePayload(redactedReport, redactedEvent);
     }
 
     private static SentryEvent CreateSentryEvent(ExternalErrorReport report)
@@ -106,6 +142,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
                 Params = messageParams,
                 Formatted = CreateFormattedMessage(messageParams),
             },
+            SentryExceptions = CreateSentryExceptions(report),
         };
         sentryEvent.Contexts["roslyn_workbench"] = JsonSerializer.SerializeToElement(report, _serializerOptions);
         return sentryEvent;
@@ -123,16 +160,76 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 
     private static ImmutableArray<string> CreateFingerprint(ExternalErrorReport report)
     {
-        var fingerprint = ImmutableArray.CreateBuilder<string>(4 + report.StackFrames.Length);
+        var fingerprint = ImmutableArray.CreateBuilder<string>();
         fingerprint.Add("roslyn-workbench");
         fingerprint.Add(report.Tool);
         fingerprint.Add(report.ExceptionClassification);
         fingerprint.Add(report.ExecutionFamily);
-        foreach (var frame in report.StackFrames)
+        foreach (var exception in report.Exceptions)
         {
-            fingerprint.Add(frame.Component);
+            foreach (var frame in exception.StackFrames)
+            {
+                fingerprint.Add(frame.Component.ToString());
+            }
         }
 
         return fingerprint.ToImmutable();
+    }
+
+    private static List<SentryException> CreateSentryExceptions(ExternalErrorReport report)
+    {
+        var exceptions = new List<SentryException>(report.Exceptions.Length);
+        for (var index = report.Exceptions.Length - 1; index >= 0; index--)
+        {
+            var exception = report.Exceptions[index];
+            exceptions.Add(new SentryException
+            {
+                Type = exception.Type,
+                Value = exception.Message,
+                Stacktrace = CreateSentryStackTrace(exception.StackFrames),
+            });
+        }
+
+        return exceptions;
+    }
+
+    private static SentryStackTrace? CreateSentryStackTrace(ImmutableArray<ExternalStackFrame> frames)
+    {
+        if (frames.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        var sentryFrames = new List<SentryStackFrame>(frames.Length);
+        for (var index = frames.Length - 1; index >= 0; index--)
+        {
+            var frame = frames[index];
+            sentryFrames.Add(new SentryStackFrame
+            {
+                Package = frame.Assembly,
+                Module = frame.Type,
+                Function = frame.Method,
+                FileName = frame.File,
+                LineNumber = frame.Line,
+                InApp = frame.Component == ErrorReportComponent.RoslynWorkbench,
+            });
+        }
+
+        return new SentryStackTrace
+        {
+            Frames = sentryFrames,
+        };
+    }
+
+    private static JsonSerializerOptions CreateSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+        options.Converters.Add(new JsonStringEnumConverter(
+            namingPolicy: null,
+            allowIntegerValues: false));
+        return options;
     }
 }

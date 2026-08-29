@@ -9,14 +9,19 @@ internal sealed class PrepareErrorReportTool :
 {
     private static readonly IReadOnlyList<string> _excludedCategories =
     [
-        "source text and document contents",
-        "user-authored identifiers and paths",
-        "repository, solution and project identity",
-        "user, machine and stable installation identity",
-        "environment variables and process command lines",
-        "credentials, tokens and secrets",
-        "agent prompts and conversation content",
-        "raw logs and arbitrary exception messages",
+        "dedicated source text and document content fields",
+        "dedicated user-authored identifier and path fields",
+        "dedicated repository, solution and project identity fields",
+        "dedicated user, machine and stable installation identity fields",
+        "dedicated environment variable and process command-line fields",
+        "dedicated credential, token and secret fields",
+        "dedicated agent prompt and conversation content fields",
+        "dedicated raw log fields",
+    ];
+
+    private static readonly IReadOnlyList<string> _reviewWarnings =
+    [
+        "Exception messages are bounded but otherwise unfiltered reviewed content and may contain source text, paths, identifiers, credentials, tokens or secrets.",
     ];
 
     private readonly ErrorReportingOptions _options;
@@ -44,7 +49,7 @@ internal sealed class PrepareErrorReportTool :
             requestBinder,
             ServerOwnedToolRegistration.PrepareErrorReportName,
             "Prepare Error Report",
-            "Creates the complete sanitised external payload without network activity. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required.",
+            "Creates the complete external payload without network activity. Exception messages may contain Workspace data. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required; the user can choose to remove exception messages during submission.",
             readOnly: true,
             destructive: false,
             idempotent: false)
@@ -78,9 +83,7 @@ internal sealed class PrepareErrorReportTool :
         if (!availability.CanPrepare)
         {
             return ValueTask.FromResult(CreateFailure(
-                availability.State == ErrorReportingState.SuppressedForSession
-                    ? "ErrorReportingSuppressed"
-                    : "ErrorReportingUnavailable",
+                "ErrorReportingUnavailable",
                 $"Error reporting is unavailable because its current state is {availability.State}."));
         }
 
@@ -125,6 +128,7 @@ internal sealed class PrepareErrorReportTool :
             ExpiresAt = submission.ExpiresAt,
             PayloadJson = payload.PreviewJson,
             ExcludedCategories = _excludedCategories,
+            ReviewWarnings = _reviewWarnings,
         };
 
         return ValueTask.FromResult(ToolResult.Succeeded(data));

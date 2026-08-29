@@ -31,7 +31,7 @@ internal sealed class ExternalErrorReportProjector : IExternalErrorReportProject
             DurationMilliseconds = record.DurationMilliseconds,
             CancellationRequested = record.CancellationRequested,
             ExceptionClassification = ClassifyException(record.Exceptions),
-            StackFrames = ProjectStackFrames(record.Exceptions),
+            Exceptions = ProjectExceptions(record.Exceptions),
             Workspace = workspace,
             ServerVersion = record.ServerVersion,
             RoslynVersion = record.RoslynVersion,
@@ -48,26 +48,20 @@ internal sealed class ExternalErrorReportProjector : IExternalErrorReportProject
             return "UnexpectedFailure";
         }
 
-        var type = exceptions[0].Type;
-        if (type.StartsWith("System.", StringComparison.Ordinal))
+        switch (exceptions[0].Component)
         {
-            return "DotNetException";
+            case ErrorReportComponent.DotNet:
+                return "DotNetException";
+            case ErrorReportComponent.Roslyn:
+                return "RoslynException";
+            case ErrorReportComponent.RoslynWorkbench:
+                return "RoslynWorkbenchException";
+            default:
+                return "ExternalComponentException";
         }
-
-        if (type.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal))
-        {
-            return "RoslynException";
-        }
-
-        if (type.StartsWith("Roslyn.Workbench.", StringComparison.Ordinal))
-        {
-            return "RoslynWorkbenchException";
-        }
-
-        return "ExternalComponentException";
     }
 
-    private static ImmutableArray<ExternalStackFrame> ProjectStackFrames(
+    private static ImmutableArray<ExternalException> ProjectExceptions(
         ImmutableArray<CapturedException> exceptions)
     {
         if (exceptions.IsDefaultOrEmpty)
@@ -75,47 +69,82 @@ internal sealed class ExternalErrorReportProjector : IExternalErrorReportProject
             return [];
         }
 
-        var frames = ImmutableArray.CreateBuilder<ExternalStackFrame>();
-        foreach (var frame in exceptions[0].StackFrames)
+        var projected = ImmutableArray.CreateBuilder<ExternalException>(exceptions.Length);
+        foreach (var exception in exceptions)
         {
-            var component = ClassifyComponent(frame.Assembly);
-            if (component is null)
+            projected.Add(new ExternalException
+            {
+                Type = ProjectExceptionType(exception),
+                Message = exception.Message,
+                StackFrames = ProjectStackFrames(exception.StackFrames),
+            });
+        }
+
+        return projected.ToImmutable();
+    }
+
+    private static string ProjectExceptionType(CapturedException exception)
+    {
+        return exception.Component == ErrorReportComponent.Unknown
+            ? "ExternalComponentException"
+            : exception.Type;
+    }
+
+    private static ImmutableArray<ExternalStackFrame> ProjectStackFrames(
+        ImmutableArray<CapturedStackFrame> frames)
+    {
+        var projected = ImmutableArray.CreateBuilder<ExternalStackFrame>(frames.Length);
+        foreach (var frame in frames)
+        {
+            var component = frame.Component;
+            if (component == ErrorReportComponent.Unknown)
             {
                 continue;
             }
 
-            frames.Add(new ExternalStackFrame
-            {
-                Component = component,
-            });
+            projected.Add(ProjectStackFrame(frame, component));
         }
 
-        return frames.ToImmutable();
+        return projected.ToImmutable();
     }
 
-    private static string? ClassifyComponent(string? assembly)
+    private static ExternalStackFrame ProjectStackFrame(
+        CapturedStackFrame frame,
+        ErrorReportComponent component)
     {
-        if (assembly is null)
+        string? file = null;
+        int? line = null;
+        if (component == ErrorReportComponent.RoslynWorkbench)
+        {
+            file = GetSafeFileName(frame.File);
+            line = frame.Line;
+        }
+
+        return new ExternalStackFrame
+        {
+            Component = component,
+            Assembly = frame.Assembly,
+            Type = frame.Type,
+            Method = frame.Method,
+            File = file,
+            Line = line,
+        };
+    }
+
+    private static string? GetSafeFileName(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
         {
             return null;
         }
 
-        if (assembly.StartsWith("Roslyn.Workbench.", StringComparison.Ordinal))
-        {
-            return "RoslynWorkbench";
-        }
+        // PDB paths can originate on a different operating system, so recognise both separator styles.
+        var windowsSeparatorIndex = path.LastIndexOf('\\');
+        var unixSeparatorIndex = path.LastIndexOf('/');
+        var separatorIndex = Math.Max(windowsSeparatorIndex, unixSeparatorIndex);
 
-        if (assembly.StartsWith("Microsoft.CodeAnalysis", StringComparison.Ordinal))
-        {
-            return "Roslyn";
-        }
-
-        if (assembly.StartsWith("System.", StringComparison.Ordinal)
-            || string.Equals(assembly, "System.Private.CoreLib", StringComparison.Ordinal))
-        {
-            return "DotNet";
-        }
-
-        return null;
+        return separatorIndex < 0
+            ? path
+            : path[(separatorIndex + 1)..];
     }
 }

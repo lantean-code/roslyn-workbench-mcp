@@ -6,5 +6,5 @@ internal sealed record ErrorReportingStatusData
 
     public required string ConsentMode { get; init; }
 
-    public required string SessionConsentState { get; init; }
+    public required string ConsentState { get; init; }
 }

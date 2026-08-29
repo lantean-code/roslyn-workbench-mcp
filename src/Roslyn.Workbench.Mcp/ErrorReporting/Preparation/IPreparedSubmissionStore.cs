@@ -10,6 +10,8 @@ internal interface IPreparedSubmissionStore
 
     SubmissionAcquisition TryBeginSubmission(string handle);
 
+    bool TryConfirmSubmission(string handle);
+
     void Complete(string handle, ErrorSubmissionReceipt receipt);
 
     void ReleaseForRetry(string handle);

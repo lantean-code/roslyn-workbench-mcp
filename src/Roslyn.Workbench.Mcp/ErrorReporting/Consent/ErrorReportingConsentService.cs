@@ -1,31 +1,31 @@
+using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Consent;
 
 internal sealed class ErrorReportingConsentService : IErrorReportingConsentService
 {
-    private readonly IErrorReportingConsentStore _store;
+    private readonly ErrorReportingConsentMode _consentMode;
 
-    public ErrorReportingConsentService(IErrorReportingConsentStore store)
+    public ErrorReportingConsentService(IOptions<ErrorReportingOptions> options)
     {
-        _store = store;
+        _consentMode = options.Value.ConsentMode;
     }
 
-    public ErrorReportingConsentState GetState(Guid? workspaceId, long? workspaceEpoch)
+    public ErrorReportingConsentState GetState()
     {
-        return _store.GetState(workspaceId, workspaceEpoch);
-    }
+        switch (_consentMode)
+        {
+            case ErrorReportingConsentMode.Never:
+                return ErrorReportingConsentState.Disabled;
 
-    public void AllowWorkspace(Guid workspaceId, long workspaceEpoch)
-    {
-        _store.AllowWorkspace(workspaceId, workspaceEpoch);
-    }
+            case ErrorReportingConsentMode.Prompt:
+                return ErrorReportingConsentState.PromptRequired;
 
-    public void AllowSession()
-    {
-        _store.AllowSession();
-    }
+            case ErrorReportingConsentMode.Always:
+                return ErrorReportingConsentState.AlwaysApproved;
 
-    public void SuppressSession()
-    {
-        _store.SuppressSession();
+            default:
+                return ErrorReportingConsentState.Disabled;
+        }
     }
 }

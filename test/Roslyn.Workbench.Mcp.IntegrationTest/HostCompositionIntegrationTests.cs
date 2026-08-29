@@ -96,10 +96,6 @@ public sealed class HostCompositionIntegrationTests
         var errorReportingConsentRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(IErrorReportingConsentService));
 
-        var errorReportingConsentObserverRegistration = builder.Services.Single(
-            static descriptor => descriptor.ServiceType == typeof(IWorkspaceSnapshotLifecycleObserver)
-                && descriptor.ImplementationType == typeof(ErrorReportingConsentLifecycleObserver));
-
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
         var pluginCatalogState = host.Services.GetRequiredService<IPluginCatalogState>();
@@ -134,7 +130,6 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<ICodeActionBuiltInAnalyzerIndex>().Should().BeOfType<CodeActionBuiltInAnalyzerIndex>();
         lifecycleObservers.Should().Contain(item => item is PluginQueryCacheLifecycleObserver);
         lifecycleObservers.Should().Contain(item => item is CodeActionReferenceLifecycleObserver);
-        lifecycleObservers.Should().Contain(item => item is ErrorReportingConsentLifecycleObserver);
         host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();
         host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();
@@ -146,8 +141,6 @@ public sealed class HostCompositionIntegrationTests
         builtInAnalyzerIndexRegistration.ImplementationType.Should().Be<CodeActionBuiltInAnalyzerIndex>();
         workspaceFactoryRegistration.ImplementationType.Should().Be<HostConfiguredMsBuildWorkspaceFactory>();
         errorReportingConsentRegistration.ImplementationType.Should().Be<ErrorReportingConsentService>();
-        errorReportingConsentObserverRegistration.ImplementationType.Should().Be<ErrorReportingConsentLifecycleObserver>();
-
         mcpTools.Should().HaveCount(
             codeActionCatalogSnapshot.Tools.Count
             + ServerOwnedToolRegistration.GetPublishedToolCount(

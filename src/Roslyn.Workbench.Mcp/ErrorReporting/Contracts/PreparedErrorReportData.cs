@@ -15,4 +15,6 @@ internal sealed record PreparedErrorReportData
     public required string PayloadJson { get; init; }
 
     public IReadOnlyList<string> ExcludedCategories { get; init; } = [];
+
+    public IReadOnlyList<string> ReviewWarnings { get; init; } = [];
 }

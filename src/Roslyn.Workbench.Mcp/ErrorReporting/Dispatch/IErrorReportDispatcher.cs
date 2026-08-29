@@ -10,5 +10,6 @@ internal interface IErrorReportDispatcher
 
     ValueTask<ErrorDispatchResult> DispatchAsync(
         PreparedDispatchPayload payload,
+        ExceptionMessageHandling messageHandling,
         CancellationToken cancellationToken);
 }

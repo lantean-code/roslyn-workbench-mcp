@@ -1,8 +1,14 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions;
+using Roslyn.Workbench.Mcp.Plugins.AssemblyIdentity;
+using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
@@ -14,6 +20,16 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
     private const int _maximumNameLength = 256;
     private const int _maximumPathLength = 1_024;
     private const string _bundledPluginId = "roslyn.workbench.core";
+
+    private static readonly ImmutableArray<Assembly> _firstPartyAssemblies =
+    [
+        typeof(HostAssemblyMarker).Assembly,
+        typeof(AbstractionsAssemblyMarker).Assembly,
+        typeof(WorkspaceAssemblyMarker).Assembly,
+        typeof(CodeActionsAssemblyMarker).Assembly,
+        typeof(PluginsAssemblyMarker).Assembly,
+        typeof(PluginsCoreAssemblyMarker).Assembly,
+    ];
 
     private static readonly string _serverVersion =
         typeof(ErrorCaptureService).Assembly.GetName().Version?.ToString() ?? "unknown";
@@ -196,6 +212,7 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         {
             exceptions.Add(new CapturedException
             {
+                Component = ClassifyAssembly(current.GetType().Assembly),
                 Type = Truncate(current.GetType().FullName ?? current.GetType().Name, _maximumNameLength),
                 Message = Truncate(current.Message, _maximumMessageLength),
                 StackFrames = CaptureStackFrames(current),
@@ -221,11 +238,13 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         foreach (var frame in frames.Take(_maximumFramesPerException))
         {
             var method = frame.GetMethod();
-            var assembly = method?.DeclaringType?.Assembly.GetName().Name;
+            var declaringAssembly = method?.DeclaringType?.Assembly;
+            var assembly = declaringAssembly?.GetName().Name;
             var line = frame.GetFileLineNumber();
 
             captured.Add(new CapturedStackFrame
             {
+                Component = ClassifyAssembly(declaringAssembly),
                 Assembly = TruncateNullable(assembly, _maximumNameLength),
                 Type = TruncateNullable(method?.DeclaringType?.FullName, _maximumNameLength),
                 Method = TruncateNullable(method?.Name, _maximumNameLength),
@@ -235,6 +254,43 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         }
 
         return captured.MoveToImmutable();
+    }
+
+    private static ErrorReportComponent ClassifyAssembly(Assembly? assembly)
+    {
+        if (assembly is null)
+        {
+            return ErrorReportComponent.Unknown;
+        }
+
+        foreach (var firstPartyAssembly in _firstPartyAssemblies)
+        {
+            if (ReferenceEquals(assembly, firstPartyAssembly))
+            {
+                return ErrorReportComponent.RoslynWorkbench;
+            }
+        }
+
+        // External plugins can choose framework-like assembly names. Only assemblies resolved through the
+        // Host's default load context are eligible for framework or Roslyn implementation detail disclosure.
+        if (AssemblyLoadContext.GetLoadContext(assembly) != AssemblyLoadContext.Default)
+        {
+            return ErrorReportComponent.Unknown;
+        }
+
+        var assemblyName = assembly.GetName().Name;
+        if (assemblyName?.StartsWith("Microsoft.CodeAnalysis", StringComparison.Ordinal) == true)
+        {
+            return ErrorReportComponent.Roslyn;
+        }
+
+        if (assemblyName?.StartsWith("System.", StringComparison.Ordinal) == true
+            || string.Equals(assemblyName, "System.Private.CoreLib", StringComparison.Ordinal))
+        {
+            return ErrorReportComponent.DotNet;
+        }
+
+        return ErrorReportComponent.Unknown;
     }
 
     private static string GetOperatingSystemFamily()

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,8 @@ public sealed class LoggingErrorReportDispatcherTests
         previewRoot.GetProperty("message").GetString().Should().Be(
             $"Roslyn Workbench reported {report.ExceptionClassification} in {report.Tool}.");
         previewRoot.GetProperty("report").GetProperty("reportId").GetString().Should().Be(report.ReportId);
+        previewRoot.GetProperty("report").GetProperty("exceptions")[0].GetProperty("stackFrames")[0]
+            .GetProperty("component").GetString().Should().Be("RoslynWorkbench");
         logger.VerifyNoOtherCalls();
     }
 
@@ -39,10 +42,14 @@ public sealed class LoggingErrorReportDispatcherTests
         var report = CreateReport();
         var payload = target.CreatePayload(report);
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Accepted);
         result.ReportReference.Should().Be(report.ReportId);
+        result.PayloadDigest.Should().Be(CalculateDigest(payload));
         logger.Verify(item => item.Log(
             LogLevel.Error,
             It.Is<EventId>(eventId => eventId.Id == 1),
@@ -61,7 +68,10 @@ public sealed class LoggingErrorReportDispatcherTests
         var prepared = target.CreatePayload(report);
         var payload = prepared with { ReportId = "different-report-id" };
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
         result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
@@ -86,7 +96,10 @@ public sealed class LoggingErrorReportDispatcherTests
             DispatchState = 1,
         };
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
         result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
@@ -102,10 +115,61 @@ public sealed class LoggingErrorReportDispatcherTests
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
-        var action = async () => await target.DispatchAsync(payload, cancellationSource.Token);
+        var action = async () => await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         logger.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedLoggingPayload_WHEN_DispatchingWithoutMessages_THEN_ShouldLogRedactedPayload()
+    {
+        var logger = new Mock<ILogger<LoggingErrorReportDispatcher>>();
+        logger.Setup(item => item.IsEnabled(LogLevel.Error)).Returns(true);
+        var target = new LoggingErrorReportDispatcher(logger.Object);
+        var original = target.CreatePayload(CreateReport());
+        var expected = target.CreatePayload(
+            ExternalErrorReportRedactor.RemoveExceptionMessages(original.Report));
+
+        var result = await target.DispatchAsync(
+            original,
+            ExceptionMessageHandling.Remove,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Accepted);
+        result.PayloadDigest.Should().Be(CalculateDigest(expected));
+        logger.Verify(item => item.Log(
+            LogLevel.Error,
+            It.Is<EventId>(eventId => eventId.Id == 1),
+            It.Is<It.IsAnyType>((state, _) => IsRedactedReport(state.ToString())),
+            null,
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        original.Report.Exceptions[0].Message.Should().Be("Message");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsupportedMessageHandling_WHEN_Dispatching_THEN_ShouldRejectWithoutLogging()
+    {
+        var logger = new Mock<ILogger<LoggingErrorReportDispatcher>>();
+        var target = new LoggingErrorReportDispatcher(logger.Object);
+        var payload = target.CreatePayload(CreateReport());
+
+        var result = await target.DispatchAsync(
+            payload,
+            (ExceptionMessageHandling)int.MaxValue,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
+        result.ErrorCode.Should().Be("InvalidExceptionMessageHandling");
+        logger.VerifyNoOtherCalls();
+    }
+
+    private static string CalculateDigest(PreparedDispatchPayload payload)
+    {
+        return Convert.ToHexStringLower(SHA256.HashData(payload.PreviewBytes.AsSpan()));
     }
 
     private static ExternalErrorReport CreateReport()
@@ -119,10 +183,18 @@ public sealed class LoggingErrorReportDispatcherTests
             PluginClassification = "Host",
             DurationMilliseconds = 25,
             ExceptionClassification = "System.InvalidOperationException",
-            StackFrames =
+            Exceptions =
             [
-                new ExternalStackFrame { Component = "RoslynWorkbench" },
-                new ExternalStackFrame { Component = "Roslyn" },
+                new ExternalException
+                {
+                    Type = "System.InvalidOperationException",
+                    Message = "Message",
+                    StackFrames =
+                    [
+                        new ExternalStackFrame { Component = ErrorReportComponent.RoslynWorkbench },
+                        new ExternalStackFrame { Component = ErrorReportComponent.Roslyn },
+                    ],
+                },
             ],
             ServerVersion = "ServerVersion",
             RoslynVersion = "RoslynVersion",
@@ -137,5 +209,12 @@ public sealed class LoggingErrorReportDispatcherTests
         return message is not null
             && message.Contains(report.ReportId, StringComparison.Ordinal)
             && message.Contains(report.Tool, StringComparison.Ordinal);
+    }
+
+    private static bool IsRedactedReport(string? message)
+    {
+        return message is not null
+            && !message.Contains("\"message\":\"Message\"", StringComparison.Ordinal)
+            && message.Contains("System.InvalidOperationException", StringComparison.Ordinal);
     }
 }

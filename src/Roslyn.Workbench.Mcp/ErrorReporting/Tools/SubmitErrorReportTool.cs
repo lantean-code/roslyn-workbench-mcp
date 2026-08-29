@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
@@ -10,11 +9,10 @@ internal sealed class SubmitErrorReportTool :
     ServerOwnedToolBase<SubmitErrorReportRequest, SubmittedErrorReportData>
 {
     private const string _choiceProperty = "choice";
-    private const string _submitOnce = "submit-once";
-    private const string _allowWorkspace = "allow-workspace";
-    private const string _allowSession = "allow-session";
-    private const string _decline = "decline";
-    private const string _suppressSession = "suppress-session";
+    private const string _send = "send";
+    private const string _sendWithoutExceptionMessages = "send-without-exception-messages";
+    private const string _doNotSend = "do-not-send";
+    private const string _notApprovedMessage = "No error report was sent. If no consent prompt was displayed, the client may have blocked MCP elicitation. Enable manual MCP approvals, prepare a new report, and try again. If you selected 'No', no further action is required.";
 
     private readonly IPreparedSubmissionStore _store;
     private readonly IErrorReportingConsentService _consentService;
@@ -70,32 +68,6 @@ internal sealed class SubmitErrorReportTool :
         McpServer server,
         CancellationToken cancellationToken)
     {
-        if (!_store.TryGet(request.SubmissionHandle, out var pending))
-        {
-            return CreateFailure(
-                "PreparedReportUnavailable",
-                "The submission handle is unknown or its temporary prepared payload has expired.");
-        }
-
-        // This read authorises the current explicit request and its immutable reviewed payload.
-        // Lifecycle invalidation changes later consent decisions; it does not revoke this request after authorisation.
-        var consentState = _consentService.GetState(pending.WorkspaceId, pending.WorkspaceEpoch);
-        if (consentState == ErrorReportingConsentState.SuppressedForSession)
-        {
-            return CreateFailure(
-                "ErrorReportingSuppressed",
-                "Error reporting has been suppressed for this server session.");
-        }
-
-        if (consentState == ErrorReportingConsentState.PromptRequired)
-        {
-            var consentResult = await RequestConsentAsync(server, pending, cancellationToken);
-            if (consentResult is not null)
-            {
-                return consentResult;
-            }
-        }
-
         var acquisition = _store.TryBeginSubmission(request.SubmissionHandle);
         if (acquisition.Outcome == SubmissionAcquisitionOutcome.UnknownOrExpired)
         {
@@ -118,10 +90,53 @@ internal sealed class SubmitErrorReportTool :
 
         var submission = acquisition.Submission
             ?? throw new InvalidOperationException("An acquired error-report submission must include its prepared payload.");
+
         try
         {
+            var messageHandling = ExceptionMessageHandling.Include;
+            var consentState = _consentService.GetState();
+            if (consentState == ErrorReportingConsentState.Disabled)
+            {
+                _store.ReleaseForRetry(request.SubmissionHandle);
+                return CreateFailure(
+                    "ErrorReportingUnavailable",
+                    "Error reporting is disabled by configuration; nothing was submitted.");
+            }
+
+            if (consentState == ErrorReportingConsentState.PromptRequired)
+            {
+                var consentResult = await RequestConsentAsync(
+                    server,
+                    submission,
+                    cancellationToken);
+
+                if (consentResult.Failure is not null)
+                {
+                    if (consentResult.DiscardSubmission)
+                    {
+                        _store.Discard(request.SubmissionHandle);
+                    }
+                    else
+                    {
+                        _store.ReleaseForRetry(request.SubmissionHandle);
+                    }
+
+                    return consentResult.Failure;
+                }
+
+                messageHandling = consentResult.MessageHandling;
+
+                if (!_store.TryConfirmSubmission(request.SubmissionHandle))
+                {
+                    return CreateFailure(
+                        "PreparedReportUnavailable",
+                        "The submission handle is unknown or its temporary prepared payload has expired.");
+                }
+            }
+
             var dispatchResult = await _dispatcher.DispatchAsync(
                 submission.Payload,
+                messageHandling,
                 cancellationToken);
             if (dispatchResult.Outcome != ErrorDispatchOutcome.Accepted)
             {
@@ -131,7 +146,8 @@ internal sealed class SubmitErrorReportTool :
                     dispatchResult.ErrorMessage ?? "The error report could not be submitted.");
             }
 
-            var digest = Convert.ToHexStringLower(SHA256.HashData(submission.Payload.PreviewBytes.AsSpan()));
+            var digest = dispatchResult.PayloadDigest
+                ?? throw new InvalidOperationException("An accepted error-report dispatch must include its payload digest.");
             var receipt = new ErrorSubmissionReceipt
             {
                 Dispatcher = submission.Payload.DispatcherName,
@@ -154,16 +170,19 @@ internal sealed class SubmitErrorReportTool :
         }
     }
 
-    private async ValueTask<ToolResult<SubmittedErrorReportData>?> RequestConsentAsync(
+    private static async ValueTask<ConsentResult> RequestConsentAsync(
         McpServer server,
         PreparedSubmission submission,
         CancellationToken cancellationToken)
     {
         if (server.ClientCapabilities?.Elicitation is null)
         {
-            return CreateFailure(
-                "ApprovalUnavailable",
-                "The connected MCP client does not advertise elicitation support, so user approval cannot be obtained.");
+            return new ConsentResult
+            {
+                Failure = CreateFailure(
+                    "ApprovalUnavailable",
+                    "The connected MCP client does not advertise elicitation support, so user approval cannot be obtained."),
+            };
         }
 
         ElicitResult result;
@@ -173,21 +192,26 @@ internal sealed class SubmitErrorReportTool :
         }
         catch (InvalidOperationException)
         {
-            return CreateFailure(
-                "ApprovalUnavailable",
-                "The connected MCP client cannot perform the required consent elicitation.");
+            return new ConsentResult
+            {
+                Failure = CreateFailure(
+                    "ApprovalUnavailable",
+                    "The connected MCP client cannot perform the required consent elicitation."),
+            };
         }
         catch (McpException)
         {
-            return CreateFailure(
-                "ApprovalUnavailable",
-                "The MCP client failed to complete the required consent elicitation.");
+            return new ConsentResult
+            {
+                Failure = CreateFailure(
+                    "ApprovalUnavailable",
+                    "The MCP client failed to complete the required consent elicitation."),
+            };
         }
 
         if (string.Equals(result.Action, "decline", StringComparison.Ordinal))
         {
-            _store.Discard(submission.Handle);
-            return CreateFailure("ErrorReportDeclined", "The user declined the error report.");
+            return CreateNotApprovedResult();
         }
 
         if (!result.IsAccepted
@@ -195,84 +219,63 @@ internal sealed class SubmitErrorReportTool :
             || !result.Content.TryGetValue(_choiceProperty, out var choiceElement)
             || choiceElement.ValueKind != JsonValueKind.String)
         {
-            return CreateFailure(
-                "ErrorReportApprovalCancelled",
-                "The approval request was cancelled; the prepared report remains available until it expires.");
+            return CreateNotApprovedResult();
         }
 
         var choice = choiceElement.GetString();
         switch (choice)
         {
-            case _submitOnce:
-                return null;
+            case _send:
+                return new ConsentResult();
 
-            case _allowWorkspace when submission.WorkspaceId is not null
-                && submission.WorkspaceEpoch is not null:
-                _consentService.AllowWorkspace(
-                    submission.WorkspaceId.Value,
-                    submission.WorkspaceEpoch.Value);
-                return null;
+            case _sendWithoutExceptionMessages:
+                return new ConsentResult
+                {
+                    MessageHandling = ExceptionMessageHandling.Remove,
+                };
 
-            case _allowSession:
-                _consentService.AllowSession();
-                return null;
-
-            case _decline:
-                _store.Discard(submission.Handle);
-                return CreateFailure("ErrorReportDeclined", "The user declined the error report.");
-
-            case _suppressSession:
-                _store.Discard(submission.Handle);
-                _consentService.SuppressSession();
-                return CreateFailure(
-                    "ErrorReportingSuppressed",
-                    "The user declined the report and suppressed error reporting for this server session.");
+            case _doNotSend:
+                return CreateNotApprovedResult();
 
             default:
-                return CreateFailure(
-                    "InvalidApprovalResponse",
-                    "The client returned an unsupported consent choice; nothing was submitted.");
+                return new ConsentResult
+                {
+                    Failure = CreateFailure(
+                        "InvalidApprovalResponse",
+                        "The client returned an unsupported consent choice; nothing was submitted."),
+                };
         }
+    }
+
+    private static ConsentResult CreateNotApprovedResult()
+    {
+        return new ConsentResult
+        {
+            Failure = CreateFailure("ErrorReportNotApproved", _notApprovedMessage),
+            DiscardSubmission = true,
+        };
     }
 
     private static ElicitRequestParams CreateElicitation(PreparedSubmission submission)
     {
-        var digest = Convert.ToHexStringLower(SHA256.HashData(submission.Payload.PreviewBytes.AsSpan()));
         var choices = new List<ElicitRequestParams.EnumSchemaOption>
         {
-            new()
+            new ElicitRequestParams.EnumSchemaOption
             {
-                Const = _submitOnce,
-                Title = "Yes, submit this report",
+                Const = _send,
+                Title = "Yes, send it",
+            },
+            new ElicitRequestParams.EnumSchemaOption
+            {
+                Const = _sendWithoutExceptionMessages,
+                Title = "Yes, without exception messages",
+            },
+            new ElicitRequestParams.EnumSchemaOption
+            {
+                Const = _doNotSend,
+                Title = "No, don't send it",
             },
         };
-        if (submission.WorkspaceId is not null && submission.WorkspaceEpoch is not null)
-        {
-            choices.Add(new ElicitRequestParams.EnumSchemaOption
-            {
-                Const = _allowWorkspace,
-                Title = "Yes, allow for this workspace",
-            });
-        }
-
-        choices.AddRange(
-        [
-            new ElicitRequestParams.EnumSchemaOption
-            {
-                Const = _allowSession,
-                Title = "Yes, allow for this server session",
-            },
-            new ElicitRequestParams.EnumSchemaOption
-            {
-                Const = _decline,
-                Title = "No",
-            },
-            new ElicitRequestParams.EnumSchemaOption
-            {
-                Const = _suppressSession,
-                Title = "No, and don't ask again",
-            },
-        ]);
 
         var choice = new ElicitRequestParams.TitledSingleSelectEnumSchema
         {
@@ -283,7 +286,7 @@ internal sealed class SubmitErrorReportTool :
 
         return new ElicitRequestParams
         {
-            Message = $"Submit the reviewed error report to {submission.Payload.Destination}? Payload SHA-256: {digest}.",
+            Message = $"Send this error report to {submission.Payload.Destination}?",
             RequestedSchema = new ElicitRequestParams.RequestSchema
             {
                 Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>(
@@ -323,5 +326,14 @@ internal sealed class SubmitErrorReportTool :
         };
 
         return ToolResult.Rejected<SubmittedErrorReportData>(error);
+    }
+
+    private sealed record ConsentResult
+    {
+        public ToolResult<SubmittedErrorReportData>? Failure { get; init; }
+
+        public ExceptionMessageHandling MessageHandling { get; init; } = ExceptionMessageHandling.Include;
+
+        public bool DiscardSubmission { get; init; }
     }
 }

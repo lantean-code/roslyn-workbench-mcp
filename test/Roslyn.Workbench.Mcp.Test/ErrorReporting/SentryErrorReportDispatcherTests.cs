@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Sentry;
@@ -43,13 +45,21 @@ public sealed class SentryErrorReportDispatcherTests
             report.Tool);
         message.GetProperty("formatted").GetString().Should().Be(
             $"Roslyn Workbench reported {report.ExceptionClassification} in {report.Tool}.");
-        previewRoot
+        var exception = previewRoot.GetProperty("exception").GetProperty("values")[0];
+        exception.GetProperty("type").GetString().Should().Be("System.InvalidOperationException");
+        exception.GetProperty("value").GetString().Should().Be("Message");
+        exception.GetProperty("stacktrace").GetProperty("frames").GetArrayLength().Should().Be(2);
+        var workbenchContext = previewRoot
             .GetProperty("contexts")
-            .GetProperty("roslyn_workbench")
-            .GetProperty("schemaVersion")
-            .GetInt32()
-            .Should()
-            .Be(ExternalErrorReport.CurrentSchemaVersion);
+            .GetProperty("roslyn_workbench");
+        workbenchContext.GetProperty("schemaVersion").GetInt32()
+            .Should().Be(ExternalErrorReport.CurrentSchemaVersion);
+        workbenchContext
+            .GetProperty("exceptions")[0]
+            .GetProperty("stackFrames")[0]
+            .GetProperty("component")
+            .GetString()
+            .Should().Be("RoslynWorkbench");
         client.VerifyNoOtherCalls();
     }
 
@@ -74,10 +84,14 @@ public sealed class SentryErrorReportDispatcherTests
         var target = new SentryErrorReportDispatcher(client.Object, configuration);
         var payload = target.CreatePayload(report);
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Accepted);
         result.ReportReference.Should().Be(expectedEventId.ToString());
+        result.PayloadDigest.Should().Be(CalculateDigest(payload.PreviewBytes));
         capturedEvent.Should().NotBeNull();
         capturedEvent.Should().BeOfType<SentryEvent>();
         var preparedEventPayload = (PreparedDispatchPayload<SentryEvent>)payload;
@@ -109,6 +123,133 @@ public sealed class SentryErrorReportDispatcherTests
     }
 
     [Fact]
+    public async Task GIVEN_PreparedSentryPayload_WHEN_DispatchingWithoutMessages_THEN_ShouldCaptureRedactedEvent()
+    {
+        SentryEvent? capturedEvent = null;
+        var client = new Mock<ISentryClient>();
+        client
+            .Setup(item => item.CaptureEvent(
+                It.IsAny<SentryEvent>(),
+                It.IsAny<Scope?>(),
+                It.IsAny<SentryHint?>()))
+            .Callback<SentryEvent, Scope?, SentryHint?>((sentryEvent, _, _) =>
+            {
+                capturedEvent = sentryEvent;
+            })
+            .Returns(SentryId.Parse("fedcba9876543210fedcba9876543210"));
+        var target = new SentryErrorReportDispatcher(
+            client.Object,
+            new SentryProviderConfiguration(_dsn, _destination));
+        var original = target.CreatePayload(CreateReport());
+
+        var result = await target.DispatchAsync(
+            original,
+            ExceptionMessageHandling.Remove,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Accepted);
+        capturedEvent.Should().NotBeNull();
+        var dispatchedBytes = SentryEventJsonSerializer.Serialize(capturedEvent!);
+        result.PayloadDigest.Should().Be(CalculateDigest(dispatchedBytes));
+        using var preview = JsonDocument.Parse(dispatchedBytes.ToArray());
+        var root = preview.RootElement;
+        var sentryException = root.GetProperty("exception").GetProperty("values")[0];
+        sentryException.TryGetProperty("value", out _).Should().BeFalse();
+        var reportException = root.GetProperty("contexts").GetProperty("roslyn_workbench")
+            .GetProperty("exceptions")[0];
+        reportException.TryGetProperty("message", out _).Should().BeFalse();
+        sentryException.GetProperty("stacktrace").GetProperty("frames").GetArrayLength().Should().Be(2);
+        original.Report.Exceptions[0].Message.Should().Be("Message");
+    }
+
+    [Fact]
+    public async Task GIVEN_NonSentryPayload_WHEN_DispatchingWithoutMessages_THEN_ShouldRejectIt()
+    {
+        var target = new SentryErrorReportDispatcher(
+            new Mock<ISentryClient>().Object,
+            new SentryProviderConfiguration(_dsn, _destination));
+        var report = CreateReport();
+        var payload = new PreparedDispatchPayload<string>
+        {
+            DispatcherName = "Sentry",
+            Destination = _destination,
+            ReportId = report.ReportId,
+            Report = report,
+            PreviewBytes = [],
+            PreviewJson = "{}",
+            DispatchState = "invalid",
+        };
+
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Remove,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
+        result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
+    }
+
+    [Fact]
+    public void GIVEN_ExceptionWithoutFrames_WHEN_CreatingPayload_THEN_ShouldOmitStackTrace()
+    {
+        var target = new SentryErrorReportDispatcher(
+            new Mock<ISentryClient>().Object,
+            new SentryProviderConfiguration(_dsn, _destination));
+        var report = CreateReport() with
+        {
+            Exceptions =
+            [
+                new ExternalException
+                {
+                    Type = "System.InvalidOperationException",
+                    Message = "Message",
+                },
+            ],
+        };
+
+        var result = target.CreatePayload(report);
+
+        using var preview = JsonDocument.Parse(result.PreviewJson);
+        var exception = preview.RootElement.GetProperty("exception").GetProperty("values")[0];
+        exception.TryGetProperty("stacktrace", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_NestedExceptions_WHEN_CreatingPayload_THEN_ShouldUseSentryChainOrder()
+    {
+        var target = new SentryErrorReportDispatcher(
+            new Mock<ISentryClient>().Object,
+            new SentryProviderConfiguration(_dsn, _destination));
+        var report = CreateReport() with
+        {
+            Exceptions =
+            [
+                new ExternalException
+                {
+                    Type = "OuterException",
+                    Message = "OuterMessage",
+                },
+                new ExternalException
+                {
+                    Type = "InnerException",
+                    Message = "InnerMessage",
+                },
+            ],
+        };
+
+        var result = target.CreatePayload(report);
+
+        using var preview = JsonDocument.Parse(result.PreviewJson);
+        var root = preview.RootElement;
+        root.GetProperty("exception").GetProperty("values").EnumerateArray()
+            .Select(item => item.GetProperty("type").GetString())
+            .Should().Equal("InnerException", "OuterException");
+        root.GetProperty("contexts").GetProperty("roslyn_workbench").GetProperty("exceptions").EnumerateArray()
+            .Select(item => item.GetProperty("type").GetString())
+            .Should().Equal("OuterException", "InnerException");
+    }
+
+    [Fact]
     public async Task GIVEN_SdkRejectsPreparedEvent_WHEN_Dispatching_THEN_ShouldReturnRejectedWithoutFlush()
     {
         var client = new Mock<ISentryClient>();
@@ -122,7 +263,10 @@ public sealed class SentryErrorReportDispatcherTests
         var target = new SentryErrorReportDispatcher(client.Object, configuration);
         var payload = target.CreatePayload(CreateReport());
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
         result.ErrorCode.Should().Be("SentryCaptureRejected");
@@ -147,11 +291,37 @@ public sealed class SentryErrorReportDispatcherTests
             DispatchState = "DispatchState",
         };
 
-        var result = await target.DispatchAsync(payload, CancellationToken.None);
+        var result = await target.DispatchAsync(
+            payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None);
 
         result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
         result.ErrorCode.Should().Be("InvalidPreparedErrorReport");
         client.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsupportedMessageHandling_WHEN_Dispatching_THEN_ShouldRejectWithoutCapture()
+    {
+        var client = new Mock<ISentryClient>();
+        var configuration = new SentryProviderConfiguration(_dsn, _destination);
+        var target = new SentryErrorReportDispatcher(client.Object, configuration);
+        var payload = target.CreatePayload(CreateReport());
+
+        var result = await target.DispatchAsync(
+            payload,
+            (ExceptionMessageHandling)int.MaxValue,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(ErrorDispatchOutcome.Rejected);
+        result.ErrorCode.Should().Be("InvalidExceptionMessageHandling");
+        client.VerifyNoOtherCalls();
+    }
+
+    private static string CalculateDigest(ImmutableArray<byte> bytes)
+    {
+        return Convert.ToHexStringLower(SHA256.HashData(bytes.AsSpan()));
     }
 
     private static ExternalErrorReport CreateReport()
@@ -165,10 +335,18 @@ public sealed class SentryErrorReportDispatcherTests
             PluginClassification = "Host",
             DurationMilliseconds = 25,
             ExceptionClassification = "System.InvalidOperationException",
-            StackFrames =
+            Exceptions =
             [
-                new ExternalStackFrame { Component = "RoslynWorkbench" },
-                new ExternalStackFrame { Component = "Roslyn" },
+                new ExternalException
+                {
+                    Type = "System.InvalidOperationException",
+                    Message = "Message",
+                    StackFrames =
+                    [
+                        new ExternalStackFrame { Component = ErrorReportComponent.RoslynWorkbench },
+                        new ExternalStackFrame { Component = ErrorReportComponent.Roslyn },
+                    ],
+                },
             ],
             ServerVersion = "ServerVersion",
             RoslynVersion = "RoslynVersion",

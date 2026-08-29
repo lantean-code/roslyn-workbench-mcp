@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol;
 using Roslyn.Workbench.Mcp.Test.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
@@ -30,10 +32,6 @@ public sealed class SubmitErrorReportToolTests
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store
-            .Setup(item => item.TryGet("Handle", out storedSubmission))
-            .Returns(true);
         store
             .Setup(item => item.TryBeginSubmission("Handle"))
             .Returns(new SubmissionAcquisition
@@ -42,14 +40,18 @@ public sealed class SubmitErrorReportToolTests
                 Submission = submission,
             });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.AlwaysApproved);
         dispatcher
-            .Setup(item => item.DispatchAsync(submission.Payload, CancellationToken.None))
+            .Setup(item => item.DispatchAsync(
+                submission.Payload,
+                ExceptionMessageHandling.Include,
+                CancellationToken.None))
             .ReturnsAsync(new ErrorDispatchResult
             {
                 Outcome = ErrorDispatchOutcome.Accepted,
                 ReportReference = "ReportReference",
+                PayloadDigest = "PayloadDigest",
             });
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -82,95 +84,71 @@ public sealed class SubmitErrorReportToolTests
                 It.Is<PreparedDispatchPayload>(payload =>
                     payload.Report == submission.Payload.Report
                     && payload.PreviewBytes.SequenceEqual(submission.Payload.PreviewBytes)),
+                ExceptionMessageHandling.Include,
                 CancellationToken.None),
             Times.Once);
         store.Verify(
             item => item.Complete(
                 "Handle",
                 It.Is<ErrorSubmissionReceipt>(receipt =>
-                    receipt.ReportReference == "ReportReference")),
+                    receipt.ReportReference == "ReportReference"
+                    && receipt.PayloadDigest == "PayloadDigest")),
             Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_WorkspaceConsentInvalidatesAfterAuthorisation_WHEN_Submitting_THEN_ShouldCompleteCurrentExplicitSubmission()
+    public async Task GIVEN_UnknownPreparedHandle_WHEN_Submitting_THEN_ShouldReturnUnavailable()
     {
         var store = new Mock<IPreparedSubmissionStore>();
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
-        var submission = CreateSubmission() with
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
         {
-            WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            WorkspaceEpoch = 5,
-        };
-        using var acquisitionReached = new ManualResetEventSlim();
-        using var continueAcquisition = new ManualResetEventSlim();
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var consentState = ErrorReportingConsentState.AllowedForWorkspace;
-        PreparedSubmission? storedSubmission = submission;
-        store
-            .Setup(item => item.TryGet("Handle", out storedSubmission))
-            .Returns(true);
-        store
-            .Setup(item => item.TryBeginSubmission("Handle"))
-            .Callback(() =>
-            {
-                acquisitionReached.Set();
-                continueAcquisition.Wait();
-            })
-            .Returns(new SubmissionAcquisition
-            {
-                Outcome = SubmissionAcquisitionOutcome.Acquired,
-                Submission = submission,
-            });
-        consentService
-            .Setup(item => item.GetState(submission.WorkspaceId, submission.WorkspaceEpoch))
-            .Returns(() => consentState);
-        dispatcher
-            .Setup(item => item.DispatchAsync(submission.Payload, cancellationToken))
-            .ReturnsAsync(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Accepted,
-                ReportReference = "ReportReference",
-            });
-        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new SubmitErrorReportTool(
-            Options.Create(new StartupOptions()),
-            protocolFactory.Object,
-            _requestBinder.Object,
-            store.Object,
-            consentService.Object,
-            dispatcher.Object);
-        var arguments = new Dictionary<string, JsonElement>
-        {
-            ["submissionHandle"] = JsonSerializer.SerializeToElement("Handle"),
-        };
+            Outcome = SubmissionAcquisitionOutcome.UnknownOrExpired,
+        });
+        var target = CreateTarget(store, consentService, dispatcher);
 
-        var invocation = Task.Run(() => ServerOwnedToolTestSupport.InvokeAsync(
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
             "submit-error-report",
-            arguments,
-            cancellationToken));
-        try
-        {
-            acquisitionReached.Wait(TimeSpan.FromSeconds(5), cancellationToken).Should().BeTrue();
-            consentState = ErrorReportingConsentState.PromptRequired;
-        }
-        finally
-        {
-            continueAcquisition.Set();
-        }
+            CreateArguments(),
+            CancellationToken.None);
 
-        var result = await invocation;
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("PreparedReportUnavailable");
+        consentService.Verify(item => item.GetState(), Times.Never);
+    }
 
-        result.IsError.Should().BeFalse();
-        consentState.Should().Be(ErrorReportingConsentState.PromptRequired);
-        consentService.Verify(
-            item => item.GetState(submission.WorkspaceId, submission.WorkspaceEpoch),
-            Times.Once);
-        dispatcher.Verify(
-            item => item.DispatchAsync(submission.Payload, cancellationToken),
-            Times.Once);
+    [Fact]
+    public async Task GIVEN_DisabledConsentState_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.Disabled);
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ErrorReportingUnavailable");
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+        dispatcher.Verify(item => item.DispatchAsync(
+            It.IsAny<PreparedDispatchPayload>(),
+            It.IsAny<ExceptionMessageHandling>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -180,12 +158,13 @@ public sealed class SubmitErrorReportToolTests
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store
-            .Setup(item => item.TryGet("Handle", out storedSubmission))
-            .Returns(true);
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.PromptRequired);
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -216,19 +195,50 @@ public sealed class SubmitErrorReportToolTests
         dispatcher.Verify(
             item => item.DispatchAsync(
                 It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_PromptRequiredAndSessionApproval_WHEN_Submitting_THEN_ShouldGrantSessionAndDispatch()
+    public async Task GIVEN_PromptRequiredWithoutClientCapabilities_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch()
     {
         var store = new Mock<IPreparedSubmissionStore>();
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store.Setup(item => item.TryGet("Handle", out storedSubmission)).Returns(true);
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+        await using var server = ServerOwnedToolTestSupport.CreateServer();
+        Mock.Get(server).SetupGet(item => item.ClientCapabilities).Returns((ClientCapabilities?)null);
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ApprovalUnavailable");
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_PromptRequiredAndSendApproval_WHEN_Submitting_THEN_ShouldDispatch()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
         store
             .Setup(item => item.TryBeginSubmission("Handle"))
             .Returns(new SubmissionAcquisition
@@ -237,14 +247,19 @@ public sealed class SubmitErrorReportToolTests
                 Submission = submission,
             });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.PromptRequired);
+        store.Setup(item => item.TryConfirmSubmission("Handle")).Returns(true);
         dispatcher
-            .Setup(item => item.DispatchAsync(submission.Payload, CancellationToken.None))
+            .Setup(item => item.DispatchAsync(
+                submission.Payload,
+                ExceptionMessageHandling.Include,
+                CancellationToken.None))
             .ReturnsAsync(new ErrorDispatchResult
             {
                 Outcome = ErrorDispatchOutcome.Accepted,
                 ReportReference = "ReportReference",
+                PayloadDigest = "PayloadDigest",
             });
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -254,7 +269,7 @@ public sealed class SubmitErrorReportToolTests
             store.Object,
             consentService.Object,
             dispatcher.Object);
-        var response = CreateAcceptedResponse("allow-session");
+        var response = CreateAcceptedResponse("send");
         await using var server = CreateElicitationServer(response);
         var requestContext = CreateRequestContext(server);
 
@@ -263,23 +278,217 @@ public sealed class SubmitErrorReportToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        consentService.Verify(item => item.AllowSession(), Times.Once);
         dispatcher.Verify(
-            item => item.DispatchAsync(submission.Payload, CancellationToken.None),
+            item => item.DispatchAsync(
+                submission.Payload,
+                ExceptionMessageHandling.Include,
+                CancellationToken.None),
             Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_PromptRequiredAndSessionSuppression_WHEN_Submitting_THEN_ShouldDiscardAndNotDispatch()
+    public async Task GIVEN_PromptRequiredAndRedactedApproval_WHEN_Submitting_THEN_ShouldDispatchRedactedPayloadAndReturnItsDigest()
     {
         var store = new Mock<IPreparedSubmissionStore>();
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store.Setup(item => item.TryGet("Handle", out storedSubmission)).Returns(true);
+        var expectedDigest = Convert.ToHexStringLower(
+            SHA256.HashData(ImmutableArray.Create<byte>(4, 5, 6).AsSpan()));
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        store.Setup(item => item.TryConfirmSubmission("Handle")).Returns(true);
+        dispatcher
+            .Setup(item => item.DispatchAsync(
+                submission.Payload,
+                ExceptionMessageHandling.Remove,
+                CancellationToken.None))
+            .ReturnsAsync(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Accepted,
+                ReportReference = "ReportReference",
+                PayloadDigest = expectedDigest,
+            });
+        var target = new SubmitErrorReportTool(
+            Options.Create(new StartupOptions()),
+            McpToolProtocolFactoryMockFactory.Create().Object,
+            _requestBinder.Object,
+            store.Object,
+            consentService.Object,
+            dispatcher.Object);
+        await using var server = CreateElicitationServer(CreateAcceptedResponse("send-without-exception-messages"));
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("payloadDigest").GetString()
+            .Should().Be(expectedDigest);
+        dispatcher.Verify(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Remove,
+            CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreparedReportExpiresDuringElicitation_WHEN_UserApproves_THEN_ShouldNotDispatch()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        store.Setup(item => item.TryConfirmSubmission("Handle")).Returns(false);
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+        await using var server = CreateElicitationServer(CreateAcceptedResponse("send"));
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("PreparedReportUnavailable");
+        dispatcher.Verify(item => item.DispatchAsync(
+            It.IsAny<PreparedDispatchPayload>(),
+            It.IsAny<ExceptionMessageHandling>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        store.Verify(item => item.Complete(It.IsAny<string>(), It.IsAny<ErrorSubmissionReceipt>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PromptRequiredAndClientDeclinesElicitation_WHEN_Submitting_THEN_ShouldReportNotApproved()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = new SubmitErrorReportTool(
+            Options.Create(new StartupOptions()),
+            McpToolProtocolFactoryMockFactory.Create().Object,
+            _requestBinder.Object,
+            store.Object,
+            consentService.Object,
+            dispatcher.Object);
+        var response = new JsonRpcResponse
+        {
+            Result = new JsonObject { ["action"] = "decline" },
+        };
+        await using var server = CreateElicitationServer(response);
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        var error = result.StructuredContent!.Value.GetProperty("error");
+        error.GetProperty("code").GetString().Should().Be("ErrorReportNotApproved");
+        error.GetProperty("message").GetString().Should().Contain("client may have blocked MCP elicitation");
+        store.Verify(item => item.Discard("Handle"), Times.Once);
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PromptRequiredAndUnsupportedChoice_WHEN_Submitting_THEN_ShouldRejectApprovalResponse()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+        await using var server = CreateElicitationServer(CreateAcceptedResponse("unsupported"));
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("InvalidApprovalResponse");
+        store.Verify(item => item.Discard(It.IsAny<string>()), Times.Never);
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GIVEN_ClientFailsElicitation_WHEN_Submitting_THEN_ShouldFailClosed(bool protocolFailure)
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+        Exception exception = protocolFailure
+            ? new McpException("Elicitation failed.")
+            : new InvalidOperationException("Elicitation is unavailable.");
+        await using var server = CreateElicitationServer(new JsonRpcResponse
+        {
+            Result = new JsonObject(),
+        });
+        Mock.Get(server)
+            .Setup(item => item.SendRequestAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var result = await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ApprovalUnavailable");
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_PromptRequiredAndDoNotSendChoice_WHEN_Submitting_THEN_ShouldDiscardAndNotDispatch()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.PromptRequired);
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -289,7 +498,7 @@ public sealed class SubmitErrorReportToolTests
             store.Object,
             consentService.Object,
             dispatcher.Object);
-        var response = CreateAcceptedResponse("suppress-session");
+        var response = CreateAcceptedResponse("do-not-send");
         await using var server = CreateElicitationServer(response);
         var requestContext = CreateRequestContext(server);
 
@@ -298,26 +507,31 @@ public sealed class SubmitErrorReportToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ErrorReportNotApproved");
         store.Verify(item => item.Discard("Handle"), Times.Once);
-        consentService.Verify(item => item.SuppressSession(), Times.Once);
         dispatcher.Verify(
             item => item.DispatchAsync(
                 It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_PromptRequiredAndClientCancellation_WHEN_Submitting_THEN_ShouldRetainWithoutDispatch()
+    public async Task GIVEN_PromptRequiredAndClientCancellation_WHEN_Submitting_THEN_ShouldDiscardWithoutDispatch()
     {
         var store = new Mock<IPreparedSubmissionStore>();
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store.Setup(item => item.TryGet("Handle", out storedSubmission)).Returns(true);
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.PromptRequired);
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -342,12 +556,306 @@ public sealed class SubmitErrorReportToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeTrue();
-        store.Verify(item => item.Discard(It.IsAny<string>()), Times.Never);
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ErrorReportNotApproved");
+        store.Verify(item => item.Discard("Handle"), Times.Once);
         dispatcher.Verify(
             item => item.DispatchAsync(
                 It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Theory]
+    [InlineData((int)SubmissionAcquisitionOutcome.UnknownOrExpired, "PreparedReportUnavailable")]
+    [InlineData((int)SubmissionAcquisitionOutcome.InProgress, "ErrorReportSubmissionInProgress")]
+    public async Task GIVEN_SubmissionCannotBeAcquired_WHEN_Submitting_THEN_ShouldReturnAcquisitionFailure(
+        int outcomeValue,
+        string expectedCode)
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = (SubmissionAcquisitionOutcome)outcomeValue,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be(expectedCode);
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        consentService.Verify(item => item.GetState(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PromptRequiredPreviouslySentSubmission_WHEN_Submitting_THEN_ShouldReturnExistingReceiptWithoutElicitation()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission() with
+        {
+            State = PreparedSubmissionState.Sent,
+            Receipt = new ErrorSubmissionReceipt
+            {
+                Dispatcher = "Dispatcher",
+                ReportReference = "ExistingReference",
+                PayloadDigest = "ExistingDigest",
+            },
+        };
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.AlreadySent,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("reportReference").GetString()
+            .Should().Be("ExistingReference");
+        dispatcher.Verify(
+            item => item.DispatchAsync(
+                It.IsAny<PreparedDispatchPayload>(),
+                It.IsAny<ExceptionMessageHandling>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        consentService.Verify(item => item.GetState(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreviouslySentAcquisitionWithoutSubmission_WHEN_Submitting_THEN_ShouldRejectInvalidStoreState()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.AlreadySent,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_AcquisitionWithoutSubmission_WHEN_Submitting_THEN_ShouldRejectInvalidStoreState()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_DispatcherRejectsSubmission_WHEN_Submitting_THEN_ShouldReleasePreparedReportForRetry()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None)).ReturnsAsync(
+            new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Rejected,
+                ErrorCode = "ProviderRejected",
+                ErrorMessage = "Provider rejected the report.",
+            });
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("ProviderRejected");
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_DispatcherRejectsWithoutDetails_WHEN_Submitting_THEN_ShouldReturnDefaultFailure()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None)).ReturnsAsync(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Rejected,
+            });
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        var error = result.StructuredContent!.Value.GetProperty("error");
+        error.GetProperty("code").GetString().Should().Be("ErrorReportDispatchFailed");
+        error.GetProperty("message").GetString().Should().Be("The error report could not be submitted.");
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_AcceptedDispatchWithoutReference_WHEN_Submitting_THEN_ShouldUseReportIdentifier()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None)).ReturnsAsync(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Accepted,
+                PayloadDigest = "PayloadDigest",
+            });
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("reportReference").GetString()
+            .Should().Be(submission.Payload.ReportId);
+    }
+
+    [Fact]
+    public async Task GIVEN_AcceptedDispatchWithoutDigest_WHEN_Submitting_THEN_ShouldReleasePreparedReportForRetry()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None)).ReturnsAsync(new ErrorDispatchResult
+            {
+                Outcome = ErrorDispatchOutcome.Accepted,
+                ReportReference = "ReportReference",
+            });
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_MessageRemovalDispatchThrows_WHEN_Submitting_THEN_ShouldReleasePreparedReportForRetry()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.PromptRequired);
+        store.Setup(item => item.TryConfirmSubmission("Handle")).Returns(true);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Remove,
+            CancellationToken.None))
+            .Throws(new InvalidOperationException("Redaction failed."));
+        var target = CreateTarget(store, consentService, dispatcher);
+        await using var server = CreateElicitationServer(CreateAcceptedResponse("send-without-exception-messages"));
+
+        var action = async () => await target.InvokeAsync(CreateRequestContext(server), CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
     }
 
     [Fact]
@@ -357,8 +865,6 @@ public sealed class SubmitErrorReportToolTests
         var consentService = new Mock<IErrorReportingConsentService>();
         var dispatcher = new Mock<IErrorReportDispatcher>();
         var submission = CreateSubmission();
-        PreparedSubmission? storedSubmission = submission;
-        store.Setup(item => item.TryGet("Handle", out storedSubmission)).Returns(true);
         store
             .Setup(item => item.TryBeginSubmission("Handle"))
             .Returns(new SubmissionAcquisition
@@ -367,10 +873,13 @@ public sealed class SubmitErrorReportToolTests
                 Submission = submission,
             });
         consentService
-            .Setup(item => item.GetState(null, null))
+            .Setup(item => item.GetState())
             .Returns(ErrorReportingConsentState.AlwaysApproved);
         dispatcher
-            .Setup(item => item.DispatchAsync(submission.Payload, CancellationToken.None))
+            .Setup(item => item.DispatchAsync(
+                submission.Payload,
+                ExceptionMessageHandling.Include,
+                CancellationToken.None))
             .ThrowsAsync(new InvalidOperationException("Dispatch failed."));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new SubmitErrorReportTool(
@@ -395,6 +904,36 @@ public sealed class SubmitErrorReportToolTests
         store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
     }
 
+    [Fact]
+    public async Task GIVEN_DispatcherCancels_WHEN_Submitting_THEN_ShouldReleasePreparedReportForRetry()
+    {
+        var store = new Mock<IPreparedSubmissionStore>();
+        var consentService = new Mock<IErrorReportingConsentService>();
+        var dispatcher = new Mock<IErrorReportDispatcher>();
+        var submission = CreateSubmission();
+        store.Setup(item => item.TryBeginSubmission("Handle")).Returns(new SubmissionAcquisition
+        {
+            Outcome = SubmissionAcquisitionOutcome.Acquired,
+            Submission = submission,
+        });
+        consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
+        dispatcher.Setup(item => item.DispatchAsync(
+            submission.Payload,
+            ExceptionMessageHandling.Include,
+            CancellationToken.None))
+            .ThrowsAsync(new OperationCanceledException());
+        var target = CreateTarget(store, consentService, dispatcher);
+
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "submit-error-report",
+            CreateArguments(),
+            CancellationToken.None);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        store.Verify(item => item.ReleaseForRetry("Handle"), Times.Once);
+    }
+
     private static RequestContext<CallToolRequestParams> CreateRequestContext(McpServer server)
     {
         return new RequestContext<CallToolRequestParams>(
@@ -411,6 +950,28 @@ public sealed class SubmitErrorReportToolTests
                     ["submissionHandle"] = JsonSerializer.SerializeToElement("Handle"),
                 },
             });
+    }
+
+    private SubmitErrorReportTool CreateTarget(
+        Mock<IPreparedSubmissionStore> store,
+        Mock<IErrorReportingConsentService> consentService,
+        Mock<IErrorReportDispatcher> dispatcher)
+    {
+        return new SubmitErrorReportTool(
+            Options.Create(new StartupOptions()),
+            McpToolProtocolFactoryMockFactory.Create().Object,
+            _requestBinder.Object,
+            store.Object,
+            consentService.Object,
+            dispatcher.Object);
+    }
+
+    private static Dictionary<string, JsonElement> CreateArguments()
+    {
+        return new Dictionary<string, JsonElement>
+        {
+            ["submissionHandle"] = JsonSerializer.SerializeToElement("Handle"),
+        };
     }
 
     private static JsonRpcResponse CreateAcceptedResponse(string choice)

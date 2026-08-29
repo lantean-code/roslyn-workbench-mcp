@@ -60,6 +60,12 @@ internal sealed class PreparedSubmissionStore : IPreparedSubmissionStore
         };
     }
 
+    public bool TryConfirmSubmission(string handle)
+    {
+        return _entries.TryGet(handle, out var submission)
+            && submission.State == PreparedSubmissionState.Sending;
+    }
+
     public void Complete(string handle, ErrorSubmissionReceipt receipt)
     {
         _entries.Update(

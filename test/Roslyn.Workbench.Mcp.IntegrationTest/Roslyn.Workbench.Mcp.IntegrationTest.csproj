@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Microsoft.CodeAnalysis.LookalikePluginFixture\Microsoft.CodeAnalysis.LookalikePluginFixture.csproj" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
@@ -48,6 +49,8 @@
                                       Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.HostMutationPluginFixture' and '%(Extension)' == '.dll'" />
       <InvalidPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
                                  Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.InvalidPluginFixture' and '%(Extension)' == '.dll'" />
+      <LookalikePluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
+                                   Condition="'%(Filename)' == 'Microsoft.CodeAnalysis.LookalikePluginFixture' and '%(Extension)' == '.dll'" />
       <ThrowingPluginPackageAsset Include="@(ReferenceCopyLocalPaths)"
                                   Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.ThrowingPluginFixture' and '%(Extension)' == '.dll'" />
     </ItemGroup>
@@ -55,6 +58,7 @@
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/00-HostQuery" />
     <Copy SourceFiles="@(HostMutationPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/01-HostMutation" />
     <Copy SourceFiles="@(InvalidPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Valid/02-Invalid" />
+    <Copy SourceFiles="@(LookalikePluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Lookalike" />
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/ReservedCollision/00-HostQuery" />
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Duplicate/00-HostQuery" />
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/Catalog/Duplicate/01-HostQuery" />

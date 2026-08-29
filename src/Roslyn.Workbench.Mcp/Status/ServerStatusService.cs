@@ -98,8 +98,8 @@ internal sealed class ServerStatusService : IServerStatusService
             {
                 Provider = _errorReportDispatcher.Name,
                 ConsentMode = _startupOptions.ErrorReporting.ConsentMode.ToString(),
-                SessionConsentState = _errorReportingConsentService
-                    .GetState(workspaceId: null, workspaceEpoch: null)
+                ConsentState = _errorReportingConsentService
+                    .GetState()
                     .ToString(),
             },
         };

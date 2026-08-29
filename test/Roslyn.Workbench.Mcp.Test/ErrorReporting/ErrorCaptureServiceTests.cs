@@ -1,7 +1,10 @@
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
+using Roslyn.Workbench.Mcp.Workspace.IO;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
 
@@ -55,15 +58,90 @@ public sealed class ErrorCaptureServiceTests : IDisposable
         result.PluginClassification.Should().Be("Host");
         result.DurationMilliseconds.Should().Be(25);
         result.Exceptions.Should().ContainSingle();
+        result.Exceptions[0].Component.Should().Be(ErrorReportComponent.DotNet);
         result.Exceptions[0].Type.Should().Be(typeof(InvalidOperationException).FullName);
         result.Exceptions[0].Message.Should().Be("Failure message.");
         result.Exceptions[0].StackFrames.Should().NotBeEmpty();
+        result.Exceptions[0].StackFrames.Select(item => item.Component)
+            .Should().OnlyContain(item => item == ErrorReportComponent.Unknown);
         result.Workspace.Should().BeNull();
         result.ServerVersion.Should().NotBeNullOrWhiteSpace();
         result.RoslynVersion.Should().NotBeNullOrWhiteSpace();
         result.DotNetVersion.Should().NotBeNullOrWhiteSpace();
         result.OperatingSystem.Should().NotBeNullOrWhiteSpace();
         result.ProcessorArchitecture.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void GIVEN_FirstPartyException_WHEN_Capturing_THEN_ShouldClassifyRoslynWorkbenchComponent()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var exception = new AtomicFileCommitException(
+            "Commit failed.",
+            isRetryable: false,
+            new IOException("Write failed."));
+
+        var result = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            ServerOwnedToolRegistration.ServerStatusName,
+            arguments: null,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            exception);
+
+        result.Exceptions[0].Component.Should().Be(ErrorReportComponent.RoslynWorkbench);
+    }
+
+    [Fact]
+    public void GIVEN_ExceptionThrownThroughRoslyn_WHEN_Capturing_THEN_ShouldClassifyRoslynStackFrame()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var exception = CreateRoslynThrownException();
+
+        var result = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            ServerOwnedToolRegistration.ServerStatusName,
+            arguments: null,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            exception);
+
+        result.Exceptions[0].StackFrames.Select(frame => frame.Component)
+            .Should().Contain(ErrorReportComponent.Roslyn);
+    }
+
+    [Fact]
+    public void GIVEN_ExceptionThrownByCodeActions_WHEN_CapturingAndProjecting_THEN_ShouldRetainRoslynWorkbenchFrame()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var exception = CreateCodeActionThrownException();
+        var codeActionsAssembly = typeof(CodeActionsAssemblyMarker).Assembly;
+        var codeActionsAssemblyName = codeActionsAssembly.GetName().Name;
+
+        typeof(CodeActionWorkspaceResultMapper).Assembly.Should().BeSameAs(codeActionsAssembly);
+
+        var captured = target.Capture(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            ServerOwnedToolRegistration.ServerStatusName,
+            arguments: null,
+            TimeSpan.Zero,
+            cancellationRequested: false,
+            workspaceContext: null,
+            exception);
+
+        captured.Exceptions[0].StackFrames
+            .Should().Contain(frame =>
+                frame.Assembly == codeActionsAssemblyName &&
+                frame.Component == ErrorReportComponent.RoslynWorkbench);
+
+        var projected = new ExternalErrorReportProjector().Project(captured, "report-id");
+
+        projected.Exceptions[0].StackFrames
+            .Should().Contain(frame =>
+                frame.Assembly == codeActionsAssemblyName &&
+                frame.Component == ErrorReportComponent.RoslynWorkbench);
     }
 
     [Fact]
@@ -399,5 +477,48 @@ public sealed class ErrorCaptureServiceTests : IDisposable
         {
             return exception;
         }
+    }
+
+    private static InvalidOperationException CreateRoslynThrownException()
+    {
+        var root = CSharpSyntaxTree.ParseText("class Sample { }").GetRoot();
+        var nodes = root.DescendantNodes().ToArray();
+
+        try
+        {
+            _ = root.ReplaceNodes(
+                nodes,
+                static (_, _) => throw new InvalidOperationException("Roslyn callback failure."));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return exception;
+        }
+
+        throw new InvalidOperationException("The Roslyn replacement callback did not run.");
+    }
+
+    private static InvalidOperationException CreateCodeActionThrownException()
+    {
+        var failure = new WorkspaceExecutionFailure
+        {
+            Status = WorkspaceOperationStatus.Succeeded,
+            Error = new WorkspaceOperationError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+        };
+
+        try
+        {
+            _ = CodeActionWorkspaceResultMapper.MapFailure(failure);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return exception;
+        }
+
+        throw new InvalidOperationException("The Code Action result mapper did not reject the invalid failure status.");
     }
 }

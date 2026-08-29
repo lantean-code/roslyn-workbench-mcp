@@ -276,6 +276,10 @@ public sealed class GetProjectDetailsToolTests
         }
 
         queryContextMocks.WorkspaceResolver
+            .Setup(item => item.GetDocuments(mainProject))
+            .Returns(mainProject.Documents.Where(static document => document.Name != "B.cs").ToArray());
+
+        queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
             {
@@ -304,6 +308,9 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Documents.Items[0].Path.Should().Be("A.cs");
         result.Data.Documents.HasMore.Should().BeTrue();
         result.Data.Documents.TotalCount.Should().BeNull();
+        queryContextMocks.WorkspaceResolver.Verify(
+            item => item.CreateDocumentReference(It.Is<Document>(document => document.Name == "B.cs")),
+            Times.Never);
         result.Data.ProjectReferences.Items.Should().ContainSingle();
         result.Data.ProjectReferences.Items[0].Name.Should().Be("AnotherReferenced");
         result.Data.ProjectReferences.HasMore.Should().BeTrue();

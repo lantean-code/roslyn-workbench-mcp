@@ -2,12 +2,17 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverFactoryTests : IDisposable
 {
+    private readonly Mock<IAddressableDocumentEligibility> _addressableDocumentEligibility;
     private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
     private readonly AdhocWorkspace _workspace;
     private readonly WorkspaceResolverFactory _target;
 
     public WorkspaceResolverFactoryTests()
     {
+        _addressableDocumentEligibility = new Mock<IAddressableDocumentEligibility>();
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(It.IsAny<Document>()))
+            .Returns(true);
         _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
         _workspace = new AdhocWorkspace();
         var pathComparison = new Mock<IWorkspacePathComparison>();
@@ -21,6 +26,7 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             .Returns(workspacePathService.Object);
 
         _target = new WorkspaceResolverFactory(
+            _addressableDocumentEligibility.Object,
             pathComparison.Object,
             pathServiceFactory.Object,
             _selectorFactory.Object);

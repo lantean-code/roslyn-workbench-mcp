@@ -4309,3 +4309,936 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{"workspace":{"alias":"dogfood-013-assembly-markers"}}`
 
 **Outcome:** Succeeded and closed the unchanged epoch-3 Workspace with no transaction.
+
+### 458. Candidate `initialize`
+
+**Activity:** DOGFOOD-013 post-commit Sentry candidate preparation, isolated smoke setup.
+
+**Purpose:** Initialise the newly published commit `11bc01f` candidate with the controlled `HostQuery` fixture before promotion.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-013-session-smoke","version":"1.0"}}`
+
+**Outcome:** The request did not reach the MCP handler because the sandbox made the default home-state recovery directory read-only. The candidate exited before initialisation, so the smoke test was retried with an isolated writable state directory.
+
+### 459. Candidate `initialize`
+
+**Activity:** DOGFOOD-013 post-commit Sentry candidate preparation, isolated smoke retry.
+
+**Purpose:** Initialise the candidate using a dedicated writable state directory.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-013-session-smoke","version":"1.0"}}`
+
+**Outcome:** The request did not reach the MCP handler because the newly created state directory had inherited mode `755`; the Host correctly required mode `700`. The directory permissions were corrected before the decisive retry.
+
+### 460. Candidate `initialize`
+
+**Activity:** DOGFOOD-013 post-commit Sentry candidate preparation, decisive smoke retry.
+
+**Purpose:** Establish an isolated MCP session after applying the required private state-directory permissions.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-013-session-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18`; the returned Agent Guide source tag identified `dogfood-013-11bc01f`.
+
+### 461. Candidate `tools/list`
+
+**Activity:** DOGFOOD-013 post-commit Sentry candidate preparation.
+
+**Purpose:** Verify the private controlled failure fixture was loaded alongside the normal catalogue.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and included `host-valid-query` from the existing acceptance fixture.
+
+### 462. Candidate `server-status`
+
+**Activity:** DOGFOOD-013 post-commit Sentry candidate preparation.
+
+**Purpose:** Verify the committed candidate retained the configured provider, prompt consent and controlled failure fixture before promotion.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with commit `11bc01f`, provider `Sentry`, consent mode `Prompt`, session state `PromptRequired`, 58 tools and both the bundled Core and temporary `HostQuery` plugins enabled without diagnostics. No error report was prepared or submitted. The candidate was then promoted atomically to the configured dogfood `current` target.
+
+### 463. `server-status`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Confirm the restarted Codex namespace uses the promoted committed candidate before creating report state.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with commit `11bc01f`, provider `Sentry`, consent mode `Prompt`, consent state `PromptRequired`, 58 tools and both expected plugins enabled without diagnostics.
+
+### 464. `host-valid-query`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Trigger the controlled unexpected failure used to prepare a fresh report.
+
+**Request:** `{"name":"dogfood-013-fresh-report","throw":true}`
+
+**Outcome:** Correctly returned `WorkspaceNotOpen`; the fixture is a Workspace query and required the trusted repository to be opened first.
+
+### 465. `workspace-open`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Open the trusted main solution read-only for the controlled query failure.
+
+**Request:** `{"alias":"dogfood-013-fresh-report","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Returned `WorkspaceMsBuildPropertiesInvalid` because the isolated artifacts directory did not yet exist. The directory was created before retrying.
+
+### 466. `workspace-open`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Retry the trusted read-only Workspace load with an existing isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-013-fresh-report","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,610 documents. It reported the expected WSL filesystem warning and unresolved analyser references under the empty isolated artifacts directory.
+
+### 467. `host-valid-query`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Create the deterministic unexpected exception after satisfying the fixture's Workspace requirement.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-fresh-report"},"name":"dogfood-013-fresh-report","throw":true}`
+
+**Outcome:** Correctly returned `UnhandledException` with correlation ID `<correlation-id>`, local diagnostic details available and external report preparation available.
+
+### 468. `get-error-details`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Inspect the sensitive local diagnostic separately from the external report payload.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with `LocalDiagnostic`, `safeForExternalSubmission: false`, the controlled message `Sensitive query failure.`, the external fixture frame, .NET frames and a first-party `PluginQueryMcpServerTool.cs:62` frame carrying its absolute local path.
+
+### 469. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** Prepare the complete immutable Sentry payload without network activity for user review.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with a Sentry destination, opaque submission handle, expiry and SHA-256 digest. The payload includes the controlled exception message, bounded .NET frames and the first-party `PluginQueryMcpServerTool.cs:62` frame; it excludes the external fixture frame, absolute paths and the documented dedicated sensitive categories. No report was submitted.
+
+### 470. `submit-error-report`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation.
+
+**Purpose:** After presenting the exact immutable payload, destination and digest and receiving explicit approval to invoke submission, exercise the three-choice MCP consent form.
+
+**Request:** `{"submissionHandle":"<opaque-submission-handle>"}`
+
+**Outcome:** The MCP elicitation completed and Sentry accepted report reference `c1ad3c5af38a4bd7a8b41a5633866e54`. The returned digest `7d5a231aa76b56e64b11f10a3054ce9b3cbc4ce48af2a2a9fd3bca74f559c4a2` matched the reviewed complete payload, confirming that the selected form choice retained the exception message.
+
+### 471. `workspace-close`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation cleanup.
+
+**Purpose:** Close the trusted read-only Workspace after the approved submission completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-fresh-report"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-1 Workspace with no transaction.
+
+### 472. `workspace-list`
+
+**Activity:** DOGFOOD-013 post-restart error-report validation cleanup.
+
+**Purpose:** Confirm the completed validation left no loaded Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded with no loaded Workspaces and no transaction owner.
+
+### 473. Candidate `initialize`
+
+**Activity:** DOGFOOD-013 first-party provenance probe preparation.
+
+**Purpose:** Initialise the disposable candidate containing server-owned, bundled Core and Code Action failure probes before promotion.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-013-firstparty-probe-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18`; the returned Agent Guide source tag identified `dogfood-013-firstparty-probes-11bc01f`.
+
+### 474. Candidate `server-status`
+
+**Activity:** DOGFOOD-013 first-party provenance probe preparation.
+
+**Purpose:** Verify the disposable candidate retained Sentry prompt consent and normal bundled composition without invoking any failure probe.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with provider `Sentry`, consent mode `Prompt`, consent state `PromptRequired`, 56 normal tools and the bundled Core plugin enabled without diagnostics. The three temporary probe source edits had already been removed byte-for-byte from the working tree before this smoke test. The candidate was then promoted atomically.
+
+### 475. `server-status`
+
+**Activity:** DOGFOOD-013 server-owned first-party provenance validation.
+
+**Purpose:** Confirm the restarted namespace uses the disposable three-probe candidate before triggering the first failure.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with provider `Sentry`, prompt consent, 56 tools and the bundled Core plugin enabled without diagnostics.
+
+### 476. `workspace-list`
+
+**Activity:** DOGFOOD-013 server-owned first-party provenance validation.
+
+**Purpose:** Trigger the deterministic server-owned Host failure without loading a Workspace.
+
+**Request:** `{}`
+
+**Outcome:** Correctly returned `UnhandledException` with correlation ID `<correlation-id>` and both local diagnostic and report preparation available.
+
+### 477. `get-error-details`
+
+**Activity:** DOGFOOD-013 server-owned first-party provenance validation.
+
+**Purpose:** Verify the sensitive local diagnostic captured the genuine first-party throw point.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled message and first-party frames for `WorkspaceListTool.ThrowDogfoodFirstPartyProbe` at the absolute local `WorkspaceListTool.cs:45`, its `ExecuteAsync` caller at line 31 and the server-owned adapter at `ServerOwnedToolBase.cs:50`.
+
+### 478. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 server-owned first-party provenance validation.
+
+**Purpose:** Prepare the complete immutable Sentry payload without network activity for user review.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled exception message and the genuine throw frame `WorkspaceListTool.ThrowDogfoodFirstPartyProbe`, `WorkspaceListTool.cs:45`, followed by `ExecuteAsync` at line 31 and `ServerOwnedToolBase.cs:50`. Absolute paths were reduced to filenames. No report was submitted.
+
+### 479. `submit-error-report`
+
+**Activity:** DOGFOOD-013 server-owned first-party provenance validation.
+
+**Purpose:** Submit the exact reviewed server-owned probe payload after explicit approval and completion of the MCP consent form.
+
+**Request:** `{"submissionHandle":"<opaque-submission-handle>"}`
+
+**Outcome:** Sentry accepted report reference `e115ed2be9b445b59782e30f318636cd`; the returned digest `883a002374a13c36a19c4f0e775fcf4fb9dace9e353e9234a3214d31ecd4bc11` matched the reviewed complete payload.
+
+### 480. `workspace-open`
+
+**Activity:** DOGFOOD-013 bundled Core and Code Action first-party provenance validation.
+
+**Purpose:** Open the trusted main solution read-only for the remaining Workspace-bound probes.
+
+**Request:** `{"alias":"dogfood-013-firstparty-probes","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,610 documents, with the expected WSL filesystem and unresolved isolated-artifacts analyser warnings.
+
+### 481. `get-solution-structure`
+
+**Activity:** DOGFOOD-013 bundled Core first-party provenance validation.
+
+**Purpose:** Trigger the deterministic bundled Core query failure.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-firstparty-probes"},"includeDocuments":false,"foldersLimit":1,"projectsLimit":1,"documentsPerProjectLimit":1,"projectReferencesPerProjectLimit":1}`
+
+**Outcome:** Correctly returned `UnhandledException` with correlation ID `<correlation-id>` and both local diagnostic and report preparation available.
+
+### 482. `get-error-details`
+
+**Activity:** DOGFOOD-013 bundled Core first-party provenance validation.
+
+**Purpose:** Verify the sensitive local diagnostic captured the genuine bundled Core throw point.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled message and first-party frames for `GetSolutionStructureTool.ThrowDogfoodFirstPartyProbe` at the absolute local `GetSolutionStructureTool.cs:160`, its `ExecuteCoreAsync` caller at line 12 and the Host plugin adapter at `PluginQueryMcpServerTool.cs:62`.
+
+### 483. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 bundled Core first-party provenance validation.
+
+**Purpose:** Prepare the complete immutable Sentry payload without network activity for user review.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled exception message and genuine throw frame `GetSolutionStructureTool.ThrowDogfoodFirstPartyProbe`, `GetSolutionStructureTool.cs:160`, followed by `ExecuteCoreAsync` at line 12 and `PluginQueryMcpServerTool.cs:62`. Absolute paths were reduced to filenames. No report was submitted.
+
+### 484. `submit-error-report`
+
+**Activity:** DOGFOOD-013 bundled Core first-party provenance validation.
+
+**Purpose:** Submit the exact reviewed bundled Core probe payload after explicit approval and completion of the MCP consent form.
+
+**Request:** `{"submissionHandle":"<opaque-submission-handle>"}`
+
+**Outcome:** Sentry accepted report reference `406a554a69944b01bf6f21a1fb612879`; the returned digest `9cdd8c5ace3b9c63a4077cea5b9fa3cd4b508b92f98328382803957972fd66df` matched the reviewed complete payload.
+
+### 485. `list-code-actions`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Trigger the deterministic Code Action workflow failure using the snapshot returned by the initial Workspace load.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-firstparty-probes"},"document":{"project":{"name":"Roslyn.Workbench.Mcp"},"path":"src/Roslyn.Workbench.Mcp/Tools/WorkspaceListTool.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":1,"snapshotId":"<snapshot-id>","transactionRevision":null},"kinds":"All","limit":1}`
+
+**Outcome:** Correctly returned `WorkspaceOutOfDate` because the usage-ledger updates made after the initial load changed a solution document. The Workspace was reloaded before retrying.
+
+### 486. `workspace-reload`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Refresh the trusted Workspace after the usage-ledger update invalidated its initial snapshot.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-firstparty-probes"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,610 documents.
+
+### 487. `list-code-actions`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Trigger the deterministic Code Action workflow failure using the refreshed valid snapshot.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-firstparty-probes"},"document":{"project":{"name":"Roslyn.Workbench.Mcp"},"path":"src/Roslyn.Workbench.Mcp/Tools/WorkspaceListTool.cs"},"expectedSnapshot":{"workspaceId":"<workspace-id>","workspaceEpoch":2,"snapshotId":"<snapshot-id>","transactionRevision":null},"kinds":"All","limit":1}`
+
+**Outcome:** Correctly returned `UnhandledException` with correlation ID `<correlation-id>` and both local diagnostic and report preparation available.
+
+### 488. `get-error-details`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Verify the sensitive local diagnostic captured the genuine Code Action throw point.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled message and first-party frames for `ListCodeActionsTool.ThrowDogfoodFirstPartyProbe` at the absolute local `ListCodeActionsTool.cs:92`, its `ExecuteCoreAsync` caller at line 41 and the Host Code Action adapter at `CodeActionQueryMcpServerTool.cs:54`.
+
+### 489. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Prepare the complete immutable Sentry payload without network activity for user review.
+
+**Request:** `{"correlationId":"<correlation-id>"}`
+
+**Outcome:** Succeeded with the controlled exception message and genuine throw frame `ListCodeActionsTool.ThrowDogfoodFirstPartyProbe`, `ListCodeActionsTool.cs:92`, followed by `ExecuteCoreAsync` at line 41 and `CodeActionQueryMcpServerTool.cs:54`. Absolute paths were reduced to filenames. No report was submitted.
+
+### 490. `submit-error-report`
+
+**Activity:** DOGFOOD-013 Code Action first-party provenance validation.
+
+**Purpose:** Submit the exact reviewed Code Action probe payload after explicit approval and completion of the MCP consent form.
+
+**Request:** `{"submissionHandle":"<opaque-submission-handle>"}`
+
+**Outcome:** Sentry accepted report reference `764ec3a2c3de4f1e98b180444c87bc8f`; the returned digest `d0725d2f31120b2dab3532b3495fab36de33bc89aae55e700267a56b7087fec1` matched the reviewed complete payload.
+
+### 491. `workspace-close`
+
+**Activity:** DOGFOOD-013 first-party provenance validation cleanup.
+
+**Purpose:** Close the trusted read-only Workspace after all three approved submissions completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-firstparty-probes"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-2 Workspace with no transaction.
+
+### 492. Candidate `initialize`
+
+**Activity:** DOGFOOD-013 clean candidate restoration.
+
+**Purpose:** Initialise the clean probe-free committed candidate before restoring it as the configured dogfood target.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dogfood-013-clean-smoke","version":"1.0"}}`
+
+**Outcome:** Succeeded with protocol version `2025-06-18`; the returned Agent Guide source tag identified committed source `dogfood-013-11bc01f`.
+
+### 493. Candidate `server-status`
+
+**Activity:** DOGFOOD-013 clean candidate restoration.
+
+**Purpose:** Verify the probe-free committed candidate retained Sentry prompt consent and normal bundled composition before promotion.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with provider `Sentry`, consent mode `Prompt`, consent state `PromptRequired`, 56 normal tools and only the bundled Core plugin enabled without diagnostics. The candidate contained none of the three disposable failure probes and was then promoted atomically.
+
+### 494. `server-status`
+
+**Activity:** DOGFOOD-013 clean candidate restoration confirmation.
+
+**Purpose:** Confirm the restarted Codex namespace is connected to the clean probe-free committed candidate rather than the disposable provenance build.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with committed version `11bc01f`, provider `Sentry`, consent mode `Prompt`, consent state `PromptRequired`, 56 normal tools and only the bundled Core plugin enabled without diagnostics, confirming the disposable probes and external failure fixture are no longer active.
+
+### 495. `server-status`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Confirm that the restarted task is connected to the controlled HostQuery dogfood candidate before creating a fresh report.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded for commit `11bc01f` with Sentry reporting configured in `Prompt` mode, 58 published tools, the bundled Core plugin and `host.valid.query` enabled, and no server diagnostics.
+
+### 496. `workspace-open`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Open the main solution for a controlled external-plugin query failure whose report can exercise dispatch-time exception-message removal.
+
+**Request:** `{"alias":"dogfood-013-message-free","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,610 documents. Expected isolated-artifacts analyser resolution warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 497. `host-valid-query`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Trigger the controlled external HostQuery exception containing the known message `Sensitive query failure.`.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-message-free"},"name":"dogfood-013-message-free","throw":true}`
+
+**Outcome:** Returned the expected `UnhandledException` with correlation ID `5c9a862c-89b3-4a70-be72-bc78a20b24ff`.
+
+### 498. `get-error-details`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Inspect the controlled failure locally before preparing the external report.
+
+**Request:** `{"correlationId":"5c9a862c-89b3-4a70-be72-bc78a20b24ff"}`
+
+**Outcome:** Succeeded, but the client-side projection was truncated before the details could be retained for comparison; the request was repeated.
+
+### 499. `get-error-details`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Repeat the local inspection after the first client projection was truncated.
+
+**Request:** `{"correlationId":"5c9a862c-89b3-4a70-be72-bc78a20b24ff"}`
+
+**Outcome:** Succeeded. The local-only details contained `System.InvalidOperationException`, the controlled message `Sensitive query failure.`, an external fixture frame classified as `Unknown`, and the first-party host boundary at `PluginQueryMcpServerTool.cs:62`.
+
+### 500. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Prepare the exact full-content Sentry payload without network activity so the user can review it before choosing the message-free submission option.
+
+**Request:** `{"correlationId":"5c9a862c-89b3-4a70-be72-bc78a20b24ff"}`
+
+**Outcome:** Succeeded with submission handle `submission_3dc6160655014a2fb7db6b398541a8de`, full-payload digest `620785820503fd3b6445c16a36b52409a3ad2da9f77554ab45f92d52d88bd5a8`, expiry `2026-08-29T11:04:13.0528819+00:00`, and the controlled exception message present in both the Sentry exception value and Roslyn Workbench context ready for dispatch-time removal.
+
+### 501. `submit-error-report`
+
+**Activity:** DOGFOOD-013 message-free consent validation.
+
+**Purpose:** Submit the prepared report using the consent form's `Yes, without exception messages` choice and verify that dispatch-time redaction changes the reviewed payload.
+
+**Request:** `{"submissionHandle":"submission_3dc6160655014a2fb7db6b398541a8de"}`
+
+**Outcome:** Succeeded with Sentry reference `e20803dc742c462482f1c747b9b5631d` and the unchanged full-payload digest `620785820503fd3b6445c16a36b52409a3ad2da9f77554ab45f92d52d88bd5a8`. The user subsequently confirmed that the full-content consent option had been selected accidentally, so this is valid full-content evidence rather than a product failure; a fresh report was required for the message-free choice.
+
+### 502. `host-valid-query`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Generate a fresh controlled failure because the first submission handle was consumed using the full-content consent option.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-message-free"},"name":"dogfood-013-message-free-retry","throw":true}`
+
+**Outcome:** Returned `WorkspaceOutOfDate` with a `workspace-reload` continuation before executing the controlled query.
+
+### 503. `workspace-reload`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Follow the stale-Workspace continuation before retrying the controlled query failure.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-message-free"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,610 documents. Expected isolated-artifacts analyser resolution warnings were reported.
+
+### 504. `host-valid-query`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Retry the controlled external HostQuery exception after reloading the Workspace.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-message-free"},"name":"dogfood-013-message-free-retry","throw":true}`
+
+**Outcome:** Returned the expected `UnhandledException` with correlation ID `ec8c1ce2-7149-4870-aa92-97acd41f1161`.
+
+### 505. `get-error-details`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Inspect the fresh controlled failure locally before preparing its external report.
+
+**Request:** `{"correlationId":"ec8c1ce2-7149-4870-aa92-97acd41f1161"}`
+
+**Outcome:** Succeeded. The local-only details contained `System.InvalidOperationException`, the controlled message `Sensitive query failure.`, an external fixture frame classified as `Unknown`, and the first-party host boundary at `PluginQueryMcpServerTool.cs:62`.
+
+### 506. `prepare-error-report`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Prepare a fresh full-content Sentry payload for user review before selecting the message-free consent option.
+
+**Request:** `{"correlationId":"ec8c1ce2-7149-4870-aa92-97acd41f1161"}`
+
+**Outcome:** Succeeded with submission handle `submission_81eebdfb92f34b6cba437544ec292797`, full-payload digest `a5268b85c01ec8c312303b0b3e2971ab33dfb3b4ae048789d6c38387adc2d9da`, expiry `2026-08-29T11:09:33.039232+00:00`, and the controlled exception message present in both reviewed message fields ready for dispatch-time removal.
+
+### 507. `submit-error-report`
+
+**Activity:** DOGFOOD-013 message-free consent validation retry.
+
+**Purpose:** Submit the fresh report using the consent form's `Yes, without exception messages` choice and verify dispatch-time redaction.
+
+**Request:** `{"submissionHandle":"submission_81eebdfb92f34b6cba437544ec292797"}`
+
+**Outcome:** Succeeded with Sentry reference `aec10a3ab06744f289076fad03642019` and submitted digest `e32b2cb5ebcf2740afff2de079f7cb0ca5d46e552283ff7726b1366e70ea7009`. The submitted digest differs from the reviewed full-content digest `a5268b85c01ec8c312303b0b3e2971ab33dfb3b4ae048789d6c38387adc2d9da`, confirming that the server constructed and dispatched the message-free payload variant selected by the user.
+
+### 508. `workspace-close`
+
+**Activity:** DOGFOOD-013 message-free consent validation cleanup.
+
+**Purpose:** Close the controlled validation Workspace after the message-free report was accepted.
+
+**Request:** `{"workspace":{"alias":"dogfood-013-message-free"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-2 Workspace with no transaction.
+
+### 509. `workspace-list`
+
+**Activity:** DOGFOOD-013 message-free consent validation cleanup.
+
+**Purpose:** Confirm that no Workspace or transaction remained after the validation run.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+
+### 510. `server-status`
+
+**Activity:** DOGFOOD-013 clean-candidate restoration verification.
+
+**Purpose:** Confirm that the restarted task is using the restored clean dogfood candidate after removing the controlled external HostQuery fixture from the active setup.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded for commit `11bc01f` with Sentry reporting in `Prompt` mode, 56 published tools, only the bundled Core plugin enabled, no startup warnings and no plugin diagnostics. The temporary `host.valid.query` plugin was absent, confirming restoration of the clean candidate.
+
+## DOGFOOD-014 — Bounded structure document selection
+
+### 511. `workspace-list`
+
+**Activity:** DOGFOOD-014 issue validation.
+
+**Purpose:** Confirm that no Workspace or transaction remained before reproducing bounded structure ordering.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 512. `workspace-open`
+
+**Activity:** DOGFOOD-014 issue validation.
+
+**Purpose:** Open the main solution with an isolated artefacts path for the current committed-behaviour reproduction.
+
+**Request:** `{"alias":"dogfood-014-validation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the isolated artefacts directory did not yet exist. No Workspace was opened; the directory was created before retrying.
+
+### 513. `workspace-open`
+
+**Activity:** DOGFOOD-014 issue validation.
+
+**Purpose:** Retry opening the main solution after satisfying the explicit artefacts-directory precondition.
+
+**Request:** `{"alias":"dogfood-014-validation","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,610 documents. Expected isolated-artifacts analyser warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 514. `get-solution-structure`
+
+**Activity:** DOGFOOD-014 issue validation.
+
+**Purpose:** Reproduce document selection with deliberately low per-project limits on the current committed build.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"includeDocuments":true,"projectsLimit":2,"documentsPerProjectLimit":2,"projectReferencesPerProjectLimit":2,"foldersLimit":2}`
+
+**Outcome:** Succeeded, but both returned projects used both document slots for generated files under the isolated `obj` tree and returned no ordinary source document.
+
+### 515. `get-project-details`
+
+**Activity:** DOGFOOD-014 issue validation.
+
+**Purpose:** Measure how many bounded slots generated documents consume in a representative project.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"project":{"name":"Roslyn.Workbench.Mcp.Workspace"},"includeDocuments":true,"documentsLimit":5,"projectReferencesLimit":2,"metadataReferencesLimit":2,"analyzersLimit":2}`
+
+**Outcome:** Succeeded. The first three document slots were generated `.NETCoreApp` assembly attributes, assembly information and global-usings files; only slots four and five contained ordinary source documents.
+
+### 516. `search-symbols`
+
+**Activity:** DOGFOOD-014 implementation discovery.
+
+**Purpose:** Locate the solution-structure implementation and focused unit tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Solution"},"query":"GetSolutionStructureTool","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production tool and `GetSolutionStructureToolTests`.
+
+### 517. `search-symbols`
+
+**Activity:** DOGFOOD-014 implementation discovery.
+
+**Purpose:** Locate the project-details implementation and focused unit tests.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Solution"},"query":"GetProjectDetailsTool","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production tool and `GetProjectDetailsToolTests`.
+
+### 518. `get-code-context`
+
+**Activity:** DOGFOOD-014 implementation discovery.
+
+**Purpose:** Inspect the solution-structure projection and selection stages.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetSolutionStructureTool.cs"},"range":{"start":284,"length":24}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded and showed bounded project selection followed by per-project document projection.
+
+### 519. `get-code-context`
+
+**Activity:** DOGFOOD-014 implementation discovery.
+
+**Purpose:** Inspect project-details document projection.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetProjectDetailsTool.cs"},"range":{"start":209,"length":21}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded and showed that all normal Roslyn project documents are normalised, sorted only by path and then bounded.
+
+### 520. `get-code-context`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Inspect the solution-structure unit-test fixture and its document-ordering coverage.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetSolutionStructureToolTests.cs"},"range":{"start":84,"length":29}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded. The first test context showed only ordinary in-memory source documents.
+
+### 521. `get-code-context`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Inspect the project-details unit-test fixture and its document-ordering coverage.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetProjectDetailsToolTests.cs"},"range":{"start":124,"length":26}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":5}`
+
+**Outcome:** Succeeded. The first test context covered project resolution and ordinary source projection but no mixed generated/source ordering.
+
+### 522. `search-symbols`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Locate focused document-inclusion tests in both affected tool classes.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Plugins.Core.Test"}]},"query":"IncludeDocuments","kinds":["Method"],"symbolsLimit":30}`
+
+**Outcome:** Succeeded with the no-documents branches and the project-details bounded ordered-details test.
+
+### 523. `search-symbols`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Locate all document-related methods relevant to bounded ordering in the affected test project.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Projects","projects":[{"name":"Roslyn.Workbench.Mcp.Plugins.Core.Test"}]},"query":"Documents","kinds":["Method"],"symbolsLimit":50}`
+
+**Outcome:** Succeeded with 23 methods, including the two affected tools' explicit ordered bounded-document tests.
+
+### 524. `get-code-context`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Inspect the solution-structure bounded-document test in full.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetSolutionStructureToolTests.cs"},"range":{"start":5770,"length":111}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3}`
+
+**Outcome:** Succeeded and showed a two-source-document fixture that locks ordinal path order and a one-item bound, but contains no generated document.
+
+### 525. `get-code-context`
+
+**Activity:** DOGFOOD-014 existing-coverage validation.
+
+**Purpose:** Inspect the project-details bounded ordered-details test in full.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/GetProjectDetailsToolTests.cs"},"range":{"start":5780,"length":124}}},"beforeLines":5,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3}`
+
+**Outcome:** Succeeded and showed three ordinary source documents used to lock ordinal order and limits, with no mixed generated/source case.
+
+### 526. `search-symbols`
+
+**Activity:** DOGFOOD-014 design discovery.
+
+**Purpose:** Find existing repository concepts for generated-document recognition before proposing new classification logic.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Solution"},"query":"Generated","kinds":["NamedType","Method","Property"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded with six results, including `CompilerDiagnosticHelpers.IsGeneratedDocument` and the existing `find-unused-symbols` generated-document option and tests.
+
+### 527. `get-code-context`
+
+**Activity:** DOGFOOD-014 design discovery.
+
+**Purpose:** Inspect the existing generated-document recognition helper.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Diagnostics/CompilerDiagnosticHelpers.cs"},"range":{"start":640,"length":19}}},"beforeLines":10,"afterLines":60,"includeDiagnostics":false,"includeEnclosingSymbols":true,"enclosingSymbolsLimit":3}`
+
+**Outcome:** Succeeded. The helper recognises common generated filename suffixes and temporary generated files but does not classify the generated assembly-attributes or assembly-information files observed in the live response.
+
+### 528. `search-symbols`
+
+**Activity:** DOGFOOD-014 contract discovery.
+
+**Purpose:** Locate the solution-structure request contract before deciding whether a new request option is justified.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"query":"GetSolutionStructureRequest","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single request contract.
+
+### 529. `search-symbols`
+
+**Activity:** DOGFOOD-014 contract discovery.
+
+**Purpose:** Locate the project-details request contract before deciding whether a new request option is justified.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"query":"GetProjectDetailsRequest","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the single request contract.
+
+### 530. `get-code-context`
+
+**Activity:** DOGFOOD-014 contract discovery.
+
+**Purpose:** Inspect the complete solution-structure input shape and effective-limit pattern.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetSolutionStructureRequest.cs"},"range":{"start":181,"length":27}}},"beforeLines":10,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":false}`
+
+**Outcome:** Succeeded. The contract exposes optional document inclusion and a per-project limit, with no generated-document filter or ordering mode.
+
+### 531. `get-code-context`
+
+**Activity:** DOGFOOD-014 contract discovery.
+
+**Purpose:** Inspect the complete project-details input shape and effective-limit pattern.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"},"location":{"span":{"document":{"path":"src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetProjectDetailsRequest.cs"},"range":{"start":178,"length":24}}},"beforeLines":10,"afterLines":100,"includeDiagnostics":false,"includeEnclosingSymbols":false}`
+
+**Outcome:** Succeeded. The contract exposes optional document inclusion and a document limit, with no generated-document filter or ordering mode.
+
+### 532. `workspace-close`
+
+**Activity:** DOGFOOD-014 validation cleanup.
+
+**Purpose:** Close the unchanged read-only Workspace after issue, implementation and coverage discovery.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-validation"}}`
+
+**Outcome:** Succeeded and closed the unchanged epoch-1 Workspace with no transaction.
+
+### 533. `workspace-list`
+
+**Activity:** DOGFOOD-014 validation cleanup.
+
+**Purpose:** Confirm that validation left no Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 534. `workspace-open`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Reopen the clean committed Workspace to trace the shared document-selection boundaries after broadening the requirement from response ordering to agent-facing exclusion.
+
+**Request:** `{"alias":"dogfood-014-boundary","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,610 documents. Expected isolated-artifacts analyser warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 535. `search-symbols`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Locate the plugin helper that expands solution and project scopes into documents.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-boundary"},"scope":{"kind":"Solution"},"query":"ResolveDocuments","kinds":["Method"],"symbolsLimit":50}`
+
+**Outcome:** Succeeded and located `ToolRequestResolver.ResolveDocuments<TResponse>` in the plugin execution layer.
+
+### 536. `search-symbols`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Locate shared direct-document resolution entry points.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-boundary"},"scope":{"kind":"Solution"},"query":"ResolveDocument","kinds":["Method"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded and identified `WorkspaceResolver`, plugin request-resolution and Code Action request-resolution paths.
+
+### 537. `search-symbols`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Locate every document-reference projection boundary that could expose an intermediate document.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-boundary"},"scope":{"kind":"Solution"},"query":"CreateDocumentReference","kinds":["Method"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded and identified the shared `IWorkspaceResolver.CreateDocumentReference` operation and its consumers in query, Code Action and transaction paths.
+
+### 538. `search-symbols`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Trace the public selector contract and all document-selector consumers.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-boundary"},"scope":{"kind":"Solution"},"query":"DocumentSelector","kinds":["NamedType","Method","Property"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded and confirmed that direct plugin and Code Action document selections converge on the Workspace resolver.
+
+### 539. `search-symbols`
+
+**Activity:** DOGFOOD-014 revised design discovery.
+
+**Purpose:** Locate the Code Action execution context and scope-resolution boundary.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-boundary"},"scope":{"kind":"Solution"},"query":"CodeActionQueryContext","kinds":["NamedType","Method","Property"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded and identified the Code Action scope resolver and execution-context paths that enumerate project documents.
+
+### 540. Candidate `initialize`
+
+**Activity:** DOGFOOD-014 pre-commit publication.
+
+**Purpose:** Confirm that the isolated Release-published candidate starts and negotiates the supported MCP protocol before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and a local dogfood smoke-test client identity.
+
+**Outcome:** Succeeded. The candidate returned server identity `Roslyn.Workbench.Mcp` version `1.0.0.0` and protocol version `2025-06-18`.
+
+### 541. Candidate `tools/list`
+
+**Activity:** DOGFOOD-014 pre-commit publication.
+
+**Purpose:** Confirm that the isolated candidate publishes its complete tool catalogue before promotion.
+
+**Request:** MCP `tools/list` after the successful initialisation exchange.
+
+**Outcome:** Succeeded with 56 published tools. The candidate then shut down normally and was promoted atomically to the configured dogfood `current` target.
+
+### 542. `server-status`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Confirm that the restarted Codex task is connected to the newly published dogfood candidate and that its full tool catalogue loaded successfully.
+
+**Request:** `{"detailLevel":"Full"}`
+
+**Outcome:** Succeeded. The server reported version `1.0.0.0`, 56 tools, the expected `11bc01f` build identity and no startup warnings.
+
+### 543. `workspace-list`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Confirm a clean dogfood server state before loading the validation Workspace.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 544. `workspace-open`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Load the repository with isolated build artifacts for live validation of agent-addressable document filtering.
+
+**Request:** `{"alias":"dogfood-014-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Failed because the requested isolated artifacts directory did not yet exist. The directory was created before retrying.
+
+### 545. `workspace-open`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Retry loading the repository after creating the isolated artifacts directory.
+
+**Request:** `{"alias":"dogfood-014-live","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,614 documents. Expected isolated-artifacts analyser-reference warnings and the WSL-on-Windows-filesystem warning were reported.
+
+### 546. `get-solution-structure`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Inspect the full agent-facing document projection for intermediate `obj` documents.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-live"},"includeDocuments":true,"documentsPerProjectLimit":100}`
+
+**Outcome:** Succeeded, but the complete response exceeded the client model-context limit and was truncated before it could provide reliable inspection evidence. A compact projection was requested subsequently.
+
+### 547. `get-project-details`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Verify that a large page from the main server project's agent-facing document projection excludes physical `obj`-segment documents.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-live"},"project":{"name":"Roslyn.Workbench.Mcp"},"includeDocuments":true,"documentsLimit":100}`
+
+**Outcome:** Succeeded and returned 100 source documents with continuation available. None of the returned paths contained an `obj` segment.
+
+### 548. `get-solution-structure`
+
+**Activity:** DOGFOOD-014 live pre-commit validation.
+
+**Purpose:** Verify the solution-wide first-page projection at the boundary where generated documents had previously displaced source documents.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-live"},"includeDocuments":true,"documentsPerProjectLimit":5}`
+
+**Outcome:** Succeeded for all 31 projects. No returned document contained an `obj` path segment; the first pages contained addressable source documents.
+
+### 549. `workspace-close`
+
+**Activity:** DOGFOOD-014 live pre-commit validation cleanup.
+
+**Purpose:** Close the validation Workspace after collecting live evidence.
+
+**Request:** `{"workspace":{"alias":"dogfood-014-live"}}`
+
+**Outcome:** Succeeded and closed the repository solution at Workspace epoch 1.
+
+### 550. `workspace-list`
+
+**Activity:** DOGFOOD-014 live pre-commit validation cleanup.
+
+**Purpose:** Confirm that validation left no Workspace or transaction owner.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.

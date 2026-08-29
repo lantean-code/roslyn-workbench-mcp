@@ -4,11 +4,43 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverTests
 {
+    private readonly Mock<IAddressableDocumentEligibility> _addressableDocumentEligibility;
     private readonly Mock<IWorkspaceSelectorFactory> _selectorFactory;
 
     public WorkspaceResolverTests()
     {
+        _addressableDocumentEligibility = new Mock<IAddressableDocumentEligibility>();
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(It.IsAny<Document>()))
+            .Returns(true);
         _selectorFactory = new Mock<IWorkspaceSelectorFactory>();
+    }
+
+    [Fact]
+    public void GIVEN_SolutionContainsAddressableAndExcludedDocuments_WHEN_GettingDocuments_THEN_ShouldReturnOnlyAddressableDocuments()
+    {
+        using var workspace = new AdhocWorkspace();
+        var firstProject = AddProject(workspace, "FirstProject");
+        var includedDocument = AddDocument(workspace, firstProject, "Included.cs", "class Included { }", Path.Combine(GetWorkspaceRoot(), "FirstProject", "Included.cs"));
+        var excludedDocument = AddDocument(workspace, firstProject, "Excluded.cs", "class Excluded { }", Path.Combine(GetWorkspaceRoot(), "FirstProject", "obj", "Excluded.cs"));
+        var secondProject = AddProject(workspace, "SecondProject");
+        var secondIncludedDocument = AddDocument(workspace, secondProject, "SecondIncluded.cs", "class SecondIncluded { }", Path.Combine(GetWorkspaceRoot(), "SecondProject", "SecondIncluded.cs"));
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(It.IsAny<Document>()))
+            .Returns((Document document) => document.Id != excludedDocument.Id);
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var currentFirstProject = workspace.CurrentSolution.GetProject(firstProject.Id)
+            ?? throw new InvalidOperationException("The first project was not found in the solution.");
+
+        var projectDocuments = target.GetDocuments(currentFirstProject);
+        var solutionDocuments = target.GetDocuments(workspace.CurrentSolution);
+
+        projectDocuments.Select(static document => document.Id).Should().Equal(includedDocument.Id);
+        solutionDocuments.Select(static document => document.Id).Should().BeEquivalentTo(
+        [
+            includedDocument.Id,
+            secondIncludedDocument.Id,
+        ]);
     }
 
     [Fact]
@@ -69,6 +101,7 @@ public sealed class WorkspaceResolverTests
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _addressableDocumentEligibility.Object,
             _selectorFactory.Object,
             pathComparison.Object,
             workspacePathService);
@@ -109,6 +142,7 @@ public sealed class WorkspaceResolverTests
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 workspaceEpoch: 2),
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _addressableDocumentEligibility.Object,
             _selectorFactory.Object,
             pathComparison.Object,
             workspacePathService);
@@ -144,6 +178,44 @@ public sealed class WorkspaceResolverTests
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
 
         var result = target.CreateDocumentReference(document);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_IneligibleDocument_WHEN_ResolvingOrProjecting_THEN_ShouldNotExposeDocument()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(document))
+            .Returns(false);
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selectorById = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
+        var selectorByPath = new DocumentSelector { Path = "Project/Document.cs" };
+
+        var resolutionById = target.ResolveDocument(selectorById);
+        var resolutionByPath = target.ResolveDocument(selectorByPath);
+        var reference = target.CreateDocumentReference(document);
+
+        resolutionById.Status.Should().Be(SelectorResolveStatus.NotFound);
+        resolutionByPath.Status.Should().Be(SelectorResolveStatus.NotFound);
+        reference.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_IneligibleDocumentLocation_WHEN_CreatingResolvedLocation_THEN_ShouldReturnNull()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(document))
+            .Returns(false);
+        var tree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        var location = tree!.GetLocation(new TextSpan(6, 1));
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.CreateResolvedLocation(location);
 
         result.Should().BeNull();
     }
@@ -199,6 +271,7 @@ public sealed class WorkspaceResolverTests
             workspace.CurrentSolution,
             snapshot: null,
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _addressableDocumentEligibility.Object,
             _selectorFactory.Object,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
@@ -243,6 +316,7 @@ public sealed class WorkspaceResolverTests
             workspace.CurrentSolution,
             snapshot: null,
             WorkspaceProjectTargetFrameworkMap.Empty,
+            _addressableDocumentEligibility.Object,
             _selectorFactory.Object,
             pathComparison.Object,
             new WorkspacePathService(string.Empty, pathNormalizer.Object));
@@ -1302,6 +1376,7 @@ public sealed class WorkspaceResolverTests
                 workspaceEpoch: 2,
                 transactionRevision: transactionRevision),
             projectTargetFrameworks ?? WorkspaceProjectTargetFrameworkMap.Empty,
+            _addressableDocumentEligibility.Object,
             _selectorFactory.Object,
             comparison.Object,
             new WorkspacePathService(workspaceRoot, pathNormalizer.Object));

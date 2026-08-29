@@ -116,6 +116,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceMsBuildPropertiesProvider, WorkspaceMsBuildPropertiesProvider>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
+        services.AddSingleton<IAddressableDocumentEligibility, AddressableDocumentEligibility>();
         services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
         services.AddSingleton<ITypeHierarchyService, TypeHierarchyService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();

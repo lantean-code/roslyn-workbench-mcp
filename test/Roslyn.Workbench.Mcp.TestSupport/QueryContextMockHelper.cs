@@ -21,6 +21,14 @@ public static class QueryContextMockHelper
         var typeHierarchyService = new Mock<ITypeHierarchyService>();
         var typeHierarchyServiceImplementation = new TypeHierarchyService();
 
+        workspaceResolver
+            .Setup(item => item.GetDocuments(It.IsAny<Solution>()))
+            .Returns((Solution solution) => solution.Projects.SelectMany(static project => project.Documents).ToArray());
+
+        workspaceResolver
+            .Setup(item => item.GetDocuments(It.IsAny<Project>()))
+            .Returns((Project project) => project.Documents.ToArray());
+
         toolExecutionServices
             .SetupGet(item => item.ReferenceDiscoveryService)
             .Returns(referenceDiscoveryService.Object);

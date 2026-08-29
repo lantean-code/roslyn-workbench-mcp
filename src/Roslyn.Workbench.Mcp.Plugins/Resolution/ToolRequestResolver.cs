@@ -60,9 +60,7 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
     {
         if (scope is null || scope.Kind == ScopeKind.Solution)
         {
-            var documents = context.CurrentSolution.Projects
-                .SelectMany(static project => project.Documents)
-                .ToArray();
+            var documents = context.WorkspaceResolver.GetDocuments(context.CurrentSolution);
 
             return ToolResolutionResult.Resolved<IReadOnlyList<Document>, TResponse>(documents);
         }
@@ -84,9 +82,11 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
             return ToolResolutionResult.Rejected<IReadOnlyList<Document>, TResponse>(projects.Rejection);
         }
 
-        var resolvedDocuments = projects.Value
-            .SelectMany(static project => project.Documents)
-            .ToArray();
+        var resolvedDocuments = new List<Document>();
+        foreach (var project in projects.Value)
+        {
+            resolvedDocuments.AddRange(context.WorkspaceResolver.GetDocuments(project));
+        }
 
         return ToolResolutionResult.Resolved<IReadOnlyList<Document>, TResponse>(resolvedDocuments);
     }

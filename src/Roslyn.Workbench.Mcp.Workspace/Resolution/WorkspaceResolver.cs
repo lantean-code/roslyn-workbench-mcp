@@ -5,6 +5,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly Solution _solution;
     private readonly SnapshotPrecondition? _snapshot;
     private readonly WorkspaceProjectTargetFrameworkMap _projectTargetFrameworks;
+    private readonly IAddressableDocumentEligibility _addressableDocumentEligibility;
     private readonly IWorkspaceSelectorFactory _workspaceSelectorFactory;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
@@ -13,6 +14,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         Solution solution,
         SnapshotPrecondition? snapshot,
         WorkspaceProjectTargetFrameworkMap projectTargetFrameworks,
+        IAddressableDocumentEligibility addressableDocumentEligibility,
         IWorkspaceSelectorFactory workspaceSelectorFactory,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathService workspacePathService)
@@ -20,9 +22,39 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         _solution = solution;
         _snapshot = snapshot;
         _projectTargetFrameworks = projectTargetFrameworks;
+        _addressableDocumentEligibility = addressableDocumentEligibility;
         _workspaceSelectorFactory = workspaceSelectorFactory;
         _workspacePathComparison = workspacePathComparison;
         _workspacePathService = workspacePathService;
+    }
+
+    public IReadOnlyList<Document> GetDocuments(Solution solution)
+    {
+        var documents = new List<Document>();
+        foreach (var project in solution.Projects)
+        {
+            AddAddressableDocuments(project, documents);
+        }
+
+        return documents;
+    }
+
+    public IReadOnlyList<Document> GetDocuments(Project project)
+    {
+        var documents = new List<Document>();
+        AddAddressableDocuments(project, documents);
+        return documents;
+    }
+
+    private void AddAddressableDocuments(Project project, List<Document> documents)
+    {
+        foreach (var document in project.Documents)
+        {
+            if (_addressableDocumentEligibility.IsAddressable(document))
+            {
+                documents.Add(document);
+            }
+        }
     }
 
     public ResolvedLocation? CreateResolvedLocation(Location location)
@@ -36,6 +68,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var span = location.SourceSpan;
         var linePosition = text.Lines.GetLinePosition(span.Start);
         var document = _solution.GetDocument(location.SourceTree);
+        if (document is not null && !_addressableDocumentEligibility.IsAddressable(document))
+        {
+            return null;
+        }
 
         var resolvedLocation = new ResolvedLocation
         {
@@ -58,6 +94,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public DocumentReference? CreateDocumentReference(Document document)
     {
+        if (!_addressableDocumentEligibility.IsAddressable(document))
+        {
+            return null;
+        }
+
         if (!_workspacePathService.TryNormalizePath(document.FilePath ?? string.Empty, out var normalizedPath))
         {
             return null;
@@ -254,7 +295,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             {
                 foreach (var document in candidateProject.Documents)
                 {
-                    if (document.Id.Id == documentGuid)
+                    if (document.Id.Id == documentGuid && _addressableDocumentEligibility.IsAddressable(document))
                     {
                         matchesById.Add(document);
                     }
@@ -288,7 +329,8 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             foreach (var document in candidateProject.Documents)
             {
                 var physicalDocumentPath = document.FilePath;
-                if (physicalDocumentPath is not null
+                if (_addressableDocumentEligibility.IsAddressable(document)
+                    && physicalDocumentPath is not null
                     && _workspacePathService.TryNormalizePath(physicalDocumentPath, out var documentPath)
                     && PathsEqual(physicalDocumentPath, documentPath, normalizedPath))
                 {

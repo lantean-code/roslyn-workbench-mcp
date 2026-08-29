@@ -13,7 +13,7 @@ public sealed class CodeActionScopeResolverTests
     public void GIVEN_SolutionScope_WHEN_ResolvingScope_THEN_ShouldReturnEveryDocument()
     {
         using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
 
         var result = _target.Resolve(
             new ScopeSelector { Kind = ScopeKind.Solution },
@@ -28,10 +28,32 @@ public sealed class CodeActionScopeResolverTests
     }
 
     [Fact]
+    public void GIVEN_SolutionContainsIneligibleDocument_WHEN_ResolvingScope_THEN_ShouldExcludeIt()
+    {
+        using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
+        var excludedDocument = roslyn.Solution.Projects.First().Documents.First();
+        var workspaceResolver = CreateWorkspaceResolver();
+        workspaceResolver
+            .Setup(item => item.GetDocuments(roslyn.Solution))
+            .Returns(roslyn.Solution.Projects
+                .SelectMany(static project => project.Documents)
+                .Where(document => document.Id != excludedDocument.Id)
+                .ToArray());
+
+        var result = _target.Resolve(
+            new ScopeSelector { Kind = ScopeKind.Solution },
+            roslyn.Solution,
+            workspaceResolver.Object);
+
+        result.Documents.Should().NotContain(excludedDocument);
+        result.Documents.Should().HaveCount(roslyn.Solution.Projects.Sum(static project => project.DocumentIds.Count) - 1);
+    }
+
+    [Fact]
     public void GIVEN_DocumentScopeWithoutSelector_WHEN_ResolvingScope_THEN_ShouldRejectRequest()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
 
         var result = _target.Resolve(
             new ScopeSelector { Kind = ScopeKind.Document },
@@ -51,7 +73,7 @@ public sealed class CodeActionScopeResolverTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new DocumentSelector { Path = "Path" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveDocument(selector))
             .Returns(SelectorTestFactory.CreateUnresolvedResult<Document>(status));
@@ -74,7 +96,7 @@ public sealed class CodeActionScopeResolverTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new DocumentSelector { Path = "Path" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveDocument(selector))
             .Returns(SelectorResolveResult.Resolved(roslyn.Document));
@@ -97,7 +119,7 @@ public sealed class CodeActionScopeResolverTests
     public void GIVEN_ProjectScopeWithoutSelector_WHEN_ResolvingScope_THEN_ShouldRejectRequest()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
 
         var result = _target.Resolve(
             new ScopeSelector { Kind = ScopeKind.Project },
@@ -117,7 +139,7 @@ public sealed class CodeActionScopeResolverTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new ProjectSelector { Name = "Name" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
             .Returns(SelectorTestFactory.CreateUnresolvedResult<Project>(status));
@@ -136,14 +158,17 @@ public sealed class CodeActionScopeResolverTests
     }
 
     [Fact]
-    public void GIVEN_ResolvedProject_WHEN_ResolvingScope_THEN_ShouldReturnProjectAndDocuments()
+    public void GIVEN_ResolvedProjectHasExcludedDocument_WHEN_ResolvingScope_THEN_ShouldReturnFilteredDocuments()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new ProjectSelector { Name = "Name" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
             .Returns(SelectorResolveResult.Resolved(roslyn.Document.Project));
+        workspaceResolver
+            .Setup(item => item.GetDocuments(roslyn.Document.Project))
+            .Returns([]);
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -154,7 +179,7 @@ public sealed class CodeActionScopeResolverTests
             roslyn.Solution,
             workspaceResolver.Object);
 
-        result.Documents.Should().Equal(roslyn.Document);
+        result.Documents.Should().BeEmpty();
         result.Projects.Should().Equal(roslyn.Document.Project);
         result.HasRejection.Should().BeFalse();
     }
@@ -165,7 +190,7 @@ public sealed class CodeActionScopeResolverTests
     public void GIVEN_ProjectSetIsMissing_WHEN_ResolvingScope_THEN_ShouldRejectRequest(bool isNull)
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -189,7 +214,7 @@ public sealed class CodeActionScopeResolverTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new ProjectSelector { Name = "Name" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
             .Returns(SelectorTestFactory.CreateUnresolvedResult<Project>(status));
@@ -212,7 +237,7 @@ public sealed class CodeActionScopeResolverTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new ProjectSelector { Name = "Name" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
             .Returns(SelectorResolveResult.Resolved(roslyn.Document.Project));
@@ -232,14 +257,14 @@ public sealed class CodeActionScopeResolverTests
     }
 
     [Fact]
-    public void GIVEN_MultipleProjects_WHEN_ResolvingScope_THEN_ShouldReturnEveryProjectAndDocument()
+    public void GIVEN_MultipleProjectsIncludeExcludedDocument_WHEN_ResolvingScope_THEN_ShouldReturnEveryProjectAndFilteredDocuments()
     {
         using var roslyn = CodeActionExecutionTestFactory.CreateTwoProjectSolution();
         var firstProject = roslyn.Solution.Projects.Single(project => project.Name == "FirstProject");
         var secondProject = roslyn.Solution.Projects.Single(project => project.Name == "SecondProject");
         var firstSelector = new ProjectSelector { Name = "FirstProject" };
         var secondSelector = new ProjectSelector { Name = "SecondProject" };
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
         workspaceResolver
             .Setup(item => item.ResolveProject(firstSelector))
             .Returns(SelectorResolveResult.Resolved(firstProject));
@@ -247,6 +272,9 @@ public sealed class CodeActionScopeResolverTests
         workspaceResolver
             .Setup(item => item.ResolveProject(secondSelector))
             .Returns(SelectorResolveResult.Resolved(secondProject));
+        workspaceResolver
+            .Setup(item => item.GetDocuments(firstProject))
+            .Returns([]);
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -258,14 +286,15 @@ public sealed class CodeActionScopeResolverTests
             workspaceResolver.Object);
 
         result.Projects.Should().Equal(firstProject, secondProject);
-        result.Documents.Should().BeEquivalentTo(firstProject.Documents.Concat(secondProject.Documents));
+        result.Documents.Should().BeEquivalentTo(secondProject.Documents);
+        result.Documents.Should().NotContain(firstProject.Documents.Single());
     }
 
     [Fact]
     public void GIVEN_UnsupportedScope_WHEN_ResolvingScope_THEN_ShouldRejectRequest()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var workspaceResolver = CreateWorkspaceResolver();
 
         var result = _target.Resolve(
             new ScopeSelector { Kind = (ScopeKind)int.MaxValue },
@@ -273,5 +302,18 @@ public sealed class CodeActionScopeResolverTests
             workspaceResolver.Object);
 
         result.Rejection!.Error!.Code.Should().Be("InvalidRequest");
+    }
+
+    private static Mock<IWorkspaceResolver> CreateWorkspaceResolver()
+    {
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        workspaceResolver
+            .Setup(item => item.GetDocuments(It.IsAny<Solution>()))
+            .Returns((Solution solution) => solution.Projects.SelectMany(static project => project.Documents).ToArray());
+        workspaceResolver
+            .Setup(item => item.GetDocuments(It.IsAny<Project>()))
+            .Returns((Project project) => project.Documents.ToArray());
+
+        return workspaceResolver;
     }
 }

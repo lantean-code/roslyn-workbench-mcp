@@ -1,8 +1,10 @@
 # Follow-on dogfood validation worklist
 
-**Status:** Approved for design discovery on 2026-08-27.
+**Status:** Complete; all follow-on items confirmed.
 
 **Evidence:** [Post-RWMCP3 dogfood usage log](dogfood-improvement-usage.md)
+
+**Subsequent work:** Final ledger analysis retained two unconfirmed response-shaping investigations in the [dogfood response-shaping worklist](dogfood-response-shaping-worklist.md).
 
 ## Purpose
 
@@ -14,10 +16,10 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 |---:|---|---|---|
 | 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
 | 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Confirmed through normal Codex dogfood validation |
-| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Live client-usability sweep completed; findings awaiting confirmation |
+| 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Confirmed; both discovered defects remediated and published validation completed |
 | 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Confirmed through published dogfood validation |
 | 5 | DOGFOOD-012 | [Correct cross-project test-impact matching](dogfood-012-cross-project-test-impact-design.md) | Confirmed through published dogfood validation |
-| 6 | DOGFOOD-013 | [Exercise error-reporting workflows with explicit consent](dogfood-013-error-reporting-validation-design.md) | Remediation implemented; published validation of both consent choices pending |
+| 6 | DOGFOOD-013 | [Exercise error-reporting workflows with explicit consent](dogfood-013-error-reporting-validation-design.md) | Confirmed through published Codex and Sentry validation of both positive consent choices |
 
 ### DOGFOOD-008 — Controlled transaction commit
 
@@ -89,7 +91,9 @@ Existing coverage validation is complete in [DOGFOOD-013 — Error-reporting cli
 
 The surviving gap is therefore a validation-only Codex run. The approved setup temporarily adds the existing deterministic `HostQuery` acceptance fixture to a private dogfood candidate, embeds the user-supplied Sentry DSN at build time, retains `Prompt` consent, captures stderr for Host and SDK evidence and makes no repository code or test change. The run inspects the sensitive local record, prepares and reviews the complete sanitised payload, then stops for separate payload-specific approval before any submission. A successful call must use one-report consent only and be confirmed in the configured Sentry project; an unsupported Codex elicitation path must fail closed and be recorded rather than bypassed.
 
-The initial live run validated the correlated failure, local diagnostic boundary and complete immutable Sentry preparation. The displayed payload excluded the controlled message, correlation ID and repository root, and its independently calculated digest matched. The first attempt incorrectly treated conversational approval as sufficient before invoking the separate elicitation. After the user corrected that process, a fresh payload was displayed and submission was invoked specifically to surface the Host's MCP form. With the task's effective approval policy set to `never`, Codex returned an immediate decline and the Host emitted no report. After the active profile was changed to `on-request`, a later fresh payload surfaced the MCP form and the user-approved Sentry submission returned the exact reviewed event reference and digest. This confirmed that the earlier decline was client-policy behaviour rather than a Codex elicitation defect. The remaining gap is published validation of the remediated three-choice form and both message-retaining and message-free dispatch variants.
+The initial live run validated the correlated failure, local diagnostic boundary and complete immutable Sentry preparation. The displayed payload excluded the controlled message, correlation ID and repository root, and its independently calculated digest matched. The first attempt incorrectly treated conversational approval as sufficient before invoking the separate elicitation. After the user corrected that process, a fresh payload was displayed and submission was invoked specifically to surface the Host's MCP form. With the task's effective approval policy set to `never`, Codex returned an immediate decline and the Host emitted no report. After the active profile was changed to `on-request`, a later fresh payload surfaced the MCP form and the user-approved Sentry submission returned the exact reviewed event reference and digest. This confirmed that the earlier decline was client-policy behaviour rather than a Codex elicitation defect.
+
+Final published validation exercised both positive choices through the configured Codex namespace. The full-content choice returned the reviewed payload digest unchanged. A separately prepared message-free submission returned a different final digest, proving dispatch-time removal, and the user observed the resulting event grouped into the existing Sentry issue as intended by the stable message-independent fingerprint. Cleanup closed the Workspace with no transaction owner and restored the clean 56-tool candidate without the private HostQuery fixture. DOGFOOD-013 and the follow-on worklist are therefore confirmed.
 
 ## Sequence and process
 

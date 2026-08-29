@@ -9,7 +9,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     {
         return scope.Kind switch
         {
-            ScopeKind.Solution => CodeActionScopeResolution.Resolved(solution.Projects.SelectMany(static project => project.Documents).ToArray()),
+            ScopeKind.Solution => CodeActionScopeResolution.Resolved(workspaceResolver.GetDocuments(solution)),
             ScopeKind.Document => ResolveDocument(scope.Document, workspaceResolver),
             ScopeKind.Project => ResolveProject(scope.Project, workspaceResolver),
             ScopeKind.Projects => ResolveProjects(scope.Projects, workspaceResolver),
@@ -50,7 +50,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
             return SelectorFailure(resolution.Status, "Project", "project");
         }
 
-        return FromProject(resolution.Value);
+        return FromProject(resolution.Value, workspaceResolver);
     }
 
     private static CodeActionScopeResolution ResolveProjects(
@@ -75,14 +75,18 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
         }
 
         var distinctProjects = projects.DistinctBy(static project => project.Id).ToArray();
-        var documents = distinctProjects.SelectMany(static project => project.Documents).ToArray();
+        var documents = new List<Document>();
+        foreach (var project in distinctProjects)
+        {
+            documents.AddRange(workspaceResolver.GetDocuments(project));
+        }
 
         return CodeActionScopeResolution.Resolved(documents, distinctProjects);
     }
 
-    private static CodeActionScopeResolution FromProject(Project project)
+    private static CodeActionScopeResolution FromProject(Project project, IWorkspaceResolver workspaceResolver)
     {
-        return CodeActionScopeResolution.Resolved(project.Documents.ToArray(), [project]);
+        return CodeActionScopeResolution.Resolved(workspaceResolver.GetDocuments(project), [project]);
     }
 
     private static CodeActionScopeResolution InvalidRequest(string message)

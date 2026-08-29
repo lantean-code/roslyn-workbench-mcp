@@ -6,6 +6,20 @@ namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 public interface IWorkspaceResolver
 {
     /// <summary>
+    /// Gets the addressable documents in a solution.
+    /// </summary>
+    /// <param name="solution">The Roslyn solution.</param>
+    /// <returns>The addressable documents.</returns>
+    IReadOnlyList<Document> GetDocuments(Solution solution);
+
+    /// <summary>
+    /// Gets the addressable documents in a project.
+    /// </summary>
+    /// <param name="project">The Roslyn project.</param>
+    /// <returns>The addressable documents.</returns>
+    IReadOnlyList<Document> GetDocuments(Project project);
+
+    /// <summary>
     /// Resolves a document selector against the current solution.
     /// </summary>
     /// <param name="selector">The selector to resolve.</param>

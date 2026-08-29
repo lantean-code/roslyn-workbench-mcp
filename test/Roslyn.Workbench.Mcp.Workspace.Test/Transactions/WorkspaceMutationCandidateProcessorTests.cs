@@ -233,9 +233,11 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             filePath: documentPath);
 
         var pathComparison = new WorkspacePathComparison();
+        var addressableDocumentEligibility = new AddressableDocumentEligibility(pathComparison);
         var target = new WorkspaceMutationCandidateProcessor(
             new AddedDocumentProjectContextPropagator(pathComparison),
             new WorkspaceMutationCandidateValidator(
+                addressableDocumentEligibility,
                 new PhysicalPathContainment(new FileSystem(), pathComparison),
                 pathComparison),
             new LinkedDocumentChangeMerger(),

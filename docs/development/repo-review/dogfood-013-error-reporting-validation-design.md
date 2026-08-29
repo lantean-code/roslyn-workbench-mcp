@@ -1,6 +1,6 @@
 # DOGFOOD-013 — Error-reporting client usability
 
-**Status:** Remediation implementation confirmed; independent review remediation is in progress.
+**Status:** Confirmed through published Codex and Sentry dogfood validation.
 
 ## Approved remediation
 
@@ -18,9 +18,9 @@ The original error-reporting workflow was extensively tested. Unit coverage exer
 
 No Scenario Runner definition invokes `prepare-error-report` or `submit-error-report`. Adding one would duplicate the existing published-host acceptance workflow and still would not validate whether Codex can understand the prepared payload, present it for approval and complete MCP elicitation.
 
-## Surviving gap
+## Resolved gap
 
-The remaining item after remediation is a client-usability dogfood run through Codex's configured Roslyn Workbench namespace. It must establish that an agent can follow the correlated-failure continuation, distinguish the sensitive local diagnostic from the bounded external payload, present the exact destination and immutable payload before submission, respect a separate explicit user-consent boundary, complete or fail closed at MCP elicitation, and understand the resulting receipt.
+The remaining item after remediation was a client-usability dogfood run through Codex's configured Roslyn Workbench namespace. It established that an agent can follow the correlated-failure continuation, distinguish the sensitive local diagnostic from the bounded external payload, present the exact destination and immutable payload before submission, respect a separate explicit user-consent boundary, complete MCP elicitation and understand the resulting receipt.
 
 The live run revealed concrete production gaps: the prompt was unnecessarily complex, a client-policy decline was described as a user decline, and the external report omitted the exception message and useful first-party stack locations needed for diagnosis. Those gaps justify the approved production and test changes above. Existing published-host acceptance expectations must be updated to require the controlled bounded exception message in prepared and approved reports; a later dogfood run will validate the Codex-specific interaction.
 
@@ -69,6 +69,8 @@ Codex successfully followed the generic correlated failure into the local diagno
 The first `submit-error-report` attempt incorrectly treated preceding conversational approval as sufficient before invoking the separate MCP elicitation. The user identified that process error, so a fresh immutable payload was prepared and displayed, then submission was invoked specifically to let the Host's elicitation form collect one-report consent. No form was surfaced to the user: Codex immediately returned the elicitation action as a decline. The original Host returned `ErrorReportDeclined`, discarded the second handle and emitted no report; private stderr evidence contained neither prepared event identity nor an approved-report entry. This historical result motivated the approved `ErrorReportNotApproved` guidance above.
 
 A later retry used the active profile's `on-request` approval policy. Codex surfaced the Host's MCP form, the user approved the fresh reviewed payload and Sentry accepted the event with the exact reviewed event reference and digest. This confirmed that the earlier immediate declines were caused by the task's effective `never` policy rather than a Codex elicitation defect. Published-host acceptance now validates the remediated three-choice form, explicit decline and cancellation, and both message-retaining and message-free dispatch variants. Codex-specific presentation remains a dogfood usability concern rather than an automated protocol gap.
+
+The final published run exercised both positive choices through Codex's normal configured namespace. **Yes, send it** submitted event `e20803dc742c462482f1c747b9b5631d` with the same digest as the reviewed complete payload. A separately prepared report then used **Yes, without exception messages** and submitted event `aec10a3ab06744f289076fad03642019` with a different final digest, proving that dispatch derived the strictly subtractive message-free payload. The user observed the latter as an additional event on the existing Sentry issue, which is expected because the stable fingerprint deliberately excludes exception-message content. The controlled Workspace was closed with no transaction owner, the private HostQuery candidate was removed from `current`, and a restarted full status check confirmed the clean 56-tool candidate with only the bundled Core plugin.
 
 ## Rejected alternatives
 

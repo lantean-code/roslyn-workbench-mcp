@@ -121,7 +121,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                     using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DocumentProjectionPhase))
                     {
                         documents = CreateDocumentReferences(
-                            project,
+                            context.WorkspaceResolver.GetDocuments(project),
                             context.WorkspacePathService,
                             context.WorkspaceResolver,
                             request.EffectiveDocumentsPerProjectLimit,
@@ -152,10 +152,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         return PluginExecutionResult.Success(data);
     }
 
-    private static BoundedCollection<DocumentReference> CreateDocumentReferences(Project project, IWorkspacePathService workspacePathService, IWorkspaceResolver workspaceResolver, int maxResults, CancellationToken cancellationToken)
+    private static BoundedCollection<DocumentReference> CreateDocumentReferences(IReadOnlyList<Document> projectDocuments, IWorkspacePathService workspacePathService, IWorkspaceResolver workspaceResolver, int maxResults, CancellationToken cancellationToken)
     {
         var candidates = new List<(Document Document, string Path)>();
-        foreach (var document in project.Documents)
+        foreach (var document in projectDocuments)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (workspacePathService.TryNormalizePath(document.FilePath ?? document.Name, out var normalizedPath))

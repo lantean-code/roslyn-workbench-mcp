@@ -37,6 +37,14 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         get { return _host.Services.GetRequiredService<ICodeActionExecutionContextFactory>(); }
     }
 
+    public Solution GetCurrentSolution(Guid workspaceId)
+    {
+        return GetRequiredService<IWorkspaceSessionStore>()
+            .ReadSession(workspaceId)?
+            .CurrentSolution
+            ?? throw new InvalidOperationException($"Workspace '{workspaceId}' is not loaded.");
+    }
+
     public static ComponentWorkspace Create(
         ComponentWorkspaceOptions? options = null,
         ICodeActionComposition? codeActionComposition = null)

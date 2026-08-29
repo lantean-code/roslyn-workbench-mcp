@@ -40,7 +40,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         if (request.IncludeDocuments)
         {
             documents = CreateDocumentReferences(
-                project,
+                context.WorkspaceResolver.GetDocuments(project),
                 context.WorkspacePathService,
                 context.WorkspaceResolver,
                 request.EffectiveDocumentsLimit,
@@ -79,14 +79,14 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
     }
 
     private static BoundedCollection<DocumentReference> CreateDocumentReferences(
-        Project project,
+        IReadOnlyList<Document> projectDocuments,
         IWorkspacePathService workspacePathService,
         IWorkspaceResolver workspaceResolver,
         int maxResults,
         CancellationToken cancellationToken)
     {
         var candidates = new List<(Document Document, string Path)>();
-        foreach (var document in project.Documents)
+        foreach (var document in projectDocuments)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (workspacePathService.TryNormalizePath(document.FilePath ?? document.Name, out var normalizedPath))

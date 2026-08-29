@@ -2,13 +2,16 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCandidateValidator
 {
+    private readonly IAddressableDocumentEligibility _addressableDocumentEligibility;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathComparison _pathComparison;
 
     public WorkspaceMutationCandidateValidator(
+        IAddressableDocumentEligibility addressableDocumentEligibility,
         IPhysicalPathContainment pathContainment,
         IWorkspacePathComparison pathComparison)
     {
+        _addressableDocumentEligibility = addressableDocumentEligibility;
         _pathContainment = pathContainment;
         _pathComparison = pathComparison;
     }
@@ -145,6 +148,11 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 || string.IsNullOrWhiteSpace(document.FilePath))
             {
                 return CreateInvalidResult("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
+            }
+
+            if (!_addressableDocumentEligibility.IsAddressable(document))
+            {
+                return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter intermediate build documents.");
             }
 
             if (!_pathContainment.TryGetStrictlyContainedPath(

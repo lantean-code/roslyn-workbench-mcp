@@ -6,6 +6,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
+    private readonly Mock<IAddressableDocumentEligibility> _addressableDocumentEligibility;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly WorkspaceMutationCandidateValidator _target;
@@ -13,6 +14,10 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     public WorkspaceMutationCandidateValidatorTests()
     {
         _workspace = new AdhocWorkspace();
+        _addressableDocumentEligibility = new Mock<IAddressableDocumentEligibility>();
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(It.IsAny<Document>()))
+            .Returns(true);
         _pathContainment = new Mock<IPhysicalPathContainment>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathComparison
@@ -30,6 +35,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             });
 
         _target = new WorkspaceMutationCandidateValidator(
+            _addressableDocumentEligibility.Object,
             _pathContainment.Object,
             _pathComparison.Object);
     }
@@ -197,6 +203,36 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
 
         AssertError(result, "UnsupportedChange", message);
+    }
+
+    [Theory]
+    [InlineData("Added")]
+    [InlineData("Changed")]
+    [InlineData("Removed")]
+    public void GIVEN_IntermediateBuildDocumentChange_WHEN_Validating_THEN_ShouldRejectIt(string changeKind)
+    {
+        var currentSolution = CreateSolution();
+        var project = currentSolution.Projects.Single();
+        var document = project.Documents.Single();
+        var candidateSolution = changeKind switch
+        {
+            "Added" => currentSolution.AddDocument(
+                DocumentId.CreateNewId(project.Id),
+                "Generated.cs",
+                SourceText.From("class Generated { }"),
+                filePath: Path.Combine(Path.GetTempPath(), "Project", "obj", "Generated.cs")),
+            "Changed" => currentSolution.WithDocumentText(document.Id, SourceText.From("class Updated { }")),
+            "Removed" => currentSolution.RemoveDocument(document.Id),
+            _ => throw new InvalidOperationException("Unsupported document change kind."),
+        };
+
+        _addressableDocumentEligibility
+            .Setup(item => item.IsAddressable(It.IsAny<Document>()))
+            .Returns(false);
+
+        var result = _target.Validate(currentSolution, candidateSolution, Path.GetTempPath());
+
+        AssertError(result, "UnsupportedChange", "Mutation proposals must not alter intermediate build documents.");
     }
 
     [Fact]

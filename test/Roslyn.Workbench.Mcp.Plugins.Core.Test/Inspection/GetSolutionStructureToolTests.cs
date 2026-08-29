@@ -150,6 +150,11 @@ public sealed class GetSolutionStructureToolTests
                         Name = "A.cs",
                         Source = "public class FirstDocument { }",
                     },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "C.cs",
+                        Source = "public class ThirdDocument { }",
+                    },
                 ],
             },
         ]);
@@ -182,6 +187,7 @@ public sealed class GetSolutionStructureToolTests
         string? mainProjectPath = "Main";
         string? firstDocumentPath = "A.cs";
         string? secondDocumentPath = "B.cs";
+        string? thirdDocumentPath = "C.cs";
         queryContextMocks.WorkspacePathService
             .Setup(item => item.TryNormalizePath(mainProject.FilePath!, out mainProjectPath))
             .Returns(true);
@@ -193,6 +199,14 @@ public sealed class GetSolutionStructureToolTests
         queryContextMocks.WorkspacePathService
             .Setup(item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("B.cs", StringComparison.Ordinal)), out secondDocumentPath))
             .Returns(true);
+
+        queryContextMocks.WorkspacePathService
+            .Setup(item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("C.cs", StringComparison.Ordinal)), out thirdDocumentPath))
+            .Returns(true);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.GetDocuments(mainProject))
+            .Returns(mainProject.Documents.Where(static document => document.Name != "B.cs").ToArray());
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
@@ -230,6 +244,9 @@ public sealed class GetSolutionStructureToolTests
         result.Data.Projects.Items[0].Documents.Should().NotBeNull();
         result.Data.Projects.Items[0].Documents!.Items.Select(item => item.Path).Should().Equal("A.cs");
         result.Data.Projects.Items[0].Documents!.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspacePathService.Verify(
+            item => item.TryNormalizePath(It.Is<string>(path => path.EndsWith("B.cs", StringComparison.Ordinal)), out secondDocumentPath),
+            Times.Never);
 
         var zeroLimitResult = await target.ExecuteAsync(new GetSolutionStructureRequest
         {

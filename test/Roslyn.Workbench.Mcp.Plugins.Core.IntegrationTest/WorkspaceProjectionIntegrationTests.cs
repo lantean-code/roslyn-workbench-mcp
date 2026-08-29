@@ -14,7 +14,11 @@ public sealed class WorkspaceProjectionIntegrationTests
 
         var solution = await session.ExecuteQueryAsync<GetSolutionStructureRequest, SolutionStructureData>(
             "get-solution-structure",
-            new GetSolutionStructureRequest(),
+            new GetSolutionStructureRequest
+            {
+                IncludeDocuments = true,
+                DocumentsPerProjectLimit = 100,
+            },
             TestContext.Current.CancellationToken);
 
         var project = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
@@ -26,6 +30,7 @@ public sealed class WorkspaceProjectionIntegrationTests
                     Path = "Sample.csproj",
                 },
                 IncludeDocuments = true,
+                DocumentsLimit = 100,
             }, TestContext.Current.CancellationToken);
 
         var document = await session.ExecuteQueryAsync<GetDocumentOptionsRequest, DocumentOptionsData>(
@@ -39,13 +44,33 @@ public sealed class WorkspaceProjectionIntegrationTests
             }, TestContext.Current.CancellationToken);
 
         openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        var workspaceId = openResult.Context.WorkspaceId
+            ?? throw new InvalidOperationException("The open operation did not return a workspace identifier.");
+        coordinator.GetCurrentSolution(workspaceId).Projects
+            .SelectMany(static candidate => candidate.Documents)
+            .Should().Contain(static candidate => HasIntermediatePathSegment(candidate.FilePath));
         solution.Data!.Projects.Items.Should().ContainSingle(static item => item.Name == "Sample");
+        solution.Data.Projects.Items.Single().Documents!.Items.Should().OnlyContain(static item =>
+            !item.Path.Split('/').Contains("obj", StringComparer.OrdinalIgnoreCase));
         project.Data!.Project!.Name.Should().Be("Sample");
         project.Data.Documents!.Items.Should().Contain(static item => item.Path == "Formatting.cs");
+        project.Data.Documents.Items.Should().OnlyContain(static item =>
+            !item.Path.Split('/').Contains("obj", StringComparer.OrdinalIgnoreCase));
         project.Data.MetadataReferences.Items.Should().NotBeEmpty();
         project.Data.CompilationOptions.Should().NotBeNull();
         document.Data!.AnalyzerConfig!.EditorConfigPaths.Should().Contain(static path => path.EndsWith(".editorconfig", StringComparison.Ordinal));
         document.Data.AnalyzerConfig.Options.Should().ContainKey("build_property.targetframework");
+    }
+
+    private static bool HasIntermediatePathSegment(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        return path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries)
+            .Contains("obj", StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -59,7 +59,6 @@ public sealed class CodeActionExecutionContextTests
             WorkspaceSnapshotTestFactory.CreateId(1),
             new WorkspaceTransactionId(1));
         var snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(snapshotIdentity, transactionRevision: 2);
-
         return new WorkspaceExecutionContext(
             solution,
             workspaceIdentity,

@@ -1,6 +1,6 @@
 # Dogfood response-shaping worklist
 
-**Status:** Approved for design discovery on 2026-08-29.
+**Status:** Complete; all response-shaping items implemented, validated and confirmed.
 
 **Evidence:** [Final post-RWMCP3 dogfood usage log](dogfood-improvement-usage.md)
 
@@ -14,7 +14,7 @@ The completed post-RWMCP3 worklists addressed every confirmed functional defect 
 |---:|---|---|---|
 | 1 | DOGFOOD-014 | [Exclude intermediate build documents from agent-facing operations](dogfood-014-bounded-structure-document-selection-design.md) | Implemented, validated and confirmed |
 | 2 | DOGFOOD-015 | [Reduce unnecessary analyser-config context in document-options responses](dogfood-015-document-options-response-design.md) | Implemented, validated and confirmed |
-| 3 | DOGFOOD-016 | [Publish agent-visible contract guidance in MCP input and configured output schemas](dogfood-016-agent-visible-contract-guidance-design.md) | Implemented and validated; awaiting manual confirmation |
+| 3 | DOGFOOD-016 | [Publish agent-visible contract guidance in MCP input and configured output schemas](dogfood-016-agent-visible-contract-guidance-design.md) | Implemented, validated, reviewed and confirmed |
 | 4 | DOGFOOD-017 | [Audit empty-string defaults against required published string contracts](dogfood-017-required-string-contract-semantics-design.md) | Implemented, validated, reviewed and confirmed |
 
 ### DOGFOOD-014 — Bounded structure document selection

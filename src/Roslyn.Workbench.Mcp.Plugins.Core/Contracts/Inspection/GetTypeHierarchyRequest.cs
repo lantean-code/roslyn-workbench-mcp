@@ -57,7 +57,6 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveBaseTypesLimit => ResultLimit.GetEffectiveValue(BaseTypesLimit, _defaultBaseTypesMaxResults);

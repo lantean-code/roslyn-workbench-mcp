@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.AI;
@@ -15,8 +16,18 @@ internal static class ContractDescriptionSchemaTransformer
             return schema;
         }
 
+        PublishTypeDescription(schemaObject, context.TypeInfo);
         PublishPropertyDescriptions(schemaObject, context.TypeInfo);
         return schemaObject;
+    }
+
+    public static void PublishTypeDescription(JsonObject schema, JsonTypeInfo contractTypeInfo)
+    {
+        var description = contractTypeInfo.Type.GetCustomAttribute<DescriptionAttribute>(inherit: true);
+        if (description is not null)
+        {
+            schema["description"] = description.Description;
+        }
     }
 
     public static void PublishPropertyDescriptions(JsonObject schema, JsonTypeInfo contractTypeInfo)

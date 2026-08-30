@@ -36,7 +36,6 @@ internal sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveMembersLimit => ResultLimit.GetEffectiveValue(MembersLimit, _defaultMembersMaxResults);

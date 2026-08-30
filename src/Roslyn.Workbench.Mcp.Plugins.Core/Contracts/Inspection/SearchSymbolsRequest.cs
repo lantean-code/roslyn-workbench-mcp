@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to search for symbol declarations.
 /// </summary>
+[Description("Provide query, metadataName, or both.")]
 [RequiresAtLeastOne(
     nameof(Query),
     nameof(MetadataName),
@@ -14,13 +15,12 @@ internal sealed record SearchSymbolsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the source-name query.
     /// </summary>
-    [Description("Source-name query; provide query, metadataName, or both.")]
+    [Description("Source-name query.")]
     public string? Query { get; init; }
 
     /// <summary>
     /// Gets the metadata-name query.
     /// </summary>
-    [Description("Metadata-name query; provide metadataName, query, or both.")]
     public string? MetadataName { get; init; }
 
     /// <summary>

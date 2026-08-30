@@ -35,7 +35,6 @@ internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for the selected location.
     /// </summary>
-    [Description("The expected snapshot for the selected location.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);

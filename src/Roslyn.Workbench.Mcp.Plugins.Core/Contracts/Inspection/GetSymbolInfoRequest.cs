@@ -39,7 +39,6 @@ internal sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveParametersLimit => ResultLimit.GetEffectiveValue(ParametersLimit, _defaultParametersMaxResults);

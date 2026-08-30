@@ -8,12 +8,11 @@ public sealed record TextSpanSelector
     /// <summary>
     /// Gets the selected document.
     /// </summary>
-    [Description("The selected document.")]
     public required DocumentSelector Document { get; init; }
 
     /// <summary>
     /// Gets the selected range within the document.
     /// </summary>
-    [Description("The selected range within the document.")]
+    [Description("Zero-based UTF-16 range.")]
     public required TextSpanRange Range { get; init; }
 }

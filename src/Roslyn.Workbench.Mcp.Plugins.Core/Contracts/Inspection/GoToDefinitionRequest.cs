@@ -24,7 +24,6 @@ internal sealed record GoToDefinitionRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveDefinitionsLimit => ResultLimit.GetEffectiveValue(DefinitionsLimit, _defaultDefinitionsMaxResults);

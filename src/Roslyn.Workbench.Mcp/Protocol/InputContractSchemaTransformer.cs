@@ -10,6 +10,8 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal static class InputContractSchemaTransformer
 {
+    private const string _snapshotPreconditionDescription = "Echo the snapshot returned with the data or transaction state used to construct this request.";
+
     private static readonly JsonNode _nullType = JsonValue.Create("null");
 
     public static JsonNode Transform(AIJsonSchemaCreateContext context, JsonNode schema)
@@ -21,11 +23,68 @@ internal static class InputContractSchemaTransformer
 
         var properties = CreatePropertyMap(context.TypeInfo);
         ValidateContractRules(context.TypeInfo, properties);
+        PublishCrossMemberValueConstraints(schemaObject, context.TypeInfo, properties);
 
+        ContractDescriptionSchemaTransformer.PublishTypeDescription(schemaObject, context.TypeInfo);
         ContractDescriptionSchemaTransformer.PublishPropertyDescriptions(schemaObject, context.TypeInfo);
+        PublishSnapshotPreconditionDescriptions(schemaObject, context.TypeInfo);
         var nullabilityContext = new NullabilityInfoContext();
         PublishPropertyMetadata(schemaObject, context.TypeInfo, nullabilityContext);
         return schemaObject;
+    }
+
+    private static void PublishCrossMemberValueConstraints(
+        JsonObject schema,
+        JsonTypeInfo contractTypeInfo,
+        IReadOnlyDictionary<string, JsonPropertyInfo> properties)
+    {
+        var constrainedMembers = new HashSet<string>(StringComparer.Ordinal);
+        var contractType = contractTypeInfo.Type;
+
+        foreach (var attribute in contractType.GetCustomAttributes<RequiresAtLeastOneAttribute>(inherit: true))
+        {
+            PublishCrossMemberValueConstraints(schema, contractType, attribute.MemberNames, properties, constrainedMembers);
+        }
+
+        foreach (var attribute in contractType.GetCustomAttributes<RequiresExactlyOneAttribute>(inherit: true))
+        {
+            PublishCrossMemberValueConstraints(schema, contractType, attribute.MemberNames, properties, constrainedMembers);
+        }
+    }
+
+    private static void PublishCrossMemberValueConstraints(
+        JsonObject schema,
+        Type contractType,
+        IReadOnlyList<string> memberNames,
+        IReadOnlyDictionary<string, JsonPropertyInfo> properties,
+        HashSet<string> constrainedMembers)
+    {
+        foreach (var memberName in memberNames)
+        {
+            var property = ResolveMember(contractType, memberName, properties);
+            if (!constrainedMembers.Add(property.Name)
+                || !ContractDescriptionSchemaTransformer.TryGetPropertySchema(schema, property, out var propertySchema))
+            {
+                continue;
+            }
+
+            RemoveNullType(propertySchema);
+        }
+    }
+
+    private static void PublishSnapshotPreconditionDescriptions(JsonObject schema, JsonTypeInfo contractTypeInfo)
+    {
+        foreach (var property in contractTypeInfo.Properties)
+        {
+            var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            if (propertyType != typeof(SnapshotPrecondition)
+                || !ContractDescriptionSchemaTransformer.TryGetPropertySchema(schema, property, out var propertySchema))
+            {
+                continue;
+            }
+
+            propertySchema["description"] = _snapshotPreconditionDescription;
+        }
     }
 
     private static Dictionary<string, JsonPropertyInfo> CreatePropertyMap(JsonTypeInfo typeInfo)

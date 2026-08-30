@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 /// <summary>
 /// Represents a project selector for workspace-local project resolution.
 /// </summary>
+[Description("Provide projectId, name, path, targetFramework, or any combination.")]
 [RequiresAtLeastOne(
     nameof(ProjectId),
     nameof(Name),
@@ -14,24 +15,21 @@ public sealed record ProjectSelector
     /// <summary>
     /// Gets the workspace-local project identifier.
     /// </summary>
-    [Description("Workspace-local project identifier; at least one project selector field is required.")]
     public string? ProjectId { get; init; }
 
     /// <summary>
     /// Gets the project name.
     /// </summary>
-    [Description("Project name; at least one project selector field is required.")]
     public string? Name { get; init; }
 
     /// <summary>
     /// Gets the normalized workspace-relative project path.
     /// </summary>
-    [Description("Normalised workspace-relative project path; at least one project selector field is required.")]
+    [Description("Workspace-relative path.")]
     public string? Path { get; init; }
 
     /// <summary>
     /// Gets the target framework used to select a target-specific Roslyn project.
     /// </summary>
-    [Description("Target framework used to select a target-specific Roslyn project; at least one project selector field is required.")]
     public string? TargetFramework { get; init; }
 }

@@ -3,13 +3,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
-using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Workspace.Results;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
@@ -254,7 +251,7 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
         properties.GetProperty("document").GetProperty("description").GetString()
             .Should()
-            .Be("Document whose detailed diff should be returned; required when includeDiff is true.");
+            .Be("Document whose detailed diff should be returned; provide it when includeDiff is true.");
         properties.GetProperty("contextLines").GetProperty("description").GetString()
             .Should()
             .Be("Number of unchanged context lines around each diff hunk when includeDiff is true.");
@@ -266,40 +263,6 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
         requiredWhen.OtherProperty.Should().Be(nameof(TransactionPreviewRequest.IncludeDiff));
         requiredWhen.ExpectedValue.Should().Be(true);
-    }
-
-    [Fact]
-    [Trait("Category", "Contract")]
-    public void GIVEN_PublishedServerAndSharedContracts_WHEN_AuditingSerializedProperties_THEN_ShouldFindDescriptionAttributes()
-    {
-        var serverProperties = GetSerializedPublicProperties(
-            typeof(WorkspaceOpenRequest).Assembly,
-            static type => type.Namespace is not null
-                && (type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Contracts.", StringComparison.Ordinal)
-                    || type.Namespace.StartsWith("Roslyn.Workbench.Mcp.ErrorReporting.Contracts", StringComparison.Ordinal)
-                    || type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Protocol.Results", StringComparison.Ordinal))
-                && !type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Contracts.Validation", StringComparison.Ordinal));
-        var capturedErrorProperties = GetSerializedPublicProperties(
-            typeof(CapturedErrorRecord),
-            typeof(CapturedException),
-            typeof(CapturedStackFrame),
-            typeof(CapturedWorkspaceContext));
-        var sharedProperties = GetSerializedPublicProperties(
-            typeof(WorkspaceIdentity).Assembly,
-            static type => type.Namespace is "Roslyn.Workbench.Mcp.Workspace.Selectors" or "Roslyn.Workbench.Mcp.Workspace.Results");
-        var publishedRootPropertyTypes = serverProperties
-            .Concat(capturedErrorProperties)
-            .Concat(sharedProperties)
-            .Select(static property => property.PropertyType);
-        var workspaceProperties = GetReachableSerializedPublicProperties(
-            publishedRootPropertyTypes,
-            typeof(TransactionInfo).Assembly);
-
-        serverProperties.Concat(capturedErrorProperties).Concat(sharedProperties).Concat(workspaceProperties)
-            .Where(static property => string.IsNullOrWhiteSpace(property.GetCustomAttribute<DescriptionAttribute>()?.Description))
-            .Select(static property => $"{property.DeclaringType!.FullName}.{property.Name}")
-            .Should()
-            .BeEmpty();
     }
 
     [Fact]
@@ -356,84 +319,6 @@ public sealed class McpSdkSchemaProviderIntegrationTests
             JsonValueKind.Array => type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal)),
             _ => false,
         };
-    }
-
-    private static IEnumerable<PropertyInfo> GetSerializedPublicProperties(Assembly assembly, Func<Type, bool> includesType)
-    {
-        return assembly.GetTypes()
-            .Where(includesType)
-            .Where(static type => type.IsClass)
-            .SelectMany(static type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(IsSerializedPublicProperty);
-    }
-
-    private static IEnumerable<PropertyInfo> GetSerializedPublicProperties(params Type[] types)
-    {
-        return types
-            .SelectMany(static type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(IsSerializedPublicProperty);
-    }
-
-    private static List<PropertyInfo> GetReachableSerializedPublicProperties(
-        IEnumerable<Type> rootTypes,
-        Assembly contractAssembly)
-    {
-        var pendingTypes = new Queue<Type>(rootTypes);
-        var visitedTypes = new HashSet<Type>();
-        var properties = new List<PropertyInfo>();
-
-        while (pendingTypes.TryDequeue(out var type))
-        {
-            var nullableType = Nullable.GetUnderlyingType(type);
-            if (nullableType is not null)
-            {
-                pendingTypes.Enqueue(nullableType);
-                continue;
-            }
-
-            if (type.IsArray)
-            {
-                var elementType = type.GetElementType();
-                if (elementType is not null)
-                {
-                    pendingTypes.Enqueue(elementType);
-                }
-
-                continue;
-            }
-
-            if (type.IsGenericType)
-            {
-                foreach (var argument in type.GetGenericArguments())
-                {
-                    pendingTypes.Enqueue(argument);
-                }
-            }
-
-            if (type.Assembly != contractAssembly || !type.IsClass || !visitedTypes.Add(type))
-            {
-                continue;
-            }
-
-            var serializedProperties = type
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Where(IsSerializedPublicProperty)
-                .ToArray();
-            properties.AddRange(serializedProperties);
-
-            foreach (var property in serializedProperties)
-            {
-                pendingTypes.Enqueue(property.PropertyType);
-            }
-        }
-
-        return properties;
-    }
-
-    private static bool IsSerializedPublicProperty(PropertyInfo property)
-    {
-        return property.GetIndexParameters().Length == 0
-            && property.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition != JsonIgnoreCondition.Always;
     }
 
     private static void AssertStringEnum(JsonElement schema, params string[] expectedValues)

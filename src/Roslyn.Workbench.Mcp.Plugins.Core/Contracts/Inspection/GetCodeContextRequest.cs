@@ -64,7 +64,6 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected workspace snapshot.
     /// </summary>
-    [Description("The expected workspace snapshot.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveBeforeLines => ResultLimit.GetEffectiveValue(BeforeLines, _defaultBeforeLines);

@@ -13,7 +13,6 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the project selector.
     /// </summary>
-    [Description("The project selector.")]
     public required ProjectSelector Project { get; init; }
 
     /// <summary>

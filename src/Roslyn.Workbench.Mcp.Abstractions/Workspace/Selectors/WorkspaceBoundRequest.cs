@@ -8,6 +8,5 @@ public abstract record WorkspaceBoundRequest
     /// <summary>
     /// Gets the target workspace selector.
     /// </summary>
-    [Description("The target workspace selector.")]
     public WorkspaceSelector? Workspace { get; init; }
 }

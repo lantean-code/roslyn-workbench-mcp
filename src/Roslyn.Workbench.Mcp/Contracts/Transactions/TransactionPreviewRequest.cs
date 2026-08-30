@@ -14,7 +14,7 @@ internal sealed record TransactionPreviewRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional document selector for a detailed diff.
     /// </summary>
-    [Description("Document whose detailed diff should be returned; required when includeDiff is true.")]
+    [Description("Document whose detailed diff should be returned; provide it when includeDiff is true.")]
     [RequiredWhen(nameof(IncludeDiff), true)]
     public DocumentSelector? Document { get; init; }
 

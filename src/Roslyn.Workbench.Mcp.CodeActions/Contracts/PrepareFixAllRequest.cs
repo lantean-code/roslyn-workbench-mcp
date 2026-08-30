@@ -41,7 +41,6 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected Workspace snapshot.
     /// </summary>
-    [Description("The expected Workspace snapshot.")]
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
     internal int EffectiveMaxChanges => ResultLimit.GetEffectiveValue(MaxChanges, _defaultMaxChanges);

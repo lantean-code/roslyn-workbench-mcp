@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
@@ -43,7 +45,8 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         bool openWorld)
         where TRequest : class
     {
-        var publishedDescription = CreatePublishedDescription(description, resultSummary);
+        var inputSchema = _schemaFactory.CreateInputSchema<TRequest>();
+        var publishedDescription = CreatePublishedDescription(description, inputSchema, resultSummary);
         var annotations = new ToolAnnotations
         {
             Title = title,
@@ -58,7 +61,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             Name = name,
             Title = title,
             Description = publishedDescription,
-            InputSchema = _schemaFactory.CreateInputSchema<TRequest>(),
+            InputSchema = inputSchema,
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
                 ? _schemaFactory.CreateDirectOutputSchema(typeof(TResponse))
                 : null,
@@ -112,7 +115,8 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest
     {
-        var publishedDescription = CreatePublishedDescription(description, resultSummary);
+        var inputSchema = _schemaFactory.CreateInputSchema<TRequest>();
+        var publishedDescription = CreatePublishedDescription(description, inputSchema, resultSummary);
         var readOnly = kind == PublishedToolKind.Query;
         var annotations = new ToolAnnotations
         {
@@ -128,7 +132,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             Name = name,
             Title = title,
             Description = publishedDescription,
-            InputSchema = _schemaFactory.CreateInputSchema<TRequest>(),
+            InputSchema = inputSchema,
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
                 ? _schemaFactory.CreateOutputSchema(kind, responseType)
                 : null,
@@ -136,10 +140,23 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         };
     }
 
-    private static string CreatePublishedDescription(string description, string? resultSummary)
+    private static string CreatePublishedDescription(string description, JsonElement inputSchema, string? resultSummary)
     {
-        return string.IsNullOrWhiteSpace(resultSummary)
-            ? description
-            : $"{description} Result: {resultSummary}";
+        var publishedDescription = description;
+        if (inputSchema.TryGetProperty("description", out var inputDescription))
+        {
+            var inputGuidance = inputDescription.GetString();
+            if (!string.IsNullOrWhiteSpace(inputGuidance))
+            {
+                publishedDescription = $"{publishedDescription} Input: {inputGuidance}";
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(resultSummary))
+        {
+            publishedDescription = $"{publishedDescription} Result: {resultSummary}";
+        }
+
+        return publishedDescription;
     }
 }

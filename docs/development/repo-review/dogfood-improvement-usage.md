@@ -5612,3 +5612,483 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces and no transaction owner. The reviewer made no further dogfood requests because opening a Workspace would have changed server state during a read-only review.
+
+### 588. `workspace-list`
+
+**Activity:** DOGFOOD-016 post-restart tooling-data validation.
+
+**Purpose:** Confirm that the restarted configured dogfood server was active and had clean Workspace state before inspecting its published schemas.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 589. `initialize`
+
+**Activity:** DOGFOOD-016 raw protocol tooling-data validation.
+
+**Purpose:** Inspect the configured published executable's unprojected MCP tool schemas rather than relying on Codex's normalised tool declarations.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"schema-verifier","version":"1.0"}}`
+
+**Outcome:** The independently launched server stopped before initialisation because its default recovery directory was not writable in the validation sandbox. No schema evidence was obtained.
+
+### 590. `initialize` / `tools/list`
+
+**Activity:** DOGFOOD-016 raw protocol tooling-data validation retry.
+
+**Purpose:** Retry schema inspection with an isolated temporary state directory.
+
+**Request:** Initialisation used protocol version `2025-06-18` and client `schema-verifier/1.0`, followed by an empty `tools/list` request.
+
+**Outcome:** The first isolated-state pipeline returned no captured protocol response, so the result was inconclusive and the approach was replaced with an interactive protocol probe.
+
+### 591. `initialize`
+
+**Activity:** DOGFOOD-016 raw protocol tooling-data validation retry.
+
+**Purpose:** Diagnose the missing response from the isolated-state pipeline by keeping the server process open while reading its initialisation response.
+
+**Request:** `{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"schema-verifier","version":"1.0"}}`
+
+**Outcome:** No initialisation response was captured because the reused temporary state directory did not have the server's required private permissions.
+
+### 592. `initialize` / `tools/list`
+
+**Activity:** DOGFOOD-016 raw protocol tooling-data validation retry.
+
+**Purpose:** Retry schema inspection after correcting the isolated state directory permissions.
+
+**Request:** Initialisation used protocol version `2025-06-18` and client `schema-verifier/1.0`, followed by an empty `tools/list` request.
+
+**Outcome:** The server emitted a tools-list response, but the diagnostic pipeline produced more output than could be retained reliably. A focused schema verifier was used next.
+
+### 593. `initialize` / `tools/list`
+
+**Activity:** DOGFOOD-016 focused raw protocol tooling-data validation.
+
+**Purpose:** Verify representative server, bundled Core-plugin and Code Action input and output property descriptions in the restarted publication.
+
+**Request:** Initialisation used protocol version `2025-06-18` and client `schema-verifier/1.0`, followed by an empty `tools/list` request. The verifier sampled `workspace-open`, `find-callees`, `get-control-flow-graph`, `search-symbols`, `transaction-preview`, `list-code-actions` and `server-status`.
+
+**Outcome:** Initialisation succeeded against server version `1.0.0.0` and `tools/list` returned 56 tools. Every sampled DOGFOOD-016 property description was absent and none of the sampled tools contained an `outputSchema`. The configured `current` symlink also resolved to the older `dogfood-015-revised-precommit-e80c796-20260829-201636` publication, confirming that the restarted process does not contain the new tooling data.
+
+### 594. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 committed publication.
+
+**Purpose:** Confirm that the isolated Release candidate published from committed `HEAD` starts and negotiates the supported MCP protocol before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-smoke/1.0`.
+
+**Outcome:** Succeeded against candidate `dogfood-016-27dce5b-20260830-091107`. The server returned identity `Roslyn.Workbench.Mcp` version `1.0.0.0` and protocol version `2025-06-18`.
+
+### 595. Candidate `tools/list`
+
+**Activity:** DOGFOOD-016 committed publication.
+
+**Purpose:** Verify representative server, bundled Core-plugin and Code Action input descriptions under the normal output-schema configuration before promotion.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation. The verifier sampled `workspace-open`, `find-callees`, `search-symbols`, `transaction-preview` and `list-code-actions`.
+
+**Outcome:** Succeeded with 56 published tools. Every sampled input description matched the committed DOGFOOD-016 contract text, and output schemas were omitted as configured by default.
+
+### 596. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 optional output-schema validation.
+
+**Purpose:** Start the isolated candidate with full output-schema publication enabled so the configured response-contract path could also be verified.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-smoke/1.0`; the server was started with `--tool-output-schema-mode Full`.
+
+**Outcome:** Succeeded against candidate `dogfood-016-27dce5b-20260830-091107` with protocol version `2025-06-18`.
+
+### 597. Candidate `tools/list`
+
+**Activity:** DOGFOOD-016 optional output-schema validation.
+
+**Purpose:** Confirm that full output schemas contain the committed agent-facing response and continuation descriptions.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation. The verifier sampled `transaction-preview` and `server-status` response descriptions.
+
+**Outcome:** Succeeded with 56 published tools, all of which contained an `outputSchema`. The sampled response-property and continuation descriptions matched the committed DOGFOOD-016 contract text. The verified candidate was then promoted atomically to the configured dogfood `current` target.
+
+### 598. `server-status`
+
+**Activity:** DOGFOOD-016 live post-restart tooling-data validation.
+
+**Purpose:** Confirm that the restarted Codex task is connected to the promoted committed candidate before inspecting Codex's normal callable declarations.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, 56 tools, no startup warnings and bundled Core plugin version `1.0.0+27dce5b4ffc4f0767f46ffb9865164cce1255027`, confirming the live task is connected to the DOGFOOD-016 commit. Codex exposed the expected property descriptions for representative server, Core-plugin and Code Action declarations, but compacted 17 parameterised complex declarations without any property comments, including `find-callees` and `get-control-flow-graph`; their raw MCP schemas retain the descriptions. `workspace-list` also has no property comments because its request is intentionally empty.
+
+### 599. Published `initialize`
+
+**Activity:** DOGFOOD-016 client-neutral input-schema budget analysis.
+
+**Purpose:** Start an isolated instance of the promoted publication so raw input-schema size and complexity could be compared with Codex's rich and compact callable declarations.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-schema-budget/1.0`.
+
+**Outcome:** Succeeded against the promoted DOGFOOD-016 publication.
+
+### 600. Published `tools/list`
+
+**Activity:** DOGFOOD-016 client-neutral input-schema budget analysis.
+
+**Purpose:** Measure serialized UTF-8 size, description volume, described property occurrences, object count and nesting depth for every published input schema.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation.
+
+**Outcome:** Succeeded with 56 tools. Excluding the intentionally empty `workspace-list`, Codex's richly annotated declarations ranged from 154 to 5,113 input-schema bytes, while every compacted declaration ranged from 5,211 to 7,672 bytes. The largest rich schema contained 38 described property occurrences and 2,473 description characters; the smallest compact schema contained 39 described property occurrences and 2,517 description characters. This clean boundary supports a client-neutral target of at most 4,096 serialized input-schema bytes, leaving roughly 20% headroom below the observed Codex boundary.
+
+### 601. Published `initialize`
+
+**Activity:** DOGFOOD-016 input-schema reduction feasibility analysis.
+
+**Purpose:** Start another isolated promoted instance to distinguish description cost from unavoidable schema structure before selecting a portable size target.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-schema-shape/1.0`.
+
+**Outcome:** Succeeded against the promoted DOGFOOD-016 publication.
+
+### 602. Published `tools/list`
+
+**Activity:** DOGFOOD-016 input-schema reduction feasibility analysis.
+
+**Purpose:** Compare representative rich and compact schemas with every description annotation removed and inspect their reference structure.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation. The comparison sampled `get-symbol-attributes`, `find-callers`, `go-to-definition` and `search-symbols`.
+
+**Outcome:** Succeeded. The 7,672-byte `find-callers` schema fell to 2,962 bytes without description annotations, while 5,211-byte `get-symbol-attributes` fell to 2,031 bytes; neither contained `$defs`, and their repeated project selector was already represented by a local reference. Because retaining a description key for every property has substantial fixed JSON overhead, a 4,096-byte hard cap would leave too little room for meaningful descriptions on the largest contracts without further structural redesign. The earlier 4,096-byte recommendation is therefore provisional rather than an adopted limit.
+
+### 603. `workspace-list`
+
+**Activity:** DOGFOOD-016 portable input-schema budget implementation.
+
+**Purpose:** Confirm clean published Workspace state before inspecting the plugin authoring-warning paths through Roslyn-backed queries.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 604. `workspace-open`
+
+**Activity:** DOGFOOD-016 portable input-schema budget implementation.
+
+**Purpose:** Load the repository with isolated build artifacts for Roslyn-backed inspection of schema publication and existing plugin authoring warnings.
+
+**Request:** `{"alias":"dogfood-016-budget","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,617 documents. The expected isolated-artifacts analyser-reference warnings and WSL-on-Windows-filesystem warning were reported.
+
+### 605. `search-symbols`
+
+**Activity:** DOGFOOD-016 portable input-schema budget implementation.
+
+**Purpose:** Locate the existing query-response authoring inspector and application-logging path to keep the new oversized-input-schema warning consistent with established plugin behaviour.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-budget"},"scope":{"kind":"Solution"},"query":"QueryResponseContract","kinds":["NamedType","Method","Property"],"symbolsLimit":100}`
+
+**Outcome:** Succeeded and identified `QueryResponseContractInspector`, its tests, and `PluginCatalogEntryMaterializer.ReportQueryResponseContractWarnings` with its source-generated warning log.
+
+### 606. `workspace-close`
+
+**Activity:** DOGFOOD-016 portable input-schema budget implementation cleanup.
+
+**Purpose:** Close the Roslyn-backed inspection Workspace after the relevant authoring-warning paths had been located.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-budget"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 1.
+
+### 607. `workspace-list`
+
+**Activity:** DOGFOOD-016 central snapshot-description design follow-up.
+
+**Purpose:** Confirm the configured dogfood server had no loaded Workspace before deciding whether Roslyn-backed symbol inspection was available for the schema-generator design audit.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner. The design audit therefore continued against the local source without opening a Workspace because the relevant schema and contract files were already known and no Roslyn semantic refactor was yet required.
+
+### 608. `workspace-list`
+
+**Activity:** DOGFOOD-016 type-owned input-description candidate audit.
+
+**Purpose:** Check whether a Workspace was already loaded before auditing request property types for other descriptions that could be published centrally.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner. The audit continued against the local contract source because no semantic refactor or call-site analysis was required.
+
+### 609. `workspace-open`
+
+**Activity:** DOGFOOD-016 cross-member input-schema composition discovery.
+
+**Purpose:** Load the repository for Roslyn-backed inspection of the validation attributes and schema publication path.
+
+**Request:** `{"alias":"dogfood-016-schema-composition","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<non-existent-temporary-artifacts-root>"}}`
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the requested artifacts directory did not yet exist.
+
+### 610. `workspace-open`
+
+**Activity:** DOGFOOD-016 cross-member input-schema composition discovery retry.
+
+**Purpose:** Load the repository with an existing isolated artifacts directory for Roslyn-backed inspection.
+
+**Request:** `{"alias":"dogfood-016-schema-composition","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,618 documents. The expected isolated-artifacts analyser-reference warnings and WSL-on-Windows-filesystem warning were reported.
+
+### 611. `search-symbols`
+
+**Activity:** DOGFOOD-016 cross-member input-schema composition discovery.
+
+**Purpose:** Locate `RequiresExactlyOneAttribute` and its existing validation coverage before changing schema publication.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-schema-composition"},"scope":{"kind":"Solution"},"query":"RequiresExactlyOne","kinds":["NamedType","Method"],"symbolsLimit":50}`
+
+**Outcome:** Succeeded and located the public validation attribute and its Workspace validation tests. Source inspection then established that the rule uses value-based “provided” semantics rather than JSON member presence.
+
+### 612. `workspace-close`
+
+**Activity:** DOGFOOD-016 cross-member input-schema composition discovery cleanup.
+
+**Purpose:** Close the inspection Workspace after discovering that the approved required-property-only schema did not match runtime value-presence semantics.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-schema-composition"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 2.
+
+### 613. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 pre-review cross-member schema validation.
+
+**Purpose:** Start the Release candidate published from the current unstaged working tree and confirm MCP protocol negotiation before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-prereview-smoke/1.0`.
+
+**Outcome:** Succeeded against candidate `dogfood-016-prereview-27dce5b-working-20260830-121151`; the server returned identity `Roslyn.Workbench.Mcp` version `1.0.0.0` and protocol version `2025-06-18`.
+
+### 614. Candidate `tools/list`
+
+**Activity:** DOGFOOD-016 pre-review cross-member schema validation and promotion.
+
+**Purpose:** Confirm that the current working-tree candidate publishes the complete catalogue and the approved compact cross-member rules before using it through Codex's configured dogfood namespace.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation.
+
+**Outcome:** Succeeded with 56 tools. Closed selectors such as `WorkspaceSelector` and `ProjectSelector` used `minProperties: 1`; `search-symbols` used required-property `anyOf` alternatives; exact selectors used required-property `oneOf` alternatives; participating properties rejected explicit JSON `null`; and descriptions no longer repeated the structural rules. The candidate shut down normally and was promoted atomically to `current`; the promoted Host DLL hash matched the smoke-tested candidate (`5423ca93ecab7b3315b67973bcffd2875630392390e5727e195e82be3f5eaa1e`).
+
+### 615. `server-status`
+
+**Activity:** DOGFOOD-016 live pre-review cross-member schema validation.
+
+**Purpose:** Confirm that the restarted Codex task connected successfully to the promoted working-tree candidate before evaluating normal callable declarations.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, 56 tools, no startup warnings and bundled Core plugin version `1.0.0+27dce5b4ffc4f0767f46ffb9865164cce1255027`. Codex's normal declarations projected nested selectors using `minProperties` as named typed properties, but root request schemas containing `anyOf` or `oneOf` were reduced to unions of generic `{ [key: string]: unknown }` objects.
+
+### 616. `workspace-list`
+
+**Activity:** DOGFOOD-016 live pre-review cross-member schema validation.
+
+**Purpose:** Confirm clean live Workspace state before exercising the new selector schemas.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 617. `workspace-open`
+
+**Activity:** DOGFOOD-016 live pre-review cross-member schema validation.
+
+**Purpose:** Load the repository through a normally projected request so representative `minProperties`, `anyOf` and `oneOf` requests could be exercised.
+
+**Request:** `{"alias":"dogfood-016-cross-member-prereview","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,662 documents. The expected WSL-on-Windows-filesystem warning was reported.
+
+### 618. `search-symbols`
+
+**Activity:** DOGFOOD-016 live `RequiresAtLeastOne` validation.
+
+**Purpose:** Confirm that a request satisfying the published `query` or `metadataName` alternatives and using an alias-only Workspace selector remains callable through Codex.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-cross-member-prereview"},"query":"InputContractSchemaTransformer","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production transformer and its test type. The server accepted the structurally valid request, but Codex exposed the complete request as a generic object union rather than named parameters.
+
+### 619. `search-symbols`
+
+**Activity:** DOGFOOD-016 live exactly-one setup.
+
+**Purpose:** Resolve a representative method selector for the subsequent `find-callees` request.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-cross-member-prereview"},"query":"Transform","namespace":"Roslyn.Workbench.Mcp.Protocol","kinds":["Method"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the two schema-transformer methods, including the current working-tree `InputContractSchemaTransformer.Transform` implementation.
+
+### 620. `find-callees`
+
+**Activity:** DOGFOOD-016 live `RequiresExactlyOne` validation.
+
+**Purpose:** Confirm that a request supplying only the `symbol` alternative remains callable and resolves the current transformer implementation.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-cross-member-prereview"},"symbol":{"documentationCommentId":"<InputContractSchemaTransformer.Transform documentation ID>","project":{"projectId":"<host-project-id>"}},"includeIndirect":false,"maxDepth":3,"calleesLimit":20}`
+
+**Outcome:** Succeeded with eight direct callees, including the new cross-member publication helpers. The server accepted the structurally valid exactly-one request, but Codex again exposed the complete request as a generic object union rather than named parameters.
+
+### 621. `workspace-close`
+
+**Activity:** DOGFOOD-016 live pre-review cross-member schema validation cleanup.
+
+**Purpose:** Close the live validation Workspace after the representative rule calls completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-cross-member-prereview"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 1. The dogfood result is therefore mixed: compact all-property `minProperties` rules project correctly, while `anyOf` and `oneOf` rules preserve runtime callability but fail the agent-readable TypeScript declaration requirement.
+
+### 622. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 portable cross-member guidance validation.
+
+**Purpose:** Start the revised Release candidate and confirm MCP protocol negotiation before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-smoke/1.0`.
+
+**Outcome:** Failed before protocol initialisation because the direct sandboxed smoke process could not write to the default durable state directory. The Host returned the actionable requirement to configure a writable `--state-directory`; no candidate defect was indicated.
+
+### 623. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 portable cross-member guidance validation retry.
+
+**Purpose:** Retry candidate startup with an isolated writable state directory.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18`, client identity `dogfood-smoke/1.0` and a temporary state directory.
+
+**Outcome:** Succeeded against candidate `dogfood-016-portable-prereview-27dce5b-working-20260830-134453`; the server returned identity `Roslyn.Workbench.Mcp` version `1.0.0.0` and protocol version `2025-06-18`.
+
+### 624. Candidate `tools/list`
+
+**Activity:** DOGFOOD-016 portable cross-member guidance validation and promotion.
+
+**Purpose:** Confirm that the revised working-tree candidate publishes the complete catalogue with portable cross-member guidance before validating it through Codex's configured dogfood namespace.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation.
+
+**Outcome:** Succeeded with 56 tools. Cross-member contracts retained ordinary named property schemas, published one object-level instruction such as `Provide exactly one of symbol or location.`, rejected explicit JSON `null` for participating supplied values and contained no root `anyOf` or `oneOf` composition. The central `SnapshotPrecondition` instruction remained present. The candidate shut down normally and was promoted atomically to `current`; the promoted executable hash matched the smoke-tested candidate (`83e048004cf5aa2d7a4f6204109897a994dec2290b2358050722017e1a0c773d`).
+
+### 625. `server-status`
+
+**Activity:** DOGFOOD-016 live portable cross-member guidance validation.
+
+**Purpose:** Confirm that the restarted Codex task connected to the promoted portable-guidance candidate before inspecting normal callable declarations.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, 56 tools, no startup warnings and bundled Core plugin version `1.0.0+27dce5b4ffc4f0767f46ffb9865164cce1255027`. Codex projected `search-symbols` and `find-callees` as ordinary named request properties rather than generic `unknown` object unions. It retained property and nested-type descriptions, but omitted each root input-schema `description`, so the new object-level cross-member instruction was not visible in the callable declaration.
+
+### 626. `workspace-list`
+
+**Activity:** DOGFOOD-016 live portable cross-member guidance validation.
+
+**Purpose:** Confirm clean Workspace state before exercising the revised requests.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 627. `workspace-open`
+
+**Activity:** DOGFOOD-016 live portable cross-member guidance validation.
+
+**Purpose:** Load the repository through Codex's normal dogfood declaration so representative at-least-one and exactly-one requests could be exercised.
+
+**Request:** `{"alias":"dogfood-016-portable-prereview","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,618 documents. The expected isolated-artifacts analyser-reference warnings and WSL-on-Windows-filesystem warning were reported.
+
+### 628. `search-symbols`
+
+**Activity:** DOGFOOD-016 live portable `RequiresAtLeastOne` validation.
+
+**Purpose:** Confirm that an at-least-one request remains understandable and callable through its restored named parameters.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-portable-prereview"},"query":"InputContractSchemaTransformer","kinds":["NamedType"],"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production transformer and its test type. Codex exposed `query` and `metadataName` as separate typed optional parameters, but did not expose the root `Provide query, metadataName, or both.` schema description.
+
+### 629. `search-symbols`
+
+**Activity:** DOGFOOD-016 live portable exactly-one setup.
+
+**Purpose:** Resolve the current transformer method and its canonical source selector for an exactly-one `find-callees` request.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-portable-prereview"},"query":"Transform","namespace":"Roslyn.Workbench.Mcp.Protocol","kinds":["Method"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp"}},"symbolsLimit":20}`
+
+**Outcome:** Succeeded with the two schema-transformer methods and their current source selectors.
+
+### 630. `find-callees`
+
+**Activity:** DOGFOOD-016 live portable `RequiresExactlyOne` validation.
+
+**Purpose:** Exercise the restored named `symbol` alternative using the returned method identity.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-portable-prereview"},"symbol":{"documentationCommentId":"<InputContractSchemaTransformer.Transform documentation ID>","project":{"projectId":"<host-project-id>"}},"includeIndirect":false,"maxDepth":3,"calleesLimit":20}`
+
+**Outcome:** Rejected with `SymbolNotFound` and an accurate `ReviseRequest` continuation. The callable shape was usable; the returned documentation-comment identity did not resolve when reconstructed as a symbol selector, so the canonical location alternative was used instead.
+
+### 631. `find-callees`
+
+**Activity:** DOGFOOD-016 live portable `RequiresExactlyOne` validation retry.
+
+**Purpose:** Confirm the restored named `location` alternative is accepted without supplying `symbol`.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-portable-prereview"},"location":{"span":{"document":{"project":{"projectId":"<host-project-id>"},"documentId":"<transformer-document-id>"},"range":{"start":610,"length":9}}},"includeIndirect":false,"maxDepth":3,"calleesLimit":20}`
+
+**Outcome:** Succeeded through the normal Codex declaration. The server accepted exactly one top-level alternative and returned a bounded callee result. Codex exposed both `symbol` and `location` with their complete typed nested shapes, but did not expose the root `Provide exactly one of symbol or location.` schema description.
+
+### 632. `workspace-close`
+
+**Activity:** DOGFOOD-016 live portable cross-member guidance validation cleanup.
+
+**Purpose:** Close the validation Workspace after the representative calls completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-016-portable-prereview"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 1.
+
+### 633. Candidate `initialize`
+
+**Activity:** DOGFOOD-016 root input-guidance metadata validation.
+
+**Purpose:** Start the final Release candidate and confirm MCP protocol negotiation before promotion.
+
+**Request:** MCP `initialize` using protocol version `2025-06-18` and client identity `dogfood-016-input-metadata-smoke/1.0` with an isolated temporary state directory.
+
+**Outcome:** Succeeded against candidate `dogfood-016-input-metadata-prereview-27dce5b-working-20260830-141055`; the server returned identity `Roslyn.Workbench.Mcp` version `1.0.0.0` and protocol version `2025-06-18`.
+
+### 634. Candidate `tools/list`
+
+**Activity:** DOGFOOD-016 root input-guidance metadata validation and promotion.
+
+**Purpose:** Confirm the generated request schema remains the single source of cross-member guidance and that the publication pipeline copies its root description into tool metadata.
+
+**Request:** Empty MCP `tools/list` request after successful initialisation.
+
+**Outcome:** Succeeded with 56 tools. `search-symbols` retained `description: "Provide query, metadataName, or both."` on its root input schema and published `Input: Provide query, metadataName, or both.` in its tool description; `get-control-flow-graph` did the same for its exactly-one rule. Ordinary named request properties and nested descriptions remained intact. The candidate shut down normally and was promoted atomically to `current`; the promoted Host DLL hash matched the smoke-tested candidate (`6e17372295df8378e8b14d71ac0f6862fb7473b953d2e323bc084581d79c1ff4`).
+
+### 635. `server-status`
+
+**Activity:** DOGFOOD-016 final live root input-guidance validation.
+
+**Purpose:** Confirm that the restarted Codex task connected to the final candidate and inspect the normal model-visible declarations.
+
+**Request:** `{"detail":"Full"}`
+
+**Outcome:** Succeeded with Host version `1.0.0.0`, 56 tools and no startup warnings. A complete audit of all 56 normal Codex declarations found a typed argument object on every tool, no `unknown` or `unknown & unknown`, no missing or malformed tool prose, no duplicated `Input:` or `Result:` sections and no unexpected root-guidance enrichment. Exactly the three root request contracts with type descriptions gained `Input:` guidance: `search-symbols` advertised `Input: Provide query, metadataName, or both.`, while `find-callees` and `get-control-flow-graph` advertised `Input: Provide exactly one of symbol or location.` Nested selector and snapshot descriptions remained visible. The largest model-visible declaration was `find-callees` at 3,258 characters; the separate automated raw-schema budget audit remained green. This satisfies the portable client-guidance requirement without manually duplicating request text in tool registrations.

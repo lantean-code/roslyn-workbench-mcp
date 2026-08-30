@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return the symbols directly invoked by an executable symbol or selected body.
 /// </summary>
+[Description("Provide exactly one of symbol or location.")]
 [RequiresExactlyOne(
     nameof(Symbol),
     nameof(Location),
@@ -15,13 +16,13 @@ internal sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional symbol selector.
     /// </summary>
-    [Description("Symbol whose callees should be found; provide exactly one of symbol or location.")]
+    [Description("Symbol whose callees should be found.")]
     public SymbolSelector? Symbol { get; init; }
 
     /// <summary>
     /// Gets the optional location selector.
     /// </summary>
-    [Description("Source location or executable region whose contained callees should be found; provide exactly one of location or symbol.")]
+    [Description("Source location or executable region whose contained callees should be found.")]
     public LocationSelector? Location { get; init; }
 
     /// <summary>
@@ -49,7 +50,6 @@ internal sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveCalleesLimit => ResultLimit.GetEffectiveValue(CalleesLimit, _defaultCalleesMaxResults);

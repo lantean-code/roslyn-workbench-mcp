@@ -24,7 +24,6 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based symbol selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveOverloadsLimit => ResultLimit.GetEffectiveValue(OverloadsLimit, _defaultOverloadsMaxResults);

@@ -1,22 +1,27 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
 internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer
 {
+    private const string _inputSchemaSizeRuleId = "InputSchemaSize";
     private const string _queryResponseContractRuleId = "RWMCP014";
 
     private readonly IPluginToolRegistrationMaterializer _toolRegistrationMaterializer;
     private readonly IPluginTransportSchemaPreflight _schemaPreflight;
+    private readonly IToolSchemaFactory _schemaFactory;
     private readonly ILogger<PluginCatalogEntryMaterializer> _logger;
 
     public PluginCatalogEntryMaterializer(
         IPluginToolRegistrationMaterializer toolRegistrationMaterializer,
         IPluginTransportSchemaPreflight schemaPreflight,
+        IToolSchemaFactory schemaFactory,
         ILogger<PluginCatalogEntryMaterializer> logger)
     {
         _toolRegistrationMaterializer = toolRegistrationMaterializer;
         _schemaPreflight = schemaPreflight;
+        _schemaFactory = schemaFactory;
         _logger = logger;
     }
 
@@ -41,6 +46,7 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
             }
 
             materialization = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
+            ReportInputSchemaSizeWarnings(plugin.Metadata.PluginId, materialization.Tools);
             ReportQueryResponseContractWarnings(plugin.Metadata.PluginId, materialization.Tools);
             var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, materialization.Diagnostics);
 
@@ -117,11 +123,49 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
         }
     }
 
+    private void ReportInputSchemaSizeWarnings(
+        string pluginId,
+        IReadOnlyList<IRegisteredPluginTool> tools)
+    {
+        foreach (var tool in tools)
+        {
+            var registeredTool = tool.Tool;
+            var schema = _schemaFactory.CreateInputSchemaForType(registeredTool.RequestType);
+            var sizeInBytes = InputSchemaBudget.GetSizeInBytes(schema);
+            if (sizeInBytes <= InputSchemaBudget.MaximumSizeInBytes)
+            {
+                continue;
+            }
+
+            var formattedLimit = InputSchemaBudget.MaximumSizeInBytes.ToString("N0", CultureInfo.InvariantCulture);
+            var warning = $"Request '{registeredTool.RequestType.Name}' publishes a {sizeInBytes}-byte input schema. "
+                + $"Keep agent-facing input schemas at or below {formattedLimit} bytes so property guidance remains portable across MCP clients.";
+
+            LogInputSchemaSizeWarning(
+                _logger,
+                _inputSchemaSizeRuleId,
+                pluginId,
+                registeredTool.Metadata.Name,
+                warning);
+        }
+    }
+
     [LoggerMessage(
         EventId = 1,
         Level = LogLevel.Warning,
         Message = "Plugin authoring warning {RuleId} for plugin {PluginId}, tool {ToolName}: {WarningMessage}")]
     private static partial void LogQueryResponseContractWarning(
+        ILogger logger,
+        string ruleId,
+        string pluginId,
+        string toolName,
+        string warningMessage);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Warning,
+        Message = "Plugin authoring warning {RuleId} for plugin {PluginId}, tool {ToolName}: {WarningMessage}")]
+    private static partial void LogInputSchemaSizeWarning(
         ILogger logger,
         string ruleId,
         string pluginId,

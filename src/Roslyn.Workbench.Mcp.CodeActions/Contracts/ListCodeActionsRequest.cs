@@ -12,7 +12,7 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the target document.
     /// </summary>
-    [Description("The target document.")]
+    [Description("Target document.")]
     public required DocumentSelector Document { get; init; }
 
     /// <summary>
@@ -24,7 +24,6 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the expected Workspace snapshot against which the document and range were resolved.
     /// </summary>
-    [Description("The expected Workspace snapshot against which the document and range were resolved.")]
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
     /// <summary>

@@ -1,8 +1,7 @@
-using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Plugins.Registration;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
@@ -29,18 +28,44 @@ public sealed class CoreContractDescriptionsIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
-    public void GIVEN_RequestsWithCrossPropertyRules_WHEN_ExportingInputSchemas_THEN_ShouldExplainValidCombinations()
+    public void GIVEN_RequestsWithCrossMemberValidation_WHEN_ExportingInputSchemas_THEN_ShouldPublishRuleOnceAndRetainPropertyPurpose()
     {
         var findCalleesSchema = _target.GetInputSchema<FindCalleesRequest>();
         var controlFlowGraphSchema = _target.GetInputSchema<GetControlFlowGraphRequest>();
         var searchSymbolsSchema = _target.GetInputSchema<SearchSymbolsRequest>();
 
-        GetDescription(findCalleesSchema, "symbol").Should().Contain("exactly one of symbol or location");
-        GetDescription(findCalleesSchema, "location").Should().Contain("exactly one of location or symbol");
-        GetDescription(controlFlowGraphSchema, "symbol").Should().Contain("exactly one of symbol or location");
-        GetDescription(controlFlowGraphSchema, "location").Should().Contain("exactly one of location or symbol");
-        GetDescription(searchSymbolsSchema, "query").Should().Contain("provide query, metadataName, or both");
-        GetDescription(searchSymbolsSchema, "metadataName").Should().Contain("provide metadataName, query, or both");
+        findCalleesSchema.GetProperty("description").GetString().Should().Be("Provide exactly one of symbol or location.");
+        GetDescription(findCalleesSchema, "symbol").Should().Be("Symbol whose callees should be found.");
+        GetDescription(findCalleesSchema, "location").Should().Be("Source location or executable region whose contained callees should be found.");
+        controlFlowGraphSchema.GetProperty("description").GetString().Should().Be("Provide exactly one of symbol or location.");
+        GetDescription(controlFlowGraphSchema, "symbol").Should().Be("Symbol whose control-flow graph should be returned.");
+        GetDescription(controlFlowGraphSchema, "location").Should().Be("Source location whose enclosing executable body should be graphed.");
+        searchSymbolsSchema.GetProperty("description").GetString().Should().Be("Provide query, metadataName, or both.");
+        GetDescription(searchSymbolsSchema, "query").Should().Be("Source-name query.");
+        searchSymbolsSchema.GetProperty("properties").GetProperty("metadataName").TryGetProperty("description", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_RequestWithRootGuidance_WHEN_PublishingPluginTool_THEN_ShouldCopyGuidanceIntoToolDescription()
+    {
+        var target = new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()));
+        var registeredTool = new RegisteredTool
+        {
+            Metadata = new ToolRegistrationMetadata
+            {
+                Name = "search-symbols",
+                Title = "Search Symbols",
+                Description = "Searches declarations.",
+            },
+            Kind = ToolKind.Query,
+            ResponseType = typeof(SymbolSearchData),
+        };
+
+        var result = target.CreatePluginTool<SearchSymbolsRequest>(registeredTool, ToolOutputSchemaMode.Omit);
+
+        result.Description.Should().Be("Searches declarations. Input: Provide query, metadataName, or both.");
+        result.InputSchema.GetProperty("description").GetString().Should().Be("Provide query, metadataName, or both.");
     }
 
     [Fact]
@@ -76,22 +101,6 @@ public sealed class CoreContractDescriptionsIntegrationTests
         var childrenSchema = FindPropertySchema(schema, "children");
 
         childrenSchema.GetProperty("description").GetString().Should().Be("The projected child operations.");
-    }
-
-    [Fact]
-    [Trait("Category", "Contract")]
-    public void GIVEN_CoreContractTypes_WHEN_AuditingSerializedProperties_THEN_ShouldDescribeEveryProperty()
-    {
-        var missingDescriptions = typeof(FindCalleesRequest).Assembly
-            .GetTypes()
-            .Where(static type => type.Namespace?.StartsWith("Roslyn.Workbench.Mcp.Plugins.Core.Contracts.", StringComparison.Ordinal) == true)
-            .SelectMany(static type => type.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public))
-            .Where(IsSerializedContractProperty)
-            .Where(static property => string.IsNullOrWhiteSpace(property.GetCustomAttribute<DescriptionAttribute>()?.Description))
-            .Select(static property => $"{property.DeclaringType!.FullName}.{property.Name}")
-            .ToArray();
-
-        missingDescriptions.Should().BeEmpty();
     }
 
     private static JsonElement FindPropertySchema(JsonElement schema, string propertyName)
@@ -137,10 +146,5 @@ public sealed class CoreContractDescriptionsIntegrationTests
     {
         return typeof(TContract).GetCustomAttribute<TAttribute>()
             ?? throw new InvalidOperationException($"{typeof(TContract).Name} does not declare {typeof(TAttribute).Name}.");
-    }
-
-    private static bool IsSerializedContractProperty(PropertyInfo property)
-    {
-        return property.GetIndexParameters().Length == 0 && property.GetCustomAttribute<JsonIgnoreAttribute>() is null;
     }
 }

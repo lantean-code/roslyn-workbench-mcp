@@ -16,7 +16,7 @@ public sealed class InputContractSchemaTransformerTests
     private readonly McpSdkSchemaProvider _target = new();
 
     [Fact]
-    public void GIVEN_CrossMemberSelectors_WHEN_PublishingSchema_THEN_ShouldRetainSingleCompleteObjects()
+    public void GIVEN_CrossMemberSelectors_WHEN_PublishingSchema_THEN_ShouldPublishPortableGuidanceAndNonNullValues()
     {
         var schema = _target.GetInputSchema<SelectorSchemaRequest>();
         var workspace = ResolvePropertySchema(schema, "workspace");
@@ -24,7 +24,13 @@ public sealed class InputContractSchemaTransformerTests
 
         GetPropertyNames(workspace).Should().BeEquivalentTo("alias", "path", "workspaceId");
         GetPropertyNames(location).Should().BeEquivalentTo("selection", "span");
+        workspace.GetProperty("description").GetString().Should().Be("Provide workspaceId, alias, path, or any combination.");
+        location.GetProperty("description").GetString().Should().Be("Provide exactly one of span or selection.");
+        workspace.TryGetProperty("minProperties", out _).Should().BeFalse();
         workspace.TryGetProperty("anyOf", out _).Should().BeFalse();
+        workspace.GetProperty("properties").GetProperty("alias").TryGetProperty("pattern", out _).Should().BeFalse();
+        AllowsNull(workspace.GetProperty("properties").GetProperty("workspaceId")).Should().BeFalse();
+        AllowsNull(location.GetProperty("properties").GetProperty("selection")).Should().BeFalse();
         workspace.TryGetProperty("oneOf", out _).Should().BeFalse();
         location.TryGetProperty("anyOf", out _).Should().BeFalse();
         location.TryGetProperty("oneOf", out _).Should().BeFalse();
@@ -58,6 +64,16 @@ public sealed class InputContractSchemaTransformerTests
     }
 
     [Fact]
+    public void GIVEN_SnapshotPreconditionProperty_WHEN_PublishingInputSchema_THEN_ShouldPublishCentralDescription()
+    {
+        var schema = _target.GetInputSchema<SnapshotSchemaRequest>();
+
+        schema.GetProperty("properties").GetProperty("expectedSnapshot").GetProperty("description").GetString()
+            .Should()
+            .Be("Echo the snapshot returned with the data or transaction state used to construct this request.");
+    }
+
+    [Fact]
     public void GIVEN_NonEmptyGuidAttribute_WHEN_PublishingSchema_THEN_ShouldRetainSdkUuidShape()
     {
         var schema = _target.GetInputSchema<SelectorSchemaRequest>();
@@ -76,7 +92,24 @@ public sealed class InputContractSchemaTransformerTests
 
         properties.TryGetProperty("first-value", out _).Should().BeTrue();
         properties.TryGetProperty("first", out _).Should().BeFalse();
+        schema.GetProperty("description").GetString().Should().Be("Provide exactly one of first-value or second.");
         schema.TryGetProperty("oneOf", out _).Should().BeFalse();
+        AllowsNull(properties.GetProperty("first-value")).Should().BeFalse();
+        properties.GetProperty("first-value").TryGetProperty("pattern", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_ExactlyOneCollectionRule_WHEN_PublishingSchema_THEN_ShouldPublishPresenceWithoutChangingRuntimeEmptinessRules()
+    {
+        var schema = _target.GetInputSchema<CollectionPresenceSchemaRequest>();
+        var properties = schema.GetProperty("properties");
+
+        schema.GetProperty("description").GetString().Should().Be("Provide exactly one of items or values.");
+        schema.TryGetProperty("oneOf", out _).Should().BeFalse();
+        AllowsNull(properties.GetProperty("items")).Should().BeFalse();
+        AllowsNull(properties.GetProperty("values")).Should().BeFalse();
+        properties.GetProperty("items").TryGetProperty("minItems", out _).Should().BeFalse();
+        properties.GetProperty("values").TryGetProperty("minProperties", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -119,7 +152,10 @@ public sealed class InputContractSchemaTransformerTests
     {
         var schema = _target.GetValueSchema<AttributedOutputContract>();
 
+        schema.GetProperty("description").GetString().Should().Be("Attributed output contract.");
         schema.GetProperty("properties").GetProperty("value").TryGetProperty("default", out _).Should().BeFalse();
+        AllowsNull(schema.GetProperty("properties").GetProperty("value")).Should().BeTrue();
+        schema.TryGetProperty("anyOf", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -329,6 +365,14 @@ public sealed class InputContractSchemaTransformerTests
         public string? Name { get; init; } = "NestedDefault";
     }
 
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record SnapshotSchemaRequest
+    {
+        [Description("A deliberately conflicting property description.")]
+        public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    }
+
+    [Description("Provide exactly one of first-value or second.")]
     [RequiresExactlyOne(nameof(First), nameof(Second))]
     [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
     private sealed record SerializedNameSchemaRequest
@@ -337,6 +381,16 @@ public sealed class InputContractSchemaTransformerTests
         public string? First { get; init; }
 
         public string? Second { get; init; }
+    }
+
+    [Description("Provide exactly one of items or values.")]
+    [RequiresExactlyOne(nameof(Items), nameof(Values))]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
+    private sealed record CollectionPresenceSchemaRequest
+    {
+        public IReadOnlyList<string>? Items { get; init; }
+
+        public IReadOnlyDictionary<string, string>? Values { get; init; }
     }
 
     [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
@@ -404,6 +458,7 @@ public sealed class InputContractSchemaTransformerTests
     }
 
     [RequiresAtLeastOne(nameof(Value))]
+    [Description("Attributed output contract.")]
     [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "The MCP schema exporter consumes this contract through type metadata.")]
     private sealed record AttributedOutputContract
     {

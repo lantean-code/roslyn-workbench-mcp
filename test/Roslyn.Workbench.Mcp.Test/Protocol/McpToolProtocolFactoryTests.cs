@@ -61,6 +61,26 @@ public sealed class McpToolProtocolFactoryTests
     }
 
     [Fact]
+    public void GIVEN_ServerOwnedRequestWithRootDescription_WHEN_CreatingProtocol_THEN_ShouldPublishInputGuidanceInToolDescription()
+    {
+        _schemaProvider
+            .Setup(item => item.GetInputSchema<DescribedRequest>())
+            .Returns(CreateDescribedSchema("Provide exactly one of value or otherValue."));
+
+        var result = _target.CreateServerOwnedTool<DescribedRequest, TestResponse>(
+            "test-tool",
+            "Test Tool",
+            "Description",
+            true,
+            false,
+            "Summary",
+            ToolOutputSchemaMode.Omit);
+
+        result.Description.Should().Be("Description Input: Provide exactly one of value or otherValue. Result: Summary");
+        result.InputSchema.GetProperty("description").GetString().Should().Be("Provide exactly one of value or otherValue.");
+    }
+
+    [Fact]
     public void GIVEN_IdempotentOpenWorldServerTool_WHEN_CreatingProtocol_THEN_ShouldPublishIndependentAnnotations()
     {
         var result = _target.CreateServerOwnedToolWithAnnotations<TestRequest, TestResponse>(
@@ -156,6 +176,29 @@ public sealed class McpToolProtocolFactoryTests
         result.Annotations.OpenWorldHint.Should().BeFalse();
     }
 
+    [Fact]
+    public void GIVEN_CatalogueRequestWithRootDescription_WHEN_CreatingProtocol_THEN_ShouldPublishInputGuidanceInToolDescription()
+    {
+        _schemaProvider
+            .Setup(item => item.GetInputSchema<DescribedRequest>())
+            .Returns(CreateDescribedSchema("Provide exactly one of value or otherValue."));
+        var tool = new RegisteredTool
+        {
+            Metadata = new ToolRegistrationMetadata
+            {
+                Name = "test-query",
+                Title = "Test Query",
+                Description = "Description",
+            },
+            Kind = ToolKind.Query,
+            ResponseType = typeof(TestResponse),
+        };
+
+        var result = _target.CreatePluginTool<DescribedRequest>(tool, ToolOutputSchemaMode.Omit);
+
+        result.Description.Should().Be("Description Input: Provide exactly one of value or otherValue.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -195,8 +238,21 @@ public sealed class McpToolProtocolFactoryTests
         });
     }
 
+    private static JsonElement CreateDescribedSchema(string description)
+    {
+        return JsonSerializer.SerializeToElement(new
+        {
+            description,
+            type = "object",
+        });
+    }
+
 #pragma warning disable CA1812 // Protocol fixtures are consumed through schema metadata without construction.
     private sealed record TestRequest : WorkspaceBoundRequest
+    {
+    }
+
+    private sealed record DescribedRequest : WorkspaceBoundRequest
     {
     }
 

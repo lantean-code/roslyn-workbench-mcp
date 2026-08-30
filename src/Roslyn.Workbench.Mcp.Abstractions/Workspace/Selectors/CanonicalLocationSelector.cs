@@ -8,6 +8,5 @@ public sealed record CanonicalLocationSelector
     /// <summary>
     /// Gets the document-bound text span.
     /// </summary>
-    [Description("The document-bound text span.")]
     public required TextSpanSelector Span { get; init; }
 }

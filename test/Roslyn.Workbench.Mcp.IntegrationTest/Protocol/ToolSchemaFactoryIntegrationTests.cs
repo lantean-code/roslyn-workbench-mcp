@@ -5,6 +5,8 @@ using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Workspace.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -415,27 +417,103 @@ public sealed class ToolSchemaFactoryIntegrationTests
     public void GIVEN_BundledRequestContracts_WHEN_ExportingInputSchemas_THEN_ShouldResolveEveryLocalReference()
     {
         var target = CreateTarget();
-        var requestAssemblies = new[]
-        {
-            typeof(TransactionPreviewRequest).Assembly,
-            typeof(StageCodeActionRequest).Assembly,
-            typeof(FindCalleesRequest).Assembly,
-        };
-
-        var requestTypes = requestAssemblies
-            .Distinct()
-            .SelectMany(static assembly => assembly.GetTypes())
-            .Where(static type => !type.IsAbstract
-                && !type.ContainsGenericParameters
-                && type.Name.EndsWith("Request", StringComparison.Ordinal)
-                && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
-            .ToArray();
+        var requestTypes = GetBuiltInRequestTypes();
 
         requestTypes.Should().HaveCountGreaterThan(50);
         foreach (var requestType in requestTypes)
         {
             var schema = target.CreateInputSchemaForType(requestType);
             AssertLocalReferencesResolve(schema);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BuiltInToolRequests_WHEN_ExportingInputSchemas_THEN_ShouldRemainWithinPortableSizeBudget()
+    {
+        var target = CreateTarget();
+        var oversizedSchemas = new List<string>();
+        var requestTypes = GetBuiltInRequestTypes();
+
+        foreach (var requestType in requestTypes)
+        {
+            var schema = target.CreateInputSchemaForType(requestType);
+            var sizeInBytes = InputSchemaBudget.GetSizeInBytes(schema);
+            if (sizeInBytes > InputSchemaBudget.MaximumSizeInBytes)
+            {
+                oversizedSchemas.Add($"{requestType.FullName}: {sizeInBytes} bytes");
+            }
+        }
+
+        oversizedSchemas.Should().BeEmpty(
+            "every built-in input schema should remain within the portable budget:{0}{1}",
+            Environment.NewLine,
+            string.Join(Environment.NewLine, oversizedSchemas));
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BuiltInSnapshotPreconditions_WHEN_ExportingInputSchemas_THEN_ShouldPublishCentralDescription()
+    {
+        const string expectedDescription = "Echo the snapshot returned with the data or transaction state used to construct this request.";
+
+        var target = CreateTarget();
+        var snapshotPropertyCount = 0;
+        var mismatches = new List<string>();
+
+        foreach (var requestType in GetBuiltInRequestTypes())
+        {
+            var snapshotProperties = requestType
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(static property => (Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) == typeof(SnapshotPrecondition))
+                .ToArray();
+            if (snapshotProperties.Length == 0)
+            {
+                continue;
+            }
+
+            var schema = target.CreateInputSchemaForType(requestType);
+            foreach (var snapshotProperty in snapshotProperties)
+            {
+                snapshotPropertyCount++;
+                var propertyName = JsonNamingPolicy.CamelCase.ConvertName(snapshotProperty.Name);
+                var propertySchema = GetProperty(schema, propertyName);
+                var actualDescription = propertySchema.TryGetProperty("description", out var description)
+                    ? description.GetString()
+                    : null;
+                if (!string.Equals(actualDescription, expectedDescription, StringComparison.Ordinal))
+                {
+                    mismatches.Add($"{requestType.FullName}.{snapshotProperty.Name}: {actualDescription ?? "<missing>"}");
+                }
+            }
+        }
+
+        snapshotPropertyCount.Should().BePositive();
+        mismatches.Should().BeEmpty(
+            "every built-in SnapshotPrecondition input should use the central description:{0}{1}",
+            Environment.NewLine,
+            string.Join(Environment.NewLine, mismatches));
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BuiltInCrossMemberRules_WHEN_ExportingInputSchemas_THEN_ShouldPublishPortableGuidanceAndNonNullValues()
+    {
+        var target = CreateTarget();
+        var contractTypes = new[]
+        {
+            typeof(WorkspaceSelector),
+            typeof(ProjectSelector),
+            typeof(DocumentSelector),
+            typeof(LocationSelector),
+            typeof(SymbolSelector),
+            typeof(SearchSymbolsRequest),
+            typeof(FindCalleesRequest),
+            typeof(GetControlFlowGraphRequest),
+        };
+        foreach (var contractType in contractTypes)
+        {
+            AssertPortableCrossMemberGuidance(target, contractType);
         }
     }
 
@@ -539,6 +617,25 @@ public sealed class ToolSchemaFactoryIntegrationTests
         return new ToolSchemaFactory(schemaProvider);
     }
 
+    private static Type[] GetBuiltInRequestTypes()
+    {
+        var requestAssemblies = new[]
+        {
+            typeof(TransactionPreviewRequest).Assembly,
+            typeof(StageCodeActionRequest).Assembly,
+            typeof(FindCalleesRequest).Assembly,
+        };
+
+        return requestAssemblies
+            .Distinct()
+            .SelectMany(static assembly => assembly.GetTypes())
+            .Where(static type => !type.IsAbstract
+                && !type.ContainsGenericParameters
+                && type.Name.EndsWith("Request", StringComparison.Ordinal)
+                && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
+            .ToArray();
+    }
+
     private static void AssertLocalReferencesResolve(JsonElement schema)
     {
         foreach (var reference in EnumerateLocalReferences(schema))
@@ -546,6 +643,30 @@ public sealed class ToolSchemaFactoryIntegrationTests
             TryResolveLocalReference(schema, reference).Should().BeTrue(
                 $"local reference '{reference}' should resolve from the published input-schema root");
         }
+    }
+
+    private static void AssertPortableCrossMemberGuidance(ToolSchemaFactory target, Type contractType)
+    {
+        var schema = target.CreateInputSchemaForType(contractType);
+        var description = contractType.GetCustomAttribute<DescriptionAttribute>(inherit: true)
+            ?? throw new InvalidOperationException($"{contractType.Name} must publish cross-member guidance.");
+        var memberNames = contractType.GetCustomAttribute<RequiresAtLeastOneAttribute>(inherit: true)?.MemberNames
+            ?? contractType.GetCustomAttribute<RequiresExactlyOneAttribute>(inherit: true)?.MemberNames;
+        if (memberNames is null)
+        {
+            throw new InvalidOperationException($"{contractType.Name} must declare a supported cross-member rule.");
+        }
+
+        schema.GetProperty("description").GetString().Should().Be(description.Description);
+        schema.TryGetProperty("anyOf", out _).Should().BeFalse();
+        schema.TryGetProperty("oneOf", out _).Should().BeFalse();
+        foreach (var memberName in memberNames)
+        {
+            var propertyName = JsonNamingPolicy.CamelCase.ConvertName(memberName);
+            AllowsNull(GetProperty(schema, propertyName)).Should().BeFalse();
+        }
+
+        AssertLocalReferencesResolve(schema);
     }
 
     private static IEnumerable<string> EnumerateLocalReferences(JsonElement element)

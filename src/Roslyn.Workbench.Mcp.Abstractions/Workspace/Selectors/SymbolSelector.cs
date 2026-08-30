@@ -4,6 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 /// Represents a symbol selector backed by a source location or documentation comment identifier,
 /// optionally constrained to a project.
 /// </summary>
+[Description("Provide exactly one of location or documentationCommentId.")]
 [RequiresExactlyOne(
     nameof(Location),
     nameof(DocumentationCommentId),
@@ -13,18 +14,16 @@ public sealed record SymbolSelector
     /// <summary>
     /// Gets the optional project scope used to disambiguate the symbol.
     /// </summary>
-    [Description("Project used to disambiguate the symbol, when needed.")]
+    [Description("Disambiguates symbols with matching identities.")]
     public ProjectSelector? Project { get; init; }
 
     /// <summary>
     /// Gets the source location selector.
     /// </summary>
-    [Description("Source location that identifies the symbol; provide either location or documentationCommentId, not both.")]
     public LocationSelector? Location { get; init; }
 
     /// <summary>
     /// Gets the documentation comment identifier.
     /// </summary>
-    [Description("Documentation-comment identifier that identifies the symbol; provide either documentationCommentId or location, not both.")]
     public string? DocumentationCommentId { get; init; }
 }

@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve a control-flow graph for a symbol or location.
 /// </summary>
+[Description("Provide exactly one of symbol or location.")]
 [RequiresExactlyOne(
     nameof(Symbol),
     nameof(Location),
@@ -40,19 +41,18 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional symbol selector.
     /// </summary>
-    [Description("Symbol whose control-flow graph should be returned; provide exactly one of symbol or location.")]
+    [Description("Symbol whose control-flow graph should be returned.")]
     public SymbolSelector? Symbol { get; init; }
 
     /// <summary>
     /// Gets the optional location selector.
     /// </summary>
-    [Description("Source location whose enclosing executable body should be graphed; provide exactly one of location or symbol.")]
+    [Description("Source location whose enclosing executable body should be graphed.")]
     public LocationSelector? Location { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
-    [Description("The expected snapshot for location-based selectors.")]
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
     internal int EffectiveMaxBlocks => ResultLimit.GetEffectiveValue(MaxBlocks, _defaultMaxBlocks);

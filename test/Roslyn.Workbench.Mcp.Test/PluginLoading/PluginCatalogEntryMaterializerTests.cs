@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
@@ -6,6 +7,7 @@ public sealed class PluginCatalogEntryMaterializerTests
 {
     private readonly Mock<IPluginToolRegistrationMaterializer> _toolRegistrationMaterializer;
     private readonly Mock<IPluginTransportSchemaPreflight> _schemaPreflight;
+    private readonly Mock<IToolSchemaFactory> _schemaFactory;
     private readonly Mock<ILogger<PluginCatalogEntryMaterializer>> _logger;
     private readonly PluginCatalogEntryMaterializer _target;
 
@@ -13,15 +15,56 @@ public sealed class PluginCatalogEntryMaterializerTests
     {
         _toolRegistrationMaterializer = new Mock<IPluginToolRegistrationMaterializer>();
         _schemaPreflight = new Mock<IPluginTransportSchemaPreflight>();
+        _schemaFactory = new Mock<IToolSchemaFactory>();
         _logger = new Mock<ILogger<PluginCatalogEntryMaterializer>>();
         _schemaPreflight
             .Setup(preflight => preflight.Preflight(It.IsAny<IReadOnlyList<PreparedPluginTool>>()))
             .Returns(PluginTransportSchemaPreflightResult.Success());
+        _schemaFactory
+            .Setup(factory => factory.CreateInputSchemaForType(It.IsAny<Type>()))
+            .Returns(JsonSerializer.SerializeToElement(new { }));
 
         _target = new PluginCatalogEntryMaterializer(
             _toolRegistrationMaterializer.Object,
             _schemaPreflight.Object,
+            _schemaFactory.Object,
             _logger.Object);
+    }
+
+    [Fact]
+    public void GIVEN_OversizedInputSchema_WHEN_MaterializingEntry_THEN_ShouldLogOnceWithoutAddingStatusDiagnostic()
+    {
+        var plugin = CreatePreparedPlugin();
+        var registration = new Mock<IRegisteredPluginTool>();
+        registration.SetupGet(static value => value.Tool).Returns(plugin.Preparation.Tools.Single().Tool);
+        _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation)).Returns(new PluginMaterializationResult
+        {
+            Tools = [registration.Object],
+        });
+
+        var oversizedDescription = new string('x', InputSchemaBudget.MaximumSizeInBytes);
+        var oversizedSchema = JsonSerializer.SerializeToElement(new { description = oversizedDescription });
+        _schemaFactory
+            .Setup(factory => factory.CreateInputSchemaForType(plugin.Preparation.Tools.Single().Tool.RequestType))
+            .Returns(oversizedSchema);
+        _logger.Setup(item => item.IsEnabled(LogLevel.Warning)).Returns(true);
+
+        var result = _target.Materialize(plugin);
+
+        var expectedSize = InputSchemaBudget.GetSizeInBytes(oversizedSchema);
+        var requestTypeName = plugin.Preparation.Tools.Single().Tool.RequestType.Name;
+        result.Status.Enabled.Should().BeTrue();
+        result.Status.Diagnostics.Should().BeEmpty();
+        _logger.Verify(
+            item => item.Log(
+                LogLevel.Warning,
+                new EventId(2),
+                It.Is<It.IsAnyType>((value, _) =>
+                    value.ToString() == $"Plugin authoring warning InputSchemaSize for plugin plugin, tool tool: Request '{requestTypeName}' publishes a {expectedSize}-byte input schema. Keep agent-facing input schemas at or below 5,000 bytes so property guidance remains portable across MCP clients."
+                    && HasLogProperty(value, "RuleId", "InputSchemaSize")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

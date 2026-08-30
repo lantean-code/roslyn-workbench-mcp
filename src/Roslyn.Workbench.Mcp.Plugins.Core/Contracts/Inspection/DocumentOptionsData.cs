@@ -14,14 +14,14 @@ internal sealed record DocumentOptionsData : IQueryResponse
     /// <summary>
     /// Gets the effective language version.
     /// </summary>
-    [Description("The effective language version.")]
-    public string LanguageVersion { get; init; } = string.Empty;
+    [Description("The effective language version, when available for the document language.")]
+    public string? LanguageVersion { get; init; }
 
     /// <summary>
     /// Gets the effective nullable context.
     /// </summary>
-    [Description("The effective nullable context.")]
-    public string NullableContext { get; init; } = string.Empty;
+    [Description("The effective nullable context, when available for the document language.")]
+    public string? NullableContext { get; init; }
 
     /// <summary>
     /// Gets the effective parse options.

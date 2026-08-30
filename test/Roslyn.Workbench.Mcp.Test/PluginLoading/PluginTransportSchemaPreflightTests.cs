@@ -154,6 +154,9 @@ public sealed class PluginTransportSchemaPreflightTests
                 Plugin = new PluginMetadata
                 {
                     PluginId = "plugin",
+                    DisplayName = "DisplayName",
+                    Version = "Version",
+                    SupportedApiVersion = "SupportedApiVersion",
                 },
                 Metadata = new ToolRegistrationMetadata
                 {

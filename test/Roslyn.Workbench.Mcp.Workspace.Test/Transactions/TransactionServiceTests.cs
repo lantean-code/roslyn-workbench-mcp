@@ -234,6 +234,7 @@ public sealed class TransactionServiceTests : IDisposable
                 WorkspaceId = Guid.Parse(ownerId),
                 Alias = ownerAlias,
                 LoadedPath = ownerPath!,
+                WorkspaceRoot = "WorkspaceRoot",
             },
         };
 
@@ -298,6 +299,7 @@ public sealed class TransactionServiceTests : IDisposable
                 WorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 Alias = "OwnerAlias",
                 LoadedPath = "OwnerPath",
+                WorkspaceRoot = "WorkspaceRoot",
             },
         };
 
@@ -679,7 +681,7 @@ public sealed class TransactionServiceTests : IDisposable
 
         var document = transaction.CurrentSolution.Projects.Single().Documents.Single();
         var selector = new DocumentSelector { DocumentId = "DocumentId" };
-        var reference = new DocumentReference { DocumentId = "DocumentId" };
+        var reference = new DocumentReference { DocumentId = "DocumentId", Path = "Path", ProjectId = "ProjectId" };
         var diff = new DocumentDiff { Document = reference };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupPreview(session, transaction, gate, operationLease);
@@ -1322,6 +1324,7 @@ public sealed class TransactionServiceTests : IDisposable
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot
@@ -1366,7 +1369,7 @@ public sealed class TransactionServiceTests : IDisposable
                 Changes = new ChangeSummary(),
                 Operation = "Operation",
                 Summary = "Summary",
-                Preview = new MutationPreview(),
+                Preview = new MutationPreview { Summary = "Summary" },
             })
             .ToArray();
 

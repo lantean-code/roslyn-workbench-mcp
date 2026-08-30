@@ -211,6 +211,10 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             {
                 Revision = 2,
             },
+            Preview = new MutationPreview
+            {
+                Summary = "StagedSummary",
+            },
         };
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
@@ -275,6 +279,10 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             Operation = "test-code-action-mutation",
             Summary = "Summary",
             Transaction = new TransactionInfo(),
+            Preview = new MutationPreview
+            {
+                Summary = "Summary",
+            },
         };
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),

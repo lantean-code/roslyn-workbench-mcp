@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
 internal sealed record WorkspaceOpenOutcome
 {
-    public WorkspaceIdentity Workspace { get; init; } = new();
+    public required WorkspaceIdentity Workspace { get; init; }
 
     public int ProjectCount { get; init; }
 

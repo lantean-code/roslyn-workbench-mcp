@@ -404,6 +404,7 @@ public sealed class WorkspaceSelectorServiceTests
             WorkspaceId = workspaceId,
             Alias = alias,
             LoadedPath = loadedPath,
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot

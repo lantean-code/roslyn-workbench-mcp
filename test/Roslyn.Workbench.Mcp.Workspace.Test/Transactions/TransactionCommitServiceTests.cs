@@ -1191,7 +1191,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
             ],
             CurrentRevision = 1,

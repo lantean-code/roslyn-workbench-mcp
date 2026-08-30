@@ -52,6 +52,13 @@ public sealed class CoreContractDescriptionsIntegrationTests
         var target = new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()));
         var registeredTool = new RegisteredTool
         {
+            Plugin = new PluginMetadata
+            {
+                PluginId = "PluginId",
+                DisplayName = "DisplayName",
+                Version = "Version",
+                SupportedApiVersion = "SupportedApiVersion",
+            },
             Metadata = new ToolRegistrationMetadata
             {
                 Name = "search-symbols",

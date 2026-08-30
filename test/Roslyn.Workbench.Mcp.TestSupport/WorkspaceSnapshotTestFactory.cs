@@ -93,6 +93,8 @@ internal static class WorkspaceSnapshotTestFactory
         {
             WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         var context = new WorkspaceFailureContext(

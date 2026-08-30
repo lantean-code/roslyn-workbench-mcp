@@ -105,6 +105,7 @@ public sealed class McpToolProtocolFactoryTests
     {
         var tool = new RegisteredTool
         {
+            Plugin = CreatePluginMetadata(),
             Metadata = new ToolRegistrationMetadata
             {
                 Name = "test-query",
@@ -130,6 +131,7 @@ public sealed class McpToolProtocolFactoryTests
     {
         var tool = new RegisteredTool
         {
+            Plugin = CreatePluginMetadata(),
             Metadata = new ToolRegistrationMetadata
             {
                 Name = "test-mutation",
@@ -184,6 +186,7 @@ public sealed class McpToolProtocolFactoryTests
             .Returns(CreateDescribedSchema("Provide exactly one of value or otherValue."));
         var tool = new RegisteredTool
         {
+            Plugin = CreatePluginMetadata(),
             Metadata = new ToolRegistrationMetadata
             {
                 Name = "test-query",
@@ -236,6 +239,17 @@ public sealed class McpToolProtocolFactoryTests
         {
             type,
         });
+    }
+
+    private static PluginMetadata CreatePluginMetadata()
+    {
+        return new PluginMetadata
+        {
+            PluginId = "PluginId",
+            DisplayName = "DisplayName",
+            Version = "Version",
+            SupportedApiVersion = "SupportedApiVersion",
+        };
     }
 
     private static JsonElement CreateDescribedSchema(string description)

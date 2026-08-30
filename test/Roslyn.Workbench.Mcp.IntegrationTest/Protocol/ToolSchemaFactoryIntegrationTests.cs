@@ -215,7 +215,10 @@ public sealed class ToolSchemaFactoryIntegrationTests
         rangeProperties.GetProperty("start").GetProperty("minimum").GetInt32().Should().Be(0);
         rangeProperties.GetProperty("length").GetProperty("minimum").GetInt32().Should().Be(0);
         selectionRequiredProperties.Should().Contain("document");
+        selectionRequiredProperties.Should().Contain("selectedText");
         AllowsNull(selectionProperties.GetProperty("document")).Should().BeFalse();
+        AllowsNull(selectionProperties.GetProperty("selectedText")).Should().BeFalse();
+        selectionProperties.GetProperty("selectedText").GetProperty("minLength").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -597,17 +600,53 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var directSchema = target.CreateDirectOutputSchema(typeof(SolutionStructureData));
         var querySchema = target.CreateOutputSchema(PublishedToolKind.Query, typeof(SolutionStructureData));
         var mutationSchema = target.CreateOutputSchema(PublishedToolKind.Mutation, typeof(MutationData));
+        var documentOptionsSchema = target.CreateDirectOutputSchema(typeof(DocumentOptionsData));
 
         var directData = GetSuccessDataSchema(directSchema);
         var queryData = GetSuccessDataSchema(querySchema);
         var mutationData = GetSuccessDataSchema(mutationSchema);
+        var documentOptionsData = GetSuccessDataSchema(documentOptionsSchema);
 
         AllowsNull(directData).Should().BeTrue();
         AllowsNull(queryData).Should().BeTrue();
         AllowsNull(mutationData).Should().BeFalse();
         directData.GetRawText().Should().ContainAll("folders", "projects");
         queryData.GetRawText().Should().ContainAll("folders", "projects");
-        mutationData.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
+        directData.GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().Contain("solutionPath");
+
+        var documentOptionProperties = documentOptionsData.GetProperty("properties");
+        AllowsNull(documentOptionProperties.GetProperty("languageVersion")).Should().BeTrue();
+        AllowsNull(documentOptionProperties.GetProperty("nullableContext")).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_PublishedContracts_WHEN_AuditingNonNullableStrings_THEN_ShouldNotUseAccidentalEmptyDefaults()
+    {
+        var nullabilityContext = new NullabilityInfoContext();
+        var allowedEmptyProperties = new HashSet<string>(StringComparer.Ordinal)
+        {
+            $"{typeof(CodeContextData).FullName}.{nameof(CodeContextData.Text)}",
+            $"{typeof(RecoveryStatus).FullName}.{nameof(RecoveryStatus.SolutionPath)}",
+        };
+        var publishedContractTypes = GetPublishedContractTypes();
+        publishedContractTypes.Should().Contain(typeof(RecoveryStatus));
+
+        var emptyDefaultProperties = publishedContractTypes
+            .SelectMany(type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            .Where(property => property.PropertyType == typeof(string)
+                && nullabilityContext.Create(property).ReadState == NullabilityState.NotNull)
+            .Select(property => (Property: property, Instance: CreateDefaultInstance(property.DeclaringType)))
+            .Where(HasEmptyStringDefault)
+            .Select(static item => $"{item.Property.DeclaringType!.FullName}.{item.Property.Name}")
+            .Where(propertyName => !allowedEmptyProperties.Contains(propertyName))
+            .OrderBy(static propertyName => propertyName, StringComparer.Ordinal)
+            .ToArray();
+
+        emptyDefaultProperties.Should().BeEmpty(
+            "non-nullable published strings should be required unless empty is an explicitly supported value:{0}{1}",
+            Environment.NewLine,
+            string.Join(Environment.NewLine, emptyDefaultProperties));
     }
 
     private static ToolSchemaFactory CreateTarget()
@@ -634,6 +673,54 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 && type.Name.EndsWith("Request", StringComparison.Ordinal)
                 && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
             .ToArray();
+    }
+
+    private static Type[] GetPublishedContractTypes()
+    {
+        var abstractionsAssembly = typeof(WorkspaceSelector).Assembly;
+        var pluginsAssembly = typeof(MutationCandidate).Assembly;
+        var workspaceAssembly = typeof(RecoveryStatus).Assembly;
+        var contractAssemblies = new[]
+        {
+            abstractionsAssembly,
+            pluginsAssembly,
+            workspaceAssembly,
+            typeof(StageCodeActionRequest).Assembly,
+            typeof(FindCalleesRequest).Assembly,
+            typeof(WorkspaceOpenRequest).Assembly,
+        };
+
+        return contractAssemblies
+            .Distinct()
+            .SelectMany(static assembly => assembly.GetTypes())
+            .Where(type => !type.IsAbstract
+                && !type.ContainsGenericParameters
+                && (type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true
+                    || (type.IsPublic && (type.Assembly == abstractionsAssembly || type.Assembly == pluginsAssembly))
+                    || (type.Assembly == workspaceAssembly
+                        && type.Namespace?.Contains(".Results", StringComparison.Ordinal) == true
+                        && type != typeof(MutationData))))
+            .ToArray();
+    }
+
+    private static object? CreateDefaultInstance(Type? type)
+    {
+        if (type is null || type.GetConstructor(Type.EmptyTypes) is null)
+        {
+            return null;
+        }
+
+        return Activator.CreateInstance(type);
+    }
+
+    private static bool HasEmptyStringDefault((PropertyInfo Property, object? Instance) item)
+    {
+        if (item.Instance is null)
+        {
+            return false;
+        }
+
+        return item.Property.GetValue(item.Instance) is string value && value.Length == 0;
     }
 
     private static void AssertLocalReferencesResolve(JsonElement schema)

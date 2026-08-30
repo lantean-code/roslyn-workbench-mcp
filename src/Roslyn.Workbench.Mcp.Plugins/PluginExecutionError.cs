@@ -6,10 +6,10 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public sealed record PluginExecutionError
 {
     /// <summary>Gets the stable error code.</summary>
-    public string Code { get; init; } = string.Empty;
+    public required string Code { get; init; }
 
     /// <summary>Gets the user-facing error message.</summary>
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 
     /// <summary>Gets the optional diagnostic correlation identifier.</summary>
     public string? CorrelationId { get; init; }

@@ -110,7 +110,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
     public async Task GIVEN_DocumentMissingFromBothSolutions_WHEN_CreatingDocumentDiff_THEN_ShouldReturnNull()
     {
         var solution = CreateSolution(("Document.cs", "class C { }"));
-        var documentReference = new DocumentReference { DocumentId = Guid.NewGuid().ToString() };
+        var documentReference = new DocumentReference { DocumentId = Guid.NewGuid().ToString(), Path = "Path", ProjectId = "ProjectId" };
         _resolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)))
             .Returns(SelectorResolveResult.NotFound<Document>());

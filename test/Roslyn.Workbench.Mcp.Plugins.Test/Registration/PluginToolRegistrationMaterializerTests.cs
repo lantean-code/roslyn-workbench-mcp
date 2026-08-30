@@ -254,6 +254,19 @@ public sealed class PluginToolRegistrationMaterializerTests
             HandlerContract = handlerContract,
             Tool = new RegisteredTool
             {
+                Plugin = new PluginMetadata
+                {
+                    PluginId = "PluginId",
+                    DisplayName = "DisplayName",
+                    Version = "Version",
+                    SupportedApiVersion = "SupportedApiVersion",
+                },
+                Metadata = new ToolRegistrationMetadata
+                {
+                    Name = "Name",
+                    Title = "Title",
+                    Description = "Description",
+                },
                 Kind = kind,
                 RequestType = typeof(Request),
                 ResponseType = kind == ToolKind.Query ? typeof(Response) : typeof(MutationData),

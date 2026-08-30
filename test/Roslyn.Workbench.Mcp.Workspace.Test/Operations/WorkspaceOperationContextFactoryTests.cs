@@ -53,6 +53,8 @@ public sealed class WorkspaceOperationContextFactoryTests : IDisposable
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var snapshotId = WorkspaceSnapshotTestFactory.CreateId(3);
         WorkspaceTransaction? transaction = null;

@@ -23,8 +23,8 @@ public sealed class PluginExecutionResultTests
     [Fact]
     public void GIVEN_ConflictMetadata_WHEN_CreatingResult_THEN_ShouldPreserveFailureInvariant()
     {
-        var diagnostics = new[] { new DiagnosticInfo() };
-        var warnings = new[] { new WarningInfo() };
+        var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
+        var warnings = new[] { new WarningInfo { Code = "Code", Message = "Message" } };
         var error = new PluginExecutionError
         {
             Code = "Conflict",
@@ -47,8 +47,8 @@ public sealed class PluginExecutionResultTests
     [Fact]
     public void GIVEN_FaultMetadata_WHEN_CreatingResult_THEN_ShouldPreserveFailureInvariant()
     {
-        var diagnostics = new[] { new DiagnosticInfo() };
-        var warnings = new[] { new WarningInfo() };
+        var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
+        var warnings = new[] { new WarningInfo { Code = "Code", Message = "Message" } };
         var error = new PluginExecutionError
         {
             Code = "Faulted",

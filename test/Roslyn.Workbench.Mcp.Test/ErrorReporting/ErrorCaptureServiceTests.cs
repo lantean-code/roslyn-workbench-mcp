@@ -245,6 +245,9 @@ public sealed class ErrorCaptureServiceTests : IDisposable
             Plugin = new PluginMetadata
             {
                 PluginId = pluginId,
+                DisplayName = "DisplayName",
+                Version = "Version",
+                SupportedApiVersion = "SupportedApiVersion",
             },
             Metadata = new ToolRegistrationMetadata
             {
@@ -371,6 +374,8 @@ public sealed class ErrorCaptureServiceTests : IDisposable
         {
             WorkspaceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             WorkspaceEpoch = 5,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var workspaceContext = new CapturedWorkspaceContext(
             workspaceIdentity,

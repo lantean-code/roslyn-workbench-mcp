@@ -143,7 +143,12 @@ public sealed class GetOperationTreeToolTests
             {
                 Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
                     Guid.Parse("11111111-1111-1111-1111-111111111111")),
-                Document = new DocumentReference(),
+                Document = new DocumentReference
+                {
+                    DocumentId = "DocumentId",
+                    Path = "Path",
+                    ProjectId = "ProjectId",
+                },
             });
 
         var result = await target.ExecuteAsync(new GetOperationTreeRequest

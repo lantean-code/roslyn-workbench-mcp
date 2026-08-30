@@ -145,6 +145,7 @@ public sealed class SnapshotGuardTests : IDisposable
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot
@@ -173,7 +174,7 @@ public sealed class SnapshotGuardTests : IDisposable
             Changes = new ChangeSummary(),
             Operation = "Operation",
             Summary = "Summary",
-            Preview = new MutationPreview(),
+            Preview = new MutationPreview { Summary = "Summary" },
         };
 
         return new WorkspaceTransaction

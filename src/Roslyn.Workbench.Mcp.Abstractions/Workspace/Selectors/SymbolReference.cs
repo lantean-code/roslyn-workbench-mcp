@@ -9,13 +9,13 @@ public sealed record SymbolReference
     /// Gets the display name of the symbol.
     /// </summary>
     [Description("The display name of the symbol.")]
-    public string DisplayName { get; init; } = string.Empty;
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the symbol kind.
     /// </summary>
     [Description("The symbol kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the documentation comment identifier, when available.

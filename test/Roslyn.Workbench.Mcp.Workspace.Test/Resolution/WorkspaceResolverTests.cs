@@ -893,7 +893,7 @@ public sealed class WorkspaceResolverTests
         var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
         var documentSelector = new DocumentSelector { DocumentId = document.Id.Id.ToString() };
-        var selectionSelector = new TextSelectionSelector { Document = documentSelector };
+        var selectionSelector = new TextSelectionSelector { Document = documentSelector, SelectedText = "SelectedText" };
         var locationSelector = new LocationSelector { Selection = selectionSelector };
 
         var result = await target.ResolveLocationAsync(locationSelector, TestContext.Current.CancellationToken);

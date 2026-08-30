@@ -13,13 +13,13 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
 
         var document = documentResolution.Value;
         var parseOptions = document.Project.ParseOptions;
-        var languageVersion = parseOptions?.Language ?? string.Empty;
+        string? languageVersion = null;
         if (parseOptions is CSharpParseOptions csharpParseOptions)
         {
             languageVersion = csharpParseOptions.LanguageVersion.ToDisplayString();
         }
 
-        var nullableContext = string.Empty;
+        string? nullableContext = null;
         if (document.Project.CompilationOptions is CSharpCompilationOptions csharpCompilationOptions)
         {
             nullableContext = csharpCompilationOptions.NullableContextOptions.ToString();

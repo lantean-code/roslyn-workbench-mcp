@@ -15,7 +15,7 @@ internal sealed record FlowRegionInfo
     /// Gets the region kind.
     /// </summary>
     [Description("The region kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the first block ordinal in the region.

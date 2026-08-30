@@ -9,17 +9,17 @@ internal sealed record ProjectReferenceInfo
     /// Gets the referenced project identifier.
     /// </summary>
     [Description("The referenced project identifier.")]
-    public string ProjectId { get; init; } = string.Empty;
+    public required string ProjectId { get; init; }
 
     /// <summary>
     /// Gets the referenced project name.
     /// </summary>
     [Description("The referenced project name.")]
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the referenced project path.
     /// </summary>
     [Description("The referenced project path.")]
-    public string Path { get; init; } = string.Empty;
+    public required string Path { get; init; }
 }

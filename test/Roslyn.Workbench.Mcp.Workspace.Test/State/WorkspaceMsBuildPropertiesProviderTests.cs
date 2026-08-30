@@ -53,6 +53,7 @@ public sealed class WorkspaceMsBuildPropertiesProviderTests : IDisposable
         {
             WorkspaceId = _workspaceId,
             LoadedPath = "Workspace.csproj",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot

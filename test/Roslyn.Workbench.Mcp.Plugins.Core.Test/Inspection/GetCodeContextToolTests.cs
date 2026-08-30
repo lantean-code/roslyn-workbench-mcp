@@ -311,4 +311,40 @@ public sealed class GetCodeContextToolTests
         result.Data.Text.Should().Contain("class Formatter");
         result.Data.Text.Should().Contain("int value = 0;");
     }
+
+    [Fact]
+    public async Task GIVEN_EmptyDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnEmptyText()
+    {
+        using var document = RoslynTestFactory.CreateDocument(string.Empty);
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var root = await document.Document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
+        var location = root!.GetLocation();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
+
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Text.Should().BeEmpty();
+    }
 }

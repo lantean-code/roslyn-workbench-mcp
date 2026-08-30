@@ -109,6 +109,25 @@ public sealed class RequestObjectGraphValidatorTests
     }
 
     [Fact]
+    public void GIVEN_EmptyTextSelection_WHEN_Validating_THEN_ShouldReturnSelectedTextPath()
+    {
+        var selection = new TextSelectionSelector
+        {
+            Document = new DocumentSelector { Path = "Path" },
+            SelectedText = string.Empty,
+        };
+        var request = new SelectorRequest
+        {
+            Location = new LocationSelector { Selection = selection },
+        };
+
+        var result = _target.TryCreateInvalidRequestError(request, _serializerOptions, out var errorMessage);
+
+        result.Should().BeTrue();
+        errorMessage.Should().Contain("'location.selection.selectedText'");
+    }
+
+    [Fact]
     public void GIVEN_MultipleSelectorFailures_WHEN_Validating_THEN_ShouldOrderErrorsByPath()
     {
         var location = new LocationSelector();

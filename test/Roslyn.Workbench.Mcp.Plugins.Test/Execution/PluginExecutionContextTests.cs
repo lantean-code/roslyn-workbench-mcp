@@ -61,6 +61,7 @@ public sealed class PluginExecutionContextTests
         {
             Operation = "Operation",
             Summary = "Summary",
+            Preview = new MutationPreview { Summary = "Summary" },
             Transaction = new TransactionInfo
             {
                 Revision = 1,
@@ -123,6 +124,7 @@ public sealed class PluginExecutionContextTests
             new MutationCandidate
             {
                 CandidateSolution = roslyn.Solution,
+                Summary = "Summary",
             },
             [],
             [],
@@ -164,6 +166,8 @@ public sealed class PluginExecutionContextTests
         {
             WorkspaceId = workspaceId,
             WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
             workspaceId,

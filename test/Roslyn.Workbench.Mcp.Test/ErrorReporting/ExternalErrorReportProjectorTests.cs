@@ -26,6 +26,8 @@ public sealed class ExternalErrorReportProjectorTests
         {
             WorkspaceId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
             WorkspaceEpoch = 7,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var workspaceContext = new CapturedWorkspaceContext(
             workspaceIdentity,

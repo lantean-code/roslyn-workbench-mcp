@@ -57,6 +57,7 @@ public sealed class GetSolutionStructureToolTests
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
+                WorkspaceRoot = "/workspace",
             });
 
         queryContextMocks.QueryContext
@@ -82,10 +83,12 @@ public sealed class GetSolutionStructureToolTests
                 [
                     new SolutionFolderInfo
                     {
+                        Name = "core",
                         Path = "/src/core",
                     },
                     new SolutionFolderInfo
                     {
+                        Name = "src",
                         Path = "/src",
                     },
                 ],
@@ -178,6 +181,7 @@ public sealed class GetSolutionStructureToolTests
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
+                WorkspaceRoot = "/workspace",
             });
 
         queryContextMocks.QueryContext
@@ -327,6 +331,7 @@ public sealed class GetSolutionStructureToolTests
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
+                WorkspaceRoot = "/workspace",
             });
 
         queryContextMocks.QueryContext
@@ -371,6 +376,7 @@ public sealed class GetSolutionStructureToolTests
                 [
                     new SolutionFolderInfo
                     {
+                        Name = "core",
                         Path = "/src/core",
                     },
                 ],
@@ -428,6 +434,7 @@ public sealed class GetSolutionStructureToolTests
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
+                WorkspaceRoot = "/workspace",
             });
 
         projectStructureService
@@ -476,7 +483,11 @@ public sealed class GetSolutionStructureToolTests
         var mainProject = solution.Solution.Projects.Single();
         string? normalizedPath = null;
         queryContextMocks.QueryContext.SetupGet(item => item.CurrentSolution).Returns(solution.Solution);
-        queryContextMocks.QueryContext.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
+        queryContextMocks.QueryContext.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
+        });
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
@@ -539,6 +550,7 @@ public sealed class GetSolutionStructureToolTests
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 LoadedPath = "/workspace/Sample.slnx",
+                WorkspaceRoot = "/workspace",
             });
 
         var mainProject = solution.Solution.Projects.Single();

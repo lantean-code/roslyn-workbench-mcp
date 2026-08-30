@@ -24,6 +24,7 @@ public sealed class WorkspaceReloadToolTests
                     WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     WorkspaceEpoch = 4,
                     LoadedPath = "/workspace/Sample.csproj",
+                    WorkspaceRoot = "/workspace",
                 },
                 ProjectCount = 4,
                 DocumentCount = 10,

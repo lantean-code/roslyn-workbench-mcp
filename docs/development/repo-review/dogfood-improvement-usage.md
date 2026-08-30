@@ -6092,3 +6092,73 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{"detail":"Full"}`
 
 **Outcome:** Succeeded with Host version `1.0.0.0`, 56 tools and no startup warnings. A complete audit of all 56 normal Codex declarations found a typed argument object on every tool, no `unknown` or `unknown & unknown`, no missing or malformed tool prose, no duplicated `Input:` or `Result:` sections and no unexpected root-guidance enrichment. Exactly the three root request contracts with type descriptions gained `Input:` guidance: `search-symbols` advertised `Input: Provide query, metadataName, or both.`, while `find-callees` and `get-control-flow-graph` advertised `Input: Provide exactly one of symbol or location.` Nested selector and snapshot descriptions remained visible. The largest model-visible declaration was `find-callees` at 3,258 characters; the separate automated raw-schema budget audit remained green. This satisfies the portable client-guidance requirement without manually duplicating request text in tool registrations.
+
+### 636. `workspace-list`
+
+**Activity:** DOGFOOD-017 required-string contract audit.
+
+**Purpose:** Confirm clean Workspace state before tracing published contract producers.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces.
+
+### 637. `workspace-open`
+
+**Activity:** DOGFOOD-017 required-string contract audit.
+
+**Purpose:** Load the repository so contract types and their producers could be traced through the published dogfood server.
+
+**Request:** `{"alias":"dogfood-017-audit","path":"<repository-root>/Roslyn.Workbench.Mcp.slnx","workspaceRoot":"<repository-root>","msBuildProperties":{"artifactsPath":"<temporary-artifacts-root>"}}`
+
+**Outcome:** Succeeded at Workspace epoch 1 with 31 projects and 1,618 documents. The expected isolated-artifacts analyser-reference warnings and WSL-on-Windows-filesystem warning were reported.
+
+### 638. `search-symbols`
+
+**Activity:** DOGFOOD-017 required-string contract audit.
+
+**Purpose:** Resolve `CompilationOptionsInfo` as the representative contract whose empty defaults could conceal unavailable Roslyn options.
+
+**Request:** `{"workspace":{"alias":"dogfood-017-audit"},"query":"CompilationOptionsInfo","kinds":["NamedType"],"scope":{"kind":"Project","project":{"name":"Roslyn.Workbench.Mcp.Plugins.Core"}},"symbolsLimit":10}`
+
+**Outcome:** Succeeded with the production contract and its canonical project and document identities.
+
+### 639. `find-references`
+
+**Activity:** DOGFOOD-017 required-string contract audit.
+
+**Purpose:** Trace all consumers and producers of `CompilationOptionsInfo`.
+
+**Request:** The request supplied the resolved symbol, solution scope, a 50-reference limit, context and the unsupported `includeDeclarations` and `classifyAccess` properties.
+
+**Outcome:** Rejected as `InvalidRequest` because `includeDeclarations` is not part of the published request contract. The failed call was retained as usage evidence and the retry used `includeDefinitions`.
+
+### 640. `find-references`
+
+**Activity:** DOGFOOD-017 required-string contract audit retry.
+
+**Purpose:** Trace all consumers and producers using the published request shape.
+
+**Request:** `{"workspace":{"alias":"dogfood-017-audit"},"symbol":{"documentationCommentId":"<CompilationOptionsInfo documentation ID>","project":{"projectId":"<Core-plugin-project-id>"}},"scope":{"kind":"Solution"},"includeDefinitions":true,"includeContext":true,"referencesLimit":50}`
+
+**Outcome:** Succeeded, but the context-rich result exceeded the client projection limit and was truncated. It still established that the contract is owned by `ProjectDetailsData`, constructed by `InspectionProjectionFactory` and covered by projection tests; a bounded retry captured the complete set.
+
+### 641. `find-references`
+
+**Activity:** DOGFOOD-017 required-string contract audit bounded retry.
+
+**Purpose:** Capture the complete reference set without unnecessary source context.
+
+**Request:** `{"workspace":{"alias":"dogfood-017-audit"},"symbol":{"documentationCommentId":"<CompilationOptionsInfo documentation ID>","project":{"projectId":"<Core-plugin-project-id>"}},"scope":{"kind":"Solution"},"includeDefinitions":true,"includeContext":false,"referencesLimit":20}`
+
+**Outcome:** Succeeded with all eight references and no continuation. The result confirmed that the nullable `ProjectDetailsData.CompilationOptions` property is populated only through `InspectionProjectionFactory`, while the null-options unit test currently expects an all-default object.
+
+### 642. `workspace-close`
+
+**Activity:** DOGFOOD-017 required-string contract audit cleanup.
+
+**Purpose:** Close the audit Workspace after producer tracing completed.
+
+**Request:** `{"workspace":{"alias":"dogfood-017-audit"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 1.

@@ -15,7 +15,7 @@ internal sealed record BasicBlockInfo
     /// Gets the Roslyn block kind.
     /// </summary>
     [Description("The Roslyn block kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the block is reachable.

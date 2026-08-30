@@ -310,7 +310,8 @@ public sealed class CommitRecoveryStoreTests
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
-        var action = async () => await _target.WriteStatusAsync(new RecoveryStatus(), cancellationSource.Token);
+        var status = new RecoveryStatus { CommitId = "CommitId" };
+        var action = async () => await _target.WriteStatusAsync(status, cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         _stateDirectorySecurity.Verify(item => item.EnsureDirectory(It.IsAny<string>()), Times.Never);

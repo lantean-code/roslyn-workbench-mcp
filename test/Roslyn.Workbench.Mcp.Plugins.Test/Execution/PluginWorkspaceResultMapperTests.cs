@@ -60,7 +60,7 @@ public sealed class PluginWorkspaceResultMapperTests
                 Operation = "Operation",
                 Summary = "Summary",
                 Transaction = new TransactionInfo(),
-                Preview = new MutationPreview(),
+                Preview = new MutationPreview { Summary = "Summary" },
             };
 
             var context = WorkspaceSnapshotTestFactory.CreateContext(

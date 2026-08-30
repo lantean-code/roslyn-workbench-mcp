@@ -13,7 +13,8 @@ public sealed record TextSelectionSelector
     /// <summary>
     /// Gets the copied selected text.
     /// </summary>
-    public string SelectedText { get; init; } = string.Empty;
+    [MinLength(1)]
+    public required string SelectedText { get; init; }
 
     /// <summary>
     /// Gets the optional leading context.

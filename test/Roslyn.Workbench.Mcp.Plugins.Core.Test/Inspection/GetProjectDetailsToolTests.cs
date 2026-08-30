@@ -66,8 +66,7 @@ public sealed class GetProjectDetailsToolTests
         result.Data!.Documents.Should().BeNull();
         result.Data.Project!.Path.Should().Be(project.FilePath);
         result.Data.Project.TargetFrameworks.Should().Equal("TargetFramework");
-        result.Data.CompilationOptions.Should().NotBeNull();
-        result.Data.CompilationOptions.PreprocessorSymbols.Should().BeEmpty();
+        result.Data.CompilationOptions.Should().BeNull();
     }
 
     [Fact]

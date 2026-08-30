@@ -98,6 +98,13 @@ public sealed class PluginCollisionPolicyTests
                         HandlerContract = typeof(object),
                         Tool = new RegisteredTool
                         {
+                            Plugin = new PluginMetadata
+                            {
+                                PluginId = pluginId,
+                                DisplayName = "DisplayName",
+                                Version = "Version",
+                                SupportedApiVersion = "SupportedApiVersion",
+                            },
                             Metadata = new ToolRegistrationMetadata
                             {
                                 Name = toolName,

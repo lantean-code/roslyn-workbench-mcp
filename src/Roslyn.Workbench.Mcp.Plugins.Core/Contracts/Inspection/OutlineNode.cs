@@ -9,13 +9,13 @@ internal sealed record OutlineNode
     /// Gets the node display name.
     /// </summary>
     [Description("The node display name.")]
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the Roslyn symbol or declaration kind.
     /// </summary>
     [Description("The Roslyn symbol or declaration kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the optional accessibility.

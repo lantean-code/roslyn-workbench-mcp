@@ -9,17 +9,17 @@ public sealed record DocumentReference
     /// Gets the document identifier.
     /// </summary>
     [Description("The document identifier.")]
-    public string DocumentId { get; init; } = string.Empty;
+    public required string DocumentId { get; init; }
 
     /// <summary>
     /// Gets the normalized document path.
     /// </summary>
     [Description("The normalized document path.")]
-    public string Path { get; init; } = string.Empty;
+    public required string Path { get; init; }
 
     /// <summary>
     /// Gets the owning project identifier.
     /// </summary>
     [Description("The owning project identifier.")]
-    public string ProjectId { get; init; } = string.Empty;
+    public required string ProjectId { get; init; }
 }

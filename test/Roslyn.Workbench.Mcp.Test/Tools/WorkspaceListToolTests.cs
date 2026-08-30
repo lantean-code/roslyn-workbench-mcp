@@ -37,6 +37,7 @@ public sealed class WorkspaceListToolTests
                             Alias = "Alias",
                             WorkspaceEpoch = 7,
                             LoadedPath = "/workspace/Sample.csproj",
+                            WorkspaceRoot = "/workspace",
                         },
                     ],
                 TransactionOwnerWorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),

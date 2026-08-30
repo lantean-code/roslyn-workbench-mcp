@@ -39,7 +39,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     [InlineData(false)]
     public async Task GIVEN_ProjectPreflightFails_WHEN_Loading_THEN_ShouldReturnExpectedFailure(bool hasDiagnostics)
     {
-        var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Message = "Message" } } : [];
+        var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } } : [];
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((false, diagnostics));
 
@@ -65,7 +65,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         bool hasSolution)
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
-        var diagnostics = new[] { new DiagnosticInfo { Message = "Message" } };
+        var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
         _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", null, TestContext.Current.CancellationToken))
             .ReturnsAsync(new WorkspaceLoadResult
             {
@@ -217,7 +217,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
-        var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Message = "Message" } } : [];
+        var diagnostics = hasDiagnostics ? new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } } : [];
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((false, diagnostics));
@@ -305,7 +305,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             [solution.ProjectIds.Single()] = "net10.0",
         };
         var targetFrameworks = new WorkspaceProjectTargetFrameworkMap(targetFrameworkMappings);
-        var diagnostics = new[] { new DiagnosticInfo { Message = "Message" } };
+        var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
         _workspaceLoader.SetupSequence(item => item.InspectCompatibility("/workspace/Project.csproj", null))
             .Returns((true, []))
             .Returns((true, []));

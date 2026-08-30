@@ -72,6 +72,7 @@ public sealed class WorkspacePathServiceTests
         var factory = new WorkspacePathServiceFactory(normalizer.Object);
         var identity = new WorkspaceIdentity
         {
+            LoadedPath = "LoadedPath",
             WorkspaceRoot = "WorkspaceRoot",
         };
         var target = factory.Create(identity);

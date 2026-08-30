@@ -9,6 +9,8 @@ public sealed class CapturedWorkspaceContextTests
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 2,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         var result = new CapturedWorkspaceContext(

@@ -183,6 +183,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot

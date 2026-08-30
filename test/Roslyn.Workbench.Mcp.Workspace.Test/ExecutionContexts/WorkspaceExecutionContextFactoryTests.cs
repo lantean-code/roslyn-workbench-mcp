@@ -495,6 +495,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 WorkspaceId = Guid.Parse("77777777-7777-7777-7777-777777777777"),
                 Alias = ownerAlias,
                 LoadedPath = ownerPath!,
+                WorkspaceRoot = "WorkspaceRoot",
             },
         };
 
@@ -573,7 +574,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
                 new WorkspaceTransactionRevision
                 {
@@ -582,7 +583,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
             ],
             CurrentRevision = 2,
@@ -751,6 +752,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             WorkspaceEpoch = 1,
             Alias = "Alias",
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         var effectiveTransaction = transaction;
@@ -770,7 +772,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                         Changes = new ChangeSummary(),
                         Operation = "Operation",
                         Summary = "Summary",
-                        Preview = new MutationPreview(),
+                        Preview = new MutationPreview { Summary = "Summary" },
                     },
                 ],
                 CurrentRevision = 1,

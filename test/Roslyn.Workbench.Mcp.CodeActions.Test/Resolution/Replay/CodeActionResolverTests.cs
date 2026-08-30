@@ -56,6 +56,8 @@ public sealed class CodeActionResolverTests : IDisposable
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         });
 
         _context.SetupGet(item => item.TransactionRevision).Returns(2);

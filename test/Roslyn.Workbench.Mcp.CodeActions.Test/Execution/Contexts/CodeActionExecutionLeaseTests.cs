@@ -48,6 +48,7 @@ public sealed class CodeActionExecutionLeaseTests
         {
             Operation = "Operation",
             Summary = "Summary",
+            Preview = new MutationPreview { Summary = "Summary" },
         };
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),

@@ -7,15 +7,15 @@ public sealed record WorkspaceInstanceInfo
 {
     /// <summary>Gets the instance identifier.</summary>
     [Description("Identifier of the other Roslyn Workbench server instance.")]
-    public string InstanceId { get; init; } = string.Empty;
+    public required string InstanceId { get; init; }
 
     /// <summary>Gets the canonical loaded solution or project path.</summary>
     [Description("Absolute solution or project path loaded by the other instance.")]
-    public string LoadedPath { get; init; } = string.Empty;
+    public required string LoadedPath { get; init; }
 
     /// <summary>Gets the canonical repository or workspace root.</summary>
     [Description("Absolute coordination and transaction root used by the other instance.")]
-    public string WorkspaceRoot { get; init; } = string.Empty;
+    public required string WorkspaceRoot { get; init; }
 
     /// <summary>Gets the workspace lifecycle state reported by the instance.</summary>
     [Description("Workspace lifecycle state reported by the other instance.")]

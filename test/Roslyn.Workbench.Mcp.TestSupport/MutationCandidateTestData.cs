@@ -13,6 +13,7 @@ internal static class MutationCandidateTestData
         return new WorkspaceMutationCandidate
         {
             CandidateSolution = Solution,
+            Summary = "Summary",
         };
     }
 
@@ -21,6 +22,7 @@ internal static class MutationCandidateTestData
         return new MutationCandidate
         {
             CandidateSolution = Solution,
+            Summary = "Summary",
         };
     }
 }

@@ -8,5 +8,5 @@ public sealed record MutationPreview
     /// <summary>
     /// Gets the concise summary of the staged mutation.
     /// </summary>
-    public string Summary { get; init; } = string.Empty;
+    public required string Summary { get; init; }
 }

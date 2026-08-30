@@ -2,7 +2,7 @@
 
 ## Review Agent isolation
 
-- Any Review Agent review of production source must be performed by a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; the primary implementation agent must not perform that review itself.
+- The initial Review Agent review of production source for a work item must use a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; correction re-reviews must reuse that work item's existing Review Agent. The primary implementation agent must not perform either review itself.
 - The review subagent is read-only and must inspect the affected source with its direct dependencies, consumers, contracts, configuration and tests before reporting findings.
 
 ## Expectations

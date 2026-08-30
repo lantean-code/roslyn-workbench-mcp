@@ -57,17 +57,14 @@ internal static class InspectionProjectionFactory
         };
     }
 
-    public static CompilationOptionsInfo CreateCompilationOptionsInfo(CompilationOptions? options, ParseOptions? parseOptions)
+    public static CompilationOptionsInfo? CreateCompilationOptionsInfo(CompilationOptions? options, ParseOptions? parseOptions)
     {
-        var preprocessorSymbols = CreatePreprocessorSymbols(parseOptions);
         if (options is null)
         {
-            return new CompilationOptionsInfo
-            {
-                PreprocessorSymbols = preprocessorSymbols,
-            };
+            return null;
         }
 
+        var preprocessorSymbols = CreatePreprocessorSymbols(parseOptions);
         return new CompilationOptionsInfo
         {
             OutputKind = options.OutputKind.ToString(),
@@ -166,7 +163,7 @@ internal static class InspectionProjectionFactory
             return null;
         }
 
-        var languageVersion = string.Empty;
+        string? languageVersion = null;
         var preprocessorSymbols = CreatePreprocessorSymbols(options);
         if (options is CSharpParseOptions csharpOptions)
         {
@@ -197,7 +194,7 @@ internal static class InspectionProjectionFactory
             ProjectId = project.Id.Id.ToString(),
             Name = project.Name,
             Path = normalizedPath,
-            AssemblyName = project.AssemblyName ?? string.Empty,
+            AssemblyName = project.AssemblyName,
             Language = project.Language,
             TargetFrameworks = targetFrameworks,
         };

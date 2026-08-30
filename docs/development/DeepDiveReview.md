@@ -186,7 +186,7 @@ The review is complete only when:
 
 ## Finding-remediation and commit review gate
 
-This section records the review process currently being refined through the DOGFOOD work. Until that process is promoted into the repository `AGENTS.md` files, its same-reviewer correction loop applies only when the user explicitly authorises it for the current work item; otherwise the root `AGENTS.md` fresh-reviewer rule remains authoritative.
+This section records the review process refined through the DOGFOOD work and now codified in the repository `AGENTS.md` files. One fresh context-free Review Agent performs the initial independent review for each work item, and that same agent owns every correction re-review within the item.
 
 After the final RWMCP3 findings are accepted, remediate each approved work item through this sequence:
 

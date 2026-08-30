@@ -188,6 +188,8 @@ public sealed class CodeActionExecutionContextFactoryTests
         {
             WorkspaceId = workspaceId,
             WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
             workspaceId,

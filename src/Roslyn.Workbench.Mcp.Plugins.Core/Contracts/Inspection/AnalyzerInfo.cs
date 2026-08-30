@@ -9,7 +9,7 @@ internal sealed record AnalyzerInfo
     /// Gets the analyzer display name.
     /// </summary>
     [Description("The analyzer display name.")]
-    public string DisplayName { get; init; } = string.Empty;
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the analyzer assembly path, when available.

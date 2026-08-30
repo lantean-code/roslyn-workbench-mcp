@@ -47,6 +47,8 @@ public sealed class CodeActionInfoFactoryTests
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         });
 
         context.SetupGet(item => item.TransactionRevision).Returns(2);
@@ -192,7 +194,11 @@ public sealed class CodeActionInfoFactoryTests
         workspacePathService
             .Setup(item => item.TryNormalizePath("DocumentName.cs", out normalizedDocumentPath))
             .Returns(true);
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
+        });
         context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(
@@ -232,7 +238,11 @@ public sealed class CodeActionInfoFactoryTests
             .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
             .Returns(true);
 
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
+        });
         context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
         referenceStore
             .Setup(item => item.TryCreate(

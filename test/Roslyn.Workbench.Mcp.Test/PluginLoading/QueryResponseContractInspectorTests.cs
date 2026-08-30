@@ -94,6 +94,13 @@ public sealed class QueryResponseContractInspectorTests
     {
         return new RegisteredTool
         {
+            Plugin = new PluginMetadata
+            {
+                PluginId = "PluginId",
+                DisplayName = "DisplayName",
+                Version = "Version",
+                SupportedApiVersion = "SupportedApiVersion",
+            },
             Metadata = new ToolRegistrationMetadata
             {
                 Name = name,

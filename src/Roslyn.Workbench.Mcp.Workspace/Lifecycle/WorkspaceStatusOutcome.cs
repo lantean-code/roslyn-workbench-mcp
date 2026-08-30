@@ -4,7 +4,7 @@ internal sealed record WorkspaceStatusOutcome
 {
     public WorkspaceLifecycleState State { get; init; }
 
-    public WorkspaceIdentity Workspace { get; init; } = new();
+    public required WorkspaceIdentity Workspace { get; init; }
 
     public int ProjectCount { get; init; }
 

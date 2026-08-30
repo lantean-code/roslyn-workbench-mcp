@@ -9,7 +9,7 @@ internal sealed record DisposableFinding
     /// Gets the finding kind.
     /// </summary>
     [Description("The finding kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the associated local symbol.
@@ -33,5 +33,5 @@ internal sealed record DisposableFinding
     /// Gets the finding message.
     /// </summary>
     [Description("The finding message.")]
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 }

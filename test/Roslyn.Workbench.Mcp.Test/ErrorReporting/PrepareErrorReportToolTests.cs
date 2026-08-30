@@ -22,6 +22,8 @@ public sealed class PrepareErrorReportToolTests
         {
             WorkspaceId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
             WorkspaceEpoch = 7,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var workspace = new CapturedWorkspaceContext(
             workspaceIdentity,

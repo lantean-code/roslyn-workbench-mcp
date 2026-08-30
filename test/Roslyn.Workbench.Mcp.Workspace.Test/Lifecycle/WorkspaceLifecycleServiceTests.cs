@@ -339,6 +339,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus
             {
+                CommitId = "CommitId",
                 SolutionPath = solutionPath,
                 State = RecoveryState.RecoveryIncomplete,
             },
@@ -362,6 +363,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         [
             new RecoveryStatus
             {
+                CommitId = "CommitId",
                 SolutionPath = recoveryPath,
                 State = RecoveryState.RecoveryIncomplete,
             },
@@ -388,6 +390,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus
             {
+                CommitId = "CommitId",
                 SolutionPath = recoveryPath,
                 WorkspaceRoot = "/workspace",
                 State = RecoveryState.RecoveryConflict,
@@ -425,7 +428,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.sln", alias: null);
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
-            new RecoveryStatus { SolutionPath = recoveryPath, State = recoveryState },
+            new RecoveryStatus { CommitId = "CommitId", SolutionPath = recoveryPath, State = recoveryState },
         ]);
 
         SetupLoadFailure("/workspace/New.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
@@ -444,6 +447,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus
             {
+                CommitId = "CommitId",
                 SolutionPath = "/workspace/Other.sln",
                 WorkspaceRoot = "/workspace",
                 State = RecoveryState.RecoveryIncomplete,
@@ -467,6 +471,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus
             {
+                CommitId = "CommitId",
                 SolutionPath = "/workspace/Other.sln",
                 WorkspaceRoot = recoveryRoot,
                 State = RecoveryState.RecoveryIncomplete,
@@ -518,7 +523,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         if (hasDiagnostics)
         {
             loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
-            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            diagnostics = [new DiagnosticInfo { Id = "Id", Message = "Message" }];
             errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
         }
 
@@ -580,7 +585,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         if (hasDiagnostics)
         {
             loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
-            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            diagnostics = [new DiagnosticInfo { Id = "Id", Message = "Message" }];
             errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
         }
 
@@ -1322,7 +1327,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Path", alias: null, transaction: null) with
         {
             OperationGate = gate.Object,
-            LoadDiagnostics = [new DiagnosticInfo { Message = "Message" }],
+            LoadDiagnostics = [new DiagnosticInfo { Id = "Id", Message = "Message" }],
         };
 
         var expected = CreateResult<WorkspaceStatusOutcome>();
@@ -1527,7 +1532,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         if (hasDiagnostics)
         {
             loadFailure = ValidatedWorkspaceLoadFailure.LoadFailed;
-            diagnostics = [new DiagnosticInfo { Message = "Message" }];
+            diagnostics = [new DiagnosticInfo { Id = "Id", Message = "Message" }];
             errorCode = WorkspaceErrorCodes.WorkspaceLoadFailed;
         }
 

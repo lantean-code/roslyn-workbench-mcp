@@ -21,7 +21,8 @@ public sealed class InspectionProjectionFactoryTests
 
         var result = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilationOptions, parseOptions);
 
-        result.OutputKind.Should().Be(OutputKind.ConsoleApplication.ToString());
+        result.Should().NotBeNull();
+        result!.OutputKind.Should().Be(OutputKind.ConsoleApplication.ToString());
         result.NullableContext.Should().Be(NullableContextOptions.Enable.ToString());
         result.AllowUnsafe.Should().BeTrue();
         result.OptimizationLevel.Should().Be(OptimizationLevel.Release.ToString());
@@ -30,11 +31,11 @@ public sealed class InspectionProjectionFactoryTests
     }
 
     [Fact]
-    public void GIVEN_CompilationAndParseOptionsAreUnavailable_WHEN_CreatingCompilationOptionsInfo_THEN_ShouldReturnDefaults()
+    public void GIVEN_CompilationAndParseOptionsAreUnavailable_WHEN_CreatingCompilationOptionsInfo_THEN_ShouldReturnNull()
     {
         var result = InspectionProjectionFactory.CreateCompilationOptionsInfo(null, null);
 
-        result.Should().BeEquivalentTo(new CompilationOptionsInfo());
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -45,7 +46,8 @@ public sealed class InspectionProjectionFactoryTests
 
         var result = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilationOptions, VisualBasicParseOptions.Default);
 
-        result.OutputKind.Should().Be(OutputKind.WindowsApplication.ToString());
+        result.Should().NotBeNull();
+        result!.OutputKind.Should().Be(OutputKind.WindowsApplication.ToString());
         result.NullableContext.Should().BeNull();
         result.AllowUnsafe.Should().BeFalse();
         result.OptimizationLevel.Should().Be(OptimizationLevel.Release.ToString());
@@ -87,7 +89,7 @@ public sealed class InspectionProjectionFactoryTests
 
         result.Should().NotBeNull();
         result!.Language.Should().Be(LanguageNames.VisualBasic);
-        result.LanguageVersion.Should().BeEmpty();
+        result.LanguageVersion.Should().BeNull();
         result.DocumentationMode.Should().Be(DocumentationMode.Diagnose.ToString());
         result.PreprocessorSymbols.Should().NotBeEmpty();
     }

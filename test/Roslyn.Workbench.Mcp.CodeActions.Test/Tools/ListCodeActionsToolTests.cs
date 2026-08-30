@@ -757,7 +757,9 @@ public sealed class ListCodeActionsToolTests
             {
                 Document = new DocumentReference
                 {
+                    DocumentId = "DocumentId",
                     Path = "Code.cs",
+                    ProjectId = "ProjectId",
                 },
                 Span = new TextSpanRange
                 {

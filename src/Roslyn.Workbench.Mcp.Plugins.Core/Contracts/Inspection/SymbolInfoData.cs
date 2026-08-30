@@ -17,7 +17,7 @@ internal sealed record SymbolInfoData : IQueryResponse
     /// Gets the symbol accessibility.
     /// </summary>
     [Description("The symbol accessibility.")]
-    public string Accessibility { get; init; } = string.Empty;
+    public required string Accessibility { get; init; }
 
     /// <summary>
     /// Gets the symbol modifiers.

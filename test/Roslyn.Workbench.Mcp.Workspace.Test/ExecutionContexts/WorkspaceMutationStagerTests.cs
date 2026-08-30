@@ -13,7 +13,7 @@ public sealed class WorkspaceMutationStagerTests
             Summary = "Summary",
         };
 
-        var diagnostic = new DiagnosticInfo { Id = "Id" };
+        var diagnostic = new DiagnosticInfo { Id = "Id", Message = "Message" };
         var warning = new WarningInfo { Code = "Code", Message = "Message" };
         var expected = WorkspaceOperationResult.NoChange<MutationStagingOutcome>();
         stagingService.Setup(item => item.StageAsync(

@@ -15,7 +15,7 @@ internal sealed record ApiSymbolInfo
     /// Gets the declared accessibility.
     /// </summary>
     [Description("The declared accessibility.")]
-    public string Accessibility { get; init; } = string.Empty;
+    public required string Accessibility { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the symbol is marked obsolete.

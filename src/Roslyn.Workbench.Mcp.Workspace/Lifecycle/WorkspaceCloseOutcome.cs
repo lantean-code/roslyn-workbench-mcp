@@ -2,5 +2,5 @@ namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
 internal sealed record WorkspaceCloseOutcome
 {
-    public string ClosedPath { get; init; } = string.Empty;
+    public required string ClosedPath { get; init; }
 }

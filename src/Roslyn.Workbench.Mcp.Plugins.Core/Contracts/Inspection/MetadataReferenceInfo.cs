@@ -9,7 +9,7 @@ internal sealed record MetadataReferenceInfo
     /// Gets the display string for the metadata reference.
     /// </summary>
     [Description("The display string for the metadata reference.")]
-    public string Display { get; init; } = string.Empty;
+    public required string Display { get; init; }
 
     /// <summary>
     /// Gets the file path, when available.

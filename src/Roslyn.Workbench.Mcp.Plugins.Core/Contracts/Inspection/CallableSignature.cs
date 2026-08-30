@@ -9,13 +9,13 @@ internal sealed record CallableSignature
     /// Gets the callable display name.
     /// </summary>
     [Description("The callable display name.")]
-    public string DisplayName { get; init; } = string.Empty;
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the callable kind.
     /// </summary>
     [Description("The callable kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the ordered parameters for the callable.

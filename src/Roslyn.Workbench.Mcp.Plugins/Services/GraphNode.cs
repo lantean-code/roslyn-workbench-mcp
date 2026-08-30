@@ -8,17 +8,17 @@ public sealed record GraphNode
     /// <summary>
     /// Gets the stable node identifier.
     /// </summary>
-    public string Id { get; init; } = string.Empty;
+    public required string Id { get; init; }
 
     /// <summary>
     /// Gets the graph node kind.
     /// </summary>
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the node display name.
     /// </summary>
-    public string DisplayName { get; init; } = string.Empty;
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the optional backing symbol when the node maps to a source symbol.

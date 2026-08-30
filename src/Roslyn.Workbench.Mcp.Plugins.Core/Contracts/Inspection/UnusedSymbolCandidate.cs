@@ -21,7 +21,7 @@ internal sealed record UnusedSymbolCandidate
     /// Gets the confidence label for the candidate.
     /// </summary>
     [Description("The confidence label for the candidate.")]
-    public string Confidence { get; init; } = string.Empty;
+    public required string Confidence { get; init; }
 
     /// <summary>
     /// Gets the reasons the symbol was reported.

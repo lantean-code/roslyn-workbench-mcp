@@ -27,11 +27,11 @@ public sealed record WorkspaceIdentity
     /// Gets the absolute path of the loaded workspace.
     /// </summary>
     [Description("The absolute path of the loaded workspace.")]
-    public string LoadedPath { get; init; } = string.Empty;
+    public required string LoadedPath { get; init; }
 
     /// <summary>
     /// Gets the absolute repository or workspace root used for coordination and transaction boundaries.
     /// </summary>
     [Description("The absolute repository or workspace root used for coordination and transaction boundaries.")]
-    public string WorkspaceRoot { get; init; } = string.Empty;
+    public required string WorkspaceRoot { get; init; }
 }

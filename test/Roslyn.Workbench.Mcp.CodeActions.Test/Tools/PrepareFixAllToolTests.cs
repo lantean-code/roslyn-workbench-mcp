@@ -39,6 +39,7 @@ public sealed class PrepareFixAllToolTests
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
+            LoadedPath = "LoadedPath",
             WorkspaceRoot = "WorkspaceRoot",
         });
         _timeProvider
@@ -397,8 +398,8 @@ public sealed class PrepareFixAllToolTests
         SetupSuccessfulEvaluation(roslyn, scope, changedDocuments);
         var documentReferences = new[]
         {
-            new DocumentReference { Path = "First.cs" },
-            new DocumentReference { Path = "Second.cs" },
+            new DocumentReference { DocumentId = "FirstDocumentId", Path = "First.cs", ProjectId = "ProjectId" },
+            new DocumentReference { DocumentId = "SecondDocumentId", Path = "Second.cs", ProjectId = "ProjectId" },
         };
 
         _workspaceResolver

@@ -9,7 +9,7 @@ internal sealed record CompilationOptionsInfo
     /// Gets the output kind.
     /// </summary>
     [Description("The output kind.")]
-    public string OutputKind { get; init; } = string.Empty;
+    public required string OutputKind { get; init; }
 
     /// <summary>
     /// Gets the nullable context mode.
@@ -27,7 +27,7 @@ internal sealed record CompilationOptionsInfo
     /// Gets the optimization level.
     /// </summary>
     [Description("The optimization level.")]
-    public string OptimizationLevel { get; init; } = string.Empty;
+    public required string OptimizationLevel { get; init; }
 
     /// <summary>
     /// Gets the warning level.

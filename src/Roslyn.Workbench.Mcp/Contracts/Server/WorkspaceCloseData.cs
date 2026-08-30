@@ -9,5 +9,5 @@ internal sealed record WorkspaceCloseData
     /// Gets the path that was closed.
     /// </summary>
     [Description("The path that was closed.")]
-    public string ClosedPath { get; init; } = string.Empty;
+    public required string ClosedPath { get; init; }
 }

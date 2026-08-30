@@ -9,7 +9,7 @@ internal sealed record ParameterInfo
     /// Gets the parameter name.
     /// </summary>
     [Description("The parameter name.")]
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the parameter type information.
@@ -21,7 +21,7 @@ internal sealed record ParameterInfo
     /// Gets the parameter passing mode.
     /// </summary>
     [Description("The parameter passing mode.")]
-    public string RefKind { get; init; } = string.Empty;
+    public required string RefKind { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter is optional.

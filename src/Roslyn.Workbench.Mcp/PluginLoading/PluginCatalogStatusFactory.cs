@@ -81,10 +81,10 @@ internal static class PluginCatalogStatusFactory
     {
         return new PluginStatus
         {
-            PluginId = pluginId,
-            DisplayName = displayName,
-            Version = version,
-            SupportedApiVersion = supportedApiVersion,
+            PluginId = NullIfEmpty(pluginId),
+            DisplayName = NullIfEmpty(displayName),
+            Version = NullIfEmpty(version),
+            SupportedApiVersion = NullIfEmpty(supportedApiVersion),
             Enabled = false,
             Diagnostics = [CreateDiagnostic(diagnosticId, DiagnosticSeverity.Error, message)],
         };
@@ -98,5 +98,10 @@ internal static class PluginCatalogStatusFactory
             Severity = severity,
             Message = message,
         };
+    }
+
+    private static string? NullIfEmpty(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 }

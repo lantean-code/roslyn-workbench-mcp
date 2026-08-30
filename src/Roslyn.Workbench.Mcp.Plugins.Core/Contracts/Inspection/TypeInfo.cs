@@ -9,13 +9,13 @@ internal sealed record TypeInfo
     /// Gets the display name.
     /// </summary>
     [Description("The display name.")]
-    public string DisplayName { get; init; } = string.Empty;
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the Roslyn type kind.
     /// </summary>
     [Description("The Roslyn type kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the nullable annotation.

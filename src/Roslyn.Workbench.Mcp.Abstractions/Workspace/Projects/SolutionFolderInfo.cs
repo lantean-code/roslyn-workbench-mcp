@@ -8,12 +8,12 @@ public sealed record SolutionFolderInfo
     /// <summary>
     /// Gets the folder display name.
     /// </summary>
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the canonical folder path within the solution hierarchy.
     /// </summary>
-    public string Path { get; init; } = string.Empty;
+    public required string Path { get; init; }
 
     /// <summary>
     /// Gets the parent folder path, when available.

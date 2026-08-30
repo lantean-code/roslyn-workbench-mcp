@@ -540,7 +540,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             Changes = new ChangeSummary(),
             Operation = "Operation",
             Summary = "Summary",
-            Preview = new MutationPreview(),
+            Preview = new MutationPreview { Summary = "Summary" },
         });
 
         target.ReplaceSessionAfterStaging(
@@ -681,7 +681,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
             ],
             CurrentRevision = 2,
@@ -815,6 +815,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
             Alias = alias,
             WorkspaceEpoch = workspaceEpoch,
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot
@@ -860,7 +861,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
                 new WorkspaceTransactionRevision
                 {
@@ -869,7 +870,7 @@ public sealed class WorkspaceSessionStoreTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
             ],
             CurrentRevision = currentRevision,

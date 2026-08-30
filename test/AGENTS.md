@@ -2,7 +2,7 @@
 
 ## Review Agent isolation
 
-- Any Review Agent review involving tests must be performed by a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; the primary implementation agent must not perform that review itself.
+- The initial Review Agent review involving tests for a work item must use a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; correction re-reviews must reuse that work item's existing Review Agent. The primary implementation agent must not perform either review itself.
 - The review subagent is read-only and must determine whether the tests exercise the real production boundary and failure scenario rather than relying on test names or isolated assertions.
 
 Cross-project test ownership and execution-path policy are defined in `../docs/development/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.

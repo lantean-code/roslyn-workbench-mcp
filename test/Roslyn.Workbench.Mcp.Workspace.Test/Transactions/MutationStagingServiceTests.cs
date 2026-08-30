@@ -69,7 +69,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var action = async () => await _target.StageAsync(
             "OperationName",
-            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution },
+            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution, Summary = "Summary" },
             [],
             [],
             cancellationSource.Token);
@@ -94,7 +94,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var result = await _target.StageAsync(
             "OperationName",
-            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution },
+            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution, Summary = "Summary" },
             [],
             [],
             TestContext.Current.CancellationToken);
@@ -113,7 +113,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var result = await _target.StageAsync(
             "OperationName",
-            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution },
+            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution, Summary = "Summary" },
             [],
             [],
             TestContext.Current.CancellationToken);
@@ -130,7 +130,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     public async Task GIVEN_LinkedDocumentMergeFails_WHEN_Staging_THEN_ShouldReturnValidationFailure()
     {
         var currentSolution = CreateSolution();
-        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution };
+        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution, Summary = "Summary" };
         var transaction = CreateTransaction(currentSolution);
         var session = CreateSession(transaction);
         var error = new WorkspaceOperationError
@@ -174,7 +174,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     public async Task GIVEN_MergedCandidateValidationFails_WHEN_Staging_THEN_ShouldReturnValidationFailure()
     {
         var currentSolution = CreateSolution();
-        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution };
+        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution, Summary = "Summary" };
         var transaction = CreateTransaction(currentSolution);
         var session = CreateSession(transaction);
         var error = new WorkspaceOperationError
@@ -228,6 +228,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = currentSolution,
+            Summary = "Summary",
             Precondition = precondition,
         };
 
@@ -294,7 +295,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var result = await _target.StageAsync(
             "OperationName",
-            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution },
+            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution, Summary = "Summary" },
             [],
             [],
             TestContext.Current.CancellationToken);
@@ -313,7 +314,7 @@ public sealed class MutationStagingServiceTests : IDisposable
 
         var result = await _target.StageAsync(
             "OperationName",
-            new WorkspaceMutationCandidate { CandidateSolution = currentSolution },
+            new WorkspaceMutationCandidate { CandidateSolution = currentSolution, Summary = "Summary" },
             [],
             [],
             TestContext.Current.CancellationToken);
@@ -338,6 +339,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = currentSolution,
+            Summary = "Summary",
             Precondition = precondition,
         };
 
@@ -399,6 +401,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = currentSolution,
+            Summary = "Summary",
             Precondition = precondition,
         };
 
@@ -463,7 +466,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                     Changes = new ChangeSummary(),
                     Operation = "Operation",
                     Summary = "Summary",
-                    Preview = new MutationPreview(),
+                    Preview = new MutationPreview { Summary = "Summary" },
                 },
             ],
             CurrentRevision = 0,
@@ -616,6 +619,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         return new WorkspaceSessionSnapshot

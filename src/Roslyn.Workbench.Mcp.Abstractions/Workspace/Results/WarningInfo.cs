@@ -9,11 +9,11 @@ public sealed record WarningInfo
     /// Gets the stable machine-readable warning code.
     /// </summary>
     [Description("The stable machine-readable warning code.")]
-    public string Code { get; init; } = string.Empty;
+    public required string Code { get; init; }
 
     /// <summary>
     /// Gets the human-readable warning message.
     /// </summary>
     [Description("The human-readable warning message.")]
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 }

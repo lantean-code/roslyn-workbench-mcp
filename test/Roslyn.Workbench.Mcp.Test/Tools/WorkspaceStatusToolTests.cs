@@ -28,6 +28,7 @@ public sealed class WorkspaceStatusToolTests
                     WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                     WorkspaceEpoch = 5,
                     LoadedPath = "/workspace/Sample.csproj",
+                    WorkspaceRoot = "/workspace",
                 },
                 ReloadRequired = true,
                 ExternalChange = new WorkspaceInputChange
@@ -132,6 +133,11 @@ public sealed class WorkspaceStatusToolTests
             .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceStatusOutcome
             {
                 State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+                Workspace = new WorkspaceIdentity
+                {
+                    LoadedPath = "LoadedPath",
+                    WorkspaceRoot = "WorkspaceRoot",
+                },
                 ReloadRequired = true,
                 ExternalChange = new WorkspaceInputChange
                 {

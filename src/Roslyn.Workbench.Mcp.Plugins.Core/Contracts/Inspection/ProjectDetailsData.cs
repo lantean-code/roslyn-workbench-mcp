@@ -38,6 +38,6 @@ internal sealed record ProjectDetailsData : IQueryResponse
     /// <summary>
     /// Gets the compilation options.
     /// </summary>
-    [Description("The compilation options.")]
+    [Description("The compilation options, when available.")]
     public CompilationOptionsInfo? CompilationOptions { get; init; }
 }

@@ -9,7 +9,7 @@ public sealed record DiagnosticInfo
     /// Gets the diagnostic identifier.
     /// </summary>
     [Description("The diagnostic identifier.")]
-    public string Id { get; init; } = string.Empty;
+    public required string Id { get; init; }
 
     /// <summary>
     /// Gets the diagnostic severity.
@@ -21,7 +21,7 @@ public sealed record DiagnosticInfo
     /// Gets the diagnostic message.
     /// </summary>
     [Description("The diagnostic message.")]
-    public string Message { get; init; } = string.Empty;
+    public required string Message { get; init; }
 
     /// <summary>
     /// Gets the optional source location of the diagnostic.

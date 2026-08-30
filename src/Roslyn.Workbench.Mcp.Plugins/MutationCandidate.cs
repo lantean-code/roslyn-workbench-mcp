@@ -13,7 +13,7 @@ public sealed record MutationCandidate
     /// <summary>
     /// Gets the concise mutation summary.
     /// </summary>
-    public string Summary { get; init; } = string.Empty;
+    public required string Summary { get; init; }
 
     /// <summary>
     /// Gets the warnings raised while composing the candidate.

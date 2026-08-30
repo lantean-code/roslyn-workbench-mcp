@@ -152,7 +152,7 @@ public sealed class GetDocumentOptionsToolTests
     }
 
     [Fact]
-    public async Task GIVEN_DocumentWithoutLanguageServices_WHEN_CallingExecuteAsync_THEN_ShouldReturnFallbackOptions()
+    public async Task GIVEN_DocumentWithoutLanguageServices_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnavailableOptions()
     {
         using var document = RoslynTestFactory.CreateUnsupportedDocument();
 
@@ -180,8 +180,8 @@ public sealed class GetDocumentOptionsToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.LanguageVersion.Should().BeEmpty();
-        result.Data.NullableContext.Should().BeEmpty();
+        result.Data!.LanguageVersion.Should().BeNull();
+        result.Data.NullableContext.Should().BeNull();
         result.Data.ParseOptions.Should().BeNull();
         result.Data.AnalyzerConfig.Should().BeNull();
     }

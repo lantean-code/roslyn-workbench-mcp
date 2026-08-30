@@ -33,7 +33,7 @@ public sealed class WorkspaceDiffServiceTests : IDisposable
     public async Task GIVEN_MissingDocument_WHEN_CreatingDocumentDiff_THEN_ShouldDelegateToDiffBuilder()
     {
         var solution = _workspace.CurrentSolution;
-        var reference = new DocumentReference { DocumentId = "DocumentId" };
+        var reference = new DocumentReference { DocumentId = "DocumentId", Path = "Path", ProjectId = "ProjectId" };
         _resolver.Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == "DocumentId")))
             .Returns(SelectorResolveResult.NotFound<Document>());
 

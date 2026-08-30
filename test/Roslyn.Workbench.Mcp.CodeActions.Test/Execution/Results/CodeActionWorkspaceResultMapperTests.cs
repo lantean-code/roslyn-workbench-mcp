@@ -92,7 +92,7 @@ public sealed class CodeActionWorkspaceResultMapperTests
                     [
                         new DocumentChange
                         {
-                            Document = new DocumentReference { Path = "DocumentPath" },
+                            Document = new DocumentReference { DocumentId = "DocumentId", Path = "DocumentPath", ProjectId = "ProjectId" },
                         },
                     ],
                 },

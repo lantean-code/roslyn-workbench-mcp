@@ -4,7 +4,7 @@ internal sealed record WorkspaceMutationCandidate
 {
     public required Solution CandidateSolution { get; init; }
 
-    public string Summary { get; init; } = string.Empty;
+    public required string Summary { get; init; }
 
     public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
 

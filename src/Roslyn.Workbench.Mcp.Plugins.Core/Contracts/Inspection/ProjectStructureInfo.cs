@@ -9,19 +9,19 @@ internal sealed record ProjectStructureInfo
     /// Gets the project identifier.
     /// </summary>
     [Description("The project identifier.")]
-    public string ProjectId { get; init; } = string.Empty;
+    public required string ProjectId { get; init; }
 
     /// <summary>
     /// Gets the project name.
     /// </summary>
     [Description("The project name.")]
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the project path.
     /// </summary>
     [Description("The project path.")]
-    public string Path { get; init; } = string.Empty;
+    public required string Path { get; init; }
 
     /// <summary>
     /// Gets the associated solution-folder path, when available.

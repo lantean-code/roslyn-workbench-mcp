@@ -15,7 +15,7 @@ The completed post-RWMCP3 worklists addressed every confirmed functional defect 
 | 1 | DOGFOOD-014 | [Exclude intermediate build documents from agent-facing operations](dogfood-014-bounded-structure-document-selection-design.md) | Implemented, validated and confirmed |
 | 2 | DOGFOOD-015 | [Reduce unnecessary analyser-config context in document-options responses](dogfood-015-document-options-response-design.md) | Implemented, validated and confirmed |
 | 3 | DOGFOOD-016 | [Publish agent-visible contract guidance in MCP input and configured output schemas](dogfood-016-agent-visible-contract-guidance-design.md) | Implemented and validated; awaiting manual confirmation |
-| 4 | DOGFOOD-017 | Audit empty-string defaults against required published string contracts | Queued for issue validation and design discovery |
+| 4 | DOGFOOD-017 | [Audit empty-string defaults against required published string contracts](dogfood-017-required-string-contract-semantics-design.md) | Implemented, validated, reviewed and confirmed |
 
 ### DOGFOOD-014 — Bounded structure document selection
 

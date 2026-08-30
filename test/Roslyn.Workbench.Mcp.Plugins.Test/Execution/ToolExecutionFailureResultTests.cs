@@ -86,6 +86,11 @@ public sealed class ToolExecutionFailureResultTests
         var result = new ToolExecutionFailureResult
         {
             Outcome = PluginExecutionOutcome.Succeeded,
+            Error = new PluginExecutionError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
         };
 
         var action = result.ToPluginExecutionResult<TestResponse>;

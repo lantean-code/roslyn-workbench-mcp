@@ -9,7 +9,7 @@ internal sealed record SolutionStructureData : IQueryResponse
     /// Gets the loaded solution or project path.
     /// </summary>
     [Description("The loaded solution or project path.")]
-    public string SolutionPath { get; init; } = string.Empty;
+    public required string SolutionPath { get; init; }
 
     /// <summary>
     /// Gets the solution folders.

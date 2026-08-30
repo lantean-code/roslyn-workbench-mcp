@@ -8,25 +8,25 @@ public sealed record GraphEdge
     /// <summary>
     /// Gets the source node identifier.
     /// </summary>
-    public string FromId { get; init; } = string.Empty;
+    public required string FromId { get; init; }
 
     /// <summary>
     /// Gets the source node display name.
     /// </summary>
-    public string FromDisplayName { get; init; } = string.Empty;
+    public required string FromDisplayName { get; init; }
 
     /// <summary>
     /// Gets the target node identifier.
     /// </summary>
-    public string ToId { get; init; } = string.Empty;
+    public required string ToId { get; init; }
 
     /// <summary>
     /// Gets the target node display name.
     /// </summary>
-    public string ToDisplayName { get; init; } = string.Empty;
+    public required string ToDisplayName { get; init; }
 
     /// <summary>
     /// Gets the edge kind.
     /// </summary>
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 }

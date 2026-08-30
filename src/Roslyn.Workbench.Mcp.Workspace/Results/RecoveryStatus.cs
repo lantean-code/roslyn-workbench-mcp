@@ -13,7 +13,7 @@ public sealed record RecoveryStatus
     /// Gets the durable commit identifier.
     /// </summary>
     [Description("Durable commit identifier associated with the recovery record.")]
-    public string CommitId { get; init; } = string.Empty;
+    public required string CommitId { get; init; }
 
     /// <summary>
     /// Gets the solution path associated with the recovery record.

@@ -9,7 +9,7 @@ internal sealed record BasicBlockOperationInfo
     /// Gets the Roslyn operation kind.
     /// </summary>
     [Description("The Roslyn operation kind.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the operation type display name, when available.

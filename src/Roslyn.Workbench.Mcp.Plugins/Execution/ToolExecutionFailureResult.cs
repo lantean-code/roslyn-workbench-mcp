@@ -13,7 +13,7 @@ internal sealed record ToolExecutionFailureResult
     /// <summary>
     /// Gets the structured error payload.
     /// </summary>
-    public PluginExecutionError Error { get; init; } = new();
+    public required PluginExecutionError Error { get; init; }
 
     /// <summary>
     /// Gets the optional continuation hint.

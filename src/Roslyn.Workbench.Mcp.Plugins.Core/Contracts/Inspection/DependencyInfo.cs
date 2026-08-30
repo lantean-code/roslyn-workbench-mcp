@@ -15,7 +15,7 @@ internal sealed record DependencyInfo
     /// Gets the symbol kind for the dependency.
     /// </summary>
     [Description("The symbol kind for the dependency.")]
-    public string Kind { get; init; } = string.Empty;
+    public required string Kind { get; init; }
 
     /// <summary>
     /// Gets the containing assembly name when requested.

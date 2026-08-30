@@ -111,12 +111,13 @@
 
 ## Review Agent isolation
 
-- Every request to invoke or use the Review Agent skill must be executed by a fresh subagent, not by the primary working agent.
-- Spawn the review subagent without conversation context so its conclusions are not influenced by implementation discussion or earlier review conclusions. Give it only the review target, the applicable repository instructions and the requirement to read and follow the Review Agent skill.
+- The initial Review Agent pass for each independently confirmed work item must be executed by a fresh subagent, not by the primary working agent. Re-review turns for corrections within that same work item must reuse the same review subagent.
+- Spawn the initial review subagent without conversation context so its conclusions are not influenced by implementation discussion or earlier review conclusions. Give it only the review target, the applicable repository instructions and the requirement to read and follow the Review Agent skill.
 - The primary agent must include the exact validation commands already run, their results and whether the reviewed files changed afterwards in the review handoff. The review subagent must treat current successful validation evidence as reusable and must not repeat an equivalent command against the unchanged reviewed baseline merely to reproduce the same result.
 - The review subagent may run additional or repeated validation only when the supplied evidence is missing or stale, a suspected defect requires reproduction, the existing coverage does not exercise the reviewed behaviour, or a materially different command is needed. Its report must distinguish validation evidence supplied by the primary agent from commands the review subagent ran itself.
 - The review subagent must remain read-only and return its findings to the primary agent. It must not modify files, stage changes or delegate the review again.
-- After any material review-driven correction, use another fresh context-free Review Agent subagent for the repeated review.
+- After review-driven corrections, return the remediation and current validation evidence to the same Review Agent in a follow-up turn. The repeat review must verify its previous findings and inspect the correction; it must not restart the complete baseline review unless the correction materially changes the approved architecture or direction.
+- Use a new fresh Review Agent for the next independently confirmed work item, not for each correction within the current item. Replace the current item's reviewer only when it is unavailable or an approved architectural redirection establishes a new review baseline, and state that replacement explicitly.
 
 ## PR and review checklist
 

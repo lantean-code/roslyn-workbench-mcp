@@ -243,6 +243,10 @@ public sealed class PluginMutationMcpServerToolTests : IDisposable
             {
                 Revision = 2,
             },
+            Preview = new MutationPreview
+            {
+                Summary = "StagedSummary",
+            },
         };
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),

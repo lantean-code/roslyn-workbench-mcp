@@ -93,6 +93,8 @@ public static class QueryContextMockHelper
             .Returns(new WorkspaceIdentity
             {
                 WorkspaceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                LoadedPath = "LoadedPath",
+                WorkspaceRoot = "WorkspaceRoot",
             });
 
         return new QueryContextMockGraph(

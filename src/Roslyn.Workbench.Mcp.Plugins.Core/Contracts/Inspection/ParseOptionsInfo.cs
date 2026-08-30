@@ -9,19 +9,19 @@ internal sealed record ParseOptionsInfo
     /// Gets the language name.
     /// </summary>
     [Description("The language name.")]
-    public string Language { get; init; } = string.Empty;
+    public required string Language { get; init; }
 
     /// <summary>
     /// Gets the language version.
     /// </summary>
-    [Description("The language version.")]
-    public string LanguageVersion { get; init; } = string.Empty;
+    [Description("The language version, when available for the project language.")]
+    public string? LanguageVersion { get; init; }
 
     /// <summary>
     /// Gets the documentation mode.
     /// </summary>
     [Description("The documentation mode.")]
-    public string DocumentationMode { get; init; } = string.Empty;
+    public required string DocumentationMode { get; init; }
 
     /// <summary>
     /// Gets the effective preprocessor symbols.

@@ -29,6 +29,8 @@ public sealed class WorkspaceSelectorFactoryTests
         DocumentReference? document = new()
         {
             DocumentId = "DocumentId",
+            Path = "Path",
+            ProjectId = "ProjectId",
         };
 
         TextSpanRange? span = null;

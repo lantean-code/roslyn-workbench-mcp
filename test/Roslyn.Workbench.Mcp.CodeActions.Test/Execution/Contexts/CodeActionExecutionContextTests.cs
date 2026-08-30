@@ -52,6 +52,8 @@ public sealed class CodeActionExecutionContextTests
         {
             WorkspaceId = workspaceId,
             WorkspaceEpoch = 1,
+            LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
         var snapshotIdentity = new WorkspaceSnapshotIdentity(
             workspaceId,

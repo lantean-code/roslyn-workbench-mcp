@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns a bounded code window with the enclosing semantic context for a selected location.
+/// </summary>
 [RoslynTool("get-code-context", "Get Code Context", "Returns a bounded code window with the enclosing semantic context for a selected location.")]
 internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextRequest, CodeContextData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);

@@ -12,8 +12,8 @@ internal interface IWorkspaceLifecycleService
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="workspaceRoot">The optional repository or workspace root.</param>
     /// <param name="msBuildProperties">The optional allowlisted MSBuild global properties.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The open result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
         string path,
         string? alias,
@@ -24,8 +24,8 @@ internal interface IWorkspaceLifecycleService
     /// <summary>
     /// Lists the currently loaded workspaces.
     /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The list result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -34,8 +34,8 @@ internal interface IWorkspaceLifecycleService
     /// <param name="workspaceId">The optional workspace identifier.</param>
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The close result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 
     /// <summary>
@@ -45,7 +45,7 @@ internal interface IWorkspaceLifecycleService
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
     /// <param name="detail">The requested detail level.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
     /// <returns>The workspace status.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
         Guid? workspaceId,
@@ -60,8 +60,8 @@ internal interface IWorkspaceLifecycleService
     /// <param name="workspaceId">The optional workspace identifier.</param>
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The reload result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 
     /// <summary>

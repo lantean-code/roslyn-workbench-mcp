@@ -6162,3 +6162,773 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{"workspace":{"alias":"dogfood-017-audit"}}`
 
 **Outcome:** Succeeded and closed the solution at Workspace epoch 1.
+
+### 643. `workspace-list`
+
+**Activity:** Internal XML-documentation work scoping.
+
+**Purpose:** Confirm clean dogfood state before measuring the production symbol surface.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner.
+
+### 644. `workspace-open`
+
+**Activity:** Internal XML-documentation work scoping.
+
+**Purpose:** Load the solution for semantic production-surface inspection.
+
+**Request:** Opened `<repository-root>/Roslyn.Workbench.Mcp.slnx` as `internal-xml-doc-scope` with the repository root and isolated artifacts directory.
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,663 documents. The expected WSL-on-Windows-filesystem warning was reported.
+
+### 645. `search-symbols`
+
+**Activity:** Internal XML-documentation enforcement discovery.
+
+**Purpose:** Find an existing documentation-policy analyser or source-governance type.
+
+**Request:** Searched the solution for named types containing `Documentation` with a limit of 50.
+
+**Outcome:** Succeeded with no matching named type.
+
+### 646. `search-symbols`
+
+**Activity:** Internal XML-documentation enforcement discovery.
+
+**Purpose:** Find existing public-API governance tests that could inform enforcement ownership.
+
+**Request:** Searched the solution for named types containing `PublicApi` with a limit of 50.
+
+**Outcome:** Succeeded with the bundled-Core and plugin public API contract test classes.
+
+### 647. `get-api-surface`
+
+**Activity:** Internal XML-documentation scope measurement.
+
+**Purpose:** Measure the complete solution-wide non-private symbol surface as an upper bound.
+
+**Request:** Solution scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 8640`; this includes test and fixture projects and was narrowed to production projects subsequently.
+
+### 648. `get-api-surface`
+
+**Activity:** Internal XML-documentation scope measurement.
+
+**Purpose:** Measure the public solution-wide control surface.
+
+**Request:** Solution scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 3698`; this includes test and fixture projects and was narrowed to production projects subsequently.
+
+### 649. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Start a per-project internal/public comparison for Abstractions.
+
+**Request:** Abstractions project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 232`.
+
+### 650. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Abstractions public control concurrently.
+
+**Request:** Abstractions project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` because the first broad concurrent batch exceeded the configured two-query capacity.
+
+### 651. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Start a per-project internal/public comparison for the Host.
+
+**Request:** Host project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 933`.
+
+### 652. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Host public control concurrently.
+
+**Request:** Host project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 653. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Workspace internal surface concurrently.
+
+**Request:** Workspace project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 654. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Workspace public control concurrently.
+
+**Request:** Workspace project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 655. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Code Actions internal surface concurrently.
+
+**Request:** Code Actions project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 656. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Code Actions public control concurrently.
+
+**Request:** Code Actions project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 657. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Plugins internal surface concurrently.
+
+**Request:** Plugins project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 658. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the Plugins public control concurrently.
+
+**Request:** Plugins project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 659. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the bundled Core internal surface concurrently.
+
+**Request:** bundled Core project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 660. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the bundled Core public control concurrently.
+
+**Request:** bundled Core project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 661. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the plugin analyser internal surface concurrently.
+
+**Request:** plugin analyser project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch.
+
+### 662. `get-api-surface`
+
+**Activity:** Internal XML-documentation production-scope measurement.
+
+**Purpose:** Measure the plugin analyser public control concurrently.
+
+**Request:** plugin analyser project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Returned retryable `WorkspaceBusy` during the over-capacity concurrent batch. The measurements were retried within the published capacity.
+
+### 663. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Abstractions internal surface within query capacity.
+
+**Request:** Abstractions project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 232`.
+
+### 664. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Abstractions public control within query capacity.
+
+**Request:** Abstractions project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 221`.
+
+### 665. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Host internal surface within query capacity.
+
+**Request:** Host project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 933`.
+
+### 666. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Host public control within query capacity.
+
+**Request:** Host project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 0`.
+
+### 667. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Workspace internal surface within query capacity.
+
+**Request:** Workspace project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 1325`.
+
+### 668. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Workspace public control within query capacity.
+
+**Request:** Workspace project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 63`.
+
+### 669. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Code Actions internal surface within query capacity.
+
+**Request:** Code Actions project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 602`.
+
+### 670. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Code Actions public control within query capacity.
+
+**Request:** Code Actions project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 0`.
+
+### 671. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Plugins internal surface within query capacity.
+
+**Request:** Plugins project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 397`.
+
+### 672. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the Plugins public control within query capacity.
+
+**Request:** Plugins project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 150`.
+
+### 673. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the bundled Core internal surface within query capacity.
+
+**Request:** bundled Core project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 703`.
+
+### 674. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the bundled Core public control within query capacity.
+
+**Request:** bundled Core project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 2`.
+
+### 675. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the plugin analyser internal surface within query capacity.
+
+**Request:** plugin analyser project scope, `minimumAccessibility: Internal`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 106`.
+
+### 676. `get-api-surface`
+
+**Activity:** Internal XML-documentation bounded production-scope measurement.
+
+**Purpose:** Measure the plugin analyser public control within query capacity.
+
+**Request:** plugin analyser project scope, `minimumAccessibility: Public`, obsolete symbols included and result limit 1.
+
+**Outcome:** Succeeded with `totalCount: 15`. Across the seven production projects, the internal threshold covers 4,298 symbols versus 451 public symbols, an upper-bound increase of 3,847 declarations.
+
+### 677. `workspace-close`
+
+**Activity:** Internal XML-documentation work scoping cleanup.
+
+**Purpose:** Close the read-only semantic Workspace after measurement.
+
+**Request:** `{"workspace":{"alias":"internal-xml-doc-scope"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 2 with no transaction.
+
+### 678. `workspace-list`
+
+**Activity:** Internal XML-documentation first remediation batch.
+
+**Purpose:** Confirm that no published dogfood Workspace was already loaded before inspecting the Abstractions and plugin analyser projects.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded; no Workspaces or transaction owner were present.
+
+### 679. `workspace-open`
+
+**Activity:** Internal XML-documentation first remediation batch.
+
+**Purpose:** Load the repository solution with isolated WSL build artifacts for semantic inspection.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-docs`, with a redacted absolute artifacts path that had not yet been created.
+
+**Outcome:** Rejected with `WorkspaceMsBuildPropertiesInvalid` because the configured artifacts directory did not exist.
+
+### 680. `workspace-open`
+
+**Activity:** Internal XML-documentation first remediation batch.
+
+**Purpose:** Retry the semantic Workspace load after creating the isolated artifacts directory.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-docs`, with the now-existing redacted absolute artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 3 with 31 projects and 1,621 documents. The load reported two unresolved analyser-reference warnings for the isolated output path and the expected WSL-on-Windows-filesystem warning.
+
+### 681. `get-document-outline`
+
+**Activity:** Internal XML-documentation first remediation batch.
+
+**Purpose:** Inspect the structure of the shared plugin diagnostic descriptor catalogue before documenting its type and fields.
+
+**Request:** `PluginDiagnosticDescriptors.cs` in the plugin analyser project, members included, maximum depth 2 and node limit 80.
+
+**Outcome:** Succeeded and identified the internal `PluginDiagnosticDescriptors` type. The projection was truncated and unexpectedly associated the namespace node with a location from `CancellationTokenUsageState.cs`; source inspection remained authoritative for the documentation change.
+
+### 682. `workspace-close`
+
+**Activity:** Internal XML-documentation first remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the project inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-docs"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 3 with no transaction.
+
+### 683. `workspace-open`
+
+**Activity:** Internal XML-documentation plugin authoring and adaptation remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection while documenting the plugin authoring and adaptation project.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-plugins`, with the redacted isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 4 with 31 projects and 1,621 documents. The load reported two unresolved analyser-reference warnings for the isolated output path and the expected WSL-on-Windows-filesystem warning.
+
+### 684. `workspace-close`
+
+**Activity:** Internal XML-documentation plugin authoring and adaptation remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the project inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-plugins"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 4 with no transaction.
+
+### 685. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace Caching remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection of the Workspace cache subsystem.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-caching`, with the redacted isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 5 with 31 projects and 1,665 documents. The load reported the expected WSL-on-Windows-filesystem warning.
+
+### 686. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Caching remediation batch.
+
+**Purpose:** Inspect the shared cache engine structure before documenting its generation, admission and in-flight computation responsibilities.
+
+**Request:** `QueryCacheStateCore.cs` in the Workspace project, members included, maximum depth 2 and node limit 120.
+
+**Outcome:** Succeeded and identified the internal `QueryCacheStateCore` type. The projection was truncated and unexpectedly associated the namespace node with a location from `IPluginQueryCacheState.cs`; source inspection remained authoritative for the documentation change.
+
+### 687. `workspace-close`
+
+**Activity:** Internal XML-documentation Workspace Caching remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the Caching inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-caching"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 5 with no transaction.
+
+### 688. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace Change Detection remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection of the Workspace input-manifest and change-monitoring subsystem.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-change-detection`, with the redacted isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 6 with 31 projects and 1,665 documents. The load reported the expected WSL-on-Windows-filesystem warning.
+
+### 689. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Change Detection remediation batch.
+
+**Purpose:** Inspect the input-manifest coordinator and distinguish its public certification, manifest-building and stale-state operations from its private assembly helpers.
+
+**Request:** `WorkspaceChangeDetector.cs` in the Workspace project, members included, maximum depth 3 and node limit 160.
+
+**Outcome:** Succeeded and returned the complete type and member outline. The namespace node was again associated with the interface document rather than the requested implementation; source inspection remained authoritative for the documentation change.
+
+### 690. `workspace-close`
+
+**Activity:** Internal XML-documentation Workspace Change Detection remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the Change Detection inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-change-detection"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 6 with no transaction.
+
+### 691. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace State remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection of Workspace session ownership, snapshot identity and lifecycle state transitions.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-state`, with the redacted isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 7 with 31 projects and 1,665 documents. The load reported the expected WSL-on-Windows-filesystem warning.
+
+### 692. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace State remediation batch.
+
+**Purpose:** Inspect the lifecycle state-machine boundary and separate its configured transition graph from session-storage responsibilities.
+
+**Request:** `WorkspaceStateMachine.cs` in the Workspace project, members included, maximum depth 3 and node limit 180.
+
+**Outcome:** Succeeded and returned the complete type and public member outline. The namespace node was again associated with a different State document; source inspection remained authoritative for the documentation change.
+
+### 693. `workspace-close`
+
+**Activity:** Internal XML-documentation Workspace State remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the State inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-state"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 7 with no transaction.
+
+### 694. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace Loading remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection of workspace loading, input normalisation and compatibility boundaries.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-loading`, with a redacted isolated WSL artifacts path that had not yet been created.
+
+**Outcome:** Failed with `WorkspaceMsBuildPropertiesInvalid` because the artifacts path must be an existing absolute directory. The directory was then created before retrying.
+
+### 695. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace Loading remediation batch retry.
+
+**Purpose:** Load the repository solution after creating the isolated artifacts directory required by the first request.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-loading`, with the redacted existing WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 8 with 31 projects and 1,621 documents. The load reported two unresolved analyzer-reference warnings because the isolated directory contained no prior analyzer build, plus the expected WSL-on-Windows-filesystem warning.
+
+### 696. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Loading remediation batch.
+
+**Purpose:** Inspect the validated load workflow and distinguish its compatibility filtering and root-enforcement responsibilities from raw workspace loading.
+
+**Request:** `WorkspaceLoadWorkflow.cs` in the Workspace project, members included, maximum depth 3 and node limit 160.
+
+**Outcome:** Succeeded and returned the complete type and member outline. The namespace node was again associated with a different Loading document; source inspection remained authoritative for the documentation change.
+
+### 697. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Loading remediation batch.
+
+**Purpose:** Inspect the MSBuild property resolution boundary and its separation of caller validation from workspace construction.
+
+**Request:** `WorkspaceMsBuildPropertiesResolver.cs` in the Workspace project, members included, maximum depth 3 and node limit 160.
+
+**Outcome:** Succeeded and returned the complete type and member outline. The namespace node was again associated with a different Loading document; source inspection remained authoritative for the documentation change.
+
+### 698. `workspace-close`
+
+**Activity:** Internal XML-documentation Workspace Loading remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the Loading inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-loading"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 8 with no transaction.
+
+### 699. `workspace-open`
+
+**Activity:** Internal XML-documentation Workspace Lifecycle remediation batch.
+
+**Purpose:** Load the repository solution for semantic inspection of workspace lifecycle coordination and resource cleanup.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-lifecycle`, with a redacted existing isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 9 with 31 projects and 1,621 documents. The load reported two unresolved analyzer-reference warnings because the isolated directory contained no prior analyzer build, plus the expected WSL-on-Windows-filesystem warning.
+
+### 700. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Lifecycle remediation batch.
+
+**Purpose:** Inspect the service boundary coordinating open, list, close, shutdown, status and reload operations.
+
+**Request:** `WorkspaceLifecycleService.cs` in the Workspace project, members included, maximum depth 3 and node limit 220.
+
+**Outcome:** Succeeded and returned the complete lifecycle service outline. The namespace node was again associated with a different Lifecycle document; source inspection remained authoritative for the documentation change.
+
+### 701. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Lifecycle remediation batch.
+
+**Purpose:** Inspect the resource-cleanup boundary used by close and shutdown operations.
+
+**Request:** `WorkspaceSessionCleanup.cs` in the Workspace project, members included, maximum depth 3 and node limit 220.
+
+**Outcome:** Succeeded and returned the complete cleanup service outline. The namespace node was again associated with a different Lifecycle document; source inspection remained authoritative for the documentation change.
+
+### 702. `workspace-close`
+
+**Activity:** Internal XML-documentation Workspace Lifecycle remediation batch cleanup.
+
+**Purpose:** Release the semantic Workspace after completing the Lifecycle inspection.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-lifecycle"}}`
+
+**Outcome:** Succeeded and closed the solution at Workspace epoch 9 with no transaction.
+
+### 703. `workspace-open`
+
+**Activity:** Remaining internal XML-documentation Workspace remediation batches.
+
+**Purpose:** Load the repository solution once for semantic inspection across the remaining Workspace responsibility areas.
+
+**Request:** Trusted repository solution and root, alias `internal-xml-workspace-remaining`, with a redacted existing isolated WSL artifacts path.
+
+**Outcome:** Succeeded at Workspace epoch 10 with 31 projects and 1,621 documents. The load reported two unresolved analyzer-reference warnings because the isolated directory contained no prior analyzer build, plus the expected WSL-on-Windows-filesystem warning.
+
+### 704. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Execution Contexts remediation batch.
+
+**Purpose:** Inspect the boundary that acquires query and mutation leases, validates session state, and constructs snapshot-scoped execution services.
+
+**Request:** `WorkspaceExecutionContextFactory.cs` in the Workspace project, members included, maximum depth 3 and node limit 220.
+
+**Outcome:** Succeeded and returned the complete execution-context factory outline. The namespace node was again associated with a different Execution Contexts document; source inspection remained authoritative for the documentation change.
+
+### 705. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Diagnostics remediation batch.
+
+**Purpose:** Inspect the event-source boundary that defines workspace performance phases and metrics.
+
+**Request:** `WorkbenchPerformanceEventSource.cs` in the Workspace project, members included, maximum depth 3 and node limit 180.
+
+**Outcome:** Rejected with `WorkspaceOutOfDate` because the preceding documentation batch changed the loaded workspace snapshot. The server directed the caller to reload before retrying.
+
+### 706. `workspace-reload`
+
+**Activity:** Remaining internal XML-documentation Workspace remediation batches.
+
+**Purpose:** Refresh the long-lived semantic workspace after the preceding source documentation batch.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-remaining"}}`
+
+**Outcome:** Succeeded at Workspace epoch 11 with 31 projects and 1,621 documents. The reload retained the two expected unresolved analyzer-reference warnings for the isolated artifacts directory.
+
+### 707. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Diagnostics remediation batch retry.
+
+**Purpose:** Inspect the event-source boundary after refreshing the semantic workspace.
+
+**Request:** `WorkbenchPerformanceEventSource.cs` in the Workspace project, members included, maximum depth 3 and node limit 180.
+
+**Outcome:** Succeeded and returned the complete event-source outline, including its performance-phase constants, cache families and emitted events. The namespace node was again associated with the other Diagnostics document; source inspection remained authoritative for the documentation change.
+
+### 708. `workspace-reload`
+
+**Activity:** Internal XML-documentation Workspace IO remediation batch preparation.
+
+**Purpose:** Proactively refresh the semantic workspace after the Diagnostics documentation batch.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-remaining"}}`
+
+**Outcome:** Rejected with `WorkspaceReloadNotRequired` because external-change detection had not yet transitioned the session to its out-of-date state.
+
+### 709. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace IO remediation batch.
+
+**Purpose:** Inspect the durable atomic-write boundary and its platform-specific commit responsibilities.
+
+**Request:** `AtomicFileWriter.cs` in the Workspace project, members included, maximum depth 3 and node limit 180.
+
+**Outcome:** Rejected with `WorkspaceOutOfDate`; query acquisition detected the preceding source changes and directed the caller to reload.
+
+### 710. `workspace-reload`
+
+**Activity:** Internal XML-documentation Workspace IO remediation batch preparation retry.
+
+**Purpose:** Refresh the semantic workspace after query acquisition marked it out of date.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-remaining"}}`
+
+**Outcome:** Succeeded at Workspace epoch 12 with 31 projects and 1,621 documents, retaining the two expected unresolved analyzer-reference warnings.
+
+### 711. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace IO remediation batch retry.
+
+**Purpose:** Inspect the durable atomic-write boundary after refreshing the workspace.
+
+**Request:** `AtomicFileWriter.cs` in the Workspace project, members included, maximum depth 3 and node limit 180.
+
+**Outcome:** Succeeded and returned the complete writer outline, separating temporary-file durability, native commit and retry responsibilities. The namespace node was again associated with another IO document; source inspection remained authoritative for the documentation change.
+
+### 712. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Recovery remediation batch.
+
+**Purpose:** Inspect the durable commit-recovery store and its persistence responsibilities.
+
+**Request:** `CommitRecoveryStore.cs` in the Workspace project, members included, maximum depth 3 and node limit 220.
+
+**Outcome:** Rejected with `WorkspaceOutOfDate`; query acquisition detected the preceding source changes and directed the caller to reload.
+
+### 713. `workspace-reload`
+
+**Activity:** Internal XML-documentation Workspace Recovery remediation batch preparation.
+
+**Purpose:** Refresh the semantic workspace after query acquisition marked it out of date.
+
+**Request:** `{"workspace":{"alias":"internal-xml-workspace-remaining"}}`
+
+**Outcome:** Succeeded at Workspace epoch 13 with 31 projects and 1,621 documents, retaining the two expected unresolved analyzer-reference warnings.
+
+### 714. `get-document-outline`
+
+**Activity:** Internal XML-documentation Workspace Recovery remediation batch retry.
+
+**Purpose:** Inspect the durable commit-recovery store after refreshing the workspace.
+
+**Request:** `CommitRecoveryStore.cs` in the Workspace project, members included, maximum depth 3 and node limit 220.
+
+**Outcome:** Succeeded and returned the complete store outline, including recovery plan, artifact, manifest, status and owner-record operations. The namespace node was associated with `CommitRecoveryLimits.cs`; source inspection remained authoritative for the documentation change.
+
+### 715. `workspace-list`
+
+**Activity:** Internal XML-documentation manual text review preparation.
+
+**Purpose:** Determine whether an existing semantic workspace could be reused for the manual one-by-one review.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces.
+
+### 716. `workspace-open`
+
+**Activity:** Internal XML-documentation manual text review preparation.
+
+**Purpose:** Load the repository for semantic inspection of each documented type and its implementation.
+
+**Request:** Open the solution as alias `manual-doc-review`, using a dedicated temporary artifacts directory.
+
+**Outcome:** Rejected with `WorkspaceMsBuildPropertiesInvalid` because the requested artifacts directory did not yet exist.
+
+### 717. `workspace-open`
+
+**Activity:** Internal XML-documentation manual text review preparation retry.
+
+**Purpose:** Load the repository after creating the dedicated temporary artifacts directory.
+
+**Request:** Open the solution as alias `manual-doc-review`, using the existing dedicated temporary artifacts directory.
+
+**Outcome:** Succeeded with 31 projects and 1,621 documents. The expected unresolved analyzer-reference and WSL-on-Windows-filesystem warnings were reported.
+
+### 718. `get-code-context`
+
+**Activity:** Internal XML-documentation Error Reporting retention manual review.
+
+**Purpose:** Read `IBoundedExpiringStore` with its semantic context before assessing whether each XML comment explains the contract naturally and accurately.
+
+**Request:** Select `IBoundedExpiringStore` in `IBoundedExpiringStore.cs` with five lines before and 120 lines after the selection.
+
+**Outcome:** Rejected with `InvalidRequest` because `afterLines` exceeded the supported limit.
+
+### 719. `get-code-context`
+
+**Activity:** Internal XML-documentation Error Reporting retention manual review retry.
+
+**Purpose:** Read `IBoundedExpiringStore` with a supported context window.
+
+**Request:** Select `IBoundedExpiringStore` in `IBoundedExpiringStore.cs` with five lines before and 60 lines after the selection, including enclosing symbols.
+
+**Outcome:** Succeeded and exposed several mechanical comments that do not describe the bounded, expiring storage contract, including “Stores bounded expiring”, “Adds or replace” and references to “the bounded expiring”.

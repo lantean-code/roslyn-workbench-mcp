@@ -2,17 +2,27 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
+/// <summary>
+/// Performs thread-safe, process-wide MSBuild toolset registration and caches its result.
+/// </summary>
 internal sealed class MsBuildRegistrationService : IMsBuildRegistrationService
 {
     private readonly Lock _syncRoot = new();
     private ComponentStatus? _status;
 
+    /// <summary>
+    /// Gets the cached registration result, or an unavailable status before registration is attempted.
+    /// </summary>
     public ComponentStatus CurrentStatus => _status ?? new ComponentStatus
     {
         IsAvailable = false,
         Message = "MSBuild has not been registered.",
     };
 
+    /// <summary>
+    /// Registers the default MSBuild toolset once, converting discovery failures into component status.
+    /// </summary>
+    /// <returns>The cached registration result, including version or failure details.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

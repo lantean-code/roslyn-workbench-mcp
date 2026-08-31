@@ -2,12 +2,21 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 
+/// <summary>
+/// Rediscovers a source Code Fix and recreates the Fix All action selected during preparation.
+/// </summary>
 internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
 {
     private readonly IFixAllActionFactory _fixAllActionFactory;
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionResolver _resolver;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PreparedFixAllResolver"/> class.
+    /// </summary>
+    /// <param name="fixAllActionFactory">The factory used to create the required fix all action.</param>
+    /// <param name="providerCatalog">The catalogue used to locate Code Action providers.</param>
+    /// <param name="resolver">The resolver used to rediscover the source Code Fix.</param>
     public PreparedFixAllResolver(
         IFixAllActionFactory fixAllActionFactory,
         ICodeActionProviderCatalog providerCatalog,
@@ -18,6 +27,15 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
         _resolver = resolver;
     }
 
+    /// <summary>
+    /// Rediscover the source Code Fix and recreate its prepared Fix All action.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="actionId">The action identifier.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="context">The execution context that supplies the state and services required by the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the recreated Fix All action and source context, or a rejection.</returns>
     public async ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
         Guid actionId,
         SnapshotPrecondition? expectedSnapshot,

@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Builds the MSBuild global-property set required for design-time Roslyn workspace evaluation.
+/// </summary>
 internal static class WorkspaceDesignTimeGlobalProperties
 {
     private static readonly IReadOnlyDictionary<string, string> _defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -14,6 +17,11 @@ internal static class WorkspaceDesignTimeGlobalProperties
         ["ShouldUnsetParentConfigurationAndPlatform"] = bool.FalseString,
     };
 
+    /// <summary>
+    /// Combines the design-time defaults with caller-supplied global properties.
+    /// </summary>
+    /// <param name="globalProperties">The optional caller-supplied properties, which override defaults with matching names.</param>
+    /// <returns>A mutable property set for workspace construction.</returns>
     public static Dictionary<string, string> Create(IReadOnlyDictionary<string, string>? globalProperties)
     {
         var effectiveGlobalProperties = new Dictionary<string, string>(_defaults, StringComparer.OrdinalIgnoreCase);

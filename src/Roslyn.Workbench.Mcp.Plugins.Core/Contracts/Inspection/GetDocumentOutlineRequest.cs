@@ -38,5 +38,8 @@ internal sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultNodesMaxResults)]
     public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
 
+    /// <summary>
+    /// Gets the effective nodes limit.
+    /// </summary>
     internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);
 }

@@ -5,6 +5,9 @@ using Roslyn.Workbench.Mcp.Workspace.References.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.References;
 
+/// <summary>
+/// Finds and caches symbol definitions and reference occurrences within a selected document scope.
+/// </summary>
 internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
 {
     private const string _operationName = "find-references";
@@ -13,11 +16,25 @@ internal sealed class ReferenceDiscoveryService : IReferenceDiscoveryService
 
     private readonly IWorkspaceQueryCacheScopeFactory _queryCacheScopeFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReferenceDiscoveryService"/> class.
+    /// </summary>
+    /// <param name="queryCacheScopeFactory">The factory used to create the required query cache scope.</param>
     public ReferenceDiscoveryService(IWorkspaceQueryCacheScopeFactory queryCacheScopeFactory)
     {
         _queryCacheScopeFactory = queryCacheScopeFactory;
     }
 
+    /// <summary>
+    /// Finds reference groups for a symbol and filters them to selected documents.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="solution">The solution to search.</param>
+    /// <param name="symbol">The symbol represented by the reference-discovery cache key.</param>
+    /// <param name="documents">The documents included in the selected scope or cache identity.</param>
+    /// <param name="includeDefinitions">Whether symbol definitions are included with reference occurrences.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the matching definition and reference occurrences.</returns>
     public async ValueTask<IReadOnlyList<ReferenceOccurrence>> FindReferencesAsync(
         Guid workspaceId,
         Solution solution,

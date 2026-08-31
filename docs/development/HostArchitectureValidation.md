@@ -6,9 +6,9 @@ Status: Complete — H1-H7 complete
 
 ## Purpose
 
-This document records the architecture validation of `Roslyn.Workbench.Mcp`, the executable Host project. It provides the ordered working checklist for the remaining Host production work before the Host unit-test inventory and coverage phase begins.
+This document records the completed architecture validation of `Roslyn.Workbench.Mcp`, the executable Host project. It retains the ordered working checklist used before the Host unit-test inventory and coverage phase began.
 
-Integration-test redesign remains deferred until the production structure and unit-test boundaries are stable.
+The later integration-test redesign is complete and recorded in [Integration Testing Redesign Implementation Plan](IntegrationTestingImplementationPlan.md).
 
 ## Current Boundary Position
 
@@ -31,7 +31,7 @@ Validated evidence:
 - Plugin and Code Action invocation remains closed-generic after startup composition.
 - No Host production code uses null-forgiving operators or builds a temporary service provider.
 
-The project boundary does not need redesign. The remaining work is concentrated in Host composition, protocol construction, adapter registration, exception filtering and startup sequencing.
+The project boundary did not require redesign. The completed work concentrated on Host composition, protocol construction, adapter registration, exception filtering and startup sequencing.
 
 ## Executive Assessment
 

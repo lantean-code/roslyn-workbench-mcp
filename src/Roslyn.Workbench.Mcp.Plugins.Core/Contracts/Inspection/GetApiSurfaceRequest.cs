@@ -35,5 +35,8 @@ internal sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultSymbolsMaxResults)]
     public int? SymbolsLimit { get; init; } = _defaultSymbolsMaxResults;
 
+    /// <summary>
+    /// Gets the effective symbols limit.
+    /// </summary>
     internal int EffectiveSymbolsLimit => ResultLimit.GetEffectiveValue(SymbolsLimit, _defaultSymbolsMaxResults);
 }

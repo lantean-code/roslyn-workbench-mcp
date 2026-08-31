@@ -26,5 +26,8 @@ internal sealed record ResolveSymbolRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective declarations limit.
+    /// </summary>
     internal int EffectiveDeclarationsLimit => ResultLimit.GetEffectiveValue(DeclarationsLimit, _defaultDeclarationsMaxResults);
 }

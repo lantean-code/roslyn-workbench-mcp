@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Server;
 internal sealed record ServerStatusRequest
 {
     /// <summary>
-    /// Gets the requested response detail level.
+    /// Amount of server status detail to return.
     /// </summary>
     [Description("Amount of server status detail to return.")]
     public StatusDetailLevel Detail { get; init; } = StatusDetailLevel.Minimal;

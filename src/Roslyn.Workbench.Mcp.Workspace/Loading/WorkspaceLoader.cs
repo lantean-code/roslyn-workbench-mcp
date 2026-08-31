@@ -2,6 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Opens MSBuild workspaces and captures Roslyn load diagnostics and target-framework identities.
+/// </summary>
 internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
     private readonly IMsBuildWorkspaceFactory _workspaceFactory;
@@ -9,6 +12,13 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceLoader"/> class.
+    /// </summary>
+    /// <param name="workspaceFactory">The factory that creates configured MSBuild workspaces.</param>
+    /// <param name="compatibilityInspector">The service that evaluates project compatibility.</param>
+    /// <param name="pathComparison">The platform-aware path comparison service.</param>
+    /// <param name="pathNormalizer">The service that canonicalises workspace paths.</param>
     public WorkspaceLoader(
         IMsBuildWorkspaceFactory workspaceFactory,
         IWorkspaceProjectCompatibilityInspector compatibilityInspector,
@@ -21,6 +31,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
         _pathNormalizer = pathNormalizer;
     }
 
+    /// <inheritdoc/>
     public string? NormalizeOpenPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path)
@@ -38,11 +49,13 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
             : null;
     }
 
+    /// <inheritdoc/>
     public string? NormalizeAlias(string? alias)
     {
         return string.IsNullOrWhiteSpace(alias) ? null : alias.Trim();
     }
 
+    /// <inheritdoc/>
     public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(
         string projectPath,
         WorkspaceMsBuildProperties? msBuildProperties)
@@ -50,6 +63,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
         return _compatibilityInspector.Inspect(projectPath, msBuildProperties);
     }
 
+    /// <inheritdoc/>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

@@ -5,6 +5,9 @@ using System.Threading.Channels;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Coordination;
 
+/// <summary>
+/// Coordinates live server instances by publishing and inspecting locked workspace status records.
+/// </summary>
 internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatusPublisher, IAsyncDisposable
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
@@ -25,6 +28,12 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
     private bool _isDisposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceInstanceStatusPublisher"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
     public WorkspaceInstanceStatusPublisher(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
@@ -42,6 +51,15 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         _updateWorker = ProcessUpdatesAsync();
     }
 
+    /// <summary>
+    /// Creates this process's live instance record and reports any competing instances.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="workspaceRoot">The workspace root path.</param>
+    /// <param name="loadedPath">The path loaded into the workspace.</param>
+    /// <param name="state">The initial workspace lifecycle state.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the availability and competing-instance status.</returns>
     public async ValueTask<WorkspaceInstanceStatusResult> OpenAsync(
         Guid workspaceId,
         string workspaceRoot,
@@ -103,6 +121,12 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
+    /// <summary>
+    /// Finds other live server instances that advertise ownership of the workspace root.
+    /// </summary>
+    /// <param name="workspaceRoot">The workspace root path.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the availability and competing-instance status.</returns>
     public async ValueTask<WorkspaceInstanceStatusResult> GetOtherLiveInstancesAsync(
         string workspaceRoot,
         CancellationToken cancellationToken)
@@ -128,6 +152,15 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
+    /// <summary>
+    /// Writes the current lifecycle and commit state to this process's instance record.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="state">The current workspace lifecycle state.</param>
+    /// <param name="transactionRevision">The current transaction revision, when a transaction is active.</param>
+    /// <param name="commitId">The commit identifier.</param>
+    /// <param name="commitPhase">The commit phase in which the operation is running.</param>
+    /// <returns>A task that completes when the instance record has been updated.</returns>
     public ValueTask UpdateAsync(
         Guid workspaceId,
         WorkspaceLifecycleState state,
@@ -153,6 +186,14 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         return new ValueTask(completion.Task);
     }
 
+    /// <summary>
+    /// Queues a non-blocking update to this process's instance record.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="state">The current workspace lifecycle state.</param>
+    /// <param name="transactionRevision">The current transaction revision, when a transaction is active.</param>
+    /// <param name="commitId">The commit identifier.</param>
+    /// <param name="commitPhase">The commit phase in which the operation is running.</param>
     public void QueueUpdate(
         Guid workspaceId,
         WorkspaceLifecycleState state,
@@ -172,6 +213,11 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
+    /// <summary>
+    /// Closes and removes this process's live instance record.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <returns>A task that completes when the record has been closed.</returns>
     public async ValueTask CloseAsync(Guid workspaceId)
     {
         await _gate.WaitAsync();
@@ -190,6 +236,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
+    /// <summary>
+    /// Stops the update worker and closes any remaining instance records.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

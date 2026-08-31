@@ -7,6 +7,9 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Validates that plugin query-cache keys are stable and retained values are safe to share across invocations.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PluginQueryCacheAnalyzer : DiagnosticAnalyzer
 {
@@ -15,11 +18,13 @@ public sealed class PluginQueryCacheAnalyzer : DiagnosticAnalyzer
     private const string _asyncDisposableMetadataName = "System.IAsyncDisposable";
     private const string _pluginResultMetadataName = "Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult`1";
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(
             PluginDiagnosticDescriptors.InvalidQueryCacheKey,
             PluginDiagnosticDescriptors.UnsafeCachedValue);
 
+    /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
         if (context is null)

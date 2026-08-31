@@ -2,8 +2,19 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Hierarchy;
 
+/// <summary>
+/// Finds source types derived from a symbol within a selected set of projects.
+/// </summary>
 internal sealed class TypeHierarchyService : ITypeHierarchyService
 {
+    /// <summary>
+    /// Finds distinct types derived from the supplied root symbol.
+    /// </summary>
+    /// <param name="root">The base type whose derived types should be found.</param>
+    /// <param name="solution">The solution to search.</param>
+    /// <param name="projects">The projects included in the selected workspace scope.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the distinct derived types within the selected projects.</returns>
     public async ValueTask<IReadOnlyList<TypeHierarchyMatch>> FindDerivedTypesAsync(
         INamedTypeSymbol root,
         Solution solution,

@@ -32,5 +32,8 @@ internal sealed record GetSymbolDependenciesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective dependencies limit.
+    /// </summary>
     internal int EffectiveDependenciesLimit => ResultLimit.GetEffectiveValue(DependenciesLimit, _defaultDependenciesMaxResults);
 }

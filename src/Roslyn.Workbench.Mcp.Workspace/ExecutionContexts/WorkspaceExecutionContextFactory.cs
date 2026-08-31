@@ -2,6 +2,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
+/// <summary>
+/// Acquires workspace operation leases, refreshes external-change state, and constructs snapshot-scoped execution contexts.
+/// </summary>
 internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionContextFactory
 {
     private readonly WorkspaceOptions _options;
@@ -14,6 +17,18 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceExecutionContextFactory"/> class.
+    /// </summary>
+    /// <param name="options">The configured execution defaults.</param>
+    /// <param name="sessionStore">The workspace session store.</param>
+    /// <param name="sessionAcquirer">The service that selects sessions and acquires operation leases.</param>
+    /// <param name="workspaceChangeDetector">The service that detects external input changes.</param>
+    /// <param name="workspaceStateTransitions">The service that applies lifecycle transitions.</param>
+    /// <param name="mutationStagingService">The active-transaction staging service.</param>
+    /// <param name="pathServiceFactory">The factory for snapshot-scoped path services.</param>
+    /// <param name="resolverFactory">The factory for snapshot-scoped workspace resolvers.</param>
+    /// <param name="instanceStatusPublisher">The service that publishes lifecycle changes to other instances.</param>
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
@@ -36,6 +51,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         _instanceStatusPublisher = instanceStatusPublisher;
     }
 
+    /// <inheritdoc/>
     public WorkspaceMutationExecutionLease CreateMutationContext(
         WorkspaceSelector? workspace,
         SnapshotPrecondition expectedSnapshot,
@@ -117,6 +133,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
     }
 
+    /// <inheritdoc/>
     public WorkspaceExecutionContextLease CreateQueryContext(
         WorkspaceSelector? workspace,
         CancellationToken cancellationToken)
@@ -171,6 +188,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
     }
 
+    /// <inheritdoc/>
     public WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(Guid workspaceId)
     {
         var session = _sessionStore.ReadSession(workspaceId);

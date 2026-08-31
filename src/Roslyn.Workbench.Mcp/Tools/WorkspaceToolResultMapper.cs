@@ -1,7 +1,18 @@
 namespace Roslyn.Workbench.Mcp.Tools;
 
+/// <summary>
+/// Projects workspace operation outcomes into MCP tool result envelopes.
+/// </summary>
 internal static class WorkspaceToolResultMapper
 {
+    /// <summary>
+    /// Converts a workspace operation result into the corresponding MCP tool result envelope.
+    /// </summary>
+    /// <typeparam name="TSource">The source type.</typeparam>
+    /// <typeparam name="TTarget">The target type.</typeparam>
+    /// <param name="result">The workspace operation result to publish.</param>
+    /// <param name="mapData">The projection used to convert successful workspace data to the tool response type.</param>
+    /// <returns>A tool result preserving the workspace outcome, snapshot, diagnostics, and warnings.</returns>
     public static ToolResult<TTarget> Map<TSource, TTarget>(WorkspaceOperationResult<TSource> result, Func<TSource, TTarget> mapData)
     {
         var snapshot = result.Context.Snapshot;

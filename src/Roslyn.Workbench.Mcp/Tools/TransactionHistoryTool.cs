@@ -2,10 +2,20 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 
+/// <summary>
+/// Moves the active transaction backward or forward through its staged revisions.
+/// </summary>
 internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHistoryRequest, TransactionHistoryData>
 {
     private readonly ITransactionService _transactionService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionHistoryTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="transactionService">The service that owns transaction state and operations.</param>
     public TransactionHistoryTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -24,6 +34,7 @@ internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHi
         _transactionService = transactionService;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<ToolResult<TransactionHistoryData>> ExecuteAsync(
         TransactionHistoryRequest request,
         CancellationToken cancellationToken)

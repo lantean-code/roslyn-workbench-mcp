@@ -2,11 +2,19 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Loads a Roslyn workspace, removes unsupported inputs, and enforces the workspace-root boundary.
+/// </summary>
 internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
 {
     private readonly IWorkspaceLoader _workspaceLoader;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceLoadWorkflow"/> class.
+    /// </summary>
+    /// <param name="workspaceLoader">The service that opens and inspects Roslyn workspaces.</param>
+    /// <param name="workspaceRootResolver">The service that enforces workspace-root containment.</param>
     public WorkspaceLoadWorkflow(
         IWorkspaceLoader workspaceLoader,
         IWorkspaceRootResolver workspaceRootResolver)
@@ -15,6 +23,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         _workspaceRootResolver = workspaceRootResolver;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<ValidatedWorkspaceLoadResult> LoadAsync(
         string loadedPath,
         string workspaceRoot,

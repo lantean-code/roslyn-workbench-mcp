@@ -13,7 +13,7 @@
 - Adhere to SOLID and DRY principles.
 - Avoid security vulnerabilities and common pitfalls.
 - Write clean, self-documenting, readable code; use inline comments only where needed.
-- Always include XML documentation on public APIs that define contracts, extension points, or externally consumed behaviour.
+- Always include XML documentation on every non-private production type and member, including internal implementation surfaces, so contracts and architectural responsibilities remain understandable to maintainers and external contributors. Use the established multiline `<summary>` layout. Document every parameter and generic type parameter, and add `<returns>` for every non-void callable member. Summaries must describe the declaration's actual responsibility or result: use creation language for factories, decision language for predicates, and specific behaviour for operations rather than generated phrases such as `Performs the ... operation` or a type name split into words.
 - Structure error and exception messages clearly, with correct grammar and punctuation.
 - Design thoughtfully with proper async usage, memory safety, immutability where appropriate, and dependency injection.
 - Prioritize maintainability, testability, and scalability.
@@ -130,8 +130,10 @@
 
 ### Documentation
 
-- XML documentation comments are required on public APIs that form contracts, plugin extension points, or other externally consumed behaviour.
+- XML documentation comments are required on all explicitly declared non-private production types and members under `src`, including internal types and the public or internal members that form their usable surface. Private members, local functions, file-local types, accessors, implicit or generated members and explicit interface implementations that inherit their contract are excluded.
 - Include `<summary>`, `<param>` where applicable, and `<returns>` when needed.
+- Use `<inheritdoc/>` for overrides and interface implementations only when the inherited documentation accurately describes the implementation.
+- Keep XML documentation concise for self-explanatory declarations, and expand it where responsibility, behaviour, constraints, ownership or non-obvious outcomes need clarification. The separate rule against descriptions that merely restate a property name applies to agent-facing `Description` attributes, not to XML documentation.
 - Use inline comments sparingly and only to explain complex or non-obvious logic.
 - Place attributes one per line.
 - Only one type per file; the file name must match the type.
@@ -157,7 +159,7 @@
 
 - [ ] Standards here are applied to all generated code.
 - [ ] Nullable reference types are enabled and used correctly.
-- [ ] Public contract and extension-point APIs include XML docs with proper tags.
+- [ ] Every explicitly declared non-private production type and member includes meaningful XML documentation or an accurate `<inheritdoc/>`.
 - [ ] Production code contains no unjustified null-forgiving operators; nullable invariants are encoded and checked rather than suppressed.
 - [ ] Braces are never omitted; no expression-bodied methods.
 - [ ] Async usage is justified and async method naming follows normal .NET conventions.

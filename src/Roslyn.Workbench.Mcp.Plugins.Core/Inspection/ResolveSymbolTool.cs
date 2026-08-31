@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Resolves the symbol at a location or selection and returns its canonical selector.
+/// </summary>
 [RoslynTool("resolve-symbol", "Resolve Symbol", "Resolves the symbol at a location or selection and returns its canonical selector.")]
 internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest, ResolveSymbolData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<ResolveSymbolData>> ExecuteCoreAsync(ResolveSymbolRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ResolveSymbolData>(context, request.ExpectedSnapshot);

@@ -6,6 +6,9 @@ using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Builds and publishes the fixed runtime plugin catalogue before the MCP host starts serving requests.
+/// </summary>
 internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleService
 {
     private readonly IPluginCatalogLoader _catalogLoader;
@@ -14,6 +17,14 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
     private readonly StartupOptions _startupOptions;
     private readonly CodeActionCatalogSnapshot _codeActionCatalog;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginCatalogStartupLifecycleService"/> class.
+    /// </summary>
+    /// <param name="catalogLoader">The component that discovers and materializes plugin catalogue entries.</param>
+    /// <param name="toolFactory">The factory that wraps registered plugin tools for MCP invocation.</param>
+    /// <param name="catalogState">The published plugin catalogue used to resolve tool invocations.</param>
+    /// <param name="startupOptions">The configured external plugin directories.</param>
+    /// <param name="codeActionCatalog">The catalogue of host-published Code Action tools.</param>
     public PluginCatalogStartupLifecycleService(
         IPluginCatalogLoader catalogLoader,
         IPluginMcpServerToolFactory toolFactory,
@@ -28,6 +39,11 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
         _codeActionCatalog = codeActionCatalog;
     }
 
+    /// <summary>
+    /// Loads plugins, creates their MCP wrappers and atomically publishes the runtime catalogue.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task after catalogue publication succeeds.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -89,26 +105,51 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
         }
     }
 
+    /// <summary>
+    /// Performs no additional work during the hosted-service start phase.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task StartAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Performs no additional work after the host has started.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task StartedAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Performs no work before hosted services stop.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task StoppingAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Performs no work during the hosted-service stop phase; catalogue disposal is owned by its registered state.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Performs no work after the host has stopped.
+    /// </summary>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A completed task.</returns>
     public Task StoppedAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;

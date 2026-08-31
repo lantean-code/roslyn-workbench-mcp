@@ -39,7 +39,13 @@ internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultOccurrencesPerGroupMaxResults)]
     public int? OccurrencesPerGroupLimit { get; init; } = _defaultOccurrencesPerGroupMaxResults;
 
+    /// <summary>
+    /// Gets the effective groups limit.
+    /// </summary>
     internal int EffectiveGroupsLimit => ResultLimit.GetEffectiveValue(GroupsLimit, _defaultGroupsMaxResults);
 
+    /// <summary>
+    /// Gets the effective occurrences per group limit.
+    /// </summary>
     internal int EffectiveOccurrencesPerGroupLimit => ResultLimit.GetEffectiveValue(OccurrencesPerGroupLimit, _defaultOccurrencesPerGroupMaxResults);
 }

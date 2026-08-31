@@ -1,5 +1,7 @@
 # Test Project Restructure Implementation Plan
 
+**Status:** Historical implementation plan. The restructure and its validation are complete; current ownership and execution policy are recorded in [Testing Strategy](../../TestingStrategy.md) and [Tool Test Inventory](../../Tool%20Test%20Inventory.md). This document is not an active worklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rework the test suite so unit, contract, integration, and audit coverage are explicitly separated as far as the current production-facing internal visibility rules allow.

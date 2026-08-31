@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns language and optional detailed parse and analyzer-config options for a document.
+/// </summary>
 [RoslynTool("get-document-options", "Get Document Options", "Returns language and optional detailed parse and analyzer-config options for a document.")]
 internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptionsRequest, DocumentOptionsData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<DocumentOptionsData>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOptionsData>(request.Document, context);

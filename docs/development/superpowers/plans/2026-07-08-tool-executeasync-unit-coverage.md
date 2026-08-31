@@ -1,5 +1,7 @@
 # Tool ExecuteAsync Unit Coverage Implementation Plan
 
+**Status:** Historical implementation plan. Its recorded follow-on list was closed by the later coverage reassessment in [Tool Test Inventory](../../Tool%20Test%20Inventory.md), which found no known untested supported tool behaviour. This document is not an active worklist; [Future Tasks](../../FutureTasks.md) is the sole active engineering backlog.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add branch-focused unit tests so host and bundled-core tool `ExecuteAsync` paths are covered by xUnit + Moq, with Cobertura coverage used to verify the unit-only loop.
@@ -130,7 +132,7 @@ Current notable remaining low-coverage bundled-core tool files from the latest p
 - `AnalyzeDisposablesTool.cs` at about `10.2%`
 - `GetTypeHierarchyTool.cs` at about `12.0%`
 
-Follow-on work still required for full branch-complete tool coverage:
+Follow-on work identified by this historical pass:
 
 - Add dedicated unit suites for the remaining heavy Roslyn graph, flow, duplicate-code, dependency, and type-hierarchy tools listed above.
 - Expand the symbol inspection coverage further for `SearchSymbolsTool`, `ResolveSymbolTool`, `GetSymbolMembersTool`, `FindOverloadsTool`, `GoToDefinitionTool`, `FindImplementationsTool`, and neighbouring tools until their full request-driven branches are exercised.

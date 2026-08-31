@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
+/// <summary>
+/// Applies server-wide safety instructions and routes dynamic plugin tool requests.
+/// </summary>
 internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureOptions<McpServerOptions>
 {
     private const string _agentGuideUrlPrefix = "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp";
@@ -10,11 +13,19 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
     private static readonly string _instructions = CreateInstructions();
     private readonly IPluginMcpRequestHandler _pluginRequestHandler;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RoslynWorkbenchMcpServerOptionsConfiguration"/> class.
+    /// </summary>
+    /// <param name="pluginRequestHandler">The handler that lists and invokes loaded plugin tools.</param>
     public RoslynWorkbenchMcpServerOptionsConfiguration(IPluginMcpRequestHandler pluginRequestHandler)
     {
         _pluginRequestHandler = pluginRequestHandler;
     }
 
+    /// <summary>
+    /// Applies server instructions and routes MCP tool requests through the plugin request handler.
+    /// </summary>
+    /// <param name="options">The MCP server options to configure.</param>
     public void Configure(McpServerOptions options)
     {
         options.ServerInstructions = _instructions;

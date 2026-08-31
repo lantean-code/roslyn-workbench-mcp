@@ -48,11 +48,23 @@ internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultProjectReferencesPerProjectMaxResults)]
     public int? ProjectReferencesPerProjectLimit { get; init; } = _defaultProjectReferencesPerProjectMaxResults;
 
+    /// <summary>
+    /// Gets the effective folders limit.
+    /// </summary>
     internal int EffectiveFoldersLimit => ResultLimit.GetEffectiveValue(FoldersLimit, _defaultFoldersMaxResults);
 
+    /// <summary>
+    /// Gets the effective projects limit.
+    /// </summary>
     internal int EffectiveProjectsLimit => ResultLimit.GetEffectiveValue(ProjectsLimit, _defaultProjectsMaxResults);
 
+    /// <summary>
+    /// Gets the effective documents per project limit.
+    /// </summary>
     internal int EffectiveDocumentsPerProjectLimit => ResultLimit.GetEffectiveValue(DocumentsPerProjectLimit, _defaultDocumentsPerProjectMaxResults);
 
+    /// <summary>
+    /// Gets the effective project references per project limit.
+    /// </summary>
     internal int EffectiveProjectReferencesPerProjectLimit => ResultLimit.GetEffectiveValue(ProjectReferencesPerProjectLimit, _defaultProjectReferencesPerProjectMaxResults);
 }

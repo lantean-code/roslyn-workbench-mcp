@@ -2,8 +2,17 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Configuration;
 
+/// <summary>
+/// Enforces supported ranges and required values after startup options have been bound.
+/// </summary>
 internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
 {
+    /// <summary>
+    /// Validates the startup options.
+    /// </summary>
+    /// <param name="name">The named options instance being validated, when applicable.</param>
+    /// <param name="options">The startup options to validate.</param>
+    /// <returns>Success when every value is supported; otherwise, all validation failures.</returns>
     public ValidateOptionsResult Validate(string? name, StartupOptions options)
     {
         var failures = GetFailures(options);
@@ -12,6 +21,10 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             : ValidateOptionsResult.Fail(failures);
     }
 
+    /// <summary>
+    /// Throws when any startup option is outside its supported range or otherwise invalid.
+    /// </summary>
+    /// <param name="options">The startup options to validate.</param>
     public void EnsureValid(StartupOptions options)
     {
         var failures = GetFailures(options);

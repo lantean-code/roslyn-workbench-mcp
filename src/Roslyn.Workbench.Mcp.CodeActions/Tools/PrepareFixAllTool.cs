@@ -3,6 +3,9 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
+/// <summary>
+/// Evaluates and retains a bounded Fix All operation for later transactional staging.
+/// </summary>
 internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixAllRequest, PrepareFixAllData>
 {
     private readonly ICodeActionComposition _composition;
@@ -17,6 +20,20 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _referenceLifetime;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PrepareFixAllTool"/> class.
+    /// </summary>
+    /// <param name="composition">The composed service set being inspected.</param>
+    /// <param name="evaluator">The component that evaluates a Code Action into a candidate solution.</param>
+    /// <param name="fixAllActionFactory">The factory used to create the required fix all action.</param>
+    /// <param name="providerCatalog">The catalogue used to locate Code Action providers.</param>
+    /// <param name="referenceStore">The store that retains replayable references.</param>
+    /// <param name="resolver">The resolver that rehydrates the originating Code Action reference.</param>
+    /// <param name="solutionChangeCounter">The component that counts source documents changed by a Code Action.</param>
+    /// <param name="candidateProcessor">The processor that normalizes and validates a candidate solution before staging.</param>
+    /// <param name="candidateIdentityService">The service that creates and validates candidate solution identities.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
+    /// <param name="options">The options that configure the operation.</param>
     public PrepareFixAllTool(
         ICodeActionComposition composition,
         ICodeActionEvaluator evaluator,
@@ -43,6 +60,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CodeActionExecutionResult<PrepareFixAllData>> ExecuteCoreAsync(
         PrepareFixAllRequest request,
         ICodeActionQueryContext context,

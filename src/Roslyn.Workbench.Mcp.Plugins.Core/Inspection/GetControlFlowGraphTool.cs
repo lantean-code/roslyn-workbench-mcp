@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns a bounded control-flow graph with operation metadata and exact source pointers.
+/// </summary>
 [RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Returns a bounded control-flow graph with operation metadata and exact source pointers.")]
 internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowGraphRequest, ControlFlowGraphData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<ControlFlowGraphData>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         if (request.Symbol is not null && request.Location is not null)

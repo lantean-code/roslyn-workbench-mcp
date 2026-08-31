@@ -5,18 +5,28 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// </summary>
 public enum PluginExecutionOutcome
 {
-    /// <summary>The handler completed successfully.</summary>
+    /// <summary>
+    /// The handler completed successfully.
+    /// </summary>
     Succeeded,
 
-    /// <summary>The handler completed without producing a change.</summary>
+    /// <summary>
+    /// The handler completed without producing a change.
+    /// </summary>
     NoChange,
 
-    /// <summary>The request was rejected.</summary>
+    /// <summary>
+    /// The request was rejected.
+    /// </summary>
     Rejected,
 
-    /// <summary>The request conflicted with current Workspace state.</summary>
+    /// <summary>
+    /// The request conflicted with current workspace state.
+    /// </summary>
     Conflict,
 
-    /// <summary>The handler or execution pipeline faulted.</summary>
+    /// <summary>
+    /// The handler or execution pipeline faulted.
+    /// </summary>
     Faulted,
 }

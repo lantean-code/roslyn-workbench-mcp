@@ -1,6 +1,6 @@
 # DOGFOOD-015 — Document-options response size
 
-**Status:** Implemented and validated; awaiting manual confirmation.
+**Status:** Confirmed through published dogfood validation.
 
 ## Issue validation
 

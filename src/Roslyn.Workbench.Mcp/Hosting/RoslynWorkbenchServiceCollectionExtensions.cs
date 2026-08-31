@@ -8,8 +8,16 @@ using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
+/// <summary>
+/// Registers Roslyn Workbench configuration, runtime services, tools and startup lifecycle components.
+/// </summary>
 internal static class RoslynWorkbenchServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers validated host options and projects their values into component-specific option objects.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="startupOptions">The options that control server startup.</param>
     public static void AddRoslynWorkbenchOptions(this IServiceCollection services, StartupOptions startupOptions)
     {
         services.AddOptions<StartupOptions>()
@@ -83,6 +91,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             });
     }
 
+    /// <summary>
+    /// Registers workspace loading, coordination, caching, mutation, transaction and recovery services.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddWorkspaceServices(this IServiceCollection services)
     {
         services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
@@ -151,6 +163,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ITransactionService, TransactionService>();
     }
 
+    /// <summary>
+    /// Registers the services exposed to plugin query and mutation handlers.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddPluginServices(this IServiceCollection services)
     {
         services.AddSingleton<IToolRequestResolver, ToolRequestResolver>();
@@ -162,6 +178,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IToolExecutionContextFactory, PluginExecutionContextFactory>();
     }
 
+    /// <summary>
+    /// Registers Code Action discovery, replay, execution and staging services.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddCodeActionServices(this IServiceCollection services)
     {
         services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
@@ -188,6 +208,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionExecutionContextFactory, CodeActionExecutionContextFactory>();
     }
 
+    /// <summary>
+    /// Registers protocol, plugin loading, status and error-reporting services owned by the MCP host.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddHostServices(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
@@ -211,6 +235,13 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         AddPluginCatalogServices(services);
     }
 
+    /// <summary>
+    /// Registers one bounded expiring store and its policy as singletons.
+    /// </summary>
+    /// <typeparam name="TKey">The type used to identify stored values.</typeparam>
+    /// <typeparam name="TValue">The type of value retained by the store.</typeparam>
+    /// <typeparam name="TPolicy">The policy that supplies capacity, expiration and eviction rules.</typeparam>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddBoundedExpiringStore<TKey, TValue, TPolicy>(
         this IServiceCollection services)
         where TKey : notnull
@@ -221,6 +252,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IBoundedExpiringStore<TKey, TValue>, BoundedExpiringStore<TKey, TValue>>();
     }
 
+    /// <summary>
+    /// Registers server-owned tools and the supplied host-owned Code Action tools using default error-reporting options.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="codeActionTools">The host-published Code Action tools to register with MCP.</param>
     public static void AddMcpTools(
         this IServiceCollection services,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools)
@@ -230,6 +266,12 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             new ErrorReportingOptions());
     }
 
+    /// <summary>
+    /// Registers server-owned tools and the supplied host-owned Code Action tools.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="codeActionTools">The host-published Code Action tools to register with MCP.</param>
+    /// <param name="errorReportingOptions">The options that configure error reporting.</param>
     public static void AddMcpTools(
         this IServiceCollection services,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
@@ -244,6 +286,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         ServerOwnedToolRegistration.AddMcpTools(services, errorReportingOptions);
     }
 
+    /// <summary>
+    /// Registers hosted services that report configuration, initialize prerequisites, publish plugins and clean up workspaces.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
     public static void AddStartupPrerequisites(this IServiceCollection services)
     {
         services.AddHostedService<StartupConfigurationReporter>();
@@ -252,6 +298,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddHostedService<WorkspaceShutdownLifecycleService>();
     }
 
+    /// <summary>
+    /// Replaces default logging providers with console logging directed to standard error.
+    /// </summary>
+    /// <param name="loggingBuilder">The logging pipeline to configure for the Roslyn Workbench host.</param>
     public static void ConfigureRoslynWorkbenchLogging(this ILoggingBuilder loggingBuilder)
     {
         loggingBuilder.ClearProviders();
@@ -261,6 +311,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         });
     }
 
+    /// <summary>
+    /// Registers either the isolated Sentry dispatcher or the local logging fallback.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="sentryConfiguration">The validated Sentry configuration used to register error dispatch.</param>
     public static void AddErrorReportDispatcher(
         IServiceCollection services,
         SentryProviderConfiguration? sentryConfiguration)

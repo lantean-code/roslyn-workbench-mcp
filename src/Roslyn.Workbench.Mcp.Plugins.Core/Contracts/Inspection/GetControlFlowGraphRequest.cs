@@ -55,9 +55,18 @@ internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective max blocks.
+    /// </summary>
     internal int EffectiveMaxBlocks => ResultLimit.GetEffectiveValue(MaxBlocks, _defaultMaxBlocks);
 
+    /// <summary>
+    /// Gets the effective max regions.
+    /// </summary>
     internal int EffectiveMaxRegions => ResultLimit.GetEffectiveValue(MaxRegions, _defaultMaxRegions);
 
+    /// <summary>
+    /// Gets the effective max operations per block.
+    /// </summary>
     internal int EffectiveMaxOperationsPerBlock => ResultLimit.GetEffectiveValue(MaxOperationsPerBlock, _defaultMaxOperationsPerBlock);
 }

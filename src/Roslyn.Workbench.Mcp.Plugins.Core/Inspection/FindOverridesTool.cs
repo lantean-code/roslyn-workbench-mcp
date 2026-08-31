@@ -2,9 +2,13 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Finds overrides of a virtual or abstract member.
+/// </summary>
 [RoslynTool("find-overrides", "Find Overrides", "Finds overrides of a virtual or abstract member.")]
 internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest, OverrideSearchData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<OverrideSearchData>> ExecuteCoreAsync(FindOverridesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverrideSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);

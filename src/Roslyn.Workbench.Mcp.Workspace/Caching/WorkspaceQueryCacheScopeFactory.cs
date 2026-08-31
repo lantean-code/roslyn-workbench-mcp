@@ -1,14 +1,22 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Caching;
 
+/// <summary>
+/// Creates component-facing cache scopes over the shared Workspace query-cache store.
+/// </summary>
 internal sealed class WorkspaceQueryCacheScopeFactory : IWorkspaceQueryCacheScopeFactory
 {
     private readonly IWorkspaceQueryCacheStore _store;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceQueryCacheScopeFactory"/> class.
+    /// </summary>
+    /// <param name="store">The store that owns cache entry operations.</param>
     public WorkspaceQueryCacheScopeFactory(IWorkspaceQueryCacheStore store)
     {
         _store = store;
     }
 
+    /// <inheritdoc/>
     public IWorkspaceQueryCacheScope CreateScope(
         Guid workspaceId,
         Solution solution,

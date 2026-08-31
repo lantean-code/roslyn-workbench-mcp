@@ -2,11 +2,15 @@ using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Searches declarations by name, metadata name, and optional semantic filters.
+/// </summary>
 [RoslynTool(_toolName, "Search Symbols", "Searches declarations by name, metadata name and optional semantic filters.")]
 internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest, SymbolSearchData>
 {
     private const string _toolName = "search-symbols";
 
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<SymbolSearchData>> ExecuteCoreAsync(SearchSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         Document? scopedDocument = null;

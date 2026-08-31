@@ -2,6 +2,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Status;
 
+/// <summary>
+/// Aggregates host, plugin, Code Action, recovery and error-reporting state for the server-status tool.
+/// </summary>
 internal sealed class ServerStatusService : IServerStatusService
 {
     private static readonly string? _serverVersion = typeof(ServerStatusService).Assembly.GetName().Version?.ToString();
@@ -17,6 +20,18 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly IErrorReportingConsentService _errorReportingConsentService;
     private readonly IErrorReportDispatcher _errorReportDispatcher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServerStatusService"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="startupConfiguration">The resolved startup configuration reported by the service.</param>
+    /// <param name="pluginCatalogState">The published plugin catalogue used to report or capture runtime state.</param>
+    /// <param name="codeActionCatalogSnapshot">The immutable Code Action catalogue reported by server status.</param>
+    /// <param name="msBuildRegistrationService">The MSBuild registration service.</param>
+    /// <param name="codeActionComposition">The Roslyn composition state reported by server status.</param>
+    /// <param name="recoveryStore">The store containing durable commit-recovery status.</param>
+    /// <param name="errorReportingConsentService">The service that provides the effective reporting consent state.</param>
+    /// <param name="errorReportDispatcher">The configured error-reporting provider.</param>
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
         StartupConfigurationSnapshot startupConfiguration,
@@ -39,6 +54,12 @@ internal sealed class ServerStatusService : IServerStatusService
         _errorReportDispatcher = errorReportDispatcher;
     }
 
+    /// <summary>
+    /// Gets the current status at the requested level of detail.
+    /// </summary>
+    /// <param name="detail">The requested level of detail for the server status response.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task containing the server status response.</returns>
     public async ValueTask<ToolResult<ServerStatusData>> GetStatusAsync(StatusDetailLevel detail, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

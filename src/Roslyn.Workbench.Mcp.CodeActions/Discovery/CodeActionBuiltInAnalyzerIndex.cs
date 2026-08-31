@@ -5,6 +5,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
+/// <summary>
+/// Lazily indexes built-in C# analyzers by the diagnostics they can produce.
+/// </summary>
 internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyzerIndex
 {
     private const string _operationName = "code-action-diagnostics";
@@ -15,8 +18,16 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
 
     private readonly Lazy<IndexState> _state;
 
+    /// <summary>
+    /// Gets analyzer types that could not be inspected or activated.
+    /// </summary>
     public ImmutableArray<CodeActionAnalyzerIndexWarning> Warnings => _state.Value.Warnings;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionBuiltInAnalyzerIndex"/> class.
+    /// </summary>
+    /// <param name="options">The composition settings that enable or disable built-in assemblies.</param>
+    /// <param name="analyzerActivator">The activator that creates built-in diagnostic analyzers.</param>
     public CodeActionBuiltInAnalyzerIndex(
         IOptions<CodeActionCompositionOptions> options,
         ICodeActionAnalyzerActivator analyzerActivator)
@@ -31,6 +42,11 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         }
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionBuiltInAnalyzerIndex"/> class.
+    /// </summary>
+    /// <param name="assemblies">The assemblies searched for built-in analyzers.</param>
+    /// <param name="analyzerActivator">The activator that creates built-in diagnostic analyzers.</param>
     internal CodeActionBuiltInAnalyzerIndex(
         IReadOnlyList<Assembly> assemblies,
         ICodeActionAnalyzerActivator analyzerActivator)
@@ -38,6 +54,11 @@ internal sealed class CodeActionBuiltInAnalyzerIndex : ICodeActionBuiltInAnalyze
         _state = CreateState(assemblies, analyzerActivator, measureActivation: true);
     }
 
+    /// <summary>
+    /// Gets distinct analyzers that may produce any requested diagnostic identifier.
+    /// </summary>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <returns>The matching activated analyzer instances.</returns>
     public ImmutableArray<DiagnosticAnalyzer> GetAnalyzers(IReadOnlySet<string> diagnosticIds)
     {
         if (diagnosticIds.Count == 0)

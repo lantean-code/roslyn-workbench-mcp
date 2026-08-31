@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 
+/// <summary>
+/// Resolves workspace selectors and creates canonical references against one immutable solution snapshot.
+/// </summary>
 internal sealed class WorkspaceResolver : IWorkspaceResolver
 {
     private readonly Solution _solution;
@@ -10,6 +13,16 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathService _workspacePathService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceResolver"/> class.
+    /// </summary>
+    /// <param name="solution">The immutable solution snapshot to resolve against.</param>
+    /// <param name="snapshot">The workspace snapshot against which the operation runs.</param>
+    /// <param name="projectTargetFrameworks">The target-framework map used to resolve project selectors.</param>
+    /// <param name="addressableDocumentEligibility">The policy that excludes generated and otherwise non-addressable documents.</param>
+    /// <param name="workspaceSelectorFactory">The factory used to create the required workspace selector.</param>
+    /// <param name="workspacePathComparison">The comparison rules used for workspace path.</param>
+    /// <param name="workspacePathService">The service that provides workspace path operations.</param>
     public WorkspaceResolver(
         Solution solution,
         SnapshotPrecondition? snapshot,
@@ -28,6 +41,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         _workspacePathService = workspacePathService;
     }
 
+    /// <summary>
+    /// Gets the addressable documents in a solution.
+    /// </summary>
+    /// <param name="solution">The solution whose documents should be filtered.</param>
+    /// <returns>The documents eligible for agent-facing operations.</returns>
     public IReadOnlyList<Document> GetDocuments(Solution solution)
     {
         var documents = new List<Document>();
@@ -39,6 +57,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         return documents;
     }
 
+    /// <summary>
+    /// Gets the addressable documents in a project.
+    /// </summary>
+    /// <param name="project">The project whose documents should be filtered.</param>
+    /// <returns>The documents eligible for agent-facing operations.</returns>
     public IReadOnlyList<Document> GetDocuments(Project project)
     {
         var documents = new List<Document>();
@@ -57,6 +80,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
     }
 
+    /// <summary>
+    /// Projects a Roslyn source location with its canonical selector.
+    /// </summary>
+    /// <param name="location">The source location to resolve or project into the result.</param>
+    /// <returns>The caller-facing resolved location.</returns>
     public ResolvedLocation? CreateResolvedLocation(Location location)
     {
         if (!location.IsInSource || location.SourceTree is null || _snapshot is null)
@@ -92,6 +120,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
+    /// <summary>
+    /// Creates a canonical reference to an addressable document.
+    /// </summary>
+    /// <param name="document">The document to identify.</param>
+    /// <returns>The canonical document reference.</returns>
     public DocumentReference? CreateDocumentReference(Document document)
     {
         if (!_addressableDocumentEligibility.IsAddressable(document))
@@ -112,6 +145,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
+    /// <summary>
+    /// Creates a canonical reference to a Roslyn symbol.
+    /// </summary>
+    /// <param name="symbol">The symbol to identify.</param>
+    /// <returns>The canonical symbol reference.</returns>
     public SymbolReference CreateSymbolReference(ISymbol symbol)
     {
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
@@ -125,6 +163,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
+    /// <summary>
+    /// Compares a caller's snapshot precondition with this resolver's snapshot.
+    /// </summary>
+    /// <param name="precondition">The snapshot precondition to validate against current state.</param>
+    /// <returns>The snapshot match result.</returns>
     public SnapshotMatchResult ValidateSnapshot(SnapshotPrecondition? precondition)
     {
         if (precondition is null)
@@ -160,11 +203,22 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         return SnapshotMatchResult.Matched();
     }
 
+    /// <summary>
+    /// Resolves a document selector against the current solution snapshot.
+    /// </summary>
+    /// <param name="selector">The selector that identifies the requested workspace scope.</param>
+    /// <returns>The resolved document.</returns>
     public SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector)
     {
         return ResolveDocument(selector, project: null);
     }
 
+    /// <summary>
+    /// Resolves a location selector against the current solution snapshot.
+    /// </summary>
+    /// <param name="selector">The selector that identifies the requested workspace scope.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the resolved location.</returns>
     public async ValueTask<SelectorResolveResult<Location>> ResolveLocationAsync(LocationSelector selector, CancellationToken cancellationToken)
     {
         var resolution = await ResolveDocumentSpanAsync(selector, project: null, cancellationToken);
@@ -184,6 +238,11 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         return CreateUnresolvedResult<Location>(resolution.Status);
     }
 
+    /// <summary>
+    /// Resolves a project selector against the current solution snapshot.
+    /// </summary>
+    /// <param name="selector">The selector that identifies the requested workspace scope.</param>
+    /// <returns>The resolved project.</returns>
     public SelectorResolveResult<Project> ResolveProject(ProjectSelector selector)
     {
         string? normalizedSelectorPath = null;
@@ -206,6 +265,12 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
+    /// <summary>
+    /// Resolves a symbol selector against the current solution snapshot.
+    /// </summary>
+    /// <param name="selector">The selector that identifies the requested workspace scope.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the resolved symbol.</returns>
     public async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolAsync(SymbolSelector selector, CancellationToken cancellationToken)
     {
         Project? project = null;

@@ -26,5 +26,8 @@ internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective overloads limit.
+    /// </summary>
     internal int EffectiveOverloadsLimit => ResultLimit.GetEffectiveValue(OverloadsLimit, _defaultOverloadsMaxResults);
 }

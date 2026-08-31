@@ -2,8 +2,16 @@ using NuGet.Versioning;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Validates required plugin identity, semantic version and host API compatibility.
+/// </summary>
 internal sealed class PluginEntryPointValidator : IPluginEntryPointValidator
 {
+    /// <summary>
+    /// Gets the reason an entry point is incompatible with the host.
+    /// </summary>
+    /// <param name="entryPoint">The entry-point assembly used to discover application dependencies.</param>
+    /// <returns>A validation message when the entry point is incompatible; otherwise, <see langword="null"/>.</returns>
     public string? GetValidationError(PluginEntryPointMetadata entryPoint)
     {
         if (string.IsNullOrWhiteSpace(entryPoint.PluginId)

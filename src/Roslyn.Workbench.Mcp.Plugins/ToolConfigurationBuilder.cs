@@ -8,14 +8,19 @@ public abstract class ToolConfigurationBuilder<TBuilder> : IToolConfigurationBui
 {
     private bool _isFrozen;
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Name"/>
     internal string? Name { get; private set; }
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Title"/>
     internal string? Title { get; private set; }
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Description"/>
     internal string? Description { get; private set; }
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.ResultSummary"/>
     internal string? ResultSummary { get; private set; }
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Destructive"/>
     internal virtual bool? Destructive => null;
 
     bool? IToolConfigurationBuilderState.Destructive => Destructive;
@@ -67,7 +72,7 @@ public abstract class ToolConfigurationBuilder<TBuilder> : IToolConfigurationBui
     /// <summary>
     /// Overrides the optional concise result summary.
     /// </summary>
-    /// <param name="resultSummary">The result summary.</param>
+    /// <param name="resultSummary">The user-facing summary reported when the tool completes.</param>
     /// <returns>The same builder.</returns>
     public TBuilder WithResultSummary(string resultSummary)
     {
@@ -76,6 +81,7 @@ public abstract class ToolConfigurationBuilder<TBuilder> : IToolConfigurationBui
         return (TBuilder)this;
     }
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Freeze"/>
     internal void Freeze()
     {
         _isFrozen = true;

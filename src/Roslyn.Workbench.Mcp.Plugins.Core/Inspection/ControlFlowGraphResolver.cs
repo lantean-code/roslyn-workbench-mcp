@@ -1,7 +1,17 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Finds the Roslyn control-flow graph that owns a selected syntax node, including nested executable scopes.
+/// </summary>
 internal static class ControlFlowGraphResolver
 {
+    /// <summary>
+    /// Resolves the control-flow graph containing the selected syntax node.
+    /// </summary>
+    /// <param name="node">The syntax node whose executable graph is required.</param>
+    /// <param name="semanticModel">The semantic model for the node's syntax tree.</param>
+    /// <param name="cancellationToken">The token that cancels semantic analysis.</param>
+    /// <returns>The owning control-flow graph, or <see langword="null"/> when Roslyn cannot construct one.</returns>
     public static ControlFlowGraph? Resolve(SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
         var operation = FindOperation(node, semanticModel, cancellationToken);

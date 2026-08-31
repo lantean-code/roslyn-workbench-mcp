@@ -2,6 +2,9 @@ using System.Threading.Channels;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Serializes root watcher events, filters them against a certified manifest and retains the first invalidating change.
+/// </summary>
 internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
 {
     private const int _maximumWatcherBufferSize = 64 * 1024;
@@ -24,8 +27,16 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
     private int _pendingEventCount;
     private int _startState;
 
+    /// <inheritdoc/>
     public WorkspaceInputChange? Change => Volatile.Read(ref _change) ?? _externalMonitor?.Change;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceInputChangeMonitor"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The filesystem abstraction used for watching and persistence checks.</param>
+    /// <param name="pathComparison">The platform-aware path comparer.</param>
+    /// <param name="externalMonitorFactory">The factory for evaluated inputs outside the Workspace root.</param>
+    /// <param name="workspaceRoot">The trusted root watched recursively.</param>
     public WorkspaceInputChangeMonitor(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
@@ -60,6 +71,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         _eventProcessingTask = ProcessEventsAsync(_shutdown.Token);
     }
 
+    /// <inheritdoc/>
     public void Track(WorkspaceInputManifest manifest)
     {
         _ignoredPaths = manifest.IgnoredPaths;
@@ -82,6 +94,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         _trackingStarted.TrySetResult();
     }
 
+    /// <inheritdoc/>
     public void Start()
     {
         var previousStartState = Interlocked.Exchange(ref _startState, 1);
@@ -91,6 +104,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)
@@ -114,6 +128,7 @@ internal sealed class WorkspaceInputChangeMonitor : IWorkspaceInputChangeMonitor
         }
     }
 
+    /// <inheritdoc/>
     public void WaitForPendingEvents(CancellationToken cancellationToken)
     {
         WaitForWorkspaceEvents(cancellationToken);

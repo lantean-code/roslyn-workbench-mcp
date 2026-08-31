@@ -2,22 +2,32 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
+/// <summary>
+/// Certifies containment by checking lexical paths and resolving each existing symbolic-link segment.
+/// </summary>
 internal sealed class PhysicalPathContainment : IPhysicalPathContainment
 {
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PhysicalPathContainment"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system used to canonicalise paths and resolve links.</param>
+    /// <param name="pathComparison">The file-system-aware comparison service.</param>
     public PhysicalPathContainment(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
     }
 
+    /// <inheritdoc/>
     public bool TryGetContainedPath(string rootDirectory, string candidatePath, out string containedPath)
     {
         return TryGetContainedPath(rootDirectory, candidatePath, allowRoot: true, out containedPath);
     }
 
+    /// <inheritdoc/>
     public bool TryGetStrictlyContainedPath(string rootDirectory, string candidatePath, out string containedPath)
     {
         return TryGetContainedPath(rootDirectory, candidatePath, allowRoot: false, out containedPath);

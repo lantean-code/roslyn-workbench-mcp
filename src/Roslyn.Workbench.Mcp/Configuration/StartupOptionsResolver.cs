@@ -2,10 +2,19 @@ using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.Configuration;
 
+/// <summary>
+/// Resolves command-line and environment configuration into validated startup values and fallback warnings.
+/// </summary>
 internal static class StartupOptionsResolver
 {
     private const string _configurationFallbackCode = "StartupConfigurationFallback";
 
+    /// <summary>
+    /// Resolves the effective startup options, preferring command-line values over environment values and defaults.
+    /// </summary>
+    /// <param name="args">The command-line arguments used to resolve host configuration.</param>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <returns>The resolved options together with warnings for invalid values that used a safe fallback.</returns>
     public static StartupConfigurationSnapshot Resolve(string[] args, IWorkspacePathComparison pathComparison)
     {
         var optionMap = ParseArguments(args);

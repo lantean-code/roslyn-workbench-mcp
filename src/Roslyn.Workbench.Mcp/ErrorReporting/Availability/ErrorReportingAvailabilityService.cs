@@ -2,11 +2,19 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Availability;
 
+/// <summary>
+/// Evaluates error reporting configuration, consent state and client elicitation support.
+/// </summary>
 internal sealed class ErrorReportingAvailabilityService : IErrorReportingAvailabilityService
 {
     private readonly ErrorReportingOptions _options;
     private readonly IErrorReportingConsentService _consentService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ErrorReportingAvailabilityService"/> class.
+    /// </summary>
+    /// <param name="options">The server-wide error reporting configuration.</param>
+    /// <param name="consentService">The service that resolves the effective consent mode.</param>
     public ErrorReportingAvailabilityService(
         IOptions<ErrorReportingOptions> options,
         IErrorReportingConsentService consentService)
@@ -15,6 +23,13 @@ internal sealed class ErrorReportingAvailabilityService : IErrorReportingAvailab
         _consentService = consentService;
     }
 
+    /// <summary>
+    /// Determines whether an error report can be prepared in the current request context.
+    /// </summary>
+    /// <param name="workspaceId">The identifier of the workspace associated with the error, when available.</param>
+    /// <param name="workspaceEpoch">The epoch of the workspace associated with the error, when available.</param>
+    /// <param name="supportsElicitation">Whether the connected client supports MCP elicitation.</param>
+    /// <returns>The effective reporting state and the tool available to continue the workflow.</returns>
     public ErrorReportingAvailability GetAvailability(
         Guid? workspaceId,
         long? workspaceEpoch,

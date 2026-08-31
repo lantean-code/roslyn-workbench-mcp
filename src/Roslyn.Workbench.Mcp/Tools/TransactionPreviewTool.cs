@@ -2,10 +2,20 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 
+/// <summary>
+/// Produces a document-level preview of changes staged in the active transaction.
+/// </summary>
 internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPreviewRequest, TransactionPreviewData>
 {
     private readonly ITransactionService _transactionService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionPreviewTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="transactionService">The service that owns transaction state and operations.</param>
     public TransactionPreviewTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -24,6 +34,7 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
         _transactionService = transactionService;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<ToolResult<TransactionPreviewData>> ExecuteAsync(
         TransactionPreviewRequest request,
         CancellationToken cancellationToken)

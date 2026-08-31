@@ -3,10 +3,19 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 
+/// <summary>
+/// Creates and exposes the analyzers used by the bundled async-code inspection.
+/// </summary>
 internal sealed class BundledAsyncAnalyzerProvider : IBundledAsyncAnalyzerProvider
 {
+    /// <summary>
+    /// Gets the bundled async analyzers.
+    /// </summary>
     public IReadOnlyList<DiagnosticAnalyzer> Analyzers { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BundledAsyncAnalyzerProvider"/> class.
+    /// </summary>
     public BundledAsyncAnalyzerProvider()
     {
         Analyzers = LoadAnalyzers();

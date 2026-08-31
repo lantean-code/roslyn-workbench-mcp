@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.
+/// </summary>
 [RoslynTool("find-duplicate-code", "Find Duplicate Code", "Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.")]
 internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCodeRequest, DuplicateCodeData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<DuplicateCodeData>> ExecuteCoreAsync(FindDuplicateCodeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DuplicateCodeData>(request.Scope, context);

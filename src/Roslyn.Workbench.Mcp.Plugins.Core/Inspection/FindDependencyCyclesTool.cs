@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns detected dependency cycles for the selected scope and granularity.
+/// </summary>
 [RoslynTool("find-dependency-cycles", "Find Dependency Cycles", "Returns detected dependency cycles for the selected scope and granularity.")]
 internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependencyCyclesRequest, DependencyCyclesData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<DependencyCyclesData>> ExecuteCoreAsync(FindDependencyCyclesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedCycleGranularity(request.Granularity))

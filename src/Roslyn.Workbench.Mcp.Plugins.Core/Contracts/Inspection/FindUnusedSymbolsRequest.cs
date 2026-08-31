@@ -33,5 +33,8 @@ internal sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultCandidatesMaxResults)]
     public int? CandidatesLimit { get; init; } = _defaultCandidatesMaxResults;
 
+    /// <summary>
+    /// Gets the effective candidates limit.
+    /// </summary>
     internal int EffectiveCandidatesLimit => ResultLimit.GetEffectiveValue(CandidatesLimit, _defaultCandidatesMaxResults);
 }

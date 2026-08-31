@@ -37,5 +37,8 @@ internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective nodes limit.
+    /// </summary>
     internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);
 }

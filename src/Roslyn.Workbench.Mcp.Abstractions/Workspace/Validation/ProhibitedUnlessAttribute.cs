@@ -23,7 +23,7 @@ public sealed class ProhibitedUnlessAttribute : ValidationAttribute
     public string OtherProperty { get; }
 
     /// <summary>
-    /// Initialises a new instance of the <see cref="ProhibitedUnlessAttribute"/> class.
+    /// Initializes a new instance of the <see cref="ProhibitedUnlessAttribute"/> class.
     /// </summary>
     /// <param name="otherProperty">The name of the property controlling whether the decorated property is permitted.</param>
     /// <param name="expectedValue">The value that permits the decorated property.</param>

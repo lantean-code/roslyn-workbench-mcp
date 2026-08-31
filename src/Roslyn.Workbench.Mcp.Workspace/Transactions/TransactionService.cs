@@ -2,6 +2,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Implements transaction start, preview, history navigation, commit, and rollback workflows.
+/// </summary>
 internal sealed class TransactionService : ITransactionService
 {
     private readonly WorkspaceOptions _options;
@@ -15,6 +18,19 @@ internal sealed class TransactionService : ITransactionService
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionService"/> class.
+    /// </summary>
+    /// <param name="options">The configured transaction revision limit.</param>
+    /// <param name="sessionStore">The store that publishes transactional session state.</param>
+    /// <param name="sessionAcquirer">The component that acquires the workspace session used by a transaction operation.</param>
+    /// <param name="workspaceStateTransitions">The coordinator that applies workspace lifecycle state changes.</param>
+    /// <param name="snapshotGuard">The guard that rejects operations targeting a stale transaction snapshot.</param>
+    /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
+    /// <param name="transactionCommitService">The service that provides transaction commit operations.</param>
+    /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
+    /// <param name="resolverFactory">The factory used to create the required resolver.</param>
+    /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
     public TransactionService(
         IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
@@ -39,6 +55,14 @@ internal sealed class TransactionService : ITransactionService
         _instanceStatusPublisher = instanceStatusPublisher;
     }
 
+    /// <summary>
+    /// Starts the transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -125,6 +149,17 @@ internal sealed class TransactionService : ITransactionService
         return _resultFactory.Succeeded(outcome, updatedContext);
     }
 
+    /// <summary>
+    /// Creates a bounded preview of the active transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="document">The optional document whose detailed diff should be returned.</param>
+    /// <param name="includeDiff">Whether the operation result should include a detailed source diff.</param>
+    /// <param name="contextLines">The number of unchanged context lines to include around each difference.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewAsync(
         Guid? workspaceId,
         string? alias,
@@ -245,6 +280,16 @@ internal sealed class TransactionService : ITransactionService
         return _resultFactory.Succeeded(outcome, context);
     }
 
+    /// <summary>
+    /// Moves the transaction backward or forward through revision history.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="direction">The direction in which to move through transaction history.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveHistoryAsync(
         Guid? workspaceId,
         string? alias,
@@ -328,6 +373,15 @@ internal sealed class TransactionService : ITransactionService
         return _resultFactory.Succeeded(outcome, updatedContext);
     }
 
+    /// <summary>
+    /// Commits the transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
         Guid? workspaceId,
         string? alias,
@@ -348,6 +402,14 @@ internal sealed class TransactionService : ITransactionService
         return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken);
     }
 
+    /// <summary>
+    /// Rolls back the transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

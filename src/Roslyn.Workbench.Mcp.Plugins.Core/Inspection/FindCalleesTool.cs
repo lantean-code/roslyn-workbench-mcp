@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns symbols directly invoked by a method or selected executable body.
+/// </summary>
 [RoslynTool("find-callees", "Find Callees", "Returns symbols directly invoked by a method or selected executable body.")]
 internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, CalleeSearchData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<CalleeSearchData>> ExecuteCoreAsync(FindCalleesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         if (request.Symbol is null == request.Location is null)

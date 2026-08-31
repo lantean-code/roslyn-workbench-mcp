@@ -12,6 +12,9 @@ using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
+/// <summary>
+/// Builds size-bounded diagnostic records from unhandled tool exceptions without retaining tool arguments or source content.
+/// </summary>
 internal sealed class ErrorCaptureService : IErrorCaptureService
 {
     private const int _maximumExceptionDepth = 4;
@@ -45,6 +48,16 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
     private readonly IPluginCatalogState _pluginCatalogState;
     private readonly CodeActionCatalogSnapshot _codeActionCatalog;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ErrorCaptureService"/> class.
+    /// </summary>
+    /// <param name="options">The capture lifetime and maximum payload size.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
+    /// <param name="workspaceSessionStore">The store containing the workspace state that may be associated with a failure.</param>
+    /// <param name="workspaceSelector">The selector used to resolve a workspace supplied in the failed request.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="pluginCatalogState">The published plugin catalogue used to report or capture runtime state.</param>
+    /// <param name="codeActionCatalog">The catalogue of host-published Code Action tools.</param>
     public ErrorCaptureService(
         IOptions<ErrorReportingOptions> options,
         TimeProvider timeProvider,
@@ -63,6 +76,17 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         _codeActionCatalog = codeActionCatalog;
     }
 
+    /// <summary>
+    /// Captures a bounded diagnostic record for a failed tool invocation.
+    /// </summary>
+    /// <param name="correlationId">The identifier used to correlate the tool error with the retained record.</param>
+    /// <param name="toolName">The published name of the tool associated with the captured error.</param>
+    /// <param name="arguments">The arguments supplied to the tool invocation.</param>
+    /// <param name="duration">The elapsed duration of the captured tool operation.</param>
+    /// <param name="cancellationRequested">Whether cancellation had been requested when the error was captured.</param>
+    /// <param name="workspaceContext">The workspace context already acquired by the invocation, when available.</param>
+    /// <param name="exception">The unhandled exception raised by the tool invocation.</param>
+    /// <returns>A size-bounded record containing diagnostic exception, environment and workspace metadata.</returns>
     public CapturedErrorRecord Capture(
         Guid correlationId,
         string toolName,

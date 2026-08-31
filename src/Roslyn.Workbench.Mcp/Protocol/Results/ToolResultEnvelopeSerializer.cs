@@ -43,6 +43,11 @@ internal static class ToolResultEnvelopeSerializer
         });
     }
 
+    /// <summary>
+    /// Gets the JSON contract shape used to serialize a successful data payload.
+    /// </summary>
+    /// <param name="dataType">The successful result data type whose contract kind is required.</param>
+    /// <returns>The serializer contract kind for the specified payload type.</returns>
     public static JsonTypeInfoKind GetSuccessDataContractKind(Type dataType)
     {
         var typeInfo = _serializerOptions.GetTypeInfo(dataType);
@@ -53,7 +58,7 @@ internal static class ToolResultEnvelopeSerializer
     /// Creates a successful envelope for a mutation result.
     /// </summary>
     /// <param name="data">The successful mutation payload.</param>
-    /// <param name="staged">A value indicating whether a mutation was staged.</param>
+    /// <param name="staged">Whether the mutation produced staged transaction changes.</param>
     /// <param name="currentSnapshot">The snapshot acquired before invoking the mutation handler.</param>
     /// <returns>The structured JSON payload.</returns>
     public static JsonElement CreateMutationSuccess(
@@ -147,6 +152,7 @@ internal static class ToolResultEnvelopeSerializer
     /// Creates a failed envelope for an unhandled tool exception.
     /// </summary>
     /// <param name="correlationId">The server-side diagnostic correlation identifier.</param>
+    /// <param name="reporting">The availability of error reporting for this failure.</param>
     /// <returns>The structured JSON payload.</returns>
     public static JsonElement CreateUnhandledException(
         Guid correlationId,

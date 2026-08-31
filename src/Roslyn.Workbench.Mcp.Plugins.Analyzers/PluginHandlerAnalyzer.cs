@@ -7,6 +7,9 @@ using Roslyn.Workbench.Mcp.Plugins.Validation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Validates plugin handler contracts, transport visibility, state ownership and composition boundaries.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
 {
@@ -22,6 +25,7 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
     private const string _importManyAttributeMetadataName = "System.Composition.ImportManyAttribute";
     private const string _importingConstructorAttributeMetadataName = "System.Composition.ImportingConstructorAttribute";
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(
             PluginDiagnosticDescriptors.HandlerContract,
@@ -34,6 +38,7 @@ public sealed class PluginHandlerAnalyzer : DiagnosticAnalyzer
             PluginDiagnosticDescriptors.DestructiveQueryHandler,
             PluginDiagnosticDescriptors.InvalidToolName);
 
+    /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
         if (context is null)

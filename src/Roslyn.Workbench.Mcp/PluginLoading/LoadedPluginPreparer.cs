@@ -2,11 +2,19 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Composes a loaded assembly and validates the plugin registrations it contributes to the catalogue.
+/// </summary>
 internal sealed class LoadedPluginPreparer : ILoadedPluginPreparer
 {
     private readonly IPluginComposer _composer;
     private readonly IPluginConfigurationPreparer _configurationPreparer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoadedPluginPreparer"/> class.
+    /// </summary>
+    /// <param name="composer">The component that composes the plugin's MEF export.</param>
+    /// <param name="configurationPreparer">The component that validates and materializes registered tools and services.</param>
     public LoadedPluginPreparer(
         IPluginComposer composer,
         IPluginConfigurationPreparer configurationPreparer)
@@ -15,6 +23,13 @@ internal sealed class LoadedPluginPreparer : ILoadedPluginPreparer
         _configurationPreparer = configurationPreparer;
     }
 
+    /// <summary>
+    /// Composes a loaded plugin and materializes its validated catalogue metadata.
+    /// </summary>
+    /// <param name="assembly">The loaded plugin entry assembly to compose.</param>
+    /// <param name="entryPoint">The metadata read from the entry assembly before it was loaded.</param>
+    /// <param name="contractAccessibility">The contract accessibility available to the plugin assembly.</param>
+    /// <returns>The prepared catalogue entry, including any composition failure.</returns>
     public PreparedCatalogPlugin Prepare(
         Assembly assembly,
         PluginEntryPointMetadata entryPoint,

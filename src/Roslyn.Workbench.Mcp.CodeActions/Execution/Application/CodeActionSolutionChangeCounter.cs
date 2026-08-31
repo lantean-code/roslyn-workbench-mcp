@@ -1,14 +1,28 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
 
+/// <summary>
+/// Identifies source documents whose effective content changes between two solutions.
+/// </summary>
 internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChangeCounter
 {
     private readonly IWorkspaceDocumentContentService _documentContentService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionSolutionChangeCounter"/> class.
+    /// </summary>
+    /// <param name="documentContentService">The service used to compare normalized document content.</param>
     public CodeActionSolutionChangeCounter(IWorkspaceDocumentContentService documentContentService)
     {
         _documentContentService = documentContentService;
     }
 
+    /// <summary>
+    /// Gets added, removed, or content-modified source documents.
+    /// </summary>
+    /// <param name="before">The solution state before the proposed change.</param>
+    /// <param name="after">The solution state after the proposed change.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the changed source documents.</returns>
     public async ValueTask<IReadOnlyList<Document>> GetChangedSourceDocumentsAsync(
         Solution before,
         Solution after,
@@ -63,6 +77,13 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
         return changedDocuments;
     }
 
+    /// <summary>
+    /// Counts the changed source documents.
+    /// </summary>
+    /// <param name="before">The solution state before the proposed change.</param>
+    /// <param name="after">The solution state after the proposed change.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the number of changed source documents.</returns>
     public async ValueTask<int> CountChangedSourceDocumentsAsync(
         Solution before,
         Solution after,

@@ -42,7 +42,13 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective callers limit.
+    /// </summary>
     internal int EffectiveCallersLimit => ResultLimit.GetEffectiveValue(CallersLimit, _defaultCallersMaxResults);
 
+    /// <summary>
+    /// Gets the effective call sites per caller limit.
+    /// </summary>
     internal int EffectiveCallSitesPerCallerLimit => ResultLimit.GetEffectiveValue(CallSitesPerCallerLimit, _defaultCallSitesPerCallerMaxResults);
 }

@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Projects;
 
+/// <summary>
+/// Resolves project target frameworks and constructs the loaded solution hierarchy.
+/// </summary>
 internal sealed class ProjectStructureService : IProjectStructureService
 {
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
     private readonly IWorkspaceMsBuildPropertiesProvider _msBuildPropertiesProvider;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectStructureService"/> class.
+    /// </summary>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <param name="pathNormalizer">The service used to normalize workspace paths.</param>
+    /// <param name="msBuildPropertiesProvider">The MSBuild properties provider.</param>
     public ProjectStructureService(
         IWorkspacePathComparison pathComparison,
         IWorkspacePathNormalizer pathNormalizer,
@@ -16,11 +25,23 @@ internal sealed class ProjectStructureService : IProjectStructureService
         _msBuildPropertiesProvider = msBuildPropertiesProvider;
     }
 
+    /// <summary>
+    /// Gets the target frameworks inferred for a loaded project.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="project">The loaded project to inspect.</param>
+    /// <returns>The project's distinct target-framework identities.</returns>
     public ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, Project project)
     {
         return GetTargetFrameworks(workspaceId, project.FilePath);
     }
 
+    /// <summary>
+    /// Gets the target frameworks evaluated from a project file.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="projectPath">The project file path being evaluated or resolved.</param>
+    /// <returns>The project's distinct target-framework identities.</returns>
     public ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, string? projectPath)
     {
         var globalProperties = GetGlobalProperties(workspaceId);
@@ -35,6 +56,13 @@ internal sealed class ProjectStructureService : IProjectStructureService
         }
     }
 
+    /// <summary>
+    /// Gets the union of target frameworks used by selected projects.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="projects">The projects included in the selected workspace scope.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The distinct target-framework identities in stable order.</returns>
     public IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(
         Guid workspaceId,
         IReadOnlyList<Project> projects,
@@ -82,6 +110,12 @@ internal sealed class ProjectStructureService : IProjectStructureService
         }
     }
 
+    /// <summary>
+    /// Builds the solution-folder and project hierarchy for a loaded workspace.
+    /// </summary>
+    /// <param name="workspace">The loaded workspace whose hierarchy should be projected.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the solution hierarchy.</returns>
     public async Task<SolutionHierarchyResult> GetSolutionHierarchyAsync(
         WorkspaceIdentity workspace,
         CancellationToken cancellationToken)

@@ -2,6 +2,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
+/// <summary>
+/// Converts discovered actions into published items backed by short-lived replay recipes.
+/// </summary>
 internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
 {
     private readonly ICodeActionReferenceStore _referenceStore;
@@ -9,6 +12,12 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
     private readonly int _maximumDiagnosticContextsPerAction;
     private readonly TimeSpan _referenceLifetime;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionInfoFactory"/> class.
+    /// </summary>
+    /// <param name="referenceStore">The store that retains short-lived action recipes.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
+    /// <param name="options">The reference lifetime and diagnostic context limits.</param>
     public CodeActionInfoFactory(
         ICodeActionReferenceStore referenceStore,
         TimeProvider timeProvider,
@@ -20,6 +29,14 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         _referenceLifetime = options.Value.ReferenceLifetime;
     }
 
+    /// <summary>
+    /// Creates a published action item and retains the recipe needed to rediscover it.
+    /// </summary>
+    /// <param name="action">The discovered leaf action to publish.</param>
+    /// <param name="context">The current Code Action execution context.</param>
+    /// <param name="document">The document in which the action was discovered.</param>
+    /// <param name="location">The canonical source location of the action.</param>
+    /// <returns>The published item or a categorized reason it could not be created.</returns>
     public CodeActionInfoCreationResult Create(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,

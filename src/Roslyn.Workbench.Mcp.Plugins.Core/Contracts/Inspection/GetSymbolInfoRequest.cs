@@ -41,7 +41,13 @@ internal sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective parameters limit.
+    /// </summary>
     internal int EffectiveParametersLimit => ResultLimit.GetEffectiveValue(ParametersLimit, _defaultParametersMaxResults);
 
+    /// <summary>
+    /// Gets the effective declarations limit.
+    /// </summary>
     internal int EffectiveDeclarationsLimit => ResultLimit.GetEffectiveValue(DeclarationsLimit, _defaultDeclarationsMaxResults);
 }

@@ -2,29 +2,32 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
+/// <summary>
+/// Captures one exception in a failure chain together with diagnostic stack frames classified by owning component.
+/// </summary>
 internal sealed record CapturedException
 {
     /// <summary>
-    /// Gets the Component.
+    /// Roslyn Workbench component in which the exception originated.
     /// </summary>
     [Description("Roslyn Workbench component in which the exception originated.")]
     public ErrorReportComponent Component { get; init; }
 
     /// <summary>
-    /// Gets the Type.
+    /// Exception type name.
     /// </summary>
     [Description("Exception type name.")]
     public required string Type { get; init; }
 
     /// <summary>
-    /// Gets the Message.
+    /// Exception message included with the user's consent.
     /// </summary>
     [Description("Exception message included with the user's consent.")]
     public required string Message { get; init; }
 
     /// <summary>
-    /// Gets the Stack Frames.
+    /// Diagnostic stack frames retained from the exception and classified by owning component.
     /// </summary>
-    [Description("First-party stack frames retained for diagnosis.")]
+    [Description("Diagnostic stack frames retained from the exception and classified by owning component.")]
     public ImmutableArray<CapturedStackFrame> StackFrames { get; init; } = [];
 }

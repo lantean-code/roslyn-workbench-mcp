@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 internal sealed record TransactionRollbackData
 {
     /// <summary>
-    /// Gets the resulting workspace state after rollback.
+    /// The resulting workspace state after rollback.
     /// </summary>
     [Description("The resulting workspace state after rollback.")]
     public TransactionRollbackState State { get; init; }

@@ -4,6 +4,9 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Validates, loads and composes bundled assemblies and discovered external plugin packages.
+/// </summary>
 internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
 {
     private readonly IPluginAssemblyMetadataReader _metadataReader;
@@ -11,6 +14,13 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
     private readonly ILoadedPluginPreparer _loadedPluginPreparer;
     private readonly IPluginLoadContextFactory _loadContextFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginCandidatePreparer"/> class.
+    /// </summary>
+    /// <param name="metadataReader">The reader that inspects entry-point metadata without loading code.</param>
+    /// <param name="entryPointValidator">The validator that checks plugin identity and API compatibility.</param>
+    /// <param name="loadedPluginPreparer">The component that composes and validates a loaded assembly.</param>
+    /// <param name="loadContextFactory">The factory that isolates external package dependencies.</param>
     public PluginCandidatePreparer(
         IPluginAssemblyMetadataReader metadataReader,
         IPluginEntryPointValidator entryPointValidator,
@@ -23,6 +33,11 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         _loadContextFactory = loadContextFactory;
     }
 
+    /// <summary>
+    /// Composes the trusted plugin assemblies bundled with the host.
+    /// </summary>
+    /// <param name="bundledAssemblies">The bundled assemblies to include in discovery.</param>
+    /// <returns>Prepared bundled plugins and disabled status entries for rejected assemblies.</returns>
     public PluginCandidatePreparation PrepareBundled(IReadOnlyList<Assembly> bundledAssemblies)
     {
         var plugins = new List<PreparedCatalogPlugin>();
@@ -40,6 +55,12 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         };
     }
 
+    /// <summary>
+    /// Loads and composes accepted external package candidates while rejecting duplicate plugin identifiers.
+    /// </summary>
+    /// <param name="discoveryResults">The plugin discovery results to include in the catalogue.</param>
+    /// <param name="duplicatePluginIds">The external plugin identifiers rejected as duplicates.</param>
+    /// <returns>Prepared external plugins, retained load contexts and status entries for rejected packages.</returns>
     public PluginCandidatePreparation PrepareExternal(
         IReadOnlyList<PluginPackageDiscoveryResult> discoveryResults,
         IReadOnlySet<string> duplicatePluginIds)

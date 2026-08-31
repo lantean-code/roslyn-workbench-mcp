@@ -2,6 +2,9 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
+/// <summary>
+/// Discovers available refactorings and Code Fixes for a selected source range.
+/// </summary>
 internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>
 {
     private const string _toolName = "list-code-actions";
@@ -15,6 +18,16 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ListCodeActionsTool"/> class.
+    /// </summary>
+    /// <param name="composition">The composed service set being inspected.</param>
+    /// <param name="discoveryService">The service that provides discovery operations.</param>
+    /// <param name="diagnosticService">The service used to obtain compiler diagnostics.</param>
+    /// <param name="infoFactory">The factory used to create the required info.</param>
+    /// <param name="providerCatalog">The catalogue used to locate Code Action providers.</param>
+    /// <param name="referenceStore">The store that retains replayable references.</param>
+    /// <param name="requestResolver">The resolver used to obtain request.</param>
     public ListCodeActionsTool(
         ICodeActionComposition composition,
         ICodeActionDiscoveryService discoveryService,
@@ -33,6 +46,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         _requestResolver = requestResolver;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CodeActionExecutionResult<CodeActionListData>> ExecuteCoreAsync(
         ListCodeActionsRequest request,
         ICodeActionQueryContext context,

@@ -11,8 +11,8 @@ internal interface ITransactionService
     /// <param name="workspaceId">The optional workspace identifier.</param>
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The transaction start result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 
     /// <summary>
@@ -24,8 +24,8 @@ internal interface ITransactionService
     /// <param name="document">The optional document selector for a detailed diff.</param>
     /// <param name="includeDiff">A value indicating whether to include a detailed diff.</param>
     /// <param name="contextLines">The requested diff context line count.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The transaction preview result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewAsync(
         Guid? workspaceId,
         string? alias,
@@ -43,8 +43,8 @@ internal interface ITransactionService
     /// <param name="path">The optional workspace path.</param>
     /// <param name="direction">The requested history direction.</param>
     /// <param name="expectedSnapshot">The expected snapshot precondition.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The transaction history result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveHistoryAsync(
         Guid? workspaceId,
         string? alias,
@@ -60,8 +60,8 @@ internal interface ITransactionService
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
     /// <param name="expectedSnapshot">The expected snapshot precondition.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The transaction commit result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
         Guid? workspaceId,
         string? alias,
@@ -75,7 +75,7 @@ internal interface ITransactionService
     /// <param name="workspaceId">The optional workspace identifier.</param>
     /// <param name="alias">The optional workspace alias.</param>
     /// <param name="path">The optional workspace path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The transaction rollback result.</returns>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken);
 }

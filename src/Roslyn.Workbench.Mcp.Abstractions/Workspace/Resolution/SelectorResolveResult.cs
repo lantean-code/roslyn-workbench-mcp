@@ -25,6 +25,11 @@ public sealed record SelectorResolveResult<T>
     [MemberNotNullWhen(true, nameof(Value))]
     public bool IsResolved => Status == SelectorResolveStatus.Resolved && Value is not null;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SelectorResolveResult{T}"/> class.
+    /// </summary>
+    /// <param name="status">The resolution outcome.</param>
+    /// <param name="value">The resolved value, required when <paramref name="status"/> is <see cref="SelectorResolveStatus.Resolved"/>.</param>
     internal SelectorResolveResult(SelectorResolveStatus status, T? value)
     {
         if (status == SelectorResolveStatus.Resolved)

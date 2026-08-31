@@ -44,7 +44,7 @@ public interface IDependencyAnalysisService
     /// <summary>
     /// Finds likely impacted tests for the supplied symbol.
     /// </summary>
-    /// <param name="targetSymbol">The target symbol.</param>
+    /// <param name="targetSymbol">The symbol whose incoming dependencies should be located.</param>
     /// <param name="documents">The candidate test documents.</param>
     /// <param name="includeReasons">Whether explanatory reasons should be included.</param>
     /// <param name="maxResults">The maximum number of impacted tests to return.</param>

@@ -3,6 +3,9 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Detects agent-facing query responses whose top-level collections have no explicit result bound.
+/// </summary>
 internal static class QueryResponseContractInspector
 {
     private static readonly Type[] _rawCollectionDefinitions =
@@ -22,6 +25,11 @@ internal static class QueryResponseContractInspector
         typeof(IAsyncEnumerable<>),
     ];
 
+    /// <summary>
+    /// Identifies an unbounded top-level collection exposed by a query response contract.
+    /// </summary>
+    /// <param name="tool">The registered tool whose response contract should be inspected.</param>
+    /// <returns>A warning describing the unbounded collection, or <see langword="null"/> when the contract is bounded.</returns>
     public static string? Inspect(RegisteredTool tool)
     {
         if (tool.Kind != ToolKind.Query

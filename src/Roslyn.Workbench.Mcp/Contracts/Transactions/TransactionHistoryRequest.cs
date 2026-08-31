@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 internal sealed record TransactionHistoryRequest : WorkspaceMutationRequest
 {
     /// <summary>
-    /// Gets the requested history direction.
+    /// Direction to move through transaction history: Undo or Redo.
     /// </summary>
     [Description("Direction to move through transaction history: Undo or Redo.")]
     public required TransactionHistoryDirection Direction { get; init; }

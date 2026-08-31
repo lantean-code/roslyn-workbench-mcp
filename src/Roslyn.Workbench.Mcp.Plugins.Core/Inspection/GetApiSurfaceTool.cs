@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns exported API symbols for a selected scope.
+/// </summary>
 [RoslynTool("get-api-surface", "Get API Surface", "Returns exported API symbols for a selected scope.")]
 internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest, ApiSurfaceData>
 {
@@ -16,6 +19,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         public static AccessibilityThreshold Internal { get; } = new();
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<ApiSurfaceData>> ExecuteCoreAsync(GetApiSurfaceRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<ApiSurfaceData>(request.Scope, context);

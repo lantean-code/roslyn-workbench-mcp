@@ -1,14 +1,22 @@
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
+/// <summary>
+/// Canonicalises and projects paths while converting expected path failures into unsuccessful results.
+/// </summary>
 internal sealed class WorkspacePathNormalizer : IWorkspacePathNormalizer
 {
     private readonly IFileSystem _fileSystem;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspacePathNormalizer"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system whose path semantics are applied.</param>
     public WorkspacePathNormalizer(IFileSystem fileSystem)
     {
         _fileSystem = fileSystem;
     }
 
+    /// <inheritdoc/>
     public bool TryGetFullPath(string path, out string fullPath)
     {
         return TryNormalize(
@@ -16,6 +24,7 @@ internal sealed class WorkspacePathNormalizer : IWorkspacePathNormalizer
             out fullPath);
     }
 
+    /// <inheritdoc/>
     public bool TryGetFullPath(string path, string basePath, out string fullPath)
     {
         return TryNormalize(
@@ -23,6 +32,7 @@ internal sealed class WorkspacePathNormalizer : IWorkspacePathNormalizer
             out fullPath);
     }
 
+    /// <inheritdoc/>
     public bool TryGetWorkspaceRelativePath(string workspaceRoot, string path, out string relativePath)
     {
         if (string.IsNullOrWhiteSpace(workspaceRoot))

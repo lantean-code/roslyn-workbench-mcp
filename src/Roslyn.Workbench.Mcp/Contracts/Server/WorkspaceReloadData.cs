@@ -6,25 +6,25 @@ namespace Roslyn.Workbench.Mcp.Contracts.Server;
 internal sealed record WorkspaceReloadData
 {
     /// <summary>
-    /// Gets the reloaded workspace identity.
+    /// The reloaded workspace identity.
     /// </summary>
     [Description("The reloaded workspace identity.")]
     public WorkspaceIdentity? Workspace { get; init; }
 
     /// <summary>
-    /// Gets the loaded project count.
+    /// The loaded project count.
     /// </summary>
     [Description("The loaded project count.")]
     public int ProjectCount { get; init; }
 
     /// <summary>
-    /// Gets the loaded document count.
+    /// The loaded document count.
     /// </summary>
     [Description("The loaded document count.")]
     public int DocumentCount { get; init; }
 
     /// <summary>
-    /// Gets the workspace load diagnostics.
+    /// The workspace load diagnostics.
     /// </summary>
     [Description("The workspace load diagnostics.")]
     public IReadOnlyList<DiagnosticInfo> LoadDiagnostics { get; init; } = [];

@@ -33,5 +33,8 @@ internal sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultDiagnosticsMaxResults)]
     public int? DiagnosticsLimit { get; init; } = _defaultDiagnosticsMaxResults;
 
+    /// <summary>
+    /// Gets the effective diagnostics limit.
+    /// </summary>
     internal int EffectiveDiagnosticsLimit => ResultLimit.GetEffectiveValue(DiagnosticsLimit, _defaultDiagnosticsMaxResults);
 }

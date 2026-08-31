@@ -1,7 +1,15 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
+/// <summary>
+/// Maps neutral workspace failures and mutation outcomes onto plugin execution contracts.
+/// </summary>
 internal static class PluginWorkspaceResultMapper
 {
+    /// <summary>
+    /// Maps a workspace acquisition failure to the plugin failure projection.
+    /// </summary>
+    /// <param name="failure">The neutral workspace failure.</param>
+    /// <returns>The corresponding plugin execution failure.</returns>
     public static ToolExecutionFailureResult MapFailure(WorkspaceExecutionFailure failure)
     {
         return new ToolExecutionFailureResult
@@ -16,6 +24,11 @@ internal static class PluginWorkspaceResultMapper
         };
     }
 
+    /// <summary>
+    /// Maps a workspace mutation staging result to the corresponding plugin outcome.
+    /// </summary>
+    /// <param name="result">The neutral mutation staging result.</param>
+    /// <returns>The plugin mutation execution result.</returns>
     public static PluginExecutionResult<MutationData> MapMutation(
         WorkspaceOperationResult<MutationStagingOutcome> result)
     {

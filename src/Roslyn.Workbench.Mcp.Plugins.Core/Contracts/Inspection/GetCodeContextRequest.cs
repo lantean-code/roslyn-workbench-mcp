@@ -66,11 +66,23 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective before lines.
+    /// </summary>
     internal int EffectiveBeforeLines => ResultLimit.GetEffectiveValue(BeforeLines, _defaultBeforeLines);
 
+    /// <summary>
+    /// Gets the effective after lines.
+    /// </summary>
     internal int EffectiveAfterLines => ResultLimit.GetEffectiveValue(AfterLines, _defaultAfterLines);
 
+    /// <summary>
+    /// Gets the effective enclosing symbols limit.
+    /// </summary>
     internal int EffectiveEnclosingSymbolsLimit => ResultLimit.GetEffectiveValue(EnclosingSymbolsLimit, _defaultEnclosingSymbolsMaxResults);
 
+    /// <summary>
+    /// Gets the effective diagnostics limit.
+    /// </summary>
     internal int EffectiveDiagnosticsLimit => ResultLimit.GetEffectiveValue(DiagnosticsLimit, _defaultDiagnosticsMaxResults);
 }

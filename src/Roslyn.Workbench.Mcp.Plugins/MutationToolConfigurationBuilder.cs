@@ -7,6 +7,7 @@ public sealed class MutationToolConfigurationBuilder : ToolConfigurationBuilder<
 {
     private bool? _destructive;
 
+    /// <inheritdoc cref="IToolConfigurationBuilderState.Destructive"/>
     internal override bool? Destructive => _destructive;
 
     /// <summary>

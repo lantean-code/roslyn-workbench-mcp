@@ -11,6 +11,12 @@ internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
 {
     private readonly IAsyncDisposable? _lease;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ToolExecutionContextLease{TContext}"/> class.
+    /// </summary>
+    /// <param name="context">The context available to the invocation, when acquired.</param>
+    /// <param name="shortCircuitResult">The failure that prevents handler execution, when rejected.</param>
+    /// <param name="lease">The underlying resource lease to release after execution.</param>
     internal ToolExecutionContextLease(TContext? context, ToolExecutionFailureResult? shortCircuitResult, IAsyncDisposable? lease)
     {
         Context = context;
@@ -42,11 +48,15 @@ internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     }
 }
 
+/// <summary>
+/// Creates execution-context leases whose context and short-circuit state obey their nullable invariants.
+/// </summary>
 internal static class ToolExecutionContextLease
 {
     /// <summary>
     /// Creates a successful leased context.
     /// </summary>
+    /// <typeparam name="TContext">The type of tool execution context held by the lease.</typeparam>
     /// <param name="context">The leased execution context.</param>
     /// <param name="lease">The lease to dispose when execution completes.</param>
     /// <returns>The leased execution context.</returns>
@@ -61,6 +71,7 @@ internal static class ToolExecutionContextLease
     /// <summary>
     /// Creates a short-circuit result with an optional execution context.
     /// </summary>
+    /// <typeparam name="TContext">The type of tool execution context held by the lease.</typeparam>
     /// <param name="result">The short-circuit result.</param>
     /// <param name="context">The optional execution context.</param>
     /// <param name="lease">The lease to dispose when execution completes.</param>

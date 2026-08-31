@@ -5,6 +5,9 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Builds the startup plugin catalogue while isolating failures to individual external plugins where possible.
+/// </summary>
 internal sealed class PluginCatalogLoader : IPluginCatalogLoader
 {
     private readonly IPluginCandidatePreparer _candidatePreparer;
@@ -12,6 +15,13 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
     private readonly IPluginCollisionPolicy _collisionPolicy;
     private readonly IPluginPackageDiscovery _packageDiscovery;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginCatalogLoader"/> class.
+    /// </summary>
+    /// <param name="candidatePreparer">The component that validates and prepares discovered plugin candidates.</param>
+    /// <param name="entryMaterializer">The component that creates runtime entries for prepared plugins.</param>
+    /// <param name="collisionPolicy">The policy that rejects duplicate plugins and protected tool names.</param>
+    /// <param name="packageDiscovery">The component that discovers plugin packages beneath configured roots.</param>
     public PluginCatalogLoader(
         IPluginCandidatePreparer candidatePreparer,
         IPluginCatalogEntryMaterializer entryMaterializer,
@@ -24,6 +34,13 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         _packageDiscovery = packageDiscovery;
     }
 
+    /// <summary>
+    /// Discovers, validates, collision-checks and materializes bundled and external plugins.
+    /// </summary>
+    /// <param name="startupOptions">The configured external plugin directories.</param>
+    /// <param name="bundledAssemblies">The bundled assemblies to include in discovery.</param>
+    /// <param name="reservedToolNames">The host-owned tool names that external plugins may not publish.</param>
+    /// <returns>The immutable catalogue snapshot and all resources it owns.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

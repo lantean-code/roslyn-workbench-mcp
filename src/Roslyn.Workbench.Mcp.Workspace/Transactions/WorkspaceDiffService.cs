@@ -1,7 +1,11 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Creates change summaries and document diffs for workspace transactions.
+/// </summary>
 internal sealed class WorkspaceDiffService : IWorkspaceDiffBuilder
 {
+    /// <inheritdoc/>
     public async ValueTask<ChangeSummary> CreateChangeSummaryAsync(
         Solution baselineSolution,
         Solution currentSolution,
@@ -15,6 +19,7 @@ internal sealed class WorkspaceDiffService : IWorkspaceDiffBuilder
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<DocumentDiff?> CreateDocumentDiffAsync(
         Solution baselineSolution,
         Solution currentSolution,

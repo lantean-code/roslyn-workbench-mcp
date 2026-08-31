@@ -1,10 +1,17 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Configuration;
 
+/// <summary>
+/// Provides default values for state directory.
+/// </summary>
 internal static class StateDirectoryDefaults
 {
     private const string _applicationDirectoryName = "roslyn-workbench-mcp";
     private const string _stateDirectoryName = "state";
 
+    /// <summary>
+    /// Gets default path.
+    /// </summary>
+    /// <returns>The default path.</returns>
     public static string GetDefaultPath()
     {
         if (OperatingSystem.IsLinux())

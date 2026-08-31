@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Selection;
 
+/// <summary>
+/// Selects a loaded workspace by identifier, alias, path, or unambiguous default.
+/// </summary>
 internal sealed class WorkspaceSelectorService : IWorkspaceSelector
 {
     private const string _workspaceSelectorRequiredCode = "WorkspaceSelectorRequired";
@@ -9,6 +12,11 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceSelectorService"/> class.
+    /// </summary>
+    /// <param name="workspacePathComparison">The comparison rules used for workspace path.</param>
+    /// <param name="pathNormalizer">The service used to normalize workspace paths.</param>
     public WorkspaceSelectorService(
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathNormalizer pathNormalizer)
@@ -17,6 +25,12 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         _pathNormalizer = pathNormalizer;
     }
 
+    /// <summary>
+    /// Selects a workspace from the host snapshot using the supplied selector.
+    /// </summary>
+    /// <param name="hostSnapshot">The immutable host catalogue snapshot used for tool selection.</param>
+    /// <param name="selector">The selector that identifies the requested workspace scope.</param>
+    /// <returns>The selected session or a structured selection error.</returns>
     public WorkspaceSelectionResult Select(WorkspaceHostSnapshot hostSnapshot, WorkspaceSelector? selector)
     {
         if (selector is not null)

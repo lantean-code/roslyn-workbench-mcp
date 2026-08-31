@@ -6,6 +6,9 @@ using System.Text.Json.Serialization;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 
+/// <summary>
+/// Prepares error reports as structured JSON and writes approved submissions to standard error.
+/// </summary>
 internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatcher
 {
     private const string _destination = "standard error (stderr)";
@@ -16,15 +19,30 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
 
     private readonly ILogger<LoggingErrorReportDispatcher> _loggerInstance;
 
+    /// <summary>
+    /// Gets the provider name shown during review and in submission results.
+    /// </summary>
     public string Name => "Logging";
 
+    /// <summary>
+    /// Gets the standard-error destination shown before approval.
+    /// </summary>
     public string Destination => _destination;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoggingErrorReportDispatcher"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record diagnostic information.</param>
     public LoggingErrorReportDispatcher(ILogger<LoggingErrorReportDispatcher> logger)
     {
         _loggerInstance = logger;
     }
 
+    /// <summary>
+    /// Creates the structured log entry presented for review.
+    /// </summary>
+    /// <param name="report">The projected error report to encode as a log entry.</param>
+    /// <returns>The UTF-8 JSON preview and dispatch state for the log entry.</returns>
     public PreparedDispatchPayload CreatePayload(ExternalErrorReport report)
     {
         return CreateLoggingPayload(report);
@@ -48,6 +66,13 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
         };
     }
 
+    /// <summary>
+    /// Applies the approved exception-message policy and writes the prepared error report to the application log.
+    /// </summary>
+    /// <param name="payload">The prepared payload approved for dispatch.</param>
+    /// <param name="messageHandling">Whether captured exception messages are included or removed before dispatch.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the logging outcome or a validation failure.</returns>
     public ValueTask<ErrorDispatchResult> DispatchAsync(
         PreparedDispatchPayload payload,
         ExceptionMessageHandling messageHandling,

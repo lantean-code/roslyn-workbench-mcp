@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Evaluates project imports, source-item globs and output roots under design-time MSBuild properties.
+/// </summary>
 internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputResolver
 {
     private static readonly string[] _workspaceItemTypes = ["Compile", "AdditionalFiles", "EditorConfigFiles"];
@@ -19,11 +22,16 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
 
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceProjectInputResolver"/> class.
+    /// </summary>
+    /// <param name="pathComparison">The path normalizer and comparer used to remove duplicate inputs.</param>
     public WorkspaceProjectInputResolver(IWorkspacePathComparison pathComparison)
     {
         _pathComparison = pathComparison;
     }
 
+    /// <inheritdoc/>
     public WorkspaceProjectInputResolution Resolve(
         string? projectPath,
         WorkspaceMsBuildProperties? msBuildProperties = null)

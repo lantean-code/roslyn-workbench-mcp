@@ -56,6 +56,10 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
         }
     }
 
+    /// <summary>
+    /// Releases a previously granted shared or exclusive lease.
+    /// </summary>
+    /// <param name="isExclusive">Whether the workspace lease holds exclusive ownership.</param>
     internal void Release(bool isExclusive)
     {
         lock (_syncRoot)

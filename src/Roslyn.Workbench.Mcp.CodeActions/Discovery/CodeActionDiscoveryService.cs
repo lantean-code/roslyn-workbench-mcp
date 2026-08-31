@@ -4,15 +4,28 @@ using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
+/// <summary>
+/// Invokes Code Action providers and flattens their registered actions into replayable leaves.
+/// </summary>
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
     private readonly ICodeActionPolicy _policy;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionDiscoveryService"/> class.
+    /// </summary>
+    /// <param name="policy">The policy that excludes unsupported providers and actions.</param>
     public CodeActionDiscoveryService(ICodeActionPolicy policy)
     {
         _policy = policy;
     }
 
+    /// <summary>
+    /// Reads a Code Fix provider's supported diagnostic identifiers.
+    /// </summary>
+    /// <param name="provider">The provider used to perform the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The code action provider invocation result.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -51,6 +64,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
     }
 
+    /// <summary>
+    /// Discovers eligible refactoring leaves for a source span.
+    /// </summary>
+    /// <param name="provider">The provider used to perform the operation.</param>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="span">The source span to which the operation applies.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the code action provider invocation result.</returns>
     public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
@@ -65,6 +86,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
     }
 
+    /// <summary>
+    /// Discovers eligible Code Fix leaves for supplied diagnostics.
+    /// </summary>
+    /// <param name="providerMetadata">The metadata describing the Code Action provider.</param>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="diagnostics">The diagnostics to include in the operation result.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the code action provider invocation result.</returns>
     public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> DiscoverCodeFixesAsync(
         CodeFixProviderMetadata providerMetadata,
         Document document,
@@ -79,6 +108,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
     }
 
+    /// <summary>
+    /// Rediscovers refactoring actions for the selected source.
+    /// </summary>
+    /// <param name="provider">The provider used to perform the operation.</param>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="span">The source span to which the operation applies.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the code action provider invocation result.</returns>
     public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,
@@ -93,6 +130,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
     }
 
+    /// <summary>
+    /// Rediscovers code fixes for the selected diagnostic.
+    /// </summary>
+    /// <param name="providerMetadata">The metadata describing the Code Action provider.</param>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="diagnostics">The diagnostics to include in the operation result.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the code action provider invocation result.</returns>
     public async ValueTask<CodeActionProviderInvocationResult<IReadOnlyList<DiscoveredCodeAction>>> RediscoverCodeFixesAsync(
         CodeFixProviderMetadata providerMetadata,
         Document document,

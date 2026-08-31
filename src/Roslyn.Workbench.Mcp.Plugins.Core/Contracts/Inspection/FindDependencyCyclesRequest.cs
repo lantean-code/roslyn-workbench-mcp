@@ -49,9 +49,18 @@ internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultEdgesMaxResults)]
     public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;
 
+    /// <summary>
+    /// Gets the effective cycles limit.
+    /// </summary>
     internal int EffectiveCyclesLimit => ResultLimit.GetEffectiveValue(CyclesLimit, _defaultCyclesMaxResults);
 
+    /// <summary>
+    /// Gets the effective nodes limit.
+    /// </summary>
     internal int EffectiveNodesLimit => ResultLimit.GetEffectiveValue(NodesLimit, _defaultNodesMaxResults);
 
+    /// <summary>
+    /// Gets the effective edges limit.
+    /// </summary>
     internal int EffectiveEdgesLimit => ResultLimit.GetEffectiveValue(EdgesLimit, _defaultEdgesMaxResults);
 }

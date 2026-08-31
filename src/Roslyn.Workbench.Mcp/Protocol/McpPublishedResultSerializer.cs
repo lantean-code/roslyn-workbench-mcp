@@ -2,8 +2,16 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Converts plugin and Code Action execution results into the common MCP response envelopes.
+/// </summary>
 internal static class McpPublishedResultSerializer
 {
+    /// <summary>
+    /// Serializes a failed plugin invocation.
+    /// </summary>
+    /// <param name="result">The failed plugin result.</param>
+    /// <returns>The published failure envelope.</returns>
     public static JsonElement SerializePluginFailure(ToolExecutionFailureResult result)
     {
         if (!result.Outcome.IsError())
@@ -20,6 +28,13 @@ internal static class McpPublishedResultSerializer
             result.Warnings);
     }
 
+    /// <summary>
+    /// Serializes a plugin query result against the snapshot it inspected.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="result">The plugin query result.</param>
+    /// <param name="snapshot">The workspace snapshot against which the operation runs.</param>
+    /// <returns>A success or failure envelope for the query.</returns>
     public static JsonElement SerializePluginQuery<TResponse>(
         PluginExecutionResult<TResponse> result,
         SnapshotPrecondition snapshot)
@@ -33,6 +48,12 @@ internal static class McpPublishedResultSerializer
         return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
     }
 
+    /// <summary>
+    /// Serializes a plugin mutation result, including whether it staged a change.
+    /// </summary>
+    /// <param name="result">The plugin mutation result.</param>
+    /// <param name="currentSnapshot">The current workspace snapshot attached to the mutation result.</param>
+    /// <returns>A success or failure envelope for the mutation.</returns>
     public static JsonElement SerializePluginMutation(
         PluginExecutionResult<MutationData> result,
         SnapshotPrecondition currentSnapshot)
@@ -50,6 +71,11 @@ internal static class McpPublishedResultSerializer
             currentSnapshot);
     }
 
+    /// <summary>
+    /// Serializes a failed Code Action invocation.
+    /// </summary>
+    /// <param name="result">The failed Code Action result.</param>
+    /// <returns>The published failure envelope.</returns>
     public static JsonElement SerializeCodeActionFailure(CodeActionExecutionFailure result)
     {
         if (!result.Outcome.IsError())
@@ -66,6 +92,13 @@ internal static class McpPublishedResultSerializer
             result.Warnings);
     }
 
+    /// <summary>
+    /// Serializes a Code Action query result against the snapshot it inspected.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="result">The Code Action query result.</param>
+    /// <param name="snapshot">The workspace snapshot against which the operation runs.</param>
+    /// <returns>A success or failure envelope for the query.</returns>
     public static JsonElement SerializeCodeActionQuery<TResponse>(
         CodeActionExecutionResult<TResponse> result,
         SnapshotPrecondition snapshot)
@@ -79,6 +112,12 @@ internal static class McpPublishedResultSerializer
         return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
     }
 
+    /// <summary>
+    /// Serializes a Code Action mutation result, including whether it staged a change.
+    /// </summary>
+    /// <param name="result">The Code Action mutation result.</param>
+    /// <param name="currentSnapshot">The current workspace snapshot attached to the mutation result.</param>
+    /// <returns>A success or failure envelope for the mutation.</returns>
     public static JsonElement SerializeCodeActionMutation(
         CodeActionExecutionResult<MutationData> result,
         SnapshotPrecondition currentSnapshot)

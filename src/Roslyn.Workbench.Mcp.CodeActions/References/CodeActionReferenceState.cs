@@ -5,6 +5,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.References;
 
+/// <summary>
+/// Maintains the bounded cache and invalidation indexes for temporary Code Action references.
+/// </summary>
 internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDisposable
 {
     private const long _preparedFixAllFixedCharge = 2;
@@ -22,6 +25,11 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
     private long _entryCount;
     private long _largestEntryCharge;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionReferenceState"/> class.
+    /// </summary>
+    /// <param name="options">The reference-cache capacity options.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
     public CodeActionReferenceState(
         IOptions<CodeActionReferenceCacheOptions> options,
         TimeProvider timeProvider)
@@ -41,6 +49,11 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         _workspaceIndex = [];
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionReferenceState"/> class.
+    /// </summary>
+    /// <param name="cache">The cache that retains replayable Code Action references.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
     internal CodeActionReferenceState(
         IMemoryCache cache,
         TimeProvider timeProvider)
@@ -54,6 +67,9 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         _workspaceIndex = [];
     }
 
+    /// <summary>
+    /// Releases resources held by this instance.
+    /// </summary>
     public void Dispose()
     {
         if (_ownsCache)
@@ -62,6 +78,13 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         }
     }
 
+    /// <summary>
+    /// Attempts to cache a replay recipe and create a temporary reference for it.
+    /// </summary>
+    /// <param name="recipe">The replay recipe used to reconstruct the Code Action.</param>
+    /// <param name="expiresAt">The time after which the stored value is no longer valid.</param>
+    /// <param name="reference">The created reference when the cache admits the recipe.</param>
+    /// <returns><see langword="true"/> when the cache admits the reference; otherwise, <see langword="false"/>.</returns>
     public bool TryCreate(
         CodeActionReplayRecipe recipe,
         DateTimeOffset expiresAt,
@@ -96,6 +119,12 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         }
     }
 
+    /// <summary>
+    /// Attempts to retrieve an unexpired Code Action reference.
+    /// </summary>
+    /// <param name="actionId">The action identifier.</param>
+    /// <param name="reference">The matching unexpired reference, when found.</param>
+    /// <returns><see langword="true"/> when an unexpired reference exists; otherwise, <see langword="false"/>.</returns>
     public bool TryGet(
         Guid actionId,
         [NotNullWhen(true)] out CodeActionReference? reference)
@@ -135,6 +164,10 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         return false;
     }
 
+    /// <summary>
+    /// Removes a Code Action reference from the cache and its invalidation indexes.
+    /// </summary>
+    /// <param name="actionId">The action identifier.</param>
     public void Remove(Guid actionId)
     {
         lock (_syncRoot)
@@ -149,18 +182,34 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         _cache.Remove(key);
     }
 
+    /// <summary>
+    /// Determines whether the reference identifies a prepared Fix All operation.
+    /// </summary>
+    /// <param name="actionId">The action identifier.</param>
+    /// <returns><see langword="true"/> when the reference exists and represents a prepared Fix All operation; otherwise, <see langword="false"/>.</returns>
     public bool IsPreparedFixAll(Guid actionId)
     {
         return TryGet(actionId, out var reference)
             && reference.Recipe.PreparedFixAll is not null;
     }
 
+    /// <summary>
+    /// Invalidates references owned by the specified workspace.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="workspaceEpoch">The workspace epoch that the operation expects.</param>
     public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         var workspaceKey = new WorkspaceInstanceCacheKey(workspaceId, workspaceEpoch);
         RemoveIndexedReferences(_workspaceIndex, workspaceKey);
     }
 
+    /// <summary>
+    /// Invalidates references owned by the specified transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="workspaceEpoch">The workspace epoch that the operation expects.</param>
+    /// <param name="transactionId">The transaction identifier.</param>
     public void InvalidateTransaction(
         Guid workspaceId,
         long workspaceEpoch,
@@ -174,6 +223,10 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         RemoveIndexedReferences(_transactionIndex, transactionKey);
     }
 
+    /// <summary>
+    /// Invalidates references whose workspace snapshots are stale.
+    /// </summary>
+    /// <param name="snapshots">The snapshot identities whose Code Action references must be invalidated.</param>
     public void InvalidateSnapshots(IReadOnlyList<WorkspaceSnapshotIdentity> snapshots)
     {
         foreach (var snapshot in snapshots)

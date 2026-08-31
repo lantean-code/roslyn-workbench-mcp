@@ -2,8 +2,12 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Diagnostics;
 
+/// <summary>
+/// Collects and de-duplicates compiler diagnostics belonging to an explicitly selected document set.
+/// </summary>
 internal sealed class CompilerDiagnosticService : ICompilerDiagnosticService
 {
+    /// <inheritdoc/>
     public async ValueTask<IReadOnlyList<Diagnostic>> GetCompilerDiagnosticsAsync(
         IReadOnlyList<Document> selectedDocuments,
         CancellationToken cancellationToken)

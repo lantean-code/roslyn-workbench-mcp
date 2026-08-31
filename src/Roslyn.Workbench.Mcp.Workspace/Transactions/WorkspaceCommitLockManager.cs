@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Acquires a physically contained cross-process commit lock for a workspace root.
+/// </summary>
 internal sealed class WorkspaceCommitLockManager : IWorkspaceCommitLockManager
 {
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspaceFileLockProvider _fileLockProvider;
     private readonly IPhysicalPathContainment _pathContainment;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceCommitLockManager"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="fileLockProvider">The provider used to acquire the lock file.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
     public WorkspaceCommitLockManager(
         IFileSystem fileSystem,
         IWorkspaceFileLockProvider fileLockProvider,
@@ -16,6 +25,11 @@ internal sealed class WorkspaceCommitLockManager : IWorkspaceCommitLockManager
         _pathContainment = pathContainment;
     }
 
+    /// <summary>
+    /// Acquires the workspace commit lock.
+    /// </summary>
+    /// <param name="workspaceRoot">The workspace root path.</param>
+    /// <returns>The acquired lock or a classified contention or failure result.</returns>
     public WorkspaceCommitLockAcquisition Acquire(string workspaceRoot)
     {
         try

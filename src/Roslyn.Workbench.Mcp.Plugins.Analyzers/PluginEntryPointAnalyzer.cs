@@ -5,6 +5,9 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Validates plugin entry-point markers, contracts, identity metadata and supported API versions.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PluginEntryPointAnalyzer : DiagnosticAnalyzer
 {
@@ -16,6 +19,7 @@ public sealed class PluginEntryPointAnalyzer : DiagnosticAnalyzer
     private const string _mutationHandlerMetadataName = "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1";
     private const string _supportedApiVersionFieldName = "V1";
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(
             PluginDiagnosticDescriptors.PluginEntryPointContract,
@@ -24,6 +28,7 @@ public sealed class PluginEntryPointAnalyzer : DiagnosticAnalyzer
             PluginDiagnosticDescriptors.BlankPluginIdentity,
             PluginDiagnosticDescriptors.ToolMetadataWithoutHandler);
 
+    /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
         if (context is null)

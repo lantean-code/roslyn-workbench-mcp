@@ -3,11 +3,21 @@ using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Tools;
 
+/// <summary>
+/// Returns a locally retained captured error without projecting it for external submission.
+/// </summary>
 internal sealed class GetErrorDetailsTool :
     ServerOwnedToolBase<GetErrorDetailsRequest, ErrorDetailsData>
 {
     private readonly ICapturedErrorStore _store;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GetErrorDetailsTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="store">The store containing captured errors available for inspection.</param>
     public GetErrorDetailsTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -26,6 +36,7 @@ internal sealed class GetErrorDetailsTool :
         _store = store;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask<ToolResult<ErrorDetailsData>> ExecuteAsync(
         GetErrorDetailsRequest request,
         CancellationToken cancellationToken)

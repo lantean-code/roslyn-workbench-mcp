@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
-/// Identifies the kind of a discovered code action.
+/// Identifies the kind of a discovered Code Action.
 /// </summary>
 internal enum CodeActionKind
 {

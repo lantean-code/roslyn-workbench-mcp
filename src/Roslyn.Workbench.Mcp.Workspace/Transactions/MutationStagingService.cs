@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Validates and appends mutation candidates to active transactions.
+/// </summary>
 internal sealed class MutationStagingService : IMutationStagingService
 {
     private readonly IWorkspaceOperationResultFactory _resultFactory;
@@ -10,6 +13,16 @@ internal sealed class MutationStagingService : IMutationStagingService
     private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
     private readonly IWorkspaceMutationCandidateIdentityService _candidateIdentityService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MutationStagingService"/> class.
+    /// </summary>
+    /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
+    /// <param name="sessionStore">The store that retains session.</param>
+    /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
+    /// <param name="resolverFactory">The factory used to create the required resolver.</param>
+    /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="candidateProcessor">The processor that normalizes and validates a candidate solution before staging.</param>
+    /// <param name="candidateIdentityService">The service that creates and validates candidate solution identities.</param>
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
         IWorkspaceSessionStore sessionStore,
@@ -28,6 +41,15 @@ internal sealed class MutationStagingService : IMutationStagingService
         _candidateIdentityService = candidateIdentityService;
     }
 
+    /// <summary>
+    /// Validates, normalises, and stages one mutation candidate.
+    /// </summary>
+    /// <param name="operationName">The operation name recorded in transaction history and results.</param>
+    /// <param name="candidate">The proposed solution and its staging precondition.</param>
+    /// <param name="diagnostics">The diagnostics to include in the operation result.</param>
+    /// <param name="warnings">The warnings to include in the operation result.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the staged mutation result or a structured rejection.</returns>
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
         string operationName,
         WorkspaceMutationCandidate candidate,

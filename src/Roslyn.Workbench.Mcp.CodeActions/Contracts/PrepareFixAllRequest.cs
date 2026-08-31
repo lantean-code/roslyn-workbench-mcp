@@ -11,19 +11,19 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     private const int _defaultMaxChanges = 50;
 
     /// <summary>
-    /// Gets the opaque originating Code Fix reference.
+    /// The opaque originating Code Fix reference.
     /// </summary>
     [Description("The opaque originating Code Fix reference.")]
     public required Guid ActionId { get; init; }
 
     /// <summary>
-    /// Gets the explicit Fix All scope.
+    /// The explicit Fix All scope.
     /// </summary>
     [Description("The explicit Fix All scope.")]
     public required CodeActionFixAllScope Scope { get; init; }
 
     /// <summary>
-    /// Gets the maximum number of changed source documents to allow.
+    /// The maximum number of changed source documents to allow.
     /// </summary>
     [Description("The maximum number of changed source documents to allow.")]
     [Range(0, int.MaxValue)]
@@ -31,7 +31,7 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
     /// <summary>
-    /// Gets the maximum number of affected document identities to return.
+    /// The maximum number of affected document identities to return.
     /// </summary>
     [Description("The maximum number of affected document identities to return.")]
     [Range(0, int.MaxValue)]
@@ -39,12 +39,18 @@ internal sealed record PrepareFixAllRequest : WorkspaceBoundRequest
     public int? AffectedDocumentsLimit { get; init; } = _defaultAffectedDocumentsLimit;
 
     /// <summary>
-    /// Gets the expected Workspace snapshot.
+    /// Gets the workspace snapshot associated with the originating Code Fix reference.
     /// </summary>
     public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the maximum changed-document count after applying the default.
+    /// </summary>
     internal int EffectiveMaxChanges => ResultLimit.GetEffectiveValue(MaxChanges, _defaultMaxChanges);
 
+    /// <summary>
+    /// Gets the affected-document response limit after applying the default.
+    /// </summary>
     internal int EffectiveAffectedDocumentsLimit => ResultLimit.GetEffectiveValue(
         AffectedDocumentsLimit,
         _defaultAffectedDocumentsLimit);

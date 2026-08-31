@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns likely impacted tests for a resolved symbol.
+/// </summary>
 [RoslynTool("get-test-impact", "Get Test Impact", "Returns likely impacted tests for a resolved symbol.")]
 internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest, TestImpactData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<TestImpactData>> ExecuteCoreAsync(GetTestImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TestImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);

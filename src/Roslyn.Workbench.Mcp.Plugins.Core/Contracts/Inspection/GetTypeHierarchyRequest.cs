@@ -59,9 +59,18 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective base types limit.
+    /// </summary>
     internal int EffectiveBaseTypesLimit => ResultLimit.GetEffectiveValue(BaseTypesLimit, _defaultBaseTypesMaxResults);
 
+    /// <summary>
+    /// Gets the effective interfaces limit.
+    /// </summary>
     internal int EffectiveInterfacesLimit => ResultLimit.GetEffectiveValue(InterfacesLimit, _defaultInterfacesMaxResults);
 
+    /// <summary>
+    /// Gets the effective derived types limit.
+    /// </summary>
     internal int EffectiveDerivedTypesLimit => ResultLimit.GetEffectiveValue(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
 }

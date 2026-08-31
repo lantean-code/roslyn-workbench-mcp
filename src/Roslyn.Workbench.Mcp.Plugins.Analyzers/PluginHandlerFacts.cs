@@ -3,8 +3,20 @@ using Microsoft.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Classifies a type's implemented plugin handler contracts and marker interfaces.
+/// </summary>
 internal static class PluginHandlerFacts
 {
+    /// <summary>
+    /// Collects the closed query and mutation handler contracts implemented by a type.
+    /// </summary>
+    /// <param name="handlerType">The possible handler type.</param>
+    /// <param name="queryHandlerDefinition">The open generic query-handler contract.</param>
+    /// <param name="mutationHandlerDefinition">The open generic mutation-handler contract.</param>
+    /// <param name="queryHandlerMarker">The optional non-generic query-handler marker.</param>
+    /// <param name="mutationHandlerMarker">The optional non-generic mutation-handler marker.</param>
+    /// <returns>The implemented contracts and whether the type is a handler candidate.</returns>
     public static PluginHandlerContractSet GetContracts(
         INamedTypeSymbol handlerType,
         INamedTypeSymbol queryHandlerDefinition,

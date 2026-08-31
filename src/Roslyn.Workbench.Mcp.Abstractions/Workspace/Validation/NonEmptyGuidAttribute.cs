@@ -9,7 +9,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Validation;
 public sealed class NonEmptyGuidAttribute : ValidationAttribute
 {
     /// <summary>
-    /// Initialises a new instance of the <see cref="NonEmptyGuidAttribute"/> class.
+    /// Initializes a new instance of the <see cref="NonEmptyGuidAttribute"/> class.
     /// </summary>
     public NonEmptyGuidAttribute()
         : base("The {0} field must not be an empty GUID.")

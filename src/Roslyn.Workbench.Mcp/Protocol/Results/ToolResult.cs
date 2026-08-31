@@ -7,49 +7,49 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 internal sealed record ToolResult<TData>
 {
     /// <summary>
-    /// Gets the outcome of the tool invocation.
+    /// Overall outcome of the tool invocation.
     /// </summary>
     [Description("Overall outcome of the tool invocation.")]
     public ToolOutcome Outcome { get; init; }
 
     /// <summary>
-    /// Gets the exact immutable workspace snapshot, when available.
+    /// Exact immutable workspace snapshot associated with the result, when available.
     /// </summary>
     [Description("Exact immutable workspace snapshot associated with the result, when available.")]
     public SnapshotPrecondition? Snapshot { get; init; }
 
     /// <summary>
-    /// Gets the tool-specific payload.
+    /// Tool-specific result payload.
     /// </summary>
     [Description("Tool-specific result payload.")]
     public TData? Data { get; init; }
 
     /// <summary>
-    /// Gets the optional top-level change summary.
+    /// Summary of source changes made by the tool, when applicable.
     /// </summary>
     [Description("Summary of source changes made by the tool, when applicable.")]
     public ChangeSummary? Changes { get; init; }
 
     /// <summary>
-    /// Gets the diagnostics emitted by the tool.
+    /// Roslyn or contract diagnostics relevant to the result.
     /// </summary>
     [Description("Roslyn or contract diagnostics relevant to the result.")]
     public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
 
     /// <summary>
-    /// Gets the warnings emitted by the tool.
+    /// Non-fatal warnings the agent should consider.
     /// </summary>
     [Description("Non-fatal warnings the agent should consider.")]
     public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
 
     /// <summary>
-    /// Gets the structured error payload, when present.
+    /// Structured error details when the invocation failed.
     /// </summary>
     [Description("Structured error details when the invocation failed.")]
     public ToolError? Error { get; init; }
 
     /// <summary>
-    /// Gets the optional continuation hint for the caller.
+    /// Action the agent should take before retrying or continuing.
     /// </summary>
     [Description("Action the agent should take before retrying or continuing.")]
     public RequiredAction? RequiredAction { get; init; }
@@ -69,6 +69,7 @@ internal static class ToolResult
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A successful tool result.</returns>
+    /// <typeparam name="TData">The data type.</typeparam>
     public static ToolResult<TData> Succeeded<TData>(
         TData data,
         SnapshotPrecondition? snapshot = null,
@@ -95,6 +96,7 @@ internal static class ToolResult
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A no-change tool result.</returns>
+    /// <typeparam name="TData">The data type.</typeparam>
     public static ToolResult<TData> NoChange<TData>(
         SnapshotPrecondition? snapshot = null,
         TData? data = default,
@@ -120,6 +122,7 @@ internal static class ToolResult
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A rejected tool result.</returns>
+    /// <typeparam name="TData">The data type.</typeparam>
     public static ToolResult<TData> Rejected<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
@@ -147,6 +150,7 @@ internal static class ToolResult
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A conflicted tool result.</returns>
+    /// <typeparam name="TData">The data type.</typeparam>
     public static ToolResult<TData> Conflict<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
@@ -174,6 +178,7 @@ internal static class ToolResult
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A faulted tool result.</returns>
+    /// <typeparam name="TData">The data type.</typeparam>
     public static ToolResult<TData> Faulted<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,

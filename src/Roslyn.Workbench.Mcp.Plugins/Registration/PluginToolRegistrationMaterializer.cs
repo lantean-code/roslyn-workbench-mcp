@@ -2,6 +2,9 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Registration;
 
+/// <summary>
+/// Builds an isolated plugin service provider and binds validated handlers to closed registration types during startup.
+/// </summary>
 internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrationMaterializer
 {
     private static readonly MethodInfo _createQueryRegistrationMethod = GetMaterializationMethod(nameof(CreateQueryRegistration));
@@ -13,6 +16,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
         ValidateScopes = true,
     };
 
+    /// <inheritdoc/>
     public PluginMaterializationResult Materialize(PluginPreparationResult preparation)
     {
         var services = new ServiceCollection();

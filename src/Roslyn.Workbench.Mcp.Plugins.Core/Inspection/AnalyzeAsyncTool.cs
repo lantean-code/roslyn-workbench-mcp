@@ -1,15 +1,23 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Reports compiler and bundled analyzer findings for unsafe or inefficient asynchronous code.
+/// </summary>
 [RoslynTool("analyze-async", "Analyze Async", "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.")]
 internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, AsyncAnalysisData>
 {
     private readonly IAsyncAnalyzerDiagnosticService _asyncAnalyzerDiagnosticService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnalyzeAsyncTool"/> class.
+    /// </summary>
+    /// <param name="asyncAnalyzerDiagnosticService">The service that runs the bundled async analyzers.</param>
     public AnalyzeAsyncTool(IAsyncAnalyzerDiagnosticService asyncAnalyzerDiagnosticService)
     {
         _asyncAnalyzerDiagnosticService = asyncAnalyzerDiagnosticService;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<AsyncAnalysisData>> ExecuteCoreAsync(
         AnalyzeAsyncRequest request,
         IQueryContext context,

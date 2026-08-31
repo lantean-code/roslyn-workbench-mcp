@@ -9,26 +9,26 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 internal sealed record PrepareFixAllData
 {
     /// <summary>
-    /// Gets the opaque prepared action reference.
+    /// The opaque prepared action reference.
     /// </summary>
     [Description("The opaque prepared action reference.")]
     public required Guid ActionId { get; init; }
 
     /// <summary>
-    /// Gets the accepted Fix All scope.
+    /// The accepted Fix All scope.
     /// </summary>
     [Description("The accepted Fix All scope.")]
     public required CodeActionFixAllScope Scope { get; init; }
 
     /// <summary>
-    /// Gets the complete affected diagnostic count when it is authoritatively available.
+    /// The complete affected diagnostic count when it is authoritatively available.
     /// </summary>
     [Description("The complete affected diagnostic count when it is authoritatively available.")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? AffectedDiagnosticCount { get; init; }
 
     /// <summary>
-    /// Gets the bounded affected source document identities and complete changed-document count.
+    /// The bounded affected source document identities and complete changed-document count.
     /// </summary>
     [Description("The bounded affected source document identities and complete changed-document count.")]
     public BoundedCollection<DocumentReference> AffectedDocuments { get; init; }

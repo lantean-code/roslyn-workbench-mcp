@@ -2,11 +2,22 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 
+/// <summary>
+/// Reports lifecycle, transaction, external-change, and cross-instance state for a workspace.
+/// </summary>
 internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusRequest, WorkspaceStatusData>
 {
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
     private readonly IErrorReportingConsentService _errorReportingConsentService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceStatusTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="workspaceLifecycleService">The service that controls workspace loading and lifetime.</param>
+    /// <param name="errorReportingConsentService">The service that provides error reporting consent operations.</param>
     public WorkspaceStatusTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -27,6 +38,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
         _errorReportingConsentService = errorReportingConsentService;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<ToolResult<WorkspaceStatusData>> ExecuteAsync(
         WorkspaceStatusRequest request,
         CancellationToken cancellationToken)

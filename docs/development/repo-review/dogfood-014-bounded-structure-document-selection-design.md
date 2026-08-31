@@ -1,6 +1,6 @@
 # DOGFOOD-014 — Agent-facing document eligibility
 
-**Status:** Implemented and validated; awaiting manual confirmation.
+**Status:** Confirmed through published dogfood validation.
 
 ## Confirmed issue
 

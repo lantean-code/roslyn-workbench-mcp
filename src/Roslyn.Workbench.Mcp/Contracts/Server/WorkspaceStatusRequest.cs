@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Server;
 internal sealed record WorkspaceStatusRequest : WorkspaceBoundRequest
 {
     /// <summary>
-    /// Gets the requested response detail level.
+    /// Amount of workspace status detail to return.
     /// </summary>
     [Description("Amount of workspace status detail to return.")]
     public StatusDetailLevel Detail { get; init; } = StatusDetailLevel.Standard;

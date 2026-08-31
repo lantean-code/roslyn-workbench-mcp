@@ -4,6 +4,9 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
+/// <summary>
+/// Coordinates the complete lifecycle of loaded workspaces and their registered session state.
+/// </summary>
 internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 {
     private readonly WorkspaceOptions _options;
@@ -23,6 +26,25 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
     private readonly IWorkspaceSessionCleanup _sessionCleanup;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceLifecycleService"/> class.
+    /// </summary>
+    /// <param name="options">The configured workspace capacity and concurrency limits.</param>
+    /// <param name="sessionStore">The process-wide workspace session store.</param>
+    /// <param name="sessionAcquirer">The service that selects sessions and acquires operation leases.</param>
+    /// <param name="workspaceLoader">The service that normalises workspace inputs and opens Roslyn workspaces.</param>
+    /// <param name="msBuildPropertiesResolver">The service that validates optional MSBuild properties.</param>
+    /// <param name="workspaceRootResolver">The service that resolves and enforces workspace-root boundaries.</param>
+    /// <param name="workspacePathComparison">The platform-aware path comparison service.</param>
+    /// <param name="workspacePathNormalizer">The service that canonicalises workspace paths.</param>
+    /// <param name="workspaceLoadWorkflow">The workflow that loads and validates supported projects.</param>
+    /// <param name="workspaceChangeDetector">The service that certifies and monitors workspace inputs.</param>
+    /// <param name="readOnlyDocumentValidator">The service that validates documents outside the writable root.</param>
+    /// <param name="workspaceStateTransitions">The service that applies lifecycle state transitions.</param>
+    /// <param name="resultFactory">The factory for consistent workspace operation results.</param>
+    /// <param name="recoveryStore">The store used to prevent opening workspaces with unfinished recovery.</param>
+    /// <param name="instanceStatusPublisher">The service that publishes and queries cross-instance workspace state.</param>
+    /// <param name="sessionCleanup">The service that releases removed workspace sessions.</param>
     public WorkspaceLifecycleService(
         IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
@@ -59,6 +81,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _sessionCleanup = sessionCleanup;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
         string path,
         string? alias,
@@ -205,6 +228,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
     }
 
+    /// <inheritdoc/>
     public ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -226,6 +250,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return ValueTask.FromResult(result);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -273,6 +298,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return _resultFactory.Succeeded(outcome, operationContext);
     }
 
+    /// <inheritdoc/>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -309,6 +335,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             failures);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
         Guid? workspaceId,
         string? alias,
@@ -350,6 +377,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return _resultFactory.Succeeded(outcome, context);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(Guid? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

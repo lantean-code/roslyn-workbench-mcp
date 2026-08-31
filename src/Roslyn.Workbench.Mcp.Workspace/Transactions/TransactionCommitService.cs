@@ -2,6 +2,9 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Persists active transactions through the durable commit and recovery pipeline.
+/// </summary>
 internal sealed class TransactionCommitService : ITransactionCommitService
 {
     private readonly IWorkspaceSessionStore _sessionStore;
@@ -15,6 +18,19 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     private readonly IWorkspaceCommitLockManager _commitLockManager;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionCommitService"/> class.
+    /// </summary>
+    /// <param name="sessionStore">The store that publishes committed session state.</param>
+    /// <param name="workspaceChangeDetector">The component that detects external changes before commit.</param>
+    /// <param name="workspaceStateTransitions">The coordinator that applies workspace lifecycle state changes.</param>
+    /// <param name="snapshotGuard">The guard that rejects operations targeting a stale transaction snapshot.</param>
+    /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
+    /// <param name="recoveryStore">The store that persists the recovery plan before file changes begin.</param>
+    /// <param name="commitWriter">The component that applies and validates planned file operations.</param>
+    /// <param name="commitPlanner">The planner that converts a transaction into atomic file operations.</param>
+    /// <param name="commitLockManager">The manager that acquires exclusive workspace commit locks.</param>
+    /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
         IWorkspaceChangeDetector workspaceChangeDetector,
@@ -39,6 +55,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         _instanceStatusPublisher = instanceStatusPublisher;
     }
 
+    /// <summary>
+    /// Commits the selected transaction to the workspace files.
+    /// </summary>
+    /// <param name="selection">The resolved workspace selection on which the operation runs.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace operation result.</returns>
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
         WorkspaceSelection selection,
         SnapshotPrecondition? expectedSnapshot,

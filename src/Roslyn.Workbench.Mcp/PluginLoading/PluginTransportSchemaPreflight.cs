@@ -3,15 +3,27 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Generates every plugin tool schema before publication and rejects unsupported transport contracts.
+/// </summary>
 internal sealed class PluginTransportSchemaPreflight : IPluginTransportSchemaPreflight
 {
     private readonly IToolSchemaFactory _schemaFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginTransportSchemaPreflight"/> class.
+    /// </summary>
+    /// <param name="schemaFactory">The factory used to generate MCP input and output schemas.</param>
     public PluginTransportSchemaPreflight(IToolSchemaFactory schemaFactory)
     {
         _schemaFactory = schemaFactory;
     }
 
+    /// <summary>
+    /// Validates plugin transport schemas before publication.
+    /// </summary>
+    /// <param name="tools">The tools whose published transport schemas must be validated.</param>
+    /// <returns>Success when every schema is publishable; otherwise, diagnostics for each rejected contract.</returns>
     public PluginTransportSchemaPreflightResult Preflight(IReadOnlyList<PreparedPluginTool> tools)
     {
         var failures = new List<DiagnosticInfo>();

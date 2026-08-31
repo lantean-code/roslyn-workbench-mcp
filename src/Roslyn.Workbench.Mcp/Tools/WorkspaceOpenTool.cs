@@ -2,10 +2,20 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 
+/// <summary>
+/// Loads a solution or project as an additional writable workspace.
+/// </summary>
 internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenRequest, WorkspaceOpenData>
 {
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceOpenTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="workspaceLifecycleService">The service that controls workspace loading and lifetime.</param>
     public WorkspaceOpenTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -24,6 +34,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
         _workspaceLifecycleService = workspaceLifecycleService;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<ToolResult<WorkspaceOpenData>> ExecuteAsync(
         WorkspaceOpenRequest request,
         CancellationToken cancellationToken)

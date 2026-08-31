@@ -53,11 +53,23 @@ internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultAnalyzersMaxResults)]
     public int? AnalyzersLimit { get; init; } = _defaultAnalyzersMaxResults;
 
+    /// <summary>
+    /// Gets the effective documents limit.
+    /// </summary>
     internal int EffectiveDocumentsLimit => ResultLimit.GetEffectiveValue(DocumentsLimit, _defaultDocumentsMaxResults);
 
+    /// <summary>
+    /// Gets the effective project references limit.
+    /// </summary>
     internal int EffectiveProjectReferencesLimit => ResultLimit.GetEffectiveValue(ProjectReferencesLimit, _defaultProjectReferencesMaxResults);
 
+    /// <summary>
+    /// Gets the effective metadata references limit.
+    /// </summary>
     internal int EffectiveMetadataReferencesLimit => ResultLimit.GetEffectiveValue(MetadataReferencesLimit, _defaultMetadataReferencesMaxResults);
 
+    /// <summary>
+    /// Gets the effective analyzers limit.
+    /// </summary>
     internal int EffectiveAnalyzersLimit => ResultLimit.GetEffectiveValue(AnalyzersLimit, _defaultAnalyzersMaxResults);
 }

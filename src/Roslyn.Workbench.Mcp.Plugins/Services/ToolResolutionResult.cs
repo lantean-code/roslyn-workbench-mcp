@@ -27,6 +27,11 @@ public sealed record ToolResolutionResult<TValue, TResponse>
     [MemberNotNullWhen(false, nameof(Value))]
     public bool HasRejection => Rejection is not null;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ToolResolutionResult{TValue, TResponse}"/> class.
+    /// </summary>
+    /// <param name="rejection">The normalized rejection when resolution failed.</param>
+    /// <param name="value">The resolved value when resolution succeeded.</param>
     internal ToolResolutionResult(
         PluginExecutionResult<TResponse>? rejection,
         TValue? value)

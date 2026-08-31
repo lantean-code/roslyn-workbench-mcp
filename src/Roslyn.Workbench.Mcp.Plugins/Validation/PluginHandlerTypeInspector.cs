@@ -4,8 +4,12 @@ using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.Diagno
 
 namespace Roslyn.Workbench.Mcp.Plugins.Validation;
 
+/// <summary>
+/// Rejects handler types that own disposable lifetimes or participate directly in MEF composition.
+/// </summary>
 internal sealed class PluginHandlerTypeInspector : IPluginHandlerTypeInspector
 {
+    /// <inheritdoc/>
     public IReadOnlyList<DiagnosticInfo> Inspect(Type handlerType)
     {
         var diagnostics = new List<DiagnosticInfo>();

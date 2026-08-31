@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Analyzes control flow for an exact complete statement or contiguous statement range.
+/// </summary>
 [RoslynTool("analyze-control-flow", "Analyze Control Flow", "Analyzes control flow for an exact complete statement or contiguous statement range.")]
 internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFlowRequest, ControlFlowAnalysisData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<ControlFlowAnalysisData>> ExecuteCoreAsync(AnalyzeControlFlowRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var regionResolution = await FlowAnalysisRegionResolver.ResolveStatementRegionAsync<ControlFlowAnalysisData>(

@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Compares loaded external document text with disk while deduplicating reads of linked files.
+/// </summary>
 internal sealed class WorkspaceReadOnlyDocumentValidator : IWorkspaceReadOnlyDocumentValidator
 {
     private readonly IFileSystem _fileSystem;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceReadOnlyDocumentValidator"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The filesystem abstraction used to read external documents.</param>
+    /// <param name="pathContainment">The physical containment service used to distinguish writable documents.</param>
+    /// <param name="pathComparison">The platform-aware path comparer used to deduplicate linked files.</param>
     public WorkspaceReadOnlyDocumentValidator(
         IFileSystem fileSystem,
         IPhysicalPathContainment pathContainment,
@@ -16,6 +25,7 @@ internal sealed class WorkspaceReadOnlyDocumentValidator : IWorkspaceReadOnlyDoc
         _pathComparison = pathComparison;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceReadOnlyDocumentValidationStatus> ValidateAsync(
         Solution solution,
         string workspaceRoot,

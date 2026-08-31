@@ -1,10 +1,18 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Calculates and compares stable identities for the documents changed by a mutation candidate.
+/// </summary>
 internal sealed class WorkspaceMutationCandidateIdentityService : IWorkspaceMutationCandidateIdentityService
 {
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IWorkspaceDocumentContentService _documentContentService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceMutationCandidateIdentityService"/> class.
+    /// </summary>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <param name="documentContentService">The service that provides document content operations.</param>
     public WorkspaceMutationCandidateIdentityService(
         IWorkspacePathComparison pathComparison,
         IWorkspaceDocumentContentService documentContentService)
@@ -13,6 +21,13 @@ internal sealed class WorkspaceMutationCandidateIdentityService : IWorkspaceMuta
         _documentContentService = documentContentService;
     }
 
+    /// <summary>
+    /// Calculates document identities for the changes between current and candidate solutions.
+    /// </summary>
+    /// <param name="currentSolution">The solution snapshot on which the operation runs.</param>
+    /// <param name="candidateSolution">The candidate solution containing the proposed changes.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace mutation candidate identity.</returns>
     public async ValueTask<WorkspaceMutationCandidateIdentity> CreateAsync(
         Solution currentSolution,
         Solution candidateSolution,
@@ -56,6 +71,12 @@ internal sealed class WorkspaceMutationCandidateIdentityService : IWorkspaceMuta
         };
     }
 
+    /// <summary>
+    /// Determines whether the candidate identity satisfies the supplied precondition.
+    /// </summary>
+    /// <param name="precondition">The snapshot precondition to compare with the candidate solution identity.</param>
+    /// <param name="candidateIdentity">The candidate solution identity to compare with the snapshot precondition.</param>
+    /// <returns><see langword="true"/> when every expected document identity matches the candidate; otherwise, <see langword="false"/>.</returns>
     public bool MatchesPrecondition(
         WorkspaceMutationCandidatePrecondition precondition,
         WorkspaceMutationCandidateIdentity candidateIdentity)

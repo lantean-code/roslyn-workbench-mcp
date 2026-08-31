@@ -39,5 +39,8 @@ internal sealed record FindReferencesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective references limit.
+    /// </summary>
     internal int EffectiveReferencesLimit => ResultLimit.GetEffectiveValue(ReferencesLimit, _defaultReferencesMaxResults);
 }

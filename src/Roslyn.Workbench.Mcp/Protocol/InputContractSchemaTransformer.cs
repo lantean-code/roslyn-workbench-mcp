@@ -8,12 +8,21 @@ using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Projects request validation and transport metadata onto SDK-generated input schemas.
+/// </summary>
 internal static class InputContractSchemaTransformer
 {
     private const string _snapshotPreconditionDescription = "Echo the snapshot returned with the data or transaction state used to construct this request.";
 
     private static readonly JsonNode _nullType = JsonValue.Create("null");
 
+    /// <summary>
+    /// Projects validation, description, snapshot, and nullability metadata onto an input contract schema.
+    /// </summary>
+    /// <param name="context">The schema-generation context for the request type.</param>
+    /// <param name="schema">The JSON schema being inspected or transformed.</param>
+    /// <returns>The supplied schema with the request contract constraints and metadata applied.</returns>
     public static JsonNode Transform(AIJsonSchemaCreateContext context, JsonNode schema)
     {
         if (schema is not JsonObject schemaObject || context.TypeInfo.Kind != JsonTypeInfoKind.Object)

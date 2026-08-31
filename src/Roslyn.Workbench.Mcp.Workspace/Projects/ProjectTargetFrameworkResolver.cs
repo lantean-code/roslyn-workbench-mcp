@@ -3,6 +3,9 @@ using Roslyn.Workbench.Mcp.Workspace.Projects.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Projects;
 
+/// <summary>
+/// Resolves and caches target-framework identities for loaded projects.
+/// </summary>
 internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkResolver
 {
     private const string _cacheComponentIdentity = "project-target-framework";
@@ -10,6 +13,11 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
     private readonly IProjectStructureService _projectStructureService;
     private readonly IWorkspaceQueryCacheScopeFactory _queryCacheScopeFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectTargetFrameworkResolver"/> class.
+    /// </summary>
+    /// <param name="projectStructureService">The service that provides project structure operations.</param>
+    /// <param name="queryCacheScopeFactory">The factory used to create the required query cache scope.</param>
     public ProjectTargetFrameworkResolver(
         IProjectStructureService projectStructureService,
         IWorkspaceQueryCacheScopeFactory queryCacheScopeFactory)
@@ -18,6 +26,13 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
         _queryCacheScopeFactory = queryCacheScopeFactory;
     }
 
+    /// <summary>
+    /// Resolves the target frameworks used by one project.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="project">The loaded project to inspect.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The project's distinct target-framework identities.</returns>
     public ProjectTargetFrameworksResult Resolve(
         Guid workspaceId,
         Project project,
@@ -53,6 +68,13 @@ internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkRe
         return result;
     }
 
+    /// <summary>
+    /// Resolves the union of target frameworks used by selected projects.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="projects">The projects included in the selected workspace scope.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The distinct target-framework identities in stable order.</returns>
     public IReadOnlyList<ProjectTargetFrameworksResult> Resolve(
         Guid workspaceId,
         IReadOnlyList<Project> projects,

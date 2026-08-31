@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution.FixAll;
 
+/// <summary>
+/// Supplies cached project diagnostics to Roslyn while it computes a Fix All action.
+/// </summary>
 internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.DiagnosticProvider
 {
     private readonly ICodeActionDiagnosticService _diagnosticService;
@@ -7,6 +10,11 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
     private readonly object _projectDiagnosticTasksLock = new();
     private readonly Dictionary<ProjectId, Task<CodeActionProjectDiagnosticCollection>> _projectDiagnosticTasks = [];
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceFixAllDiagnosticProvider"/> class.
+    /// </summary>
+    /// <param name="diagnosticService">The service used to obtain compiler diagnostics.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
     public WorkspaceFixAllDiagnosticProvider(
         ICodeActionDiagnosticService diagnosticService,
         IReadOnlyList<string> diagnosticIds)
@@ -15,6 +23,7 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
         _diagnosticIds = diagnosticIds;
     }
 
+    /// <inheritdoc/>
     public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
     {
         var diagnosticTask = GetOrCreateProjectDiagnosticTask(document.Project, cancellationToken);
@@ -28,6 +37,7 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
         return collection.GetDocumentDiagnostics(syntaxTree, span: null);
     }
 
+    /// <inheritdoc/>
     public override async Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
         var diagnosticTask = GetOrCreateProjectDiagnosticTask(project, cancellationToken);
@@ -36,6 +46,7 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
         return collection.ProjectDiagnostics;
     }
 
+    /// <inheritdoc/>
     public override async Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
         var diagnosticTask = GetOrCreateProjectDiagnosticTask(project, cancellationToken);

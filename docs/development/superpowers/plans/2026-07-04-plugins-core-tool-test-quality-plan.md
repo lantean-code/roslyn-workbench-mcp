@@ -1,5 +1,7 @@
 # Plugins.Core Tool Test Quality Implementation Plan
 
+**Status:** Historical implementation plan. The later comprehensive reassessment in [Tool Test Inventory](../../Tool%20Test%20Inventory.md) found no known untested supported tool behaviour and records the disposition of defensive branches. This document is not an active worklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Raise the `Roslyn.Workbench.Mcp.Plugins.Core` tool tests to true unit-test quality, with every tool covered to 100% line and branch coverage and each test name reflecting the exact state variation being exercised.

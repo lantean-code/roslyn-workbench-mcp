@@ -32,7 +32,7 @@ public sealed class RoslynToolAttribute : Attribute
     public bool Destructive { get; set; }
 
     /// <summary>
-    /// Initialises tool metadata.
+    /// Initializes a new instance of the <see cref="RoslynToolAttribute"/> class.
     /// </summary>
     /// <param name="name">The globally unique MCP tool name, containing 1 to 128 ASCII letters, digits, underscores, hyphens, or periods.</param>
     /// <param name="title">The title displayed to users.</param>

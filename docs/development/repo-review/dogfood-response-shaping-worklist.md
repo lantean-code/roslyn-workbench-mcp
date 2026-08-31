@@ -2,7 +2,7 @@
 
 **Status:** Complete; all response-shaping items implemented, validated and confirmed.
 
-**Evidence:** [Final post-RWMCP3 dogfood usage log](dogfood-improvement-usage.md)
+**Evidence:** [Post-RWMCP3 dogfood usage log](dogfood-improvement-usage.md), individual design records and their recorded validation evidence
 
 ## Purpose
 
@@ -50,3 +50,15 @@ Issue validation must inventory published request and response string properties
 ## Process
 
 For each item, perform issue and existing-coverage validation first and present the evidence and proposed design for manual approval before the expensive implementation and review steps. If the behaviour is already covered and intentional, or the measured context cost is immaterial, close or narrow the item rather than inventing work. Any confirmed behaviour-affecting change follows the repository's normal implementation, validation and user-confirmation process. Start one fresh Review Agent for the independently confirmed item, then reuse that same reviewer for the item's unstaged remediation loop as recorded in `DeepDiveReview.md`.
+
+## Final findings analysis
+
+The post-RWMCP3 ledger contains 642 actual calls through the DOGFOOD-017 discovery audit; the numbered recording example is not a call. Together with the original 60-call RWMCP3 ledger, the evidence covers lifecycle, query, transaction, Code Action, plugin, schema-publication and consent-controlled error-reporting workflows through the published Host.
+
+Every confirmed product or client-interoperability issue discovered by those calls has a recorded disposition in DOGFOOD-001 through DOGFOOD-017. The original improvements, follow-on validation items and response-shaping items are complete. Expected lifecycle responses, deliberate invalid-request probes, retryable capacity responses, validation-environment failures and superseded candidate experiments remain in the ledger as evidence but do not represent unresolved product defects.
+
+One DOGFOOD-016 call reconstructed a returned method documentation-comment identity and received `SymbolNotFound`; the same identity form succeeded in the preceding candidate and canonical location retry, while published hierarchy and reference workflows repeatedly reused project-qualified documentation-comment selectors successfully. The isolated result therefore does not establish a reproducible selector defect or justify another work item.
+
+DOGFOOD-017 used the published Host for issue discovery and producer tracing, then received focused non-acceptance validation, complete contract-surface coverage, independent review and manual confirmation after implementation. It was not revalidated through another published dogfood build, and its status deliberately does not claim that evidence.
+
+No further dogfood work item is justified by the recorded findings. The usage ledger nevertheless remains active under the repository logging rule until the user explicitly ends it, so later requests may add operational evidence without reopening this completed worklist automatically.

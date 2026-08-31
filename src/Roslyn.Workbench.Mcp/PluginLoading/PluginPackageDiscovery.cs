@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Inspects each immediate child of configured roots as a contained, single-entry-point plugin package.
+/// </summary>
 internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
 {
     private readonly IFileSystem _fileSystem;
     private readonly IPluginAssemblyMetadataReader _metadataReader;
     private readonly IPluginPackagePathPolicy _packagePathPolicy;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginPackageDiscovery"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="metadataReader">The reader that inspects candidate assemblies without loading their code.</param>
+    /// <param name="packagePathPolicy">The policy that validates and canonicalises plugin package paths.</param>
     public PluginPackageDiscovery(
         IFileSystem fileSystem,
         IPluginAssemblyMetadataReader metadataReader,
@@ -16,6 +25,11 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
         _packagePathPolicy = packagePathPolicy;
     }
 
+    /// <summary>
+    /// Discovers and validates plugin packages beneath the configured search roots.
+    /// </summary>
+    /// <param name="searchRoots">The directories whose immediate children may contain plugin packages.</param>
+    /// <returns>The discovery result for each valid or rejected package candidate.</returns>
     public IReadOnlyList<PluginPackageDiscoveryResult> Discover(IReadOnlyList<string> searchRoots)
     {
         var packageDirectories = new HashSet<FileSystemPathKey>();

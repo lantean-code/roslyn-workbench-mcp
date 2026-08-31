@@ -1,7 +1,22 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Projections;
 
+/// <summary>
+/// Builds a bounded semantic outline from document syntax and declared symbols.
+/// </summary>
 internal static class DocumentOutlineProjectionFactory
 {
+    /// <summary>
+    /// Projects bounded outline children beneath a syntax node.
+    /// </summary>
+    /// <param name="syntaxNode">The syntax node whose children should be projected.</param>
+    /// <param name="semanticModel">The semantic model used to identify declared symbols.</param>
+    /// <param name="resolver">The resolver used to create canonical source locations.</param>
+    /// <param name="includeMembers">Whether member declarations should be included.</param>
+    /// <param name="maxNodes">The maximum total number of nodes to project.</param>
+    /// <param name="maxDepth">The maximum outline depth to traverse.</param>
+    /// <param name="truncated">Receives whether node or depth limits omitted outline content.</param>
+    /// <param name="cancellationToken">The token that cancels outline projection.</param>
+    /// <returns>The projected child outline nodes.</returns>
     public static OutlineNode[] BuildOutlineChildren(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, int maxNodes, int maxDepth, out bool truncated, CancellationToken cancellationToken)
     {
         var projectedNodeCount = 0;

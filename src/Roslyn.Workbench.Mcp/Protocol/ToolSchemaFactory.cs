@@ -4,6 +4,9 @@ using System.Text.Json.Nodes;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Creates and caches complete MCP input and output schemas.
+/// </summary>
 internal sealed class ToolSchemaFactory : IToolSchemaFactory
 {
     private static readonly JsonElement _continuationSchema = ToolContinuationSchema.Create();
@@ -13,11 +16,20 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
     private readonly ConcurrentDictionary<(PublishedToolKind Kind, Type ResponseType), JsonElement> _outputSchemaCache = [];
     private readonly IMcpSdkSchemaProvider _schemaProvider;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ToolSchemaFactory"/> class.
+    /// </summary>
+    /// <param name="schemaProvider">The provider of SDK-generated contract schemas.</param>
     public ToolSchemaFactory(IMcpSdkSchemaProvider schemaProvider)
     {
         _schemaProvider = schemaProvider;
     }
 
+    /// <summary>
+    /// Gets the published input schema for a request type.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <returns>The created input schema.</returns>
     public JsonElement CreateInputSchema<TRequest>()
     {
         return _inputSchemaCache.GetOrAdd(
@@ -26,6 +38,11 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             _schemaProvider);
     }
 
+    /// <summary>
+    /// Gets the published input schema for a request type selected at runtime.
+    /// </summary>
+    /// <param name="requestType">The request type to describe.</param>
+    /// <returns>The cached request schema.</returns>
     public JsonElement CreateInputSchemaForType(Type requestType)
     {
         return _inputSchemaCache.GetOrAdd(
@@ -34,6 +51,11 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             _schemaProvider);
     }
 
+    /// <summary>
+    /// Gets an output schema for a tool that publishes its response directly.
+    /// </summary>
+    /// <param name="responseType">The successful response payload type.</param>
+    /// <returns>The cached direct-response schema.</returns>
     public JsonElement CreateDirectOutputSchema(Type responseType)
     {
         return _directOutputSchemaCache.GetOrAdd(
@@ -45,6 +67,12 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
                 _schemaProvider.GetValueSchema<SnapshotPrecondition>()));
     }
 
+    /// <summary>
+    /// Gets the standard result-envelope schema for a query or mutation.
+    /// </summary>
+    /// <param name="kind">The tool category that determines the envelope shape.</param>
+    /// <param name="responseType">The successful response payload type.</param>
+    /// <returns>The cached response-envelope schema.</returns>
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
     {
         return _outputSchemaCache.GetOrAdd(

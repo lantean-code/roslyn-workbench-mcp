@@ -2,6 +2,9 @@ using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 
+/// <summary>
+/// Publishes immutable Host snapshots atomically and coordinates transaction ownership with snapshot lifecycle invalidation.
+/// </summary>
 internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 {
     private readonly IReadOnlyList<IWorkspaceSnapshotLifecycleObserver> _lifecycleObservers;
@@ -11,6 +14,11 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
     private long _nextWorkspaceEpoch;
     private long _nextWorkspaceTransactionId;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceSessionStore"/> class.
+    /// </summary>
+    /// <param name="queryCache">The Workspace query cache invalidated when solution identity changes.</param>
+    /// <param name="lifecycleObservers">Observers notified when Workspace, transaction or snapshot generations retire.</param>
     public WorkspaceSessionStore(
         IWorkspaceQueryCache queryCache,
         IEnumerable<IWorkspaceSnapshotLifecycleObserver> lifecycleObservers)
@@ -21,6 +29,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         _snapshot = new WorkspaceHostSnapshot();
     }
 
+    /// <inheritdoc/>
     public WorkspaceHostSnapshot ReadSnapshot()
     {
         lock (_syncRoot)
@@ -29,6 +38,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
+    /// <inheritdoc/>
     public WorkspaceSessionSnapshot? ReadSession(Guid workspaceId)
     {
         lock (_syncRoot)
@@ -39,27 +49,32 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
+    /// <inheritdoc/>
     public Guid AllocateWorkspaceId()
     {
         return Guid.NewGuid();
     }
 
+    /// <inheritdoc/>
     public long AllocateWorkspaceEpoch()
     {
         return Interlocked.Increment(ref _nextWorkspaceEpoch);
     }
 
+    /// <inheritdoc/>
     public WorkspaceSnapshotId AllocateWorkspaceSnapshotId()
     {
         return new WorkspaceSnapshotId(Guid.NewGuid());
     }
 
+    /// <inheritdoc/>
     public WorkspaceTransactionId AllocateWorkspaceTransactionId()
     {
         var value = Interlocked.Increment(ref _nextWorkspaceTransactionId);
         return new WorkspaceTransactionId(value);
     }
 
+    /// <inheritdoc/>
     public WorkspaceOperationError? TryAddWorkspace(WorkspaceSessionSnapshot session, Func<WorkspaceHostSnapshot, WorkspaceOperationError?> validate)
     {
         lock (_syncRoot)
@@ -84,6 +99,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
+    /// <inheritdoc/>
     public WorkspaceSessionSnapshot? RemoveWorkspace(Guid workspaceId)
     {
         WorkspaceSessionSnapshot? session;
@@ -111,6 +127,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         return session;
     }
 
+    /// <inheritdoc/>
     public IReadOnlyList<WorkspaceSessionSnapshot> DrainWorkspaces()
     {
         lock (_syncRoot)
@@ -124,11 +141,13 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         }
     }
 
+    /// <inheritdoc/>
     public void ReplaceSession(WorkspaceSessionSnapshot session)
     {
         ReplaceSessionCore(session, []);
     }
 
+    /// <inheritdoc/>
     public void ReplaceSessionAfterStaging(
         WorkspaceSessionSnapshot session,
         IReadOnlyList<WorkspaceSnapshotId> discardedSnapshotIds)
@@ -136,6 +155,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         ReplaceSessionCore(session, discardedSnapshotIds);
     }
 
+    /// <inheritdoc/>
     public TransactionAdmissionResult TryStartTransaction(WorkspaceSessionSnapshot session)
     {
         bool invalidateQueryCache;
@@ -163,6 +183,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         return TransactionAdmissionResult.Admitted();
     }
 
+    /// <inheritdoc/>
     public TransactionCompletionResult TryCompleteTransaction(WorkspaceSessionSnapshot session)
     {
         bool invalidateQueryCache;

@@ -12,20 +12,20 @@ internal sealed record TransactionPreviewRequest : WorkspaceBoundRequest
     private const int _defaultContextLines = 3;
 
     /// <summary>
-    /// Gets the optional document selector for a detailed diff.
+    /// Document whose detailed diff should be returned; provide it when includeDiff is true.
     /// </summary>
     [Description("Document whose detailed diff should be returned; provide it when includeDiff is true.")]
     [RequiredWhen(nameof(IncludeDiff), true)]
     public DocumentSelector? Document { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether to include a detailed diff.
+    /// Whether to include a detailed diff.
     /// </summary>
     [Description("Whether to include a detailed diff.")]
     public bool IncludeDiff { get; init; }
 
     /// <summary>
-    /// Gets the requested diff context line count.
+    /// Number of unchanged context lines around each diff hunk when includeDiff is true.
     /// </summary>
     [Description("Number of unchanged context lines around each diff hunk when includeDiff is true.")]
     [Range(0, int.MaxValue)]

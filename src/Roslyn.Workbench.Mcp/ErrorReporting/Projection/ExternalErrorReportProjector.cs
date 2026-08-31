@@ -2,10 +2,19 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Projection;
 
+/// <summary>
+/// Removes undisclosable identities and stack details while projecting a captured failure for external review.
+/// </summary>
 internal sealed class ExternalErrorReportProjector : IExternalErrorReportProjector
 {
     private const string _externalPluginTool = "external-plugin-tool";
 
+    /// <summary>
+    /// Projects a captured error into its externally reportable form.
+    /// </summary>
+    /// <param name="record">The locally retained diagnostic record.</param>
+    /// <param name="reportId">The opaque identifier assigned to the projected report.</param>
+    /// <returns>A privacy-filtered report containing only externally eligible diagnostic fields.</returns>
     public ExternalErrorReport Project(CapturedErrorRecord record, string reportId)
     {
         var workspace = record.Workspace is null

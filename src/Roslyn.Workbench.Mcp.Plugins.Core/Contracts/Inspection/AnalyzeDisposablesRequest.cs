@@ -21,5 +21,8 @@ internal sealed record AnalyzeDisposablesRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
 
+    /// <summary>
+    /// Gets the effective findings limit.
+    /// </summary>
     internal int EffectiveFindingsLimit => ResultLimit.GetEffectiveValue(FindingsLimit, _defaultFindingsMaxResults);
 }

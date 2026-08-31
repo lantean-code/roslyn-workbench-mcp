@@ -6,6 +6,9 @@ using Roslyn.Workbench.Mcp.Hosting;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution;
 
+/// <summary>
+/// Captures unhandled tool failures and returns a correlated MCP error result.
+/// </summary>
 internal sealed partial class UnhandledToolExceptionFilter
 {
     private readonly ILogger<UnhandledToolExceptionFilter> _logger;
@@ -13,6 +16,13 @@ internal sealed partial class UnhandledToolExceptionFilter
     private readonly ICapturedErrorStore _capturedErrorStore;
     private readonly IErrorReportingAvailabilityService _availabilityService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UnhandledToolExceptionFilter"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record diagnostic information.</param>
+    /// <param name="captureService">The service that converts exceptions into retained diagnostic records.</param>
+    /// <param name="capturedErrorStore">The store that retains records for later inspection or submission.</param>
+    /// <param name="availabilityService">The service that determines whether the failure can be reported.</param>
     public UnhandledToolExceptionFilter(
         ILogger<UnhandledToolExceptionFilter> logger,
         IErrorCaptureService captureService,
@@ -25,6 +35,13 @@ internal sealed partial class UnhandledToolExceptionFilter
         _availabilityService = availabilityService;
     }
 
+    /// <summary>
+    /// Invokes the next tool handler and converts unexpected failures into correlated error envelopes.
+    /// </summary>
+    /// <param name="next">The next filter delegate in the tool invocation pipeline.</param>
+    /// <param name="context">The MCP request context for the current tool invocation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The downstream result, or a correlated error result when an unexpected exception is captured.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

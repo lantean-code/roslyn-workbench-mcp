@@ -2,9 +2,13 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Analyzes data flow for an exact expression, complete statement, or contiguous statement range.
+/// </summary>
 [RoslynTool("analyze-data-flow", "Analyze Data Flow", "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.")]
 internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequest, DataFlowAnalysisData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<DataFlowAnalysisData>> ExecuteCoreAsync(AnalyzeDataFlowRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var regionResolution = await FlowAnalysisRegionResolver.ResolveDataFlowRegionAsync<DataFlowAnalysisData>(

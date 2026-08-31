@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
+/// <summary>
+/// Stages Roslyn formatting for one document or one selected range.
+/// </summary>
 [RoslynTool("format-document", "Format Document", "Stages Roslyn formatting for one document or one selected range.", Destructive = true)]
 internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentRequest>
 {
+    /// <inheritdoc/>
     protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ExecuteFormatDocumentAsync(request, context, cancellationToken);

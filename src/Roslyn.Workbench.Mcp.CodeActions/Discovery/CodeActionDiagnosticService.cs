@@ -5,17 +5,31 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
+/// <summary>
+/// Collects compiler and analyzer diagnostics used for Code Fix discovery.
+/// </summary>
 internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 {
     private const int _warningLimit = 20;
 
     private readonly ICodeActionBuiltInAnalyzerIndex _builtInAnalyzerIndex;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionDiagnosticService"/> class.
+    /// </summary>
+    /// <param name="builtInAnalyzerIndex">The index that maps diagnostic identifiers to built-in analyzers.</param>
     public CodeActionDiagnosticService(ICodeActionBuiltInAnalyzerIndex builtInAnalyzerIndex)
     {
         _builtInAnalyzerIndex = builtInAnalyzerIndex;
     }
 
+    /// <summary>
+    /// Collects project and source diagnostics for a project.
+    /// </summary>
+    /// <param name="project">The project to inspect or modify.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the Code Action project diagnostic collection.</returns>
     public async Task<CodeActionProjectDiagnosticCollection> CollectProjectDiagnosticsAsync(
         Project project,
         IReadOnlyList<string>? diagnosticIds,
@@ -38,6 +52,14 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return CodeActionProjectDiagnosticCollection.Create(project, collection);
     }
 
+    /// <summary>
+    /// Collects diagnostics belonging to a document and optional source span.
+    /// </summary>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="span">The source span to which the operation applies.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the Code Action diagnostic collection.</returns>
     public async Task<CodeActionDiagnosticCollection> CollectDocumentDiagnosticsAsync(
         Document document,
         TextSpan? span,
@@ -57,6 +79,14 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return new CodeActionDiagnosticCollection(documentDiagnostics, collection.Warnings);
     }
 
+    /// <summary>
+    /// Gets diagnostics intersecting a source span in a document.
+    /// </summary>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="span">The source span to which the operation applies.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the document diagnostics.</returns>
     public async Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         TextSpan span,
@@ -72,6 +102,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return collection.Diagnostics;
     }
 
+    /// <summary>
+    /// Gets all diagnostics belonging to a document.
+    /// </summary>
+    /// <param name="document">The document to inspect or modify.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the document diagnostics.</returns>
     public async Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         IReadOnlyList<string>? diagnosticIds,
@@ -86,6 +123,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return collection.Diagnostics;
     }
 
+    /// <summary>
+    /// Gets all diagnostics retained for a project.
+    /// </summary>
+    /// <param name="project">The project to inspect or modify.</param>
+    /// <param name="diagnosticIds">The diagnostic identifiers that constrain the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the project diagnostics.</returns>
     public async Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
         Project project,
         IReadOnlyList<string>? diagnosticIds,

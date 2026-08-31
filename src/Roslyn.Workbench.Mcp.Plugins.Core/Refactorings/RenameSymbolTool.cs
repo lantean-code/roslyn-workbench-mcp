@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
+/// <summary>
+/// Stages a symbol rename across the effective solution.
+/// </summary>
 [RoslynTool("rename-symbol", "Rename Symbol", "Stages a symbol rename across the effective solution.", Destructive = true)]
 internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest>
 {
+    /// <inheritdoc/>
     protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(
         RenameSymbolRequest request,
         IMutationContext context,

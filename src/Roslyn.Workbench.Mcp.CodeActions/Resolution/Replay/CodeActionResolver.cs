@@ -2,6 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 
+/// <summary>
+/// Reconstructs a Code Action from a temporary reference against the current workspace snapshot.
+/// </summary>
 internal sealed class CodeActionResolver : ICodeActionResolver
 {
     private readonly ICodeActionDiscoveryService _discoveryService;
@@ -10,6 +13,14 @@ internal sealed class CodeActionResolver : ICodeActionResolver
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionResolver"/> class.
+    /// </summary>
+    /// <param name="discoveryService">The service that provides discovery operations.</param>
+    /// <param name="diagnosticService">The service used to obtain compiler diagnostics.</param>
+    /// <param name="providerCatalog">The catalogue used to locate Code Action providers.</param>
+    /// <param name="referenceStore">The store that retains replayable references.</param>
+    /// <param name="requestResolver">The resolver used to validate request preconditions.</param>
     public CodeActionResolver(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
@@ -24,6 +35,15 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         _requestResolver = requestResolver;
     }
 
+    /// <summary>
+    /// Rediscover the uniquely identified Code Action represented by a temporary reference.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="actionId">The action identifier.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="context">The execution context that supplies the state and services required by the operation.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the rediscovered action and source context, or a rejection.</returns>
     public async ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
         Guid actionId,
         SnapshotPrecondition? expectedSnapshot,

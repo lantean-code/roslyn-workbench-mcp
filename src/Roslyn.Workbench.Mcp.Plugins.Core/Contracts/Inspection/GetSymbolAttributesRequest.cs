@@ -32,5 +32,8 @@ internal sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective attributes limit.
+    /// </summary>
     internal int EffectiveAttributesLimit => ResultLimit.GetEffectiveValue(AttributesLimit, _defaultAttributesMaxResults);
 }

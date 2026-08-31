@@ -1,7 +1,15 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
+/// <summary>
+/// Builds canonical location and symbol selectors from resolved source locations.
+/// </summary>
 internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
 {
+    /// <summary>
+    /// Creates a canonical location selector for a resolved source span.
+    /// </summary>
+    /// <param name="resolvedLocation">The resolved source location from which to create a canonical selector.</param>
+    /// <returns>The created canonical location selector.</returns>
     public CanonicalLocationSelector? CreateCanonicalLocationSelector(ResolvedLocation? resolvedLocation)
     {
         var spanSelector = CreateTextSpanSelector(resolvedLocation);
@@ -16,6 +24,11 @@ internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
         };
     }
 
+    /// <summary>
+    /// Creates a location selector for a resolved source span.
+    /// </summary>
+    /// <param name="resolvedLocation">The resolved source location from which to create a canonical selector.</param>
+    /// <returns>The created location selector.</returns>
     public LocationSelector? CreateLocationSelector(ResolvedLocation? resolvedLocation)
     {
         var spanSelector = CreateTextSpanSelector(resolvedLocation);
@@ -30,6 +43,11 @@ internal sealed class WorkspaceSelectorFactory : IWorkspaceSelectorFactory
         };
     }
 
+    /// <summary>
+    /// Creates a symbol selector anchored to a resolved source span.
+    /// </summary>
+    /// <param name="resolvedLocation">The resolved source location from which to create a canonical selector.</param>
+    /// <returns>The created symbol selector.</returns>
     public SymbolSelector? CreateSymbolSelector(ResolvedLocation? resolvedLocation)
     {
         var locationSelector = CreateLocationSelector(resolvedLocation);

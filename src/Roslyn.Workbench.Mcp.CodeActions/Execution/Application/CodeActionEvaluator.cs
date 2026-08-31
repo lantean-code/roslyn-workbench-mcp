@@ -2,8 +2,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
 
+/// <summary>
+/// Evaluates a Code Action while permitting only one source-changing operation and known bookkeeping operations.
+/// </summary>
 internal sealed class CodeActionEvaluator : ICodeActionEvaluator
 {
+    /// <summary>
+    /// Evaluates a Code Action and accepts only a single solution-changing operation.
+    /// </summary>
+    /// <param name="action">The Code Action to evaluate.</param>
+    /// <param name="solution">The solution against which the action was resolved.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the changed solution or an unsupported-operation failure.</returns>
     public async ValueTask<CodeActionApplyResult> EvaluateAsync(
         CodeAction action,
         Solution solution,

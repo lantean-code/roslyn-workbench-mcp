@@ -2,6 +2,9 @@ using System.Runtime.Versioning;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
+/// <summary>
+/// Applies operating-system safeguards to durable Workspace state files and directories.
+/// </summary>
 internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectorySecurity
 {
     private const string _writeProbePrefix = ".roslyn-workbench-write-probe";
@@ -14,11 +17,16 @@ internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectory
 
     private readonly IFileSystem _fileSystem;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceStateDirectorySecurity"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
     public WorkspaceStateDirectorySecurity(IFileSystem fileSystem)
     {
         _fileSystem = fileSystem;
     }
 
+    /// <inheritdoc/>
     public void EnsureDirectory(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -35,6 +43,7 @@ internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectory
         ValidateDirectory(path);
     }
 
+    /// <inheritdoc/>
     public void ValidateDirectory(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -46,6 +55,7 @@ internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectory
         }
     }
 
+    /// <inheritdoc/>
     public void ValidateFile(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -57,6 +67,7 @@ internal sealed class WorkspaceStateDirectorySecurity : IWorkspaceStateDirectory
         }
     }
 
+    /// <inheritdoc/>
     public void ValidateWritableDirectory(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

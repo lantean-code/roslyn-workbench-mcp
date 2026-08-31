@@ -3,6 +3,9 @@ using System.Reflection.PortableExecutable;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Reads plugin attributes and version metadata directly from a PE file without loading its code.
+/// </summary>
 internal sealed class PluginAssemblyMetadataReader : IPluginAssemblyMetadataReader
 {
     private const string _informationalVersionAttributeName = "System.Reflection.AssemblyInformationalVersionAttribute";
@@ -10,11 +13,20 @@ internal sealed class PluginAssemblyMetadataReader : IPluginAssemblyMetadataRead
 
     private readonly IFileSystem _fileSystem;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginAssemblyMetadataReader"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
     public PluginAssemblyMetadataReader(IFileSystem fileSystem)
     {
         _fileSystem = fileSystem;
     }
 
+    /// <summary>
+    /// Inspects the plugin assembly metadata.
+    /// </summary>
+    /// <param name="assemblyPath">The path of the plugin assembly whose metadata is read.</param>
+    /// <returns>The discovered entry points, a skipped result for unrelated assemblies, or a metadata failure.</returns>
     public PluginAssemblyInspectionResult Inspect(string assemblyPath)
     {
         try

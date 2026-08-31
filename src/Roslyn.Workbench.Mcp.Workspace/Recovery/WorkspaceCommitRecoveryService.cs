@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
+/// <summary>
+/// Coordinates startup recovery for interrupted workspace commits.
+/// </summary>
 internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryService
 {
     private readonly ICommitRecoveryStore _store;
     private readonly IWorkspaceCommitWriter _writer;
     private readonly IWorkspaceCommitLockManager _lockManager;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceCommitRecoveryService"/> class.
+    /// </summary>
+    /// <param name="store">The durable store containing incomplete commit recovery plans.</param>
+    /// <param name="writer">The commit writer used to restore or complete interrupted file operations.</param>
+    /// <param name="lockManager">The manager that acquires exclusive workspace commit locks.</param>
     public WorkspaceCommitRecoveryService(
         ICommitRecoveryStore store,
         IWorkspaceCommitWriter writer,
@@ -16,6 +25,7 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
         _lockManager = lockManager;
     }
 
+    /// <inheritdoc/>
     public async ValueTask RecoverAsync(CancellationToken cancellationToken)
     {
         foreach (var owner in await _store.GetOrphanedCommitOwnersAsync(cancellationToken))

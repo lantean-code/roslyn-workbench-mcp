@@ -1,11 +1,19 @@
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Owns the load-time root watcher until a completed manifest takes over its lifetime.
+/// </summary>
 internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
 {
     private readonly IWorkspaceInputChangeMonitor _changeMonitor;
     private readonly IWorkspacePathComparison _pathComparison;
     private int _completionState;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceInputCertification"/> class.
+    /// </summary>
+    /// <param name="changeMonitor">The root-input monitor transferred to the completed manifest.</param>
+    /// <param name="pathComparison">The platform-aware comparer used to normalize ignored paths.</param>
     public WorkspaceInputCertification(
         IWorkspaceInputChangeMonitor changeMonitor,
         IWorkspacePathComparison pathComparison)
@@ -15,11 +23,13 @@ internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
         _changeMonitor.Start();
     }
 
+    /// <inheritdoc/>
     public WorkspaceInputManifest Complete(WorkspaceInputManifest manifest)
     {
         return Complete(manifest, []);
     }
 
+    /// <inheritdoc/>
     public WorkspaceInputManifest Complete(
         WorkspaceInputManifest manifest,
         IEnumerable<string> ignoredPaths)
@@ -56,6 +66,7 @@ internal sealed class WorkspaceInputCertification : IWorkspaceInputCertification
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         var previousCompletionState = Interlocked.Exchange(ref _completionState, 1);

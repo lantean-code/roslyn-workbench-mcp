@@ -2,15 +2,29 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Preserves project and folder context when candidate documents move between paths or projects.
+/// </summary>
 internal sealed class RelocatedDocumentProjectContextPropagator : IRelocatedDocumentProjectContextPropagator
 {
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RelocatedDocumentProjectContextPropagator"/> class.
+    /// </summary>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
     public RelocatedDocumentProjectContextPropagator(IWorkspacePathComparison pathComparison)
     {
         _pathComparison = pathComparison;
     }
 
+    /// <summary>
+    /// Applies matching project and folder context to relocated documents.
+    /// </summary>
+    /// <param name="currentSolution">The solution snapshot on which the operation runs.</param>
+    /// <param name="candidateSolution">The candidate solution containing the proposed changes.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The candidate solution after context propagation.</returns>
     public Solution Propagate(
         Solution currentSolution,
         Solution candidateSolution,

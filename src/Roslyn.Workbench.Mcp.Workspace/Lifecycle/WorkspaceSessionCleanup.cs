@@ -3,15 +3,23 @@ using System.Runtime.ExceptionServices;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
+/// <summary>
+/// Releases all externally published and disposable resources owned by a workspace session.
+/// </summary>
 internal sealed class WorkspaceSessionCleanup : IWorkspaceSessionCleanup
 {
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceSessionCleanup"/> class.
+    /// </summary>
+    /// <param name="instanceStatusPublisher">The service that removes the workspace's cross-instance status publication.</param>
     public WorkspaceSessionCleanup(IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _instanceStatusPublisher = instanceStatusPublisher;
     }
 
+    /// <inheritdoc/>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

@@ -29,5 +29,8 @@ internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective implementations limit.
+    /// </summary>
     internal int EffectiveImplementationsLimit => ResultLimit.GetEffectiveValue(ImplementationsLimit, _defaultImplementationsMaxResults);
 }

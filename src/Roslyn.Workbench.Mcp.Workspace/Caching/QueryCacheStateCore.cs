@@ -6,6 +6,9 @@ using Microsoft.Extensions.Primitives;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Caching;
 
+/// <summary>
+/// Implements bounded, generation-aware query caching with shared in-flight computations and performance metrics.
+/// </summary>
 internal sealed class QueryCacheStateCore : IDisposable
 {
     private static readonly AsyncLocal<HashSet<QueryCacheEntryIdentity>?> _executingFactories = new();
@@ -23,6 +26,13 @@ internal sealed class QueryCacheStateCore : IDisposable
     private long _chargedUnits;
     private long _largestEntryCharge;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="QueryCacheStateCore"/> class.
+    /// </summary>
+    /// <param name="sizeLimit">The maximum aggregate charge retained by the cache.</param>
+    /// <param name="slidingExpiration">How long an entry may remain unused before eviction.</param>
+    /// <param name="applicationLifetime">The Host lifetime used to cancel in-flight factories during shutdown.</param>
+    /// <param name="cacheFamily">The stable metric dimension for this cache family.</param>
     public QueryCacheStateCore(
         long sizeLimit,
         TimeSpan slidingExpiration,
@@ -44,6 +54,12 @@ internal sealed class QueryCacheStateCore : IDisposable
         _syncRoot = new Lock();
     }
 
+    /// <summary>
+    /// Returns a scope bound to the current generation of a logical partition.
+    /// </summary>
+    /// <param name="partition">The partition invalidated as a unit.</param>
+    /// <param name="scope">The component-specific value that further isolates entries.</param>
+    /// <returns>An identity for addressing entries in the current partition generation.</returns>
     public QueryCacheScopeIdentity CreateScope(object partition, object scope)
     {
         lock (_syncRoot)
@@ -60,6 +76,18 @@ internal sealed class QueryCacheStateCore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Returns a cached value or synchronously waits for one shared factory computation.
+    /// </summary>
+    /// <typeparam name="TKey">The cache-key type.</typeparam>
+    /// <typeparam name="TValue">The cached value type.</typeparam>
+    /// <param name="scopeIdentity">The generation and component scope that own the entry.</param>
+    /// <param name="key">The key within the scope.</param>
+    /// <param name="valueFactory">The factory used to create the required value.</param>
+    /// <param name="sizeCalculator">Calculates the cache charge for an admitted value.</param>
+    /// <param name="admissionPredicate">Determines whether a produced value may be retained.</param>
+    /// <param name="cancellationToken">Cancels this caller's wait without necessarily cancelling other waiters.</param>
+    /// <returns>The cached or produced value, or <see langword="null"/> when the factory produces no value.</returns>
     public TValue? GetOrCreate<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -95,6 +123,18 @@ internal sealed class QueryCacheStateCore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Returns a cached value or asynchronously waits for one shared factory computation.
+    /// </summary>
+    /// <typeparam name="TKey">The cache-key type.</typeparam>
+    /// <typeparam name="TValue">The cached value type.</typeparam>
+    /// <param name="scopeIdentity">The generation and component scope that own the entry.</param>
+    /// <param name="key">The key within the scope.</param>
+    /// <param name="valueFactory">The factory used to create the required value.</param>
+    /// <param name="sizeCalculator">Calculates the cache charge for an admitted value.</param>
+    /// <param name="admissionPredicate">Determines whether a produced value may be retained.</param>
+    /// <param name="cancellationToken">Cancels this caller's wait without necessarily cancelling other waiters.</param>
+    /// <returns>The cached or produced value, or <see langword="null"/> when the factory produces no value.</returns>
     public async ValueTask<TValue?> GetOrCreateAsync<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -130,6 +170,20 @@ internal sealed class QueryCacheStateCore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Produces a full result while retaining only a selected cache value for subsequent projections.
+    /// </summary>
+    /// <typeparam name="TKey">The cache-key type.</typeparam>
+    /// <typeparam name="TValue">The retained cache-value type.</typeparam>
+    /// <typeparam name="TResult">The caller-facing result type.</typeparam>
+    /// <param name="scopeIdentity">The generation and component scope that own the entry.</param>
+    /// <param name="key">The key within the scope.</param>
+    /// <param name="resultFactory">Produces the full result when no value is cached or being computed.</param>
+    /// <param name="cacheValueSelector">Selects the portion of a produced result that is safe to retain.</param>
+    /// <param name="cachedResultSelector">Reconstructs a caller-facing result from a retained value.</param>
+    /// <param name="sizeCalculator">Calculates the cache charge for the retained value.</param>
+    /// <param name="cancellationToken">Cancels this caller's wait without necessarily cancelling other waiters.</param>
+    /// <returns>The newly produced full result or a result reconstructed from the cached value.</returns>
     public TResult GetOrCreateProjected<TKey, TValue, TResult>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -180,6 +234,15 @@ internal sealed class QueryCacheStateCore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Attempts to read a typed entry without starting or joining a factory computation.
+    /// </summary>
+    /// <typeparam name="TKey">The cache-key type.</typeparam>
+    /// <typeparam name="TValue">The cached value type.</typeparam>
+    /// <param name="scopeIdentity">The generation and component scope that own the entry.</param>
+    /// <param name="key">The key within the scope.</param>
+    /// <param name="value">Receives the cached value when found.</param>
+    /// <returns><see langword="true"/> when the entry exists; otherwise, <see langword="false"/>.</returns>
     public bool TryGet<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -207,6 +270,15 @@ internal sealed class QueryCacheStateCore : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Stores a value when the supplied scope still represents the partition's current generation.
+    /// </summary>
+    /// <typeparam name="TKey">The cache-key type.</typeparam>
+    /// <typeparam name="TValue">The cached value type.</typeparam>
+    /// <param name="scopeIdentity">The generation and component scope that own the entry.</param>
+    /// <param name="key">The key within the scope.</param>
+    /// <param name="value">The value to retain.</param>
+    /// <param name="sizeCalculator">Calculates the cache charge for the value.</param>
     public void Store<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -230,6 +302,10 @@ internal sealed class QueryCacheStateCore : IDisposable
             scopeIdentity.Generation.InvalidationToken);
     }
 
+    /// <summary>
+    /// Invalidates the current generation of a logical partition and cancels its in-flight factories.
+    /// </summary>
+    /// <param name="partition">The partition to invalidate.</param>
     public void InvalidatePartition(object partition)
     {
         CancellationTokenSource? invalidationSource;
@@ -250,6 +326,7 @@ internal sealed class QueryCacheStateCore : IDisposable
         invalidationSource.Dispose();
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         CancellationTokenSource[] invalidationSources;

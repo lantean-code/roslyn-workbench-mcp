@@ -3,11 +3,15 @@ using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.Diagno
 
 namespace Roslyn.Workbench.Mcp.Plugins.Validation;
 
+/// <summary>
+/// Resolves one closed handler contract and enforces the visibility required by the plugin loading mode.
+/// </summary>
 internal sealed class PluginHandlerContractResolver : IPluginHandlerContractResolver
 {
     private static readonly Type _queryHandlerDefinition = typeof(IQueryToolHandler<,>);
     private static readonly Type _mutationHandlerDefinition = typeof(IMutationToolHandler<>);
 
+    /// <inheritdoc/>
     public bool TryResolve(
         ConfiguredToolDefinition definition,
         PluginContractAccessibility contractAccessibility,

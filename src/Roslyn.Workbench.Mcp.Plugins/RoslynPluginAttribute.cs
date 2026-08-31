@@ -25,7 +25,7 @@ public sealed class RoslynPluginAttribute : ExportAttribute
     public string SupportedApiVersion { get; }
 
     /// <summary>
-    /// Initialises a plugin export.
+    /// Initializes a new instance of the <see cref="RoslynPluginAttribute"/> class.
     /// </summary>
     /// <param name="pluginId">The stable plugin identifier.</param>
     /// <param name="displayName">The plugin display name.</param>

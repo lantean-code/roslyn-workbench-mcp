@@ -3,6 +3,9 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Isolates an external plugin's managed and native dependencies while sharing host contract assemblies.
+/// </summary>
 internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
 {
     private const string _codeAnalysisAssemblyPrefix = "Microsoft.CodeAnalysis";
@@ -14,6 +17,12 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
     private readonly IPluginPackagePathPolicy _packagePathPolicy;
     private readonly AssemblyDependencyResolver _resolver;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginAssemblyLoadContext"/> class.
+    /// </summary>
+    /// <param name="packageDirectory">The directory containing the plugin package.</param>
+    /// <param name="entryAssemblyPath">The path of the plugin entry assembly that anchors dependency resolution.</param>
+    /// <param name="packagePathPolicy">The policy that validates and canonicalises plugin package paths.</param>
     public PluginAssemblyLoadContext(
         string packageDirectory,
         string entryAssemblyPath,
@@ -25,6 +34,7 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
         _resolver = new AssemblyDependencyResolver(entryAssemblyPath);
     }
 
+    /// <inheritdoc/>
     protected override Assembly? Load(AssemblyName assemblyName)
     {
         if (IsSharedAssembly(assemblyName.Name))
@@ -41,6 +51,7 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
         return LoadFromAssemblyPath(GetContainedDependencyPath(assemblyPath));
     }
 
+    /// <inheritdoc/>
     protected override nint LoadUnmanagedDll(string unmanagedDllName)
     {
         var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);

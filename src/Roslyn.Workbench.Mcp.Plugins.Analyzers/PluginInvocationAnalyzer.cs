@@ -5,6 +5,9 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Validates cancellation handling, bounded query responses and plugin-owned failure reporting in handler implementations.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
 {
@@ -32,6 +35,7 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
         "System.Collections.Generic.IAsyncEnumerable`1",
     ];
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
     [
         PluginDiagnosticDescriptors.UnobservedCancellationToken,
@@ -39,6 +43,7 @@ public sealed class PluginInvocationAnalyzer : DiagnosticAnalyzer
         PluginDiagnosticDescriptors.PluginProtocolException,
     ];
 
+    /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
         if (context is null)

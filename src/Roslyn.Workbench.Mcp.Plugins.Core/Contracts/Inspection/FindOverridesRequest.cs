@@ -29,5 +29,8 @@ internal sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective overrides limit.
+    /// </summary>
     internal int EffectiveOverridesLimit => ResultLimit.GetEffectiveValue(OverridesLimit, _defaultOverridesMaxResults);
 }

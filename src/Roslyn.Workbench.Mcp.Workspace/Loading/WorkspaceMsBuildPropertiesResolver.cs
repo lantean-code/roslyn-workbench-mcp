@@ -1,10 +1,18 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Normalises allowlisted MSBuild properties and validates the optional artifacts directory.
+/// </summary>
 internal sealed class WorkspaceMsBuildPropertiesResolver : IWorkspaceMsBuildPropertiesResolver
 {
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceMsBuildPropertiesResolver"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system used to validate the artifacts directory.</param>
+    /// <param name="pathNormalizer">The service that canonicalises the artifacts path.</param>
     public WorkspaceMsBuildPropertiesResolver(
         IFileSystem fileSystem,
         IWorkspacePathNormalizer pathNormalizer)
@@ -13,6 +21,7 @@ internal sealed class WorkspaceMsBuildPropertiesResolver : IWorkspaceMsBuildProp
         _pathNormalizer = pathNormalizer;
     }
 
+    /// <inheritdoc/>
     public WorkspaceMsBuildPropertiesResolution Resolve(WorkspaceMsBuildProperties? properties)
     {
         if (properties is null)

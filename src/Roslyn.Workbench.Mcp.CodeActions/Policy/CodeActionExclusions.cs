@@ -2,14 +2,23 @@ using System.Collections.Frozen;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Policy;
 
+/// <summary>
+/// Defines providers that cannot run safely through the non-interactive Code Action workflow.
+/// </summary>
 internal static class CodeActionExclusions
 {
     private const string _editorStateRequired = "EditorStateRequired";
     private const string _externalIntelligenceRequired = "ExternalIntelligenceRequired";
+    /// <summary>
+    /// Identifies actions that require interactive option selection.
+    /// </summary>
     public const string OptionsRequired = "OptionsRequired";
     private const string _packageMutationRequired = "PackageMutationRequired";
     private const string _projectMutationRequired = "ProjectMutationRequired";
 
+    /// <summary>
+    /// Gets exclusion reason codes keyed by provider type name.
+    /// </summary>
     public static FrozenDictionary<string, string> ProviderReasons { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {

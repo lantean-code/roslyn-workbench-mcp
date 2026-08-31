@@ -34,5 +34,8 @@ internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective tests limit.
+    /// </summary>
     internal int EffectiveTestsLimit => ResultLimit.GetEffectiveValue(TestsLimit, _defaultTestsMaxResults);
 }

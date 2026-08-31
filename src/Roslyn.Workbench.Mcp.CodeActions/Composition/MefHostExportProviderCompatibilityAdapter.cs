@@ -4,8 +4,17 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
+/// <summary>
+/// Reflects over Roslyn's non-public MEF export API and normalizes activation failures.
+/// </summary>
 internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExportProviderCompatibilityAdapter
 {
+    /// <summary>
+    /// Activates and returns all Roslyn MEF exports assignable to the requested type.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="hostServices">The Roslyn host services from which MEF exports are requested.</param>
+    /// <returns>The activated exports or a compatibility failure.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

@@ -3,6 +3,9 @@ using System.Text.Json.Nodes;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Composes the standard JSON schema shapes used by published tool responses.
+/// </summary>
 internal static class ToolSchemaBuilder
 {
     private const string ItemsDescription = "Items returned in this page.";
@@ -14,6 +17,14 @@ internal static class ToolSchemaBuilder
     private const string ErrorDescription = "Structured error details when the invocation failed.";
     private const string ContinuationDescription = "Action the agent should take before retrying or continuing.";
 
+    /// <summary>
+    /// Creates a success-or-failure schema for a directly published response value.
+    /// </summary>
+    /// <param name="valueSchema">The schema of the tool's successful data value.</param>
+    /// <param name="errorSchema">The schema used for structured tool errors.</param>
+    /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
+    /// <param name="snapshotSchema">The schema used for the workspace snapshot portion of the response.</param>
+    /// <returns>The complete output schema, including reusable definitions.</returns>
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
@@ -32,6 +43,14 @@ internal static class ToolSchemaBuilder
             continuationSchema);
     }
 
+    /// <summary>
+    /// Combines success and failure alternatives into a complete tool response schema.
+    /// </summary>
+    /// <param name="successSchema">The schema used for successful tool results.</param>
+    /// <param name="componentSchemas">The reusable component schemas referenced by the response schema.</param>
+    /// <param name="errorSchema">The schema used for structured tool errors.</param>
+    /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
+    /// <returns>The response schema with merged reusable definitions.</returns>
     public static JsonElement CreateResponseSchema(
         JsonObject successSchema,
         IReadOnlyList<JsonElement> componentSchemas,
@@ -60,6 +79,11 @@ internal static class ToolSchemaBuilder
         return JsonSerializer.SerializeToElement(root);
     }
 
+    /// <summary>
+    /// Creates the standard paged collection schema around an item contract.
+    /// </summary>
+    /// <param name="itemSchema">The schema of each item in the generated collection.</param>
+    /// <returns>A schema containing items, truncation state, and an optional total count.</returns>
     public static JsonElement CreateBoundedCollectionSchema(JsonElement itemSchema)
     {
         var definitions = MergeDefinitions([itemSchema]);
@@ -99,6 +123,12 @@ internal static class ToolSchemaBuilder
         return JsonSerializer.SerializeToElement(schema);
     }
 
+    /// <summary>
+    /// Creates an array schema for the supplied item contract.
+    /// </summary>
+    /// <param name="itemSchema">The schema applied to each item in the generated array.</param>
+    /// <param name="description">Optional text describing the collection as a whole.</param>
+    /// <returns>The array schema.</returns>
     public static JsonObject CreateArraySchema(JsonElement itemSchema, string? description = null)
     {
         var parsedItemSchema = ParseNode(itemSchema);
@@ -116,6 +146,11 @@ internal static class ToolSchemaBuilder
         return schema;
     }
 
+    /// <summary>
+    /// Adds <see langword="null"/> to the schema's allowed types.
+    /// </summary>
+    /// <param name="schema">The JSON schema being inspected or transformed.</param>
+    /// <returns>A cloned schema that accepts both the original value and <see langword="null"/>.</returns>
     public static JsonNode AllowNull(JsonElement schema)
     {
         var schemaObject = ParseObject(schema);
@@ -153,6 +188,11 @@ internal static class ToolSchemaBuilder
         };
     }
 
+    /// <summary>
+    /// Creates a schema that accepts a named JSON primitive type or <see langword="null"/>.
+    /// </summary>
+    /// <param name="type">The JSON Schema primitive type name.</param>
+    /// <returns>The nullable primitive schema.</returns>
     public static JsonObject CreateNullablePrimitiveSchema(string type)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(type);
@@ -164,6 +204,13 @@ internal static class ToolSchemaBuilder
         };
     }
 
+    /// <summary>
+    /// Creates a successful result envelope whose data value may be <see langword="null"/>.
+    /// </summary>
+    /// <param name="dataSchema">The schema of the successful result data.</param>
+    /// <param name="snapshotSchema">The schema used for the workspace snapshot portion of the response.</param>
+    /// <param name="snapshotRequired">Whether successful results must include a workspace snapshot.</param>
+    /// <returns>The successful response alternative.</returns>
     public static JsonObject CreateNullableSuccessSchema(
         JsonElement dataSchema,
         JsonElement snapshotSchema,
@@ -175,6 +222,12 @@ internal static class ToolSchemaBuilder
             snapshotRequired);
     }
 
+    /// <summary>
+    /// Normalizes an exported schema for MCP publication.
+    /// </summary>
+    /// <param name="schemaNode">The exported schema node to normalize for transport.</param>
+    /// <param name="root">The original exported root containing any referenced definitions.</param>
+    /// <returns>A self-contained schema with local references normalized for publication.</returns>
     public static JsonElement NormalizeExportedSchema(JsonElement schemaNode, JsonElement root)
     {
         var schemaObject = ParseObject(schemaNode);
@@ -193,6 +246,13 @@ internal static class ToolSchemaBuilder
         return JsonSerializer.SerializeToElement(schemaObject);
     }
 
+    /// <summary>
+    /// Creates a successful result envelope for a supplied data contract.
+    /// </summary>
+    /// <param name="dataSchema">The schema of the successful result data.</param>
+    /// <param name="snapshotSchema">The schema used for the workspace snapshot portion of the response.</param>
+    /// <param name="snapshotRequired">Whether successful results must include a workspace snapshot.</param>
+    /// <returns>The successful response alternative.</returns>
     public static JsonObject CreateSuccessSchema(
         JsonNode? dataSchema,
         JsonElement snapshotSchema,

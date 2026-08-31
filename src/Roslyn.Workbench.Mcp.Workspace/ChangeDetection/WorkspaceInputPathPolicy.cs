@@ -1,12 +1,21 @@
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Filters watcher events beneath safely excluded generated or artifact directories without hiding protected inputs.
+/// </summary>
 internal sealed class WorkspaceInputPathPolicy
 {
+    /// <summary>
+    /// Gets a policy that monitors every valid path.
+    /// </summary>
     public static WorkspaceInputPathPolicy MonitorAll { get; } = new([]);
 
     private readonly StringComparison[] _excludedDirectoryRootComparisons;
     private readonly string[] _excludedDirectoryRootPrefixes;
 
+    /// <summary>
+    /// Gets the minimal normalized directory roots excluded from monitoring.
+    /// </summary>
     public IReadOnlyList<string> ExcludedDirectoryRoots { get; }
 
     private WorkspaceInputPathPolicy(
@@ -26,6 +35,11 @@ internal sealed class WorkspaceInputPathPolicy
         }
     }
 
+    /// <summary>
+    /// Determines whether a watcher path is outside all excluded directory roots.
+    /// </summary>
+    /// <param name="path">The watcher path, which may be absent or malformed.</param>
+    /// <returns><see langword="false"/> only when a valid normalized path lies within an excluded root.</returns>
     public bool ShouldMonitor(string? path)
     {
         if (!TryNormalizePath(path, out var normalizedPath))
@@ -46,6 +60,13 @@ internal sealed class WorkspaceInputPathPolicy
         return true;
     }
 
+    /// <summary>
+    /// Creates a policy that excludes only normalized roots which contain no protected Workspace input.
+    /// </summary>
+    /// <param name="excludedDirectoryRoots">Candidate generated or artifact directory roots.</param>
+    /// <param name="protectedPaths">Inputs that must remain monitored even when beneath a candidate root.</param>
+    /// <param name="pathComparison">The platform-aware path normalizer and comparer.</param>
+    /// <returns>A policy containing the minimal safe exclusion roots.</returns>
     public static WorkspaceInputPathPolicy Create(
         IEnumerable<string> excludedDirectoryRoots,
         IEnumerable<string> protectedPaths,

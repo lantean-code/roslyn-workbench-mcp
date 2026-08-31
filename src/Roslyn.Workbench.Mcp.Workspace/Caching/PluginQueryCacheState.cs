@@ -3,12 +3,20 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Caching;
 
+/// <summary>
+/// Maintains plugin query-cache partitions for immutable Workspace snapshot identities.
+/// </summary>
 internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposable
 {
     private readonly QueryCacheStateCore _core;
     private readonly HashSet<WorkspaceSnapshotIdentity> _partitions;
     private readonly Lock _syncRoot;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginQueryCacheState"/> class.
+    /// </summary>
+    /// <param name="options">The plugin cache limits and expiration policy.</param>
+    /// <param name="applicationLifetime">The Host lifetime used to cancel in-flight factories during shutdown.</param>
     public PluginQueryCacheState(
         IOptions<PluginQueryCacheOptions> options,
         IHostApplicationLifetime applicationLifetime)
@@ -23,6 +31,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
         _syncRoot = new Lock();
     }
 
+    /// <inheritdoc/>
     public QueryCacheScopeIdentity CreateScope(
         WorkspaceSnapshotIdentity snapshotIdentity,
         string pluginId,
@@ -37,6 +46,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
         return _core.CreateScope(snapshotIdentity, scope);
     }
 
+    /// <inheritdoc/>
     public TValue? GetOrCreate<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -54,6 +64,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public ValueTask<TValue?> GetOrCreateAsync<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -71,6 +82,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public void InvalidateWorkspace(Guid workspaceId, long workspaceEpoch)
     {
         InvalidateMatching(snapshot =>
@@ -78,6 +90,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
             && snapshot.WorkspaceEpoch == workspaceEpoch);
     }
 
+    /// <inheritdoc/>
     public void InvalidateTransaction(
         Guid workspaceId,
         long workspaceEpoch,
@@ -89,6 +102,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
             && snapshot.TransactionId == transactionId);
     }
 
+    /// <inheritdoc/>
     public void InvalidateSnapshots(IReadOnlyList<WorkspaceSnapshotIdentity> snapshots)
     {
         foreach (var snapshot in snapshots)
@@ -97,6 +111,7 @@ internal sealed class PluginQueryCacheState : IPluginQueryCacheState, IDisposabl
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         lock (_syncRoot)

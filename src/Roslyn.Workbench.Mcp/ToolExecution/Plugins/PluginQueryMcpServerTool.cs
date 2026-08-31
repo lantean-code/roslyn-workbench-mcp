@@ -2,6 +2,11 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
+/// <summary>
+/// Runs a plugin query within an isolated workspace lease and publishes its MCP result.
+/// </summary>
+/// <typeparam name="TRequest">The request type.</typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
 internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerToolBase<TRequest>
     where TRequest : WorkspaceBoundRequest
     where TResponse : IQueryResponse
@@ -11,6 +16,14 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
     private readonly string _pluginId;
     private readonly string _toolName;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginQueryMcpServerTool{TRequest, TResponse}"/> class.
+    /// </summary>
+    /// <param name="registration">The query contract, handler, and catalogue metadata.</param>
+    /// <param name="contextFactory">The factory that acquires workspace-scoped query contexts.</param>
+    /// <param name="protocolFactory">The factory that creates the published MCP tool definition.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="options">The Host settings that control schema publication.</param>
     public PluginQueryMcpServerTool(
         PluginQueryRegistration<TRequest, TResponse> registration,
         IToolExecutionContextFactory contextFactory,
@@ -28,6 +41,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         _toolName = registration.Tool.Metadata.Name;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken)

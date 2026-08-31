@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
+/// <summary>
+/// Stores durable workspace commit recovery plans, artifacts, manifests, and status evidence.
+/// </summary>
 internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
     private const string _manifestFileName = "manifest.json";
@@ -21,6 +24,17 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private readonly CommitRecoveryLimits _limits;
     private readonly string _recoveryDirectory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CommitRecoveryStore"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="atomicFileWriter">The writer that persists recovery state atomically.</param>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <param name="pathNormalizer">The service used to normalize workspace paths.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
+    /// <param name="stateDirectory">The directory used for workspace ownership and recovery state.</param>
+    /// <param name="stateDirectorySecurity">The component that applies access controls to the state directory.</param>
+    /// <param name="limits">The size limits enforced for persisted recovery state.</param>
     public CommitRecoveryStore(
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
@@ -41,6 +55,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         _recoveryDirectory = stateDirectory.RecoveryDirectory;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<CommitRecoveryPlanPersistenceResult> PersistPlanAsync(
         WorkspaceCommitPlan plan,
         CancellationToken cancellationToken)
@@ -70,6 +85,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return CommitRecoveryPlanPersistenceResult.Persisted();
     }
 
+    /// <inheritdoc/>
     public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -83,6 +99,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return WriteJsonAsync(GetManifestPath(manifest.CommitId), json, cancellationToken);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<IReadOnlyList<WorkspaceCommitManifest>> GetManifestsAsync(CancellationToken cancellationToken)
     {
         var manifests = new List<WorkspaceCommitManifest>();
@@ -165,12 +182,14 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return manifests;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<IReadOnlyList<WorkspaceCommitOwner>> GetOrphanedCommitOwnersAsync(CancellationToken cancellationToken)
     {
         var evidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken);
         return evidence.Owners;
     }
 
+    /// <inheritdoc/>
     public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
     {
         var manifests = await GetManifestsAsync(cancellationToken);
@@ -215,6 +234,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return statuses;
     }
 
+    /// <inheritdoc/>
     public ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -227,6 +247,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return WriteJsonAsync(path, json, cancellationToken);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
     {
         var path = GetArtifactPath(commitId, relativePath);
@@ -239,6 +260,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
     }
 
+    /// <inheritdoc/>
     public void DeleteStatus(string commitId)
     {
         var directory = GetCommitDirectory(commitId);

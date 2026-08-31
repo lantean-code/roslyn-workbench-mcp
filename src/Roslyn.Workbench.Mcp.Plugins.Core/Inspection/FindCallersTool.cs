@@ -2,9 +2,13 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns bounded direct source call sites and containing symbols.
+/// </summary>
 [RoslynTool("find-callers", "Find Callers", "Returns bounded direct source call sites and containing symbols.")]
 internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, CallerSearchData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<CallerSearchData>> ExecuteCoreAsync(FindCallersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);

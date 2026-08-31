@@ -1,5 +1,7 @@
 # Multi-Workspace Support Implementation Plan
 
+**Status:** Historical implementation plan. Multi-Workspace lifecycle, selection and transaction ownership are implemented and validated; current behaviour is documented in [Workspaces and transactions](../../../WorkspacesAndTransactions.md). This document is not an active worklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Allow the server to keep more than one solution or project loaded at once while guaranteeing that at most one loaded workspace can own an active mutation transaction at any given time.

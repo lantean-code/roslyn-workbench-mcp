@@ -1,5 +1,7 @@
 # Architecture Audit Checklist
 
+**Status:** Complete. The project summaries and linked validation records supersede the original working checklist.
+
 This document captures the current audit findings across the source projects and turns them into a working checklist.
 
 Scope:
@@ -144,9 +146,9 @@ The completed CodeActions follow-up record has been superseded by the [Code Acti
 
 ## Project Summary
 
-- [ ] `Roslyn.Workbench.Mcp` Notes:
+- [x] `Roslyn.Workbench.Mcp` Notes:
   - Project ownership is correct and plugin loading is now split into focused MEF/package collaborators.
-  - Remaining composition, schema, registration, publication and lifecycle work is tracked in the Host validation document.
+  - Composition, schema, registration, publication and lifecycle validation completed in [Host Architecture Validation](HostArchitectureValidation.md).
 
 - [x] `Roslyn.Workbench.Mcp.Workspace` Notes:
   - Workspace no longer references Plugins or CodeActions and its architecture and focused unit programme are complete.

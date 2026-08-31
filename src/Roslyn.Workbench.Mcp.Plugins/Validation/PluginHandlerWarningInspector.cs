@@ -3,8 +3,12 @@ using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.Diagno
 
 namespace Roslyn.Workbench.Mcp.Plugins.Validation;
 
+/// <summary>
+/// Reports handler state, mutability, disposable fields and legacy registration patterns requiring author review.
+/// </summary>
 internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspector
 {
+    /// <inheritdoc/>
     public IReadOnlyList<DiagnosticInfo> Inspect(Type handlerType)
     {
         var diagnostics = new List<DiagnosticInfo>();

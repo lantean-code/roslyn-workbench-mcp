@@ -2,6 +2,10 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
+/// <summary>
+/// Runs a plugin mutation within the active transaction and publishes its staged result.
+/// </summary>
+/// <typeparam name="TRequest">The request type.</typeparam>
 internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<TRequest>
     where TRequest : WorkspaceMutationRequest
 {
@@ -9,6 +13,14 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
     private readonly IMutationToolHandler<TRequest> _handler;
     private readonly IToolExecutionContextFactory _contextFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginMutationMcpServerTool{TRequest}"/> class.
+    /// </summary>
+    /// <param name="registration">The mutation contract, handler, and catalogue metadata.</param>
+    /// <param name="contextFactory">The factory that acquires transaction-scoped mutation contexts.</param>
+    /// <param name="protocolFactory">The factory that creates the published MCP tool definition.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="options">The Host settings that control schema publication.</param>
     public PluginMutationMcpServerTool(
         PluginMutationRegistration<TRequest> registration,
         IToolExecutionContextFactory contextFactory,
@@ -25,6 +37,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
         _contextFactory = contextFactory;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken)

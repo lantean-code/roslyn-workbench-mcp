@@ -1,21 +1,31 @@
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 
+/// <summary>
+/// Selects a session, acquires its operation gate and re-reads state to avoid executing against a removed snapshot.
+/// </summary>
 internal sealed class WorkspaceSessionAcquirer : IWorkspaceSessionAcquirer
 {
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSelector _workspaceSelector;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceSessionAcquirer"/> class.
+    /// </summary>
+    /// <param name="sessionStore">The atomic session store.</param>
+    /// <param name="workspaceSelector">The selector that resolves caller Workspace criteria.</param>
     public WorkspaceSessionAcquirer(IWorkspaceSessionStore sessionStore, IWorkspaceSelector workspaceSelector)
     {
         _sessionStore = sessionStore;
         _workspaceSelector = workspaceSelector;
     }
 
+    /// <inheritdoc/>
     public WorkspaceSessionAcquisition AcquireShared(WorkspaceSelector? selector)
     {
         return Acquire(selector, requiresExclusiveAccess: false);
     }
 
+    /// <inheritdoc/>
     public WorkspaceSessionAcquisition AcquireExclusive(WorkspaceSelector? selector)
     {
         return Acquire(selector, requiresExclusiveAccess: true);

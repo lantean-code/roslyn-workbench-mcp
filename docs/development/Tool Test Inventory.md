@@ -1,8 +1,8 @@
 # Tool Test Inventory
 
-Date: 2026-07-18
+Date: 2026-08-30
 
-> **Current note (2026-08-11):** The historical coverage ledgers below predate removal of `GetCodeMetricsTool` and replacement of `AnalyzeAsyncTool`'s custom heuristics with bundled AsyncFixer01–AsyncFixer06 analysis plus compiler diagnostic CS4014. Current async coverage is owned jointly by `AnalyzeAsyncToolTests`, `AnalyzerDiagnosticServiceTests`, `CompilerDiagnosticServiceTests` and `SemanticInspectionIntegrationTests`; retained metrics rows document the code that was tested before its removal.
+> **Current note (2026-08-30):** The historical coverage measurements below predate removal of `GetCodeMetricsTool` and replacement of `AnalyzeAsyncTool`'s custom heuristics with bundled AsyncFixer01–AsyncFixer06 analysis plus compiler diagnostic CS4014. Current async coverage is owned jointly by `AnalyzeAsyncToolTests`, `AnalyzerDiagnosticServiceTests`, `CompilerDiagnosticServiceTests` and `SemanticInspectionIntegrationTests`; retained metrics rows document the code that was tested before its removal. Subsequent dogfood remediation added focused coverage for schema publication, document eligibility, document-option shaping, generic hierarchy resolution, cross-project test impact and required string semantics without reopening any supported tool-handler gap in this inventory.
 
 ## Purpose
 

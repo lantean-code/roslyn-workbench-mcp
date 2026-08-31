@@ -2,12 +2,21 @@ using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.Diagno
 
 namespace Roslyn.Workbench.Mcp.Plugins.Preparation;
 
+/// <summary>
+/// Validates handler types, contracts and metadata before any plugin service provider or handler is created.
+/// </summary>
 internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
 {
     private readonly IPluginHandlerContractResolver _contractResolver;
     private readonly IPluginHandlerTypeInspector _typeInspector;
     private readonly IPluginHandlerWarningInspector _warningInspector;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginConfigurationPreparer"/> class.
+    /// </summary>
+    /// <param name="typeInspector">The inspector for handler type requirements.</param>
+    /// <param name="contractResolver">The resolver for closed handler contracts.</param>
+    /// <param name="warningInspector">The inspector for handler state and lifetime warnings.</param>
     public PluginConfigurationPreparer(
         IPluginHandlerTypeInspector typeInspector,
         IPluginHandlerContractResolver contractResolver,
@@ -18,6 +27,7 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         _warningInspector = warningInspector;
     }
 
+    /// <inheritdoc/>
     public PluginPreparationResult Prepare(
         PluginMetadata pluginMetadata,
         PluginConfiguration configuration,

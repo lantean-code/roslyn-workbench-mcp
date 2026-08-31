@@ -3,12 +3,19 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 
+/// <summary>
+/// Runs Roslyn analyzers and retains diagnostics reported for a selected set of documents.
+/// </summary>
 internal sealed class AnalyzerDiagnosticService : IAnalyzerDiagnosticService
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnalyzerDiagnosticService"/> class.
+    /// </summary>
     public AnalyzerDiagnosticService()
     {
     }
 
+    /// <inheritdoc/>
     public async ValueTask<IReadOnlyList<Diagnostic>> GetAnalyzerDiagnosticsAsync(
         IReadOnlyList<Document> selectedDocuments,
         IReadOnlyList<DiagnosticAnalyzer> analyzers,

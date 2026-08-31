@@ -1,16 +1,27 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Collects target-framework progress reported by MSBuild and maps it to loaded Roslyn projects.
+/// </summary>
 internal sealed class WorkspaceProjectTargetFrameworkCollector : IProgress<ProjectLoadProgress>
 {
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly Lock _sync = new();
     private readonly Dictionary<FileSystemPathKey, HashSet<string>> _targetFrameworksByProjectPath = [];
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceProjectTargetFrameworkCollector"/> class.
+    /// </summary>
+    /// <param name="pathComparison">The platform-aware path comparison service.</param>
     public WorkspaceProjectTargetFrameworkCollector(IWorkspacePathComparison pathComparison)
     {
         _pathComparison = pathComparison;
     }
 
+    /// <summary>
+    /// Records a resolved project's target framework from MSBuild load progress.
+    /// </summary>
+    /// <param name="value">The reported project load progress.</param>
     public void Report(ProjectLoadProgress value)
     {
         if (value.Operation != ProjectLoadOperation.Resolve
@@ -33,6 +44,11 @@ internal sealed class WorkspaceProjectTargetFrameworkCollector : IProgress<Proje
         }
     }
 
+    /// <summary>
+    /// Maps collected target frameworks to the corresponding projects in a loaded solution.
+    /// </summary>
+    /// <param name="solution">The loaded solution whose project identities should be mapped.</param>
+    /// <returns>The project target-framework map.</returns>
     public WorkspaceProjectTargetFrameworkMap CreateMap(Solution solution)
     {
         var projectsByPath = GroupProjectsByPath(solution);

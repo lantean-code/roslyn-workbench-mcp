@@ -4,18 +4,38 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
+/// <summary>
+/// Composes eligible C# Code Action providers from configured Roslyn MEF assemblies.
+/// </summary>
 internal sealed class MefCodeActionComposition : ICodeActionComposition
 {
     private readonly CodeActionCompositionState _composition;
 
+    /// <summary>
+    /// Gets the status.
+    /// </summary>
     public CodeActionCompositionStatus Status => _composition.Status;
 
+    /// <summary>
+    /// Gets the workspace host services.
+    /// </summary>
     public HostServices? WorkspaceHostServices => _composition.WorkspaceHostServices;
 
+    /// <summary>
+    /// Gets the refactoring providers.
+    /// </summary>
     public IReadOnlyList<CodeRefactoringProvider> RefactoringProviders => _composition.RefactoringProviders;
 
+    /// <summary>
+    /// Gets the code fix providers.
+    /// </summary>
     public IReadOnlyList<CodeFixProvider> CodeFixProviders => _composition.CodeFixProviders;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MefCodeActionComposition"/> class.
+    /// </summary>
+    /// <param name="options">The assembly-selection settings.</param>
+    /// <param name="exportProvider">The compatibility adapter used to activate Roslyn MEF exports.</param>
     public MefCodeActionComposition(
         IOptions<CodeActionCompositionOptions> options,
         IMefHostExportProviderCompatibilityAdapter exportProvider)

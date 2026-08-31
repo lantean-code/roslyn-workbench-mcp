@@ -2,8 +2,20 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Resolves source selections into Roslyn-compatible statement or expression regions for flow analysis.
+/// </summary>
 internal static class FlowAnalysisRegionResolver
 {
+    /// <summary>
+    /// Resolves a selection that exactly covers one statement or a contiguous statement range.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type used when projecting a resolution rejection.</typeparam>
+    /// <param name="selector">The source location to resolve.</param>
+    /// <param name="expectedSnapshot">The optional snapshot that the source location must match.</param>
+    /// <param name="context">The active query context.</param>
+    /// <param name="cancellationToken">The token that cancels location and semantic resolution.</param>
+    /// <returns>The resolved statement region or a typed rejection.</returns>
     public static async ValueTask<ToolResolutionResult<ResolvedStatementFlowRegion, TResponse>> ResolveStatementRegionAsync<TResponse>(
         LocationSelector selector,
         SnapshotPrecondition? expectedSnapshot,
@@ -35,6 +47,15 @@ internal static class FlowAnalysisRegionResolver
         return ToolResolutionResult.Resolved<ResolvedStatementFlowRegion, TResponse>(region);
     }
 
+    /// <summary>
+    /// Resolves a selection that exactly covers an expression, one statement, or a contiguous statement range.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type used when projecting a resolution rejection.</typeparam>
+    /// <param name="selector">The source location to resolve.</param>
+    /// <param name="expectedSnapshot">The optional snapshot that the source location must match.</param>
+    /// <param name="context">The active query context.</param>
+    /// <param name="cancellationToken">The token that cancels location and semantic resolution.</param>
+    /// <returns>The resolved flow-analysis region or a typed rejection.</returns>
     public static async ValueTask<ToolResolutionResult<ResolvedFlowRegion, TResponse>> ResolveDataFlowRegionAsync<TResponse>(
         LocationSelector selector,
         SnapshotPrecondition? expectedSnapshot,

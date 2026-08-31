@@ -52,5 +52,8 @@ internal sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective callees limit.
+    /// </summary>
     internal int EffectiveCalleesLimit => ResultLimit.GetEffectiveValue(CalleesLimit, _defaultCalleesMaxResults);
 }

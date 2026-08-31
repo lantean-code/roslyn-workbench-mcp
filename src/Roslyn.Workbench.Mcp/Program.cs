@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp;
 
+/// <summary>
+/// Hosts the Roslyn Workbench MCP server process.
+/// </summary>
 internal static class Program
 {
     private static async Task Main(string[] args)

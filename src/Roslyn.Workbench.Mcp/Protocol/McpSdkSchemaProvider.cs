@@ -5,6 +5,9 @@ using Microsoft.Extensions.AI;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Generates and caches contract schemas through the MCP SDK's tool-schema pipeline.
+/// </summary>
 internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 {
     private static readonly AIJsonSchemaCreateOptions _inputSchemaCreateOptions = new()
@@ -20,21 +23,41 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _valueSchemaCache = [];
 
+    /// <summary>
+    /// Gets the cached input schema for a request type.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <returns>The input schema.</returns>
     public JsonElement GetInputSchema<TRequest>()
     {
         return _inputSchemaCache.GetOrAdd(typeof(TRequest), CreateInputSchemaCore);
     }
 
+    /// <summary>
+    /// Gets the cached input schema for a request type selected at runtime.
+    /// </summary>
+    /// <param name="requestType">The request type to describe.</param>
+    /// <returns>The schema rooted at the request object.</returns>
     public JsonElement GetInputSchemaForType(Type requestType)
     {
         return _inputSchemaCache.GetOrAdd(requestType, CreateInputSchemaCore);
     }
 
+    /// <summary>
+    /// Gets the cached JSON schema for a value type.
+    /// </summary>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <returns>The value schema.</returns>
     public JsonElement GetValueSchema<TValue>()
     {
         return GetValueSchema(typeof(TValue));
     }
 
+    /// <summary>
+    /// Gets the cached JSON schema for a value type selected at runtime.
+    /// </summary>
+    /// <param name="valueType">The value type to describe.</param>
+    /// <returns>The normalized schema for values of the specified type.</returns>
     public JsonElement GetValueSchema(Type valueType)
     {
         return _valueSchemaCache.GetOrAdd(valueType, CreateValueSchemaCore);

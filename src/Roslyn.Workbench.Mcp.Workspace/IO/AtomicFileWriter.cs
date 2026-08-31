@@ -3,6 +3,9 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
+/// <summary>
+/// Writes durable contents to a temporary file before atomically committing the destination.
+/// </summary>
 internal sealed class AtomicFileWriter : IAtomicFileWriter
 {
     private const UnixFileMode _ownerOnlyFileMode =
@@ -18,12 +21,18 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileCommitter _fileCommitter;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AtomicFileWriter"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system used to create and clean temporary files.</param>
+    /// <param name="fileCommitter">The platform-specific durable committer.</param>
     public AtomicFileWriter(IFileSystem fileSystem, IAtomicFileCommitter fileCommitter)
     {
         _fileSystem = fileSystem;
         _fileCommitter = fileCommitter;
     }
 
+    /// <inheritdoc/>
     public async ValueTask WriteAllTextAsync(
         string destinationPath,
         string contents,
@@ -42,6 +51,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public ValueTask WriteAllBytesAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,
@@ -56,6 +66,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public ValueTask WriteAllBytesAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,

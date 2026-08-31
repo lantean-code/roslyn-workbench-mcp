@@ -6,8 +6,18 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Recursively validates deserialized request objects using data annotations.
+/// </summary>
 internal sealed class RequestObjectGraphValidator : IRequestObjectGraphValidator
 {
+    /// <summary>
+    /// Validates a request and combines all discovered failures into one client-facing message.
+    /// </summary>
+    /// <param name="request">The request being processed.</param>
+    /// <param name="serializerOptions">The serializer settings used to format property names and validation values.</param>
+    /// <param name="errorMessage">When validation fails, a message describing the invalid request fields.</param>
+    /// <returns><see langword="true"/> when the request is invalid; otherwise, <see langword="false"/>.</returns>
     public bool TryCreateInvalidRequestError(
         object request,
         JsonSerializerOptions serializerOptions,

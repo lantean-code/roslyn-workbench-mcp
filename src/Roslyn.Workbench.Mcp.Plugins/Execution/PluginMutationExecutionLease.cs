@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 /// <summary>
-/// Holds a plugin mutation context separately from the staging capability retained by Host.
+/// Holds a plugin mutation context separately from the staging capability retained by the Host.
 /// </summary>
 internal sealed class PluginMutationExecutionLease : IAsyncDisposable
 {
@@ -19,18 +19,26 @@ internal sealed class PluginMutationExecutionLease : IAsyncDisposable
         Failure = failure;
     }
 
-    /// <summary>Gets the plugin mutation context when acquisition succeeded.</summary>
+    /// <summary>
+    /// Gets the plugin mutation context when acquisition succeeded.
+    /// </summary>
     public IMutationContext? Context { get; }
 
-    /// <summary>Gets the normalized acquisition failure when acquisition was rejected.</summary>
+    /// <summary>
+    /// Gets the normalized acquisition failure when acquisition was rejected.
+    /// </summary>
     public ToolExecutionFailureResult? Failure { get; }
 
-    /// <summary>Gets a value indicating whether mutation context acquisition failed.</summary>
+    /// <summary>
+    /// Gets a value indicating whether mutation context acquisition failed.
+    /// </summary>
     [MemberNotNullWhen(true, nameof(Failure))]
     [MemberNotNullWhen(false, nameof(Context))]
     public bool HasFailure => Failure is not null;
 
-    /// <summary>Stages a candidate returned by the plugin handler.</summary>
+    /// <summary>
+    /// Stages a candidate returned by the plugin handler.
+    /// </summary>
     /// <param name="operationName">The registered operation name.</param>
     /// <param name="candidate">The plugin mutation candidate.</param>
     /// <param name="diagnostics">Diagnostics produced by the handler.</param>
@@ -64,13 +72,21 @@ internal sealed class PluginMutationExecutionLease : IAsyncDisposable
         return PluginWorkspaceResultMapper.MapMutation(result);
     }
 
-    /// <summary>Releases the underlying Workspace mutation lease.</summary>
+    /// <summary>
+    /// Releases the underlying workspace mutation lease.
+    /// </summary>
     /// <returns>A task representing asynchronous disposal.</returns>
     public ValueTask DisposeAsync()
     {
         return _workspaceLease.DisposeAsync();
     }
 
+    /// <summary>
+    /// Creates a lease for a successfully acquired mutation context.
+    /// </summary>
+    /// <param name="workspaceLease">The underlying workspace mutation lease.</param>
+    /// <param name="context">The plugin mutation context.</param>
+    /// <returns>An acquired plugin mutation lease.</returns>
     public static PluginMutationExecutionLease Acquired(
         WorkspaceMutationExecutionLease workspaceLease,
         IMutationContext context)
@@ -78,6 +94,13 @@ internal sealed class PluginMutationExecutionLease : IAsyncDisposable
         return new PluginMutationExecutionLease(workspaceLease, context, null);
     }
 
+    /// <summary>
+    /// Creates a rejected lease while preserving any context available for failure projection.
+    /// </summary>
+    /// <param name="workspaceLease">The underlying rejected workspace lease.</param>
+    /// <param name="failure">The normalized plugin execution failure.</param>
+    /// <param name="context">The optional plugin context available despite rejection.</param>
+    /// <returns>A rejected plugin mutation lease.</returns>
     public static PluginMutationExecutionLease Rejected(
         WorkspaceMutationExecutionLease workspaceLease,
         ToolExecutionFailureResult failure,

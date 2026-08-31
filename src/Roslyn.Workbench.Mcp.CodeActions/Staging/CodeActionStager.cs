@@ -2,6 +2,9 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
+/// <summary>
+/// Rehydrates and evaluates a referenced Code Action to produce a transaction candidate.
+/// </summary>
 internal sealed class CodeActionStager : ICodeActionStager
 {
     private readonly ICodeActionComposition _composition;
@@ -10,6 +13,14 @@ internal sealed class CodeActionStager : ICodeActionStager
     private readonly ICodeActionEvaluator _evaluator;
     private readonly ICodeActionReferenceStore _referenceStore;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionStager"/> class.
+    /// </summary>
+    /// <param name="composition">The runtime Code Action composition state.</param>
+    /// <param name="resolver">The resolver for ordinary Code Action references.</param>
+    /// <param name="preparedFixAllResolver">The resolver for previously prepared Fix All references.</param>
+    /// <param name="evaluator">The component that evaluates a Code Action into a candidate solution.</param>
+    /// <param name="referenceStore">The store containing short-lived Code Action references.</param>
     public CodeActionStager(
         ICodeActionComposition composition,
         ICodeActionResolver resolver,
@@ -24,6 +35,13 @@ internal sealed class CodeActionStager : ICodeActionStager
         _referenceStore = referenceStore;
     }
 
+    /// <summary>
+    /// Resolves and evaluates the requested Code Action to produce a candidate solution for staging.
+    /// </summary>
+    /// <param name="request">The referenced action and snapshot precondition to stage.</param>
+    /// <param name="context">The current transaction-scoped Code Action context.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the candidate solution or a rejection explaining why it could not be produced.</returns>
     public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
         StageCodeActionRequest request,
         ICodeActionExecutionContext context,

@@ -3,6 +3,9 @@ using System.Security.Cryptography;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Converts solution changes into a validated, recoverable sequence of file operations.
+/// </summary>
 internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 {
     private readonly IFileSystem _fileSystem;
@@ -10,6 +13,13 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspaceDocumentContentService _documentContentService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceCommitPlanner"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
+    /// <param name="documentContentService">The service that provides document content operations.</param>
     public WorkspaceCommitPlanner(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
@@ -22,6 +32,16 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         _documentContentService = documentContentService;
     }
 
+    /// <summary>
+    /// Creates a durable commit plan from the baseline and current solutions.
+    /// </summary>
+    /// <param name="commitId">The commit identifier.</param>
+    /// <param name="loadedPath">The path loaded into the workspace.</param>
+    /// <param name="workspaceRoot">The workspace root path.</param>
+    /// <param name="baselineSolution">The solution used as the comparison baseline.</param>
+    /// <param name="currentSolution">The solution snapshot on which the operation runs.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace commit plan result.</returns>
     public async ValueTask<WorkspaceCommitPlanResult> CreateAsync(
         string commitId,
         string loadedPath,

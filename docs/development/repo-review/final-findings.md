@@ -10,7 +10,7 @@ The most urgent release risks identified by the review were non-atomic global tr
 
 ## Remediation work items
 
-The outstanding findings are grouped below by shared production boundary and validation path. In remediation discussions, the **next item** means the first row whose status is `Incomplete`. Every finding retains its own identifier, validation evidence, remediation record and completion status even when implemented and independently reviewed as part of one grouped change. If investigation shows that a grouping does not converge cleanly, update this table before splitting the work.
+The completed findings are grouped below by shared production boundary and validation path. During remediation discussions, the **next item** meant the first row whose status was `Incomplete`. Every finding retains its own identifier, validation evidence, remediation record and completion status even when implemented and independently reviewed as part of one grouped change.
 
 | Order | Findings | Work item | Status |
 |---:|---|---|---|

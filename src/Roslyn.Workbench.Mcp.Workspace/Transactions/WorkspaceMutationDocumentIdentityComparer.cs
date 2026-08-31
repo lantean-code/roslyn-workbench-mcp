@@ -1,13 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Orders workspace mutation document identities deterministically.
+/// </summary>
 internal sealed class WorkspaceMutationDocumentIdentityComparer : IComparer<WorkspaceMutationDocumentIdentity>
 {
+    /// <summary>
+    /// Gets the shared comparer instance.
+    /// </summary>
     public static WorkspaceMutationDocumentIdentityComparer Instance { get; } = new();
 
     private WorkspaceMutationDocumentIdentityComparer()
     {
     }
 
+    /// <inheritdoc/>
     public int Compare(WorkspaceMutationDocumentIdentity? left, WorkspaceMutationDocumentIdentity? right)
     {
         if (ReferenceEquals(left, right))

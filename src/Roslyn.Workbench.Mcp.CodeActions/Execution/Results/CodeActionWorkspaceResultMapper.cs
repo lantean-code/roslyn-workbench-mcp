@@ -1,7 +1,15 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution.Results;
 
+/// <summary>
+/// Projects neutral workspace acquisition and staging outcomes into Code Action execution results.
+/// </summary>
 internal static class CodeActionWorkspaceResultMapper
 {
+    /// <summary>
+    /// Converts a workspace acquisition failure into a Code Action failure.
+    /// </summary>
+    /// <param name="failure">The failure that prevents the operation from continuing.</param>
+    /// <returns>The Code Action execution failure.</returns>
     public static CodeActionExecutionFailure MapFailure(WorkspaceExecutionFailure failure)
     {
         return new CodeActionExecutionFailure
@@ -12,6 +20,11 @@ internal static class CodeActionWorkspaceResultMapper
         };
     }
 
+    /// <summary>
+    /// Converts a workspace mutation staging result into a Code Action result.
+    /// </summary>
+    /// <param name="result">The neutral mutation staging result.</param>
+    /// <returns>The corresponding Code Action success, no-change, or failure result.</returns>
     public static CodeActionExecutionResult<MutationData> MapMutation(
         WorkspaceOperationResult<MutationStagingOutcome> result)
     {

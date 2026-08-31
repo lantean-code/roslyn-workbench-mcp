@@ -6,6 +6,9 @@ using Roslyn.Workbench.Mcp.Plugins.Validation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analyzers;
 
+/// <summary>
+/// Enforces safe workspace access, synchronous configuration and protocol-compatible metadata in plugin implementations.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
 {
@@ -17,6 +20,7 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
     private const string _mutationHandlerMetadataName = "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler";
     private const string _builderMetadataName = "Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder`1";
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(
             PluginDiagnosticDescriptors.DirectWorkspaceMutation,
@@ -25,6 +29,7 @@ public sealed class PluginAuthoringAnalyzer : DiagnosticAnalyzer
             PluginDiagnosticDescriptors.RetainedPluginConfiguration,
             PluginDiagnosticDescriptors.InvalidToolName);
 
+    /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
         if (context is null)

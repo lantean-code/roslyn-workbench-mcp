@@ -1,17 +1,28 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Configuration;
 
+/// <summary>
+/// Collects tool and service registrations during a plugin's synchronous configuration callback.
+/// </summary>
 internal sealed class PluginConfiguration : IPluginConfiguration
 {
     private readonly List<ConfiguredToolDefinition> _definitions = [];
     private readonly PluginServiceConfiguration _services = new();
     private bool _isFrozen;
 
+    /// <summary>
+    /// Gets the configured tool definitions in registration order.
+    /// </summary>
     public IReadOnlyList<ConfiguredToolDefinition> Definitions => _definitions;
 
+    /// <inheritdoc/>
     public IPluginServiceConfiguration Services => _services;
 
+    /// <summary>
+    /// Gets the configured plugin service definitions in registration order.
+    /// </summary>
     public IReadOnlyList<PluginServiceDefinition> ServiceDefinitions => _services.Definitions;
 
+    /// <inheritdoc/>
     public QueryToolConfigurationBuilder AddQueryTool<THandler>()
         where THandler : class, IQueryToolHandler
     {
@@ -21,6 +32,7 @@ internal sealed class PluginConfiguration : IPluginConfiguration
         return builder;
     }
 
+    /// <inheritdoc/>
     public MutationToolConfigurationBuilder AddMutationTool<THandler>()
         where THandler : class, IMutationToolHandler
     {
@@ -30,6 +42,9 @@ internal sealed class PluginConfiguration : IPluginConfiguration
         return builder;
     }
 
+    /// <summary>
+    /// Freezes every tool builder and the service collection after plugin configuration returns.
+    /// </summary>
     public void Freeze()
     {
         foreach (var definition in _definitions)

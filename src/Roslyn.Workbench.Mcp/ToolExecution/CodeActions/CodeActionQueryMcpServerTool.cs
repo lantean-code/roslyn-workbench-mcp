@@ -2,6 +2,12 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
+/// <summary>
+/// Runs a Code Action query within a workspace lease and publishes its MCP result.
+/// </summary>
+/// <typeparam name="THandler">The handler type.</typeparam>
+/// <typeparam name="TRequest">The request type.</typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
 internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse> : McpServerToolBase<TRequest>
     where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
     where TRequest : WorkspaceBoundRequest
@@ -9,6 +15,15 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
     private readonly THandler _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionQueryMcpServerTool{THandler, TRequest, TResponse}"/> class.
+    /// </summary>
+    /// <param name="registration">The query contract and catalogue metadata.</param>
+    /// <param name="handler">The Code Action query handler invoked for each tool request.</param>
+    /// <param name="contextFactory">The factory that acquires workspace-scoped Code Action contexts.</param>
+    /// <param name="protocolFactory">The factory that creates the published MCP tool definition.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="options">The Host settings that control schema publication.</param>
     public CodeActionQueryMcpServerTool(
         CodeActionQueryRegistration<THandler, TRequest, TResponse> registration,
         THandler handler,
@@ -27,6 +42,7 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         _contextFactory = contextFactory;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken)

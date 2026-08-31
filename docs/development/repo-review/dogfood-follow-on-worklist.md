@@ -14,7 +14,7 @@ The original [dogfood improvement worklist](dogfood-analysis.md#approved-improve
 
 | Order | Identifier | Validation item | Status |
 |---:|---|---|---|
-| 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; ready to commit |
+| 1 | DOGFOOD-008 | [Commit a controlled transaction in a disposable Workspace](dogfood-008-controlled-transaction-commit-design.md) | Confirmed; scenario hardening committed |
 | 2 | DOGFOOD-009 | Exercise the Code Action and Fix All workflows | Confirmed through normal Codex dogfood validation |
 | 3 | DOGFOOD-010 | Sweep the remaining query surface with representative low limits | Confirmed; both discovered defects remediated and published validation completed |
 | 4 | DOGFOOD-011 | [Correct generic-base hierarchy resolution](dogfood-011-generic-hierarchy-design.md) | Confirmed through published dogfood validation |

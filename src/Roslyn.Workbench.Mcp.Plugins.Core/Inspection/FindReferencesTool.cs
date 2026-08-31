@@ -4,11 +4,15 @@ using ContractReferenceLocation = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.In
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Finds source references with optional declaration and access classification.
+/// </summary>
 [RoslynTool(_toolName, "Find References", "Finds source references, optionally including declarations and access classification.")]
 internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesRequest, ReferenceSearchData>
 {
     private const string _toolName = "find-references";
 
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<ReferenceSearchData>> ExecuteCoreAsync(FindReferencesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);

@@ -1,7 +1,14 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Registration;
 
+/// <summary>
+/// Defines and registers the Code Action tools published by the host.
+/// </summary>
 internal static class BundledCodeActionToolRegistrar
 {
+    /// <summary>
+    /// Registers every bundled Code Action tool with the supplied registry.
+    /// </summary>
+    /// <param name="registry">The registry populated with bundled Code Action tools.</param>
     public static void RegisterAll(ICodeActionToolRegistry registry)
     {
         registry.RegisterQueryTool<ListCodeActionsTool, ListCodeActionsRequest, CodeActionListData>(

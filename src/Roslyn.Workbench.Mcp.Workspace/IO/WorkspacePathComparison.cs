@@ -1,22 +1,33 @@
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
+/// <summary>
+/// Derives path case sensitivity from the host platform and Linux mount metadata.
+/// </summary>
 internal sealed class WorkspacePathComparison : IWorkspacePathComparison
 {
     private const string _mountInfoPath = "/proc/self/mountinfo";
     private readonly IFileSystem _fileSystem;
     private readonly Lazy<string[]> _mountInfo;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspacePathComparison"/> class.
+    /// </summary>
     public WorkspacePathComparison()
         : this(new FileSystem())
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspacePathComparison"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system used to read Linux mount metadata.</param>
     public WorkspacePathComparison(IFileSystem fileSystem)
     {
         _fileSystem = fileSystem;
         _mountInfo = new Lazy<string[]>(ReadMountInfo);
     }
 
+    /// <inheritdoc/>
     public StringComparison GetComparison(string path)
     {
         return OperatingSystem.IsWindows() || IsCaseInsensitiveWindowsMount(path)
@@ -24,12 +35,14 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
             : StringComparison.Ordinal;
     }
 
+    /// <inheritdoc/>
     public FileSystemPathKey CreateKey(string path)
     {
         var isCaseSensitive = GetComparison(path) == StringComparison.Ordinal;
         return new FileSystemPathKey(path, isCaseSensitive);
     }
 
+    /// <inheritdoc/>
     public bool IsWindowsFileSystemPath(string path)
     {
         return OperatingSystem.IsLinux()

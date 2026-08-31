@@ -3,6 +3,9 @@ using System.Threading.Channels;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Watches and re-enumerates evaluated item memberships outside the Workspace root, retaining the first invalidating change.
+/// </summary>
 internal sealed class WorkspaceExternalInputChangeMonitor : IWorkspaceExternalInputChangeMonitor
 {
     private const int _maximumWatcherBufferSize = 64 * 1024;
@@ -21,8 +24,15 @@ internal sealed class WorkspaceExternalInputChangeMonitor : IWorkspaceExternalIn
     private int _pendingEventCount;
     private int _startState;
 
+    /// <inheritdoc/>
     public WorkspaceInputChange? Change => Volatile.Read(ref _change);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceExternalInputChangeMonitor"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The filesystem abstraction used for watchers and membership enumeration.</param>
+    /// <param name="pathComparison">The platform-aware path comparer.</param>
+    /// <param name="memberships">The external roots and evaluated memberships to monitor.</param>
     public WorkspaceExternalInputChangeMonitor(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
@@ -42,6 +52,7 @@ internal sealed class WorkspaceExternalInputChangeMonitor : IWorkspaceExternalIn
         _eventProcessingTask = ProcessEventsAsync();
     }
 
+    /// <inheritdoc/>
     public void Start()
     {
         if (Interlocked.Exchange(ref _startState, 1) != 0)
@@ -66,6 +77,7 @@ internal sealed class WorkspaceExternalInputChangeMonitor : IWorkspaceExternalIn
         }
     }
 
+    /// <inheritdoc/>
     public void WaitForPendingEvents(CancellationToken cancellationToken)
     {
         WaitForEventProcessing(cancellationToken);
@@ -78,6 +90,7 @@ internal sealed class WorkspaceExternalInputChangeMonitor : IWorkspaceExternalIn
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)

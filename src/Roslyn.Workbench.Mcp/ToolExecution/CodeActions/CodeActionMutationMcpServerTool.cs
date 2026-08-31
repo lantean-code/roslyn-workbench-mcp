@@ -2,6 +2,11 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
+/// <summary>
+/// Applies a referenced Code Action within the active transaction and publishes its staged result.
+/// </summary>
+/// <typeparam name="THandler">The handler type.</typeparam>
+/// <typeparam name="TRequest">The request type.</typeparam>
 internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpServerToolBase<TRequest>
     where THandler : class, ICodeActionMutationToolHandler<TRequest>
     where TRequest : WorkspaceMutationRequest
@@ -11,6 +16,16 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
     private readonly ICodeActionExecutionContextFactory _contextFactory;
     private readonly ICodeActionReferenceStore _referenceStore;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CodeActionMutationMcpServerTool{THandler, TRequest}"/> class.
+    /// </summary>
+    /// <param name="registration">The mutation contract and catalogue metadata.</param>
+    /// <param name="handler">The Code Action mutation handler invoked for each tool request.</param>
+    /// <param name="contextFactory">The factory that acquires transaction-scoped Code Action contexts.</param>
+    /// <param name="referenceStore">The store containing short-lived Code Action references returned by queries.</param>
+    /// <param name="protocolFactory">The factory that creates the published MCP tool definition.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="options">The Host settings that control schema publication.</param>
     public CodeActionMutationMcpServerTool(
         CodeActionMutationRegistration<THandler, TRequest> registration,
         THandler handler,
@@ -32,6 +47,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         _referenceStore = referenceStore;
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken)

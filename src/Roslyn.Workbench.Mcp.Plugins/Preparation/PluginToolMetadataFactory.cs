@@ -2,8 +2,16 @@ using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Preparation;
 
+/// <summary>
+/// Merges handler attributes with fluent overrides into the effective tool registration metadata.
+/// </summary>
 internal static class PluginToolMetadataFactory
 {
+    /// <summary>
+    /// Creates effective metadata, giving explicit builder values precedence over handler attributes.
+    /// </summary>
+    /// <param name="definition">The configured handler and its builder state.</param>
+    /// <returns>The metadata used to validate and publish the tool.</returns>
     public static ToolRegistrationMetadata Create(ConfiguredToolDefinition definition)
     {
         var attribute = definition.HandlerType.GetCustomAttribute<RoslynToolAttribute>();

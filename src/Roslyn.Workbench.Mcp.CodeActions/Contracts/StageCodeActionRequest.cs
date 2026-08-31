@@ -8,7 +8,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 internal sealed record StageCodeActionRequest : WorkspaceMutationRequest, ICodeActionReferenceRequest
 {
     /// <summary>
-    /// Gets the opaque action reference.
+    /// The opaque action reference.
     /// </summary>
     [Description("The opaque action reference.")]
     public required Guid ActionId { get; init; }

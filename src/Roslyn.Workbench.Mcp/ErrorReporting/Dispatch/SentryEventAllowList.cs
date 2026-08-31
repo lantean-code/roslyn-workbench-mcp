@@ -5,6 +5,9 @@ using Sentry;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 
+/// <summary>
+/// Removes all Sentry event fields except the explicitly approved diagnostic payload and envelope metadata.
+/// </summary>
 internal static class SentryEventAllowList
 {
     private const string _workbenchContext = "roslyn_workbench";
@@ -25,6 +28,11 @@ internal static class SentryEventAllowList
         "exception",
     ];
 
+    /// <summary>
+    /// Creates a new event containing only approved top-level fields and the Roslyn Workbench context.
+    /// </summary>
+    /// <param name="source">The event to filter before preview or submission.</param>
+    /// <returns>An allow-listed copy that is safe for the configured Sentry client to process.</returns>
     public static SentryEvent CreateAllowedCopy(SentryEvent source)
     {
         var sourceBytes = SentryEventJsonSerializer.Serialize(source);

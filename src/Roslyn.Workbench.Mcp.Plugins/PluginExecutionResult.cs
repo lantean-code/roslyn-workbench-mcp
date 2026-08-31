@@ -55,6 +55,16 @@ public sealed record PluginExecutionResult<TResponse>
     [MemberNotNullWhen(true, nameof(Error))]
     public bool HasError => Outcome.IsError();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginExecutionResult{TResponse}"/> class.
+    /// </summary>
+    /// <param name="outcome">The normalized execution outcome.</param>
+    /// <param name="data">The successful response payload, required for a successful outcome.</param>
+    /// <param name="changes">The optional top-level change summary.</param>
+    /// <param name="error">The structured error, required for an error outcome.</param>
+    /// <param name="requiredAction">The optional continuation hint.</param>
+    /// <param name="diagnostics">Diagnostics emitted during execution.</param>
+    /// <param name="warnings">Warnings emitted during execution.</param>
     internal PluginExecutionResult(
         PluginExecutionOutcome outcome,
         TResponse? data,
@@ -211,6 +221,14 @@ public static class PluginExecutionResult
             warnings);
     }
 
+    /// <summary>
+    /// Creates a rejected result from an error code and message at an internal host boundary.
+    /// </summary>
+    /// <typeparam name="TResponse">The response payload type.</typeparam>
+    /// <param name="code">The stable error code.</param>
+    /// <param name="message">The user-facing error message.</param>
+    /// <param name="requiredAction">The optional continuation hint.</param>
+    /// <returns>The normalized rejected result.</returns>
     internal static PluginExecutionResult<TResponse> Rejected<TResponse>(
         string code,
         string message,

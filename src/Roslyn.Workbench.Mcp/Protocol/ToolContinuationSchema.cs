@@ -3,8 +3,15 @@ using System.Text.Json.Nodes;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Builds the discriminated JSON schema for agent continuation instructions.
+/// </summary>
 internal static class ToolContinuationSchema
 {
+    /// <summary>
+    /// Creates the alternatives for every supported continuation kind.
+    /// </summary>
+    /// <returns>A schema that requires the fields appropriate to the selected continuation kind.</returns>
     public static JsonElement Create()
     {
         var alternatives = new JsonArray

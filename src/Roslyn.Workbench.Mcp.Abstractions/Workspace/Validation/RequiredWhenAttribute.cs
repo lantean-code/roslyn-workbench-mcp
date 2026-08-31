@@ -23,7 +23,7 @@ public sealed class RequiredWhenAttribute : ValidationAttribute
     public string OtherProperty { get; }
 
     /// <summary>
-    /// Initialises a new instance of the <see cref="RequiredWhenAttribute"/> class.
+    /// Initializes a new instance of the <see cref="RequiredWhenAttribute"/> class.
     /// </summary>
     /// <param name="otherProperty">The name of the property controlling the requirement.</param>
     /// <param name="expectedValue">The value that makes the decorated property required.</param>

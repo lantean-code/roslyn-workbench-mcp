@@ -1,8 +1,12 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns nullable-flow diagnostics for a selected scope or location.
+/// </summary>
 [RoslynTool("analyze-nullability", "Analyze Nullability", "Returns nullable-flow diagnostics for a selected scope or location.")]
 internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabilityRequest, NullabilityAnalysisData>
 {
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<NullabilityAnalysisData>> ExecuteCoreAsync(AnalyzeNullabilityRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         TextSpan? selectedSpan = null;

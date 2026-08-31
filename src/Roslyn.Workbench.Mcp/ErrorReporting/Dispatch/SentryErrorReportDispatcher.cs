@@ -9,6 +9,9 @@ using Sentry.Protocol;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Dispatch;
 
+/// <summary>
+/// Converts approved error reports into allow-listed Sentry events and submits them through an isolated client.
+/// </summary>
 internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
 {
     private const string _platform = "csharp";
@@ -21,6 +24,11 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
     private readonly ISentryClient _client;
     private readonly SentryProviderConfiguration _configuration;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SentryErrorReportDispatcher"/> class.
+    /// </summary>
+    /// <param name="client">The Sentry client used to submit approved error reports.</param>
+    /// <param name="configuration">The validated Sentry endpoint and user-facing destination.</param>
     public SentryErrorReportDispatcher(
         ISentryClient client,
         SentryProviderConfiguration configuration)
@@ -29,10 +37,21 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// Gets the provider name shown during review and in submission results.
+    /// </summary>
     public string Name => "Sentry";
 
+    /// <summary>
+    /// Gets the Sentry project shown to the user before approval.
+    /// </summary>
     public string Destination => _configuration.Destination;
 
+    /// <summary>
+    /// Creates the allow-listed Sentry event presented for review.
+    /// </summary>
+    /// <param name="report">The projected error report to encode as a Sentry event.</param>
+    /// <returns>The event, UTF-8 JSON preview and provider dispatch state.</returns>
     public PreparedDispatchPayload CreatePayload(ExternalErrorReport report)
     {
         var sentryEvent = CreateSentryEvent(report);
@@ -57,6 +76,13 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         };
     }
 
+    /// <summary>
+    /// Applies the approved exception-message policy and sends the prepared event to Sentry.
+    /// </summary>
+    /// <param name="payload">The prepared payload approved for dispatch.</param>
+    /// <param name="messageHandling">Whether captured exception messages are included or removed before dispatch.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the submission outcome or a validation failure.</returns>
     public ValueTask<ErrorDispatchResult> DispatchAsync(
         PreparedDispatchPayload payload,
         ExceptionMessageHandling messageHandling,

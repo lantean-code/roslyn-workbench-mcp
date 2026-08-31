@@ -28,6 +28,12 @@ public sealed record BoundedCollection<TItem>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? TotalCount { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BoundedCollection{TItem}"/> class.
+    /// </summary>
+    /// <param name="items">The items included in the current page.</param>
+    /// <param name="hasMore">Whether additional items exist beyond the current page.</param>
+    /// <param name="totalCount">The complete item count when it is known.</param>
     internal BoundedCollection(IReadOnlyList<TItem> items, bool hasMore, int? totalCount)
     {
         ArgumentNullException.ThrowIfNull(items);

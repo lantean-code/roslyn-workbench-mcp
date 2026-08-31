@@ -36,6 +36,7 @@ public sealed class CodeActionsArchitectureTests
             ["Roslyn.Workbench.Mcp.Plugins.Core"] =
             [
                 "Roslyn.Workbench.Mcp.Abstractions",
+                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
                 "Roslyn.Workbench.Mcp.Plugins",
                 "Roslyn.Workbench.Mcp.Workspace",
             ],

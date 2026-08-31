@@ -1,7 +1,11 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Evaluates project XML through MSBuild to identify supported SDK-style projects.
+/// </summary>
 internal sealed class WorkspaceProjectCompatibilityInspector : IWorkspaceProjectCompatibilityInspector
 {
+    /// <inheritdoc/>
     public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) Inspect(
         string projectPath,
         WorkspaceMsBuildProperties? msBuildProperties)

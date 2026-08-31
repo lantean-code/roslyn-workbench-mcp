@@ -8,7 +8,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 internal sealed record CodeActionListData
 {
     /// <summary>
-    /// Gets the returned actions.
+    /// The returned actions.
     /// </summary>
     [Description("The returned actions.")]
     public BoundedCollection<CodeActionListItem> Actions { get; init; }

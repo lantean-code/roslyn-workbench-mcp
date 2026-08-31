@@ -4,6 +4,9 @@ using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Tools;
 
+/// <summary>
+/// Projects a captured failure into an immutable provider payload that the user can review before submission.
+/// </summary>
 internal sealed class PrepareErrorReportTool :
     ServerOwnedToolBase<PrepareErrorReportRequest, PreparedErrorReportData>
 {
@@ -32,6 +35,19 @@ internal sealed class PrepareErrorReportTool :
     private readonly IErrorReportingAvailabilityService _availabilityService;
     private readonly TimeProvider _timeProvider;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PrepareErrorReportTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="errorReportingOptions">The options that configure error reporting.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="capturedErrorStore">The store containing captured failures available for preparation.</param>
+    /// <param name="preparedSubmissionStore">The store that retains immutable payloads awaiting approval.</param>
+    /// <param name="projector">The component that creates the external error-report projection.</param>
+    /// <param name="dispatcher">The dispatcher that prepares the immutable submission preview.</param>
+    /// <param name="availabilityService">The service that determines whether preparation is currently permitted.</param>
+    /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
     public PrepareErrorReportTool(
         IOptions<StartupOptions> startupOptions,
         IOptions<ErrorReportingOptions> errorReportingOptions,
@@ -63,6 +79,7 @@ internal sealed class PrepareErrorReportTool :
         _timeProvider = timeProvider;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask<ToolResult<PreparedErrorReportData>> ExecuteAsync(
         PrepareErrorReportRequest request,
         CancellationToken cancellationToken)

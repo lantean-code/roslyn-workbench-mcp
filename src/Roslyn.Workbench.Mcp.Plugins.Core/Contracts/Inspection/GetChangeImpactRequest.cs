@@ -29,5 +29,8 @@ internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective locations limit.
+    /// </summary>
     internal int EffectiveLocationsLimit => ResultLimit.GetEffectiveValue(LocationsLimit, _defaultLocationsMaxResults);
 }

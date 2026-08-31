@@ -8,13 +8,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 internal sealed record CodeActionDiagnosticContext
 {
     /// <summary>
-    /// Gets the diagnostic identifier.
+    /// The diagnostic identifier.
     /// </summary>
     [Description("The diagnostic identifier.")]
     public required string Id { get; init; }
 
     /// <summary>
-    /// Gets the diagnostic message.
+    /// The diagnostic message.
     /// </summary>
     [Description("The diagnostic message.")]
     public required string Message { get; init; }

@@ -1,7 +1,15 @@
 namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
+/// <summary>
+/// Translates workspace recovery requirements into instructions an MCP client can follow.
+/// </summary>
 internal static class RequiredActionContinuationMapper
 {
+    /// <summary>
+    /// Converts a required workspace action into instructions the client can follow.
+    /// </summary>
+    /// <param name="requiredAction">The action required before processing can continue.</param>
+    /// <returns>The corresponding continuation, or <see langword="null"/> when no action is required.</returns>
     public static ToolContinuation? Map(RequiredAction? requiredAction)
     {
         if (requiredAction is null)

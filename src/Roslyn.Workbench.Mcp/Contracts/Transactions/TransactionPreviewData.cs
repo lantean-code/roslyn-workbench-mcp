@@ -6,19 +6,19 @@ namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 internal sealed record TransactionPreviewData
 {
     /// <summary>
-    /// Gets the active transaction info.
+    /// The active transaction info.
     /// </summary>
     [Description("The active transaction info.")]
     public TransactionInfo? Transaction { get; init; }
 
     /// <summary>
-    /// Gets the changed documents in the preview.
+    /// The changed documents in the preview.
     /// </summary>
     [Description("The changed documents in the preview.")]
     public IReadOnlyList<DocumentChange> Documents { get; init; } = [];
 
     /// <summary>
-    /// Gets the optional detailed diff.
+    /// The optional detailed diff.
     /// </summary>
     [Description("The optional detailed diff.")]
     public DocumentDiff? Diff { get; init; }

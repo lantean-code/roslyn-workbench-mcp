@@ -3,8 +3,17 @@ using Roslyn.Workbench.Mcp.ToolExecution;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
+/// <summary>
+/// Composes Roslyn Workbench services, tools, lifecycle prerequisites and stdio transport into a host builder.
+/// </summary>
 internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 {
+    /// <summary>
+    /// Adds the complete Roslyn Workbench MCP host to an application builder.
+    /// </summary>
+    /// <param name="builder">The service collection being configured for Roslyn Workbench.</param>
+    /// <param name="args">The command-line arguments used to resolve host configuration.</param>
+    /// <returns>The same builder after Roslyn Workbench has been configured.</returns>
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
         var composition = HostStartupComposer.Compose(args);

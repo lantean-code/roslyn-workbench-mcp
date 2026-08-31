@@ -26,5 +26,8 @@ internal sealed record GoToDefinitionRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective definitions limit.
+    /// </summary>
     internal int EffectiveDefinitionsLimit => ResultLimit.GetEffectiveValue(DefinitionsLimit, _defaultDefinitionsMaxResults);
 }

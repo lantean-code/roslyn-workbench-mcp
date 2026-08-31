@@ -2,12 +2,21 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
+/// <summary>
+/// Adapts neutral workspace execution leases into plugin query and mutation contexts with scoped services and caching.
+/// </summary>
 internal sealed class PluginExecutionContextFactory : IToolExecutionContextFactory
 {
     private readonly IWorkspaceExecutionContextFactory _workspaceFactory;
     private readonly IToolExecutionServices _toolExecutionServices;
     private readonly IQueryResultCacheScopeFactory _queryCacheScopeFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginExecutionContextFactory"/> class.
+    /// </summary>
+    /// <param name="workspaceFactory">The neutral workspace context factory.</param>
+    /// <param name="toolExecutionServices">The services exposed to plugin handlers.</param>
+    /// <param name="queryCacheScopeFactory">The factory for invocation-scoped query caches.</param>
     public PluginExecutionContextFactory(
         IWorkspaceExecutionContextFactory workspaceFactory,
         IToolExecutionServices toolExecutionServices,
@@ -18,6 +27,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
         _queryCacheScopeFactory = queryCacheScopeFactory;
     }
 
+    /// <inheritdoc/>
     public PluginMutationExecutionLease CreateMutationContext(
         WorkspaceMutationRequest request,
         CancellationToken cancellationToken)
@@ -52,6 +62,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
         return acquiredResult;
     }
 
+    /// <inheritdoc/>
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
@@ -112,6 +123,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
         return acquiredResult;
     }
 
+    /// <inheritdoc/>
     public ToolExecutionContextLease<IQueryContext> CreateQueryContext(
         WorkspaceBoundRequest request,
         CancellationToken cancellationToken)
@@ -123,6 +135,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public ToolExecutionFailureResult? DetectUnexpectedWorkspaceChange(IToolExecutionContext context)
     {
         var failure = _workspaceFactory.DetectUnexpectedWorkspaceChange(context.WorkspaceIdentity.WorkspaceId);

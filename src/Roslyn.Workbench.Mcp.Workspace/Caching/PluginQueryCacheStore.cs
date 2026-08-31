@@ -1,14 +1,22 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Caching;
 
+/// <summary>
+/// Delegates plugin query-cache operations to the shared lifecycle-aware state.
+/// </summary>
 internal sealed class PluginQueryCacheStore : IPluginQueryCacheStore
 {
     private readonly IPluginQueryCacheState _state;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginQueryCacheStore"/> class.
+    /// </summary>
+    /// <param name="state">The shared plugin cache state.</param>
     public PluginQueryCacheStore(IPluginQueryCacheState state)
     {
         _state = state;
     }
 
+    /// <inheritdoc/>
     public QueryCacheScopeIdentity CreateScope(
         WorkspaceSnapshotIdentity snapshotIdentity,
         string pluginId,
@@ -17,6 +25,7 @@ internal sealed class PluginQueryCacheStore : IPluginQueryCacheStore
         return _state.CreateScope(snapshotIdentity, pluginId, toolName);
     }
 
+    /// <inheritdoc/>
     public TValue? GetOrCreate<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,
@@ -32,6 +41,7 @@ internal sealed class PluginQueryCacheStore : IPluginQueryCacheStore
             cancellationToken);
     }
 
+    /// <inheritdoc/>
     public ValueTask<TValue?> GetOrCreateAsync<TKey, TValue>(
         QueryCacheScopeIdentity scopeIdentity,
         TKey key,

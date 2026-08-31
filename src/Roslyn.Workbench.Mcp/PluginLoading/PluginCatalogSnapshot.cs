@@ -3,18 +3,36 @@ using System.Runtime.Loader;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Owns the immutable published plugin catalogue and the service providers created for its plugins.
+/// </summary>
 internal sealed class PluginCatalogSnapshot : IDisposable, IAsyncDisposable
 {
     private int _disposeState;
 
+    /// <summary>
+    /// Gets every runtime plugin tool accepted for publication.
+    /// </summary>
     public IReadOnlyList<IRegisteredPluginTool> Tools { get; init; } = [];
 
+    /// <summary>
+    /// Gets enabled and disabled status entries for all discovered plugins.
+    /// </summary>
     public IReadOnlyList<PluginStatus> Plugins { get; init; } = [];
 
+    /// <summary>
+    /// Gets the load contexts retained for accepted external plugins.
+    /// </summary>
     public IReadOnlyList<AssemblyLoadContext> LoadContexts { get; init; } = [];
 
+    /// <summary>
+    /// Gets the plugin service providers disposed when the catalogue shuts down.
+    /// </summary>
     public IReadOnlyList<IDisposable> ServiceProviderLifetimes { get; init; } = [];
 
+    /// <summary>
+    /// Disposes each plugin service provider in reverse materialization order.
+    /// </summary>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -43,6 +61,10 @@ internal sealed class PluginCatalogSnapshot : IDisposable, IAsyncDisposable
         ThrowIfDisposalFailed(failures);
     }
 
+    /// <summary>
+    /// Asynchronously disposes each plugin service provider in reverse materialization order.
+    /// </summary>
+    /// <returns>A task that completes after every provider has been offered disposal.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

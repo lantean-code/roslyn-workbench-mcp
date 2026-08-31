@@ -5,6 +5,9 @@ using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Tools;
 
+/// <summary>
+/// Obtains configured consent and dispatches one previously reviewed payload at most once.
+/// </summary>
 internal sealed class SubmitErrorReportTool :
     ServerOwnedToolBase<SubmitErrorReportRequest, SubmittedErrorReportData>
 {
@@ -18,6 +21,15 @@ internal sealed class SubmitErrorReportTool :
     private readonly IErrorReportingConsentService _consentService;
     private readonly IErrorReportDispatcher _dispatcher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SubmitErrorReportTool"/> class.
+    /// </summary>
+    /// <param name="startupOptions">The options that control server startup.</param>
+    /// <param name="protocolFactory">The factory that creates protocol result payloads.</param>
+    /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
+    /// <param name="store">The store containing prepared submissions awaiting approval.</param>
+    /// <param name="consentService">The service that determines whether submission is disabled, prompted or pre-approved.</param>
+    /// <param name="dispatcher">The dispatcher that sends the approved error-report payload.</param>
     public SubmitErrorReportTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -43,6 +55,7 @@ internal sealed class SubmitErrorReportTool :
         _dispatcher = dispatcher;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask<ToolResult<SubmittedErrorReportData>> ExecuteAsync(
         SubmitErrorReportRequest request,
         CancellationToken cancellationToken)
@@ -50,6 +63,7 @@ internal sealed class SubmitErrorReportTool :
         throw new InvalidOperationException("Submission requires the active MCP request context.");
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         SubmitErrorReportRequest request,
         RequestContext<CallToolRequestParams> requestContext,

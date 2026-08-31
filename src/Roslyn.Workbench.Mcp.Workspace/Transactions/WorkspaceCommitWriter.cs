@@ -2,6 +2,9 @@ using System.Security.Cryptography;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Applies, validates, completes, and restores durable workspace commit manifests.
+/// </summary>
 internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 {
     private readonly IFileSystem _fileSystem;
@@ -10,6 +13,14 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     private readonly IAtomicFileCommitter _fileCommitter;
     private readonly IPhysicalPathContainment _pathContainment;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceCommitWriter"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file-system abstraction used for storage operations.</param>
+    /// <param name="atomicFileWriter">The component that writes replacement files atomically.</param>
+    /// <param name="recoveryStore">The store containing recovery artifacts and manifest state.</param>
+    /// <param name="fileCommitter">The component that performs platform-native file commits.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
     public WorkspaceCommitWriter(
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
@@ -24,6 +35,12 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         _pathContainment = pathContainment;
     }
 
+    /// <summary>
+    /// Revalidates baseline files immediately before commit application.
+    /// </summary>
+    /// <param name="manifest">The manifest whose contents are being processed.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the workspace commit validation result.</returns>
     public async ValueTask<WorkspaceCommitValidationResult> RevalidateAsync(
         WorkspaceCommitManifest manifest,
         CancellationToken cancellationToken)
@@ -40,6 +57,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return WorkspaceCommitValidationResult.Valid();
     }
 
+    /// <summary>
+    /// Applies the planned file operations and advances the durable manifest.
+    /// </summary>
+    /// <param name="manifest">The manifest whose contents are being processed.</param>
+    /// <returns>A task that completes with the workspace commit validation result.</returns>
     public async ValueTask<WorkspaceCommitValidationResult> ApplyAsync(WorkspaceCommitManifest manifest)
     {
         foreach (var directory in manifest.CreatedDirectories)
@@ -103,6 +125,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return WorkspaceCommitValidationResult.Valid();
     }
 
+    /// <summary>
+    /// Verifies that applied files match the manifest's intended state.
+    /// </summary>
+    /// <param name="manifest">The manifest whose contents are being processed.</param>
+    /// <returns>A task that completes with the workspace commit validation result.</returns>
     public async ValueTask<WorkspaceCommitValidationResult> ValidateAppliedStateAsync(
         WorkspaceCommitManifest manifest)
     {
@@ -171,6 +198,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return WorkspaceCommitValidationResult.Valid();
     }
 
+    /// <summary>
+    /// Removes recovery artifacts after a successfully validated commit.
+    /// </summary>
+    /// <param name="manifest">The manifest whose contents are being processed.</param>
+    /// <returns>A task that completes with <see langword="true"/> when commit cleanup succeeds; otherwise, <see langword="false"/>.</returns>
     public ValueTask<bool> CompleteAsync(WorkspaceCommitManifest manifest)
     {
         try
@@ -203,6 +235,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         }
     }
 
+    /// <summary>
+    /// Restores original files for an incomplete or failed commit.
+    /// </summary>
+    /// <param name="manifest">The manifest whose contents are being processed.</param>
+    /// <returns>A task that completes with the recovery state.</returns>
     public async ValueTask<RecoveryState> RestoreAsync(WorkspaceCommitManifest manifest)
     {
         var conflict = false;

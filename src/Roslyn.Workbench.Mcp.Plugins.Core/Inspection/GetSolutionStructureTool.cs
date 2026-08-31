@@ -2,11 +2,15 @@ using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+/// <summary>
+/// Returns bounded solution folders, projects, target frameworks, and direct project relationships.
+/// </summary>
 [RoslynTool(_toolName, "Get Solution Structure", "Returns bounded solution folders, projects, target frameworks and direct project relationships.")]
 internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
 {
     private const string _toolName = "get-solution-structure";
 
+    /// <inheritdoc/>
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         SolutionHierarchyResult hierarchy;

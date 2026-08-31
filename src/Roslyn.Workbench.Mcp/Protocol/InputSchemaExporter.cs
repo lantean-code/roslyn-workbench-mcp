@@ -5,11 +5,19 @@ using System.Text.Json.Nodes;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Converts the MCP SDK's synthetic method-argument schema into a tool request schema.
+/// </summary>
 internal static class InputSchemaExporter
 {
     private const string RequestPointer = "#/properties/request";
     private const string DefinitionsPointer = "#/$defs";
 
+    /// <summary>
+    /// Extracts the request object schema from the SDK-generated wrapper.
+    /// </summary>
+    /// <param name="root">The wrapper schema containing the generated request property.</param>
+    /// <returns>A self-contained schema rooted at the request object.</returns>
     public static JsonElement ExtractRequestSchema(JsonElement root)
     {
         var request = root.GetProperty("properties").GetProperty("request");

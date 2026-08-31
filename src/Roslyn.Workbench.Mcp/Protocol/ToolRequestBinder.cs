@@ -7,16 +7,31 @@ using System.Text.Json.Serialization;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
+/// <summary>
+/// Converts MCP argument dictionaries into fully validated request objects.
+/// </summary>
 internal sealed class ToolRequestBinder : IToolRequestBinder
 {
     private static readonly JsonSerializerOptions _serializerOptions = McpJsonOptions.RequestBinding;
     private readonly IRequestObjectGraphValidator _requestObjectGraphValidator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ToolRequestBinder"/> class.
+    /// </summary>
+    /// <param name="requestObjectGraphValidator">The validator for nested data-annotation constraints.</param>
     public ToolRequestBinder(IRequestObjectGraphValidator requestObjectGraphValidator)
     {
         _requestObjectGraphValidator = requestObjectGraphValidator;
     }
 
+    /// <summary>
+    /// Attempts to deserialize, normalize, and validate a tool request.
+    /// </summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <param name="arguments">The arguments supplied to the tool invocation.</param>
+    /// <param name="request">When binding succeeds, the populated request object.</param>
+    /// <param name="errorMessage">When binding fails, a message suitable for returning to the MCP client.</param>
+    /// <returns><see langword="true"/> when the arguments produce a valid request; otherwise, <see langword="false"/>.</returns>
     public bool TryBind<TRequest>(
         IDictionary<string, JsonElement> arguments,
         [NotNullWhen(true)] out TRequest? request,

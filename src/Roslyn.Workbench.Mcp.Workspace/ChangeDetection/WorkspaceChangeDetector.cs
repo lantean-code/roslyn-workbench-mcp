@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
+/// <summary>
+/// Builds and validates Workspace input manifests from Roslyn documents, MSBuild evaluation and filesystem metadata.
+/// </summary>
 internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 {
     private readonly IFileSystem _fileSystem;
@@ -7,6 +10,13 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     private readonly IWorkspaceInputChangeMonitorFactory _changeMonitorFactory;
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceChangeDetector"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The filesystem abstraction used to fingerprint inputs.</param>
+    /// <param name="projectInputResolver">The resolver for project imports, item globs and artifact roots.</param>
+    /// <param name="changeMonitorFactory">The factory for load-time root watchers.</param>
+    /// <param name="pathComparison">The platform-aware path identity service.</param>
     public WorkspaceChangeDetector(
         IFileSystem fileSystem,
         IWorkspaceProjectInputResolver projectInputResolver,
@@ -19,6 +29,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         _pathComparison = pathComparison;
     }
 
+    /// <inheritdoc/>
     public IWorkspaceInputCertification BeginCertification(string workspaceRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -39,6 +50,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         }
     }
 
+    /// <inheritdoc/>
     public WorkspaceInputManifest BuildManifest(
         Solution solution,
         string loadedPath,
@@ -64,6 +76,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         return certification.Complete(manifest);
     }
 
+    /// <inheritdoc/>
     public bool HasChanged(WorkspaceInputManifest manifest, CancellationToken cancellationToken)
     {
         using var phase = WorkbenchPerformanceEventSource.Log.StartPhase(

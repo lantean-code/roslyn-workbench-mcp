@@ -1,7 +1,11 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Context;
 
+/// <summary>
+/// Provides lightweight source context and containing-symbol lookup for plugin result projections.
+/// </summary>
 internal sealed class InspectionContextService : IInspectionContextService
 {
+    /// <inheritdoc/>
     public async ValueTask<string?> ReadContextAsync(Document? document, TextSpan span, CancellationToken cancellationToken)
     {
         if (document is null)
@@ -14,6 +18,7 @@ internal sealed class InspectionContextService : IInspectionContextService
         return line.ToString().Trim();
     }
 
+    /// <inheritdoc/>
     public async ValueTask<ISymbol?> TryCreateContainingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
     {
         return await SymbolFinder.FindSymbolAtPositionAsync(document, position, cancellationToken);

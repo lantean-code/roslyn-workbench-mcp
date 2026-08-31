@@ -35,7 +35,13 @@ internal sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective exits limit.
+    /// </summary>
     internal int EffectiveExitsLimit => ResultLimit.GetEffectiveValue(ExitsLimit, _defaultExitsMaxResults);
 
+    /// <summary>
+    /// Gets the effective returns limit.
+    /// </summary>
     internal int EffectiveReturnsLimit => ResultLimit.GetEffectiveValue(ReturnsLimit, _defaultReturnsMaxResults);
 }

@@ -3,6 +3,9 @@ using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
+/// <summary>
+/// Preflights transport schemas and creates runtime tool wrappers and an isolated service provider for one plugin.
+/// </summary>
 internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer
 {
     private const string _inputSchemaSizeRuleId = "InputSchemaSize";
@@ -13,6 +16,13 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
     private readonly IToolSchemaFactory _schemaFactory;
     private readonly ILogger<PluginCatalogEntryMaterializer> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginCatalogEntryMaterializer"/> class.
+    /// </summary>
+    /// <param name="toolRegistrationMaterializer">The component that builds runtime wrappers and the plugin service provider.</param>
+    /// <param name="schemaPreflight">The validator that checks plugin tool schemas before publication.</param>
+    /// <param name="schemaFactory">The factory used to measure published input schemas.</param>
+    /// <param name="logger">The logger used to record diagnostic information.</param>
     public PluginCatalogEntryMaterializer(
         IPluginToolRegistrationMaterializer toolRegistrationMaterializer,
         IPluginTransportSchemaPreflight schemaPreflight,
@@ -25,6 +35,11 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
         _logger = logger;
     }
 
+    /// <summary>
+    /// Materializes one prepared plugin for runtime catalogue publication.
+    /// </summary>
+    /// <param name="plugin">The plugin instance being registered or inspected.</param>
+    /// <returns>The published tools and enabled status, or a disabled status when materialization fails.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",

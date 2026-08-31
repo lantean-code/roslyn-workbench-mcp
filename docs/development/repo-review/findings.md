@@ -2,7 +2,7 @@
 
 Date created: 2026-08-16
 
-**Status:** Independent validation initially validated nineteen candidates without rejection or duplication; remediation subsequently rejected RWMCP3-007 as outside the product operating model.
+**Status:** Complete. Independent validation initially validated nineteen candidates without rejection or duplication; remediation completed every accepted finding and rejected RWMCP3-007 and RWMCP3-017 as outside the product operating model.
 
 **Next identifier:** `RWMCP3-020`
 
@@ -125,7 +125,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-008 — Location-based CFG requests can throw for ordinary executable locations
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetControlFlowGraphTool.cs:41-67`; `src/Roslyn.Workbench.Mcp/ToolExecution/Plugins/PluginQueryMcpServerTool.cs:53-94`
@@ -136,11 +136,11 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Plugins.Core CFG tool, Host error projection and MCP clients.  
 **Remediation direction:** Resolve a supported enclosing executable root or reject unsupported locations; add handler and protocol coverage for nested and unsupported locations.  
-**Origin/history:** Unit 4, 2026-08-16; reproduced read-only against current source and independently reproduced in Stage 4.
+**Origin/history:** Unit 4, 2026-08-16; reproduced read-only against current source and independently reproduced in Stage 4. Remediated on 2026-08-22 by resolving supported enclosing executable roots and returning structured rejection for unsupported targets, with focused handler, resolver and protocol coverage. The grouped independent review found no remaining defects.
 
 ### RWMCP3-009 — Maximum permitted `afterLines` overflows the code-context window
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/GetCodeContextRequest.cs:17-28`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/GetCodeContextTool.cs:24-33`
@@ -151,7 +151,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Plugins.Core contract/tool, Host schema/binder and MCP clients.  
 **Remediation direction:** Use overflow-safe remaining-line arithmetic and impose a meaningful output bound; add maximum, near-maximum and end-of-file protocol tests.  
-**Origin/history:** Unit 4, 2026-08-16; reproduced read-only against current source and independently reproduced in Stage 4.
+**Origin/history:** Unit 4, 2026-08-16; reproduced read-only against current source and independently reproduced in Stage 4. Remediated on 2026-08-22 with bounded optional context-window limits and overflow-safe line calculations. Focused unit and schema integration coverage passed, and the grouped independent review found no remaining defects.
 
 ### RWMCP3-010 — `renameFile=true` cannot complete a durable same-document path transition
 
@@ -170,7 +170,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-011 — Format range silently ignores its document binding
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-22
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp.Abstractions/Workspace/Selectors/TextSpanSelector.cs:8-25`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Inspection/FormatDocumentRequest.cs:8-16`; `src/Roslyn.Workbench.Mcp.Plugins.Core/Refactorings/FormatDocumentTool.cs:13-45`
@@ -181,7 +181,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Abstractions selector contract, Plugins.Core format mutation, Host schema/binder and clients.  
 **Remediation direction:** Use a documentless nested span contract or require both selectors to resolve to the same document; add handler and protocol mismatch tests.  
-**Origin/history:** Unit 4, 2026-08-16; current contract/consumer trace; independently validated in Stage 4.
+**Origin/history:** Unit 4, 2026-08-16; current contract/consumer trace; independently validated in Stage 4. Remediated on 2026-08-22 by replacing the nested document-bound selector with a document-independent text range and migrating schema, validation and consumers. The grouped independent review found no remaining defects.
 
 ### RWMCP3-012 — Sibling Code Fix roots can become permanently ambiguous during replay
 
@@ -217,7 +217,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-014 — Undeclared top-level request members are silently discarded before optional defaults
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `src/Roslyn.Workbench.Mcp/Protocol/ToolRequestBinder.cs:20-81,361-370`; `src/Roslyn.Workbench.Mcp.Workspace/Selection/WorkspaceSelectorService.cs:20-31`
@@ -228,7 +228,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Host protocol and every published request; Workspace lifecycle and transaction operations make the mismatch materially unsafe.  
 **Remediation direction:** Reject undeclared request members during binding except for intentionally extensible contracts; add one-Workspace protocol tests for misspelled selectors and unknown options.  
-**Origin/history:** Unit 6, 2026-08-16; current binder/schema/selector trace; independently validated in Stage 4.
+**Origin/history:** Unit 6, 2026-08-16; current binder/schema/selector trace; independently validated in Stage 4. Remediated on 2026-08-23 by rejecting unmapped members recursively while preserving intentional extensibility and case-insensitive binding. Unit and real transport integration coverage passed, and the independent review found no defects.
 
 ### RWMCP3-015 — Server-owned lifecycle failures can lose authoritative Workspace attribution
 
@@ -248,7 +248,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 ### RWMCP3-016 — Baseline untracked files can be mutated without restoration
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Repositories/RepositoryRestorer.cs:33-61`; repository checkout validation using `git status --untracked-files=no`
@@ -259,11 +259,11 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** ScenarioRunner preparation/restoration and trustworthiness of repeated external-repository evidence.  
 **Remediation direction:** Preserve baseline untracked content/identity, reject mutable untracked inputs or use disposable per-run worktrees.  
-**Origin/history:** Unit 8, 2026-08-16; current operational call-path trace; independently validated in Stage 4.
+**Origin/history:** Unit 8, 2026-08-16; current operational call-path trace; independently validated in Stage 4. Remediated on 2026-08-23 by moving per-repository NuGet packages outside the checkout and enforcing clean tracked and untracked baselines. Complete WSL and Windows scenario validation passed, and the independent review found no remaining defect.
 
 ### RWMCP3-017 — Scenario failures can discard the evidence needed to diagnose them
 
-**Status:** Validated  
+**Status:** Rejected — not a product defect under the accepted operating model on 2026-08-23
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioApplication.cs:267-278`
@@ -274,11 +274,11 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** ScenarioRunner release evidence and diagnosis of failed crash/cancellation/conflict/profile runs.  
 **Remediation direction:** Persist a structured failure report before cleanup, including invocation, completed measurements, full exception, Host stderr, cleanup/validation and artifact paths.  
-**Origin/history:** Unit 8, 2026-08-16; current application-flow trace; independently validated in Stage 4.
+**Origin/history:** Unit 8, 2026-08-16; current application-flow trace; independently validated in Stage 4. Rejected as a product defect on 2026-08-23 because failed ScenarioRunner runs are not release evidence and must be corrected and rerun completely. The runner now prints the full exception and retains result files already written without introducing partial-result journalling.
 
 ### RWMCP3-018 — Unknown ScenarioRunner options silently run a different workload
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
 **Severity:** P2  
 **Confidence:** High  
 **Location:** `tools/Roslyn.Workbench.Mcp.ScenarioRunner/Application/ScenarioOptions.cs:56-97`
@@ -289,11 +289,11 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** ScenarioRunner configuration and credibility of manual release evidence.  
 **Remediation direction:** Validate option names and command applicability, reject ambiguous duplicates and add parser coverage.  
-**Origin/history:** Unit 8, 2026-08-16; current parser/consumer trace; independently validated in Stage 4.
+**Origin/history:** Unit 8, 2026-08-16; current parser/consumer trace; independently validated in Stage 4. Remediated on 2026-08-23 by rejecting unknown, duplicate and command-inapplicable options. Published-runner validation and complete WSL and Windows scenario validation passed, and the independent review found no defect.
 
 ### RWMCP3-019 — Manifest construction recursively traverses excluded and overlapping directory trees
 
-**Status:** Validated  
+**Status:** Complete — remediated and independently reviewed on 2026-08-23
 **Severity:** P2  
 **Confidence:** Medium-high  
 **Location:** `src/Roslyn.Workbench.Mcp.Workspace/ChangeDetection/WorkspaceChangeDetector.cs:180-215,277-303`
@@ -304,7 +304,7 @@ Each candidate must record its stable identifier, status, severity, confidence, 
 
 **Affected:** Workspace open/reload/commit change-manifest construction and repository-scale responsiveness.  
 **Remediation direction:** Prune excluded roots during traversal, deduplicate overlapping roots and propagate cancellation; add large/overlapping-tree performance evidence.  
-**Origin/history:** Repository-wide pass 12, 2026-08-16; static current-source trace; independently validated in Stage 4.
+**Origin/history:** Repository-wide pass 12, 2026-08-16; static current-source trace; independently validated in Stage 4. Remediated on 2026-08-23 with root reduction, pruned traversal, filesystem-aware deduplication and lifecycle cancellation propagation while preserving non-cancellable post-application commit promotion. Focused tests, integration coverage and representative performance validation passed; the repeated independent review found no remaining defect.
 
 ## Stage 4 validation history
 

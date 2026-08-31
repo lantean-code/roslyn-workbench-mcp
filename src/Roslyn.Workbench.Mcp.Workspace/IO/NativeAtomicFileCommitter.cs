@@ -6,6 +6,9 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
+/// <summary>
+/// Uses platform-native replacement and directory synchronisation to commit files durably.
+/// </summary>
 internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 {
     private const string _extendedPathPrefix = @"\\?\";
@@ -15,6 +18,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     private const uint _moveFileWriteThrough = 0x8;
     private const int _unableToRemoveReplacedErrorCode = 1175;
 
+    /// <inheritdoc/>
     public void Commit(string temporaryPath, string destinationPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(temporaryPath);
@@ -41,6 +45,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         MovePosix(temporaryPath, destinationPath, overwrite: true);
     }
 
+    /// <inheritdoc/>
     public void Move(string sourcePath, string destinationPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);

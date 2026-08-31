@@ -26,5 +26,8 @@ internal sealed record AnalyzeDataFlowRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective symbols per category limit.
+    /// </summary>
     internal int EffectiveSymbolsPerCategoryLimit => ResultLimit.GetEffectiveValue(SymbolsPerCategoryLimit, _defaultSymbolsPerCategoryMaxResults);
 }

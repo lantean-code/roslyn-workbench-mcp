@@ -1,11 +1,20 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
+/// <summary>
+/// Ensures a candidate contains only supported source-document changes within the workspace root.
+/// </summary>
 internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCandidateValidator
 {
     private readonly IAddressableDocumentEligibility _addressableDocumentEligibility;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathComparison _pathComparison;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceMutationCandidateValidator"/> class.
+    /// </summary>
+    /// <param name="addressableDocumentEligibility">The policy that excludes generated and otherwise non-addressable documents.</param>
+    /// <param name="pathContainment">The service used to test whether paths belong to the workspace.</param>
+    /// <param name="pathComparison">The comparison rules to apply to workspace paths.</param>
     public WorkspaceMutationCandidateValidator(
         IAddressableDocumentEligibility addressableDocumentEligibility,
         IPhysicalPathContainment pathContainment,
@@ -16,6 +25,13 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         _pathComparison = pathComparison;
     }
 
+    /// <summary>
+    /// Validates the shape, paths, and document changes in a candidate solution.
+    /// </summary>
+    /// <param name="currentSolution">The solution snapshot on which the operation runs.</param>
+    /// <param name="candidateSolution">The candidate solution containing the proposed changes.</param>
+    /// <param name="workspaceRoot">The workspace root path.</param>
+    /// <returns>The workspace mutation candidate validation result.</returns>
     public WorkspaceMutationCandidateValidationResult Validate(
         Solution currentSolution,
         Solution candidateSolution,

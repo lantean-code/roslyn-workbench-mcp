@@ -38,5 +38,8 @@ internal sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 
+    /// <summary>
+    /// Gets the effective members limit.
+    /// </summary>
     internal int EffectiveMembersLimit => ResultLimit.GetEffectiveValue(MembersLimit, _defaultMembersMaxResults);
 }

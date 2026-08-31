@@ -11,7 +11,7 @@ public interface IProjectStructureService
     /// Gets the target frameworks declared by the supplied project.
     /// </summary>
     /// <param name="workspaceId">The workspace that owns the project.</param>
-    /// <param name="project">The project.</param>
+    /// <param name="project">The Roslyn project whose target frameworks are required.</param>
     /// <returns>The target-framework evaluation result.</returns>
     ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, Project project);
 
@@ -19,7 +19,7 @@ public interface IProjectStructureService
     /// Gets the target frameworks declared by the supplied project path.
     /// </summary>
     /// <param name="workspaceId">The workspace that owns the project.</param>
-    /// <param name="projectPath">The project path.</param>
+    /// <param name="projectPath">The project file path to evaluate, or <see langword="null"/> when unavailable.</param>
     /// <returns>The target-framework evaluation result.</returns>
     ProjectTargetFrameworksResult GetTargetFrameworks(Guid workspaceId, string? projectPath);
 

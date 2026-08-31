@@ -20,7 +20,7 @@ public sealed class RequiresAtLeastOneAttribute : ValidationAttribute
     public IReadOnlyList<string> MemberNames => _memberNames;
 
     /// <summary>
-    /// Initialises a new instance of the <see cref="RequiresAtLeastOneAttribute"/> class.
+    /// Initializes a new instance of the <see cref="RequiresAtLeastOneAttribute"/> class.
     /// </summary>
     /// <param name="memberNames">The names of the public properties participating in the requirement.</param>
     public RequiresAtLeastOneAttribute(params string[] memberNames)

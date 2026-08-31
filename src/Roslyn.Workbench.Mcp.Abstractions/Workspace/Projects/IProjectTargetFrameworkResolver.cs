@@ -9,7 +9,7 @@ public interface IProjectTargetFrameworkResolver
     /// Resolves target frameworks for one project.
     /// </summary>
     /// <param name="workspaceId">The workspace that owns the project snapshot.</param>
-    /// <param name="project">The project.</param>
+    /// <param name="project">The Roslyn project whose target frameworks are resolved.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The target-framework evaluation result.</returns>
     ProjectTargetFrameworksResult Resolve(

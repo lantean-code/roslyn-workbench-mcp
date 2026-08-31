@@ -2,8 +2,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Analysis;
 
+/// <summary>
+/// Finds strongly connected components in a dependency graph and returns the components that form cycles.
+/// </summary>
 internal static class DependencyCycleDetector
 {
+    /// <summary>
+    /// Finds deterministic dependency cycles, including self-referencing nodes, in a bounded graph.
+    /// </summary>
+    /// <param name="nodes">The graph nodes keyed by their identifiers.</param>
+    /// <param name="edges">The directed dependency edges between nodes.</param>
+    /// <param name="cancellationToken">A token that cancels graph traversal.</param>
+    /// <returns>The cycles ordered by size and stable node identity.</returns>
     public static IReadOnlyList<DependencyCycle> FindCycles(IReadOnlyList<GraphNode> nodes, IReadOnlyList<GraphEdge> edges, CancellationToken cancellationToken)
     {
         var nodeLookup = nodes.ToDictionary(static node => node.Id, StringComparer.Ordinal);

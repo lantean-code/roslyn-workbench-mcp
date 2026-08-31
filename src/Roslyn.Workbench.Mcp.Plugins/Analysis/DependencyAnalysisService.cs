@@ -1,17 +1,23 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Analysis;
 
+/// <summary>
+/// Builds source dependency graphs and derives cycle and test-impact projections for plugin queries.
+/// </summary>
 internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 {
+    /// <inheritdoc/>
     public bool IsSupportedCycleGranularity(string value)
     {
         return value is "Project" or "Namespace" or "Type";
     }
 
+    /// <inheritdoc/>
     public bool IsSupportedGraphGranularity(string value)
     {
         return value is "Project" or "Namespace" or "Type" or "Symbol";
     }
 
+    /// <inheritdoc/>
     public async ValueTask<DependencyCycleAnalysisResult> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
@@ -52,6 +58,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return DependencyCycleAnalysisResult.Completed(selectedCycles, cycles.Count);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<(IReadOnlyList<TestImpactInfo> Tests, bool HasMore)> FindTestImpactsAsync(
         ISymbol targetSymbol,
         IReadOnlyList<Document> documents,
@@ -95,8 +102,12 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                     continue;
                 }
 
-                // A method declaration obtained from a C# syntax root has a declared method symbol.
-                var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken)!;
+                var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken);
+                if (methodSymbol is null)
+                {
+                    continue;
+                }
+
                 if (!IsTestMethodCandidate(methodSymbol))
                 {
                     continue;
@@ -147,6 +158,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return (impacts, false);
     }
 
+    /// <inheritdoc/>
     public async ValueTask<(IReadOnlyList<GraphNode> Nodes, bool NodesHaveMore, IReadOnlyList<GraphEdge> Edges, bool EdgesHaveMore)> BuildGraphAsync(
         string granularity,
         IReadOnlyList<Project> projects,
@@ -245,8 +257,11 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
-            // Candidate declarations originate from documents in the current solution.
-            var semanticModel = (await analysisState.GetSemanticModelAsync(syntax.SyntaxTree, cancellationToken))!;
+            var semanticModel = await analysisState.GetSemanticModelAsync(syntax.SyntaxTree, cancellationToken);
+            if (semanticModel is null)
+            {
+                continue;
+            }
 
             var rootOperation = GetRootOperation(semanticModel, syntax, cancellationToken);
 

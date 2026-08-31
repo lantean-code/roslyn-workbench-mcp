@@ -1,5 +1,8 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
+/// <summary>
+/// Resolves canonical workspace roots and enforces physical file-system containment.
+/// </summary>
 internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 {
     private readonly IFileSystem _fileSystem;
@@ -7,6 +10,13 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceRootResolver"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system used to inspect roots and repository markers.</param>
+    /// <param name="pathComparison">The platform-aware path comparison service.</param>
+    /// <param name="pathContainment">The service that verifies physical containment.</param>
+    /// <param name="pathNormalizer">The service that canonicalises workspace paths.</param>
     public WorkspaceRootResolver(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
@@ -19,6 +29,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
         _pathNormalizer = pathNormalizer;
     }
 
+    /// <inheritdoc/>
     public string? Resolve(string loadedPath, string? requestedRoot)
     {
         if (string.IsNullOrWhiteSpace(loadedPath)
@@ -65,6 +76,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
         return fallback;
     }
 
+    /// <inheritdoc/>
     public bool Contains(string workspaceRoot, string path)
     {
         return _pathContainment.TryGetContainedPath(workspaceRoot, path, out _);

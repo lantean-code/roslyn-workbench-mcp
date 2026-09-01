@@ -7,13 +7,13 @@ repository_root="$(cd -- "$script_directory/../.." && pwd)"
 artifacts_arguments=()
 
 if [[ -r /proc/sys/kernel/osrelease ]] && grep -qi microsoft /proc/sys/kernel/osrelease; then
-    artifacts_arguments=(--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp)
+    artifacts_arguments=(-p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp)
 fi
 
 cd "$repository_root"
 
 echo "Running published Host acceptance tests..."
-dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
+dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
     --configuration Release \
     "${artifacts_arguments[@]}" \
     "$@"

@@ -581,8 +581,8 @@ The Workspace unit-testing round is complete when:
 ## Measurement Commands
 
 ```bash
-dotnet test test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj --collect:"XPlat Code Coverage" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
-dotnet test test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
-dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
-dotnet test --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj --coverlet --coverlet-output-format cobertura --results-directory /tmp/artifacts/roslyn-workbench-mcp/coverage/workspace -p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj -p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj --filter "Category!=Integration&Category!=Audit" -p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test -p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp
 ```

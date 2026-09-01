@@ -18,7 +18,7 @@ try
 {
     $testArguments = @(
         'test',
-        'test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj',
+        '--project', 'test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj',
         '--configuration', 'Release'
     ) + $args
 

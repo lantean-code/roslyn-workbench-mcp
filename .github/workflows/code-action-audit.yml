@@ -42,14 +42,12 @@ jobs:
         run: dotnet build test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --no-restore
       - name: Test
         run: >-
-          dotnet test test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
+          dotnet test --project test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
           --no-build --no-restore
-          --logger "trx;LogFileName=code-action-audit.trx"
+          --report-trx
           --results-directory TestResults/code-action-audit
-          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/code-action-audit -Minimum 93
+          --minimum-expected-tests 93
+          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

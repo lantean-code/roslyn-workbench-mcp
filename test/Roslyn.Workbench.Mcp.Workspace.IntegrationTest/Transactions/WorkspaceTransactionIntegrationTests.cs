@@ -258,10 +258,11 @@ public sealed class WorkspaceTransactionIntegrationTests
         await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath });
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await target.StartTransactionAsync(TestContext.Current.CancellationToken);
-        await StageMutationAsync(target, stageEveryDocument: true);
+        var stage = await StageMutationAsync(target, stageSecondDocument: true);
 
         var commit = await target.CommitTransactionAsync(TestContext.Current.CancellationToken);
 
+        stage.Outcome.Should().Be(PluginExecutionOutcome.Succeeded, stage.Error?.Message);
         commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         (await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
         (await File.ReadAllTextAsync(secondPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
@@ -409,7 +410,7 @@ public sealed class WorkspaceTransactionIntegrationTests
 
     private static async Task<PluginExecutionResult<MutationData>> StageMutationAsync(
         ComponentWorkspace target,
-        bool stageEveryDocument = false)
+        bool stageSecondDocument = false)
     {
         var session = target.GetRequiredService<IWorkspaceSessionStore>()
             .ReadSnapshot()
@@ -428,11 +429,10 @@ public sealed class WorkspaceTransactionIntegrationTests
         await using var lease = target.CreateMutationContext(request, TestContext.Current.CancellationToken);
         lease.HasFailure.Should().BeFalse();
         var candidateSolution = lease.Context!.CurrentSolution;
-        var documents = candidateSolution.Projects.SelectMany(static project => project.Documents);
-        if (!stageEveryDocument)
-        {
-            documents = documents.Where(static document => document.Name == "Class1.cs");
-        }
+        var documents = candidateSolution.Projects
+            .SelectMany(static project => project.Documents)
+            .Where(document => document.Name == "Class1.cs" ||
+                (stageSecondDocument && document.Name == "Class2.cs"));
 
         foreach (var document in documents)
         {

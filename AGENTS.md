@@ -29,7 +29,7 @@
 - Prerequisites: .NET 10 SDK (use the version pinned by `global.json`).
   - Agents must verify the pinned SDK is available in the current environment.
   - If `dotnet --info` does not list the required version, install it before running restore/build/test commands.
-  - When operating under WSL, agents must append `--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` to repository `dotnet` commands, including `dotnet format`, to keep generated artifacts off the shared Windows filesystem.
+  - When operating under WSL, agents must append `--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` to repository `dotnet` commands, including `dotnet format`, to keep generated artifacts off the shared Windows filesystem. Microsoft.Testing.Platform's .NET 10 `dotnet test` driver does not accept that SDK switch, so test commands must instead append the equivalent MSBuild property `-p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp`.
   - When operating directly on Windows or Linux, agents must omit `--artifacts-path`; the WSL-specific routing is not needed.
 - After modifying code or tests:
   - Run `dotnet format --include <changed files>` for the files changed in the current task only, applying the WSL-specific artifacts path above when required.

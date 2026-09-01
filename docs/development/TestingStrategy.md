@@ -126,12 +126,14 @@ New or materially changed unit-testable implementation requires 100% line and br
 
 Coverage reports must be used to find gaps after tests are written; production code must not gain test-only hooks, broader runtime interfaces or artificial reflection paths merely to increase a percentage.
 
+Coverage uses the native Coverlet extension for Microsoft.Testing.Platform. Run an affected project with `--coverlet --coverlet-output-format cobertura`; use `--results-directory` to place its timestamped report files under an explicit coverage directory.
+
 ## Execution Policy
 
 Fast development loop:
 
 ```bash
-dotnet test --filter "Category!=Integration&Category!=Audit"
+dotnet test --project <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"
 ```
 
 Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit for matching pull-request paths, every push to `main`, a weekly schedule and manual dispatch. Run the full suite before completion of behaviour-affecting work.
@@ -149,7 +151,7 @@ Pull-request CI separates fast coverage, component integration and published-Hos
 
 macOS is a best-effort release platform, not a pull-request gate. Do not run recurring macOS jobs while the repository is private. When public v1 release-candidate preparation begins, release-branch or manually dispatched validation should run published-Host acceptance, Workspace integration and a curated external-repository scenario subset on macOS. macOS failures inform the support statement and release decision without redefining the authoritative Windows and Linux gates.
 
-Tests run with `--no-build --no-restore` after their job has produced the required outputs. Every test job writes structured results, verifies a minimum expected count and uploads those results even when testing fails. Roslyn/MSBuild test runs use bounded hang detection. Failed acceptance runs additionally retain and upload the Host's stderr, process details and isolated scenario state.
+Tests run with `--no-build --no-restore` after their job has produced the required outputs. The fast job selects the six Unit/Contract executables with `--test-modules` before applying the defensive category filter because MTP correctly treats a selected module with zero matching tests as an error. Every test job writes structured TRX results, uses Microsoft.Testing.Platform's native minimum expected test count and uploads those results even when testing fails. Roslyn/MSBuild test runs use bounded MTP hang detection without retaining memory dumps. Failed acceptance runs additionally retain and upload the Host's stderr, process details and isolated scenario state.
 
 The Code Action compatibility audit remains a separate workflow because it is slower, version-sensitive coverage rather than part of the normal component-integration path.
 
@@ -170,6 +172,6 @@ Performance comparisons are advisory until several releases establish normal var
 
 The detailed acceptance gaps and dependency-ordered implementation batches are recorded in [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
 
-VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. MTP v2 remains the intended future direction, but migration is deferred until xUnit 4 is stable rather than adopting its prerelease packages.
+Microsoft.Testing.Platform v2 is the selected solution-wide runner under .NET 10. Every xUnit 4 test project is an executable MTP module; xUnit's MTP filter compatibility preserves the established category expressions, while native MTP extensions provide TRX reporting, minimum-count enforcement, hang handling and Coverlet coverage.
 
 The repository does not use `packages.lock.json`. Release reproducibility comes from the release tag, GitVersion-derived artifact version, pinned SDK, centrally managed exact direct dependency versions and retention of the exact artifacts produced by the release workflow. NuGet package caching remains disabled; restore performance must become a measured problem before either caching or its supporting dependency policy is reconsidered.

@@ -76,16 +76,6 @@ Every installer must consume the same versioned Host output as the corresponding
 
 These items are intentionally inactive. Move one into the appropriate delivery phase only when its stated trigger occurs.
 
-### Migrate to Microsoft.Testing.Platform v2
-
-**Status:** Conditional
-
-**Trigger:** xUnit 4 reaches a stable release with supported Microsoft.Testing.Platform v2 integration.
-
-The Stage 7 evaluation established the migration shape and measured only a modest improvement, so VSTest remains selected. When the trigger occurs, validate executable test modules, filtering, TRX/reporting, coverage, IDE support, minimum-count enforcement and CI commands as one isolated runner change.
-
-Sources: [TestingStrategy.md](TestingStrategy.md#continuous-integration), [IntegrationTestingStage7Results-2026-07-18.md](IntegrationTestingStage7Results-2026-07-18.md#microsofttestingplatform-evaluation)
-
 ### Evaluate collection-scoped concurrent Workspace reuse
 
 **Status:** Conditional

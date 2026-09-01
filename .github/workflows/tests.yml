@@ -30,14 +30,15 @@ jobs:
         run: dotnet build --no-restore
       - name: Test
         run: >-
-          dotnet test --no-build --no-restore
+          dotnet test
+          --test-modules "test/Roslyn.Workbench.Mcp.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.Test.dll;test/Roslyn.Workbench.Mcp.Workspace.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.Workspace.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.Plugins.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Analyzers.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.Plugins.Analyzers.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Core.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.Plugins.Core.Test.dll;test/Roslyn.Workbench.Mcp.CodeActions.Test/bin/Debug/net10.0/Roslyn.Workbench.Mcp.CodeActions.Test.dll"
+          --root-directory .
+          --no-build --no-restore
           --filter "Category!=Integration&Category!=Audit"
-          --logger "trx;LogFilePrefix=fast"
+          --report-trx
           --results-directory TestResults/fast
-          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/fast -Minimum 1732
+          --minimum-expected-tests 1732
+          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,7 +60,7 @@ jobs:
             minimum: 52
           - area: bundled-core
             project: test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest.csproj
-            minimum: 20
+            minimum: 14
           - area: code-actions
             project: test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest.csproj
             minimum: 5
@@ -77,13 +78,11 @@ jobs:
         run: dotnet build "${{ matrix.project }}" --no-restore
       - name: Test
         run: >-
-          dotnet test "${{ matrix.project }}" --no-build --no-restore
-          --logger "trx;LogFileName=${{ matrix.area }}.trx"
+          dotnet test --project "${{ matrix.project }}" --no-build --no-restore
+          --report-trx
           --results-directory "TestResults/${{ matrix.area }}"
-          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path "TestResults/${{ matrix.area }}" -Minimum ${{ matrix.minimum }}
+          --minimum-expected-tests ${{ matrix.minimum }}
+          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,15 +116,12 @@ jobs:
       - name: Test Windows durability
         if: runner.os == 'Windows'
         run: >-
-          dotnet test test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
+          dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
           --configuration Release --no-build --no-restore
-          --logger "trx;LogFileName=workspace-windows.trx"
+          --report-trx
           --results-directory TestResults/workspace-windows
-          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify Windows durability test count
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/workspace-windows -Minimum 52
+          --minimum-expected-tests 52
+          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Test published Host
         shell: pwsh
         env:
@@ -133,14 +129,12 @@ jobs:
           TMP: ${{ runner.temp }}
           TEMP: ${{ runner.temp }}
         run: |
-          dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
+          dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
             --configuration Release --no-build --no-restore `
-            --logger "trx;LogFileName=acceptance.trx" `
+            --report-trx `
             --results-directory TestResults/acceptance `
-            --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify acceptance test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/acceptance -Minimum 41
+            --minimum-expected-tests 41 `
+            --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

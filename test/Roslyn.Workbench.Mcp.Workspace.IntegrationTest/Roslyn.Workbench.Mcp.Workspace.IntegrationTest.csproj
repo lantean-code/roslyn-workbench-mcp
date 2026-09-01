@@ -3,6 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Roslyn.Workbench.Mcp.Workspace.Test</RootNamespace>
     <TestCategory>Integration</TestCategory>
   </PropertyGroup>
@@ -17,11 +18,11 @@
 
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="coverlet.MTP" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <PackageReference Include="Moq" />
-    <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="xunit.v3" />
-    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
 </Project>

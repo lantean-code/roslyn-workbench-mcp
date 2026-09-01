@@ -4,14 +4,14 @@ These tests launch a published Roslyn Workbench MCP executable through the offic
 
 The acceptance build also assembles deterministic external query and mutation fixture packages into `TestAssets/Plugins` using build-only project references with `ReferenceOutputAssembly=false`. The acceptance test assembly receives no production or plugin-fixture compile reference. The query package includes its entry assembly, dependency manifest and deliberately private `NuGet.Versioning` dependency. The mutation package includes its entry assembly and dependency manifest. Both packages can publish a file-based readiness signal and await an explicit release signal, which lets protocol cancellation and concurrency cases coordinate without sleeps.
 
-An assembly fixture publishes the Release Host to a unique temporary directory before the first acceptance test, sets `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` for the test process and removes the published files after the assembly finishes. This makes the suite directly runnable from Visual Studio Test Explorer and `dotnet test` without a separate publish step.
+An assembly fixture publishes the Release Host to a unique temporary directory before the first acceptance test, sets `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` for the test process and removes the published files after the assembly finishes. This makes the Microsoft.Testing.Platform suite directly runnable from Visual Studio Test Explorer and `dotnet test` without a separate publish step.
 
 ## Run the suite
 
 Run the project directly or use the platform wrappers. The wrappers preserve platform-specific command handling and forward additional arguments, while the assembly fixture owns publishing and cleanup:
 
 ```bash
-dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj --configuration Release
+dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj --configuration Release
 ```
 
 ### Linux and macOS
@@ -39,7 +39,7 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
   --configuration Release \
   --output /tmp/roslyn-workbench-mcp-acceptance-publish
 ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=/tmp/roslyn-workbench-mcp-acceptance-publish/Roslyn.Workbench.Mcp \
-  dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
+  dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
   --configuration Release
 ```
 
@@ -50,7 +50,7 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj `
   --configuration Release `
   --output (Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish')
 $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish\Roslyn.Workbench.Mcp.exe'
-dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
+dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
   --configuration Release
 ```
 

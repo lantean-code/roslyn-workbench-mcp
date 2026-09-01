@@ -197,7 +197,7 @@ The HUT2 evidence remains:
 Fast-loop project result:
 
 ```bash
-dotnet test test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj --filter "Category!=Integration&Category!=Audit" --collect:"XPlat Code Coverage" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test --project test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj --filter "Category!=Integration&Category!=Audit" --coverlet --coverlet-output-format cobertura --results-directory /tmp/artifacts/roslyn-workbench-mcp/coverage/host -p:ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
 Isolation-only analysis additionally excluded the seven boundary-test entries listed under Existing Test Quality. That exclusion is an audit measurement, not the intended long-term command. Once those tests are correctly categorised, the normal fast-loop filter will produce the isolation-only result without a class-name exclusion list.

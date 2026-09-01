@@ -159,7 +159,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
 - Audit coverage should run in broader CI or release gates, not in the default local loop.
 - Acceptance coverage is manually initiated unless an acceptance-test artifact changes; any such change mandates a complete platform-wrapper run in the same task.
-- Preferred fast-loop command: `dotnet test <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
+- Preferred fast-loop command: `dotnet test --project <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
 
 ## Pre-flight checklist (must confirm all before generating tests)
 

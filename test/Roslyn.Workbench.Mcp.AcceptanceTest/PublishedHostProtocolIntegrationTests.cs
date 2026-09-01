@@ -23,7 +23,7 @@ public sealed class PublishedHostProtocolIntegrationTests
             serverInstructions.Should().Contain("transaction-commit or transaction-rollback promptly");
             serverInstructions.Should().Contain("does not create a Git commit");
             serverInstructions.Should().Contain(
-                "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/v1.0.0/docs/AgentGuide.md");
+                $"https://lantean-code.github.io/roslyn-workbench-mcp/{PublishedHostAssemblyFixture.ReleaseSourceTag}/agent/");
             serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 
             var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);

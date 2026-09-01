@@ -2,7 +2,7 @@
 
 ## Outcome
 
-Batch 8 is complete. [Code Actions](../CodeActions.md) is the release-facing workflow, active release and development guidance describes the final composition and exception-policy architecture, and the completed migration item has been removed from [Future Tasks](FutureTasks.md).
+Batch 8 is complete. [Code Actions](../content/code-actions.md) is the release-facing workflow, active release and development guidance describes the final composition and exception-policy architecture, and the completed migration item has been removed from [Future Tasks](FutureTasks.md).
 
 ## Published surface alignment
 

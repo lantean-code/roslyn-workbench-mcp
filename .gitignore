@@ -95,7 +95,11 @@ node_modules/
 
 # Local docs tooling/output
 /.venv-docs/
+__pycache__/
 /site/
+/docs/site/
+/docs/content/assets/generated/
+/docs/content/reference/tools/
 
 # Mono crash logs (may appear on Linux/macOS)
 mono_crash.*

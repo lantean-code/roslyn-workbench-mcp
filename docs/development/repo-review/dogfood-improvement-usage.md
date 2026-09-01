@@ -7012,3 +7012,43 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** Close the workspace identified by alias `alpha-release-foundation`.
 
 **Outcome:** Succeeded and closed `Roslyn.Workbench.Mcp.slnx` without an active transaction.
+
+### 728. `workspace-list`
+
+**Activity:** ALPHA Batch 2 documentation-system implementation.
+
+**Purpose:** Check whether a repository workspace was already available before inspecting production tool-composition and schema-generation ownership.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces.
+
+### 729. `workspace-open`
+
+**Activity:** ALPHA Batch 2 documentation-system implementation.
+
+**Purpose:** Load the repository for semantic inspection of the production Host composition used by the generated tool reference.
+
+**Request:** Open `Roslyn.Workbench.Mcp.slnx` as alias `alpha-docs`, using the dedicated WSL artifacts path.
+
+**Outcome:** Succeeded with 31 projects and 1,682 documents. The expected WSL-on-Windows-filesystem performance warning was reported.
+
+### 730. `search-symbols`
+
+**Activity:** ALPHA Batch 2 generated tool-reference implementation.
+
+**Purpose:** Locate the production factory that assembles MCP tool definitions from catalogue metadata and contract schemas.
+
+**Request:** Search for the exact symbol name `McpToolProtocolFactory` in the `alpha-docs` workspace.
+
+**Outcome:** Succeeded and identified the Host protocol factory and its related test coverage.
+
+### 731. `search-symbols`
+
+**Activity:** ALPHA Batch 2 generated tool-reference implementation.
+
+**Purpose:** Locate the production schema factory used by the protocol-tool factory so documentation generation would reuse rather than reconstruct its contracts.
+
+**Request:** Search for the exact symbol name `ToolSchemaFactory` in the `alpha-docs` workspace.
+
+**Outcome:** Succeeded and identified the production schema factory, interface and existing contract tests.

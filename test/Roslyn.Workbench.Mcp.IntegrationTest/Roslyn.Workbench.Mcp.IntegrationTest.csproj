@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="coverlet.MTP" />
+    <PackageReference Include="JsonSchema.Net" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <PackageReference Include="Moq" />
@@ -24,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
+    <ProjectReference Include="..\..\tools\Roslyn.Workbench.Mcp.ToolReferenceGenerator\Roslyn.Workbench.Mcp.ToolReferenceGenerator.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <ProjectReference Include="..\TestFixtures\Plugins\Microsoft.CodeAnalysis.LookalikePluginFixture\Microsoft.CodeAnalysis.LookalikePluginFixture.csproj" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />

@@ -2,7 +2,7 @@
 
 Status: Complete on 2026-07-30
 
-The final release-facing contract is [Code Actions](../CodeActions.md). This document is retained as the completed migration record and architectural rationale; its descriptions of the replaced surface are historical rather than current product guidance.
+The final release-facing contract is [Code Actions](../content/code-actions.md). This document is retained as the completed migration record and architectural rationale; its descriptions of the replaced surface are historical rather than current product guidance.
 
 ## Purpose
 
@@ -676,7 +676,7 @@ WSL and native Windows evidence is recorded in [CodeActionBatch7Validation-2026-
 
 ### Batch 8 — Final documentation and release alignment
 
-1. Write `docs/CodeActions.md` as the release-facing workflow.
+1. Write `docs/content/code-actions.md` as the release-facing workflow.
 2. Update all release and development documents that refer to positive catalogues, dedicated Code Action tools, parameterised execution, tokens or separate staging tools.
 3. Remove any migration-only wording from release documentation.
 4. Search all Markdown and tool metadata for obsolete names and concepts.
@@ -685,7 +685,7 @@ WSL and native Windows evidence is recorded in [CodeActionBatch7Validation-2026-
 
 Completion checklist:
 
-- [x] `docs/CodeActions.md` describes the final agent-facing discovery, Fix All preparation and staging workflow without migration terminology.
+- [x] `docs/content/code-actions.md` describes the final agent-facing discovery, Fix All preparation and staging workflow without migration terminology.
 - [x] Every active release and development document uses composition and exception-policy terminology rather than the positive catalogue model.
 - [x] Repository-wide searches find no active reference to removed tools, execution modes, dedicated ordinary replay tools or token-based Code Action references.
 - [x] All documentation links resolve and retained source-analysis evidence remains linked from this plan.
@@ -795,9 +795,9 @@ Retain `docs/development/RoslynCodeActionSourceAnalysis-2026-07-27.md` as the so
 At the relevant migration batch, update:
 
 - `docs/README.md`;
-- `docs/ToolDiscovery.md`;
-- `docs/Configuration.md`;
-- `docs/WorkspacesAndTransactions.md`;
+- `docs/content/tool-discovery.md`;
+- `docs/content/configuration.md`;
+- `docs/content/workspaces-and-transactions.md`;
 - `docs/PluginAuthoring.md`;
 - `docs/development/FutureTasks.md`;
 - `docs/development/RoslynMcpToolContracts.md`;

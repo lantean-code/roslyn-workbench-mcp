@@ -8,7 +8,7 @@ namespace Roslyn.Workbench.Mcp.Hosting;
 /// </summary>
 internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureOptions<McpServerOptions>
 {
-    private const string _agentGuideUrlPrefix = "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp";
+    private const string _documentationUrlPrefix = "https://lantean-code.github.io/roslyn-workbench-mcp";
     private const string _sourceTagMetadataKey = "RoslynWorkbenchSourceTag";
     private static readonly string _instructions = CreateInstructions();
     private readonly IPluginMcpRequestHandler _pluginRequestHandler;
@@ -46,7 +46,10 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
             throw new InvalidOperationException("The Host build does not identify its Roslyn Workbench source tag.");
         }
 
-        var agentGuideUrl = $"{_agentGuideUrlPrefix}/{sourceTag}/docs/AgentGuide.md";
+        var documentationVersion = StringComparer.Ordinal.Equals(sourceTag, "0.0.0-dev")
+            ? "dev"
+            : sourceTag;
+        var agentGuideUrl = $"{_documentationUrlPrefix}/{documentationVersion}/agent/";
 
         return $$"""
         Open only fully trusted C# workspaces; build logic and analysers run unsandboxed with Host permissions.
@@ -54,7 +57,7 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
         Prefer queries before mutations. Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.
 
         transaction-commit writes source files but does not create a Git commit.
-        Guide: {{agentGuideUrl}}
+        Docs: {{agentGuideUrl}}
         """;
     }
 }

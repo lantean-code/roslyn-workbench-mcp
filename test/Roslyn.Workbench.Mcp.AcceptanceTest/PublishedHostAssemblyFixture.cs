@@ -7,11 +7,13 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
 {
+    public const string ReleaseSourceTag = "0.1.0-alpha.1";
+
     private const string _configuration = "Release";
     private const string _hostProjectRelativePath = "src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj";
     private const string _repositoryRootMetadataName = "RepositoryRoot";
+    private const string _releaseCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string _sentryDsnEnvironmentVariableName = "ROSLYN_WORKBENCH_SENTRY_DSN";
-    private const string _wslArtifactsPath = "/tmp/artifacts/roslyn-workbench-mcp";
     private static readonly TimeSpan _publishTimeout = TimeSpan.FromMinutes(5);
 
     private string? _previousHostPath;
@@ -39,8 +41,9 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
             var repositoryRoot = ResolveRepositoryRoot();
             _publishRoot = CreatePublishRoot();
             var hostOutput = Path.Combine(_publishRoot, "host");
+            var buildArtifacts = Path.Combine(_publishRoot, "artifacts");
 
-            await PublishHostAsync(repositoryRoot, hostOutput, TestContext.Current.CancellationToken);
+            await PublishHostAsync(repositoryRoot, hostOutput, buildArtifacts, TestContext.Current.CancellationToken);
 
             var executableName = OperatingSystem.IsWindows()
                 ? "Roslyn.Workbench.Mcp.exe"
@@ -95,6 +98,7 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
     private static async Task PublishHostAsync(
         string repositoryRoot,
         string hostOutput,
+        string buildArtifacts,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
@@ -115,9 +119,15 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
         startInfo.ArgumentList.Add(hostOutput);
         startInfo.ArgumentList.Add("--nologo");
         startInfo.ArgumentList.Add("--disable-build-servers");
+        startInfo.ArgumentList.Add("-p:RoslynWorkbenchReleaseBuild=true");
+        startInfo.ArgumentList.Add($"-p:RoslynWorkbenchVersion={ReleaseSourceTag}");
+        startInfo.ArgumentList.Add($"-p:RoslynWorkbenchFullSemVer={ReleaseSourceTag}+acceptance");
+        startInfo.ArgumentList.Add($"-p:RoslynWorkbenchCommitSha={_releaseCommit}");
+        startInfo.ArgumentList.Add("-p:RoslynWorkbenchVersionSourceDistance=0");
+        startInfo.ArgumentList.Add($"-p:RoslynWorkbenchSourceTag={ReleaseSourceTag}");
         if (IsWsl())
         {
-            startInfo.ArgumentList.Add($"--artifacts-path={_wslArtifactsPath}");
+            startInfo.ArgumentList.Add($"--artifacts-path={buildArtifacts}");
         }
 
         using var process = new Process

@@ -1,6 +1,6 @@
 # Tool Metadata Slimming Implementation Plan
 
-**Status:** Historical implementation plan. Configurable output-schema publication and concise tool metadata are implemented; current behaviour is documented in [Tool discovery and results](../../../ToolDiscovery.md). This document is not an active worklist.
+**Status:** Historical implementation plan. Configurable output-schema publication and concise tool metadata are implemented; current behaviour is documented in [Tool discovery and results](../../../content/tool-discovery.md). This document is not an active worklist.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

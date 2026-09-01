@@ -1,4 +1,4 @@
-# Getting started
+# Getting started with Roslyn Workbench
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
 
 The published executable is placed beneath `artifacts/publish/Roslyn.Workbench.Mcp/release`.
 
-Without additional build input, approved external reports use the stderr logging dispatcher. To produce an application-owned Sentry build, set `ROSLYN_WORKBENCH_SENTRY_DSN` while compiling or publishing; the DSN is embedded into the executable and is not read from the runtime environment. See [Configuration](Configuration.md#build-time-error-report-provider).
+Without additional build input, approved external reports use the stderr logging dispatcher. To produce an application-owned Sentry build, set `ROSLYN_WORKBENCH_SENTRY_DSN` while compiling or publishing; the DSN is embedded into the executable and is not read from the runtime environment. See [Configuration](configuration.md#build-time-error-report-provider).
 
 ## Connect a client
 
@@ -46,6 +46,6 @@ Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project 
 1. Call `server-status` with `detail` set to `Full` and review component status, startup fallbacks, recovery state and the published tool count.
 2. After establishing that the workspace and its build inputs are fully trusted, call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. If the project requires caller-specific MSBuild configuration, include the optional allowlisted `msBuildProperties`; use `artifactsPath` only when the build itself requires a non-default artifacts location. Standard SDK, NuGet and Visual Studio locations are discovered through normal MSBuild evaluation. Evaluated documents outside the workspace root are queryable but read-only. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
 3. Use query tools against the loaded workspace.
-4. Before any mutation, read [Workspaces and transactions](WorkspacesAndTransactions.md) and check `workspace-status`.
+4. Before any mutation, read [Workspaces and transactions](workspaces-and-transactions.md) and check `workspace-status`.
 
 The server starts without a loaded workspace. It can keep multiple workspaces open, but only one loaded workspace may own the active transaction slot.

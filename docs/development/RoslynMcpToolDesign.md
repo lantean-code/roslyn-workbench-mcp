@@ -1,6 +1,6 @@
 # Roslyn Workbench - Complete Tool Catalogue
 
-> **Engineering record:** This catalogue guided implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
+> **Engineering record:** This catalogue guided implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../content/tool-discovery.md).
 >
 > **Code Action reassessment:** The “not planned while Roslyn APIs are unavailable” decisions below are superseded by the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
 

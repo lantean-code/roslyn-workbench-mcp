@@ -24,15 +24,15 @@ The audit answers seven questions for every release capability:
 
 The release contract comes from:
 
-- [Getting started](../GettingStarted.md);
-- [Configuration](../Configuration.md);
-- [Tool discovery and results](../ToolDiscovery.md);
-- [Workspaces and transactions](../WorkspacesAndTransactions.md); and
+- [Getting started](../content/getting-started.md);
+- [Configuration](../content/configuration.md);
+- [Tool discovery and results](../content/tool-discovery.md);
+- [Workspaces and transactions](../content/workspaces-and-transactions.md); and
 - [Third-party plugin authoring](../PluginAuthoring.md).
 
 Documents under `docs/development` provide implementation evidence but do not extend the release contract.
 
-The current supported distribution boundary is the Release-published `Roslyn.Workbench.Mcp` executable described by `GettingStarted.md`. The project does not currently configure a .NET tool package or another installable release format. Acceptance should consume the exact publish output produced by CI. If release packaging later wraps or replaces that output, acceptance must move outward to the new user-facing artifact.
+The current supported distribution boundary is the Release-published `Roslyn.Workbench.Mcp` executable described by `docs/content/getting-started.md`. The project does not currently configure a .NET tool package or another installable release format. Acceptance should consume the exact publish output produced by CI. If release packaging later wraps or replaces that output, acceptance must move outward to the new user-facing artifact.
 
 MCP `tools/list` remains authoritative for the enabled tool inventory. Acceptance should therefore validate the published catalogue and representative execution architectures, not copy an aspirational development catalogue into fixed test expectations.
 

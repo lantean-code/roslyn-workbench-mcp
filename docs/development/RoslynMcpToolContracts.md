@@ -1,8 +1,8 @@
 # Roslyn MCP Server - Tool Contract Catalogue
 
-> **Engineering record:** This catalogue guided contract implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
+> **Engineering record:** This catalogue guided contract implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../content/tool-discovery.md).
 >
-> **Code Action contract:** The final release workflow is documented in [Code Actions](../CodeActions.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
+> **Code Action contract:** The final release workflow is documented in [Code Actions](../content/code-actions.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
 
 ## Purpose
 

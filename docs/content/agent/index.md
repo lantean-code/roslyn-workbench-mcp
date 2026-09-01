@@ -14,6 +14,8 @@ Treat the connected MCP agent as part of the local trust boundary. Local error d
 
 Use `tools/list` for the live tool inventory and schemas. Call `server-status` with full detail near the start of a session to inspect startup warnings, recovery state, component availability and the published tool count.
 
+When the live declaration is intentionally concise, use the version-matched [tool reference](../reference/tools/index.md) for grouped human guidance or its [machine-readable catalogue](../reference/tools/catalog.json) to retrieve one complete tool definition without loading the whole catalogue into context.
+
 Prefer queries before mutations. Resolve symbols, documents and projects from the current workspace state instead of guessing paths or source spans.
 
 Prefer standard compiler and analyzer diagnostics when assessing code quality. `analyze-async` is a focused view of the six bundled AsyncFixer diagnostics and compiler diagnostic CS4014; it runs independently of whether AsyncFixer is installed in the target solution while respecting the project's analyzer configuration. Use `get-diagnostics` when you need the wider configured diagnostic set. Roslyn Workbench does not publish its own code-metric scale, so use the repository's normal build or metrics workflow when a task requires Microsoft code metrics.
@@ -54,4 +56,4 @@ Automatic recovery runs during Host startup before MCP transport is available. D
 
 ## More documentation
 
-The release documentation in the same tagged repository includes detailed workspace and transaction semantics, tool discovery and result contracts, configuration, Code Action workflows, plugin authoring and error-reporting privacy boundaries.
+This versioned site also includes detailed workspace and transaction semantics, tool discovery and result contracts, configuration, Code Action workflows and error-reporting privacy boundaries.

@@ -14,7 +14,7 @@ It provides:
 
 ## Documentation
 
-Start with the [documentation](docs/README.md) for setup, configuration, tool discovery and safe workspace operation. Historical plans, audits and implementation evidence are kept separately under `docs/development`.
+Start with the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) for setup, configuration, tool discovery and safe workspace operation. The [site sources](docs/content/index.md) are kept with the code; historical plans, audits and implementation evidence remain separately under `docs/development`.
 
 Security concerns must be reported privately through the process in [SECURITY.md](SECURITY.md). Development and pull-request guidance is available in [CONTRIBUTING.md](CONTRIBUTING.md).
 

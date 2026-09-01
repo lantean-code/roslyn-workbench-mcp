@@ -240,7 +240,7 @@ Startup configuration covers:
 - maximum captured-record and external-payload bytes; and
 - bounded provider timeout, response and provider-specific transport settings.
 
-Exact option names and curated defaults for the bounds are fixed during implementation and published through `Configuration.md`. Validation applies hard upper limits so command-line input cannot create unbounded retention or response sizes.
+Exact option names and curated defaults for the bounds are fixed during implementation and published through `docs/content/configuration.md`. Validation applies hard upper limits so command-line input cannot create unbounded retention or response sizes.
 
 The provider destination and public submission DSN are application-owned configuration rather than user options. The DSN is treated as a routing identifier rather than a secret, while any private credential or connection material remains outside the Host and MCP contracts.
 
@@ -337,8 +337,8 @@ Provider contract tests may validate Sentry envelope shape and duplicate identif
 Implementation updates:
 
 - release-facing error-reporting and privacy guidance;
-- `Configuration.md` with destination, consent, bounds and status behaviour;
-- `ToolDiscovery.md` with conditional publication and external-effect annotations;
+- `docs/content/configuration.md` with destination, consent, bounds and status behaviour;
+- `docs/content/tool-discovery.md` with conditional publication and external-effect annotations;
 - trusted-Workspace guidance explaining the local agent data boundary;
 - `server-status` and `workspace-status` response documentation; and
 - the release security and trust-boundary audit.

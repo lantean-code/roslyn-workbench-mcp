@@ -30,14 +30,20 @@ Additional arguments are passed to `dotnet test`. For example, append `--filter 
 
 ## Run against an existing publish
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. The assembly fixture validates and uses an explicitly configured executable without publishing or deleting it.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. Publish that Host with the acceptance fixture's release identity, as shown below, so version-dependent protocol assertions remain deterministic. The assembly fixture validates and uses the explicitly configured executable without publishing or deleting it.
 
 ## Linux and macOS
 
 ```bash
 dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
   --configuration Release \
-  --output /tmp/roslyn-workbench-mcp-acceptance-publish
+  --output /tmp/roslyn-workbench-mcp-acceptance-publish \
+  -p:RoslynWorkbenchReleaseBuild=true \
+  -p:RoslynWorkbenchVersion=0.1.0-alpha.1 \
+  -p:RoslynWorkbenchFullSemVer=0.1.0-alpha.1+acceptance \
+  -p:RoslynWorkbenchCommitSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  -p:RoslynWorkbenchVersionSourceDistance=0 \
+  -p:RoslynWorkbenchSourceTag=0.1.0-alpha.1
 ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=/tmp/roslyn-workbench-mcp-acceptance-publish/Roslyn.Workbench.Mcp \
   dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
   --configuration Release
@@ -48,7 +54,13 @@ ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=/tmp/roslyn-workbench-mcp-acceptance-p
 ```powershell
 dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj `
   --configuration Release `
-  --output (Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish')
+  --output (Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish') `
+  -p:RoslynWorkbenchReleaseBuild=true `
+  -p:RoslynWorkbenchVersion=0.1.0-alpha.1 `
+  -p:RoslynWorkbenchFullSemVer=0.1.0-alpha.1+acceptance `
+  -p:RoslynWorkbenchCommitSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa `
+  -p:RoslynWorkbenchVersionSourceDistance=0 `
+  -p:RoslynWorkbenchSourceTag=0.1.0-alpha.1
 $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish\Roslyn.Workbench.Mcp.exe'
 dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
   --configuration Release

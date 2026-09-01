@@ -1,4 +1,4 @@
-# Tool discovery and results
+# Tool discovery and result contracts
 
 ## Live tool inventory
 
@@ -16,7 +16,7 @@ The tool list does not vary with workspace or transaction state and does not cha
 
 `server-status` reports the total published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.
 
-The three-tool [Code Action workflow](CodeActions.md) discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.
+The three-tool [Code Action workflow](code-actions.md) discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.
 
 ## Schemas and metadata
 
@@ -24,7 +24,7 @@ Every tool publishes its name, title, description, input schema and behavioural 
 
 Operational requirements that an agent must follow are stated in tool descriptions and structured diagnostics rather than hidden in client-specific metadata.
 
-Error-report preparation is read-only and performs no network activity, but each call creates a new temporary immutable handle. Submission is state-changing, idempotent for that handle, and marked as an open-world external effect. It accepts only the handle and maps the stored immutable external report to the provider SDK; the returned preview is representative rather than a byte-for-byte transport envelope. See [Error reporting and privacy](ErrorReporting.md).
+Error-report preparation is read-only and performs no network activity, but each call creates a new temporary immutable handle. Submission is state-changing, idempotent for that handle, and marked as an open-world external effect. It accepts only the handle and maps the stored immutable external report to the provider SDK; the returned preview is representative rather than a byte-for-byte transport envelope. See [Error reporting and privacy](error-reporting.md).
 
 ## Result envelope
 

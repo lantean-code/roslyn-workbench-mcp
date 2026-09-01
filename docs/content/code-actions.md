@@ -1,4 +1,4 @@
-# Code Actions
+# Code Action workflows
 
 Roslyn Workbench exposes Roslyn Code Fixes and refactorings through three Host-owned MCP tools:
 
@@ -10,7 +10,7 @@ MCP `tools/list` is authoritative for their live schemas and metadata. Code Acti
 
 ## Safe staging workflow
 
-Use the normal [workspace and transaction workflow](WorkspacesAndTransactions.md):
+Use the normal [workspace and transaction workflow](workspaces-and-transactions.md):
 
 1. Open a fully trusted workspace and check `workspace-status`.
 2. Start a transaction with `transaction-start`.
@@ -124,7 +124,7 @@ Pass the new prepared `actionId`, not the originating action reference, to `stag
 
 ## Reference and snapshot rules
 
-`list-code-actions` validates the complete `expectedSnapshot` before resolving its document or interpreting its UTF-16 range. A range copied from a different immutable solution snapshot is therefore rejected instead of being reinterpreted against different source text, even if its epoch and transaction revision happen to match. Action references are process-local, bounded, temporary and tied to the exact Workspace snapshot from which they were created. Their lifetime defaults to five minutes and is configured with [`--code-action-reference-lifetime`](Configuration.md). Successful staging consumes a reference; merely listing or preparing does not change transaction state.
+`list-code-actions` validates the complete `expectedSnapshot` before resolving its document or interpreting its UTF-16 range. A range copied from a different immutable solution snapshot is therefore rejected instead of being reinterpreted against different source text, even if its epoch and transaction revision happen to match. Action references are process-local, bounded, temporary and tied to the exact Workspace snapshot from which they were created. Their lifetime defaults to five minutes and is configured with [`--code-action-reference-lifetime`](configuration.md). Successful staging consumes a reference; merely listing or preparing does not change transaction state.
 
 If a reference is unknown, expired, evicted, already consumed, or no longer matches the selected snapshot, the Host returns a structured failure such as `ActionExpired`, `SnapshotMismatch` or `ActionAmbiguous` with `next: resolveTargetAgain`. Follow that recovery action: inspect the current Workspace state, then list and select the action again. Never edit an `actionId`, reconstruct one from response metadata, or reuse it against a different snapshot.
 
@@ -132,4 +132,4 @@ If a reference is unknown, expired, evicted, already consumed, or no longer matc
 
 The Host composes installed Roslyn Code Fix and refactoring providers at startup, then applies an exception policy to omit actions that cannot safely use this workflow. Examples include actions requiring interactive options or external UI, package or reference installation, unsupported project-system changes, or operation shapes outside the source-only transaction contract.
 
-An omitted action is not evidence that the provider is missing: it may be inapplicable at the selected location, filtered by the request, unavailable in the loaded project, or excluded by policy. Use `server-status` with `detail: Full` to inspect Code Action component availability and startup diagnostics. Third-party plugins cannot register Code Actions or use Host Code Action services; they add ordinary query and mutation tools through the separate [plugin API](PluginAuthoring.md).
+An omitted action is not evidence that the provider is missing: it may be inapplicable at the selected location, filtered by the request, unavailable in the loaded project, or excluded by policy. Use `server-status` with `detail: Full` to inspect Code Action component availability and startup diagnostics. Third-party plugins cannot register Code Actions or use Host Code Action services; they add ordinary query and mutation tools through the separate plugin API.

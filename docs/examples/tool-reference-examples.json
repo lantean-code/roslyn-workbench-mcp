@@ -1,0 +1,255 @@
+{
+  "examples": [
+    {
+      "workflowId": "workspace-setup",
+      "workflowTitle": "Open and select a workspace",
+      "step": 1,
+      "id": "list-open-workspaces",
+      "title": "List open workspaces",
+      "purpose": "Discover the workspaces that are already available before opening another solution.",
+      "expectedOutcome": "A bounded inventory of open workspaces, or an empty inventory when none are open.",
+      "tool": "workspace-list",
+      "request": {}
+    },
+    {
+      "workflowId": "workspace-setup",
+      "workflowTitle": "Open and select a workspace",
+      "step": 2,
+      "id": "open-solution",
+      "title": "Open a solution",
+      "purpose": "Load a trusted solution once and assign an alias that later calls can use.",
+      "expectedOutcome": "The workspace opens and subsequent calls can select it by the sample alias.",
+      "tool": "workspace-open",
+      "request": {
+        "path": "/workspace/Sample.slnx",
+        "alias": "sample"
+      }
+    },
+    {
+      "workflowId": "symbol-discovery",
+      "workflowTitle": "Find and inspect a symbol safely",
+      "step": 1,
+      "id": "search-with-limit",
+      "title": "Search a selected workspace with a limit",
+      "purpose": "Find matching symbols without returning an unbounded result set.",
+      "expectedOutcome": "At most 25 symbols are returned and hasMore indicates whether the query found additional matches.",
+      "tool": "search-symbols",
+      "request": {
+        "query": "CustomerService",
+        "symbolsLimit": 25,
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "representativeResponse": {
+        "ok": true,
+        "data": {
+          "symbols": {
+            "items": [],
+            "hasMore": true
+          }
+        }
+      }
+    },
+    {
+      "workflowId": "symbol-discovery",
+      "workflowTitle": "Find and inspect a symbol safely",
+      "step": 2,
+      "id": "find-references-by-symbol-id",
+      "title": "Find references using a stable symbol selector",
+      "purpose": "Use a documentation comment identifier when the symbol identity is already known.",
+      "expectedOutcome": "A bounded set of references is resolved for the selected symbol in the sample workspace.",
+      "tool": "find-references",
+      "request": {
+        "symbol": {
+          "documentationCommentId": "T:Sample.CustomerService"
+        },
+        "referencesLimit": 50,
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "transaction-change",
+      "workflowTitle": "Stage, review and commit one change",
+      "step": 1,
+      "id": "start-transaction",
+      "title": "Start a transaction",
+      "purpose": "Create an isolated staging area before invoking a mutation or Code Action.",
+      "expectedOutcome": "The sample workspace owns a new transaction at its initial revision.",
+      "tool": "transaction-start",
+      "request": {
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "transaction-change",
+      "workflowTitle": "Stage, review and commit one change",
+      "step": 2,
+      "id": "format-document",
+      "title": "Stage document formatting",
+      "purpose": "Stage a concrete source change inside the active transaction before reviewing it.",
+      "expectedOutcome": "Formatting is staged without writing the source file and advances the transaction revision.",
+      "tool": "format-document",
+      "request": {
+        "document": {
+          "path": "src/Sample.cs"
+        },
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 0
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "transaction-change",
+      "workflowTitle": "Stage, review and commit one change",
+      "step": 3,
+      "id": "preview-transaction",
+      "title": "Preview staged changes",
+      "purpose": "Inspect a focused diff before deciding whether to commit or roll back the transaction.",
+      "expectedOutcome": "A three-line-context diff is returned for the selected document without writing files.",
+      "tool": "transaction-preview",
+      "request": {
+        "document": {
+          "path": "src/Sample.cs"
+        },
+        "includeDiff": true,
+        "contextLines": 3,
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "transaction-change",
+      "workflowTitle": "Stage, review and commit one change",
+      "step": 4,
+      "id": "commit-transaction",
+      "title": "Commit the reviewed snapshot",
+      "purpose": "Write the staged files only when the transaction still matches the previewed snapshot.",
+      "expectedOutcome": "The commit succeeds only if the supplied snapshot still identifies the current staged revision.",
+      "tool": "transaction-commit",
+      "request": {
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "representativeResponse": {
+        "ok": false,
+        "error": {
+          "code": "SnapshotMismatch",
+          "message": "The staged transaction no longer matches the expected snapshot."
+        },
+        "continuation": {
+          "kind": "CallTool",
+          "tool": "transaction-preview",
+          "instruction": "Preview the current staged revision and ask the user to review it before committing."
+        }
+      }
+    },
+    {
+      "workflowId": "code-action-change",
+      "workflowTitle": "Discover and stage a Code Action",
+      "step": 1,
+      "id": "start-code-action-transaction",
+      "title": "Start a transaction for the Code Action",
+      "purpose": "Create the transaction that will receive the selected Code Action changes.",
+      "expectedOutcome": "The sample workspace owns a new transaction at its initial revision.",
+      "tool": "transaction-start",
+      "request": {
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "code-action-change",
+      "workflowTitle": "Discover and stage a Code Action",
+      "step": 2,
+      "id": "discover-code-actions",
+      "title": "Discover Code Actions",
+      "purpose": "List bounded fixes and refactorings against an exact document snapshot.",
+      "expectedOutcome": "At most 20 snapshot-bound Code Action references are returned for the selected document.",
+      "tool": "list-code-actions",
+      "request": {
+        "document": {
+          "path": "src/Sample.cs"
+        },
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 0
+        },
+        "kinds": "All",
+        "limit": 20,
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "code-action-change",
+      "workflowTitle": "Discover and stage a Code Action",
+      "step": 3,
+      "id": "stage-code-action",
+      "title": "Stage a selected Code Action",
+      "purpose": "Replay the selected action against its original snapshot and stage the resulting source changes.",
+      "expectedOutcome": "The action is replayed against the exact snapshot and its changes advance the active transaction revision.",
+      "tool": "stage-code-action",
+      "request": {
+        "actionId": "33333333-3333-3333-3333-333333333333",
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 0
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "workflowId": "approved-error-report",
+      "workflowTitle": "Review and submit an error report",
+      "step": 1,
+      "id": "prepare-error-report",
+      "title": "Prepare an error report for review",
+      "purpose": "Create the immutable review payload before asking the user whether it may be submitted.",
+      "expectedOutcome": "A temporary reviewed submission handle and payload preview are returned without network activity.",
+      "tool": "prepare-error-report",
+      "request": {
+        "correlationId": "44444444-4444-4444-4444-444444444444"
+      }
+    },
+    {
+      "workflowId": "approved-error-report",
+      "workflowTitle": "Review and submit an error report",
+      "step": 2,
+      "id": "submit-approved-error-report",
+      "title": "Submit an approved error report",
+      "purpose": "Submit only the exact payload handle returned after user review and consent.",
+      "expectedOutcome": "The approved immutable payload is dispatched once, or a structured consent or availability outcome is returned.",
+      "tool": "submit-error-report",
+      "request": {
+        "submissionHandle": "opaque-reviewed-submission-handle"
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-# Workspaces and transactions
+# Workspaces and safe transactions
 
 ## Workspace trust
 
@@ -6,7 +6,7 @@ A workspace is an executable input, not just a collection of source files. `work
 
 Open only a workspace whose source, project files, imported build logic, SDK configuration and analyzer dependencies are fully trusted. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox first. The absence of a trust-confirmation request property is deliberate: a caller-provided confirmation would not isolate or validate executable repository content.
 
-The connected MCP agent is also part of the local trust boundary. `get-error-details` may disclose local exception messages and Workspace context to that agent without a separate reporting-consent prompt. External submission remains a distinct sanitised and user-approved workflow; do not copy the local diagnostic record into a report or another service. See [Error reporting and privacy](ErrorReporting.md).
+The connected MCP agent is also part of the local trust boundary. `get-error-details` may disclose local exception messages and Workspace context to that agent without a separate reporting-consent prompt. External submission remains a distinct sanitised and user-approved workflow; do not copy the local diagnostic record into a report or another service. See [Error reporting and privacy](error-reporting.md).
 
 ## Workspace lifecycle
 
@@ -53,7 +53,7 @@ Keep each transaction scoped to one coherent mutation or a tightly related set o
 
 Queries run against the effective solution: the staged working solution while a transaction is active, otherwise the loaded baseline. Mutation, lifecycle and transaction operations require exclusive workspace access and may return `WorkspaceBusy` with a retry action instead of waiting in a server-side queue.
 
-For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the [three-tool Code Action workflow](CodeActions.md). After a successful stage advances the revision, rediscover any subsequent action against that new current revision.
+For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the [three-tool Code Action workflow](code-actions.md). After a successful stage advances the revision, rediscover any subsequent action against that new current revision.
 
 `transaction-commit` rechecks the source-file manifest and is the only public operation that writes staged source changes to disk. It does not compile the solution or modify project, props or targets files. Durable recovery records protect interrupted commits and are surfaced by `server-status`.
 

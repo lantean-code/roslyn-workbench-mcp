@@ -84,7 +84,7 @@ Record each finding with its affected contract, severity, evidence and required 
 
 ### Host startup, configuration and lifecycle validation
 
-The validation used the release-facing [Getting started](../GettingStarted.md), [Configuration](../Configuration.md) and [Tool discovery and results](../ToolDiscovery.md) documents as the product contract. Existing implementation evidence came from the configuration and status unit tests, Host composition and startup-prerequisite integration tests, and the 41-case published-Host acceptance suite recorded in the [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
+The validation used the release-facing [Getting started](../content/getting-started.md), [Configuration](../content/configuration.md) and [Tool discovery and results](../content/tool-discovery.md) documents as the product contract. Existing implementation evidence came from the configuration and status unit tests, Host composition and startup-prerequisite integration tests, and the 41-case published-Host acceptance suite recorded in the [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
 
 | Contract area | Result | Evidence and disposition |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ The validation used the release-facing [Getting started](../GettingStarted.md), 
 
 ### Workspace lifecycle and stale-state validation
 
-The validation used [Workspaces and transactions](../WorkspacesAndTransactions.md), the first-workflow guidance in [Getting started](../GettingStarted.md), and the selector contract retained in the development design records. Implementation evidence came from the Workspace lifecycle, loading, selection, resolution, change-detection, coordination and execution-context services; their unit and component integration suites; and the published-Host acceptance evidence recorded in the [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
+The validation used [Workspaces and transactions](../content/workspaces-and-transactions.md), the first-workflow guidance in [Getting started](../content/getting-started.md), and the selector contract retained in the development design records. Implementation evidence came from the Workspace lifecycle, loading, selection, resolution, change-detection, coordination and execution-context services; their unit and component integration suites; and the published-Host acceptance evidence recorded in the [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
 
 The completed non-acceptance validation passed all 795 Workspace fast unit and contract cases, all 71 Workspace integration cases and all 283 Host unit and component cases. The complete published-Host acceptance suite passes all 41 cases on both WSL/Linux and native Windows, including linked multi-target selection and mutation, actionable external-change diagnostics and generated-output changes that must not make the Workspace stale.
 

@@ -275,7 +275,7 @@ Caching is part of the performance contract and cannot be disabled. Zero is inva
 
 Do not select numeric minimums, defaults or maxima from intuition. Determine them from the scenario-runner calibration described below. The minimum should be close enough to the default that a supported configuration cannot silently defeat the intended performance benefit. The maximum must permit deliberate growth without allowing unbounded retention.
 
-Do not add these effective settings to `server-status`. Publish them through command-line help and `Configuration.md`; retain invalid-value visibility through startup warnings.
+Do not add these effective settings to `server-status`. Publish them through command-line help and `docs/content/configuration.md`; retain invalid-value visibility through startup warnings.
 
 ## Plugin Authoring Analyser
 

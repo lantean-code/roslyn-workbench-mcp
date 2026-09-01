@@ -33,8 +33,8 @@ Use this checklist as the dependency-ordered execution view. The detailed item s
 
 **Batch 2 — Documentation system**
 
-- [ ] `ALPHA-004` Generate the versioned tool reference — **Design approved**
-- [ ] `ALPHA-003` Publish the GitHub Pages documentation site — **Design approved**; implement and validate generation before the explicitly approved public deployment.
+- [x] `ALPHA-004` Generate the versioned tool reference — **Complete**
+- [ ] `ALPHA-003` Publish the GitHub Pages documentation site — **Awaiting approval**; implementation and offline validation are complete, while the explicitly approved public deployment remains outstanding.
 
 **Batch 3 — Community surface**
 
@@ -121,7 +121,7 @@ Approved decisions:
 
 ### `ALPHA-003` Publish the GitHub Pages documentation site
 
-**Status:** Design approved
+**Status:** Awaiting approval
 
 Approved decisions:
 
@@ -142,11 +142,11 @@ Move the release-facing documentation into a dedicated `docs/content` tree and e
 
 Publish immutable versioned documentation paths for released artifacts in addition to the current site. Replace the MCP server's raw version-tagged agent-guide URL with its versioned GitHub Pages equivalent so an installed version continues to reference matching documentation. Defer replacement of plugin-analyser help links until that analyser and its authoring documentation are published for v1.
 
-**Completion evidence:** Pull requests strictly build the site without deploying it, an approved `develop` update deploys the current site, a representative versioned build remains addressable, embedded Host links resolve to the matching rendered pages, and neither development-only nor plugin-authoring documentation is published.
+**Implementation evidence:** The pinned MkDocs and Material site, version-aware templates, generated-reference integration, strict validation, pull-request preview artifact and serialised least-privilege `dev` deployment job are implemented. Local `dev` and release-version renderings pass strict builds plus internal, anchor, accessibility, privacy, embedded-resource and retried external-link validation. The locally served site received manual visual approval for its navigation, generated reference layout, light and dark themes, typography and final colour responsibilities. The release command compiles the exact supplied release identity, verifies that identity in the generated catalogue, reads Mike's structured remote inventory, refuses an existing source-tag version, builds the immutable version and `latest` locally, validates the Mike-rendered output, and performs one final push. A disposable local Git remote verifies dry runs, aliases, retitled versions, validation failure without partial publication and a successful retry through the pinned Mike CLI. The public `gh-pages` deployment and unauthenticated live-site verification remain part of the final explicitly approved publication action.
 
 ### `ALPHA-004` Generate the versioned tool reference
 
-**Status:** Design approved
+**Status:** Complete
 
 Approved decisions:
 
@@ -164,7 +164,7 @@ Produce a human-readable grouped tool index and one detailed page per tool conta
 
 Generate release documentation from the compiled release build and fail validation when the generated reference is incomplete, stale or differs from the production schema pipeline. Publish it through the current, development and immutable version paths defined by `ALPHA-003`.
 
-**Completion evidence:** Every built-in published tool appears exactly once in the human and machine-readable catalogues, representative constraints and response schemas match the release Host, per-tool JSON can be consumed independently, no unknown third-party catalogue is implied, and generated output is reproducible for the same source and version.
+**Completion evidence:** The generator composes the production Host with full output schemas and emits all 56 built-in Server, bundled Core plugin and Code Action tools exactly once in deterministic human and machine-readable references. It publishes compact and per-tool JSON plus validating version-relative format schemas, rejects incomplete classifications, malformed fragments, schema-invalid requests and impossible transaction or Code Action workflow sequences, preserves the exact production MCP tool definition, and reproduces byte-for-byte output for identical source and build identity. Twenty focused integration checks cover generated output, command-line behaviour, workflow input validation, writer schema shapes and destructive-output safety; the complete affected integration project and published-Host acceptance suite pass. As repository automation rather than shipped runtime code, the generator is validated through its observable build output and is not held to the production unit-coverage target, matching the scenario-runner policy.
 
 ### `ALPHA-005` Establish contribution, support and conduct policies
 

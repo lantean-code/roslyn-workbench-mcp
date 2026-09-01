@@ -89,8 +89,9 @@ public sealed class HostToolCompositionIntegrationTests
         serverInstructions.Should().Contain(
             "does not create a Git commit");
 
+        var documentationVersion = sourceTag == "0.0.0-dev" ? "dev" : sourceTag;
         serverInstructions.Should().Contain(
-            $"https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/{sourceTag}/docs/AgentGuide.md");
+            $"https://lantean-code.github.io/roslyn-workbench-mcp/{documentationVersion}/agent/");
 
         serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 

@@ -1,4 +1,4 @@
-# Configuration
+# Configuration reference
 
 Roslyn Workbench accepts command-line options and equivalent environment variables. A command-line scalar takes precedence over its environment variable; when a scalar option appears more than once, the last value wins. Invalid values fall back to the documented default and are reported as `StartupConfigurationFallback` warnings.
 
@@ -28,7 +28,7 @@ At startup, the Host verifies that the recovery directory supports exclusive fil
 
 `server-status` with `detail: Full` reports the effective agent-relevant non-sensitive configuration and all startup fallback warnings. Its error-reporting projection includes only the built-in provider name, configured consent mode and effective configured consent state: `Disabled` for `never`, `PromptRequired` for `prompt` or `AlwaysApproved` for `always`. It never exposes the application-owned DSN or public submission key. Cache settings, plugin directories and the state-directory path are not included in that public configuration projection.
 
-The Host includes its external error-report provider as application configuration. With consent set to `never`, the Host retains local correlated diagnostics but does not publish preparation or submission tools. `always` bypasses a consent prompt only: it never creates background traffic, and callers must still prepare, review and explicitly submit each report. See [Error reporting and privacy](ErrorReporting.md) for the complete workflow and data boundary.
+The Host includes its external error-report provider as application configuration. With consent set to `never`, the Host retains local correlated diagnostics but does not publish preparation or submission tools. `always` bypasses a consent prompt only: it never creates background traffic, and callers must still prepare, review and explicitly submit each report. See [Error reporting and privacy](error-reporting.md) for the complete workflow and data boundary.
 
 ## Build-time error-report provider
 
@@ -52,7 +52,7 @@ For GitHub Actions, store the DSN as the `SENTRY_DSN` Actions secret and expose 
 
 If a later publish uses `--no-build`, the variable belongs on the earlier build step because that compilation creates the embedded attribute. The DSN is recoverable from a published binary and must remain a public submission DSN rather than private provider credentials.
 
-Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the [Code Action workflow](CodeActions.md) and rediscover when directed.
+Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the [Code Action workflow](code-actions.md) and rediscover when directed.
 
 The default state directory is `%LOCALAPPDATA%\roslyn-workbench-mcp\state` on Windows, `$XDG_STATE_HOME/roslyn-workbench-mcp` on Linux when `XDG_STATE_HOME` is an absolute path, `~/.local/state/roslyn-workbench-mcp` on Linux otherwise, and `~/Library/Application Support/roslyn-workbench-mcp/state` on macOS. Unix state directories are created with `0700` permissions and recovery files with `0600`; Windows state inherits the current user's local-application-data access controls.
 

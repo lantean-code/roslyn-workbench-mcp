@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup and usage question
+    url: https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a
+    about: Ask for help with installation, configuration, clients or a Roslyn Workbench workflow.
+  - name: Explore an early idea
+    url: https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas
+    about: Discuss a problem or early proposal before turning it into a focused feature request.
+  - name: Report a vulnerability privately
+    url: https://github.com/lantean-code/roslyn-workbench-mcp/security/advisories/new
+    about: Do not disclose security vulnerabilities in a public issue.

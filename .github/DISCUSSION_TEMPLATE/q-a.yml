@@ -1,0 +1,42 @@
+title: "[Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use Q&A for installation, configuration, usage and troubleshooting questions. Use an Issue for a reproducible product defect, and never disclose a vulnerability here.
+  - type: input
+    id: version
+    attributes:
+      label: Roslyn Workbench version
+      placeholder: 0.1.0-alpha.1
+    validations:
+      required: true
+  - type: input
+    id: client-platform
+    attributes:
+      label: MCP client and platform
+      placeholder: Client name and version; Windows, Linux, WSL2 or macOS
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+      description: Include relevant documentation and suitably redacted configuration or errors.
+    validations:
+      required: true
+  - type: checkboxes
+    id: public-content
+    attributes:
+      label: Public content
+      options:
+        - label: I removed source, credentials, personal data, private paths and other secrets.
+          required: true
+        - label: I agree to follow the project's Code of Conduct.
+          required: true

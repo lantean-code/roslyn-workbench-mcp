@@ -1,0 +1,130 @@
+name: Bug report
+description: Report a reproducible defect or performance regression.
+title: "[Bug]: "
+labels:
+  - type/bug
+  - status/needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for reproducible product defects and performance regressions. Do not report vulnerabilities here; use [private vulnerability reporting](https://github.com/lantean-code/roslyn-workbench-mcp/security/advisories/new). Remove source, credentials, personal data, private paths and other secrets from public evidence.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Initial checks
+      options:
+        - label: I searched existing Issues and Discussions for the same problem.
+          required: true
+        - label: This report does not disclose a security vulnerability or unredacted sensitive information.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Roslyn Workbench version
+      description: Use the package version or the value reported by the installed tool.
+      placeholder: 0.1.0-alpha.1
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation
+      options:
+        - GitHub Packages .NET tool
+        - NuGet.org .NET tool
+        - Built from source
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - WSL2
+        - macOS
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      options:
+        - x64
+        - ARM64
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: dotnet-version
+    attributes:
+      label: .NET SDK or runtime
+      description: Include the relevant output from `dotnet --version` or identify the runtime used by the client.
+      placeholder: 10.0.4xx
+    validations:
+      required: true
+  - type: input
+    id: mcp-client
+    attributes:
+      label: MCP client
+      description: Include the client name and version when known.
+      placeholder: Client name and version
+    validations:
+      required: true
+  - type: dropdown
+    id: performance-regression
+    attributes:
+      label: Is this a performance regression?
+      description: Maintainers apply the performance label during triage when appropriate.
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Relevant configuration and plugin context
+      description: List only options, environment details and plugin identities needed to reproduce the problem. Redact local paths and secrets.
+      placeholder: Startup options, relevant server-status settings, loaded plugin identities, or None
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest repeatable sequence of client calls or user actions. Use a synthetic example instead of private source when possible.
+      placeholder: |
+        1. Start the server with ...
+        2. Open a trusted sample workspace ...
+        3. Call ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted diagnostics or measurements
+      description: Include only evidence safe to publish. For performance reports, include the measured operation, repetitions, elapsed time and comparison baseline.
+  - type: checkboxes
+    id: conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow the project's [Code of Conduct](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CODE_OF_CONDUCT.md).
+          required: true

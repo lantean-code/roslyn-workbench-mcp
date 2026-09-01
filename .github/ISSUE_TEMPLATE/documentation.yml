@@ -1,0 +1,60 @@
+name: Documentation problem
+description: Report documentation that is incorrect, missing or unclear.
+title: "[Docs]: "
+labels:
+  - type/docs
+  - status/needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a specific documentation problem. Ask general setup or usage questions in [Q&A](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Initial checks
+      options:
+        - label: I checked the documentation version that matches my installed Roslyn Workbench version.
+          required: true
+        - label: I searched for an existing report of this problem.
+          required: true
+  - type: input
+    id: page
+    attributes:
+      label: Documentation page
+      description: Paste the complete page URL or identify the README or policy file.
+      placeholder: https://lantean-code.github.io/roslyn-workbench-mcp/...
+    validations:
+      required: true
+  - type: input
+    id: documentation-version
+    attributes:
+      label: Documentation version
+      description: Use the version shown by the documentation site, such as latest, dev or a source tag.
+      placeholder: latest
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is incorrect, missing or unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Optional wording, example or structure that would have helped.
+  - type: checkboxes
+    id: conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow the project's [Code of Conduct](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CODE_OF_CONDUCT.md).
+          required: true

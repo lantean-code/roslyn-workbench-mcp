@@ -1,0 +1,38 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use Ideas to explore an early problem or proposal. A maintainer may promote a sufficiently focused proposal to an Issue, but discussion does not imply acceptance or scheduling.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem or opportunity do you see?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Where does it appear in the workflow?
+      description: Describe the user or agent goal and the current experience.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What outcome would help?
+      description: Focus on observable behaviour; a complete technical design is not required.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: Optional existing approaches and their limitations.
+  - type: checkboxes
+    id: conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow the project's Code of Conduct.
+          required: true

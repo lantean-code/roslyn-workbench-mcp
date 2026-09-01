@@ -1,0 +1,69 @@
+name: Focused feature proposal
+description: Propose an actionable improvement that is ready for engineering assessment.
+title: "[Feature]: "
+labels:
+  - type/feature
+  - status/needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the problem and intended workflow are sufficiently defined for engineering assessment. Take exploratory ideas to [GitHub Discussions Ideas](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas) first.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Initial checks
+      options:
+        - label: I searched existing Issues and Discussions for this proposal.
+          required: true
+        - label: This proposal is about the supported Roslyn Workbench product rather than the unpublished alpha plugin-authoring surface.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the concrete limitation or user need without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Current workflow
+      description: Show how a user or agent encounters the problem today.
+    validations:
+      required: true
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: Proposed behaviour
+      description: Describe the observable result that would solve the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Explain who benefits, how often the problem occurs and what remains blocked or inefficient.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing tools, workarounds or narrower solutions and why they are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility implications
+      description: Identify possible effects on MCP contracts, persisted state, clients, platforms or transaction safety. Write None if no impact is known.
+    validations:
+      required: true
+  - type: checkboxes
+    id: conduct
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: I agree to follow the project's [Code of Conduct](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CODE_OF_CONDUCT.md).
+          required: true

@@ -15,6 +15,8 @@ Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# work
 
 Agents that need more detail than the MCP initialisation instructions provide should use the version-specific [agent guide](agent/index.md).
 
+Questions, ideas, defects, documentation problems and private reports each have a defined route in the repository [support and feedback guide](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md).
+
 ## Documentation authority
 
 This site describes supported user and agent behaviour for the displayed release. MCP `tools/list` remains authoritative for a running server because its enabled plugin set is composed at startup.

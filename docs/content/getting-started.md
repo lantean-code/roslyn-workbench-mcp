@@ -2,13 +2,27 @@
 
 ## Prerequisites
 
-- A supported Roslyn Workbench executable or a source checkout built with the .NET 10 SDK selected by `global.json`.
+- A supported .NET 10 SDK.
 - An MCP client that can start a local stdio server.
 - The .NET SDKs and build tooling required by the solutions or projects you intend to load.
 
 ## Platform support
 
-Windows and Linux are the supported release platforms. macOS is implemented on a best-effort basis using native advisory locking and the shared Unix atomic-write path, but it has not yet been validated on macOS hardware or a hosted macOS runner. It is not a pull-request gate or authoritative performance baseline.
+Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are available on a best-effort basis until hosted validation is in place. Windows ARM64 and Linux ARM64 are not currently supported release targets.
+
+## Install the .NET tool
+
+Install Roslyn Workbench from NuGet.org as a global .NET tool:
+
+```bash
+dotnet tool install --global Roslyn.Workbench.Mcp
+```
+
+Verify the installed command:
+
+```bash
+roslyn-workbench-mcp --version
+```
 
 ## Build from source
 
@@ -22,20 +36,20 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
 
 The published executable is placed beneath `artifacts/publish/Roslyn.Workbench.Mcp/release`.
 
-Without additional build input, approved external reports use the stderr logging dispatcher. To produce an application-owned Sentry build, set `ROSLYN_WORKBENCH_SENTRY_DSN` while compiling or publishing; the DSN is embedded into the executable and is not read from the runtime environment. See [Configuration](configuration.md#build-time-error-report-provider).
-
 ## Connect a client
 
-Configure the MCP client to launch the absolute path to the published `Roslyn.Workbench.Mcp` executable. Client configuration formats differ, but the equivalent process configuration is:
+Configure the MCP client to launch the installed `roslyn-workbench-mcp` command. Client configuration formats differ, but the equivalent process configuration is:
 
 ```json
 {
-  "command": "/absolute/path/to/Roslyn.Workbench.Mcp",
+  "command": "roslyn-workbench-mcp",
   "args": ["--state-directory", "/absolute/path/to/roslyn-workbench-state"]
 }
 ```
 
 The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.
+
+For a source build, use the absolute path to the published `Roslyn.Workbench.Mcp` executable instead of the installed command.
 
 ## Trust the workspace before opening it
 

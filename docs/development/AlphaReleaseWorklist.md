@@ -38,10 +38,10 @@ Use this checklist as the dependency-ordered execution view. The detailed item s
 
 **Batch 3 — Community surface**
 
-- [ ] `ALPHA-005` Establish contribution, support and conduct policies — **Design approved**
-- [ ] `ALPHA-006` Configure issue intake and triage — **Design approved**
-- [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **Design approved**
-- [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **Design approved**; prepare the public surface while private and complete the visibility change only as an explicitly approved final action.
+- [ ] `ALPHA-005` Establish contribution, support and conduct policies — **In progress**; the local public policy surface is implemented and awaits manual approval.
+- [ ] `ALPHA-006` Configure issue intake and triage — **In progress**; forms, labels and triage guidance are prepared while external label creation and form dry runs remain outstanding.
+- [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **In progress**; category forms, moderation guidance and seed posts are prepared while Discussions remains disabled pending approval.
+- [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **In progress**; the local public surface and settings inventory are prepared while metadata, unauthenticated verification and visibility changes remain external actions.
 
 **Batch 4 — Repository and release automation**
 
@@ -102,7 +102,7 @@ Approved decisions:
 
 ### `ALPHA-002` Prepare repository identity and public-facing metadata
 
-**Status:** Design approved
+**Status:** In progress
 
 Verify the repository name, description, topics, website/documentation link, licence detection, default branch, release visibility and package links. Review the root README as the public landing page and confirm that its status, installation path, screenshots or examples, security warning, support routes and alpha limitations match the approved contract. Remove private-development assumptions and machine-specific references from public surfaces.
 
@@ -118,6 +118,8 @@ Approved decisions:
 - Link the Host package to the registry selected for that release channel and use GitHub Releases for release notes and retained release evidence. By default, publish alpha and beta packages only to GitHub Packages and publish RC and production packages to NuGet.org. Permit an explicitly approved beta, including the initial public build, to publish to NuGet.org instead. Document the GitHub Packages feed and classic-PAT authentication required for alpha/beta installation when that route is used. Add final package links after approving the identifier in `ALPHA-010`.
 
 **Completion evidence:** A signed-off public repository inventory with every metadata field and landing-page link checked from an unauthenticated perspective.
+
+**Implementation evidence:** The README now presents the approved alpha identity, package channels, installation and MCP client entry point, supported environments, transaction and trust model, representative workflow, alpha plugin and contribution limitations, and public project routes. `AlphaReleaseGitHubSetup.md` records the current read-only repository inventory and approved metadata targets without applying them. The description, Website, topics, public visibility and final unauthenticated checks remain explicitly approved external actions.
 
 ### `ALPHA-003` Publish the GitHub Pages documentation site
 
@@ -168,7 +170,7 @@ Generate release documentation from the compiled release build and fail validati
 
 ### `ALPHA-005` Establish contribution, support and conduct policies
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -182,9 +184,11 @@ Review `CONTRIBUTING.md` and `SECURITY.md` against the actual public workflow. D
 
 **Completion evidence:** Every public contact route is documented once, linked consistently and has an identified maintainer-facing destination.
 
+**Implementation evidence:** `SUPPORT.md` is the canonical routing summary and is linked from the README, contributing guidance and documentation. `CONTRIBUTING.md`, `SECURITY.md` and the Contributor Covenant 3.0 `CODE_OF_CONDUCT.md` implement the approved alpha contribution, vulnerability, conduct and support boundaries without response-time promises. Manual approval and the live-route checks remain outstanding.
+
 ### `ALPHA-006` Configure issue intake and triage
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -208,9 +212,11 @@ Document the triage flow from new report to closure, including duplicate handlin
 
 **Completion evidence:** Each form has been previewed and submitted in a safe test repository or equivalent dry run; labels and routing produce an actionable report without exposing sensitive information.
 
+**Implementation evidence:** The three structured Issue forms, blank-Issue configuration, contact links, complete label inventory and maintainer triage guide are prepared under `.github`. Local schema and routing validation precedes manual approval; label creation and safe rendered-form dry runs require an explicitly approved GitHub action after the files reach the default branch.
+
 ### `ALPHA-007` Configure GitHub Discussions and community moderation
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -228,6 +234,10 @@ Decide whether Discussions will be enabled for the alpha. If enabled, configure 
 Document the boundary between Discussions, Issues and private security reports. Define moderation ownership, conduct enforcement, when a discussion should become an issue, how accepted answers are maintained and how abandoned or duplicate topics are handled. Before announcing the repository, seed Announcements with a welcome and project-status post, Q&A with guidance for asking an answerable support question, and Ideas with guidance for proposing and discussing an early idea.
 
 **Completion evidence:** Categories, permissions, routing text and seed posts have been reviewed from a new user's perspective; announcement authors and moderators are identified.
+
+**Implementation evidence:** Q&A and Ideas category forms, the approved category and moderation guidance, and drafts for all three seed posts are prepared under `.github`. Discussions remains disabled and no category or post has been created externally; activation and new-user review require explicit approval after the local implementation is confirmed.
+
+**Batch validation evidence:** All ten GitHub YAML files parse successfully, and focused validation confirms unique form identifiers, known automatic labels, non-empty Discussion forms and the complete 36-label inventory. The documentation passes a strict MkDocs build and the full local site validator with unpublished project links explicitly allowed. Local links in the public policies and setup record resolve, the changed files pass whitespace and CRLF checks, and a serialised Release `Pack` target produces the development `.nupkg` and symbol package without warnings or errors. Inspection of the packaged README confirms the wordmark and policy links are absolute and no repository-relative community link remains.
 
 ### `ALPHA-008` Harden GitHub repository controls and automation
 

@@ -95,6 +95,6 @@ jobs:
       - name: Publish development documentation
         run: mike deploy --config-file docs/mkdocs.yml --branch gh-pages --update-aliases dev
       - name: Validate versioned development documentation
-        run: python docs/validate.py
+        run: python docs/validate.py --deployment-version dev
       - name: Push development documentation
         run: git push origin gh-pages

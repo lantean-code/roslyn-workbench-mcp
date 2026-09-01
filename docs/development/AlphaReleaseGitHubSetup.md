@@ -23,20 +23,26 @@ The read-only inventory taken on 2026-09-01 found:
 
 - [ ] Create or update the labels from `.github/labels.yml` without introducing synonyms.
 - [ ] Preview the Bug report, Documentation problem and Focused feature proposal forms from the default branch and submit safe synthetic dry runs.
-- [ ] Confirm blank Issues are disabled and the Q&A, Ideas and private-vulnerability contact links reach the intended destinations.
+- [ ] Confirm blank Issues are disabled and the Q&A and Ideas contact links reach the intended destinations. Verify the private-vulnerability contact after the repository becomes public because GitHub does not provide that route for private repositories.
 - [ ] Enable Discussions.
 - [ ] Retain only maintainer-authored **Announcements**, answer-enabled **Q&A**, and **Ideas** categories; remove unused default categories.
 - [ ] Confirm the Q&A and Ideas forms render against their category slugs.
 - [ ] Publish and review the three seed posts in `.github/DISCUSSIONS.md` from a new user's perspective.
 - [ ] Confirm repository maintainers are the only moderators and Announcements authors.
-- [ ] Enable private vulnerability reporting and verify the public security policy links to it.
 
 ## Repository identity
 
 - [ ] Apply the approved description, Website and topics from the inventory above.
-- [ ] Verify the README wordmark, alpha warning, installation guidance, support routes, package links, release links and licence from an unauthenticated view after the repository becomes public.
-- [ ] Verify GitHub recognises `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md` and the MIT licence as community health files.
-- [ ] Confirm the public Pages site and all README/community links work without authentication.
 - [ ] Keep the Plugins package, supported plugin-authoring guidance and plugin repository unpublished for alpha.
 
-The repository visibility change remains a separate final action. Do not use completion of this checklist to make the repository public implicitly.
+## Final public activation
+
+Complete these steps in order as one explicitly approved activation sequence:
+
+- [ ] Make the repository public.
+- [ ] Immediately enable private vulnerability reporting, then verify that the public security policy and `https://github.com/lantean-code/roslyn-workbench-mcp/security/advisories/new` reach the private reporting form from an unauthenticated session.
+- [ ] Verify the README wordmark, alpha warning, installation guidance, support routes, package links, release links and licence from an unauthenticated view.
+- [ ] Verify GitHub recognises `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md` and the MIT licence as community health files.
+- [ ] Confirm the public Pages site and all README/community links work without authentication.
+
+Completion of the preceding checklist sections does not authorise the repository visibility change. Public activation still requires explicit approval.

@@ -38,10 +38,10 @@ Use this checklist as the dependency-ordered execution view. The detailed item s
 
 **Batch 3 — Community surface**
 
-- [ ] `ALPHA-005` Establish contribution, support and conduct policies — **In progress**; the local public policy surface is implemented and awaits manual approval.
-- [ ] `ALPHA-006` Configure issue intake and triage — **In progress**; forms, labels and triage guidance are prepared while external label creation and form dry runs remain outstanding.
-- [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **In progress**; category forms, moderation guidance and seed posts are prepared while Discussions remains disabled pending approval.
-- [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **In progress**; the local public surface and settings inventory are prepared while metadata, unauthenticated verification and visibility changes remain external actions.
+- [ ] `ALPHA-005` Establish contribution, support and conduct policies — **In progress**; the local public policy surface is approved and committed, while private vulnerability reporting and final public verification remain external actions.
+- [ ] `ALPHA-006` Configure issue intake and triage — **In progress**; forms, labels and triage guidance are approved and committed, while external label creation and form dry runs remain outstanding.
+- [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **In progress**; category forms, moderation guidance and seed posts are approved and committed, while Discussions activation, category setup and live verification remain external actions.
+- [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **In progress**; the local public surface and settings inventory are approved and committed, while metadata, unauthenticated verification and visibility changes remain external actions.
 
 **Batch 4 — Repository and release automation**
 

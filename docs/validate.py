@@ -122,17 +122,30 @@ def find_external_style_resources(value: str) -> list[str]:
     return [candidate for candidate in candidates if is_external_resource(candidate)]
 
 
+def parse_deployment_version(value: str) -> str:
+    normalized_value = value.strip("/")
+    if (
+        not normalized_value
+        or normalized_value in {".", ".."}
+        or "/" in normalized_value
+        or "\\" in normalized_value
+    ):
+        raise argparse.ArgumentTypeError("deployment version must be one non-empty URL path segment")
+    return normalized_value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check-external", action="store_true")
     parser.add_argument("--allow-unpublished-project-links", action="store_true")
+    parser.add_argument("--deployment-version", type=parse_deployment_version)
     arguments = parser.parse_args()
 
     docs_directory = Path(__file__).resolve().parent
     reference_directory = docs_directory / "content" / "reference" / "tools"
     site_directory = docs_directory / "site"
     validate_reference(reference_directory)
-    external_links = validate_site(site_directory)
+    external_links = validate_site(site_directory, arguments.deployment_version)
     if arguments.check_external:
         validate_external_links(external_links, arguments.allow_unpublished_project_links)
     return 0
@@ -189,7 +202,7 @@ def validate_json_reference(source_file: Path, reference: object, allowed_root: 
         raise ValueError(f"'{source_file}' contains unresolved JSON schema reference '{reference}'.")
 
 
-def validate_site(site_directory: Path) -> set[str]:
+def validate_site(site_directory: Path, deployment_version: str | None) -> set[str]:
     if not site_directory.is_dir():
         raise ValueError("The rendered documentation site does not exist.")
 
@@ -237,6 +250,7 @@ def validate_site(site_directory: Path) -> set[str]:
                     site_directory,
                     html_file,
                     link,
+                    deployment_version,
                     parsed_pages,
                     validated_internal_links,
                 )
@@ -248,6 +262,7 @@ def validate_internal_link(
     site_directory: Path,
     source_file: Path,
     link: str,
+    deployment_version: str | None,
     parsed_pages: dict[Path, PageParser],
     validated_links: set[tuple[Path, str]],
 ) -> None:
@@ -259,6 +274,12 @@ def validate_internal_link(
         site_path_prefix = "/roslyn-workbench-mcp/"
         if path_text.startswith(site_path_prefix):
             path_text = path_text[len(site_path_prefix) :]
+        if deployment_version is not None:
+            deployment_prefix = f"{deployment_version}/"
+            if path_text == deployment_version:
+                path_text = ""
+            elif path_text.startswith(deployment_prefix):
+                path_text = path_text[len(deployment_prefix) :]
         candidate = site_directory / path_text.lstrip("/")
     else:
         candidate = source_file.parent / path_text

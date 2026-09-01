@@ -52,7 +52,12 @@ def main() -> int:
         config_file,
         arguments.source_tag,
         build_environment,
-        [sys.executable, str(docs_directory / "validate.py")],
+        [
+            sys.executable,
+            str(docs_directory / "validate.py"),
+            "--deployment-version",
+            arguments.source_tag,
+        ],
         push=not arguments.dry_run,
     )
 

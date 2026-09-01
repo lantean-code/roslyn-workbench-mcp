@@ -349,6 +349,20 @@ internal static class BuiltInCodeActionAuditCases
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "const var"),
         },
+        new()
+        {
+            ToolName = "use-labeled-jump-statement",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseLabeledJumpStatements.CSharpUseLabeledJumpStatementsCodeFixProvider",
+            Title = "Use labeled jump statement",
+            SourceNote = "CandidateLabeledJumps.First uses a goto to leave nested loops",
+            ExpectedDiagnosticId = "IDE0410",
+            ExpectedChangedText = "break foundFirst;",
+            UnexpectedChangedText = "goto foundFirst;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.CSharpPreview),
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLabeledJumps.cs", "goto foundFirst"),
+        },
     ];
 
     private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _additionalValidatedCodeFixCompatibilityCases =

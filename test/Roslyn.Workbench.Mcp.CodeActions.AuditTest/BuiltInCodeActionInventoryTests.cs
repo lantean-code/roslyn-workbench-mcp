@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 [Trait("Category", "Audit")]
 public sealed class BuiltInCodeActionInventoryTests
 {
-    private const string _expectedProviderIdentitySha256 = "215A5BE5A0E994F1288BFE1090C1F43142D39F60A5A6B4FB80C68D5F6092B385";
+    private const string _expectedProviderIdentitySha256 = "03582C967E17F82CC1B65D911556BB2D738D84833156C88D7B053BE32F2DA96A";
 
     [Fact]
     public void GIVEN_PinnedBuiltInComposition_WHEN_InspectingProviders_THEN_ShouldRetainExactProviderCountAndUniqueIdentities()
@@ -23,7 +23,7 @@ public sealed class BuiltInCodeActionInventoryTests
             .Concat(target.CodeFixProviders.Select(CodeActionProviderIdentity.GetId))
             .ToArray();
 
-        providerIds.Should().HaveCount(250);
+        providerIds.Should().HaveCount(251);
         providerIds.Should().OnlyHaveUniqueItems();
         var sortedProviderSnapshot = string.Join(
             '\n',
@@ -58,5 +58,17 @@ public sealed class BuiltInCodeActionInventoryTests
         BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Should().Contain(static auditCase =>
             auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
             && auditCase.ExpectedDiagnosticId != null);
+    }
+
+    [Fact]
+    public void GIVEN_SupportedCodeFixCompatibilityCases_WHEN_InspectingProviderAssessments_THEN_ShouldBeValidatedSupported()
+    {
+        var supportedCodeFixProviderIds = BuiltInCodeActionAuditCases.SupportedCompatibilityCases
+            .Where(static auditCase => auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix)
+            .Select(static auditCase => auditCase.ProviderId)
+            .Distinct(StringComparer.Ordinal);
+
+        supportedCodeFixProviderIds.Should().OnlyContain(static providerId =>
+            BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId) == BuiltInCodeActionAuditStatus.ValidatedSupported);
     }
 }

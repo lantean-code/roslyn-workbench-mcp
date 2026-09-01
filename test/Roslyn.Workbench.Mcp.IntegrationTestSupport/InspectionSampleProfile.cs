@@ -9,6 +9,7 @@ public enum InspectionSampleProfile
     BlockScopedNamespaces,
     CSharp4,
     CSharp73,
+    CSharpPreview,
     TopLevelToProgramMainRefactoring,
     ProgramMainToTopLevelRefactoring,
     TopLevelToProgramMainCodeFix,

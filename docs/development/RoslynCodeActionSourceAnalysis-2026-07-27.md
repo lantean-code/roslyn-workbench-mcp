@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document records the source analysis and provider-by-provider classification of every C# Code Action provider composed by Roslyn Workbench against the exact Roslyn source used by `Microsoft.CodeAnalysis.Features` and `Microsoft.CodeAnalysis.CSharp.Features` 5.6.0. It is retained development evidence, not a runtime catalogue: availability records the repository state observed during the analysis, while the architecture plan defines the replacement runtime model.
+This document records the source analysis and provider-by-provider classification of every C# Code Action provider composed by Roslyn Workbench against the exact Roslyn source used by `Microsoft.CodeAnalysis.Features` and `Microsoft.CodeAnalysis.CSharp.Features` 5.9.0. It is retained development evidence, not a runtime catalogue: availability records the repository state observed during the analysis, while the architecture plan defines the replacement runtime model.
 
 Roslyn action titles and concrete leaf counts depend on the document, span, diagnostics and semantic state supplied at discovery time. The exhaustive stable unit is therefore the provider identity. A provider classified as mixed must still be assessed at the individual action-leaf level before it can be exposed.
 
 ## Authority and Scope
 
-The source classification uses Roslyn commit [`c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f`](https://github.com/dotnet/roslyn/tree/c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f), identified by the 5.6.0 package metadata and SourceLink data. The provider set is the 250 C# providers produced by the server's real MEF composition: 169 code-fix providers and 81 refactoring providers.
+The source classification uses Roslyn commit [`35d9211b841e7613c1d2f8f5af6d628ace696c4c`](https://github.com/dotnet/roslyn/tree/35d9211b841e7613c1d2f8f5af6d628ace696c4c), identified by the 5.9.0 package metadata and SourceLink data. The provider set is the 251 C# providers produced by the server's real MEF composition: 170 code-fix providers and 81 refactoring providers.
 
 The production ledger and development-only provider assessments are the authoritative local provider set. The source checkout determines execution category. Runtime compatibility, diagnostic reachability and acceptance evidence determine availability. These dimensions are intentionally separate.
 
@@ -27,13 +27,13 @@ The production ledger and development-only provider assessments are the authorit
 
 | Category | Composed providers |
 | --- | ---: |
-| Ordinary replay | 231 |
+| Ordinary replay | 232 |
 | Mixed provider | 5 |
 | Option-backed only | 6 |
 | Internal-service dependent | 1 |
 | Product-boundary exclusion | 7 |
 | Custom semantic implementation | 0 |
-| **Total** | **250** |
+| **Total** | **251** |
 
 Availability is not another execution category. For example, a provider can be ordinary replay while remaining hidden until Workbench activates its built-in diagnostic, or until a diagnostic-specific compatibility case proves deterministic selection and staging.
 
@@ -41,7 +41,7 @@ Availability is not another execution category. For example, a provider can be o
 
 ### Runtime composition corrected the original source inventory
 
-The original source-folder audit did not include language-neutral Core providers exported for C#. Comparing the production ledger and manual assessment data with the Host's real MEF composition established the authoritative total of 250 providers. This found 151 Code Fix providers that had not been assessed by the earlier curated source scan.
+The original 5.6.0 source-folder audit did not include language-neutral Core providers exported for C#. Comparing the production ledger and manual assessment data with the Host's real MEF composition established the then-authoritative total of 250 providers. This found 151 Code Fix providers that had not been assessed by the earlier curated source scan.
 
 The 151 additional providers divided into:
 
@@ -82,7 +82,7 @@ The seven product-boundary exclusions are `AddMissingReference`, `AddPackage`, `
 
 ### Ordinary replay is the dominant architecture
 
-The remaining 231 composed providers produce ordinary actions compatible with opaque reference replay. Their individual availability during the analysis varied because some diagnostics were not activated or compatibility evidence was not complete, but those are discovery and validation prerequisites rather than different execution architectures.
+The remaining 232 composed providers produce ordinary actions compatible with opaque reference replay. Their individual availability during the analysis varied because some diagnostics were not activated or compatibility evidence was not complete, but those are discovery and validation prerequisites rather than different execution architectures.
 
 This is the evidence behind replacing the positive supported-provider ledger with allow-by-default ordinary replay, a small exclusion policy, generic structural checks and final Workspace mutation validation.
 
@@ -280,6 +280,7 @@ This is the evidence behind replacing the positive supported-provider ledger wit
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseIndexOrRangeOperator.CSharpUseRangeOperatorCodeFixProvider` | Built-in diagnostic activation required |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseInferredMemberName.CSharpUseInferredMemberNameCodeFixProvider` | Built-in diagnostic activation required |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseInterpolatedVerbatimString.CSharpUseInterpolatedVerbatimStringCodeFixProvider` | Supported as `use-interpolated-verbatim-string` |
+| Code fix | `Microsoft.CodeAnalysis.CSharp.UseLabeledJumpStatements.CSharpUseLabeledJumpStatementsCodeFixProvider` | Supported as `use-labeled-jump-statement` |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseIsNullCheck.CSharpUseIsNullCheckForCastAndEqualityOperatorCodeFixProvider` | Built-in diagnostic activation required |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseIsNullCheck.CSharpUseIsNullCheckForReferenceEqualsCodeFixProvider` | Built-in diagnostic activation required |
 | Code fix | `Microsoft.CodeAnalysis.CSharp.UseIsNullCheck.CSharpUseNullCheckOverTypeCheckCodeFixProvider` | Built-in diagnostic activation required |
@@ -363,11 +364,11 @@ This is the evidence behind replacing the positive supported-provider ledger wit
 
 ## Custom semantic implementation
 
-No provider in the composed Roslyn 5.6 runtime has this category. Any future entry would be a Workbench-owned replacement rather than direct replay of a composed provider.
+No provider in the composed Roslyn 5.9 runtime has this category. Any future entry would be a Workbench-owned replacement rather than direct replay of a composed provider.
 
 ## Source-Only Editor Provider
 
-`Microsoft.CodeAnalysis.CSharp.RenameTracking.CSharpRenameTrackingCodeRefactoringProvider` exists in Roslyn EditorFeatures source but is not present in the Features assemblies composed by Workbench. It depends on editor text-buffer change tracking and undo history. It is therefore an internal-service-dependent editor provider outside the 250-provider runtime total; the explicit `rename-symbol` tool is the supported headless operation.
+`Microsoft.CodeAnalysis.CSharp.RenameTracking.CSharpRenameTrackingCodeRefactoringProvider` exists in Roslyn EditorFeatures source but is not present in the Features assemblies composed by Workbench. It depends on editor text-buffer change tracking and undo history. It is therefore an internal-service-dependent editor provider outside the 251-provider runtime total; the explicit `rename-symbol` tool is the supported headless operation.
 
 ## Interpretation
 

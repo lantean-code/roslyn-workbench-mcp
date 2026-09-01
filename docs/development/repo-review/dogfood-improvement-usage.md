@@ -6972,3 +6972,13 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** Outline `McpToolProtocolFactory.cs` with members, maximum depth 3 and node limit 160 in the `manual-doc-review` workspace.
 
 **Outcome:** Succeeded and confirmed that `McpToolProtocolFactory` owns Server, plugin and Code Action protocol construction through one `IToolSchemaFactory`, with a common catalogue-tool path and published-description projection.
+
+### 724. `workspace-list`
+
+**Activity:** Microsoft.CodeAnalysis 5.9.0 upgrade feasibility audit.
+
+**Purpose:** Check whether a repository workspace was already loaded for semantic dependency inspection without opening another instance.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces and no transaction owner; package ownership was therefore inspected from the repository configuration without opening a workspace.

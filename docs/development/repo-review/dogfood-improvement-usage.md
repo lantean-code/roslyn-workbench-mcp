@@ -6932,3 +6932,43 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** Select `IBoundedExpiringStore` in `IBoundedExpiringStore.cs` with five lines before and 60 lines after the selection, including enclosing symbols.
 
 **Outcome:** Succeeded and exposed several mechanical comments that do not describe the bounded, expiring storage contract, including “Stores bounded expiring”, “Adds or replace” and references to “the bounded expiring”.
+
+### 720. `workspace-list`
+
+**Activity:** ALPHA-004 generated tool-reference design discovery.
+
+**Purpose:** Confirm that the existing repository workspace is available for semantic inspection of tool catalogue and schema-generation ownership.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported the repository solution loaded under the existing `manual-doc-review` alias with no transaction owner.
+
+### 721. `get-document-outline`
+
+**Activity:** ALPHA-004 generated tool-reference design discovery.
+
+**Purpose:** Inspect the production tool-protocol factory that combines registered metadata with generated schemas.
+
+**Request:** Outline `McpToolProtocolFactory.cs` with members, maximum depth 3 and node limit 160 in the `manual-doc-review` workspace.
+
+**Outcome:** Rejected with `WorkspaceOutOfDate` because the design-document edits made after the Workspace load required a reload.
+
+### 722. `workspace-reload`
+
+**Activity:** ALPHA-004 generated tool-reference design discovery recovery.
+
+**Purpose:** Refresh the semantic workspace after the documentation changes made during discovery.
+
+**Request:** `{"workspace":{"alias":"manual-doc-review"}}`
+
+**Outcome:** Succeeded at Workspace epoch 2 with 31 projects and 1,621 documents. It retained the two expected unresolved analyzer-reference warnings.
+
+### 723. `get-document-outline`
+
+**Activity:** ALPHA-004 generated tool-reference design discovery retry.
+
+**Purpose:** Identify the common production path for Server, plugin and Code Action protocol-tool construction after refreshing the workspace.
+
+**Request:** Outline `McpToolProtocolFactory.cs` with members, maximum depth 3 and node limit 160 in the `manual-doc-review` workspace.
+
+**Outcome:** Succeeded and confirmed that `McpToolProtocolFactory` owns Server, plugin and Code Action protocol construction through one `IToolSchemaFactory`, with a common catalogue-tool path and published-description projection.

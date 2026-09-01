@@ -1,6 +1,6 @@
 # Future Tasks
 
-Date: 2026-07-30
+Date: 2026-09-01
 
 ## Purpose
 
@@ -8,13 +8,11 @@ This document is the single active engineering backlog for work already justifie
 
 Completed work, superseded checklists, approved defensive coverage gaps and standing guardrails are excluded. Trigger-based ideas are kept separately from scheduled work so they are not mistaken for current commitments.
 
-Active tasks are ordered by delivery sequence rather than severity. Complete each phase before the next unless the tasks are explicitly safe to run in parallel:
+Active tasks are ordered by delivery sequence rather than severity:
 
-1. **Foundation** — resolve known reproducibility defects and stabilise the public v1 extension boundary.
-2. **Release automation** — automate the evidence required for a release candidate.
-3. **Release candidate preparation** — build and validate the versioned artifacts without publishing them.
-4. **Final release gate** — complete the readiness review against the prepared candidate.
-5. **Publication** — publish only the candidate that passed the final gate.
+1. **First alpha release** — define the pre-release contract, prepare the public repository and community routes, then manually publish and validate release builds through the agreed lightweight release guidance.
+2. **Beta preparation** — announce the product and begin wider external feedback when it is ready for beta evaluation.
+3. **Stable v1 preparation** — add production discovery, plugin authoring and native installation capabilities intentionally deferred from alpha.
 
 Conditional tasks remain inactive until their stated external capability, evidence threshold or product need exists.
 
@@ -26,102 +24,53 @@ Statuses mean:
 
 When a task is completed, remove it from this document rather than retaining a completed entry.
 
-## Phase 1 — Foundation
+## First Alpha Release
 
-### Harden the plugin query-cache boundary
-
-**Status:** Not started
-
-Replace the raw `IToolExecutionServices.QueryCache` contract with Host-created synchronous and asynchronous get-or-create scopes. Bind the public cache to the current query invocation, exact Workspace snapshot, plugin and tool; require dedicated immutable semantic key types; coalesce identical misses; and prevent cross-plugin collisions, escaped-scope use, recursive-factory deadlock, late stores into an invalidated generation and manual Workspace identity mistakes. Package analyser errors for unsafe keys and warnings for unsafe cached values.
-
-Use physically separate, interface-registered state and capacity for Host Workspace query results, plugin query results and replayable Code Action handles. Preserve the Workspace cache's current solution-based invalidation, apply stricter exact-transaction-snapshot invalidation to plugins, retain existing Code Action expiry and lifecycle semantics, and remove concrete-plus-resolving-delegate registrations for shared query and Code Action state.
-
-Default both query caches to one-hour sliding expiration with independent command-line overrides up to 24 hours. Expose independently bounded capacity controls that cannot disable caching or fall below an evidence-backed supported minimum. Add permanent versioned scenario-runner cache metrics, calibrate minimum/default/maximum limits across representative repositories and a cache-using fixture plugin, and correlate logical pressure with retained process memory before locking the v1 defaults.
-
-Implement the design and validation requirements in [Plugin Query Cache Boundary](PluginQueryCacheBoundary-2026-07-30.md) before treating the current cache API as a stable v1 plugin contract.
-
-## Phase 2 — Release Automation
-
-### Automate release scenario validation and performance history
+### Prepare, validate and publish the first alpha
 
 **Status:** Not started
 
-Add a release-branch and manual-dispatch workflow for the existing external-repository scenario runner after the repository's release-branch naming convention is selected. Produce a versioned normalised metrics aggregate, compare it with the previous GitHub release asset and publish an advisory Markdown regression report.
+Execute the dependency-ordered [`First Alpha Release Worklist`](AlphaReleaseWorklist.md). Its unchecked items are the detailed execution record for this canonical backlog task.
 
-Upload detailed scenario output as temporary workflow artifacts. Attach the final aggregate and comparison to the GitHub release for durable release-to-release history. Do not commit generated metrics to `main`, and do not introduce hard timing gates until repeated comparable release runs establish normal variance.
+The worklist covers the alpha release shape, GitHub repository and community setup, issue triage, Discussions, security controls, versioning, release production, .NET tool validation, diagnostics and error reporting, and manual release checks.
 
-The repository is private before v1 release-candidate preparation, so do not run billed recurring macOS automation. When the repository becomes public, add best-effort macOS release/manual validation covering the published Host acceptance suite, Workspace integration and a curated external-repository scenario subset. macOS is not a pull-request gate. The external-repository scenario runner remains release-only on every platform.
+## Beta Preparation
 
-Implementation order:
-
-1. Select and document the release-branch naming convention.
-2. Define and emit the versioned aggregate and scenario-suite identity.
-3. Add compatible previous-release comparison and Markdown reporting.
-4. Add manual and release-branch workflow orchestration.
-5. Once the repository is public, add best-effort macOS release validation.
-6. Make the final aggregate and comparison available to the publication workflow for attachment to the GitHub release.
-
-Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
-
-## Phase 3 — Release Candidate Preparation
-
-### Prepare and validate the v1 release artifacts
+### Announce and monitor the beta
 
 **Status:** Not started
 
-Implement tag-driven release preparation using GitVersion. A release tag must produce one consistent version across the Host assemblies, .NET tool package, standalone executable archives and Plugins NuGet package.
+When the product is ready for wider beta evaluation, publish an approved GitHub Announcement and any deliberately selected additional announcement. Watch incoming Issues, Discussions, private security reports and opt-in error reports, and triage meaningful feedback as it arrives. Do not require a formal observation period, reporting cadence or adoption metric unless experience shows that one would be useful.
 
-Prepare and retain these candidate artifacts:
+Alpha releases remain direct engineering builds validated through manual checks; they do not require a public announcement or monitoring programme.
 
-- the MCP server as a .NET tool package;
-- standalone executable archives for every supported runtime identifier;
-- the third-party Plugins library as the author-facing NuGet package, containing the Plugins and Abstractions assemblies plus the authoring analyser;
-- symbol packages where applicable;
-- checksums for downloadable standalone artifacts; and
-- draft release notes identifying the source tag and commit.
+## Stable v1 Preparation
 
-Release reproducibility is based on the tagged source, pinned .NET SDK, centrally managed exact direct dependency versions and retention of the artifacts produced by the release workflow. Do not adopt `packages.lock.json` files solely for release publication or GitHub Actions caching. Leave NuGet package caching disabled unless restore performance later becomes a measured problem that justifies revisiting the policy.
-
-GitHub and publication preparation own `PRR-F023`. Pin every reusable GitHub Action to a reviewed full commit SHA, configure an automated update path such as Dependabot, retain minimal workflow permissions, and configure environment-protected OIDC or trusted publishing rather than long-lived publishing credentials.
-
-Validate the candidate without publishing it:
-
-1. Restore, build, test and pack from the release tag in one controlled workflow.
-2. Pass the exact source tag as the `RoslynWorkbenchSourceTag` build property and confirm every artifact carries the GitVersion-derived release version and tag-specific agent-guide link.
-3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
-4. Run each standalone executable on its target operating system without relying on repository build output.
-5. Inspect the Plugins package and generated `.nuspec`; verify that it contains the Plugins and Abstractions assemblies and analyser without publishing Workspace as an authoring dependency, then deliberately approve its direct dependency ranges.
-6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
-7. Retain the exact candidate artifacts and validation evidence for the final release gate.
-
-The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
-
-## Phase 4 — Final Release Gate
-
-### Complete the pre-release readiness review
-
-**Status:** Started
-
-Align the release documentation and package-facing material, remove development-only content from public surfaces, validate the complete supported functionality, perform a security and trust-boundary audit, and finish the product polish needed before publication.
-
-Implement the dependency-ordered batches defined by the [Pre-release Readiness Audit](PreReleaseReadinessAudit-2026-07-24.md):
-
-1. release documentation, backlog and package-facing documentation alignment — complete;
-2. supported-functionality and public-contract audit — complete;
-3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded reference and recovery input processing are resolved; and
-4. final product polish and release-readiness validation against the prepared v1 candidate.
-
-Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
-
-## Phase 5 — Publication
-
-### Publish the validated v1 release artifacts
+### Publish to the MCP Registry and discovery catalogues
 
 **Status:** Not started
 
-Publish only the exact candidate artifacts that passed Phase 3 validation and the Phase 4 release gate. Do not rebuild or replace artifacts under the same version.
+As part of the road to the production v1 release, publish the NuGet-hosted stdio tool to the official MCP Registry using `io.github.lantean-code/roslyn-workbench-mcp` as its server name. Include the matching ownership marker in the package README and generate versioned `server.json` metadata from the release build using the current stable Registry schema, exact package version, GitHub repository identity, `dnx` runtime hint and stdio transport. Reference the locked SVG icon as a scalable `any` size and provide a 128×128 or 256×256 PNG from `assets/icons` as the universally supported fallback. Include no required arguments or environment variables because the Host starts with defaults. Validate generated metadata rather than editing version fields manually.
 
-Use the environment-protected OIDC or trusted-publishing configuration prepared in Phase 3 to publish the .NET tool and Plugins packages, standalone archives, symbol packages, checksums and release notes. Attach the final scenario metrics aggregate and comparison report produced by Phase 2 to the GitHub release, and retain all immutable release artifacts with their source tag and commit identity.
+Publish only after the production discovery route is intentionally being prepared; an alpha or beta package on NuGet.org does not trigger Registry publication. Use the exact package already published to NuGet.org and do not rebuild or replace it for registration.
+
+Inventory a small number of reputable MCP client catalogues and community directories. Prefer the official Registry as the authoritative machine-readable record and add other listings only when their maintenance, security and update process are acceptable. Avoid broad automated submission and duplicate metadata formats that cannot preserve version and ownership information.
+
+### Publish the plugin-authoring ecosystem and curated repository
+
+**Status:** Not started
+
+Publish and validate the supported third-party plugin-authoring surface before v1, including the Plugins NuGet package, its analyser and authoring documentation. Verify the package through a clean external sample with no repository project references, deliberately approve its dependency boundary and ranges, confirm Workspace is not exposed as an authoring dependency, load the sample into the packaged Host and exercise representative query and mutation tools.
+
+Create the public discovery route for third-party Roslyn Workbench plugins before v1. Define repository ownership, submission and removal rules, source and licence requirements, compatibility metadata, package and release provenance, declared filesystem/process/network behaviour, security reporting, maintainer responsibilities, update and deprecation handling, and the boundary between listing and endorsement before accepting entries. The alpha retains the existing plugin runtime for source consumers but does not publish the authoring package, authoring documentation, a plugin directory or showcase listings.
+
+### Add platform-native installation packages
+
+**Status:** Not started
+
+Retain the .NET tool as the portable installation route while adding managed deployment options before v1. Produce an MSI suitable for corporate Windows environments, publish that approved installer through Chocolatey and WinGet, and add Linux distribution packages and repository installation beginning with Debian/Ubuntu `apt`. Evaluate RPM and other distribution-specific formats from demonstrated user demand rather than claiming unsupported package-manager coverage.
+
+Every installer must consume the same versioned Host output as the corresponding release build, preserve GitVersion identity and diagnostic symbols, support clean installation, upgrade and removal, and avoid introducing a second independently built release binary. Windows executables, shortcuts and MSI Add or Remove Programs metadata should use the multi-resolution `assets/icons/roslyn-workbench-mcp.ico`; other package formats should select the smallest matching approved PNG without rescaling a smaller asset upward. Installer signing, repository trust, update behaviour and enterprise deployment documentation form part of this work.
 
 ## Conditional Backlog
 

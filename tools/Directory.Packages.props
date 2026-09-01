@@ -1,13 +1,10 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.510501" />
-    <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.5" />
+    <PackageVersion Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.661903" />
+    <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.6" />
     <PackageVersion Include="ModelContextProtocol" Version="1.4.1" />
   </ItemGroup>
-
 </Project>

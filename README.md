@@ -1,5 +1,7 @@
 # Roslyn Workbench MCP
 
+![Roslyn Workbench MCP wordmark](assets/roslyn-workbench-mcp-wordmark.svg)
+
 Roslyn Workbench is a local stdio MCP server for inspecting C# workspaces and staging Roslyn-powered source changes through explicit transactions.
 
 It provides:

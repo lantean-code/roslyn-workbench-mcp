@@ -6982,3 +6982,33 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces and no transaction owner; package ownership was therefore inspected from the repository configuration without opening a workspace.
+
+### 725. `workspace-list`
+
+**Activity:** ALPHA Batch 1 release-foundation implementation.
+
+**Purpose:** Check whether the repository workspace was already loaded before inspecting versioning and Host packaging ownership.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces.
+
+### 726. `workspace-open`
+
+**Activity:** ALPHA Batch 1 release-foundation implementation.
+
+**Purpose:** Load the repository for semantic inspection while implementing authoritative versioning and .NET tool packaging.
+
+**Request:** Open `Roslyn.Workbench.Mcp.slnx` as alias `alpha-release-foundation`, with the repository as its workspace root, Debug configuration and the dedicated WSL artifacts path.
+
+**Outcome:** Succeeded with 31 projects and 1,678 documents. The expected WSL-on-Windows-filesystem performance warning was reported.
+
+### 727. `workspace-close`
+
+**Activity:** ALPHA Batch 1 release-foundation implementation cleanup.
+
+**Purpose:** Release the semantic workspace after completing versioning, packaging and validation work.
+
+**Request:** Close the workspace identified by alias `alpha-release-foundation`.
+
+**Outcome:** Succeeded and closed `Roslyn.Workbench.Mcp.slnx` without an active transaction.

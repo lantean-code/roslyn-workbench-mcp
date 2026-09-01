@@ -7,6 +7,68 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);CA1014;CA2007</NoWarn>
     <LangVersion>latest</LangVersion>
+    <RoslynWorkbenchVersion Condition="'$(RoslynWorkbenchVersion)' == ''">0.0.0-dev</RoslynWorkbenchVersion>
+    <RoslynWorkbenchFullSemVer Condition="'$(RoslynWorkbenchFullSemVer)' == '' and '$(RoslynWorkbenchReleaseBuild)' != 'true'">$(RoslynWorkbenchVersion)</RoslynWorkbenchFullSemVer>
+    <RoslynWorkbenchCommitSha Condition="'$(RoslynWorkbenchCommitSha)' == '' and '$(RoslynWorkbenchReleaseBuild)' != 'true'">development</RoslynWorkbenchCommitSha>
+    <RoslynWorkbenchVersionSourceDistance Condition="'$(RoslynWorkbenchVersionSourceDistance)' == '' and '$(RoslynWorkbenchReleaseBuild)' != 'true'">0</RoslynWorkbenchVersionSourceDistance>
+    <RoslynWorkbenchSourceTag Condition="'$(RoslynWorkbenchSourceTag)' == ''">$(RoslynWorkbenchVersion)</RoslynWorkbenchSourceTag>
+    <RoslynWorkbenchAssemblyVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(RoslynWorkbenchVersion)', '^([0-9]+\.[0-9]+\.[0-9]+).*$', '$1.0'))</RoslynWorkbenchAssemblyVersion>
+    <Version>$(RoslynWorkbenchVersion)</Version>
+    <PackageVersion>$(RoslynWorkbenchVersion)</PackageVersion>
+    <InformationalVersion>$(RoslynWorkbenchVersion)</InformationalVersion>
+    <AssemblyVersion>$(RoslynWorkbenchAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(RoslynWorkbenchAssemblyVersion)</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true'">true</ContinuousIntegrationBuild>
+    <DebugType>portable</DebugType>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/lantean-code/roslyn-workbench-mcp</RepositoryUrl>
+    <RepositoryCommit Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true'">$(RoslynWorkbenchCommitSha)</RepositoryCommit>
+    <SourceRevisionId Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true'">$(RoslynWorkbenchCommitSha)</SourceRevisionId>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EnableSourceLink>true</EnableSourceLink>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="RoslynWorkbenchCommitSha" Value="$(RoslynWorkbenchCommitSha)" />
+    <AssemblyMetadata Include="RoslynWorkbenchFullSemVer" Value="$(RoslynWorkbenchFullSemVer)" />
+    <AssemblyMetadata Include="RoslynWorkbenchSourceTag" Value="$(RoslynWorkbenchSourceTag)" />
+    <AssemblyMetadata Include="RoslynWorkbenchVersionSourceDistance" Value="$(RoslynWorkbenchVersionSourceDistance)" />
+  </ItemGroup>
+
+  <Target Name="ValidateRoslynWorkbenchIdentity"
+          BeforeTargets="CoreCompile;Pack">
+    <ItemGroup>
+      <_RoslynWorkbenchExpectedAssemblyVersion Include="$([System.Text.RegularExpressions.Regex]::Replace('$(RoslynWorkbenchVersion)', '^([0-9]+\.[0-9]+\.[0-9]+).*$', '$1.0'))" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_RoslynWorkbenchFullSemVerPublicIdentity>$([System.Text.RegularExpressions.Regex]::Replace('$(RoslynWorkbenchFullSemVer)', '\+.*$', ''))</_RoslynWorkbenchFullSemVerPublicIdentity>
+    </PropertyGroup>
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(RoslynWorkbenchVersion)', '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?$')) != 'True'" Text="RoslynWorkbenchVersion must be a valid semantic version without build metadata." />
+    <Error Condition="$([System.String]::CompareOrdinal('$(Version)', '$(RoslynWorkbenchVersion)')) != '0'" Text="Version is derived from RoslynWorkbenchVersion and must not be overridden independently." />
+    <Error Condition="$([System.String]::CompareOrdinal('$(PackageVersion)', '$(RoslynWorkbenchVersion)')) != '0'" Text="PackageVersion is derived from RoslynWorkbenchVersion and must not be overridden independently." />
+    <Error Condition="$([System.String]::CompareOrdinal('$(InformationalVersion)', '$(RoslynWorkbenchVersion)')) != '0'" Text="InformationalVersion is derived from RoslynWorkbenchVersion and must not be overridden independently." />
+    <Error Condition="'$(AssemblyVersion)' != '@(_RoslynWorkbenchExpectedAssemblyVersion)'" Text="AssemblyVersion is derived from RoslynWorkbenchVersion and must not be overridden independently." />
+    <Error Condition="'$(FileVersion)' != '@(_RoslynWorkbenchExpectedAssemblyVersion)'" Text="FileVersion is derived from RoslynWorkbenchVersion and must not be overridden independently." />
+    <Error Condition="$([System.String]::CompareOrdinal('$(RoslynWorkbenchSourceTag)', '$(RoslynWorkbenchVersion)')) != '0'" Text="RoslynWorkbenchSourceTag must exactly match RoslynWorkbenchVersion without a prefix." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(RoslynWorkbenchVersion)', '0.0.0-dev')) == '0'" Text="A release build cannot use the development version 0.0.0-dev." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(RoslynWorkbenchFullSemVer)', '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$')) != 'True'" Text="RoslynWorkbenchFullSemVer must be a valid semantic version for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(_RoslynWorkbenchFullSemVerPublicIdentity)', '$(RoslynWorkbenchVersion)')) != '0'" Text="RoslynWorkbenchFullSemVer must equal RoslynWorkbenchVersion or add only build metadata." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(RoslynWorkbenchCommitSha)', '^[0-9a-f]{40}$')) != 'True'" Text="RoslynWorkbenchCommitSha must be a full lowercase 40-character Git commit SHA for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(RepositoryCommit)', '$(RoslynWorkbenchCommitSha)')) != '0'" Text="RepositoryCommit is derived from RoslynWorkbenchCommitSha and must not be overridden independently." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(SourceRevisionId)', '$(RoslynWorkbenchCommitSha)')) != '0'" Text="SourceRevisionId is derived from RoslynWorkbenchCommitSha and must not be overridden independently." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(RoslynWorkbenchVersionSourceDistance)', '^(0|[1-9][0-9]*)$')) != 'True'" Text="RoslynWorkbenchVersionSourceDistance must be a non-negative integer for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(RepositoryUrl)', 'https://github.com/lantean-code/roslyn-workbench-mcp')) != '0'" Text="RepositoryUrl must identify the approved Roslyn Workbench MCP repository for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(RepositoryType)', 'git')) != '0'" Text="RepositoryType must be git for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(PublishRepositoryUrl)' != 'true'" Text="PublishRepositoryUrl must remain enabled for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(EnableSourceLink)' != 'true'" Text="EnableSourceLink must remain enabled for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and $([System.String]::CompareOrdinal('$(DebugType)', 'portable')) != '0'" Text="DebugType must remain portable for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(Deterministic)' != 'true'" Text="Deterministic must remain enabled for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(ContinuousIntegrationBuild)' != 'true'" Text="ContinuousIntegrationBuild must remain enabled for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(IncludeSourceRevisionInInformationalVersion)' != 'false'" Text="IncludeSourceRevisionInInformationalVersion must remain disabled for a release build." />
+    <Error Condition="'$(RoslynWorkbenchReleaseBuild)' == 'true' and '$(EmbedUntrackedSources)' != 'true'" Text="EmbedUntrackedSources must remain enabled for a release build." />
+  </Target>
 
 </Project>

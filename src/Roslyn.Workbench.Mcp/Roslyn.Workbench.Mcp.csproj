@@ -2,6 +2,38 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AssemblyName>Roslyn.Workbench.Mcp</AssemblyName>
+    <AssemblyTitle>Roslyn Workbench MCP</AssemblyTitle>
+    <Product>Roslyn Workbench MCP</Product>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>roslyn-workbench-mcp</ToolCommandName>
+    <PackageId>Roslyn.Workbench.Mcp</PackageId>
+    <Title>Roslyn Workbench MCP</Title>
+    <Description>A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.</Description>
+    <Authors>Lantean Code</Authors>
+    <Company>Lantean Code</Company>
+    <Copyright>Copyright © 2026 Lantean Code</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://lantean-code.github.io/roslyn-workbench-mcp/</PackageProjectUrl>
+    <PackageTags>model-context-protocol;mcp;mcp-server;roslyn;csharp;dotnet;code-analysis;refactoring;developer-tools</PackageTags>
+    <PackageIcon>roslyn-workbench-mcp-128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/lantean-code/roslyn-workbench-mcp/releases/tag/$(RoslynWorkbenchSourceTag)</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <BeforePack>$(BeforePack);PreparePackageReadme</BeforePack>
+    <!-- The Host is an executable .NET tool; its supported compatibility surfaces are MCP contracts and command-line behaviour, not its CLR API. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <PackageReadmeSource>$(MSBuildProjectDirectory)\..\..\README.md</PackageReadmeSource>
+    <PackageReadmeOutput>$(BaseIntermediateOutputPath)PackageREADME.md</PackageReadmeOutput>
+    <PackageWordmarkSource>assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkSource>
+    <PackageWordmarkUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,11 +58,26 @@
     <Content Include="..\..\THIRD-PARTY-NOTICES.md"
              Link="THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
+             CopyToPublishDirectory="PreserveNewest"
+             Pack="true"
+             PackagePath="\" />
     <Content Include="..\..\THIRD-PARTY-LICENSES\AsyncFixer.txt"
              Link="THIRD-PARTY-LICENSES\AsyncFixer.txt"
              CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
+             CopyToPublishDirectory="PreserveNewest"
+             Pack="true"
+             PackagePath="THIRD-PARTY-LICENSES" />
+    <None Include="..\..\LICENSE"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\assets\icons\roslyn-workbench-mcp-128.png"
+          Pack="true"
+          PackagePath="\"
+          Visible="false" />
+    <None Include="$(PackageReadmeOutput)"
+          Pack="true"
+          PackagePath="README.md"
+          Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,13 +98,14 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <Target Name="AddRoslynWorkbenchSourceTagMetadata" BeforeTargets="GetAssemblyAttributes">
+  <Target Name="PreparePackageReadme">
     <PropertyGroup>
-      <RoslynWorkbenchSourceTag Condition="'$(RoslynWorkbenchSourceTag)' == ''">v$(Version)</RoslynWorkbenchSourceTag>
+      <_PackageReadmeContents>$([System.IO.File]::ReadAllText('$(PackageReadmeSource)').Replace('$(PackageWordmarkSource)', '$(PackageWordmarkUrl)'))</_PackageReadmeContents>
     </PropertyGroup>
-    <ItemGroup>
-      <AssemblyMetadata Include="RoslynWorkbenchSourceTag" Value="$(RoslynWorkbenchSourceTag)" />
-    </ItemGroup>
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PackageReadmeOutput)'))" />
+    <WriteLinesToFile File="$(PackageReadmeOutput)"
+                      Lines="$(_PackageReadmeContents)"
+                      Overwrite="true" />
   </Target>
 
 </Project>

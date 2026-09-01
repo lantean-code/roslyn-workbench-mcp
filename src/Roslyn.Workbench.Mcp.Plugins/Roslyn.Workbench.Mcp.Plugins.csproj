@@ -7,7 +7,6 @@
     <PackageProjectUrl>https://github.com/lantean-code/roslyn-workbench-mcp</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>mcp;roslyn;plugins;analyzers</PackageTags>
-    <RepositoryUrl>https://github.com/lantean-code/roslyn-workbench-mcp.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

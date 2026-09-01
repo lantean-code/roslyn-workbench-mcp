@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -29,6 +30,10 @@ public sealed class HostToolCompositionIntegrationTests
         var codeActionCatalog = serviceProvider.GetRequiredService<CodeActionCatalogSnapshot>();
         var startupConfiguration = serviceProvider.GetRequiredService<StartupConfigurationSnapshot>();
         var mcpServerOptions = serviceProvider.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var sourceTag = typeof(HostCommandLine).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(static attribute => attribute.Key == "RoslynWorkbenchSourceTag")
+            .Value;
 
         var tools = serviceProvider.GetServices<McpServerTool>().ToArray();
 
@@ -85,7 +90,7 @@ public sealed class HostToolCompositionIntegrationTests
             "does not create a Git commit");
 
         serverInstructions.Should().Contain(
-            "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/v1.0.0/docs/AgentGuide.md");
+            $"https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/{sourceTag}/docs/AgentGuide.md");
 
         serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 

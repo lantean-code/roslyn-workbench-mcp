@@ -20,6 +20,44 @@ The alpha is an explicitly pre-release product. It should be usable, supportable
 
 Statuses used by this worklist are **Not started**, **In discovery**, **Awaiting approval**, **Design approved**, **In progress**, **Blocked**, **Deferred from alpha** and **Complete**. **Design approved** means the item's decisions are locked for the full-worklist design pass but its implementation has not begun.
 
+## Implementation checklist
+
+Use this checklist as the dependency-ordered execution view. The detailed item sections remain the authoritative requirements and evidence record.
+
+- [x] `ALPHA-001` Define the first-alpha release shape — **Complete**
+
+**Batch 1 — Release foundation**
+
+- [x] `ALPHA-009` Implement one authoritative alpha version — **Complete**
+- [x] `ALPHA-010` Finalise package and executable metadata — **Complete**
+
+**Batch 2 — Documentation system**
+
+- [ ] `ALPHA-004` Generate the versioned tool reference — **Design approved**
+- [ ] `ALPHA-003` Publish the GitHub Pages documentation site — **Design approved**; implement and validate generation before the explicitly approved public deployment.
+
+**Batch 3 — Community surface**
+
+- [ ] `ALPHA-005` Establish contribution, support and conduct policies — **Design approved**
+- [ ] `ALPHA-006` Configure issue intake and triage — **Design approved**
+- [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **Design approved**
+- [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **Design approved**; prepare the public surface while private and complete the visibility change only as an explicitly approved final action.
+
+**Batch 4 — Repository and release automation**
+
+- [ ] `ALPHA-008` Harden GitHub repository controls and automation — **Design approved**
+- [ ] `ALPHA-011` Implement manually triggered release builds — **Design approved**; implement and dry-run artifact production before enabling explicitly approved publication.
+- [ ] `ALPHA-013` Configure protected publication — **Design approved**
+
+**Batch 5 — Release readiness**
+
+- [ ] `ALPHA-012` Record manual scenario and performance analysis — **Design approved**
+- [ ] `ALPHA-017` Complete security, dependency and provenance checks — **Design approved**
+- [ ] `ALPHA-018` Complete release documentation and notes — **Design approved**; finish development-record cleanup before repository visibility changes.
+- [ ] Complete the explicitly approved repository visibility, documentation deployment and first-prerelease publication actions — **Awaiting approval**
+
+`ALPHA-014` through `ALPHA-016` were retired during the design pass. Their identifiers remain unused and will not be reassigned.
+
 ## Delivery sequence
 
 1. Define the alpha contract and deliberate limitations.
@@ -74,7 +112,7 @@ Approved decisions:
 - Use “A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.” as the GitHub repository description.
 - Use the GitHub topics `model-context-protocol`, `mcp-server`, `roslyn`, `csharp`, `dotnet`, `code-analysis`, `refactoring` and `developer-tools`.
 - Set the GitHub Website field to the canonical documentation site at `https://lantean-code.github.io/roslyn-workbench-mcp/`.
-- Keep the repository private while Stage 2 is prepared, then make it public after the documentation site, community routes and security controls are ready and before publishing the first prerelease. Validate Pages, clean installation guidance and public links without authentication under the resulting release conditions.
+- Keep the repository private while the alpha is prepared, including the temporary-development-record cleanup required by `ALPHA-018`. Make it public only as an explicitly approved final action after the documentation site, community routes and security controls are ready and before publishing the first prerelease. Validate Pages, clean installation guidance and public links without authentication under the resulting release conditions.
 - Use the root README as a concise product landing page with a prominent alpha and compatibility warning, the product and transaction-safety model, the shortest supported .NET tool installation and MCP client configuration, supported platforms and .NET requirement, a representative workflow, and clear links to documentation, security reporting, support, contributing, the Host package and releases. State that the Plugins package and a supported plugin-authoring route are not published for alpha. Prefer a compact protocol or transaction example over screenshots because the product has no visual interface.
 - Use the locked wordmark from `assets/roslyn-workbench-mcp-wordmark.svg` near the top of the repository README with meaningful alternative text. Retain a text heading, preserve the artwork's proportions and do not place it on a busy background.
 - Link the Host package to the registry selected for that release channel and use GitHub Releases for release notes and retained release evidence. By default, publish alpha and beta packages only to GitHub Packages and publish RC and production packages to NuGet.org. Permit an explicitly approved beta, including the initial public build, to publish to NuGet.org instead. Document the GitHub Packages feed and classic-PAT authentication required for alpha/beta installation when that route is used. Add final package links after approving the identifier in `ALPHA-010`.
@@ -229,7 +267,7 @@ Configure or verify:
 
 ### `ALPHA-009` Implement one authoritative alpha version
 
-**Status:** Design approved
+**Status:** Complete
 
 Approved decisions:
 
@@ -243,9 +281,16 @@ Implement tag-driven version calculation using GitVersion. The source tag must p
 
 **Completion evidence:** Automated tests or build inspection prove version consistency for a representative alpha tag and ordinary non-release builds.
 
+Implementation evidence (2026-09-01):
+
+- Pinned `GitVersion.Tool` 6.8.2 in the repository manifest and validated the configuration in read-only no-cache mode. On `develop`, GitVersion produced `SemVer` and `FullSemVer` `0.1.0-beta.282`, numeric assembly versions `0.1.0.0`, commit `5e903042f66e4c399ab500c67058b90b9d2cf92d` and source distance 282.
+- Verified an ordinary build and direct Host execution use `0.0.0-dev`, while a deliberately incomplete release build fails before compilation rather than silently retaining the development identity.
+- Built representative alpha packages with identity `0.1.0-alpha.1` and confirmed one-shot installed execution reported that exact version. The calculated beta package also confirmed that the package version, Host `--version`, `AssemblyInformationalVersion`, source tag and release URL all use `0.1.0-beta.282` without a `v` prefix. Generated assembly metadata retained the exact commit, `FullSemVer` and source distance separately, while `AssemblyVersion` and `FileVersion` were `0.1.0.0`.
+- Added evaluated-build integration coverage that accepts valid release provenance while rejecting independent overrides of the derived package, informational, assembly and file identities, malformed or mismatched semantic versions, incomplete commit SHAs and invalid source distances.
+
 ### `ALPHA-010` Finalise package and executable metadata
 
-**Status:** Design approved
+**Status:** Complete
 
 Approved decisions:
 
@@ -262,6 +307,13 @@ Approved decisions:
 Review package identifiers, titles, descriptions, authors, licence, repository URL and commit metadata, project URL, readmes, icons, tags, release notes, dependency ranges, symbol-package settings, package validation and the intended alpha public-API compatibility baseline. Confirm the .NET tool command and package names are predictable and do not collide with stable channels. Ensure every package identifies itself as pre-release where the ecosystem supports it.
 
 **Completion evidence:** The generated packages, `.nuspec` files and assemblies pass a recorded metadata inspection.
+
+Implementation evidence (2026-09-01):
+
+- Generated and inspected `Roslyn.Workbench.Mcp.0.1.0-beta.282.nupkg` and its matching `.snupkg`. The tool package used the approved ID, title, command, description, author, company, copyright, licence, project and repository metadata, tags and immutable release URL; its generated README replaced the repository-relative wordmark with the exact source-tag URL.
+- Confirmed the package contains the complete framework-dependent `net10.0` runtime payload without NuGet dependency ranges, including all first-party runtime assemblies, bundled Core plugin, Code Actions, Workspace, `.deps.json`, `.runtimeconfig.json`, portable PDBs and legal files. The embedded 128×128 icon hash exactly matched the locked asset, and Source Link mapped first-party PDB documents to the exact commit.
+- Validated isolated global installation, exact-version execution, update from `0.0.0-dev`, manifest installation and execution, one-shot `dotnet tool exec`/`dnx` execution, manifest removal and global removal. Every representative release execution reported `0.1.0-beta.282`.
+- The Host test project passed all 649 tests; the new `HostCommandLine` implementation recorded 100% line and branch coverage. The complete Host integration suite passed all 150 tests, including evaluated release-identity validation and process-level verification that `--version` writes only the exact informational version. The full solution build completed without warnings or errors; the affected `latest-all` analyzer build retained only three existing fixture-only `CA1812` diagnostics outside the changed files.
 
 ### `ALPHA-011` Implement manually triggered release builds
 

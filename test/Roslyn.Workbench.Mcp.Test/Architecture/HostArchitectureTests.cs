@@ -6,6 +6,63 @@ namespace Roslyn.Workbench.Mcp.Test.Architecture;
 public sealed class HostArchitectureTests
 {
     [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_HostAssembly_WHEN_InspectingReleaseIdentity_THEN_ShouldKeepPublicVersionAndProvenanceSeparate()
+    {
+        var assembly = typeof(HostCommandLine).Assembly;
+        var informationalVersion = assembly
+            .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
+            .Single()
+            .InformationalVersion;
+        var fileVersion = assembly
+            .GetCustomAttributes<AssemblyFileVersionAttribute>()
+            .Single()
+            .Version;
+        var metadata = assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(static attribute => attribute.Key, static attribute => attribute.Value, StringComparer.Ordinal);
+        var coreVersion = informationalVersion.Split(['-', '+'], 2)[0];
+        var expectedAssemblyVersion = $"{coreVersion}.0";
+
+        assembly.GetName().Version.Should().Be(new Version(expectedAssemblyVersion));
+        fileVersion.Should().Be(expectedAssemblyVersion);
+        metadata["RoslynWorkbenchSourceTag"].Should().Be(informationalVersion);
+        metadata["RoslynWorkbenchFullSemVer"].Should().NotBeNullOrWhiteSpace();
+        metadata["RoslynWorkbenchCommitSha"].Should().NotBeNullOrWhiteSpace();
+        int.TryParse(metadata["RoslynWorkbenchVersionSourceDistance"], NumberStyles.None, CultureInfo.InvariantCulture, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_HostProject_WHEN_InspectingToolPackageMetadata_THEN_ShouldMatchApprovedIdentity()
+    {
+        var document = LoadProductionProject("Roslyn.Workbench.Mcp");
+        var expectedProperties = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["PackAsTool"] = "true",
+            ["ToolCommandName"] = "roslyn-workbench-mcp",
+            ["PackageId"] = "Roslyn.Workbench.Mcp",
+            ["AssemblyTitle"] = "Roslyn Workbench MCP",
+            ["Product"] = "Roslyn Workbench MCP",
+            ["Title"] = "Roslyn Workbench MCP",
+            ["Description"] = "A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.",
+            ["Authors"] = "Lantean Code",
+            ["Company"] = "Lantean Code",
+            ["Copyright"] = "Copyright © 2026 Lantean Code",
+            ["PackageLicenseExpression"] = "MIT",
+            ["PackageProjectUrl"] = "https://lantean-code.github.io/roslyn-workbench-mcp/",
+            ["PackageIcon"] = "roslyn-workbench-mcp-128.png",
+            ["PackageReadmeFile"] = "README.md",
+            ["SymbolPackageFormat"] = "snupkg",
+        };
+
+        foreach (var expectedProperty in expectedProperties)
+        {
+            ReadProperty(document, expectedProperty.Key).Should().Be(expectedProperty.Value);
+        }
+    }
+
+    [Fact]
     public void GIVEN_ProductionProjects_WHEN_InspectingMcpPackageOwnership_THEN_ShouldRestrictSdkToHost()
     {
         var projectNames = new[]
@@ -62,6 +119,14 @@ public sealed class HostArchitectureTests
             .Select(static element => element.Attribute("Include")?.Value)
             .OfType<string>()
             .ToArray();
+    }
+
+    private static string ReadProperty(XDocument document, string propertyName)
+    {
+        return document
+            .Descendants(propertyName)
+            .Single()
+            .Value;
     }
 
     private static string GetRepositoryRoot()

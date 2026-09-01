@@ -1,11 +1,12 @@
+next-version: 0.1.0
 assembly-versioning-scheme: MajorMinorPatch
-assembly-file-versioning-format : '{Major}.{Minor}.{Patch}.{env:BUILD_BUILDID ?? 0}'
-assembly-informational-format: '{SemVer}+{EscapedBranchName}.{ShortSha}'
+assembly-file-versioning-format: '{Major}.{Minor}.{Patch}.0'
+assembly-informational-format: '{SemVer}'
 commit-date-format: 'yyyyMMddHHmmssFFF'
 commit-message-incrementing: Enabled
 major-version-bump-message: '\+semver:\s?(major|breaking)'
-minor-version-bump-message: '\+semver:\s?minor'
-patch-version-bump-message: '\+semver:\s?patch'
+minor-version-bump-message: '$^'
+patch-version-bump-message: '$^'
 mode: ContinuousDelivery
 
 branches:
@@ -25,10 +26,6 @@ branches:
     regex: ^hotfix/
     label: rc
     increment: Patch
-  master:
-    regex: ^master$
-    label: ''
-    increment: None
   main:
     regex: ^main$
     label: ''

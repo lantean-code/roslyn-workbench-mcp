@@ -77,7 +77,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "--no-restore",
             "--output",
             feedDirectory,
-            $"-p:PackageVersion={_packageVersion}",
+            $"-p:RoslynWorkbenchVersion={_packageVersion}",
         };
 
         AddRepositoryArtifactsPath(arguments);

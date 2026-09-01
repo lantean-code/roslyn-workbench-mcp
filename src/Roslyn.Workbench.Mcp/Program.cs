@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Hosting;
+
 namespace Roslyn.Workbench.Mcp;
 
 /// <summary>
@@ -7,6 +9,11 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
+        if (HostCommandLine.TryWriteVersion(args, Console.Out))
+        {
+            return;
+        }
+
         Console.SetOut(Console.Error);
 
         var builder = Host.CreateApplicationBuilder(args);

@@ -1,0 +1,839 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.0.0-dev",
+  "sourceTag": "0.0.0-dev",
+  "commit": "development",
+  "name": "find-derived-types",
+  "title": "Find Derived Types",
+  "area": "CorePlugin",
+  "category": "Code discovery and navigation",
+  "operationKind": "Query",
+  "summary": "Finds derived types for a resolved base type.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-derived-types.html",
+  "tool": {
+    "name": "find-derived-types",
+    "title": "Find Derived Types",
+    "description": "Finds derived types for a resolved base type.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "Provide exactly one of location or documentationCommentId.",
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "Disambiguates symbols with matching identities.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "targetFramework": {
+                  "type": "string"
+                }
+              }
+            },
+            "location": {
+              "description": "Provide exactly one of span or selection.",
+              "type": "object",
+              "properties": {
+                "span": {
+                  "type": "object",
+                  "properties": {
+                    "document": {
+                      "description": "Provide exactly one of path or documentId.",
+                      "type": "object",
+                      "properties": {
+                        "project": {
+                          "description": "Disambiguates documents with matching paths or IDs.",
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "projectId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "description": "Workspace-relative path.",
+                              "type": "string"
+                            },
+                            "targetFramework": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "path": {
+                          "description": "Workspace-relative path.",
+                          "type": "string"
+                        },
+                        "documentId": {
+                          "description": "Workspace-local document ID.",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "range": {
+                      "description": "Zero-based UTF-16 range.",
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "description": "Zero-based UTF-16 offset.",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "length": {
+                          "description": "UTF-16 code-unit length.",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "document",
+                    "range"
+                  ]
+                },
+                "selection": {
+                  "type": "object",
+                  "properties": {
+                    "document": {
+                      "description": "Provide exactly one of path or documentId.",
+                      "type": "object",
+                      "properties": {
+                        "project": {
+                          "description": "Disambiguates documents with matching paths or IDs.",
+                          "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
+                        },
+                        "path": {
+                          "description": "Workspace-relative path.",
+                          "type": "string"
+                        },
+                        "documentId": {
+                          "description": "Workspace-local document ID.",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "selectedText": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "contextBefore": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "contextAfter": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "document",
+                    "selectedText"
+                  ]
+                }
+              }
+            },
+            "documentationCommentId": {
+              "type": "string"
+            }
+          }
+        },
+        "scope": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "Solution",
+                "Project",
+                "Document",
+                "Projects"
+              ],
+              "default": "Solution"
+            },
+            "project": {
+              "description": "Used only when kind is Project.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "targetFramework": {
+                  "type": "string"
+                }
+              }
+            },
+            "document": {
+              "description": "Used only when kind is Document.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "project": {
+                  "description": "Disambiguates documents with matching paths or IDs.",
+                  "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "documentId": {
+                  "description": "Workspace-local document ID.",
+                  "type": "string"
+                }
+              }
+            },
+            "projects": {
+              "description": "Used only when kind is Projects.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "description": "Provide projectId, name, path, targetFramework, or any combination.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "description": "Workspace-relative path.",
+                    "type": "string"
+                  },
+                  "targetFramework": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": {
+          "description": "Maximum traversal depth; directly derived types are at depth one.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "default": 3
+        },
+        "derivedTypesLimit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 100
+        },
+        "expectedSnapshot": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspaceEpoch": {
+              "type": "integer"
+            },
+            "snapshotId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "transactionRevision": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspaceId",
+            "workspaceEpoch",
+            "snapshotId",
+            "transactionRevision"
+          ],
+          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data",
+            "snapshot"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "baseType": {
+                  "description": "The queried base type.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "displayName": {
+                      "description": "The display name of the symbol.",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "description": "The symbol kind.",
+                      "type": "string"
+                    },
+                    "documentationCommentId": {
+                      "description": "The documentation comment identifier, when available.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "location": {
+                      "description": "The optional source location of the symbol.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "document": {
+                          "description": "The resolved document.",
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "documentId": {
+                              "description": "The document identifier.",
+                              "type": "string"
+                            },
+                            "path": {
+                              "description": "The normalized document path.",
+                              "type": "string"
+                            },
+                            "projectId": {
+                              "description": "The owning project identifier.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "documentId",
+                            "path",
+                            "projectId"
+                          ]
+                        },
+                        "span": {
+                          "description": "The resolved text span.",
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "start": {
+                              "description": "Zero-based UTF-16 offset.",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
+                            },
+                            "length": {
+                              "description": "UTF-16 code-unit length.",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
+                            }
+                          }
+                        },
+                        "line": {
+                          "description": "The one-based line number.",
+                          "type": "integer"
+                        },
+                        "column": {
+                          "description": "The one-based column number.",
+                          "type": "integer"
+                        },
+                        "snapshot": {
+                          "description": "The exact immutable workspace snapshot associated with this location.",
+                          "type": "object",
+                          "properties": {
+                            "workspaceId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "workspaceEpoch": {
+                              "type": "integer"
+                            },
+                            "snapshotId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "transactionRevision": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "workspaceId",
+                            "workspaceEpoch",
+                            "snapshotId",
+                            "transactionRevision"
+                          ]
+                        },
+                        "selector": {
+                          "description": "The canonical selector that can resolve this source location again.",
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "span": {
+                              "type": "object",
+                              "properties": {
+                                "document": {
+                                  "description": "Provide exactly one of path or documentId.",
+                                  "type": "object",
+                                  "properties": {
+                                    "project": {
+                                      "description": "Disambiguates documents with matching paths or IDs.",
+                                      "type": [
+                                        "object",
+                                        "null"
+                                      ],
+                                      "properties": {
+                                        "projectId": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "path": {
+                                          "description": "Workspace-relative path.",
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "targetFramework": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "path": {
+                                      "description": "Workspace-relative path.",
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "documentId": {
+                                      "description": "Workspace-local document ID.",
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "range": {
+                                  "description": "Zero-based UTF-16 range.",
+                                  "type": "object",
+                                  "properties": {
+                                    "start": {
+                                      "description": "Zero-based UTF-16 offset.",
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    },
+                                    "length": {
+                                      "description": "UTF-16 code-unit length.",
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "document",
+                                "range"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "span"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "snapshot"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "displayName",
+                    "kind"
+                  ]
+                },
+                "derivedTypes": {
+                  "description": "The resolved derived types.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "description": "The resolved type symbol.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "displayName": {
+                                "description": "The display name of the symbol.",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "description": "The symbol kind.",
+                                "type": "string"
+                              },
+                              "documentationCommentId": {
+                                "description": "The documentation comment identifier, when available.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "location": {
+                                "description": "The optional source location of the symbol.",
+                                "$ref": "#/properties/request/properties/value/properties/baseType/properties/location"
+                              }
+                            },
+                            "required": [
+                              "displayName",
+                              "kind"
+                            ]
+                          },
+                          "depth": {
+                            "description": "The zero-based depth from the queried root type.",
+                            "type": "integer"
+                          },
+                          "derivedTypes": {
+                            "description": "The nested derived types for this node.",
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/properties/request/properties/value/properties/derivedTypes/properties/items/items"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Find Derived Types",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

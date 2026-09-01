@@ -1,0 +1,351 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.0.0-dev",
+  "sourceTag": "0.0.0-dev",
+  "commit": "development",
+  "name": "transaction-history",
+  "title": "Transaction History",
+  "area": "Server",
+  "category": "Transactions",
+  "operationKind": "Mutation",
+  "summary": "Moves backward or forward through staged transaction history.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-history.html",
+  "tool": {
+    "name": "transaction-history",
+    "title": "Transaction History",
+    "description": "Moves backward or forward through staged transaction history.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "description": "Direction to move through transaction history: Undo or Redo.",
+          "type": "string",
+          "enum": [
+            "Undo",
+            "Redo"
+          ]
+        },
+        "expectedSnapshot": {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspaceEpoch": {
+              "type": "integer"
+            },
+            "snapshotId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "transactionRevision": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspaceId",
+            "workspaceEpoch",
+            "snapshotId",
+            "transactionRevision"
+          ],
+          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "direction",
+        "expectedSnapshot"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "transaction": {
+                  "description": "The active transaction info.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "description": "Current staged transaction revision.",
+                      "type": "integer"
+                    },
+                    "revisionCount": {
+                      "description": "Number of revisions retained in transaction history.",
+                      "type": "integer"
+                    },
+                    "maxRevisions": {
+                      "description": "Maximum number of revisions the transaction can retain.",
+                      "type": "integer"
+                    },
+                    "remainingRevisions": {
+                      "description": "Number of additional revisions that can be staged.",
+                      "type": "integer"
+                    },
+                    "canMutate": {
+                      "description": "Whether mutation tools may stage another change.",
+                      "type": "boolean"
+                    },
+                    "canUndo": {
+                      "description": "Whether transaction history can move to the preceding revision.",
+                      "type": "boolean"
+                    },
+                    "canRedo": {
+                      "description": "Whether transaction history can move to the following revision.",
+                      "type": "boolean"
+                    },
+                    "canCommit": {
+                      "description": "Whether the staged transaction can be committed to disk.",
+                      "type": "boolean"
+                    },
+                    "canRollback": {
+                      "description": "Whether the complete staged transaction can be discarded.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Transaction History",
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    }
+  },
+  "examples": []
+}

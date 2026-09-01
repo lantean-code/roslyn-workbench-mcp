@@ -1,0 +1,161 @@
+{
+  "$id": "tool-detail.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "productVersion",
+    "sourceTag",
+    "commit",
+    "name",
+    "title",
+    "area",
+    "category",
+    "operationKind",
+    "summary",
+    "availability",
+    "documentationUrl",
+    "tool",
+    "examples"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "const": "roslyn-workbench-tool-reference/v1"
+    },
+    "productVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceTag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "area": {
+      "enum": [
+        "Server",
+        "CorePlugin",
+        "CodeAction"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operationKind": {
+      "enum": [
+        "Query",
+        "Mutation"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "availability": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documentationUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Absolute URL of the human-readable tool documentation."
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "outputSchema"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputSchema": {
+          "type": "object"
+        },
+        "outputSchema": {
+          "type": "object"
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "workflowId",
+          "workflowTitle",
+          "step",
+          "id",
+          "title",
+          "purpose",
+          "expectedOutcome",
+          "request"
+        ],
+        "properties": {
+          "workflowId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workflowTitle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedOutcome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "representativeResponse": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "request": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

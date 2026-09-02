@@ -17,7 +17,7 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
     private static readonly TimeSpan _publishTimeout = TimeSpan.FromMinutes(5);
 
     private string? _previousHostPath;
-    private string? _previousSentryDsn;
+    private static string? _loggingHostPath;
     private string? _publishRoot;
 
     public PublishedHostAssemblyFixture()
@@ -27,15 +27,12 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _previousHostPath = Environment.GetEnvironmentVariable(PublishedHostExecutable.EnvironmentVariableName);
-        _previousSentryDsn = Environment.GetEnvironmentVariable(_sentryDsnEnvironmentVariableName);
 
         try
         {
-            Environment.SetEnvironmentVariable(_sentryDsnEnvironmentVariableName, string.Empty);
             if (!string.IsNullOrWhiteSpace(_previousHostPath))
             {
                 PublishedHostExecutable.Resolve(_previousHostPath);
-                return;
             }
 
             var repositoryRoot = ResolveRepositoryRoot();
@@ -50,7 +47,11 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
                 : "Roslyn.Workbench.Mcp";
             var executablePath = Path.Combine(hostOutput, executableName);
             PublishedHostExecutable.Resolve(executablePath);
-            Environment.SetEnvironmentVariable(PublishedHostExecutable.EnvironmentVariableName, executablePath);
+            _loggingHostPath = executablePath;
+            if (string.IsNullOrWhiteSpace(_previousHostPath))
+            {
+                Environment.SetEnvironmentVariable(PublishedHostExecutable.EnvironmentVariableName, executablePath);
+            }
         }
         catch
         {
@@ -62,6 +63,12 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         await RestoreEnvironmentAndDeletePublishAsync();
+    }
+
+    public static string GetLoggingHostPath()
+    {
+        return _loggingHostPath
+            ?? throw new InvalidOperationException("The DSN-free acceptance Host has not been published.");
     }
 
     private static string CreatePublishRoot()
@@ -119,6 +126,10 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
         startInfo.ArgumentList.Add(hostOutput);
         startInfo.ArgumentList.Add("--nologo");
         startInfo.ArgumentList.Add("--disable-build-servers");
+        // A release package may embed a live DSN. Submission scenarios use this separate build,
+        // with both inherited and MSBuild-configured destinations explicitly cleared before compilation.
+        startInfo.Environment.Remove(_sentryDsnEnvironmentVariableName);
+        startInfo.ArgumentList.Add($"-p:{_sentryDsnEnvironmentVariableName}=");
         startInfo.ArgumentList.Add("-p:RoslynWorkbenchReleaseBuild=true");
         startInfo.ArgumentList.Add($"-p:RoslynWorkbenchVersion={ReleaseSourceTag}");
         startInfo.ArgumentList.Add($"-p:RoslynWorkbenchFullSemVer={ReleaseSourceTag}+acceptance");
@@ -232,7 +243,7 @@ internal sealed class PublishedHostAssemblyFixture : IAsyncLifetime
     private async Task RestoreEnvironmentAndDeletePublishAsync()
     {
         Environment.SetEnvironmentVariable(PublishedHostExecutable.EnvironmentVariableName, _previousHostPath);
-        Environment.SetEnvironmentVariable(_sentryDsnEnvironmentVariableName, _previousSentryDsn);
+        _loggingHostPath = null;
 
         var publishRoot = Interlocked.Exchange(ref _publishRoot, null);
         if (publishRoot is not null)

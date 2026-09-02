@@ -161,6 +161,8 @@ The Code Action compatibility audit remains a separate workflow because it is sl
 
 Published-Host acceptance runs on native Ubuntu and Windows when a maintainer requests `validation/full`, when a pull request targets `main`, or as part of a manually dispatched release. It uses small checked-in fixtures and deterministic public MCP workflows. External-repository scenarios remain manual engineering and performance analysis outside GitHub Actions. Reuse completed evidence when it answers the current question; run selected scenarios only when additional evidence is useful. Once the repository is public, manual investigation may include a curated macOS subset as best-effort evidence.
 
+Release acceptance uses the installed release package for normal workflows and error-report preparation/refusal checks. The three cases that approve error-report submission use a separately published DSN-free Host and verify the logging dispatcher before submission, so these cases cannot send synthetic reports to the release package's live Sentry destination. Clearing an environment variable at test time cannot remove a DSN embedded during packaging. The DSN-free Host is a test fixture, not a replacement release artefact.
+
 Scenario output has two retention levels:
 
 - detailed JSON, summaries, validation files, traces, counters and heap captures remain local investigation evidence, with selected files retained for a release when useful; and

@@ -238,7 +238,6 @@ jobs:
       RoslynWorkbenchSourceTag: ${{ needs.prepare.outputs.version }}
       ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT: true
       ROSLYN_WORKBENCH_MCP_ACCEPTANCE_EXPECTED_VERSION: ${{ needs.prepare.outputs.version }}
-      ROSLYN_WORKBENCH_SENTRY_DSN: ""
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

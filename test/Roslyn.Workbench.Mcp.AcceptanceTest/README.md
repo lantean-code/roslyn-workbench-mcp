@@ -30,7 +30,7 @@ Additional arguments are passed to `dotnet test`. For example, append `--filter 
 
 ## Run against an existing publish
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. The assembly fixture validates and uses the explicitly configured executable without publishing or deleting it.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. The assembly fixture validates and uses that executable without modifying or deleting it. It also publishes a separate DSN-free Host for the three cases that approve error-report submission; all other cases continue to use the configured executable.
 
 The examples below use the fixture's default release identity, `0.1.0-alpha.1`. For another release, also set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_EXPECTED_VERSION` to its exact public version, such as `0.1.0-alpha.2`. The protocol test checks the versioned agent-guide URL against that value. Release CI supplies the candidate version explicitly and separately verifies the installed tool's `--version` output; ordinary fixture-owned publishing retains the default identity.
 
@@ -70,7 +70,7 @@ dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal. Retained failure roots include `process.txt` and `server.stderr.log` alongside the scenario workspace and state.
 
-The assembly fixture clears `ROSLYN_WORKBENCH_SENTRY_DSN` for the duration of the acceptance assembly so published-process coverage deterministically exercises the stderr logging fallback and cannot contact Sentry. It restores the previous value during disposal.
+The assembly fixture explicitly clears the `ROSLYN_WORKBENCH_SENTRY_DSN` MSBuild property when compiling its own Host. A DSN embedded in an existing release package cannot be removed by clearing a runtime environment variable. Positive-consent and always-consent submission cases therefore use only the fixture-owned DSN-free Host and assert the `Logging` dispatcher and stderr destination before submission. Report preparation, unavailable elicitation and refused-consent cases still exercise the configured release package, whether it uses Sentry or the logging fallback. The fixture never replaces that package with its local build. Without an externally configured executable, all cases share the fixture-owned DSN-free Host.
 
 ## Published response envelope
 

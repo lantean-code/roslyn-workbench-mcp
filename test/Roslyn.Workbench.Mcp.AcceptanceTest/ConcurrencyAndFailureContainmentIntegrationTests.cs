@@ -293,10 +293,10 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
                 TestContext.Current.CancellationToken);
             prepareResult.IsError.Should().NotBeTrue();
             var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
-            prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
-            prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
+            prepared.GetProperty("dispatcher").GetString().Should().BeOneOf("Logging", "Sentry");
+            prepared.GetProperty("destination").GetString().Should().NotBeNullOrWhiteSpace();
             var payloadJson = prepared.GetProperty("payloadJson").GetString()
-                ?? throw new InvalidOperationException("The prepared logging payload must include its JSON representation.");
+                ?? throw new InvalidOperationException("The prepared payload must include its JSON representation.");
             payloadJson.Should().Contain("Sensitive query failure.");
             payloadJson.Should().NotContain(target.WorkspaceRoot);
 
@@ -351,10 +351,13 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
             return ValueTask.FromResult(CreateElicitationResult(action, choice));
         }
 
+        // Only positive consent cases need the DSN-free Host; refusals still exercise the release package.
+        var publishedHostPath = shouldSubmit ? PublishedHostAssemblyFixture.GetLoggingHostPath() : null;
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
             pluginAssets: [AcceptancePluginAsset.HostQuery],
-            elicitationHandler: HandleElicitationAsync);
+            elicitationHandler: HandleElicitationAsync,
+            publishedHostPath: publishedHostPath);
 
         try
         {
@@ -383,6 +386,13 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
                 TestContext.Current.CancellationToken);
             prepareResult.IsError.Should().NotBeTrue();
             var prepared = AcceptanceProtocol.GetSuccessData(prepareResult);
+
+            if (shouldSubmit)
+            {
+                // Fail before sending if the supposedly isolated Host has an external destination.
+                prepared.GetProperty("dispatcher").GetString().Should().Be("Logging");
+                prepared.GetProperty("destination").GetString().Should().Be("standard error (stderr)");
+            }
 
             var submitResult = await target.CallToolAsync(
                 "submit-error-report",
@@ -443,7 +453,8 @@ public sealed class ConcurrencyAndFailureContainmentIntegrationTests
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
             additionalArguments: ["--error-reporting-consent", "always"],
-            pluginAssets: [AcceptancePluginAsset.HostQuery]);
+            pluginAssets: [AcceptancePluginAsset.HostQuery],
+            publishedHostPath: PublishedHostAssemblyFixture.GetLoggingHostPath());
 
         try
         {

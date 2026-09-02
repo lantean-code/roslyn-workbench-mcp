@@ -73,9 +73,12 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null,
         IReadOnlyDictionary<string, string?>? environmentVariables = null,
         AcceptanceStateDirectoryPreparation stateDirectoryPreparation = AcceptanceStateDirectoryPreparation.Private,
-        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler = null)
+        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler = null,
+        string? publishedHostPath = null)
     {
-        var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
+        var executablePath = publishedHostPath is null
+            ? PublishedHostExecutable.ResolveFromEnvironment()
+            : PublishedHostExecutable.Resolve(publishedHostPath);
         var arguments = new List<string>
         {
             "--state-directory",

@@ -13,7 +13,7 @@ GitVersion runs in release automation, not ordinary local development. `SemVer` 
 | `release/*` or `hotfix/*` | `rc` | NuGet.org |
 | Exact stable tag | None | NuGet.org |
 
-The release workflow is manual, including development and feature releases. Ordinary pushes and pull requests never publish release packages. An explicitly selected beta may go to NuGet.org. GitHub Releases create the prerelease tags; old non-production GitHub releases/tags may be cleaned up manually. NuGet RC and production versions remain available.
+The release workflow is manual, including development and feature releases. Ordinary pushes and pull requests never publish release packages. An explicitly selected beta may go to NuGet.org. GitHub Releases create the prerelease tags when a maintainer publishes the draft; old non-production GitHub releases/tags may be cleaned up manually. NuGet RC and production versions remain available.
 
 Follow the manual GitFlow pattern when closing a release: merge the release branch into the production branch, create the production tag, then merge that tag back into `develop`, not the production branch itself. Keep `develop` current when practical without promising a release schedule. Dispatch the stable release workflow against the exact production tag.
 
@@ -50,7 +50,9 @@ Only production releases create or update `/latest/`, and the site root redirect
 
 GitHub Packages uses the publication job's scoped `GITHUB_TOKEN`. NuGet.org uses OIDC trusted publishing with repository owner `lantean-code`, repository `roslyn-workbench-mcp`, workflow `release.yml`, environment `nuget-org` and the exact package pattern `Roslyn.Workbench.Mcp`. `NUGET_USER` is an environment secret containing the NuGet account name. Check any temporary policy activation window before first publication. Do not silently fall back to a persistent API key or switch destination after a failure.
 
-The `github-pages`, `github-packages` and `nuget-org` environments do not add another required-review prompt. Publication jobs alone receive the required write or OIDC permissions. A deliberate publication invocation is the maintainer's approval. Verify first-use authentication during an explicitly approved publication if there is no harmless authentication-only check.
+The `github-pages`, `github-packages` and `nuget-org` environments do not add another required-review prompt. Publication jobs alone receive the required write or OIDC permissions. Selecting `publish=true` authorises package and documentation publication, but only creates and populates a draft GitHub Release. Verify first-use authentication during an explicitly approved publication if there is no harmless authentication-only check.
+
+The workflow leaves every GitHub Release in draft, with its prerelease flag set from the calculated channel. After the workflow succeeds, a maintainer reviews the version, target commit, notes and attached evidence, then manually publishes the draft on GitHub. Only production releases should be marked as the latest release. Package and documentation publication has already occurred at this point; this final manual action publishes the GitHub announcement and creates a missing prerelease tag. Tag-based source, symbol and package links may remain unavailable until that tag exists. Do not publish an incomplete draft left behind by a failed workflow.
 
 Coverage summary/report files and checksums are attached automatically. After a useful manual scenario investigation, inspect its aggregate and attach `scenario-summary.json` and `scenarios.md` to that same release with explicit publication approval. Keep the detailed local run directories; upload selected raw evidence only after privacy review. Download the preceding retained scenario aggregate for the next advisory comparison. Generated evidence does not belong on a source branch.
 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the validated package and GitHub Release
+        description: Publish the validated package and docs, and prepare a draft GitHub Release
         required: true
         default: false
         type: boolean
@@ -400,6 +400,7 @@ jobs:
         run: >-
           gh release create "${{ needs.prepare.outputs.version }}"
           --draft
+          --prerelease=${{ needs.prepare.outputs.prerelease }}
           --target "${{ needs.prepare.outputs.commit }}"
           --title "${{ needs.prepare.outputs.version }}"
           --notes-file artifacts/release/RELEASE_NOTES.md
@@ -421,10 +422,6 @@ jobs:
           artifacts/release/release-manifest.json
           artifacts/release/coverage-summary.json
           artifacts/release/coverage.md
-      - name: Publish GitHub prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --prerelease
 
   publish-nuget:
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.destination == 'nuget-org'
@@ -456,6 +453,7 @@ jobs:
         run: >-
           gh release create "${{ needs.prepare.outputs.version }}"
           --draft
+          --prerelease=${{ needs.prepare.outputs.prerelease }}
           --target "${{ needs.prepare.outputs.commit }}"
           --title "${{ needs.prepare.outputs.version }}"
           --notes-file artifacts/release/RELEASE_NOTES.md
@@ -479,13 +477,3 @@ jobs:
           artifacts/release/release-manifest.json
           artifacts/release/coverage-summary.json
           artifacts/release/coverage.md
-      - name: Publish GitHub prerelease
-        if: needs.prepare.outputs.prerelease == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --prerelease
-      - name: Publish stable GitHub Release
-        if: needs.prepare.outputs.prerelease == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --latest

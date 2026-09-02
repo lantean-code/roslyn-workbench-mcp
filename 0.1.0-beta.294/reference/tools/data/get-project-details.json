@@ -1,0 +1,601 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.294",
+  "sourceTag": "0.1.0-beta.294",
+  "commit": "4c70250e5e02c4109ceff810651918d34513225b",
+  "name": "get-project-details",
+  "title": "Get Project Details",
+  "area": "CorePlugin",
+  "category": "Code discovery and navigation",
+  "operationKind": "Query",
+  "summary": "Returns project metadata, options and selected document details.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.294/reference/tools/get-project-details.html",
+  "tool": {
+    "name": "get-project-details",
+    "title": "Get Project Details",
+    "description": "Returns project metadata, options and selected document details.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "description": "Provide projectId, name, path, targetFramework, or any combination.",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "includeDocuments": {
+          "description": "Whether documents should be included.",
+          "type": "boolean"
+        },
+        "documentsLimit": {
+          "description": "Maximum number of documents to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 200
+        },
+        "projectReferencesLimit": {
+          "description": "Maximum number of project references to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 50
+        },
+        "metadataReferencesLimit": {
+          "description": "Maximum number of metadata references to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 100
+        },
+        "analyzersLimit": {
+          "description": "Maximum number of analyzers to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 50
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "project"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data",
+            "snapshot"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "project": {
+                  "description": "The selected project information.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "description": "The project identifier.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "The project name.",
+                      "type": "string"
+                    },
+                    "path": {
+                      "description": "The project path.",
+                      "type": "string"
+                    },
+                    "assemblyName": {
+                      "description": "The assembly name, when available.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "language": {
+                      "description": "The project language.",
+                      "type": "string"
+                    },
+                    "targetFrameworks": {
+                      "description": "The target frameworks inferred for the project.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "projectId",
+                    "name",
+                    "path",
+                    "language"
+                  ]
+                },
+                "documents": {
+                  "description": "The project documents, when included.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "documentId": {
+                            "description": "The document identifier.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The normalized document path.",
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "description": "The owning project identifier.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "documentId",
+                          "path",
+                          "projectId"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "projectReferences": {
+                  "description": "The direct project references.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "projectId": {
+                            "description": "The referenced project identifier.",
+                            "type": "string"
+                          },
+                          "name": {
+                            "description": "The referenced project name.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The referenced project path.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "projectId",
+                          "name",
+                          "path"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "metadataReferences": {
+                  "description": "The metadata references.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "display": {
+                            "description": "The display string for the metadata reference.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The file path, when available.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "display"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "analyzers": {
+                  "description": "The analyzer references.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "displayName": {
+                            "description": "The analyzer display name.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The analyzer assembly path, when available.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "displayName"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "compilationOptions": {
+                  "description": "The compilation options, when available.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "outputKind": {
+                      "description": "The output kind.",
+                      "type": "string"
+                    },
+                    "nullableContext": {
+                      "description": "The nullable context mode.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "allowUnsafe": {
+                      "description": "Whether unsafe code is allowed.",
+                      "type": "boolean"
+                    },
+                    "optimizationLevel": {
+                      "description": "The optimization level.",
+                      "type": "string"
+                    },
+                    "warningLevel": {
+                      "description": "The warning level.",
+                      "type": "integer"
+                    },
+                    "preprocessorSymbols": {
+                      "description": "The effective preprocessor symbols.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "outputKind",
+                    "optimizationLevel"
+                  ]
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Get Project Details",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

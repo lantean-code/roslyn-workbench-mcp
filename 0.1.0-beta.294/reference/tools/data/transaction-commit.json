@@ -1,0 +1,379 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.294",
+  "sourceTag": "0.1.0-beta.294",
+  "commit": "4c70250e5e02c4109ceff810651918d34513225b",
+  "name": "transaction-commit",
+  "title": "Transaction Commit",
+  "area": "Server",
+  "category": "Transactions",
+  "operationKind": "Mutation",
+  "summary": "Commits the current staged transaction to disk.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.294/reference/tools/transaction-commit.html",
+  "tool": {
+    "name": "transaction-commit",
+    "title": "Transaction Commit",
+    "description": "Commits the current staged transaction to disk.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "expectedSnapshot": {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspaceEpoch": {
+              "type": "integer"
+            },
+            "snapshotId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "transactionRevision": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspaceId",
+            "workspaceEpoch",
+            "snapshotId",
+            "transactionRevision"
+          ],
+          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "expectedSnapshot"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "committed": {
+                  "description": "Whether the commit succeeded.",
+                  "type": "boolean"
+                },
+                "transaction": {
+                  "description": "The final transaction info, when available.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "description": "Current staged transaction revision.",
+                      "type": "integer"
+                    },
+                    "revisionCount": {
+                      "description": "Number of revisions retained in transaction history.",
+                      "type": "integer"
+                    },
+                    "maxRevisions": {
+                      "description": "Maximum number of revisions the transaction can retain.",
+                      "type": "integer"
+                    },
+                    "remainingRevisions": {
+                      "description": "Number of additional revisions that can be staged.",
+                      "type": "integer"
+                    },
+                    "canMutate": {
+                      "description": "Whether mutation tools may stage another change.",
+                      "type": "boolean"
+                    },
+                    "canUndo": {
+                      "description": "Whether transaction history can move to the preceding revision.",
+                      "type": "boolean"
+                    },
+                    "canRedo": {
+                      "description": "Whether transaction history can move to the following revision.",
+                      "type": "boolean"
+                    },
+                    "canCommit": {
+                      "description": "Whether the staged transaction can be committed to disk.",
+                      "type": "boolean"
+                    },
+                    "canRollback": {
+                      "description": "Whether the complete staged transaction can be discarded.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Transaction Commit",
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    }
+  },
+  "examples": [
+    {
+      "workflowId": "transaction-change",
+      "workflowTitle": "Stage, review and commit one change",
+      "step": 4,
+      "id": "commit-transaction",
+      "title": "Commit the reviewed snapshot",
+      "purpose": "Write the staged files only when the transaction still matches the previewed snapshot.",
+      "expectedOutcome": "The commit succeeds only if the supplied snapshot still identifies the current staged revision.",
+      "representativeResponse": {
+        "ok": false,
+        "error": {
+          "code": "SnapshotMismatch",
+          "message": "The staged transaction no longer matches the expected snapshot."
+        },
+        "continuation": {
+          "kind": "CallTool",
+          "tool": "transaction-preview",
+          "instruction": "Preview the current staged revision and ask the user to review it before committing."
+        }
+      },
+      "request": {
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    }
+  ]
+}

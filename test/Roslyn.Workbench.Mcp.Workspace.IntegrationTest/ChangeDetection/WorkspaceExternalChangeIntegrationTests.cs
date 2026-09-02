@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 
 public sealed class WorkspaceExternalChangeIntegrationTests
@@ -39,7 +41,8 @@ public sealed class WorkspaceExternalChangeIntegrationTests
             }
             """, TestContext.Current.CancellationToken);
 
-        var result = await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        // New inputs arrive through the asynchronous watcher rather than existing-file metadata polling.
+        var result = await WaitForOutOfDateStatusAsync(target);
 
         result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
@@ -125,6 +128,33 @@ public sealed class WorkspaceExternalChangeIntegrationTests
         result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.Code.Should().Be("WorkspaceLoadFailed");
         result.Diagnostics.Should().NotBeEmpty();
+    }
+
+    private static async ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> WaitForOutOfDateStatusAsync(ComponentWorkspace workspace)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(TimeSpan.FromSeconds(10));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(20));
+
+        try
+        {
+            while (true)
+            {
+                var result = await workspace.GetStatusAsync(timeoutSource.Token);
+                if (result.Status != WorkspaceOperationStatus.Succeeded
+                    || result.Data?.State != WorkspaceLifecycleState.Ready)
+                {
+                    return result;
+                }
+
+                await timer.WaitForNextTickAsync(timeoutSource.Token);
+            }
+        }
+        catch (OperationCanceledException exception) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The workspace remained Ready for 10 seconds after adding a source file.", exception);
+        }
     }
 
     private static async ValueTask<WorkspaceLifecycleState?> ObserveOtherInstanceStateAsync(

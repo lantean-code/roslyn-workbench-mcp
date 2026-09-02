@@ -41,6 +41,11 @@ public sealed class ToolReferenceGeneratorIntegrationTests
     [Fact]
     public async Task GIVEN_ProductionHostAndCanonicalExamples_WHEN_GeneratingTwice_THEN_ShouldProduceCompleteDeterministicReference()
     {
+        var expectedVersion = typeof(HostAssemblyMarker).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        expectedVersion.Should().NotBeNullOrWhiteSpace();
+        var documentationVersion = expectedVersion == "0.0.0-dev" ? "dev" : expectedVersion;
         using var directory = TemporaryDirectory.Create("roslyn-workbench-tool-reference-tests");
         var repositoryRoot = GetRepositoryRoot();
         var examplesFile = Path.Combine(repositoryRoot, "docs", "examples", "tool-reference-examples.json");
@@ -65,6 +70,8 @@ public sealed class ToolReferenceGeneratorIntegrationTests
         }
 
         using var catalog = JsonDocument.Parse(firstFiles["catalog.json"]);
+        catalog.RootElement.GetProperty("productVersion").GetString().Should().Be(expectedVersion);
+        catalog.RootElement.GetProperty("sourceTag").GetString().Should().Be(expectedVersion);
         using var catalogSchemaDocument = JsonDocument.Parse(firstFiles["schemas/tool-catalog.schema.json"]);
         catalogSchemaDocument.RootElement.GetProperty("$id").GetString().Should().Be("tool-catalog.schema.json");
         var catalogSchema = JsonSchema.Build(catalogSchemaDocument.RootElement);
@@ -84,7 +91,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             name.Should().NotBeNullOrWhiteSpace();
             firstFiles.Should().ContainKey($"{name}.md");
             firstFiles.Should().ContainKey($"data/{name}.json");
-            tool.GetProperty("documentationUrl").GetString().Should().Be($"https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/{name}.html");
+            tool.GetProperty("documentationUrl").GetString().Should().Be($"https://lantean-code.github.io/roslyn-workbench-mcp/{documentationVersion}/reference/tools/{name}.html");
 
             using var detail = JsonDocument.Parse(firstFiles[$"data/{name}.json"]);
             detailSchema.Evaluate(detail.RootElement).IsValid.Should().BeTrue();

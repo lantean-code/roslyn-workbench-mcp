@@ -47,8 +47,10 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task GIVEN_LinkedMultiTargetDocument_WHEN_UsingProjectDocumentSpanAndCopiedSelection_THEN_ShouldResolveDeterministically()
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public async Task GIVEN_LinkedMultiTargetDocument_WHEN_UsingProjectDocumentSpanAndCopiedSelection_THEN_ShouldResolveDeterministically(string newLine)
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
@@ -57,6 +59,11 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
         try
         {
             var solutionPath = Path.Combine(target.WorkspaceRoot, "Sample.slnx");
+            var documentPath = Path.Combine(target.WorkspaceRoot, "Shared", "SharedFormatter.cs");
+            var originalText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
+            var documentText = originalText.ReplaceLineEndings(newLine);
+            await File.WriteAllTextAsync(documentPath, documentText, TestContext.Current.CancellationToken);
+
             var openResult = await target.CallToolAsync(
                 "workspace-open",
                 new Dictionary<string, object?>
@@ -125,9 +132,6 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
                 .Should()
                 .Be("Shared/SharedFormatter.cs");
 
-            var documentText = await File.ReadAllTextAsync(
-                Path.Combine(target.WorkspaceRoot, "Shared", "SharedFormatter.cs"),
-                TestContext.Current.CancellationToken);
             var symbolStart = documentText.IndexOf("SharedFormatter", StringComparison.Ordinal);
 
             var spanResult = await ResolveSymbolAsync(
@@ -155,7 +159,7 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
                         ["document"] = documentSelector,
                         ["selectedText"] = "SharedFormatter",
                         ["contextBefore"] = "public sealed class ",
-                        ["contextAfter"] = "\r\n{",
+                        ["contextAfter"] = newLine + "{",
                     },
                 });
 

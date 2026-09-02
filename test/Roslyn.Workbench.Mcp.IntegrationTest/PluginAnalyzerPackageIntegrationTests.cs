@@ -390,6 +390,14 @@ public sealed class PluginAnalyzerPackageIntegrationTests
 
         startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
 
+        // Nested package builds own their test identity, even when this suite runs under release CI.
+        startInfo.Environment.Remove("RoslynWorkbenchReleaseBuild");
+        startInfo.Environment.Remove("RoslynWorkbenchVersion");
+        startInfo.Environment.Remove("RoslynWorkbenchFullSemVer");
+        startInfo.Environment.Remove("RoslynWorkbenchCommitSha");
+        startInfo.Environment.Remove("RoslynWorkbenchVersionSourceDistance");
+        startInfo.Environment.Remove("RoslynWorkbenchSourceTag");
+
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);

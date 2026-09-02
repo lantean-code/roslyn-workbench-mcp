@@ -7062,3 +7062,23 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces. The acceptance-only correction was inspected locally.
+
+### 733. `workspace-list`
+
+**Activity:** ALPHA Batch 4 hosted-validation corrections.
+
+**Purpose:** Check for an available workspace before inspecting the two release-sensitive integration tests.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces. The scoped test corrections were inspected locally.
+
+### 734. `workspace-list`
+
+**Activity:** ALPHA Batch 4 Linux acceptance corrections.
+
+**Purpose:** Check for an available workspace before inspecting the rename/commit and linked-document selector acceptance failures.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces. The test-only newline assumptions were inspected locally against the hosted failure log and retained workspace assets.

@@ -23,15 +23,15 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   fast:
+    if: github.event.action != 'labeled' || github.event.label.name == 'validation/full'
     name: Unit and contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.ref }}-fast
+      cancel-in-progress: true
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -64,10 +64,15 @@ jobs:
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
 
   integration:
-    if: github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full')
+    if: >-
+      (github.event.action != 'labeled' || github.event.label.name == 'validation/full') &&
+      (github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full'))
     name: Integration (${{ matrix.area }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.ref }}-integration-${{ matrix.area }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -112,10 +117,15 @@ jobs:
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
 
   acceptance:
-    if: github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full')
+    if: >-
+      (github.event.action != 'labeled' || github.event.label.name == 'validation/full') &&
+      (github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full'))
     name: Acceptance (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.ref }}-acceptance-${{ matrix.os }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:

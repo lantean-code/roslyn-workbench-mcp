@@ -175,8 +175,10 @@ public sealed class WorkspaceWorkflowIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task GIVEN_ActiveTransaction_WHEN_RenamingAndCommitting_THEN_ShouldUpdateDiskAndPromoteWorkspaceState()
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public async Task GIVEN_ActiveTransaction_WHEN_RenamingAndCommitting_THEN_ShouldUpdateDiskAndPromoteWorkspaceState(string newLine)
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
 
@@ -184,6 +186,10 @@ public sealed class WorkspaceWorkflowIntegrationTests
         {
             var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
             var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+            var originalText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
+            var documentText = originalText.ReplaceLineEndings(newLine);
+            await File.WriteAllTextAsync(documentPath, documentText, TestContext.Current.CancellationToken);
+
             var openResult = await target.CallToolAsync(
                 "workspace-open",
                 new Dictionary<string, object?>
@@ -249,8 +255,8 @@ public sealed class WorkspaceWorkflowIntegrationTests
             commitResult.IsError.Should().NotBeTrue();
             AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
             var committedText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
-            committedText.Should().Be(
-                "namespace Sample;\r\n\r\npublic sealed class RenamedClass\r\n{\r\n}");
+            var expectedText = "namespace Sample;\n\npublic sealed class RenamedClass\n{\n}".ReplaceLineEndings(newLine);
+            committedText.Should().Be(expectedText);
 
             var searchResult = await target.CallToolAsync(
                 "search-symbols",

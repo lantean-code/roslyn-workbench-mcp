@@ -560,15 +560,11 @@ public sealed class CodeActionWorkflowIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_ExpiredAndStaleCodeActionReferences_WHEN_Staging_THEN_ShouldRequireRediscovery()
+    public async Task GIVEN_StaleCodeActionReference_WHEN_Staging_THEN_ShouldRequireRediscovery()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
-            AcceptanceWorkspaceAsset.InspectionSample,
-            environmentVariables: new Dictionary<string, string?>
-            {
-                ["ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME"] = "00:00:05",
-            });
+            AcceptanceWorkspaceAsset.InspectionSample);
 
         try
         {
@@ -613,7 +609,10 @@ public sealed class CodeActionWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            firstStage.IsError.Should().NotBeTrue();
+            firstStage.IsError.Should().NotBeTrue(
+                firstStage.IsError == true
+                    ? AcceptanceProtocol.GetError(firstStage).GetRawText()
+                    : string.Empty);
             var staleList = await ListRawStringActionsAsync(
                 target,
                 workspaceSelector,
@@ -621,14 +620,18 @@ public sealed class CodeActionWorkflowIntegrationTests
                 workspace.CreateSnapshot(transactionRevision: 0));
 
             staleList.IsError.Should().BeTrue();
-            AcceptanceProtocol.GetError(staleList).GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+            var staleListError = AcceptanceProtocol.GetError(staleList);
+            staleListError.GetProperty("code").GetString().Should().Be("SnapshotMismatch", staleListError.GetRawText());
             var currentList = await ListRawStringActionsAsync(
                 target,
                 workspaceSelector,
                 stringLiteralStart,
                 AcceptanceProtocol.GetSnapshot(firstStage));
 
-            currentList.IsError.Should().NotBeTrue();
+            currentList.IsError.Should().NotBeTrue(
+                currentList.IsError == true
+                    ? AcceptanceProtocol.GetError(currentList).GetRawText()
+                    : string.Empty);
             var staleStage = await target.CallToolAsync(
                 "stage-code-action",
                 new Dictionary<string, object?>
@@ -648,7 +651,49 @@ public sealed class CodeActionWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            rollback.IsError.Should().NotBeTrue();
+            rollback.IsError.Should().NotBeTrue(
+                rollback.IsError == true
+                    ? AcceptanceProtocol.GetError(rollback).GetRawText()
+                    : string.Empty);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_ExpiredCodeActionReference_WHEN_Staging_THEN_ShouldRequireRediscovery()
+    {
+        var environmentVariables = new Dictionary<string, string?>
+        {
+            ["ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME"] = "00:00:05",
+        };
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample,
+            environmentVariables: environmentVariables);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var sourceText = await File.ReadAllTextAsync(
+                Path.Combine(target.WorkspaceRoot, "RawString.cs"),
+                TestContext.Current.CancellationToken);
+            var stringLiteralStart = sourceText.IndexOf("\"raw\"", StringComparison.Ordinal);
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
             await StartTransactionAsync(target, workspaceSelector);
             var expiringList = await ListRawStringActionsAsync(
                 target,
@@ -677,7 +722,10 @@ public sealed class CodeActionWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            finalRollback.IsError.Should().NotBeTrue();
+            finalRollback.IsError.Should().NotBeTrue(
+                finalRollback.IsError == true
+                    ? AcceptanceProtocol.GetError(finalRollback).GetRawText()
+                    : string.Empty);
         }
         catch
         {
@@ -906,7 +954,7 @@ public sealed class CodeActionWorkflowIntegrationTests
     {
         result.IsError.Should().BeTrue();
         var error = AcceptanceProtocol.GetError(result);
-        error.GetProperty("code").GetString().Should().Be("ActionExpired");
+        error.GetProperty("code").GetString().Should().Be("ActionExpired", error.GetRawText());
         var continuation = AcceptanceProtocol.GetContinuation(result);
         continuation.GetProperty("kind").GetString().Should().Be("ReviseRequest");
         continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();
@@ -916,7 +964,7 @@ public sealed class CodeActionWorkflowIntegrationTests
     {
         result.IsError.Should().BeTrue();
         var error = AcceptanceProtocol.GetError(result);
-        error.GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+        error.GetProperty("code").GetString().Should().Be("SnapshotMismatch", error.GetRawText());
         var continuation = AcceptanceProtocol.GetContinuation(result);
         continuation.GetProperty("kind").GetString().Should().Be("ReviseRequest");
         continuation.GetProperty("instruction").GetString().Should().NotBeNullOrWhiteSpace();

@@ -7,16 +7,18 @@ public sealed class WorkspaceExternalInputMembershipTests
     [Fact]
     public void GIVEN_PathOutsideSearchRoot_WHEN_Matching_THEN_ShouldRejectWithoutEvaluatingGlobs()
     {
+        var searchRoot = CreatePath("External");
+        var path = CreatePath("Other/Document.cs");
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
-        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: true);
+        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: true);
         var loadedPaths = new HashSet<FileSystemPathKey>();
         var target = new WorkspaceExternalInputMembership(
             root,
             [glob],
             loadedPaths);
 
-        var result = target.Matches("/Other/Document.cs");
+        var result = target.Matches(path);
 
         result.Should().BeFalse();
         matcher.Verify(item => item.Matches(It.IsAny<string>()), Times.Never);
@@ -27,12 +29,13 @@ public sealed class WorkspaceExternalInputMembershipTests
     {
         var firstMatcher = new Mock<IWorkspaceItemGlobMatcher>();
         var secondMatcher = new Mock<IWorkspaceItemGlobMatcher>();
-        var path = "/External/Document.cs";
+        var searchRoot = CreatePath("External");
+        var path = CreatePath("External/Document.cs");
         firstMatcher.Setup(item => item.Matches(path)).Returns(false);
         secondMatcher.Setup(item => item.Matches(path)).Returns(true);
-        var firstGlob = new WorkspaceEvaluatedItemGlob(firstMatcher.Object, ["/External"]);
-        var secondGlob = new WorkspaceEvaluatedItemGlob(secondMatcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: true);
+        var firstGlob = new WorkspaceEvaluatedItemGlob(firstMatcher.Object, [searchRoot]);
+        var secondGlob = new WorkspaceEvaluatedItemGlob(secondMatcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: true);
         var loadedPaths = new HashSet<FileSystemPathKey>();
         var target = new WorkspaceExternalInputMembership(
             root,
@@ -50,10 +53,11 @@ public sealed class WorkspaceExternalInputMembershipTests
     public void GIVEN_CaseInsensitiveSearchRoot_WHEN_PathCasingDiffers_THEN_ShouldEvaluateGlob()
     {
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
-        var path = "/external/Document.cs";
+        var searchRoot = CreatePath("External");
+        var path = CreatePath("external/Document.cs");
         matcher.Setup(item => item.Matches(path)).Returns(false);
-        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: false);
+        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: false);
         var loadedPaths = new HashSet<FileSystemPathKey>();
         var target = new WorkspaceExternalInputMembership(
             root,
@@ -69,17 +73,18 @@ public sealed class WorkspaceExternalInputMembershipTests
     [Fact]
     public void GIVEN_SearchRootPath_WHEN_GlobMatchesRoot_THEN_ShouldAcceptIt()
     {
+        var searchRoot = CreatePath("External");
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
-        matcher.Setup(item => item.Matches("/External")).Returns(true);
-        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: true);
+        matcher.Setup(item => item.Matches(searchRoot)).Returns(true);
+        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: true);
         var loadedPaths = new HashSet<FileSystemPathKey>();
         var target = new WorkspaceExternalInputMembership(
             root,
             [glob],
             loadedPaths);
 
-        var result = target.Matches("/External");
+        var result = target.Matches(searchRoot);
 
         result.Should().BeTrue();
     }
@@ -87,8 +92,8 @@ public sealed class WorkspaceExternalInputMembershipTests
     [Fact]
     public void GIVEN_SearchRootWithTrailingSeparator_WHEN_ChildPathMatches_THEN_ShouldAcceptIt()
     {
-        var searchRoot = "/External/";
-        var path = "/External/Document.cs";
+        var searchRoot = CreatePath("External") + Path.DirectorySeparatorChar;
+        var path = CreatePath("External/Document.cs");
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
         matcher.Setup(item => item.Matches(path)).Returns(true);
         var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
@@ -105,14 +110,16 @@ public sealed class WorkspaceExternalInputMembershipTests
     }
 
     [Theory]
-    [InlineData("/External", true)]
-    [InlineData("/External/Directory", true)]
-    [InlineData("/Other", false)]
-    public void GIVEN_SearchRoot_WHEN_CheckingContainment_THEN_ShouldReturnExpectedResult(string path, bool expected)
+    [InlineData("External", true)]
+    [InlineData("External/Directory", true)]
+    [InlineData("Other", false)]
+    public void GIVEN_SearchRoot_WHEN_CheckingContainment_THEN_ShouldReturnExpectedResult(string relativePath, bool expected)
     {
+        var searchRoot = CreatePath("External");
+        var path = CreatePath(relativePath);
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
-        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: true);
+        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: true);
         var loadedPaths = new HashSet<FileSystemPathKey>();
         var target = new WorkspaceExternalInputMembership(
             root,
@@ -125,18 +132,22 @@ public sealed class WorkspaceExternalInputMembershipTests
     }
 
     [Theory]
-    [InlineData("/External/Directory", true)]
-    [InlineData("/External/Document.cs", true)]
-    [InlineData("/External/Other", false)]
-    public void GIVEN_LoadedPath_WHEN_CheckingAncestor_THEN_ShouldReturnExpectedResult(string path, bool expected)
+    [InlineData("External/Directory", true)]
+    [InlineData("External/Document.cs", true)]
+    [InlineData("External/Other", false)]
+    public void GIVEN_LoadedPath_WHEN_CheckingAncestor_THEN_ShouldReturnExpectedResult(string relativePath, bool expected)
     {
+        var searchRoot = CreatePath("External");
+        var path = CreatePath(relativePath);
         var matcher = new Mock<IWorkspaceItemGlobMatcher>();
-        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, ["/External"]);
-        var root = new FileSystemPathKey("/External", isCaseSensitive: true);
+        var glob = new WorkspaceEvaluatedItemGlob(matcher.Object, [searchRoot]);
+        var root = new FileSystemPathKey(searchRoot, isCaseSensitive: true);
+        var nestedDocument = new FileSystemPathKey(CreatePath("External/Directory/Document.cs"), isCaseSensitive: true);
+        var rootDocument = new FileSystemPathKey(CreatePath("External/Document.cs"), isCaseSensitive: true);
         var loadedPaths = new HashSet<FileSystemPathKey>
         {
-            new FileSystemPathKey("/External/Directory/Document.cs", isCaseSensitive: true),
-            new FileSystemPathKey("/External/Document.cs", isCaseSensitive: true),
+            nestedDocument,
+            rootDocument,
         };
 
         var target = new WorkspaceExternalInputMembership(
@@ -147,5 +158,11 @@ public sealed class WorkspaceExternalInputMembershipTests
         var result = target.ContainsLoadedPathWithin(path);
 
         result.Should().Be(expected);
+    }
+
+    private static string CreatePath(string relativePath)
+    {
+        var nativeRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        return Path.GetFullPath(Path.Combine(Path.GetTempPath(), nativeRelativePath));
     }
 }

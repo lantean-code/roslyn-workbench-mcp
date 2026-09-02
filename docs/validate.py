@@ -137,7 +137,7 @@ def parse_deployment_version(value: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check-external", action="store_true")
-    parser.add_argument("--allow-unpublished-project-links", action="store_true")
+    parser.add_argument("--skip-project-links", action="store_true", help="Defer repository-owned public URL checks until deployment.")
     parser.add_argument("--deployment-version", type=parse_deployment_version)
     arguments = parser.parse_args()
 
@@ -147,7 +147,7 @@ def main() -> int:
     validate_reference(reference_directory)
     external_links = validate_site(site_directory, arguments.deployment_version)
     if arguments.check_external:
-        validate_external_links(external_links, arguments.allow_unpublished_project_links)
+        validate_external_links(external_links, arguments.skip_project_links)
     return 0
 
 
@@ -308,9 +308,9 @@ def validate_internal_link(
     validated_links.add(validation_key)
 
 
-def validate_external_links(links: set[str], allow_unpublished_project_links: bool) -> None:
+def validate_external_links(links: set[str], skip_project_links: bool) -> None:
     excluded_hosts = {"localhost", "127.0.0.1"}
-    unpublished_project_prefixes = (
+    project_prefixes = (
         "https://github.com/lantean-code/roslyn-workbench-mcp",
         "https://lantean-code.github.io/roslyn-workbench-mcp",
     )
@@ -318,7 +318,7 @@ def validate_external_links(links: set[str], allow_unpublished_project_links: bo
         parsed = urlparse(link)
         if parsed.hostname in excluded_hosts:
             continue
-        if allow_unpublished_project_links and link.startswith(unpublished_project_prefixes):
+        if skip_project_links and any(link == prefix or link.startswith(prefix + "/") for prefix in project_prefixes):
             continue
 
         target = urljoin(link, parsed.path)

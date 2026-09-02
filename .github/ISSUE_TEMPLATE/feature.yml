@@ -16,7 +16,7 @@ body:
       options:
         - label: I searched existing Issues and Discussions for this proposal.
           required: true
-        - label: This proposal is about the supported Roslyn Workbench product rather than the unpublished alpha plugin-authoring surface.
+        - label: This proposal describes a Roslyn Workbench workflow and the users it would benefit.
           required: true
   - type: textarea
     id: problem

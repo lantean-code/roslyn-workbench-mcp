@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Publish one immutable release documentation version and move the latest alias."""
+"""Publish immutable documentation, reserving the latest alias for production."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -33,7 +34,8 @@ def main() -> int:
         arguments.source_distance,
     )
 
-    ensure_unpublished(arguments.source_tag, load_published_versions(repository_root))
+    published_versions = load_published_versions(repository_root)
+    ensure_unpublished(arguments.source_tag, published_versions)
 
     subprocess.run(
         [sys.executable, str(docs_directory / "build.py"), "--configuration", "Release", "--skip-mkdocs"],
@@ -58,6 +60,7 @@ def main() -> int:
             "--deployment-version",
             arguments.source_tag,
         ],
+        published_versions=published_versions,
         push=not arguments.dry_run,
     )
 
@@ -71,6 +74,7 @@ def publish_rendered_documentation(
     environment: dict[str, str],
     validation_command: list[str],
     *,
+    published_versions: set[str],
     push: bool,
 ) -> None:
     mike = resolve_mike()
@@ -79,21 +83,22 @@ def publish_rendered_documentation(
     existing_path = command_environment.get("PATH")
     command_environment["PATH"] = os.pathsep.join([mike_directory, existing_path]) if existing_path else mike_directory
     starting_commit = try_run_output(["git", "rev-parse", "--verify", "refs/heads/gh-pages"], repository_root)
+    production_release = is_production_version(source_tag)
+    deploy_command = [mike, "deploy", "--config-file", str(config_file), "--branch", "gh-pages"]
+    if production_release:
+        deploy_command.extend(["--update-aliases", "--alias-type", "redirect", source_tag, "latest"])
+    else:
+        deploy_command.append(source_tag)
+
+    default_version = None
+    if production_release:
+        default_version = "latest"
+    elif "-beta." in source_tag and not any(is_production_version(version) for version in published_versions):
+        # Before production exists, the root can open a beta without calling it latest.
+        default_version = source_tag
     try:
         subprocess.run(
-            [
-                mike,
-                "deploy",
-                "--config-file",
-                str(config_file),
-                "--branch",
-                "gh-pages",
-                "--update-aliases",
-                "--alias-type",
-                "redirect",
-                source_tag,
-                "latest",
-            ],
+            deploy_command,
             cwd=repository_root,
             check=True,
             env=command_environment,
@@ -104,12 +109,13 @@ def publish_rendered_documentation(
             check=True,
             env=command_environment,
         )
-        subprocess.run(
-            [mike, "set-default", "--config-file", str(config_file), "--branch", "gh-pages", "latest"],
-            cwd=repository_root,
-            check=True,
-            env=command_environment,
-        )
+        if default_version is not None:
+            subprocess.run(
+                [mike, "set-default", "--config-file", str(config_file), "--branch", "gh-pages", default_version],
+                cwd=repository_root,
+                check=True,
+                env=command_environment,
+            )
     except Exception:
         restore_publication_branch(repository_root, starting_commit)
         raise
@@ -118,6 +124,10 @@ def publish_rendered_documentation(
         subprocess.run(["git", "push", "origin", "gh-pages"], cwd=repository_root, check=True)
     else:
         restore_publication_branch(repository_root, starting_commit)
+
+
+def is_production_version(version: str) -> bool:
+    return re.fullmatch(r"\d+\.\d+\.\d+", version) is not None
 
 
 def create_release_environment(

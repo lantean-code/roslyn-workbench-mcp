@@ -5,7 +5,7 @@
 - The initial Review Agent review involving tests for a work item must use a fresh context-free subagent in accordance with the repository-root `AGENTS.md`; correction re-reviews must reuse that work item's existing Review Agent. The primary implementation agent must not perform either review itself.
 - The review subagent is read-only and must determine whether the tests exercise the real production boundary and failure scenario rather than relying on test names or isolated assertions.
 
-Cross-project test ownership and execution-path policy are defined in `../docs/development/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.
+Cross-project test ownership and execution-path policy are defined in `../docs/maintainers/testing.md`; this file defines the implementation rules for tests under `test`. Narrowly approved defensive gaps are recorded in `../docs/maintainers/coverage-exceptions.md`.
 
 - Frameworks: xUnit, Moq, AwesomeAssertions.
 - Use Moq for test doubles; do not introduce hand-written fake or stub implementations unless explicitly approved.

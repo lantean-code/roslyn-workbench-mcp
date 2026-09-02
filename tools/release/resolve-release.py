@@ -41,7 +41,7 @@ def main() -> int:
     channel, publish = resolve_channel_and_publish(arguments, version)
     destination = resolve_destination(channel, arguments.requested_destination)
     prerelease = channel != "stable"
-    release_notes_path = f"docs/content/releases/{version}.md"
+    release_notes_path = "docs/release/release-notes.md"
 
     outputs = {
         "channel": channel,

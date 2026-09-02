@@ -62,9 +62,11 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Release notes: release-notes.md
   - Getting started:
       - Connect a client: getting-started.md
       - Configuration: configuration.md
+      - Troubleshooting and removal: troubleshooting.md
   - Using Roslyn Workbench:
       - Tool discovery and results: tool-discovery.md
       - Workspaces and transactions: workspaces-and-transactions.md

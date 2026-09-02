@@ -13,7 +13,7 @@
 
 - Solution: `Roslyn.Workbench.Mcp.slnx`
 - Release docs: `./docs`
-- Development plans, audits and evidence: `./docs/development`
+- Maintainer architecture, testing and release guidance: `./docs/maintainers`
 - Projects:
   - `Roslyn.Workbench.Mcp.Abstractions` — minimal public Workspace selectors, result models, resolver contracts, and project/query service contracts shared with third-party plugins.
   - `Roslyn.Workbench.Mcp` — executable host, bootstrap, and server-owned core MCP lifecycle tools.
@@ -42,7 +42,7 @@
   - This analyzer build is additional to the normal build. `AnalysisLevel=latest-all` exposes default-disabled `CAxxxx` diagnostics that the IDE can show even when the normal build reports no warnings.
   - Review analyzer diagnostics for every C# file changed in the current task. Fix diagnostics that apply, or record a concise rationale when retaining the code is intentional.
   - Do not expand a scoped change into repository-wide analyzer cleanup merely because referenced projects report existing diagnostics.
-  - The current solution baseline, known `latest-all` exclusions and remediation policy are recorded in `./docs/development/Analyzer Inventory.md`.
+  - Extended-analysis and suppression policy is recorded in `./docs/maintainers/analysers.md`.
 - Run tests:
   - Run the affected non-acceptance test projects, or use the preferred fast-loop command defined in `./test/AGENTS.md`.
   - Do not run the acceptance-test project automatically merely because production code participates in published-Host scenarios. Run acceptance tests when the user explicitly requests them or when the current task adds or modifies any acceptance-test source, fixture, project configuration, wrapper script or checked-in acceptance asset.
@@ -52,14 +52,6 @@
   - Run the relevant non-acceptance tests, applying the WSL-specific artifacts path above when required.
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.
   - Docs-only or markdown-only edits do not require restore/build/test unless explicitly requested.
-
-## Dogfood usage logging
-
-- Record every request sent to the configured published Roslyn Workbench dogfood server in [`./docs/development/repo-review/dogfood-improvement-usage.md`](./docs/development/repo-review/dogfood-improvement-usage.md) until the user explicitly ends this requirement.
-- This applies to all repository work, not only implementation of the DOGFOOD improvement worklist, and includes lifecycle, query and mutation requests.
-- Record calls in execution order with the related work item or activity, tool name, purpose, request and outcome. Retain failed calls, retries, blank client projections and abandoned approaches because they are usage evidence.
-- Redact machine-specific repository roots, temporary paths and other incidental local values where their exact value is not material; retain contract fields, response codes, continuations and other evidence needed to understand the interaction.
-- Do not add shell commands, Microsoft Learn queries or other non-dogfood tool use to this ledger.
 
 ## Coding and test standards
 
@@ -88,8 +80,8 @@
 ## How to work in this repo (for agents)
 
 1. Read this file, then the relevant folder `AGENTS.md` (`src` or `test`).
-2. Read the relevant design docs under `./docs/development` before making structural or contract changes.
-   - Use [`./docs/development/ProductOperatingModel.md`](./docs/development/ProductOperatingModel.md) when assessing supported actors, concurrency, trust boundaries, failure scenarios and whether a review finding represents a product defect.
+2. Read the relevant architecture and policy docs under `./docs/maintainers` before making structural or contract changes.
+   - Use [`./docs/maintainers/operating-model.md`](./docs/maintainers/operating-model.md) when assessing supported actors, concurrency, trust boundaries, failure scenarios and whether a review finding represents a product defect.
 3. When working on C#, .NET SDK, Roslyn, or MCP contract behaviour:
    - Use Microsoft Learn for current official .NET guidance.
    - Use Roslyn-backed tooling for solution inspection, symbol lookup, and safe refactor planning where available.
@@ -132,7 +124,7 @@
 ## Communication and assumptions
 
 - Do not guess. If any requirement, API contract, or behaviour is unclear, ask for clarification.
-- Evaluate implementation and review concerns against [`./docs/development/ProductOperatingModel.md`](./docs/development/ProductOperatingModel.md). For each finding, identify the actor, concrete action, plausibility, existing controls and user-visible impact; do not promote a theoretical interleaving outside the supported operating model into a product defect without a realistic failure scenario.
+- Evaluate implementation and review concerns against [`./docs/maintainers/operating-model.md`](./docs/maintainers/operating-model.md). For each finding, identify the actor, concrete action, plausibility, existing controls and user-visible impact; do not promote a theoretical interleaving outside the supported operating model into a product defect without a realistic failure scenario.
 - When reviewing pull request feedback, only unresolved review threads/comments are actionable by default unless the user explicitly asks to revisit resolved items.
 - Prefer concise diffs and explicit rationale in commit messages and PR descriptions.
 - When generating PR summaries, commit messages, review replies, release notes, or other GitHub-facing repository text, use British English spelling and phrasing.

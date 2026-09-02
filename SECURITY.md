@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest published Roslyn Workbench alpha. Earlier alphas may be useful for identifying or reproducing a report, but fixes are released in a new current alpha rather than backported. No response or remediation time is promised.
+Security fixes target the latest production release, or the latest published prerelease when no production release exists. Reports affecting prereleases and older versions are welcome, but fixes are not backported to older release lines. No response or remediation time is promised.
 
 ## Report a vulnerability
 

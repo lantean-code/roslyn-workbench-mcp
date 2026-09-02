@@ -20,6 +20,6 @@ If the reporting tools are unavailable or submission is not approved, use the Bu
 
 ## Maintainer review
 
-Issues and Discussions are reviewed at least weekly during alpha and before a release decision. This cadence is for triage and does not promise an individual response or resolution time.
+Issues and Discussions are reviewed at least weekly and before a release decision. This cadence is for triage and does not promise an individual response or resolution time.
 
 Maintainers use the documented [Issue triage](.github/TRIAGE.md) and [Discussions](.github/DISCUSSIONS.md) processes.

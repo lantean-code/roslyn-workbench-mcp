@@ -1,12 +1,12 @@
 # Contributing
 
-Thank you for helping improve Roslyn Workbench MCP. Issues, Discussions, security reports and other feedback are welcome during the alpha period. Please follow the [support guide](SUPPORT.md) so the report reaches the right place, and follow the [Code of Conduct](CODE_OF_CONDUCT.md) in every project space.
+Thank you for helping improve Roslyn Workbench MCP. Issues, Discussions, security reports and other feedback are welcome. Please follow the [support guide](SUPPORT.md) so the report reaches the right place, and follow the [Code of Conduct](CODE_OF_CONDUCT.md) in every project space.
 
 ## External pull requests
 
-External pull requests are not accepted before the v1 release. The public API, licence and contribution model will be reviewed before contributions open. Unsolicited pull requests will be closed with a link to this policy rather than entering review.
+Check [README](README.md) for current contribution availability before starting a pull request. Discuss the proposed change through an Issue or Discussion first so that its scope and direction can be agreed. When external contributions are closed, unsolicited pull requests are closed with a link to the current policy rather than entering review.
 
-This restriction does not prevent anyone from using the repository under the MIT licence, building the source, maintaining a fork, or proposing a change through an Issue or Discussion. Rights already granted for a published MIT-licensed version cannot be withdrawn. The project does not require a contributor licence agreement or Developer Certificate of Origin during alpha.
+Contribution availability does not prevent anyone from using the repository under the MIT licence, building the source, maintaining a fork, or proposing a change through an Issue or Discussion. Rights already granted for a published MIT-licensed version cannot be withdrawn. Any contributor agreement or sign-off requirements will be stated before accepting contributions.
 
 ## Choose the right route
 
@@ -29,4 +29,4 @@ dotnet build
 
 Repository-specific engineering instructions are kept in `AGENTS.md`, `src/AGENTS.md` and `test/AGENTS.md`. Acceptance tests exercise a published Host and are intentionally outside the normal edit loop.
 
-The supported plugin-authoring package and guidance are not published during alpha. A source consumer may still build and load a plugin for their own use, but that route is not yet a supported contribution surface.
+Plugin developers can consult the [source authoring reference](docs/PluginAuthoring.md). Check the selected release's notes for package availability and the supported authoring surface. Source-built plugins run as trusted in-process code; their code and dependencies must be fully trusted.

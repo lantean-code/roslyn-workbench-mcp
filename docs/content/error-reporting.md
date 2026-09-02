@@ -4,7 +4,7 @@ Roslyn Workbench retains a bounded, process-local diagnostic record when an MCP 
 
 External reporting is a separate, explicit workflow:
 
-1. Configure a supported dispatcher destination and a consent policy at startup.
+1. Choose the consent policy at startup; the report destination is supplied by the build, not by the caller.
 2. Call `prepare-error-report` with the correlation ID.
 3. Review the returned destination, provider `payloadJson` string, SHA-256 digest, exclusions and expiry.
 4. Call `submit-error-report` with only the opaque submission handle.

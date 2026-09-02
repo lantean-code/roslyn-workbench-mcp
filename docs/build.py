@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import platform
 import shutil
 import subprocess
@@ -19,6 +20,13 @@ def main() -> int:
 
     docs_directory = Path(__file__).resolve().parent
     repository_root = docs_directory.parent
+    notes_command = [
+        sys.executable, str(repository_root / "tools/release/render-release-notes.py"),
+        "--output", str(docs_directory / "content/release-notes.md"),
+    ]
+    if os.environ.get("RoslynWorkbenchReleaseBuild") == "true":
+        notes_command.extend(["--version", os.environ["RoslynWorkbenchVersion"]])
+    subprocess.run(notes_command, cwd=repository_root, check=True)
     generated_reference = docs_directory / "content" / "reference" / "tools"
     generated_assets = docs_directory / "content" / "assets" / "generated"
 

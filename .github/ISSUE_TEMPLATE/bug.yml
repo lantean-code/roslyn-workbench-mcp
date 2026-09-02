@@ -23,7 +23,7 @@ body:
     attributes:
       label: Roslyn Workbench version
       description: Use the package version or the value reported by the installed tool.
-      placeholder: 0.1.0-alpha.1
+      placeholder: Exact version reported by roslyn-workbench-mcp --version
     validations:
       required: true
   - type: dropdown

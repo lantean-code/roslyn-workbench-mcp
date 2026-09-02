@@ -9,6 +9,7 @@ on:
       - "docs/content/**"
       - "docs/examples/**"
       - "docs/overrides/**"
+      - "docs/release/release-notes.md"
       - "docs/*.py"
       - "docs/mkdocs.yml"
       - "docs/docs-requirements.txt"
@@ -16,6 +17,7 @@ on:
       - "!src/Roslyn.Workbench.Mcp.Plugins.Analyzers/**"
       - "src/Roslyn.Workbench.Mcp.Plugins.Analyzers/Shared/**"
       - "tools/Roslyn.Workbench.Mcp.ToolReferenceGenerator/**"
+      - "tools/release/render-release-notes.py"
       - "tools/Directory.Build.props"
       - "tools/Directory.Packages.props"
       - "global.json"
@@ -47,7 +49,8 @@ jobs:
       - name: Build documentation
         run: python docs/build.py
       - name: Validate documentation
-        run: python docs/validate.py --check-external --allow-unpublished-project-links
+        # Repository-owned public URLs are checked after their deployment below.
+        run: python docs/validate.py --check-external --skip-project-links
   deploy-development:
     if: github.ref == 'refs/heads/develop'
     needs: build
@@ -109,3 +112,6 @@ jobs:
         if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Validate public documentation links
+        if: github.event.repository.private == false && vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        run: python docs/validate.py --deployment-version dev --check-external

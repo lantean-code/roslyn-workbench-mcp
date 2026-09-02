@@ -1,6 +1,6 @@
 # Issue Triage
 
-Repository maintainers review new Issues at least weekly during alpha and before each release decision. This cadence does not promise an individual response or resolution time.
+Repository maintainers review new Issues at least weekly and before each release decision. This cadence does not promise an individual response or resolution time.
 
 ## New reports
 
@@ -19,7 +19,7 @@ Repository maintainers review new Issues at least weekly during alpha and before
 - Use `resolution/cannot-reproduce` after reasonable reproduction attempts and explain what evidence could change the decision.
 - Explain `resolution/not-planned` decisions concisely. Deferral is not the same as rejection; link the owning work item when work is deliberately deferred.
 
-The project does not use an automatic stale-issue bot during alpha. It also does not use a first-alpha milestone or GitHub Project; the alpha worklist remains the release-planning authority.
+The project does not use an automatic stale-issue bot. Release planning is maintainer-led; no milestone or GitHub Project is required.
 
 ## Priority
 

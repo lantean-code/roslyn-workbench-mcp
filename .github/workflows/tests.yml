@@ -29,6 +29,9 @@ jobs:
     name: Unit and contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
     concurrency:
       group: tests-${{ github.workflow }}-${{ github.ref }}-fast
       cancel-in-progress: true
@@ -50,10 +53,31 @@ jobs:
           --root-directory .
           --no-build --no-restore
           --filter "Category!=Integration&Category!=Audit"
+          --coverlet --coverlet-output-format json --coverlet-output-format cobertura
           --report-trx
           --results-directory TestResults/fast
           --minimum-expected-tests 1732
           --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Read previous coverage baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BASELINE_BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: >-
+          python tools/release/download-coverage-baseline.py --source ci
+          --branch "$BASELINE_BRANCH" --output "${{ runner.temp }}/coverage-baseline.json"
+      - name: Summarise coverage
+        run: >-
+          python tools/release/coverage-report.py --results TestResults/fast
+          --output artifacts/coverage --configuration Debug --commit "${{ github.sha }}"
+          --baseline "${{ runner.temp }}/coverage-baseline.json"
+      - name: Upload coverage baseline
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-baseline
+          path: artifacts/coverage
+          if-no-files-found: error
+          retention-days: 90
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

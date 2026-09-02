@@ -103,10 +103,24 @@ jobs:
           --root-directory .
           --no-build --no-restore
           --filter "Category!=Integration&Category!=Audit"
+          --coverlet --coverlet-output-format json --coverlet-output-format cobertura
           --report-trx
           --results-directory TestResults/release-fast
           --minimum-expected-tests 1732
           --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Read previous release coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          python tools/release/download-coverage-baseline.py --source release
+          --output "${{ runner.temp }}/release-coverage-baseline.json"
+      - name: Summarise release coverage
+        run: >-
+          python tools/release/coverage-report.py --results TestResults/release-fast
+          --output artifacts/release --configuration Release
+          --commit "${{ steps.release.outputs.commit }}" --version "${{ steps.release.outputs.version }}"
+          --baseline "${{ runner.temp }}/release-coverage-baseline.json"
       - name: Run Workspace integration tests
         run: >-
           dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
@@ -184,9 +198,9 @@ jobs:
           test "$("${{ runner.temp }}/release-tool/roslyn-workbench-mcp" --version)" = "${{ steps.release.outputs.version }}"
       - name: Prepare release evidence
         run: |
-          sha256sum artifacts/release/package/*.nupkg artifacts/release/symbols/*.snupkg > artifacts/release/checksums.sha256
+          sha256sum artifacts/release/package/*.nupkg artifacts/release/symbols/*.snupkg artifacts/release/release-manifest.json artifacts/release/coverage-summary.json artifacts/release/coverage.md > artifacts/release/checksums.sha256
           if [ -f "${{ steps.release.outputs.release-notes-path }}" ]; then
-            cp "${{ steps.release.outputs.release-notes-path }}" artifacts/release/RELEASE_NOTES.md
+            python tools/release/render-release-notes.py --version "${{ steps.release.outputs.version }}" --output artifacts/release/RELEASE_NOTES.md
           fi
       - name: Upload release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -405,6 +419,8 @@ jobs:
           artifacts/release/symbols/*.snupkg
           artifacts/release/checksums.sha256
           artifacts/release/release-manifest.json
+          artifacts/release/coverage-summary.json
+          artifacts/release/coverage.md
       - name: Publish GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -461,6 +477,8 @@ jobs:
           artifacts/release/symbols/*.snupkg
           artifacts/release/checksums.sha256
           artifacts/release/release-manifest.json
+          artifacts/release/coverage-summary.json
+          artifacts/release/coverage.md
       - name: Publish GitHub prerelease
         if: needs.prepare.outputs.prerelease == 'true'
         env:

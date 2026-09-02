@@ -3,7 +3,7 @@
 ![Roslyn Workbench MCP wordmark](assets/roslyn-workbench-mcp-wordmark.svg)
 
 > [!WARNING]
-> Roslyn Workbench is in alpha. Tool contracts, configuration and persisted state may change between releases. Review the release notes before upgrading.
+> Roslyn Workbench is in beta. Tool contracts, configuration and persisted state may change between releases. Review the release notes before upgrading.
 
 Roslyn Workbench is a local stdio MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.
 
@@ -11,7 +11,7 @@ It provides persistent multi-workspace sessions, semantic queries for symbols an
 
 ## Install
 
-Roslyn Workbench is distributed as the `Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Alpha and beta packages normally use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages). Release-candidate and production packages use [NuGet.org](https://www.nuget.org/packages/Roslyn.Workbench.Mcp), and an explicitly selected beta may also be published there.
+Roslyn Workbench is distributed as the `Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. The 0.1.0 beta is distributed through [NuGet.org](https://www.nuget.org/packages/Roslyn.Workbench.Mcp). Other engineering prereleases may use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages); consult the notes for the selected release.
 
 For a package published to NuGet.org:
 
@@ -19,7 +19,7 @@ For a package published to NuGet.org:
 dotnet tool install --global Roslyn.Workbench.Mcp --prerelease
 ```
 
-See [Getting started](https://lantean-code.github.io/roslyn-workbench-mcp/getting-started.html) for installation and MCP client configuration.
+See the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) for installation and MCP client configuration.
 
 Configure any MCP client capable of launching a local stdio process to run:
 
@@ -32,7 +32,7 @@ Configure any MCP client capable of launching a local stdio process to run:
 
 ## Supported environments
 
-Alpha support covers Windows x64, Linux x64 and WSL2 x64. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; optional capabilities such as elicitation depend on the client and its policy.
+Beta support covers Windows x64, Linux x64 and WSL2 x64. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; optional capabilities such as elicitation depend on the client and its policy.
 
 ## Trust and transaction safety
 
@@ -48,7 +48,7 @@ A typical safe workflow is:
 
 The live MCP `tools/list` response is authoritative for the tools and schemas exposed by a running instance. The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) provides the richer versioned tool reference and agent guide.
 
-## Alpha limitations
+## Beta limitations
 
 The existing plugin runtime remains available to source consumers, but the Plugins NuGet package, supported plugin-authoring documentation and curated plugin repository will not be published until v1 preparation. External pull requests are also not accepted before v1; Issues, Discussions, private security reports and other feedback remain welcome.
 

@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/tool-discovery.html">
+        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html">
       
       
-        <link rel="prev" href="troubleshooting.html">
+        <link rel="prev" href="configuration.html">
       
       
-        <link rel="next" href="workspaces-and-transactions.html">
+        <link rel="next" href="tool-discovery.html">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Tool discovery and results - Roslyn Workbench MCP</title>
+        <title>Troubleshooting and removal - Roslyn Workbench MCP</title>
       
     
     
@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#tool-discovery-and-result-contracts" class="md-skip">
+        <a href="#troubleshooting-and-removal" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Tool discovery and results
+              Troubleshooting and removal
             
           </span>
         </div>
@@ -326,8 +326,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -338,11 +340,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -363,7 +365,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -434,95 +436,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="troubleshooting.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Troubleshooting and removal
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Using Roslyn Workbench
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Using Roslyn Workbench
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
     
   
   
@@ -542,7 +455,7 @@
   <span class="md-ellipsis">
     
   
-    Tool discovery and results
+    Troubleshooting and removal
   
 
     
@@ -553,14 +466,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="tool-discovery.html" class="md-nav__link md-nav__link--active">
+      <a href="troubleshooting.html" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Tool discovery and results
+    Troubleshooting and removal
   
 
     
@@ -586,10 +499,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#live-tool-inventory" class="md-nav__link">
+  <a href="#the-client-cannot-start-the-server" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Live tool inventory
+        The client cannot start the server
       
     </span>
   </a>
@@ -597,10 +510,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#schemas-and-metadata" class="md-nav__link">
+  <a href="#a-workspace-will-not-open" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Schemas and metadata
+        A Workspace will not open
       
     </span>
   </a>
@@ -608,10 +521,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-envelope" class="md-nav__link">
+  <a href="#a-selector-or-code-action-became-stale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Result envelope
+        A selector or Code Action became stale
       
     </span>
   </a>
@@ -619,10 +532,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bounded-collections" class="md-nav__link">
+  <a href="#an-error-report-prompt-did-not-appear" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Bounded collections
+        An error-report prompt did not appear
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrade-or-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrade or remove
       
     </span>
   </a>
@@ -633,6 +557,93 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Roslyn Workbench
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Roslyn Workbench
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="tool-discovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool discovery and results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -898,10 +909,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#live-tool-inventory" class="md-nav__link">
+  <a href="#the-client-cannot-start-the-server" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Live tool inventory
+        The client cannot start the server
       
     </span>
   </a>
@@ -909,10 +920,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#schemas-and-metadata" class="md-nav__link">
+  <a href="#a-workspace-will-not-open" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Schemas and metadata
+        A Workspace will not open
       
     </span>
   </a>
@@ -920,10 +931,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-envelope" class="md-nav__link">
+  <a href="#a-selector-or-code-action-became-stale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Result envelope
+        A selector or Code Action became stale
       
     </span>
   </a>
@@ -931,10 +942,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bounded-collections" class="md-nav__link">
+  <a href="#an-error-report-prompt-did-not-appear" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Bounded collections
+        An error-report prompt did not appear
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrade-or-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrade or remove
       
     </span>
   </a>
@@ -961,53 +983,24 @@
   
 
 
-<h1 id="tool-discovery-and-result-contracts">Tool discovery and result contracts</h1>
-<h2 id="live-tool-inventory">Live tool inventory</h2>
-<p>Use MCP <code>tools/list</code> to discover the exact tools published by the running process. The surface is assembled once at startup from:</p>
-<ul>
-<li>server-owned status, workspace and transaction tools;</li>
-<li>bundled Roslyn inspection and mutation tools;</li>
-<li>the Host-owned <code>list-code-actions</code>, <code>prepare-fix-all</code> and <code>stage-code-action</code> tools; and</li>
-<li><code>get-error-details</code>, plus the conditionally published <code>prepare-error-report</code> and <code>submit-error-report</code> tools; and</li>
-<li>enabled third-party plugins.</li>
-</ul>
-<p>The tool list does not vary with workspace or transaction state and does not change during the process lifetime. A tool that cannot run in the current state returns a structured state error rather than disappearing from discovery.</p>
-<p><code>get-error-details</code> is always published for local correlated failure inspection. The two external-reporting tools are published whenever startup consent is not <code>never</code>; the Host supplies the provider and destination as application configuration. Their names remain reserved against plugin collisions when omitted under <code>never</code>. Per-report prompt outcomes do not change <code>tools/list</code> or establish runtime overrides.</p>
-<p><code>server-status</code> reports the total published tool count. With <code>detail: Full</code>, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.</p>
-<p>The three-tool <a href="code-actions.html">Code Action workflow</a> discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.</p>
-<h2 id="schemas-and-metadata">Schemas and metadata</h2>
-<p>Every tool publishes its name, title, description, input schema and behavioural annotations. By default, output schemas are omitted to keep <code>tools/list</code> compact. Start the server with <code>--tool-output-schema-mode Full</code> when clients need the generated family-specific output schemas. The Host validates response contracts during startup in both modes; this setting changes publication only, not whether a plugin response is safe to advertise and serialise.</p>
-<p>Operational requirements that an agent must follow are stated in tool descriptions and structured diagnostics rather than hidden in client-specific metadata.</p>
-<p>Error-report preparation is read-only and performs no network activity, but each call creates a new temporary immutable handle. Submission is state-changing, idempotent for that handle, and marked as an open-world external effect. It accepts only the handle and maps the stored immutable external report to the provider SDK; the returned preview is representative rather than a byte-for-byte transport envelope. See <a href="error-reporting.html">Error reporting and privacy</a>.</p>
-<h2 id="result-envelope">Result envelope</h2>
-<p>Successful calls use a common structured envelope. Workspace-bound plugin and Code Action query or mutation successes include the required authoritative <code>snapshot</code>; server-owned successes include it when a Workspace context is available, while successes unrelated to a Workspace omit it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"snapshot"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nt">"workspaceId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"11111111-1111-1111-1111-111111111111"</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nt">"workspaceEpoch"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">"snapshotId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"22222222-2222-2222-2222-222222222222"</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">"transactionRevision"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">}</span>
+<h1 id="troubleshooting-and-removal">Troubleshooting and removal</h1>
+<h2 id="the-client-cannot-start-the-server">The client cannot start the server</h2>
+<p>Run <code>roslyn-workbench-mcp --version</code> from the same user account that starts the MCP client. If the command is not found, check the global .NET tool installation and whether the client's environment includes its executable directory. Restart the client after changing its environment, or configure the absolute executable path.</p>
+<p>The server speaks MCP on standard input/output; it is not an interactive command prompt. Operational messages are on stderr. Check the client's server log for startup and prerequisite errors without posting private paths or credentials publicly.</p>
+<h2 id="a-workspace-will-not-open">A Workspace will not open</h2>
+<p>Confirm that the path is accessible, the repository is trusted and the required project SDKs/build tooling are installed. Inspect <code>server-status</code> and the returned diagnostics. Unsupported languages or project types may be skipped; at least one supported SDK-style C# project must remain. A build outside the server can help distinguish project restoration/evaluation problems from MCP configuration.</p>
+<p>State-directory failures require a writable, supported location. Do not bypass owner-only permissions or remove unresolved recovery records to force startup. See <a href="configuration.html">Configuration</a> and <a href="workspaces-and-transactions.html">Workspaces and transactions</a>.</p>
+<h2 id="a-selector-or-code-action-became-stale">A selector or Code Action became stale</h2>
+<p>Follow the tool's continuation: check Workspace status, reload when appropriate, and resolve the location/symbol or discover the action again. Do not reuse coordinates, snapshot identities or opaque references after unrelated source changes or a server restart. Finish or roll back an active transaction before attempting a reload that requires a non-transactional Workspace.</p>
+<h2 id="an-error-report-prompt-did-not-appear">An error-report prompt did not appear</h2>
+<p>The client may not support elicitation or may block it through its approval policy. <code>ApprovalUnavailable</code> and <code>ErrorReportNotApproved</code> mean nothing was sent. Enable manual MCP approvals in the client if desired, then prepare a fresh report. There is no tool override that silently bypasses client consent. See <a href="error-reporting.html">Error reporting and privacy</a>.</p>
+<h2 id="upgrade-or-remove">Upgrade or remove</h2>
+<p>Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's compatibility notes. Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.</p>
+<p>To remove the installed tool:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>uninstall<span class="w"> </span>--global<span class="w"> </span>Roslyn.Workbench.Mcp
 </code></pre></div>
-<p>Handled failures return <code>ok: false</code>, a structured <code>error</code>, and an optional <code>continuation</code>; they do not publish a replacement snapshot. Its <code>kind</code> distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language <code>instruction</code>. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when reporting is disabled or approval is unavailable. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.</p>
-<h2 id="bounded-collections">Bounded collections</h2>
-<p>Collection-returning tools expose named result limits and return deterministic bounded collections with <code>hasMore</code>. Each tool publishes its curated default in the input schema and uses that same value when the limit is omitted. The Host's <code>DefaultMaxResults</code> remains available to third-party plugins as a compatibility baseline, but does not override the bundled tools' declared defaults. There is no global serialised byte ceiling.</p>
-<p>When <code>hasMore</code> is true, an agent may request a larger collection if the extra context is useful or narrow the workspace scope, selector or filter. A larger request recomputes the deterministic result from the beginning; there are no generic cursors or continuation tokens.</p>
-<p>Bundled collection defaults are curated by result shape and expected cost:</p>
-<ul>
-<li>16 results: base types;</li>
-<li>25 results: dependency cycles and duplicate-code groups;</li>
-<li>32 results: partial declarations and control-flow regions;</li>
-<li>50 results: async, disposable, nullability and unused-symbol findings, overloads, attributes, project references and analyzers;</li>
-<li>64 results: implemented interfaces and control-flow blocks;</li>
-<li>100 results: symbol searches, API symbols, metrics, callers, callees, references, implementations, overrides, derived types, hierarchy-derived types, dependencies, dependents, members, change-impact locations, tests, projects and metadata references;</li>
-<li>200 results: diagnostics, project documents, solution folders and dependency graph nodes; and</li>
-<li>400 results: dependency graph edges.</li>
-</ul>
-<p>Other bounded numeric inputs also publish their effective defaults: hierarchy, derived-type and callee depth is 3; operation-tree depth is 8; duplicate-code matching requires at least 3 statements; code-context windows are 10 lines on each side; transaction diff context is 3 lines; Code Action discovery returns at most 50 leaves; Fix All preparation allows at most 50 changed source documents and returns at most 20 affected document identities unless the caller supplies other values.</p>
+<p>Remove its MCP client configuration as well. Uninstalling the tool does not remove your source repositories or the separately stored Host state. Keep any unresolved recovery data until the affected Workspace has been safely recovered. Once all recovery is resolved and no server instance is running, the configured state directory can be removed deliberately if no longer needed. Source-build users can remove their chosen publish directory after stopping the process.</p>
+<p>Use the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md">support routes</a> if the problem remains. Provide the version, client, platform, reproduction and safely redacted diagnostics.</p>
 
 
 

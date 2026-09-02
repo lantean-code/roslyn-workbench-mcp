@@ -7082,3 +7082,13 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** `{}`
 
 **Outcome:** Succeeded and reported no loaded workspaces. The test-only newline assumptions were inspected locally against the hosted failure log and retained workspace assets.
+
+### 735. `workspace-list`
+
+**Activity:** ALPHA Batch 4 Code Action audit correction.
+
+**Purpose:** Check for an available workspace before inspecting the constructor-parameter audit selection and shared fixture span helper.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces. The scoped test-support correction was inspected locally against the hosted audit failure.

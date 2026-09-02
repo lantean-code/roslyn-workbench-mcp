@@ -938,9 +938,10 @@ internal static class BuiltInCodeActionAuditCases
             SourceNote = "ConstructorParameterCandidate selected fields",
             ExpectedChangedText = "ConstructorParameterCandidate(int count, string name)",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            LocationFactory = static fixture => fixture.GetSelectionInDocument(
+            LocationFactory = static fixture => fixture.GetSpanSelectionInDocument(
                 "CandidateRefactorings.cs",
-                "private readonly int _count;\r\n    private readonly string _name;"),
+                "private readonly int _count;",
+                "private readonly string _name;"),
         },
         new()
         {

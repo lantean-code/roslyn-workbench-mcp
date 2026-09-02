@@ -140,35 +140,26 @@ internal sealed class InspectionSampleFixture : IDisposable
 
     public LocationSelector GetSpanSelection(string startText, string endText)
     {
-        var sourceText = File.ReadAllText(DocumentPath);
+        return GetSpanSelectionInDocument(Path.GetFileName(DocumentPath), startText, endText);
+    }
+
+    public LocationSelector GetSpanSelectionInDocument(string documentPath, string startText, string endText)
+    {
+        var fullPath = Path.Combine(_directoryPath, documentPath);
+        var sourceText = File.ReadAllText(fullPath);
         var start = sourceText.IndexOf(startText, StringComparison.Ordinal);
-        var end = sourceText.IndexOf(endText, start, StringComparison.Ordinal);
-        if (start < 0 || end < start)
+        if (start < 0)
         {
             return new LocationSelector();
         }
 
-        var document = new DocumentSelector
+        var end = sourceText.IndexOf(endText, start, StringComparison.Ordinal);
+        if (end < start)
         {
-            Path = Path.GetFileName(DocumentPath),
-        };
+            return new LocationSelector();
+        }
 
-        var range = new TextSpanRange
-        {
-            Start = start,
-            Length = (end - start) + endText.Length,
-        };
-
-        var span = new TextSpanSelector
-        {
-            Document = document,
-            Range = range,
-        };
-
-        return new LocationSelector
-        {
-            Span = span,
-        };
+        return CreateSelector(documentPath, start, (end - start) + endText.Length);
     }
 
     private static int FindWholeToken(string sourceText, string text, int occurrenceIndex)

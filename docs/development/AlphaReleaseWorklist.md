@@ -69,10 +69,11 @@ Use this checklist as the dependency-ordered execution view. The detailed item s
   - [x] Local release workflow and release-identity validation
   - [ ] Validation-only GitHub workflow run
   - [ ] Explicitly approved publication validation
-- [ ] `ALPHA-013` Configure protected publication — **In progress**; least-privilege publication jobs and all three GitHub environments are configured, including the supplied NuGet account secret. The account owner's NuGet trusted-publishing policy and authentication validation remain outstanding.
+- [ ] `ALPHA-013` Configure protected publication — **In progress**; least-privilege publication jobs, all three GitHub environments, the supplied NuGet account secret and the account owner's NuGet trusted-publishing policy are configured. Authentication validation remains outstanding.
   - [x] Local least-privilege publication jobs and setup checklist
   - [x] GitHub environments and NuGet account secret
-  - [ ] NuGet trusted-publishing policy and authentication validation
+  - [x] NuGet trusted-publishing policy
+  - [ ] Authentication validation
   - [ ] Authentication validation during an approved publication
 
 **Batch 5 — Release readiness**
@@ -381,7 +382,7 @@ The workflow should make the intended action obvious, report failed checks clear
 
 **Review outcome:** The same review agent verified all six corrections and returned no findings, reusing the successful validation evidence above.
 
-**Local and hosted validation evidence:** Representative alpha, beta, RC and stable GitVersion output resolves to the approved channels and default destinations, while an alpha request for NuGet.org fails with a concise error. A representative `0.1.0-alpha.999` release build completed without warnings, produced matching `.nupkg` and `.snupkg` files, installed from the local package source and reported the exact release version. The first validation-only GitHub run resolved `0.1.0-beta.287` but stopped at two release-sensitive Host integration assertions. Both corrections subsequently passed all 170 Host integration tests locally under both development and release identities. A successful hosted rerun remains outstanding; no package, tag, release or documentation version has been published.
+**Local and hosted validation evidence:** Representative alpha, beta, RC and stable GitVersion output resolves to the approved channels and default destinations, while an alpha request for NuGet.org fails with a concise error. A representative `0.1.0-alpha.999` release build completed without warnings, produced matching `.nupkg` and `.snupkg` files, installed from the local package source and reported the exact release version. The first validation-only GitHub run resolved `0.1.0-beta.287` but stopped at two release-sensitive Host integration assertions. Both corrections subsequently passed all 170 Host integration tests locally under both development and release identities. The next hosted run passed all four integration areas but exposed a CRLF-dependent Code Action audit selector. Its source-derived span correction passes all 123 audit tests locally with both LF and CRLF fixtures, plus all 14 Core integration tests. A successful complete hosted rerun remains outstanding; no package, tag, release or documentation version has been published.
 
 ### `ALPHA-012` Record manual scenario and performance analysis
 
@@ -414,7 +415,7 @@ Approved decisions:
 
 **Completion evidence:** The configured publication job can authenticate through the intended short-lived or scoped identity, while pull-request and ordinary continuous-integration jobs cannot publish or obtain its credentials.
 
-**Implementation evidence:** GitHub Packages publication uses only the release job's repository `GITHUB_TOKEN` with `packages: write`. NuGet.org publication uses the full-SHA-pinned `NuGet/login` action with `id-token: write` and an environment-scoped account name, leaving no persistent API key in the normal design. The publication jobs depend on successful preparation, exact-package acceptance and versioned-documentation publication, and receive no authority during pull-request or ordinary CI runs. All three no-reviewer GitHub environments and the supplied NuGet account secret are configured. The account owner's NuGet trusted-publishing policy and authentication validation remain outstanding; the external setup checklist records these remaining steps and the fallback that would require separate approval.
+**Implementation evidence:** GitHub Packages publication uses only the release job's repository `GITHUB_TOKEN` with `packages: write`. NuGet.org publication uses the full-SHA-pinned `NuGet/login` action with `id-token: write` and an environment-scoped account name, leaving no persistent API key in the normal design. The publication jobs depend on successful preparation, exact-package acceptance and versioned-documentation publication, and receive no authority during pull-request or ordinary CI runs. All three no-reviewer GitHub environments, the supplied NuGet account secret and the account owner's NuGet trusted-publishing policy are configured. Authentication validation remains outstanding; the external setup checklist records the temporary policy activation window, the remaining validation and the fallback that would require separate approval.
 
 ## Stage 4 — Manual alpha checks and documentation
 

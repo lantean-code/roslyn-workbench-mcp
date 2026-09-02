@@ -1,10 +1,23 @@
-name: Tests
+name: Continuous integration
 
 on:
   pull_request:
+    branches:
+      - develop
+      - main
+      - "release/**"
+      - "hotfix/**"
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
   push:
     branches:
+      - develop
       - main
+      - "release/**"
+      - "hotfix/**"
   workflow_dispatch:
 
 permissions:
@@ -20,8 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           global-json-file: global.json
       - name: Restore
@@ -41,13 +56,15 @@ jobs:
           --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-fast
           path: TestResults/fast
-          if-no-files-found: error
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
 
   integration:
+    if: github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full')
     name: Integration (${{ matrix.area }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -68,8 +85,10 @@ jobs:
             project: test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj
             minimum: 40
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           global-json-file: global.json
       - name: Restore
@@ -85,13 +104,15 @@ jobs:
           --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-integration-${{ matrix.area }}
           path: TestResults/${{ matrix.area }}
-          if-no-files-found: error
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
 
   acceptance:
+    if: github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'validation/full')
     name: Acceptance (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -105,49 +126,58 @@ jobs:
       ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT: true
       ROSLYN_WORKBENCH_SENTRY_DSN: ""
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           global-json-file: global.json
       - name: Restore
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
-      - name: Test Windows durability
-        if: runner.os == 'Windows'
+      - name: Test published Host on Linux
+        if: runner.os == 'Linux'
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
         run: >-
-          dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
-          --configuration Release --no-build --no-restore
+          bash ./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.sh
+          --no-build --no-restore
           --report-trx
-          --results-directory TestResults/workspace-windows
-          --minimum-expected-tests 52
+          --results-directory TestResults/acceptance
+          --minimum-expected-tests 41
           --hangdump --hangdump-timeout 5m --hangdump-type None
-      - name: Test published Host
+      - name: Test published Host on Windows
+        if: runner.os == 'Windows'
         shell: pwsh
         env:
           TMPDIR: ${{ runner.temp }}
           TMP: ${{ runner.temp }}
           TEMP: ${{ runner.temp }}
-        run: |
-          dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
-            --configuration Release --no-build --no-restore `
-            --report-trx `
-            --results-directory TestResults/acceptance `
-            --minimum-expected-tests 41 `
-            --hangdump --hangdump-timeout 5m --hangdump-type None
+        run: >-
+          ./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.ps1
+          --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/acceptance
+          --minimum-expected-tests 41
+          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-acceptance-${{ matrix.os }}
           path: TestResults
-          if-no-files-found: error
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Upload failed acceptance diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: acceptance-diagnostics-${{ matrix.os }}
           path: |
             ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
             ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime
           if-no-files-found: ignore
+          retention-days: 30

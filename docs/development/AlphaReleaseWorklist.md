@@ -35,19 +35,43 @@ Use this checklist as the dependency-ordered execution view. The detailed item s
 
 - [x] `ALPHA-004` Generate the versioned tool reference — **Complete**
 - [ ] `ALPHA-003` Publish the GitHub Pages documentation site — **Awaiting approval**; implementation and offline validation are complete, while the explicitly approved public deployment remains outstanding.
+  - [x] Local implementation and offline validation
+  - [ ] Live GitHub Pages configuration and deployment
+  - [ ] Unauthenticated public-site verification
 
 **Batch 3 — Community surface**
 
 - [ ] `ALPHA-005` Establish contribution, support and conduct policies — **In progress**; the local public policy surface is approved and committed, while private vulnerability reporting and final public verification remain external actions.
+  - [x] Local policy and support documentation
+  - [ ] Live private-vulnerability route
+  - [ ] Unauthenticated public-route verification
 - [ ] `ALPHA-006` Configure issue intake and triage — **In progress**; forms, labels and triage guidance are approved and committed, while external label creation and form dry runs remain outstanding.
+  - [x] Local forms, label manifest, synchronisation tools and triage guidance
+  - [ ] Live label synchronisation and rendered-form dry runs
+  - [ ] Public issue-routing verification
 - [ ] `ALPHA-007` Configure GitHub Discussions and community moderation — **In progress**; category forms, moderation guidance and seed posts are approved and committed, while Discussions activation, category setup and live verification remain external actions.
+  - [x] Local category forms, moderation guidance and seed-post drafts
+  - [ ] Live Discussions activation, categories and seed posts
+  - [ ] New-user routing and moderation verification
 - [ ] `ALPHA-002` Prepare repository identity and public-facing metadata — **In progress**; the local public surface and settings inventory are approved and committed, while metadata, unauthenticated verification and visibility changes remain external actions.
+  - [x] Local README and repository-settings inventory
+  - [ ] Live description, Website and topics
+  - [ ] Public visibility and unauthenticated verification
 
 **Batch 4 — Repository and release automation**
 
-- [ ] `ALPHA-008` Harden GitHub repository controls and automation — **Design approved**
-- [ ] `ALPHA-011` Implement manually triggered release builds — **Design approved**; implement and dry-run artifact production before enabling explicitly approved publication.
-- [ ] `ALPHA-013` Configure protected publication — **Design approved**
+- [ ] `ALPHA-008` Harden GitHub repository controls and automation — **In progress**; local workflow, dependency-update and pull-request infrastructure is implemented, while validation and external repository settings remain outstanding.
+  - [x] Local CI, audit, dependency-update and pull-request automation
+  - [ ] Live workflow validation
+  - [ ] Repository permissions, security features and available branch safeguards
+- [ ] `ALPHA-011` Implement manually triggered release builds — **In progress**; local workflow implementation is complete, while validation-only GitHub execution and explicitly approved publication remain outstanding.
+  - [x] Local release workflow and release-identity validation
+  - [ ] Validation-only GitHub workflow run
+  - [ ] Explicitly approved publication validation
+- [ ] `ALPHA-013` Configure protected publication — **In progress**; least-privilege publication jobs and the external setup checklist are implemented, while environment and registry configuration remain outstanding.
+  - [x] Local least-privilege publication jobs and setup checklist
+  - [ ] GitHub environments and registry identities
+  - [ ] Authentication validation during an approved publication
 
 **Batch 5 — Release readiness**
 
@@ -115,7 +139,7 @@ Approved decisions:
 - Keep the repository private while the alpha is prepared, including the temporary-development-record cleanup required by `ALPHA-018`. Make it public only as an explicitly approved final action after the documentation site, community routes and security controls are ready and before publishing the first prerelease. Validate Pages, clean installation guidance and public links without authentication under the resulting release conditions.
 - Use the root README as a concise product landing page with a prominent alpha and compatibility warning, the product and transaction-safety model, the shortest supported .NET tool installation and MCP client configuration, supported platforms and .NET requirement, a representative workflow, and clear links to documentation, security reporting, support, contributing, the Host package and releases. State that the Plugins package and a supported plugin-authoring route are not published for alpha. Prefer a compact protocol or transaction example over screenshots because the product has no visual interface.
 - Use the locked wordmark from `assets/roslyn-workbench-mcp-wordmark.svg` near the top of the repository README with meaningful alternative text. Retain a text heading, preserve the artwork's proportions and do not place it on a busy background.
-- Link the Host package to the registry selected for that release channel and use GitHub Releases for release notes and retained release evidence. By default, publish alpha and beta packages only to GitHub Packages and publish RC and production packages to NuGet.org. Permit an explicitly approved beta, including the initial public build, to publish to NuGet.org instead. Document the GitHub Packages feed and classic-PAT authentication required for alpha/beta installation when that route is used. Add final package links after approving the identifier in `ALPHA-010`.
+- Link the Host package to the registry selected for that release channel and use GitHub Releases for release notes and retained release evidence. By default, publish alpha and beta packages only to GitHub Packages and publish RC and production packages to NuGet.org. Permit an explicitly approved beta, including the initial public build, to publish to NuGet.org instead. Keep the permanent getting-started documentation focused on the final NuGet.org installation route; when a particular prerelease uses GitHub Packages, put its authenticated feed and classic-PAT installation instructions in that version's release notes. Add final package links after approving the identifier in `ALPHA-010`.
 
 **Completion evidence:** A signed-off public repository inventory with every metadata field and landing-page link checked from an unauthenticated perspective.
 
@@ -144,7 +168,7 @@ Move the release-facing documentation into a dedicated `docs/content` tree and e
 
 Publish immutable versioned documentation paths for released artifacts in addition to the current site. Replace the MCP server's raw version-tagged agent-guide URL with its versioned GitHub Pages equivalent so an installed version continues to reference matching documentation. Defer replacement of plugin-analyser help links until that analyser and its authoring documentation are published for v1.
 
-**Implementation evidence:** The pinned MkDocs and Material site, version-aware templates, generated-reference integration, strict validation, pull-request preview artifact and serialised least-privilege `dev` deployment job are implemented. Local `dev` and release-version renderings pass strict builds plus internal, anchor, accessibility, privacy, embedded-resource and retried external-link validation. The locally served site received manual visual approval for its navigation, generated reference layout, light and dark themes, typography and final colour responsibilities. The release command compiles the exact supplied release identity, verifies that identity in the generated catalogue, reads Mike's structured remote inventory, refuses an existing source-tag version, builds the immutable version and `latest` locally, validates the Mike-rendered output, and performs one final push. A disposable local Git remote verifies dry runs, aliases, retitled versions, validation failure without partial publication and a successful retry through the pinned Mike CLI. The public `gh-pages` deployment and unauthenticated live-site verification remain part of the final explicitly approved publication action.
+**Implementation evidence:** The pinned MkDocs and Material site, version-aware templates, generated-reference integration, strict validation, pull-request preview artifact and serialised least-privilege `dev` deployment job are implemented. Local `dev` and release-version renderings pass strict builds plus internal, anchor, accessibility, privacy, embedded-resource and retried external-link validation. The locally served site received manual visual approval for its navigation, generated reference layout, light and dark themes, typography and final colour responsibilities. The release command compiles the exact supplied release identity, verifies that identity in the generated catalogue, reads Mike's structured remote inventory, refuses an existing source-tag version, builds the immutable version and `latest` locally, validates the Mike-rendered output, and performs one final push. A disposable local Git remote verifies dry runs, aliases, retitled versions, validation failure without partial publication and a successful retry through the pinned Mike CLI. Development and release workflows retain `gh-pages` as the generated version store and explicitly deploy its complete snapshot through full-SHA-pinned GitHub Pages actions, gated by the approved activation variable so a `GITHUB_TOKEN` branch push is not mistaken for a live Pages deployment. Public activation and unauthenticated live-site verification remain part of the final explicitly approved publication action.
 
 ### `ALPHA-004` Generate the versioned tool reference
 
@@ -212,7 +236,7 @@ Document the triage flow from new report to closure, including duplicate handlin
 
 **Completion evidence:** Each form has been previewed and submitted in a safe test repository or equivalent dry run; labels and routing produce an actionable report without exposing sensitive information.
 
-**Implementation evidence:** The three structured Issue forms, blank-Issue configuration, contact links, complete label inventory and maintainer triage guide are prepared under `.github`. Local schema and routing validation precedes manual approval; label creation and safe rendered-form dry runs require an explicitly approved GitHub action after the files reach the default branch.
+**Implementation evidence:** The three structured Issue forms, blank-Issue configuration, contact links, complete label inventory and maintainer triage guide are prepared under `.github`. Cross-platform repository scripts apply the canonical label manifest non-destructively by default and require an explicit prune option to delete unmanaged labels. Initial rollout synchronises first, inspects every unmanaged label and requires explicit approval before pruning GitHub's default synonym labels. Local schema, routing and script validation precedes manual approval; label synchronisation and safe rendered-form dry runs require an explicitly approved GitHub action after the files reach the default branch.
 
 ### `ALPHA-007` Configure GitHub Discussions and community moderation
 
@@ -237,11 +261,11 @@ Document the boundary between Discussions, Issues and private security reports. 
 
 **Implementation evidence:** Q&A and Ideas category forms, the approved category and moderation guidance, and drafts for all three seed posts are prepared under `.github`. Discussions remains disabled and no category or post has been created externally; activation and new-user review require explicit approval after the local implementation is confirmed.
 
-**Batch validation evidence:** All ten GitHub YAML files parse successfully, and focused validation confirms unique form identifiers, known automatic labels, non-empty Discussion forms and the complete 36-label inventory. The documentation passes a strict MkDocs build and the full local site validator with unpublished project links explicitly allowed. Local links in the public policies and setup record resolve, the changed files pass whitespace and CRLF checks, and a serialised Release `Pack` target produces the development `.nupkg` and symbol package without warnings or errors. Inspection of the packaged README confirms the wordmark and policy links are absolute and no repository-relative community link remains.
+**Batch validation evidence:** All GitHub YAML files parse successfully, and focused validation confirms unique form identifiers, known automatic labels, non-empty Discussion forms and the complete community-label inventory. The documentation passes a strict MkDocs build and the full local site validator with unpublished project links explicitly allowed. Local links in the public policies and setup record resolve, the changed files pass whitespace and CRLF checks, and a serialised Release `Pack` target produces the development `.nupkg` and symbol package without warnings or errors. Inspection of the packaged README confirms the wordmark and policy links are absolute and no repository-relative community link remains.
 
 ### `ALPHA-008` Harden GitHub repository controls and automation
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -249,7 +273,7 @@ Approved decisions:
 - Use two levels of validation guidance. Changes entering `develop`, `release/*` or `hotfix/*` should restore and build the solution, run unit and contract tests, verify the minimum test count, and apply the repository's normal compiler and analyser configuration. Run strict documentation validation as a path-relevant check when documentation or its generation changes rather than on every development build. Do not make integration, acceptance, compatibility-audit, external-scenario or `latest-all` validation part of routine entry into `develop`.
 - Permit a maintainer to request full validation for a large or high-risk pull request by applying a `validation/full` label. That request adds the integration suite, Linux and Windows acceptance tests and any affected specialist checks, and those requested checks must pass before that pull request is merged. Do not infer this requirement from change size or file counts.
 - Before merging a release branch into `main`, use the broader release checks that are relevant to the change and release: the full build and test suites, `latest-all` analysis, documentation and generated-reference validation, external-repository scenarios, packaging and clean-install validation, and applicable security, dependency, provenance and artifact checks. These results inform the maintainer's release decision; they are not a separately modelled candidate approval gate.
-- Keep the Code Action compatibility audit separate from routine development validation. Run it periodically, when Roslyn or other compatibility inputs, the audit harness or compatibility-sensitive Code Action code changes, and while preparing a release. It does not block unrelated changes entering `develop`.
+- Keep the Code Action compatibility audit separate from routine development validation. Run it periodically, manually when Roslyn dependencies or the audit itself change, and while preparing a release. It does not run for ordinary pull requests or pushes and does not block unrelated changes entering `develop`.
 - Allow the repository owner to bypass branch rules when necessary without a separate justification or bypass log. Treat the rules as practical guardrails rather than compliance controls. Keep publication an explicit action and grant automation only the permissions required for its specific operation.
 - Set GitHub Actions to read-only permissions by default and grant write access only to the specific documentation, release or publication job that requires it. Pull-request workflows must not receive publication credentials, protected environments or write access; forked pull requests must not receive secrets; and workflows must not use `pull_request_target` to build or execute contributor-controlled code. Define the protected publication environments and their approval policy under `ALPHA-013`.
 - Enable weekly Dependabot updates against `develop` for NuGet and GitHub Actions. Group compatible minor and patch updates separately for those ecosystems, leave major updates as individual pull requests for explicit assessment, limit concurrent update pull requests, apply dependency and area labels, and do not auto-merge. Permit GitHub security updates outside the weekly schedule. Keep `develop` current with suitable updates as soon as practical, but do not promise dependency-update releases or backports for published alphas beyond the latest-alpha security policy approved under `ALPHA-005`.
@@ -272,6 +296,10 @@ Configure or verify:
 - retention settings for test logs and release evidence.
 
 **Completion evidence:** Repository settings are recorded without secrets, workflows pass under the protected configuration, and action references and permissions have received a security review.
+
+**Implementation evidence:** Routine CI now runs the minimum-count unit and contract suite, while `validation/full`, pull requests into `main` and manual dispatch add the component-integration and Linux and Windows published-Host acceptance jobs. The Code Action audit is isolated to its weekly schedule and manual dispatch, with release preparation running the same audit explicitly. All external actions are pinned to reviewed full commit SHAs; ordinary jobs are read-only; successful test, failed diagnostic, audit and documentation-preview retention matches the approved policy. The exact qbtmud pull-request template, the managed `validation/full` label and weekly grouped NuGet and GitHub Actions Dependabot configuration are committed locally. The external setup checklist records the remaining repository permission, ruleset, security-feature and live-label actions, including the current private-plan ruleset limitation.
+
+**Local validation evidence:** Actionlint 1.7.12 accepts every workflow, all GitHub YAML parses successfully, and focused checks verify all external action references use 40-character SHAs, the 37 labels are unique and the required automation labels exist, and Dependabot covers the root tool manifest plus source, test and repository-tool package manifests. The solution restores and builds without warnings or errors, and all 2,707 fast tests pass above the 1,732-test CI floor. That run also exposed and corrected the stale Host friend-assembly expectation left by the committed tool-reference generator; the affected Host project then passed `latest-all` analysis without diagnostics.
 
 ## Stage 3 — Versioning, artifacts and release automation
 
@@ -306,7 +334,7 @@ Approved decisions:
 
 - Use `Roslyn.Workbench.Mcp` as the Host package ID and assembly/executable name and `roslyn-workbench-mcp` as the installed .NET tool command. Use the same package ID for alpha, beta, RC and production releases, distinguishing channels through `SemVer` rather than `.Tool`, `.Cli` or channel-specific package names. Recheck package ownership and availability immediately before first publication.
 - Use **Roslyn Workbench MCP** as the package title; “A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.” as its description; **Lantean Code** as author and company; `Copyright © 2026 Lantean Code`; the `MIT` licence expression; the GitHub Pages root as project URL; `https://github.com/lantean-code/roslyn-workbench-mcp` as the `git` repository URL; and the exact source commit as package repository metadata.
-- Derive `PackageReadmeFile` from the release-ready root `README.md`, with channel-aware GitHub Packages or NuGet.org installation guidance and links to the matching versioned documentation rather than a duplicated manual. Replace the repository-relative wordmark reference in the packaged copy with an immutable `raw.githubusercontent.com` URL for the exact source tag because NuGet.org does not render relative README images. Do not otherwise maintain a separate package narrative. Include `LICENSE`, `THIRD-PARTY-NOTICES.md` and the required third-party licence texts in the Host package. Exclude development plans, audits, worklists and contributor-only documentation.
+- Derive `PackageReadmeFile` from the release-ready root `README.md`, retaining the permanent NuGet.org installation route and links to the matching versioned documentation rather than a duplicated manual. Put authentication and feed instructions that apply only to a GitHub Packages prerelease in that version's release notes. Replace the repository-relative wordmark reference in the packaged copy with an immutable `raw.githubusercontent.com` URL for the exact source tag because NuGet.org does not render relative README images. Do not otherwise maintain a separate package narrative. Include `LICENSE`, `THIRD-PARTY-NOTICES.md` and the required third-party licence texts in the Host package. Exclude development plans, audits, worklists and contributor-only documentation.
 - Use `assets/roslyn-workbench-mcp-icon.svg` as the locked source for package and application icon derivatives. Generate a deterministic 128×128 PNG without redrawing, cropping, recolouring or changing its proportions, embed that PNG as the Host package's `PackageIcon`, and inspect it in package metadata. Retain the source SVG and do not pass it directly to NuGet because NuGet package icons support PNG and JPEG rather than SVG.
 - Use the package tags `model-context-protocol`, `mcp`, `mcp-server`, `roslyn`, `csharp`, `dotnet`, `code-analysis`, `refactoring` and `developer-tools`. Do not add broad `ai`, `agent` or `visual-studio` tags that would attract unrelated searches or imply unsupported integration.
 - Produce one validated, versioned Host build containing the Host and project assemblies, bundled Core plugin, Code Action and Workspace assemblies, runtime dependencies, `.deps.json`, `.runtimeconfig.json`, portable PDBs and legal files, then assemble distribution-specific wrappers from that output without recompiling or changing it. For alpha, create only a framework-dependent `net10.0` .NET tool package containing the complete runtime payload and no floating downstream implementation dependency ranges; do not trim, single-file publish or self-contain it. Preserve the packaging boundary so later MSI and Debian/apt packages can consume the same release build and Chocolatey and WinGet can normally distribute the approved MSI. Decide whether native installers remain framework-dependent or carry a runtime during their v1 design rather than constraining that choice in alpha.
@@ -327,7 +355,7 @@ Implementation evidence (2026-09-01):
 
 ### `ALPHA-011` Implement manually triggered release builds
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -342,6 +370,16 @@ Approved decisions:
 The workflow should make the intended action obvious, report failed checks clearly and leave enough evidence to diagnose a bad release. It need not model a separate unpublished candidate or formal promotion record before a small-project release can proceed.
 
 **Completion evidence:** A manually dispatched prerelease produces and publishes the expected package and release information from an allowed branch, while pull-request, merge and ordinary push runs cannot publish a package or create a GitHub Release.
+
+**Implementation evidence:** The release workflow has only a manual trigger and separates read-only preparation and cross-platform acceptance from narrowly scoped documentation, GitHub Packages and NuGet.org publication jobs. It runs GitVersion once, validates the selected branch or stable tag and approved destination, verifies that a stable tag identifies a commit reachable from `main`, carries one exact identity through build, analysis, tests, documentation and packaging, verifies a clean local-tool installation, and retains the package, symbol package, checksums, manifest, notes and validation results. Release acceptance installs and tests the exact candidate package on Linux and Windows instead of publishing a second Host build. Versioned documentation is published through the same deliberate release run before package publication.
+
+**Review remediation:** Documentation dry runs configure a local Git identity; Linux acceptance and label-sync examples invoke Bash explicitly. Release acceptance supplies the expected candidate version for its documentation-URL assertion, and both CI and release acceptance route temporary files into the diagnostic-upload directory. Package-publication jobs set an explicit GitHub repository. Development and release documentation jobs share the `github-pages` environment and retain the same concurrency lock through completed Pages deployment, so an older snapshot cannot deploy after a newer publication releases the lock.
+
+**Remediation validation:** Workflow lint, focused workflow-structure checks and Bash syntax checks pass. The corrected acceptance harness passes scoped formatting and a Release build without warnings or errors; `latest-all` reports only existing warnings in unchanged fixture code. The complete Linux acceptance wrapper passes all 70 tests with both the default `0.1.0-alpha.1` fixture publish and the installed `0.1.0-alpha.999` package, with the latter also using explicit temporary-directory routing. Native Windows execution and hosted GitHub workflow validation remain outstanding; no package or documentation was published externally during remediation.
+
+**Review outcome:** The same review agent verified all six corrections and returned no findings, reusing the successful validation evidence above.
+
+**Local validation evidence:** Representative alpha, beta, RC and stable GitVersion output resolves to the approved channels and default destinations, while an alpha request for NuGet.org fails with a concise error. A representative `0.1.0-alpha.999` release build completed without warnings, produced matching `.nupkg` and `.snupkg` files, installed from the local package source and reported the exact release version. The first validation-only execution on GitHub remains outstanding because `workflow_dispatch` becomes available only after the workflow is committed to the default branch; no package, tag, release or documentation version has been published.
 
 ### `ALPHA-012` Record manual scenario and performance analysis
 
@@ -361,7 +399,7 @@ Approved decisions:
 
 ### `ALPHA-013` Configure protected publication
 
-**Status:** Design approved
+**Status:** In progress
 
 Approved decisions:
 
@@ -373,6 +411,8 @@ Approved decisions:
 - Verify the authentication setup without publishing a real package where the service permits it. If a harmless authentication-only check is not available, make the first explicitly approved prerelease the end-to-end validation and stop clearly before any fallback retry or destination change.
 
 **Completion evidence:** The configured publication job can authenticate through the intended short-lived or scoped identity, while pull-request and ordinary continuous-integration jobs cannot publish or obtain its credentials.
+
+**Implementation evidence:** GitHub Packages publication uses only the release job's repository `GITHUB_TOKEN` with `packages: write`. NuGet.org publication uses the full-SHA-pinned `NuGet/login` action with `id-token: write` and an environment-scoped account name, leaving no persistent API key in the normal design. The publication jobs depend on successful preparation, exact-package acceptance and versioned-documentation publication, and receive no authority during pull-request or ordinary CI runs. The external setup checklist records the three no-reviewer environments, trusted-publishing policy and explicitly approved fallback path; live environment and registry configuration remains outstanding.
 
 ## Stage 4 — Manual alpha checks and documentation
 
@@ -398,7 +438,7 @@ Approved decisions:
 
 - Confirm that the existing installation, configuration, troubleshooting, security and removal documentation matches the package and behaviour being released. Update those pages rather than creating a separate release manual.
 - State that the alpha does not publish plugin-authoring guidance or the Plugins NuGet package, without claiming that the existing runtime rejects source-built plugins.
-- Prepare release notes covering the alpha status, notable capabilities, supported platforms, known limitations, compatibility expectations and feedback routes. Approve the exact wording while preparing the release rather than fixing it during this design pass.
+- Prepare release notes covering the alpha status, notable capabilities, supported platforms, known limitations, compatibility expectations and feedback routes. When the release uses GitHub Packages, include the authenticated feed and classic-PAT installation steps there rather than in the permanent getting-started documentation. Approve the exact wording while preparing the release rather than fixing it during this design pass.
 - Verify public, package-contained and versioned documentation links against the published site and package destinations.
 - Remove temporary development documentation before the repository goes live, including worklists, audits, review evidence, dogfood tracking and superseded design records under `docs/development`. These records are useful while preparing the product but should not remain as post-release project documentation.
 - Before removing a development record, move or rewrite any information that remains genuinely useful for users or future maintainers into the appropriate permanent product, architecture or contributor documentation. Do not preserve temporary tracking documents merely as project history.

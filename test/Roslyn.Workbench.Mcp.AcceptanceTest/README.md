@@ -17,7 +17,7 @@ dotnet test --project test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.
 ### Linux and macOS
 
 ```bash
-./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.sh
+bash ./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.sh
 ```
 
 ### Windows PowerShell
@@ -30,7 +30,9 @@ Additional arguments are passed to `dotnet test`. For example, append `--filter 
 
 ## Run against an existing publish
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. Publish that Host with the acceptance fixture's release identity, as shown below, so version-dependent protocol assertions remain deterministic. The assembly fixture validates and uses the explicitly configured executable without publishing or deleting it.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to an absolute executable path when the published Host must be retained or was produced separately. The assembly fixture validates and uses the explicitly configured executable without publishing or deleting it.
+
+The examples below use the fixture's default release identity, `0.1.0-alpha.1`. For another release, also set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_EXPECTED_VERSION` to its exact public version, such as `0.1.0-alpha.2`. The protocol test checks the versioned agent-guide URL against that value. Release CI supplies the candidate version explicitly and separately verifies the installed tool's `--version` output; ordinary fixture-owned publishing retains the default identity.
 
 ## Linux and macOS
 

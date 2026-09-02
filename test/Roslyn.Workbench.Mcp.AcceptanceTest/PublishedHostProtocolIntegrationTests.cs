@@ -8,6 +8,8 @@ public sealed class PublishedHostProtocolIntegrationTests
     public async Task GIVEN_PublishedHost_WHEN_UsingStdioProtocol_THEN_ShouldPublishExpectedCatalogueAndStatus()
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
+        var expectedVersion = Environment.GetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_ACCEPTANCE_EXPECTED_VERSION")
+            ?? PublishedHostAssemblyFixture.ReleaseSourceTag;
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
 
         try
@@ -23,7 +25,7 @@ public sealed class PublishedHostProtocolIntegrationTests
             serverInstructions.Should().Contain("transaction-commit or transaction-rollback promptly");
             serverInstructions.Should().Contain("does not create a Git commit");
             serverInstructions.Should().Contain(
-                $"https://lantean-code.github.io/roslyn-workbench-mcp/{PublishedHostAssemblyFixture.ReleaseSourceTag}/agent/");
+                $"https://lantean-code.github.io/roslyn-workbench-mcp/{expectedVersion}/agent/");
             serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
 
             var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);

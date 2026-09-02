@@ -102,6 +102,7 @@ public sealed class HostArchitectureTests
             "Roslyn.Workbench.Mcp.Test",
             "Roslyn.Workbench.Mcp.IntegrationTest",
             "Roslyn.Workbench.Mcp.IntegrationTestSupport",
+            "Roslyn.Workbench.Mcp.ToolReferenceGenerator",
             "DynamicProxyGenAssembly2",
         ]);
     }

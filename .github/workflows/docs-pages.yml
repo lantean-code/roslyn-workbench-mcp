@@ -59,13 +59,19 @@ jobs:
           name: documentation-preview
           path: docs/site
           if-no-files-found: error
+          retention-days: 7
 
   deploy-development:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: write
+      pages: write
+      id-token: write
     concurrency:
       group: documentation-publication
       cancel-in-progress: false
@@ -90,7 +96,7 @@ jobs:
         run: python docs/build.py --skip-mkdocs
       - name: Configure deployment identity
         run: |
-          git config user.name "Lantean Code"
+          git config user.name "lantean-code"
           git config user.email "lanteancode@gmail.com"
       - name: Publish development documentation
         run: mike deploy --config-file docs/mkdocs.yml --branch gh-pages --update-aliases dev
@@ -98,3 +104,21 @@ jobs:
         run: python docs/validate.py --deployment-version dev
       - name: Push development documentation
         run: git push origin gh-pages
+      - name: Prepare Pages deployment
+        if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        run: |
+          mkdir -p "${{ runner.temp }}/pages-site"
+          git archive gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
+      - name: Upload Pages deployment
+        if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: ${{ runner.temp }}/pages-site
+
+      - name: Configure Pages
+        if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Deploy Pages
+        if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

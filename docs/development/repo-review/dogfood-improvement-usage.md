@@ -7052,3 +7052,13 @@ The committed `HEAD` (`12aa4ad`) was published to a fresh versioned candidate an
 **Request:** Search for the exact symbol name `ToolSchemaFactory` in the `alpha-docs` workspace.
 
 **Outcome:** Succeeded and identified the production schema factory, interface and existing contract tests.
+
+### 732. `workspace-list`
+
+**Activity:** ALPHA Batch 4 review remediation.
+
+**Purpose:** Check for an available workspace before inspecting the acceptance harness's release-version assertions.
+
+**Request:** `{}`
+
+**Outcome:** Succeeded and reported no loaded workspaces. The acceptance-only correction was inspected locally.

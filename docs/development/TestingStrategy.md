@@ -136,18 +136,18 @@ Fast development loop:
 dotnet test --project <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"
 ```
 
-Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit for matching pull-request paths, every push to `main`, a weekly schedule and manual dispatch. Run the full suite before completion of behaviour-affecting work.
+Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit on a weekly schedule, by manual dispatch and during release preparation; Roslyn dependency updates should invoke the manual workflow rather than making the audit part of ordinary pull-request or push validation. Run the full suite before completion of behaviour-affecting work.
 
 Documentation-only changes do not require restore, build or test execution.
 
 ## Continuous Integration
 
-Pull-request CI separates fast coverage, component integration and published-Host acceptance:
+Pull-request CI separates routine fast coverage from explicitly requested or release-boundary validation:
 
-- the fast Ubuntu job runs Unit and Contract tests after one restore and build;
-- four Ubuntu component jobs preserve Workspace, Plugins.Core, CodeActions and Host ownership;
-- Ubuntu and Windows acceptance jobs test the explicitly published Release Host over stdio;
-- the Windows acceptance job also runs the full Workspace integration project for filesystem, durability, recovery and inter-process-lock evidence.
+- the fast Ubuntu job runs Unit and Contract tests after one restore and build for changes entering `develop`, `release/*`, `hotfix/*` or `main`;
+- applying `validation/full` to a pull request adds the four Ubuntu component-integration jobs and Ubuntu and Windows published-Host acceptance jobs;
+- pull requests targeting `main` receive that broader integration and acceptance validation without requiring the label; and
+- manually dispatched CI can run the same broader validation when evidence is needed outside a pull request.
 
 macOS is a best-effort release platform, not a pull-request gate. Do not run recurring macOS jobs while the repository is private. When public v1 release-candidate preparation begins, release-branch or manually dispatched validation should run published-Host acceptance, Workspace integration and a curated external-repository scenario subset on macOS. macOS failures inform the support statement and release decision without redefining the authoritative Windows and Linux gates.
 
@@ -157,7 +157,7 @@ The Code Action compatibility audit remains a separate workflow because it is sl
 
 ## Release validation and performance history
 
-Published-Host acceptance remains a pull-request gate on native Ubuntu and Windows. It uses small checked-in fixtures and deterministic public MCP workflows. The external-repository scenario runner is a separate release-validation system: run it only from release branches or by explicit manual dispatch, not for ordinary pull requests, pushes or recurring schedules. Once the repository is public, release validation may include a curated macOS scenario subset as best-effort evidence.
+Published-Host acceptance runs on native Ubuntu and Windows when a maintainer requests `validation/full`, when a pull request targets `main`, or as part of a manually dispatched release. It uses small checked-in fixtures and deterministic public MCP workflows. The external-repository scenario runner is a separate release-validation system: run it only from release branches or by explicit manual dispatch, not for ordinary pull requests, pushes or recurring schedules. Once the repository is public, release validation may include a curated macOS scenario subset as best-effort evidence.
 
 Scenario output has two retention levels:
 

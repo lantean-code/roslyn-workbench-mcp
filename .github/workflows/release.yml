@@ -1,0 +1,473 @@
+name: Build and publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated package and GitHub Release
+        required: true
+        default: false
+        type: boolean
+      destination:
+        description: Package destination; default follows the branch channel
+        required: true
+        default: default
+        type: choice
+        options:
+          - default
+          - github-packages
+          - nuget-org
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Build and validate release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      channel: ${{ steps.release.outputs.channel }}
+      commit: ${{ steps.release.outputs.commit }}
+      destination: ${{ steps.release.outputs.destination }}
+      full-semver: ${{ steps.release.outputs.full-semver }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      publish: ${{ steps.release.outputs.publish }}
+      release-notes-path: ${{ steps.release.outputs.release-notes-path }}
+      source-distance: ${{ steps.release.outputs.source-distance }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: docs/docs-requirements.txt
+      - name: Restore release tools
+        run: dotnet tool restore
+      - name: Calculate release identity
+        run: dotnet tool run dotnet-gitversion /output json /nonormalize /nocache > "${{ runner.temp }}/gitversion.json"
+      - name: Resolve release channel
+        id: release
+        run: >-
+          python tools/release/resolve-release.py
+          --gitversion-json "${{ runner.temp }}/gitversion.json"
+          --event-name "${{ github.event_name }}"
+          --ref "${{ github.ref }}"
+          --ref-name "${{ github.ref_name }}"
+          --ref-type "${{ github.ref_type }}"
+          --requested-destination "${{ inputs.destination }}"
+          --requested-publish "${{ inputs.publish }}"
+          --github-output "$GITHUB_OUTPUT"
+          --manifest artifacts/release/release-manifest.json
+      - name: Verify stable release source
+        if: steps.release.outputs.channel == 'stable'
+        run: |
+          if ! git merge-base --is-ancestor "${{ steps.release.outputs.commit }}" origin/main; then
+            echo "::error::The production tag must identify a commit from main."
+            exit 1
+          fi
+      - name: Configure release build identity
+        run: |
+          echo "RoslynWorkbenchReleaseBuild=true" >> "$GITHUB_ENV"
+          echo "RoslynWorkbenchVersion=${{ steps.release.outputs.version }}" >> "$GITHUB_ENV"
+          echo "RoslynWorkbenchFullSemVer=${{ steps.release.outputs.full-semver }}" >> "$GITHUB_ENV"
+          echo "RoslynWorkbenchCommitSha=${{ steps.release.outputs.commit }}" >> "$GITHUB_ENV"
+          echo "RoslynWorkbenchVersionSourceDistance=${{ steps.release.outputs.source-distance }}" >> "$GITHUB_ENV"
+          echo "RoslynWorkbenchSourceTag=${{ steps.release.outputs.version }}" >> "$GITHUB_ENV"
+      - name: Require approved release notes for publication
+        if: steps.release.outputs.publish == 'true'
+        run: test -f "${{ steps.release.outputs.release-notes-path }}"
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        env:
+          ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: dotnet build --configuration Release --no-restore
+      - name: Run unit and contract tests
+        run: >-
+          dotnet test
+          --test-modules "test/Roslyn.Workbench.Mcp.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.Test.dll;test/Roslyn.Workbench.Mcp.Workspace.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.Workspace.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.Plugins.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Analyzers.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.Plugins.Analyzers.Test.dll;test/Roslyn.Workbench.Mcp.Plugins.Core.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.Plugins.Core.Test.dll;test/Roslyn.Workbench.Mcp.CodeActions.Test/bin/Release/net10.0/Roslyn.Workbench.Mcp.CodeActions.Test.dll"
+          --root-directory .
+          --no-build --no-restore
+          --filter "Category!=Integration&Category!=Audit"
+          --report-trx
+          --results-directory TestResults/release-fast
+          --minimum-expected-tests 1732
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run Workspace integration tests
+        run: >-
+          dotnet test --project test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
+          --configuration Release --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/release-integration/workspace
+          --minimum-expected-tests 52
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run bundled Core integration tests
+        run: >-
+          dotnet test --project test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest.csproj
+          --configuration Release --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/release-integration/bundled-core
+          --minimum-expected-tests 14
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run Code Action integration tests
+        run: >-
+          dotnet test --project test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest.csproj
+          --configuration Release --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/release-integration/code-actions
+          --minimum-expected-tests 5
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run Host integration tests
+        run: >-
+          dotnet test --project test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj
+          --configuration Release --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/release-integration/host
+          --minimum-expected-tests 40
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run Code Action compatibility audit
+        run: >-
+          dotnet test --project test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
+          --configuration Release --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/release-audit
+          --minimum-expected-tests 93
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Run latest-all analysis
+        env:
+          ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: >-
+          dotnet build Roslyn.Workbench.Mcp.slnx
+          --configuration Release --no-restore
+          -p:AnalysisLevel=latest-all
+          -p:EnforceCodeStyleInBuild=true
+          -p:CodeAnalysisTreatWarningsAsErrors=false
+      - name: Install documentation dependencies
+        run: python -m pip install --requirement docs/docs-requirements.txt
+      - name: Validate immutable release documentation
+        env:
+          ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          git config user.name "lantean-code"
+          git config user.email "lanteancode@gmail.com"
+          python docs/deploy-release.py "${{ steps.release.outputs.version }}" \
+            --commit "${{ steps.release.outputs.commit }}" \
+            --full-semver "${{ steps.release.outputs.full-semver }}" \
+            --source-distance "${{ steps.release.outputs.source-distance }}" \
+            --dry-run
+      - name: Pack release
+        run: >-
+          dotnet pack src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj
+          --configuration Release --no-build --no-restore
+          --output artifacts/release/package
+      - name: Separate symbol package
+        run: |
+          mkdir -p artifacts/release/symbols
+          mv artifacts/release/package/*.snupkg artifacts/release/symbols/
+      - name: Verify clean tool installation
+        run: |
+          dotnet tool install Roslyn.Workbench.Mcp --tool-path "${{ runner.temp }}/release-tool" --source artifacts/release/package --version "${{ steps.release.outputs.version }}"
+          test "$("${{ runner.temp }}/release-tool/roslyn-workbench-mcp" --version)" = "${{ steps.release.outputs.version }}"
+      - name: Prepare release evidence
+        run: |
+          sha256sum artifacts/release/package/*.nupkg artifacts/release/symbols/*.snupkg > artifacts/release/checksums.sha256
+          if [ -f "${{ steps.release.outputs.release-notes-path }}" ]; then
+            cp "${{ steps.release.outputs.release-notes-path }}" artifacts/release/RELEASE_NOTES.md
+          fi
+      - name: Upload release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ steps.release.outputs.version }}
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload release test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-test-results-${{ steps.release.outputs.version || github.run_id }}
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
+
+  acceptance:
+    name: Release acceptance (${{ matrix.os }})
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    env:
+      RoslynWorkbenchReleaseBuild: true
+      RoslynWorkbenchVersion: ${{ needs.prepare.outputs.version }}
+      RoslynWorkbenchFullSemVer: ${{ needs.prepare.outputs.full-semver }}
+      RoslynWorkbenchCommitSha: ${{ needs.prepare.outputs.commit }}
+      RoslynWorkbenchVersionSourceDistance: ${{ needs.prepare.outputs.source-distance }}
+      RoslynWorkbenchSourceTag: ${{ needs.prepare.outputs.version }}
+      ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT: true
+      ROSLYN_WORKBENCH_MCP_ACCEPTANCE_EXPECTED_VERSION: ${{ needs.prepare.outputs.version }}
+      ROSLYN_WORKBENCH_SENTRY_DSN: ""
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
+          path: artifacts/release
+      - name: Install release candidate
+        shell: pwsh
+        run: |
+          $toolPath = Join-Path $env:RUNNER_TEMP 'release-tool'
+          dotnet tool install Roslyn.Workbench.Mcp --tool-path $toolPath --source artifacts/release/package --version "${{ needs.prepare.outputs.version }}"
+          $executableName = if ($IsWindows) { 'roslyn-workbench-mcp.exe' } else { 'roslyn-workbench-mcp' }
+          $executablePath = Join-Path $toolPath $executableName
+          "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=$executablePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Restore
+        run: dotnet restore test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj
+      - name: Build acceptance harness
+        run: dotnet build test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj --configuration Release --no-restore
+      - name: Test published Host on Linux
+        if: runner.os == 'Linux'
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+        run: >-
+          bash ./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.sh
+          --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/acceptance
+          --minimum-expected-tests 41
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Test published Host on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+        run: >-
+          ./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.ps1
+          --no-build --no-restore
+          --report-trx
+          --results-directory TestResults/acceptance
+          --minimum-expected-tests 41
+          --hangdump --hangdump-timeout 5m --hangdump-type None
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-acceptance-${{ matrix.os }}
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
+      - name: Upload failed acceptance diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-acceptance-diagnostics-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
+            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime
+          if-no-files-found: ignore
+          retention-days: 30
+
+  publish-documentation:
+    if: needs.prepare.outputs.publish == 'true'
+    name: Publish versioned documentation
+    needs:
+      - prepare
+      - acceptance
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    concurrency:
+      group: documentation-publication
+      cancel-in-progress: false
+    steps:
+      - name: Require an active Pages deployment
+        run: test "${{ vars.PAGES_DEPLOYMENT_ENABLED }}" = "true"
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: docs/docs-requirements.txt
+      - name: Install documentation dependencies
+        run: python -m pip install --requirement docs/docs-requirements.txt
+      - name: Configure deployment identity
+        run: |
+          git config user.name "lantean-code"
+          git config user.email "lanteancode@gmail.com"
+      - name: Publish immutable release documentation
+        run: >-
+          python docs/deploy-release.py "${{ needs.prepare.outputs.version }}"
+          --commit "${{ needs.prepare.outputs.commit }}"
+          --full-semver "${{ needs.prepare.outputs.full-semver }}"
+          --source-distance "${{ needs.prepare.outputs.source-distance }}"
+      - name: Prepare Pages deployment
+        run: |
+          mkdir -p "${{ runner.temp }}/pages-site"
+          git archive gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
+      - name: Upload Pages deployment
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: ${{ runner.temp }}/pages-site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+
+  publish-github-packages:
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.destination == 'github-packages'
+    name: Publish to GitHub Packages
+    needs:
+      - prepare
+      - acceptance
+      - publish-documentation
+    runs-on: ubuntu-latest
+    environment: github-packages
+    env:
+      GH_REPO: ${{ github.repository }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: "10.0.400"
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
+          path: artifacts/release
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ needs.prepare.outputs.version }}"
+          --draft
+          --target "${{ needs.prepare.outputs.commit }}"
+          --title "${{ needs.prepare.outputs.version }}"
+          --notes-file artifacts/release/RELEASE_NOTES.md
+      - name: Publish package
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          dotnet nuget push artifacts/release/package/*.nupkg
+          --api-key "$GITHUB_TOKEN"
+          --source https://nuget.pkg.github.com/lantean-code/index.json
+      - name: Attach release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/package/*.nupkg
+          artifacts/release/symbols/*.snupkg
+          artifacts/release/checksums.sha256
+          artifacts/release/release-manifest.json
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --prerelease
+
+  publish-nuget:
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.destination == 'nuget-org'
+    name: Publish to NuGet.org
+    needs:
+      - prepare
+      - acceptance
+      - publish-documentation
+    runs-on: ubuntu-latest
+    environment: nuget-org
+    env:
+      GH_REPO: ${{ github.repository }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Set up .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: "10.0.400"
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
+          path: artifacts/release
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ needs.prepare.outputs.version }}"
+          --draft
+          --target "${{ needs.prepare.outputs.commit }}"
+          --title "${{ needs.prepare.outputs.version }}"
+          --notes-file artifacts/release/RELEASE_NOTES.md
+      - name: Obtain temporary NuGet.org API key
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Publish package and symbols
+        run: |
+          cp artifacts/release/symbols/*.snupkg artifacts/release/package/
+          dotnet nuget push artifacts/release/package/*.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
+      - name: Attach release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/package/*.nupkg
+          artifacts/release/symbols/*.snupkg
+          artifacts/release/checksums.sha256
+          artifacts/release/release-manifest.json
+      - name: Publish GitHub prerelease
+        if: needs.prepare.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --prerelease
+      - name: Publish stable GitHub Release
+        if: needs.prepare.outputs.prerelease == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.prepare.outputs.version }}" --draft=false --latest

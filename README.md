@@ -11,12 +11,12 @@ It provides persistent multi-workspace sessions, semantic queries for symbols an
 
 ## Install
 
-Roslyn Workbench is distributed as the `Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. The 0.1.0 beta is distributed through [NuGet.org](https://www.nuget.org/packages/Roslyn.Workbench.Mcp). Other engineering prereleases may use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages); consult the notes for the selected release.
+Roslyn Workbench is distributed as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. The 0.1.0 beta is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp). Other engineering prereleases may use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages); consult the notes for the selected release.
 
 For a package published to NuGet.org:
 
 ```bash
-dotnet tool install --global Roslyn.Workbench.Mcp --prerelease
+dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --prerelease
 ```
 
 See the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) for installation and MCP client configuration.
@@ -61,6 +61,6 @@ The existing plugin runtime remains available to source consumers, but the Plugi
 - [Documentation](https://lantean-code.github.io/roslyn-workbench-mcp/)
 - [Releases](https://github.com/lantean-code/roslyn-workbench-mcp/releases)
 - [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages)
-- [NuGet package](https://www.nuget.org/packages/Roslyn.Workbench.Mcp)
+- [NuGet package](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp)
 
 Roslyn Workbench MCP is licensed under the [MIT License](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/LICENSE).

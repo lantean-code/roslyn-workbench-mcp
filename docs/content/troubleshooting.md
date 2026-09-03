@@ -27,7 +27,7 @@ Before upgrading, finish or discard active transactions, stop the MCP server and
 To remove the installed tool:
 
 ```bash
-dotnet tool uninstall --global Roslyn.Workbench.Mcp
+dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp
 ```
 
 Remove its MCP client configuration as well. Uninstalling the tool does not remove your source repositories or the separately stored Host state. Keep any unresolved recovery data until the affected Workspace has been safely recovered. Once all recovery is resolved and no server instance is running, the configured state directory can be removed deliberately if no longer needed. Source-build users can remove their chosen publish directory after stopping the process.

@@ -12,13 +12,13 @@ This document records the product naming and package identities used or intended
 | Unqualified package name | `roslyn-workbench-mcp` |
 | Repository name | `roslyn-workbench-mcp` |
 
-Keep the product and command names consistent across distributions. Package identifiers follow the target ecosystem's rules and conventions; they do not need to be identical to the command or the .NET assembly name. Preserve the existing NuGet identity rather than renaming it to match another distribution.
+Keep the product and command names consistent across distributions. Package identifiers follow the target ecosystem's rules and conventions; they do not need to be identical to the command or the .NET assembly name. The NuGet package uses the publisher-qualified `Lantean` prefix without changing the product, command, assembly or namespace identities.
 
 ## Distribution mapping
 
 | Target | Package identity or name | Implementation status |
 | --- | --- | --- |
-| .NET tool through NuGet.org or GitHub Packages | `Roslyn.Workbench.Mcp` | Existing Host package identity; the feed does not change the package ID. Publication to a feed is separate from building the package. |
+| .NET tool through NuGet.org or GitHub Packages | `Lantean.Roslyn.Workbench.Mcp` | Publisher-qualified Host package identity; the feed does not change the package ID. Publication to a feed is separate from building the package. |
 | Direct Windows MSI download | Display name `Roslyn Workbench MCP`; UpgradeCode `9E24290F-26A2-4CB8-A23B-D802E5C2CCFA` | [WiX packaging](../../packaging/windows/README.md) and opt-in release workflow implemented. Currently unsigned. ProductCode and PackageCode vary per build; UpgradeCode identifies the product family. |
 | Windows MSIX development package | `LanteanCode.RoslynWorkbenchMcp.Development` | [MSIX packaging](../../packaging/windows/msix/README.md) and opt-in release workflow implemented. Unsigned development artefact; not an installable public distribution. |
 | Microsoft Store | Use the exact package identity and publisher supplied by Partner Center | Deferred. The development MSIX identity is not a reserved Store identity. |
@@ -32,7 +32,7 @@ Unimplemented public package IDs still need availability and repository-policy c
 
 ## Target-specific formats
 
-- NuGet IDs are case-insensitive and conventionally dotted. Keep `Roslyn.Workbench.Mcp` for both package feeds; the installed command remains `roslyn-workbench-mcp`. See the [NuGet ID reference](https://learn.microsoft.com/en-us/nuget/reference/nuspec#id).
+- NuGet IDs are case-insensitive and conventionally dotted. Keep `Lantean.Roslyn.Workbench.Mcp` for both package feeds; `Lantean` identifies the publisher while the installed command remains `roslyn-workbench-mcp`. See the [NuGet ID reference](https://learn.microsoft.com/en-us/nuget/reference/nuspec#id).
 - WinGet uses a publisher-qualified `Publisher.Package` identifier. `LanteanCode.RoslynWorkbenchMcp` identifies the publisher without changing the displayed product name. See [WinGet manifests](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest).
 - Debian package names allow lowercase letters, digits, plus signs, hyphens and periods; they must start with an alphanumeric character and contain at least two characters. `roslyn-workbench-mcp` follows these rules. See [Debian package naming](https://www.debian.org/doc/debian-policy/ch-controlfields.html#source).
 - RPM supports the selected hyphenated package name. Distribution-specific repository requirements still apply. See the [RPM specification format](https://rpm.org/docs/4.20.x/manual/spec.html).

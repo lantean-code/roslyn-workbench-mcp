@@ -214,7 +214,7 @@ jobs:
           mv artifacts/release/package/*.snupkg artifacts/release/symbols/
       - name: Verify clean tool installation
         run: |
-          dotnet tool install Roslyn.Workbench.Mcp --tool-path "${{ runner.temp }}/release-tool" --source artifacts/release/package --version "${{ steps.release.outputs.version }}"
+          dotnet tool install Lantean.Roslyn.Workbench.Mcp --tool-path "${{ runner.temp }}/release-tool" --source artifacts/release/package --version "${{ steps.release.outputs.version }}"
           test "$("${{ runner.temp }}/release-tool/roslyn-workbench-mcp" --version)" = "${{ steps.release.outputs.version }}"
       - name: Prepare release evidence
         run: |
@@ -274,7 +274,7 @@ jobs:
         shell: pwsh
         run: |
           $toolPath = Join-Path $env:RUNNER_TEMP 'release-tool'
-          dotnet tool install Roslyn.Workbench.Mcp --tool-path $toolPath --source artifacts/release/package --version "${{ needs.prepare.outputs.version }}"
+          dotnet tool install Lantean.Roslyn.Workbench.Mcp --tool-path $toolPath --source artifacts/release/package --version "${{ needs.prepare.outputs.version }}"
           $executableName = if ($IsWindows) { 'roslyn-workbench-mcp.exe' } else { 'roslyn-workbench-mcp' }
           $executablePath = Join-Path $toolPath $executableName
           "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=$executablePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append

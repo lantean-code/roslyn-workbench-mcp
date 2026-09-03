@@ -15,7 +15,7 @@ Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are avail
 Install Roslyn Workbench from NuGet.org as a global .NET tool:
 
 ```bash
-dotnet tool install --global Roslyn.Workbench.Mcp
+dotnet tool install --global Lantean.Roslyn.Workbench.Mcp
 ```
 
 Verify the installed command:

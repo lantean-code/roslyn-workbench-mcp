@@ -7,7 +7,7 @@
     <Product>Roslyn Workbench MCP</Product>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>roslyn-workbench-mcp</ToolCommandName>
-    <PackageId>Roslyn.Workbench.Mcp</PackageId>
+    <PackageId>Lantean.Roslyn.Workbench.Mcp</PackageId>
     <Title>Roslyn Workbench MCP</Title>
     <Description>A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.</Description>
     <Authors>Lantean Code</Authors>

@@ -41,7 +41,7 @@ public sealed class HostArchitectureTests
         {
             ["PackAsTool"] = "true",
             ["ToolCommandName"] = "roslyn-workbench-mcp",
-            ["PackageId"] = "Roslyn.Workbench.Mcp",
+            ["PackageId"] = "Lantean.Roslyn.Workbench.Mcp",
             ["AssemblyTitle"] = "Roslyn Workbench MCP",
             ["Product"] = "Roslyn Workbench MCP",
             ["Title"] = "Roslyn Workbench MCP",

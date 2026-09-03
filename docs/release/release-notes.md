@@ -21,11 +21,13 @@ Only open fully trusted repositories. MSBuild evaluation, project analysers and 
 The 0.1.0 beta is distributed through NuGet.org; GitHub Packages credentials are not required.
 
 ```bash
-dotnet tool install --global Roslyn.Workbench.Mcp --version {{VERSION}}
+dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --version {{VERSION}}
 roslyn-workbench-mcp --version
 ```
 
-For an existing installation, use `dotnet tool update --global Roslyn.Workbench.Mcp --version {{VERSION}}`. The reported version must match the release.
+For an existing installation, use `dotnet tool update --global Lantean.Roslyn.Workbench.Mcp --version {{VERSION}}`. The reported version must match the release.
+
+Earlier engineering prereleases used the package ID `Roslyn.Workbench.Mcp`. NuGet treats the publisher-qualified ID as a different tool, so uninstall that earlier package before installing `Lantean.Roslyn.Workbench.Mcp`. The `roslyn-workbench-mcp` command remains unchanged.
 
 ## Connect and evaluate
 
@@ -45,6 +47,6 @@ Client support and approval policy determine whether optional elicitation prompt
 
 Use [Issues](https://github.com/lantean-code/roslyn-workbench-mcp/issues) for reproducible defects and documentation problems, [Q&A](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a) for help, and [Ideas](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas) for exploratory proposals. Follow the [security policy](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SECURITY.md) for private vulnerability reports. Include version, platform and redacted reproduction details, not private source or credentials.
 
-Remove the client's server entry, stop the process and run `dotnet tool uninstall --global Roslyn.Workbench.Mcp`. Keep unresolved recovery state until recovery is understood; see [troubleshooting and removal](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/troubleshooting.html).
+Remove the client's server entry, stop the process and run `dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp`. Keep unresolved recovery state until recovery is understood; see [troubleshooting and removal](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/troubleshooting.html).
 
 The package is MIT-licensed. Release assets include symbols, checksums, source identity and a coverage snapshot. Performance comparisons are advisory and are included only when comparable manual evidence exists.

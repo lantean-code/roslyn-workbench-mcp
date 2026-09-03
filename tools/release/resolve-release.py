@@ -172,7 +172,7 @@ def write_manifest(
 ) -> None:
     manifest = {
         "schemaVersion": 1,
-        "packageId": "Roslyn.Workbench.Mcp",
+        "packageId": "Lantean.Roslyn.Workbench.Mcp",
         "version": version,
         "fullSemVer": full_semver,
         "commit": commit,

@@ -70,7 +70,7 @@ Only production releases create or update `/latest/`, and the site root redirect
 
 ## Publication authority
 
-GitHub Packages uses the publication job's scoped `GITHUB_TOKEN`. NuGet.org uses OIDC trusted publishing with repository owner `lantean-code`, repository `roslyn-workbench-mcp`, workflow `release.yml`, environment `nuget-org` and the exact package pattern `Roslyn.Workbench.Mcp`. `NUGET_USER` is an environment secret containing the NuGet account name. Check any temporary policy activation window before first publication. Do not silently fall back to a persistent API key or switch destination after a failure.
+GitHub Packages uses the publication job's scoped `GITHUB_TOKEN`. NuGet.org uses OIDC trusted publishing through the `Lantean` NuGet organisation, with repository owner `lantean-code`, repository `roslyn-workbench-mcp`, workflow `release.yml`, environment `nuget-org` and the exact package pattern `Lantean.Roslyn.Workbench.Mcp`. `NUGET_USER` is an environment secret containing `Lantean`. Check any temporary policy activation window before first publication. Do not silently fall back to a persistent API key or switch destination after a failure.
 
 The `github-pages`, `github-packages` and `nuget-org` environments do not add another required-review prompt. Publication jobs alone receive the required write or OIDC permissions. Selecting `publish=true` authorises package and documentation publication, but only creates and populates a draft GitHub Release. Verify first-use authentication during an explicitly approved publication if there is no harmless authentication-only check.
 

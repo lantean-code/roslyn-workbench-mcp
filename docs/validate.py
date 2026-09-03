@@ -233,6 +233,11 @@ def validate_site(site_directory: Path, deployment_version: str | None) -> set[s
             raise ValueError(f"'{html_file}' must contain a title and exactly one h1.")
         if not page.documentation_version or page.visible_documentation_version != page.documentation_version:
             raise ValueError(f"'{html_file}' must identify its documentation version visibly and in metadata.")
+        if deployment_version is not None and page.documentation_version != deployment_version:
+            raise ValueError(
+                f"'{html_file}' identifies documentation version '{page.documentation_version}', "
+                f"but deployment requires '{deployment_version}'."
+            )
         if page.images_without_alt:
             raise ValueError(f"'{html_file}' contains images without alternative text.")
         if page.external_resources:

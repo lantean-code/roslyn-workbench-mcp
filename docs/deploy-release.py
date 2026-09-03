@@ -142,6 +142,7 @@ def create_release_environment(
     environment = os.environ.copy()
     environment.update(
         {
+            "MIKE_DOCS_VERSION": source_tag,
             "RoslynWorkbenchReleaseBuild": "true",
             "RoslynWorkbenchVersion": source_tag,
             "RoslynWorkbenchFullSemVer": full_semver,

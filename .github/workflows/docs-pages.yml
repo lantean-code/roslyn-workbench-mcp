@@ -89,6 +89,8 @@ jobs:
           git config user.name "lantean-code"
           git config user.email "lanteancode@gmail.com"
       - name: Publish development documentation
+        env:
+          MIKE_DOCS_VERSION: dev
         run: mike deploy --config-file docs/mkdocs.yml --branch gh-pages --update-aliases dev
       - name: Validate versioned development documentation
         run: python docs/validate.py --deployment-version dev

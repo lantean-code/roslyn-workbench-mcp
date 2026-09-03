@@ -34,6 +34,20 @@ Configure any MCP client capable of launching a local stdio process to run:
 
 Beta support covers Windows x64, Linux x64 and WSL2 x64. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; optional capabilities such as elicitation depend on the client and its policy.
 
+## Improve agent tool selection
+
+Connecting Roslyn Workbench makes its tools available, but an MCP client may not select them automatically when ordinary file and text-search tools can also attempt the task. Short repository instructions can tell an agent when compiler-aware tooling is the better choice without forcing it into every C# workflow.
+
+Add this basic instruction to the user-level guidance used by your agent, or to repository guidance when it should apply only to a particular codebase:
+
+```markdown
+## Roslyn Workbench
+
+When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
+```
+
+The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) explains user-level and repository-level setup for Codex, Claude Code and other MCP clients. User-level guidance avoids repeating the instruction when Roslyn Workbench is available across repositories, while repository guidance can provide a more specific layer for an individual codebase.
+
 ## Trust and transaction safety
 
 Open only workspaces you trust. Loading a workspace evaluates MSBuild project logic and later operations can load project analyzers with the Host process's operating-system permissions. Third-party plugins also execute as trusted in-process code and are not sandboxed.

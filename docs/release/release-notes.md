@@ -4,11 +4,11 @@ Roslyn Workbench MCP is a local stdio server for Roslyn-powered C# inspection an
 
 ## What is included
 
-- Persistent Workspace sessions and semantic inspection of symbols, references, diagnostics, code structure and change impact.
+- Multiple long-lived Workspace sessions and semantic inspection of symbols, references, diagnostics, code structure and change impact.
 - Bounded results with snapshot-aware selectors and a versioned tool reference for deeper guidance.
-- Mutation staging, previews, undo/redo, rollback, explicit commit, conflict detection and durable recovery.
+- Mutation staging, previews, undo/redo, rollback, explicit commit, conflict detection and durable transaction recovery.
 - Roslyn Code Action discovery, Fix All preparation and staging through the same transaction boundary.
-- Local correlated diagnostics and an explicit, user-consented reporting workflow.
+- Local correlated diagnostics and an explicit, consent-controlled error-reporting workflow.
 
 ## Requirements and support
 
@@ -35,18 +35,21 @@ Configure the MCP client to launch `roslyn-workbench-mcp`. See the release's [ge
 
 Client support and approval policy determine whether optional elicitation prompts appear. If reporting is blocked, no error report is sent. Review prepared payloads carefully: exception messages may contain source text, paths, identifiers or secrets. Choose the option without exception messages when needed.
 
-## Known limitations
+## Not included in this release
 
-- This is not a compatibility-stable release. Handles, error records and Code Action references are process-local and expire; restart requires rediscovery.
-- Only supported SDK-style C# projects participate in queries. Unsupported projects may be skipped; evaluated external documents are read-only and generated/non-addressable source is excluded.
-- Concurrent query support does not permit concurrent mutation of the same transaction. One Workspace owns the process's active transaction slot.
-- The Plugins NuGet package, supported plugin-authoring documentation, curated plugin repository and native installers are deferred. Trusted source-built plugins still work in the existing runtime.
-- External pull requests are not accepted before v1 preparation. There is no release-cadence guarantee.
+- The Plugins NuGet package, supported plugin-authoring documentation and curated plugin repository are not included. Trusted source-built plugins still work in the existing runtime.
+- Native installation packages are not included; install this beta as a .NET tool.
 
-## Feedback and removal
+## Feedback
 
-Use [Issues](https://github.com/lantean-code/roslyn-workbench-mcp/issues) for reproducible defects and documentation problems, [Q&A](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a) for help, and [Ideas](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas) for exploratory proposals. Follow the [security policy](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SECURITY.md) for private vulnerability reports. Include version, platform and redacted reproduction details, not private source or credentials.
+Use [Issues](https://github.com/lantean-code/roslyn-workbench-mcp/issues) for reproducible defects and documentation problems, [Q&A](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a) for help, and [Ideas](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas) for exploratory proposals. Follow the [security policy](https://github.com/lantean-code/roslyn-workbench-mcp/security/policy) for private vulnerability reports. Include version, platform and redacted reproduction details, not private source or credentials.
+
+External pull requests are not accepted before v1 preparation. Issues, Discussions, private security reports and other feedback remain welcome.
+
+## Uninstall
 
 Remove the client's server entry, stop the process and run `dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp`. Keep unresolved recovery state until recovery is understood; see [troubleshooting and removal](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/troubleshooting.html).
 
-The package is MIT-licensed. Release assets include symbols, checksums, source identity and a coverage snapshot. Performance comparisons are advisory and are included only when comparable manual evidence exists.
+## Licence and release evidence
+
+The package is MIT-licensed. Release assets include symbols, checksums, source identity and a coverage snapshot.

@@ -66,6 +66,7 @@ nav:
   - Getting started:
       - Connect a client: getting-started.md
       - Configuration: configuration.md
+      - Agent setup: agent-setup.md
       - Troubleshooting and removal: troubleshooting.md
   - Using Roslyn Workbench:
       - Tool discovery and results: tool-discovery.md

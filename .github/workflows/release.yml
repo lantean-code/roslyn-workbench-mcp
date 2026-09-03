@@ -13,6 +13,11 @@ on:
         required: true
         default: false
         type: boolean
+      build-msix:
+        description: Build the unsigned Windows MSIX; upload run artefacts and include it in the draft when publishing
+        required: true
+        default: false
+        type: boolean
       destination:
         description: Package destination; default follows the branch channel
         required: true
@@ -334,6 +339,27 @@ jobs:
           path: artifacts/installer/release/msi/validation-*/*.log
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
+      - name: Build unsigned Windows MSIX
+        if: runner.os == 'Windows' && inputs.build-msix
+        shell: pwsh
+        env:
+          ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        # The hosted Windows image supplies this SDK and Visual Studio MSIX tooling.
+        # The script verifies every packaged Host file; unsigned packages are not installed.
+        run: >-
+          ./packaging/windows/build-msix.ps1
+          -OutputDirectory artifacts/msix/release
+          -WindowsSdkVersion 10.0.26100.0
+      - name: Upload Windows MSIX
+        if: runner.os == 'Windows' && inputs.build-msix
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msix
+          path: |
+            artifacts/msix/release/*.msix
+            artifacts/msix/release/*.msix.sha256
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload failed acceptance diagnostics
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -456,6 +482,16 @@ jobs:
         if: inputs.build-msi
         working-directory: artifacts/release/installer
         run: sha256sum --check *.msi.sha256
+      - name: Download Windows MSIX
+        if: inputs.build-msix
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msix
+          path: artifacts/release/msix
+      - name: Verify Windows MSIX checksum
+        if: inputs.build-msix
+        working-directory: artifacts/release/msix
+        run: sha256sum --check *.msix.sha256
       - name: Publish package
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -482,6 +518,15 @@ jobs:
           gh release upload "${{ needs.prepare.outputs.version }}"
           artifacts/release/installer/*.msi
           artifacts/release/installer/*.msi.sha256
+
+      - name: Attach Windows MSIX
+        if: inputs.build-msix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/msix/*.msix
+          artifacts/release/msix/*.msix.sha256
 
   publish-nuget:
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.destination == 'nuget-org'
@@ -537,6 +582,16 @@ jobs:
         if: inputs.build-msi
         working-directory: artifacts/release/installer
         run: sha256sum --check *.msi.sha256
+      - name: Download Windows MSIX
+        if: inputs.build-msix
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msix
+          path: artifacts/release/msix
+      - name: Verify Windows MSIX checksum
+        if: inputs.build-msix
+        working-directory: artifacts/release/msix
+        run: sha256sum --check *.msix.sha256
       - name: Publish package and symbols
         run: |
           cp artifacts/release/symbols/*.snupkg artifacts/release/package/
@@ -560,3 +615,11 @@ jobs:
           gh release upload "${{ needs.prepare.outputs.version }}"
           artifacts/release/installer/*.msi
           artifacts/release/installer/*.msi.sha256
+      - name: Attach Windows MSIX
+        if: inputs.build-msix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/msix/*.msix
+          artifacts/release/msix/*.msix.sha256

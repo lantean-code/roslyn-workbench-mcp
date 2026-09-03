@@ -15,9 +15,19 @@ Run from the repository root in Windows PowerShell 7:
 
 The script discovers Visual Studio MSBuild, publishes the Windows Host, and builds the package using the checked-in artwork. It supplies the packaging project's external payload and generated manifest; direct project builds need those inputs too. `-MSBuildPath` can select a particular Visual Studio installation and `-WindowsSdkVersion` can select another installed compatible SDK. The .NET CLI's MSBuild cannot replace Visual Studio MSBuild for this project.
 
-Each run creates a unique directory under `artifacts/msix`, containing the published Host, packaging intermediates, final `.msix` and adjacent SHA-256 checksum. `-OutputDirectory` can select another new directory; an existing directory is rejected, never cleared. Local builds default to `0.0.0-dev` and do not run GitVersion. GitHub workflows do not build or publish MSIX packages yet.
+Each run creates a unique directory under `artifacts/msix`, containing the published Host, packaging intermediates, final `.msix` and adjacent SHA-256 checksum. `-OutputDirectory` can select another new directory; an existing directory is rejected, never cleared. Local builds default to `0.0.0-dev` and do not run GitVersion.
 
 The package includes the Host apphost, DLLs, bundled plugins, satellite assemblies, portable PDBs, notices and MIT licence. Windows generates a Package Resource Index (PRI) for the qualified artwork. The Host content is marked `ExcludeFromResourceIndex` because .NET resolves its own satellite assemblies; this does not exclude those files from the package. The build verifies every published Host file against its packaged copy. It does not install the package, change PATH, create or trust a certificate, or submit anything to Microsoft Store.
+
+## GitHub Actions
+
+The manual **Build and publish release** workflow has an unchecked **Build MSIX** (`build-msix`) option, independent of **Build MSI**. It works for each supported release channel and is not enabled automatically for production builds, pushes or pull requests.
+
+When selected, the Windows acceptance job builds the unsigned package after its published-Host tests succeed, using the same release version, source commit and build-time Sentry configuration. The workflow explicitly selects Windows SDK `10.0.26100.0`, supplied alongside Visual Studio MSIX Packaging Tools by the hosted Windows image; the local script's `10.0.28000.0` default is unchanged. Package payload verification must succeed before upload. This checks the package contents, not installed MSIX behaviour; the job does not sign, trust or install it.
+
+The package and checksum are retained for 14 days in the `roslyn-workbench-mcp-VERSION-win-x64-msix` workflow artefact. With **Publish** enabled, either package destination also verifies the downloaded checksum and attaches those files to the draft GitHub Release. The maintainer still publishes the draft manually. With **Publish** disabled, the files remain workflow artefacts only. Intermediate files and the uncompressed Host payload are not uploaded.
+
+These are unsigned development artefacts, not installable public downloads or Store submissions. Store identity, signing, runtime prerequisite handling and installed compatibility remain separate work.
 
 ## Manifest authoring
 

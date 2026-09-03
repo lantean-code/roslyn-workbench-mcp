@@ -357,7 +357,7 @@ jobs:
       - name: Prepare Pages deployment
         run: |
           mkdir -p "${{ runner.temp }}/pages-site"
-          git archive gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
+          git archive refs/remotes/origin/gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
       - name: Upload Pages deployment
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
@@ -384,6 +384,12 @@ jobs:
       contents: write
       packages: write
     steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
       - name: Set up .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
@@ -393,15 +399,14 @@ jobs:
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
           path: artifacts/release
-      - name: Create draft GitHub Release
+      - name: Create or reuse draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "${{ needs.prepare.outputs.version }}"
-          --draft
-          --prerelease=${{ needs.prepare.outputs.prerelease }}
-          --target "${{ needs.prepare.outputs.commit }}"
-          --title "${{ needs.prepare.outputs.version }}"
+          python tools/release/ensure-draft-release.py
+          --version "${{ needs.prepare.outputs.version }}"
+          --commit "${{ needs.prepare.outputs.commit }}"
+          --prerelease "${{ needs.prepare.outputs.prerelease }}"
           --notes-file artifacts/release/RELEASE_NOTES.md
       - name: Publish package
         env:
@@ -437,6 +442,12 @@ jobs:
       contents: write
       id-token: write
     steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
       - name: Set up .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
@@ -446,15 +457,14 @@ jobs:
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
           path: artifacts/release
-      - name: Create draft GitHub Release
+      - name: Create or reuse draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "${{ needs.prepare.outputs.version }}"
-          --draft
-          --prerelease=${{ needs.prepare.outputs.prerelease }}
-          --target "${{ needs.prepare.outputs.commit }}"
-          --title "${{ needs.prepare.outputs.version }}"
+          python tools/release/ensure-draft-release.py
+          --version "${{ needs.prepare.outputs.version }}"
+          --commit "${{ needs.prepare.outputs.commit }}"
+          --prerelease "${{ needs.prepare.outputs.prerelease }}"
           --notes-file artifacts/release/RELEASE_NOTES.md
       - name: Obtain temporary NuGet.org API key
         id: nuget-login

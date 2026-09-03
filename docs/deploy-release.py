@@ -35,7 +35,10 @@ def main() -> int:
     )
 
     published_versions = load_published_versions(repository_root)
-    ensure_unpublished(arguments.source_tag, published_versions)
+    if arguments.source_tag in published_versions:
+        validate_published_identity(repository_root, arguments.source_tag, commit)
+        print(f"Documentation version '{arguments.source_tag}' already matches this release; leaving it unchanged.")
+        return 0
 
     subprocess.run(
         [sys.executable, str(docs_directory / "build.py"), "--configuration", "Release", "--skip-mkdocs"],
@@ -182,9 +185,13 @@ def load_published_versions(repository_root: Path) -> set[str]:
     return versions
 
 
-def ensure_unpublished(source_tag: str, published_versions: set[str]) -> None:
-    if source_tag in published_versions:
-        raise ValueError(f"Documentation version '{source_tag}' already exists and will not be overwritten.")
+def validate_published_identity(repository_root: Path, source_tag: str, commit: str) -> None:
+    # Read the fetched version, not generated files or a possibly stale local branch.
+    catalog_text = run_output(
+        ["git", "show", f"refs/remotes/origin/gh-pages:{source_tag}/reference/tools/catalog.json"],
+        repository_root,
+    )
+    validate_catalog_identity(json.loads(catalog_text), source_tag, commit)
 
 
 def validate_generated_identity(
@@ -195,6 +202,12 @@ def validate_generated_identity(
     with catalog_file.open(encoding="utf-8") as stream:
         catalog = json.load(stream)
 
+    validate_catalog_identity(catalog, source_tag, commit)
+
+
+def validate_catalog_identity(catalog: object, source_tag: str, commit: str) -> None:
+    if not isinstance(catalog, dict):
+        raise ValueError("The documentation catalogue must be a JSON object.")
     expected = {
         "sourceTag": source_tag,
         "productVersion": source_tag,
@@ -202,7 +215,7 @@ def validate_generated_identity(
     }
     actual = {name: catalog.get(name) for name in expected}
     if actual != expected:
-        raise ValueError(f"Generated documentation identity {actual!r} does not match release identity {expected!r}.")
+        raise ValueError(f"Documentation identity {actual!r} does not match release identity {expected!r}.")
 
 
 def resolve_mike() -> str:

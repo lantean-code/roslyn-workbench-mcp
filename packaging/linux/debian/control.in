@@ -1,0 +1,14 @@
+Package: roslyn-workbench-mcp
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: amd64
+Maintainer: Lantean Code <lanteancode@gmail.com>
+Installed-Size: @INSTALLED_SIZE@
+Depends: dotnet-runtime-10.0 (>= 10.0.0)
+Homepage: https://lantean-code.github.io/roslyn-workbench-mcp/
+Description: Roslyn-powered MCP server for C# analysis and refactoring
+ Local stdio MCP server providing compiler-aware code inspection and
+ transactional refactoring. Includes the bundled first-party plugins.
+ A compatible .NET SDK and MSBuild are needed for workspace operations;
+ the server reports their availability. Configure your MCP client separately.

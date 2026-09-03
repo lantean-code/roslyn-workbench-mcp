@@ -44,6 +44,12 @@ Select **Build MSI** (`build-msi=true`) when manually dispatching `release.yml` 
 
 The MSI and its adjacent SHA-256 checksum are retained as a separate workflow artefact for 14 days. Selecting **Publish** also attaches those exact files to the draft GitHub Release for either package destination. With publication disabled, they remain workflow artefacts only. The draft still needs manual publication, and the MSI remains unsigned: verify the installer-specific scenarios and Windows download behaviour before public distribution. Do not assume every release includes an MSI merely because its NuGet package was published.
 
+## Linux Debian builds
+
+The [Linux packaging scripts](../../packaging/linux/README.md) build an `amd64` `.deb` for direct GitHub downloads. Select the unchecked **Build DEB** option to build, inspect and exercise APT installation, reinstallation and removal on the hosted Linux runner. It uses the same release identity and Sentry build configuration as the other packages. APT resolves the declared .NET 10 runtime dependency from configured feeds; the package adds no feeds or prerequisite download scripts.
+
+Successful packages and adjacent checksums are retained for 14 days. **Publish** also attaches them to the draft GitHub Release for either NuGet destination after checksum verification. This does not publish an APT repository or submit to a distro archive. The [distribution identity guide](distribution.md) records the package name and Debian prerelease mapping. Validation on other distro releases and upgrades from an earlier package remain distinct from the hosted reinstallation check.
+
 ## Notes and documentation
 
 Maintain the next release's wording in [release-notes.md](../release/release-notes.md), independently of the eventual tag. The release workflow replaces `{{VERSION}}` and `{{DOCS_VERSION}}` with GitVersion's exact `SemVer`, produces `RELEASE_NOTES.md` for GitHub and renders the same notes into the immutable documentation version. No version-named source file or follow-up commit is needed. Local/development documentation shows an explicitly unpublished preview. Approve the wording and check that its release line, channel and installation destination match the selected build before publication. Update this template for each subsequent release; the GitHub Release and versioned documentation retain previous notes.

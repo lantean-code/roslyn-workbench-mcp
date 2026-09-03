@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+         xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap uap5 desktop4 rescap">
+  <!-- Development identity only. Partner Center must supply the Store identity. -->
+  <Identity Name="LanteanCode.RoslynWorkbenchMcp.Development" Publisher="CN=Lantean Code Development" Version="0.0.0.0" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>Roslyn Workbench MCP</DisplayName>
+    <PublisherDisplayName>Lantean Code</PublisherDisplayName>
+    <Description>A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.</Description>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="en-GB" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.28000.0" />
+  </Dependencies>
+  <Applications>
+    <!-- Full-trust console activation preserves stdio and allows one server per client. -->
+    <Application Id="Host" Executable="Host\roslyn-workbench-mcp.exe" EntryPoint="Windows.FullTrustApplication" desktop4:SupportsMultipleInstances="true">
+      <uap:VisualElements DisplayName="Roslyn Workbench MCP" Description="Roslyn-powered code inspection and transactional refactoring over MCP."
+                          BackgroundColor="#1A1D3D" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" AppListEntry="none" />
+      <Extensions>
+        <!-- MCP clients launch a console process; no file, URI, service or startup handler is registered. -->
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="Host\roslyn-workbench-mcp.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:AppExecutionAlias desktop4:Subsystem="console">
+            <uap5:ExecutionAlias Alias="roslyn-workbench-mcp.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <!-- Full-trust .NET code already has the current user's file and network access.
+         AppContainer Internet/library permissions and elevation are not required. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

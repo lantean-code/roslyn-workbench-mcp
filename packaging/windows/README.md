@@ -1,5 +1,7 @@
 # Windows MSI packaging
 
+For the separate Microsoft-tooling MSIX development package, see [MSIX packaging](msix/README.md). The WiX project and workflow option described here remain MSI-only.
+
 This WiX 7 project builds a framework-dependent Windows x64 installer. It appears under Packaging in `Roslyn.Workbench.Mcp.slnx`, with solution builds disabled: use the build script below to supply the published Host and installer inputs. Normal development builds do not build an MSI or calculate release versions. WiX's `wix7` EULA is accepted explicitly for this project's approved open-source use; reassess the applicable terms if its circumstances change.
 
 ## Build
@@ -29,6 +31,8 @@ Successful builds retain the MSI and its adjacent checksum in the `roslyn-workbe
 With **Publish** disabled, the MSI is available only as a workflow artefact. With **Publish** enabled, either package destination also attaches the same MSI and checksum to the draft GitHub Release after verifying the checksum. A maintainer must still publish that draft manually. The checkbox does not enable signing or change the selected NuGet feed.
 
 ## Installation
+
+Setup uses the locked product wordmark in its installation-options header and the left panel of WiX's welcome/licence and completion dialogs. The checked-in 24-bit BMPs in `artwork` are rendered from `assets/roslyn-workbench-mcp-wordmark.svg`, preserving its proportions. `dialog.bmp` is 986×624 (twice WiX's standard 493×312 artwork size); its branding stays within the first 328 pixels so it does not overlap the standard dialog text. `options-header.bmp` is 986×118, with the wordmark on the right and space reserved for the title on the left. These are installer illustrations, not application splash screens; builds need no image-generation tools.
 
 Interactive setup offers all-users installation and an optional PATH checkbox. Both are off by default. Per-user installation uses `%LOCALAPPDATA%\Programs\Roslyn Workbench MCP` without elevation; all-users installation uses Program Files and requires administrator approval. MSI's normal maintenance operations support repair and removal. Close MCP clients before upgrading or removing their running server.
 

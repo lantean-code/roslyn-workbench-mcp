@@ -1,10 +1,13 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Fragment>
+    <Binary Id="OptionsHeader" SourceFile="artwork/options-header.bmp" />
     <UI Id="InstallOptions">
       <!-- Collect scope before upgrade detection and costing, so related-product
            lookup, folder/registry redirection and feature selection use that scope. -->
       <Dialog Id="InstallOptionsDlg" Width="370" Height="270" Title="Roslyn Workbench MCP Setup">
-        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="25"
+        <Control Id="Branding" Type="Bitmap" X="0" Y="0" Width="370" Height="44"
+                 TabSkip="yes" Text="OptionsHeader" />
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="170" Height="25" Transparent="yes"
                  Text="{\WixUI_Font_Title}Installation options" />
         <Control Id="Description" Type="Text" X="20" Y="48" Width="330" Height="38"
                  Text="Install the local MCP server for Windows x64. Configure your MCP client separately after installation." />

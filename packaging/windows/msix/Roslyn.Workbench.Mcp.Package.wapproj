@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WapProjPath Condition="'$(WapProjPath)' == ''">$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\</WapProjPath>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+  </PropertyGroup>
+  <Import Project="$(WapProjPath)Microsoft.DesktopBridge.props" />
+  <PropertyGroup>
+    <ProjectGuid>{BE557C27-AC1C-464E-8992-CF73DDACAA29}</ProjectGuid>
+    <TargetPlatformVersion Condition="'$(TargetPlatformVersion)' == ''">10.0.28000.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <DefaultLanguage>en-GB</DefaultLanguage>
+    <EntryPointExe>Host\roslyn-workbench-mcp.exe</EntryPointExe>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>
+    <AppxBundle>Never</AppxBundle>
+    <UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
+    <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
+    <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
+    <!-- Portable PDBs are runtime inputs for diagnostic stack-frame line numbers. -->
+    <AppxPackageIncludePrivateSymbols>true</AppxPackageIncludePrivateSymbols>
+    <AppxLogTelemetryFromSideloadingScript>false</AppxLogTelemetryFromSideloadingScript>
+    <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">$(MSBuildProjectDirectory)\bin\packages\</AppxPackageDir>
+    <PackageManifest Condition="'$(PackageManifest)' == ''">Package.appxmanifest</PackageManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <AppxManifest Include="$(PackageManifest)">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+    <Content Include="$(HostPublishDirectory)\**\*" Condition="'$(HostPublishDirectory)' != ''">
+      <Link>Host\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <!-- .NET resolves its own satellite assemblies. Only visual assets belong
+           in Windows' resource index; the Host files still belong in the package. -->
+      <ExcludeFromResourceIndex>true</ExcludeFromResourceIndex>
+    </Content>
+    <Content Include="Assets\*.png" />
+  </ItemGroup>
+  <Import Project="$(WapProjPath)Microsoft.DesktopBridge.targets" />
+  <Target Name="ValidatePackageInputs" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(Platform)' != 'x64'" Text="The MSIX package currently supports x64 only." />
+    <Error Condition="!Exists('$(HostPublishDirectory)\roslyn-workbench-mcp.exe')" Text="Use build-msix.ps1 to publish the Host and supply the packaging inputs." />
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\Assets\Square150x150Logo.scale-100.png')" Text="The checked-in MSIX artwork is missing." />
+  </Target>
+</Project>

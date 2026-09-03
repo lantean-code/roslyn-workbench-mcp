@@ -36,6 +36,8 @@ ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp dotnet package list \
 
 ## Windows installer builds
 
+A separate [MSIX development project](../../packaging/windows/msix/README.md) is available for local Windows packaging and compatibility work. It is unsigned, uses a development identity and has no GitHub publication option yet. Store identity, signing, runtime prerequisite handling and installed compatibility must be addressed before distribution; the MSI workflow below does not produce MSIX packages.
+
 The [WiX setup](../../packaging/windows/README.md) produces a Windows x64 MSI independently of the .NET tool package. The project is included under Packaging in the solution but excluded from normal solution builds. Build it on Windows with `packaging/windows/build-msi.ps1`, which supplies its Host payload and installer inputs.
 
 Select **Build MSI** (`build-msi=true`) when manually dispatching `release.yml` to build and validate an unsigned installer. The option defaults to false, including for production tags; neither ordinary CI nor `main` builds automatically produce an MSI. It uses the same release identity and build-time Sentry configuration as the .NET tool. The Windows job checks metadata and performs a per-user install, command/payload check, repair and uninstall without modifying PATH. Failure stops publication.

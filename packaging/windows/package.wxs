@@ -72,6 +72,8 @@
 
     <ui:WixUI Id="WixUI_Minimal" />
     <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+    <!-- Keep artwork in the left panel; standard WiX dialogs overlay text on the right. -->
+    <WixVariable Id="WixUIDialogBmp" Value="artwork/dialog.bmp" />
     <UIRef Id="InstallOptions" />
   </Package>
   <Fragment>

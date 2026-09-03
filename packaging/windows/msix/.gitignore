@@ -1,0 +1,3 @@
+# Visual Studio's packaging design-time cache and package wizard output.
+*.assets.cache
+AppPackages/

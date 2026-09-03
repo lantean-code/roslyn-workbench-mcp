@@ -2,10 +2,17 @@
   <Folder Name="/Packaging/">
     <File Path="packaging/windows/README.md" />
     <File Path="packaging/windows/build-msi.ps1" />
+    <File Path="packaging/windows/build-msix.ps1" />
+    <File Path="packaging/windows/msix/README.md" />
     <File Path="packaging/windows/test-msi.ps1" />
     <Project Path="packaging/windows/Roslyn.Workbench.Mcp.Setup.wixproj">
       <Platform Project="x64" />
       <Build Project="false" />
+    </Project>
+    <Project Path="packaging/windows/msix/Roslyn.Workbench.Mcp.Package.wapproj" Type="C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5">
+      <Platform Project="x64" />
+      <Build Project="false" />
+      <Deploy Project="false" />
     </Project>
   </Folder>
   <Folder Name="/Solution Items/">

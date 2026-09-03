@@ -2,270 +2,270 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/index.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/code-actions.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/configuration.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/error-reporting.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/release-notes.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/tool-discovery.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/workspaces-and-transactions.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/index.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/index.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-async.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-control-flow.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-data-flow.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-disposables.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-nullability.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callees.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callers.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-dependency-cycles.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-derived-types.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-duplicate-code.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-implementations.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-overloads.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-overrides.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-references.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-unused-symbols.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/format-document.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-api-surface.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-change-impact.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-code-context.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-control-flow-graph.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-dependency-graph.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-diagnostics.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-options.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-outline.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-error-details.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-operation-tree.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-partial-declarations.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-project-details.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-solution-structure.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-attributes.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-dependencies.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-dependents.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-info.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-members.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-test-impact.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-type-hierarchy.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/go-to-definition.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/list-code-actions.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/prepare-error-report.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/prepare-fix-all.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/rename-symbol.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/resolve-symbol.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/search-symbols.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/server-status.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/stage-code-action.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/submit-error-report.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-commit.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-history.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-preview.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-rollback.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-start.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-close.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-list.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-open.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-reload.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-status.html</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-03</lastmod>
     </url>
 </urlset>

@@ -406,10 +406,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#known-limitations" class="md-nav__link">
+  <a href="#not-included-in-this-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Known limitations
+        Not included in this release
       
     </span>
   </a>
@@ -417,10 +417,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#feedback-and-removal" class="md-nav__link">
+  <a href="#feedback" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feedback and removal
+        Feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uninstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#licence-and-release-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Licence and release evidence
       
     </span>
   </a>
@@ -530,6 +552,34 @@
     
   
     Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="agent-setup.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent setup
   
 
     
@@ -962,10 +1012,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#known-limitations" class="md-nav__link">
+  <a href="#not-included-in-this-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Known limitations
+        Not included in this release
       
     </span>
   </a>
@@ -973,10 +1023,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#feedback-and-removal" class="md-nav__link">
+  <a href="#feedback" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feedback and removal
+        Feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uninstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#licence-and-release-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Licence and release evidence
       
     </span>
   </a>
@@ -1010,11 +1082,11 @@
 <p>Roslyn Workbench MCP is a local stdio server for Roslyn-powered C# inspection and transactional refactoring. The 0.1.0 beta follows successful evaluation across several solutions, including a large enterprise solution, and is intended for wider feedback on trusted repositories. Tool contracts, configuration and persisted state may change before v1; review release notes before upgrading and finish or discard active transactions before replacing the server.</p>
 <h2 id="what-is-included">What is included</h2>
 <ul>
-<li>Persistent Workspace sessions and semantic inspection of symbols, references, diagnostics, code structure and change impact.</li>
+<li>Multiple long-lived Workspace sessions and semantic inspection of symbols, references, diagnostics, code structure and change impact.</li>
 <li>Bounded results with snapshot-aware selectors and a versioned tool reference for deeper guidance.</li>
-<li>Mutation staging, previews, undo/redo, rollback, explicit commit, conflict detection and durable recovery.</li>
+<li>Mutation staging, previews, undo/redo, rollback, explicit commit, conflict detection and durable transaction recovery.</li>
 <li>Roslyn Code Action discovery, Fix All preparation and staging through the same transaction boundary.</li>
-<li>Local correlated diagnostics and an explicit, user-consented reporting workflow.</li>
+<li>Local correlated diagnostics and an explicit, consent-controlled error-reporting workflow.</li>
 </ul>
 <h2 id="requirements-and-support">Requirements and support</h2>
 <p>A supported .NET 10 SDK and an MCP client able to launch a local stdio process are required. Install the SDKs/build tooling needed by the projects being analysed as well. Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are best effort; Windows ARM64 and Linux ARM64 are not supported release targets.</p>
@@ -1029,18 +1101,18 @@
 <h2 id="connect-and-evaluate">Connect and evaluate</h2>
 <p>Configure the MCP client to launch <code>roslyn-workbench-mcp</code>. See the release's <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html">getting-started guidance</a> for state-directory configuration, Workspace loading and a first transaction. The running server's <code>tools/list</code> is authoritative for its enabled tool set.</p>
 <p>Client support and approval policy determine whether optional elicitation prompts appear. If reporting is blocked, no error report is sent. Review prepared payloads carefully: exception messages may contain source text, paths, identifiers or secrets. Choose the option without exception messages when needed.</p>
-<h2 id="known-limitations">Known limitations</h2>
+<h2 id="not-included-in-this-release">Not included in this release</h2>
 <ul>
-<li>This is not a compatibility-stable release. Handles, error records and Code Action references are process-local and expire; restart requires rediscovery.</li>
-<li>Only supported SDK-style C# projects participate in queries. Unsupported projects may be skipped; evaluated external documents are read-only and generated/non-addressable source is excluded.</li>
-<li>Concurrent query support does not permit concurrent mutation of the same transaction. One Workspace owns the process's active transaction slot.</li>
-<li>The Plugins NuGet package, supported plugin-authoring documentation, curated plugin repository and native installers are deferred. Trusted source-built plugins still work in the existing runtime.</li>
-<li>External pull requests are not accepted before v1 preparation. There is no release-cadence guarantee.</li>
+<li>The Plugins NuGet package, supported plugin-authoring documentation and curated plugin repository are not included. Trusted source-built plugins still work in the existing runtime.</li>
+<li>Native installation packages are not included; install this beta as a .NET tool.</li>
 </ul>
-<h2 id="feedback-and-removal">Feedback and removal</h2>
-<p>Use <a href="https://github.com/lantean-code/roslyn-workbench-mcp/issues">Issues</a> for reproducible defects and documentation problems, <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a">Q&amp;A</a> for help, and <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas">Ideas</a> for exploratory proposals. Follow the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SECURITY.md">security policy</a> for private vulnerability reports. Include version, platform and redacted reproduction details, not private source or credentials.</p>
+<h2 id="feedback">Feedback</h2>
+<p>Use <a href="https://github.com/lantean-code/roslyn-workbench-mcp/issues">Issues</a> for reproducible defects and documentation problems, <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a">Q&amp;A</a> for help, and <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas">Ideas</a> for exploratory proposals. Follow the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/security/policy">security policy</a> for private vulnerability reports. Include version, platform and redacted reproduction details, not private source or credentials.</p>
+<p>External pull requests are not accepted before v1 preparation. Issues, Discussions, private security reports and other feedback remain welcome.</p>
+<h2 id="uninstall">Uninstall</h2>
 <p>Remove the client's server entry, stop the process and run <code>dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp</code>. Keep unresolved recovery state until recovery is understood; see <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html">troubleshooting and removal</a>.</p>
-<p>The package is MIT-licensed. Release assets include symbols, checksums, source identity and a coverage snapshot. Performance comparisons are advisory and are included only when comparable manual evidence exists.</p>
+<h2 id="licence-and-release-evidence">Licence and release evidence</h2>
+<p>The package is MIT-licensed. Release assets include symbols, checksums, source identity and a coverage snapshot.</p>
 
 
 

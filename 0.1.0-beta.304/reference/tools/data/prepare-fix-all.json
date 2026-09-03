@@ -1,0 +1,405 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.304",
+  "sourceTag": "0.1.0-beta.304",
+  "commit": "91c8317a50cfbbbd10a760ceea50df154c6c9546",
+  "name": "prepare-fix-all",
+  "title": "Prepare Fix All",
+  "area": "CodeAction",
+  "category": "Code Actions",
+  "operationKind": "Query",
+  "summary": "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.304/reference/tools/prepare-fix-all.html",
+  "tool": {
+    "name": "prepare-fix-all",
+    "title": "Prepare Fix All",
+    "description": "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "actionId": {
+          "description": "The opaque originating Code Fix reference.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "scope": {
+          "description": "The explicit Fix All scope.",
+          "type": "string",
+          "enum": [
+            "Document",
+            "Project",
+            "Solution"
+          ]
+        },
+        "maxChanges": {
+          "description": "The maximum number of changed source documents to allow.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 50
+        },
+        "affectedDocumentsLimit": {
+          "description": "The maximum number of affected document identities to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 20
+        },
+        "expectedSnapshot": {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspaceEpoch": {
+              "type": "integer"
+            },
+            "snapshotId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "transactionRevision": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspaceId",
+            "workspaceEpoch",
+            "snapshotId",
+            "transactionRevision"
+          ],
+          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "actionId",
+        "scope",
+        "expectedSnapshot"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data",
+            "snapshot"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "actionId": {
+                  "description": "The opaque prepared action reference.",
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "scope": {
+                  "description": "The accepted Fix All scope.",
+                  "type": "string",
+                  "enum": [
+                    "Document",
+                    "Project",
+                    "Solution"
+                  ]
+                },
+                "affectedDiagnosticCount": {
+                  "description": "The complete affected diagnostic count when it is authoritatively available.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "affectedDocuments": {
+                  "description": "The bounded affected source document identities and complete changed-document count.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "documentId": {
+                            "description": "The document identifier.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The normalized document path.",
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "description": "The owning project identifier.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "documentId",
+                          "path",
+                          "projectId"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": [
+                "actionId",
+                "scope"
+              ],
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Prepare Fix All",
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

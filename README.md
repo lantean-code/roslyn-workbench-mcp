@@ -63,4 +63,14 @@ The existing plugin runtime remains available to source consumers, but the Plugi
 - [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages)
 - [NuGet package](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp)
 
+## Thanks
+
+<a href="https://github.com/dotnet/roslyn"><img src="assets/third-party/roslyn.svg" alt="Roslyn" height="64"></a>
+
+Roslyn Workbench MCP is made possible by the [.NET Compiler Platform](https://github.com/dotnet/roslyn). Thank you to the Roslyn team for building and maintaining the compiler tooling that powers its semantic analysis and refactoring capabilities.
+
+<a href="https://sentry.io/"><img src="assets/third-party/sentry.svg" alt="Sentry" height="48"></a>
+
+Thank you to [Sentry](https://sentry.io/) for supporting the project with an open-source licence for its opt-in error-reporting service.
+
 Roslyn Workbench MCP is licensed under the [MIT License](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/LICENSE).

@@ -1,0 +1,24 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OutputName>roslyn-workbench-mcp-$(HostVersion)-win-x64</OutputName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- The approved prerelease policy deliberately allows same-numeric-version
+         major upgrades. ICE61 rejects that policy; all other ICEs remain enabled. -->
+    <SuppressIces>ICE61</SuppressIces>
+    <DefineConstants>$(DefineConstants);MsiVersion=$(MsiVersion);HostVersion=$(HostVersion);LicenseRtf=$(LicenseRtf)</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="7.0.0" />
+    <BindPath Include="$(HostPublishDirectory)" BindName="publish" />
+  </ItemGroup>
+  <Target Name="ValidateInstallerInputs" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(OS)' != 'Windows_NT'" Text="Build the MSI with the Windows .NET SDK." />
+    <Error Condition="'$(HostVersion)' == '' or '$(MsiVersion)' == ''" Text="Use build-msi.ps1 to supply the Host and MSI versions." />
+    <Error Condition="!Exists('$(HostPublishDirectory)\roslyn-workbench-mcp.exe')" Text="The Windows Host publish directory is missing its executable." />
+    <Error Condition="!Exists('$(LicenseRtf)')" Text="The generated licence document is missing." />
+  </Target>
+</Project>

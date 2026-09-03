@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      build-msi:
+        description: Build and validate the unsigned Windows MSI; upload run artefacts and include it in the draft when publishing
+        required: true
+        default: false
+        type: boolean
       destination:
         description: Package destination; default follows the branch channel
         required: true
@@ -297,6 +302,38 @@ jobs:
           path: TestResults
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
+      - name: Build unsigned Windows MSI
+        if: runner.os == 'Windows' && inputs.build-msi
+        shell: pwsh
+        env:
+          ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: ./packaging/windows/build-msi.ps1 -OutputDirectory artifacts/installer/release
+      - name: Validate MSI installation, repair and removal
+        if: runner.os == 'Windows' && inputs.build-msi
+        shell: pwsh
+        run: >-
+          ./packaging/windows/test-msi.ps1
+          -MsiPath "artifacts/installer/release/msi/roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64.msi"
+          -ExpectedVersion "${{ needs.prepare.outputs.version }}"
+          -Install
+      - name: Upload Windows MSI
+        if: runner.os == 'Windows' && inputs.build-msi
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msi
+          path: |
+            artifacts/installer/release/msi/*.msi
+            artifacts/installer/release/msi/*.msi.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload MSI validation logs
+        if: always() && runner.os == 'Windows' && inputs.build-msi
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-msi-validation
+          path: artifacts/installer/release/msi/validation-*/*.log
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Upload failed acceptance diagnostics
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -408,6 +445,16 @@ jobs:
           --commit "${{ needs.prepare.outputs.commit }}"
           --prerelease "${{ needs.prepare.outputs.prerelease }}"
           --notes-file artifacts/release/RELEASE_NOTES.md
+      - name: Download Windows MSI
+        if: inputs.build-msi
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msi
+          path: artifacts/release/installer
+      - name: Verify Windows MSI checksum
+        if: inputs.build-msi
+        working-directory: artifacts/release/installer
+        run: sha256sum --check *.msi.sha256
       - name: Publish package
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -426,6 +473,14 @@ jobs:
           artifacts/release/release-manifest.json
           artifacts/release/coverage-summary.json
           artifacts/release/coverage.md
+      - name: Attach Windows MSI
+        if: inputs.build-msi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/installer/*.msi
+          artifacts/release/installer/*.msi.sha256
 
   publish-nuget:
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.destination == 'nuget-org'
@@ -471,6 +526,16 @@ jobs:
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ secrets.NUGET_USER }}
+      - name: Download Windows MSI
+        if: inputs.build-msi
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msi
+          path: artifacts/release/installer
+      - name: Verify Windows MSI checksum
+        if: inputs.build-msi
+        working-directory: artifacts/release/installer
+        run: sha256sum --check *.msi.sha256
       - name: Publish package and symbols
         run: |
           cp artifacts/release/symbols/*.snupkg artifacts/release/package/
@@ -486,3 +551,11 @@ jobs:
           artifacts/release/release-manifest.json
           artifacts/release/coverage-summary.json
           artifacts/release/coverage.md
+      - name: Attach Windows MSI
+        if: inputs.build-msi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ needs.prepare.outputs.version }}"
+          artifacts/release/installer/*.msi
+          artifacts/release/installer/*.msi.sha256

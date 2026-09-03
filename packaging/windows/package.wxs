@@ -1,0 +1,82 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Roslyn Workbench MCP"
+           Manufacturer="Lantean Code"
+           Version="$(MsiVersion)"
+           UpgradeCode="9E24290F-26A2-4CB8-A23B-D802E5C2CCFA"
+           Scope="perUserOrMachine"
+           InstallerVersion="500">
+    <!-- MSI has no prerelease ordering. Different packages with the same numeric
+         version may replace one another; the complete SemVer remains in metadata. -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="A newer version of Roslyn Workbench MCP is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <SummaryInformation Description="Roslyn Workbench MCP $(HostVersion) (Windows x64)" />
+    <Icon Id="WorkbenchIcon" SourceFile="../../assets/icons/roslyn-workbench-mcp.ico" />
+    <Property Id="ARPPRODUCTICON" Value="WorkbenchIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://lantean-code.github.io/roslyn-workbench-mcp/" />
+    <Property Id="ARPCOMMENTS" Value="Roslyn Workbench MCP $(HostVersion). A local stdio MCP server." />
+    <Property Id="ADDTOPATH" Secure="yes" />
+    <Property Id="INSTALLFORMACHINE" Secure="yes" />
+
+    <netfx:DotNetCompatibilityCheck Property="DOTNETRUNTIMECHECK"
+                                   RuntimeType="core" Platform="x64"
+                                   Version="10.0.0" RollForward="minor" />
+    <Launch Condition="Installed OR DOTNETRUNTIMECHECK = &quot;0&quot;"
+            Message="Roslyn Workbench MCP requires the .NET 10 x64 runtime. Install it from https://dotnet.microsoft.com/download/dotnet/10.0, then run setup again. The .NET 10 x64 SDK also includes this runtime. Setup does not download prerequisites." />
+
+    <!-- Windows Installer 5 redirects this folder to LocalAppData\Programs for
+         per-user installation and uses Program Files for all-users installation. -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Roslyn Workbench MCP" />
+    </StandardDirectory>
+    <Feature Id="Host" Title="Roslyn Workbench MCP" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="HostFiles" />
+      <Component Directory="INSTALLFOLDER">
+        <RegistryValue Root="HKMU" Key="Software\Lantean Code\Roslyn Workbench MCP"
+                       Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+      </Component>
+    </Feature>
+    <Feature Id="Path" Title="Add the server to PATH" Level="2">
+      <Level Value="1" Condition="ADDTOPATH = &quot;1&quot;" />
+      <Component Id="UserPath" Directory="INSTALLFOLDER" Condition="NOT ALLUSERS">
+        <RegistryValue Root="HKMU" Key="Software\Lantean Code\Roslyn Workbench MCP"
+                       Name="UserPath" Value="1" Type="string" KeyPath="yes" />
+        <Environment Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="no" />
+      </Component>
+      <Component Id="MachinePath" Directory="INSTALLFOLDER" Condition="ALLUSERS = &quot;1&quot;">
+        <RegistryValue Root="HKMU" Key="Software\Lantean Code\Roslyn Workbench MCP"
+                       Name="MachinePath" Value="1" Type="string" KeyPath="yes" />
+        <Environment Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="yes" />
+      </Component>
+    </Feature>
+
+    <Property Id="PREVIOUSUSERPATH">
+      <RegistrySearch Id="FindUserPathChoice" Root="HKCU" Key="Software\Lantean Code\Roslyn Workbench MCP" Name="UserPath" Type="raw" />
+    </Property>
+    <Property Id="PREVIOUSMACHINEPATH">
+      <RegistrySearch Id="FindMachinePathChoice" Root="HKLM" Key="Software\Lantean Code\Roslyn Workbench MCP" Name="MachinePath" Type="raw" />
+    </Property>
+    <Property Id="PREVIOUSUSERFOLDER">
+      <RegistrySearch Id="FindUserInstallation" Root="HKCU" Key="Software\Lantean Code\Roslyn Workbench MCP" Name="InstallFolder" Type="raw" />
+    </Property>
+    <Property Id="PREVIOUSMACHINEFOLDER">
+      <RegistrySearch Id="FindMachineInstallation" Root="HKLM" Key="Software\Lantean Code\Roslyn Workbench MCP" Name="InstallFolder" Type="raw" />
+    </Property>
+    <SetProperty Id="INSTALLFORMACHINE" Value="1" After="AppSearch" Sequence="ui"
+                 Condition="ALLUSERS = &quot;1&quot; OR (PREVIOUSMACHINEFOLDER AND NOT PREVIOUSUSERFOLDER)" />
+    <SetProperty Id="ADDTOPATH" Value="1" After="SetINSTALLFORMACHINE" Sequence="ui"
+                 Condition="NOT ADDTOPATH AND ((INSTALLFORMACHINE AND PREVIOUSMACHINEPATH) OR (NOT INSTALLFORMACHINE AND PREVIOUSUSERPATH))" />
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+    <UIRef Id="InstallOptions" />
+  </Package>
+  <Fragment>
+    <ComponentGroup Id="HostFiles" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.publish)\**" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

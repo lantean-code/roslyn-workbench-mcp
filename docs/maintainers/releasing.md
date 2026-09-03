@@ -34,6 +34,14 @@ ArtifactsPath=/tmp/artifacts/roslyn-workbench-mcp dotnet package list \
   --include-transitive --vulnerable --format json --no-restore
 ```
 
+## Windows installer builds
+
+The [WiX setup](../../packaging/windows/README.md) produces a Windows x64 MSI independently of the .NET tool package. The project is included under Packaging in the solution but excluded from normal solution builds. Build it on Windows with `packaging/windows/build-msi.ps1`, which supplies its Host payload and installer inputs.
+
+Select **Build MSI** (`build-msi=true`) when manually dispatching `release.yml` to build and validate an unsigned installer. The option defaults to false, including for production tags; neither ordinary CI nor `main` builds automatically produce an MSI. It uses the same release identity and build-time Sentry configuration as the .NET tool. The Windows job checks metadata and performs a per-user install, command/payload check, repair and uninstall without modifying PATH. Failure stops publication.
+
+The MSI and its adjacent SHA-256 checksum are retained as a separate workflow artefact for 14 days. Selecting **Publish** also attaches those exact files to the draft GitHub Release for either package destination. With publication disabled, they remain workflow artefacts only. The draft still needs manual publication, and the MSI remains unsigned: verify the installer-specific scenarios and Windows download behaviour before public distribution. Do not assume every release includes an MSI merely because its NuGet package was published.
+
 ## Notes and documentation
 
 Maintain the next release's wording in [release-notes.md](../release/release-notes.md), independently of the eventual tag. The release workflow replaces `{{VERSION}}` and `{{DOCS_VERSION}}` with GitVersion's exact `SemVer`, produces `RELEASE_NOTES.md` for GitHub and renders the same notes into the immutable documentation version. No version-named source file or follow-up commit is needed. Local/development documentation shows an explicitly unpublished preview. Approve the wording and check that its release line, channel and installation destination match the selected build before publication. Update this template for each subsequent release; the GitHub Release and versioned documentation retain previous notes.

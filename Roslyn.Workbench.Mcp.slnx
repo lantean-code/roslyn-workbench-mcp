@@ -1,4 +1,13 @@
 <Solution>
+  <Folder Name="/Packaging/">
+    <File Path="packaging/windows/README.md" />
+    <File Path="packaging/windows/build-msi.ps1" />
+    <File Path="packaging/windows/test-msi.ps1" />
+    <Project Path="packaging/windows/Roslyn.Workbench.Mcp.Setup.wixproj">
+      <Platform Project="x64" />
+      <Build Project="false" />
+    </Project>
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="AGENTS.md" />

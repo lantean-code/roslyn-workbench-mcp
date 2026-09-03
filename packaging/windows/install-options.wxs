@@ -1,0 +1,43 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <UI Id="InstallOptions">
+      <!-- Collect scope before upgrade detection and costing, so related-product
+           lookup, folder/registry redirection and feature selection use that scope. -->
+      <Dialog Id="InstallOptionsDlg" Width="370" Height="270" Title="Roslyn Workbench MCP Setup">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="25"
+                 Text="{\WixUI_Font_Title}Installation options" />
+        <Control Id="Description" Type="Text" X="20" Y="48" Width="330" Height="38"
+                 Text="Install the local MCP server for Windows x64. Configure your MCP client separately after installation." />
+        <Control Id="Machine" Type="CheckBox" X="20" Y="100" Width="330" Height="20"
+                 Property="INSTALLFORMACHINE" CheckBoxValue="1"
+                 Text="Install for all users (requires administrator approval)" />
+        <Control Id="ScopeExplanation" Type="Text" X="35" Y="125" Width="315" Height="30"
+                 Text="Leave unchecked to install for your account without elevation." />
+        <Control Id="Path" Type="CheckBox" X="20" Y="163" Width="330" Height="20"
+                 Property="ADDTOPATH" CheckBoxValue="1" Text="Add roslyn-workbench-mcp to PATH" />
+        <Control Id="PathExplanation" Type="Text" X="35" Y="188" Width="315" Height="30"
+                 Text="Optional. Restart terminals and MCP clients to pick up the changed PATH." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
+          <Publish Property="ALLUSERS" Value="2" Order="1" />
+          <Publish Property="MSIINSTALLPERUSER" Value="1" Order="2" Condition="NOT INSTALLFORMACHINE" />
+          <Publish Property="MSIINSTALLPERUSER" Value="{}" Order="3" Condition="INSTALLFORMACHINE" />
+          <Publish Property="ADDLOCAL" Value="Host,Path" Order="4" Condition="ADDTOPATH = &quot;1&quot;" />
+          <Publish Property="ADDLOCAL" Value="Host" Order="5" Condition="NOT ADDTOPATH" />
+          <Publish Property="REMOVE" Value="Path" Order="6" Condition="NOT ADDTOPATH" />
+          <Publish Event="EndDialog" Value="Return" Order="7" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+    </UI>
+    <InstallUISequence>
+      <!-- AppSearch restores the previous choices before this dialog. Detection
+           must follow the choice: MSI will not repeat it in the execute sequence
+           after it has already run in the UI sequence under a different scope. -->
+      <Show Dialog="InstallOptionsDlg" After="SetADDTOPATH" Condition="NOT Installed" />
+      <FindRelatedProducts After="InstallOptionsDlg" />
+    </InstallUISequence>
+  </Fragment>
+</Wix>

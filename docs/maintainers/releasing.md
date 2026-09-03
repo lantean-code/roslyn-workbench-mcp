@@ -50,6 +50,12 @@ The [Linux packaging scripts](../../packaging/linux/README.md) build an `amd64` 
 
 Successful packages and adjacent checksums are retained for 14 days. **Publish** also attaches them to the draft GitHub Release for either NuGet destination after checksum verification. This does not publish an APT repository or submit to a distro archive. The [distribution identity guide](distribution.md) records the package name and Debian prerelease mapping. Validation on other distro releases and upgrades from an earlier package remain distinct from the hosted reinstallation check.
 
+## Linux RPM builds
+
+The same [Linux packaging scripts](../../packaging/linux/README.md) build an x86_64 RPM for direct GitHub downloads. Select the independent, unchecked **Build RPM** option to construct the package on Fedora 44, inspect it, and exercise DNF dependency resolution, installation, unprivileged MCP launch, reinstallation and removal in a fresh Fedora 44 container. The container image is pinned by digest, and the package uses the same release identity and Sentry build configuration as other formats.
+
+Successful RPMs and adjacent checksums are retained for 14 days. **Publish** also attaches them to the draft GitHub Release for either NuGet destination after checksum verification. This does not publish an RPM repository, sign the package or claim compatibility with other RPM distributions. The [distribution identity guide](distribution.md) records the package identity and version mapping. Validation on another distribution and upgrades from an earlier package remain separate checks.
+
 ## Notes and documentation
 
 Maintain the next release's wording in [release-notes.md](../release/release-notes.md), independently of the eventual tag. The release workflow replaces `{{VERSION}}` and `{{DOCS_VERSION}}` with GitVersion's exact `SemVer`, produces `RELEASE_NOTES.md` for GitHub and renders the same notes into the immutable documentation version. No version-named source file or follow-up commit is needed. Local/development documentation shows an explicitly unpublished preview. Approve the wording and check that its release line, channel and installation destination match the selected build before publication. Update this template for each subsequent release; the GitHub Release and versioned documentation retain previous notes.

@@ -25,7 +25,8 @@ Keep the product and command names consistent across distributions. Package iden
 | WinGet | `LanteanCode.RoslynWorkbenchMcp` | Intended identity; manifest and submission not yet implemented. Intended to reference the existing MSI. |
 | Chocolatey | `roslyn-workbench-mcp` | Intended identity; packaging and submission not yet implemented. |
 | Debian/Ubuntu (`.deb`, APT) | `roslyn-workbench-mcp` | [Linux x64 packaging](../../packaging/linux/README.md) and opt-in release workflow implemented. Direct `.deb` downloads; no APT repository yet. |
-| RPM-based Linux distributions | `roslyn-workbench-mcp` | Intended identity; packaging and repository publication not yet implemented. |
+| Fedora 44 (`.rpm`, DNF) | `roslyn-workbench-mcp` | [Linux x64 packaging](../../packaging/linux/README.md) and opt-in release workflow implemented. Direct `.rpm` downloads; no RPM repository. |
+| Other RPM-based Linux distributions | `roslyn-workbench-mcp` | Package identity established but not advertised as compatible until each target is exercised. |
 
 Unimplemented public package IDs still need availability and repository-policy checks before submission. A name or prefix accepted by one registry does not establish ownership in another.
 
@@ -44,15 +45,16 @@ The `.nupkg`, `.msi` and `.msix` are package formats. NuGet.org, GitHub Packages
 
 Building a `.deb` or RPM is separate from operating an APT or RPM repository. Direct downloads with tools such as `wget` or `curl` do not create another package identity or provide a package-manager update channel.
 
-Keep versions and architecture out of the base package ID. Record them in package metadata and artefact filenames. Retain the MSI/MSIX version mappings documented with their packaging. Debian maps `0.1.0-beta.1` to `0.1.0~beta.1-1` so a prerelease sorts before production; the Host keeps its original SemVer. RPM version mapping remains separate future work.
+Keep versions and architecture out of the base package ID. Record them in package metadata and artefact filenames. Retain the MSI/MSIX version mappings documented with their packaging. Debian maps `0.1.0-beta.1` to `0.1.0~beta.1-1`; RPM maps it to version `0.1.0~beta.1` and release `1`. Both make a prerelease sort before production while the Host keeps its original SemVer.
 
-The workflow's **Build MSI**, **Build MSIX** and **Build DEB** options are independent and unchecked by default. With **Publish** enabled, their outputs and checksums are attached to the draft GitHub Release; the maintainer publishes the draft manually. These options do not submit packages to WinGet, Chocolatey, Microsoft Store or Linux repositories, and do not enable signing.
+The workflow's **Build MSI**, **Build MSIX**, **Build DEB** and **Build RPM** options are independent and unchecked by default. With **Publish** enabled, their outputs and checksums are attached to the draft GitHub Release; the maintainer publishes the draft manually. These options do not submit packages to WinGet, Chocolatey, Microsoft Store or Linux repositories, and do not enable signing.
 
 ## Decisions still needed before new targets ship
 
 - WinGet: validate the manifest against a published MSI, decide installation scope, PATH and runtime-dependency behaviour, and verify silent installation, upgrade and removal before submitting. The proposed per-user default and automatic PATH integration for WinGet are not implemented by this naming document.
 - Microsoft Store: obtain the real identity and settle runtime prerequisites, installed compatibility, versioning and submission. This target is currently on hold.
 - Debian/Ubuntu: validate advertised target releases and establish signed repository hosting before offering updates through APT. Direct DEB installation is machine-wide with a .NET 10 runtime package dependency and no custom prerequisite download scripts.
-- Chocolatey and RPM: define packaging, dependencies, supported architectures, installation/removal behaviour and update hosting when work on each target begins.
+- Fedora/RPM: validate any additional advertised distributions and establish signed repository hosting before offering package-manager updates. The direct Fedora 44 RPM is x86_64, depends on the package-managed .NET 10 runtime and adds no feeds or prerequisite scripts.
+- Chocolatey: define packaging, dependencies, installation/removal behaviour and update hosting when work begins.
 
 Signing and repository acceptance remain distribution-specific concerns. The current unsigned MSI and unsigned MSIX are not equivalent: the MSI can be installed subject to Windows and organisational policy, while the MSIX still needs an appropriate signing/trust or development-registration route. See the packaging documents for the remaining validation and signing work.

@@ -1,0 +1,38 @@
+Name:           roslyn-workbench-mcp
+Version:        @VERSION@
+Release:        1
+Summary:        Roslyn-powered MCP server for C# codebases
+
+License:        MIT
+URL:            https://github.com/lantean-code/roslyn-workbench-mcp
+Vendor:         Lantean Code
+BuildArch:      x86_64
+Requires:       dotnet-runtime-10.0 >= 10.0.0
+
+%description
+Roslyn Workbench MCP is a local, stdio-based MCP server for precise C# code
+inspection and safe, transactional refactoring.
+
+%prep
+
+%build
+
+%install
+install -d %{buildroot}/usr/lib/roslyn-workbench-mcp
+cp -a %{_payload_directory}/. %{buildroot}/usr/lib/roslyn-workbench-mcp/
+install -d %{buildroot}/usr/bin
+ln -s ../lib/roslyn-workbench-mcp/roslyn-workbench-mcp %{buildroot}/usr/bin/roslyn-workbench-mcp
+install -d %{buildroot}/usr/share/licenses/roslyn-workbench-mcp
+install -m 0644 %{_license_file} %{buildroot}/usr/share/licenses/roslyn-workbench-mcp/LICENSE
+install -d %{buildroot}/usr/share/doc/roslyn-workbench-mcp
+install -m 0644 %{_notices_file} %{buildroot}/usr/share/doc/roslyn-workbench-mcp/THIRD-PARTY-NOTICES.md
+
+%files
+/usr/lib/roslyn-workbench-mcp
+/usr/bin/roslyn-workbench-mcp
+%license /usr/share/licenses/roslyn-workbench-mcp/LICENSE
+%doc /usr/share/doc/roslyn-workbench-mcp/THIRD-PARTY-NOTICES.md
+
+%changelog
+* Thu Sep 03 2026 Lantean Code <lanteancode@gmail.com> - @VERSION@-1
+- Add direct-download RPM packaging for Roslyn Workbench MCP.

@@ -8,6 +8,7 @@ These documents describe lasting engineering decisions and maintenance procedure
 - [Coverage exceptions](coverage-exceptions.md): narrowly approved defensive branches and real integration boundaries.
 - [Analysers](analysers.md): extended analysis and suppression policy.
 - [Releasing](releasing.md): versioning, evidence, publication and repository activation.
+- [Documentation cleanup](documentation-cleanup.md): removing old prerelease pages after tag deletion.
 - [Roadmap](roadmap.md): intentionally deferred capabilities and conditions for revisiting them.
 
 User-facing instructions and the generated tool reference belong in the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/). MCP `tools/list` remains authoritative for the running server.

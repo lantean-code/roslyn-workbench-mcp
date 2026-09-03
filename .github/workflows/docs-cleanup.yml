@@ -1,0 +1,77 @@
+name: Remove deleted prerelease documentation
+
+on:
+  delete:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact deleted prerelease tag (for example 0.1.0-beta.294)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    if: >-
+      vars.PAGES_DEPLOYMENT_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.ref_type == 'tag' &&
+        (contains(github.event.ref, '-alpha.') || contains(github.event.ref, '-beta.') || contains(github.event.ref, '-rc.'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    concurrency:
+      group: documentation-publication
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Check out cleanup tooling
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: docs/docs-requirements.txt
+      - name: Install documentation dependencies
+        run: python -m pip install --requirement docs/docs-requirements.txt
+      - name: Configure deployment identity
+        run: |
+          git config user.name "lantean-code"
+          git config user.email "lanteancode@gmail.com"
+      - name: Remove the deleted prerelease documentation
+        id: cleanup
+        env:
+          DELETED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.ref }}
+        run: python docs/delete-version.py "$DELETED_TAG" --push
+      - name: Prepare Pages deployment
+        if: steps.cleanup.outputs.deploy == 'true'
+        run: |
+          mkdir -p "${{ runner.temp }}/pages-site"
+          git archive refs/remotes/origin/gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
+      - name: Upload Pages deployment
+        if: steps.cleanup.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          name: github-pages-cleanup-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pages-site
+      - name: Configure Pages
+        if: steps.cleanup.outputs.deploy == 'true'
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Deploy Pages
+        if: steps.cleanup.outputs.deploy == 'true'
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        with:
+          artifact_name: github-pages-cleanup-${{ github.run_attempt }}

@@ -362,6 +362,7 @@ jobs:
     concurrency:
       group: documentation-publication
       cancel-in-progress: false
+      queue: max
     steps:
       - name: Require an active Pages deployment
         run: test "${{ vars.PAGES_DEPLOYMENT_ENABLED }}" = "true"

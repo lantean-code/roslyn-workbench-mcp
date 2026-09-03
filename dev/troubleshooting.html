@@ -997,7 +997,7 @@
 <h2 id="upgrade-or-remove">Upgrade or remove</h2>
 <p>Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's compatibility notes. Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.</p>
 <p>To remove the installed tool:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>uninstall<span class="w"> </span>--global<span class="w"> </span>Roslyn.Workbench.Mcp
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>uninstall<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp
 </code></pre></div>
 <p>Remove its MCP client configuration as well. Uninstalling the tool does not remove your source repositories or the separately stored Host state. Keep any unresolved recovery data until the affected Workspace has been safely recovered. Once all recovery is resolved and no server instance is running, the configured state directory can be removed deliberately if no longer needed. Source-build users can remove their chosen publish directory after stopping the process.</p>
 <p>Use the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md">support routes</a> if the problem remains. Provide the version, client, platform, reproduction and safely redacted diagnostics.</p>

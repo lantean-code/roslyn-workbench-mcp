@@ -1,0 +1,1551 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Roslyn-powered code inspection and safe transactional refactoring through MCP.">
+      
+      
+      
+        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.295/reference/tools/index.html">
+      
+      
+        <link rel="prev" href="../../error-reporting.html">
+      
+      
+        <link rel="next" href="../../agent/index.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/generated/roslyn-workbench-mcp-icon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Tool reference - Roslyn Workbench MCP</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/brand.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <meta name="roslyn-workbench-version" content="preview">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tool-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    <div class="rw-docs-version" data-rw-documentation-version="preview">Local documentation preview</div>
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Roslyn Workbench MCP
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tool reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    Roslyn Workbench MCP
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connect a client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting and removal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Roslyn Workbench
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Roslyn Workbench
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tool-discovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool discovery and results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workspaces-and-transactions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces and transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code-actions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-reporting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error reporting and privacy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="index.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-discovery-and-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code discovery and navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code mutation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-discovery-and-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code discovery and navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code mutation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tool-reference">Tool reference</h1>
+<p>This reference is generated from the production Host composition for <code>0.1.0-beta.295</code>. The <a href="catalog.json">catalog</a> is the compact machine-readable index; each tool page links to its complete MCP definition.</p>
+<h2 id="code-actions">Code Actions</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="list-code-actions.html"><code>list-code-actions</code></a></td>
+<td>Query</td>
+<td>CodeAction</td>
+<td>Lists bounded Roslyn code fixes and refactorings for a document, selection or caret.</td>
+</tr>
+<tr>
+<td><a href="prepare-fix-all.html"><code>prepare-fix-all</code></a></td>
+<td>Query</td>
+<td>CodeAction</td>
+<td>Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.</td>
+</tr>
+<tr>
+<td><a href="stage-code-action.html"><code>stage-code-action</code></a></td>
+<td>Mutation</td>
+<td>CodeAction</td>
+<td>Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-analysis">Code analysis</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="analyze-async.html"><code>analyze-async</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.</td>
+</tr>
+<tr>
+<td><a href="analyze-control-flow.html"><code>analyze-control-flow</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Analyzes control flow for an exact complete statement or contiguous statement range.</td>
+</tr>
+<tr>
+<td><a href="analyze-data-flow.html"><code>analyze-data-flow</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Analyzes data flow for an exact expression, complete statement, or contiguous statement range.</td>
+</tr>
+<tr>
+<td><a href="analyze-disposables.html"><code>analyze-disposables</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns advisory findings for undisposed local disposable values.</td>
+</tr>
+<tr>
+<td><a href="analyze-nullability.html"><code>analyze-nullability</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns nullable-flow diagnostics for a selected scope or location.</td>
+</tr>
+<tr>
+<td><a href="find-dependency-cycles.html"><code>find-dependency-cycles</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns detected dependency cycles for the selected scope and granularity.</td>
+</tr>
+<tr>
+<td><a href="find-duplicate-code.html"><code>find-duplicate-code</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.</td>
+</tr>
+<tr>
+<td><a href="find-unused-symbols.html"><code>find-unused-symbols</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns candidate unused locals and members from compiler diagnostics.</td>
+</tr>
+<tr>
+<td><a href="get-change-impact.html"><code>get-change-impact</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded impact summary and supporting source locations for a symbol change.</td>
+</tr>
+<tr>
+<td><a href="get-control-flow-graph.html"><code>get-control-flow-graph</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded control-flow graph with operation metadata and exact source pointers.</td>
+</tr>
+<tr>
+<td><a href="get-dependency-graph.html"><code>get-dependency-graph</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded dependency graph for the selected scope and granularity.</td>
+</tr>
+<tr>
+<td><a href="get-diagnostics.html"><code>get-diagnostics</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns compiler and analyzer diagnostics for a selected scope.</td>
+</tr>
+<tr>
+<td><a href="get-document-options.html"><code>get-document-options</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns language and optional detailed parse and analyzer-config options for a document.</td>
+</tr>
+<tr>
+<td><a href="get-operation-tree.html"><code>get-operation-tree</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded IOperation tree with metadata and exact source pointers.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-dependencies.html"><code>get-symbol-dependencies</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns the direct symbols used by a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-dependents.html"><code>get-symbol-dependents</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns symbols that directly depend on a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="get-test-impact.html"><code>get-test-impact</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns likely impacted tests for a resolved symbol.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-discovery-and-navigation">Code discovery and navigation</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="find-callees.html"><code>find-callees</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns symbols directly invoked by a method or selected executable body.</td>
+</tr>
+<tr>
+<td><a href="find-callers.html"><code>find-callers</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns bounded direct source call sites and containing symbols.</td>
+</tr>
+<tr>
+<td><a href="find-derived-types.html"><code>find-derived-types</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds derived types for a resolved base type.</td>
+</tr>
+<tr>
+<td><a href="find-implementations.html"><code>find-implementations</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds implementations of an interface or abstract member.</td>
+</tr>
+<tr>
+<td><a href="find-overloads.html"><code>find-overloads</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns overload signatures for a resolved method or constructor.</td>
+</tr>
+<tr>
+<td><a href="find-overrides.html"><code>find-overrides</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds overrides of a virtual or abstract member.</td>
+</tr>
+<tr>
+<td><a href="find-references.html"><code>find-references</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds source references, optionally including declarations and access classification.</td>
+</tr>
+<tr>
+<td><a href="get-api-surface.html"><code>get-api-surface</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns exported API symbols for a selected scope.</td>
+</tr>
+<tr>
+<td><a href="get-code-context.html"><code>get-code-context</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded code window with the enclosing semantic context for a selected location.</td>
+</tr>
+<tr>
+<td><a href="get-document-outline.html"><code>get-document-outline</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a bounded semantic outline for one document.</td>
+</tr>
+<tr>
+<td><a href="get-partial-declarations.html"><code>get-partial-declarations</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns the declarations for a partial type or method.</td>
+</tr>
+<tr>
+<td><a href="get-project-details.html"><code>get-project-details</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns project metadata, options and selected document details.</td>
+</tr>
+<tr>
+<td><a href="get-solution-structure.html"><code>get-solution-structure</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns bounded solution folders, projects, target frameworks and direct project relationships.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-attributes.html"><code>get-symbol-attributes</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns declared and inherited attributes for a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-info.html"><code>get-symbol-info</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns detailed metadata for a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-members.html"><code>get-symbol-members</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Lists declared members and optional inherited or interface members for a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="get-type-hierarchy.html"><code>get-type-hierarchy</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns base, interface, and optional derived type relationships for a resolved type.</td>
+</tr>
+<tr>
+<td><a href="go-to-definition.html"><code>go-to-definition</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds source or metadata definitions for a resolved symbol.</td>
+</tr>
+<tr>
+<td><a href="resolve-symbol.html"><code>resolve-symbol</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Resolves the symbol at a location or selection and returns its canonical selector.</td>
+</tr>
+<tr>
+<td><a href="search-symbols.html"><code>search-symbols</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Searches declarations by name, metadata name and optional semantic filters.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-mutation">Code mutation</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="format-document.html"><code>format-document</code></a></td>
+<td>Mutation</td>
+<td>CorePlugin</td>
+<td>Stages Roslyn formatting for one document or one selected range.</td>
+</tr>
+<tr>
+<td><a href="rename-symbol.html"><code>rename-symbol</code></a></td>
+<td>Mutation</td>
+<td>CorePlugin</td>
+<td>Stages a symbol rename across the effective solution.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="error-reporting">Error reporting</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="get-error-details.html"><code>get-error-details</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.</td>
+</tr>
+<tr>
+<td><a href="prepare-error-report.html"><code>prepare-error-report</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Creates the complete external payload without network activity. Exception messages may contain Workspace data. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required; the user can choose to remove exception messages during submission.</td>
+</tr>
+<tr>
+<td><a href="submit-error-report.html"><code>submit-error-report</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>After applying the configured consent policy, submits one previously prepared immutable external error report to its reviewed destination.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="server-lifecycle">Server lifecycle</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="server-status.html"><code>server-status</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Returns server diagnostics without requiring a loaded workspace.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="transactions">Transactions</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="transaction-commit.html"><code>transaction-commit</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Commits the current staged transaction to disk.</td>
+</tr>
+<tr>
+<td><a href="transaction-history.html"><code>transaction-history</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Moves backward or forward through staged transaction history.</td>
+</tr>
+<tr>
+<td><a href="transaction-preview.html"><code>transaction-preview</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Previews the current staged transaction.</td>
+</tr>
+<tr>
+<td><a href="transaction-rollback.html"><code>transaction-rollback</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Rolls back the current staged transaction.</td>
+</tr>
+<tr>
+<td><a href="transaction-start.html"><code>transaction-start</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="workspaces">Workspaces</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="workspace-close.html"><code>workspace-close</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Closes the selected workspace.</td>
+</tr>
+<tr>
+<td><a href="workspace-list.html"><code>workspace-list</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Lists the currently loaded workspaces.</td>
+</tr>
+<tr>
+<td><a href="workspace-open.html"><code>workspace-open</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.</td>
+</tr>
+<tr>
+<td><a href="workspace-reload.html"><code>workspace-reload</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Reloads the selected workspace when it is out of date.</td>
+</tr>
+<tr>
+<td><a href="workspace-status.html"><code>workspace-status</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.top", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

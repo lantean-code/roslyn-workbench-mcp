@@ -1,0 +1,717 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.295",
+  "sourceTag": "0.1.0-beta.295",
+  "commit": "648a2b1a3f63d52f0ec0967543281ad838a2444e",
+  "name": "server-status",
+  "title": "Server Status",
+  "area": "Server",
+  "category": "Server lifecycle",
+  "operationKind": "Query",
+  "summary": "Returns server diagnostics without requiring a loaded workspace.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.295/reference/tools/server-status.html",
+  "tool": {
+    "name": "server-status",
+    "title": "Server Status",
+    "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "description": "Amount of server status detail to return.",
+          "type": "string",
+          "enum": [
+            "Minimal",
+            "Standard",
+            "Full"
+          ]
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "serverVersion": {
+                  "description": "The server version, when available from assembly metadata.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "roslynVersion": {
+                  "description": "The Roslyn version, when available from assembly metadata.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "msBuild": {
+                  "description": "The MSBuild component status.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "isAvailable": {
+                      "description": "Whether the component is available.",
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "description": "The component version, when available.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "message": {
+                      "description": "The optional status message.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "codeActions": {
+                  "description": "The code-action component status.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "isAvailable": {
+                      "description": "Whether the component is available.",
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "description": "The component version, when available.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "message": {
+                      "description": "The optional status message.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "configuration": {
+                  "description": "The effective non-sensitive server configuration.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "defaultMaxResults": {
+                      "description": "The default maximum collection result count.",
+                      "type": "integer"
+                    },
+                    "codeActionReferenceLifetime": {
+                      "description": "The configured code-action reference lifetime.",
+                      "$comment": "Represents a System.TimeSpan value.",
+                      "type": "string",
+                      "pattern": "^-?(\\d+\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+                    },
+                    "maxTransactionRevisions": {
+                      "description": "The configured transaction revision capacity.",
+                      "type": "integer"
+                    },
+                    "maxConcurrentQueries": {
+                      "description": "The configured maximum concurrent query count.",
+                      "type": "integer"
+                    },
+                    "toolOutputSchemaMode": {
+                      "description": "The configured output schema publication mode.",
+                      "type": "string",
+                      "enum": [
+                        "Omit",
+                        "Full"
+                      ]
+                    },
+                    "errorReporting": {
+                      "description": "The effective non-sensitive error-reporting configuration and session state.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "provider": {
+                          "description": "Configured error-reporting provider.",
+                          "type": "string"
+                        },
+                        "consentMode": {
+                          "description": "Configured consent policy for submitting error reports.",
+                          "type": "string"
+                        },
+                        "consentState": {
+                          "description": "Current availability of user consent for error submission.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "consentMode",
+                        "consentState"
+                      ]
+                    }
+                  }
+                },
+                "startupWarnings": {
+                  "description": "The startup configuration fallbacks, when expanded detail is requested.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "description": "The stable machine-readable warning code.",
+                        "type": "string"
+                      },
+                      "message": {
+                        "description": "The human-readable warning message.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "toolCount": {
+                  "description": "The loaded tool count.",
+                  "type": "integer"
+                },
+                "plugins": {
+                  "description": "The plugin load results.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "pluginId": {
+                        "description": "The stable plugin identifier, when supplied by the plugin.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "displayName": {
+                        "description": "The display name, when supplied by the plugin.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "version": {
+                        "description": "The semantic version, when supplied by the plugin.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "supportedApiVersion": {
+                        "description": "The supported plugin API version, when supplied by the plugin.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "enabled": {
+                        "description": "Whether the plugin is enabled.",
+                        "type": "boolean"
+                      },
+                      "diagnostics": {
+                        "description": "The plugin load diagnostics.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "description": "The diagnostic identifier.",
+                              "type": "string"
+                            },
+                            "severity": {
+                              "description": "The diagnostic severity.",
+                              "type": "string",
+                              "enum": [
+                                "Hidden",
+                                "Info",
+                                "Warning",
+                                "Error"
+                              ]
+                            },
+                            "message": {
+                              "description": "The diagnostic message.",
+                              "type": "string"
+                            },
+                            "location": {
+                              "description": "The optional source location of the diagnostic.",
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "description": "The resolved document.",
+                                  "type": [
+                                    "object",
+                                    "null"
+                                  ],
+                                  "properties": {
+                                    "documentId": {
+                                      "description": "The document identifier.",
+                                      "type": "string"
+                                    },
+                                    "path": {
+                                      "description": "The normalized document path.",
+                                      "type": "string"
+                                    },
+                                    "projectId": {
+                                      "description": "The owning project identifier.",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "documentId",
+                                    "path",
+                                    "projectId"
+                                  ]
+                                },
+                                "span": {
+                                  "description": "The resolved text span.",
+                                  "type": [
+                                    "object",
+                                    "null"
+                                  ],
+                                  "properties": {
+                                    "start": {
+                                      "description": "Zero-based UTF-16 offset.",
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    },
+                                    "length": {
+                                      "description": "UTF-16 code-unit length.",
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                },
+                                "line": {
+                                  "description": "The one-based line number.",
+                                  "type": "integer"
+                                },
+                                "column": {
+                                  "description": "The one-based column number.",
+                                  "type": "integer"
+                                },
+                                "snapshot": {
+                                  "description": "The exact immutable workspace snapshot associated with this location.",
+                                  "type": "object",
+                                  "properties": {
+                                    "workspaceId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "workspaceEpoch": {
+                                      "type": "integer"
+                                    },
+                                    "snapshotId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "transactionRevision": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "workspaceId",
+                                    "workspaceEpoch",
+                                    "snapshotId",
+                                    "transactionRevision"
+                                  ]
+                                },
+                                "selector": {
+                                  "description": "The canonical selector that can resolve this source location again.",
+                                  "type": [
+                                    "object",
+                                    "null"
+                                  ],
+                                  "properties": {
+                                    "span": {
+                                      "type": "object",
+                                      "properties": {
+                                        "document": {
+                                          "description": "Provide exactly one of path or documentId.",
+                                          "type": "object",
+                                          "properties": {
+                                            "project": {
+                                              "description": "Disambiguates documents with matching paths or IDs.",
+                                              "type": [
+                                                "object",
+                                                "null"
+                                              ],
+                                              "properties": {
+                                                "projectId": {
+                                                  "type": [
+                                                    "string",
+                                                    "null"
+                                                  ]
+                                                },
+                                                "name": {
+                                                  "type": [
+                                                    "string",
+                                                    "null"
+                                                  ]
+                                                },
+                                                "path": {
+                                                  "description": "Workspace-relative path.",
+                                                  "type": [
+                                                    "string",
+                                                    "null"
+                                                  ]
+                                                },
+                                                "targetFramework": {
+                                                  "type": [
+                                                    "string",
+                                                    "null"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "path": {
+                                              "description": "Workspace-relative path.",
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            },
+                                            "documentId": {
+                                              "description": "Workspace-local document ID.",
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "range": {
+                                          "description": "Zero-based UTF-16 range.",
+                                          "type": "object",
+                                          "properties": {
+                                            "start": {
+                                              "description": "Zero-based UTF-16 offset.",
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 2147483647
+                                            },
+                                            "length": {
+                                              "description": "UTF-16 code-unit length.",
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 2147483647
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "document",
+                                        "range"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "span"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "snapshot"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "message"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "recovery": {
+                  "description": "The unfinished recovery state, when present.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "commitId": {
+                        "description": "Durable commit identifier associated with the recovery record.",
+                        "type": "string"
+                      },
+                      "solutionPath": {
+                        "description": "Absolute solution or project path associated with the recovery record, or empty when malformed recovery evidence does not provide a safe path.",
+                        "type": "string"
+                      },
+                      "state": {
+                        "description": "Current durable commit recovery state.",
+                        "type": "string",
+                        "enum": [
+                          "Prepared",
+                          "Applying",
+                          "Committed",
+                          "Restored",
+                          "RecoveryConflict",
+                          "RecoveryIncomplete"
+                        ]
+                      },
+                      "message": {
+                        "description": "Human-readable recovery status or failure detail, when available.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "commitId"
+                    ]
+                  }
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Server Status",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

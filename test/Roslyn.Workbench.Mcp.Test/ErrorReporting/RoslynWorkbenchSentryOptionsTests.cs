@@ -18,7 +18,6 @@ public sealed class RoslynWorkbenchSentryOptionsTests
         target.AutoSessionTracking.Should().BeFalse();
         target.DisableSentryHttpMessageHandler.Should().BeTrue();
         target.EnableLogs.Should().BeFalse();
-        target.EnableMetrics.Should().BeFalse();
         target.IsGlobalModeEnabled.Should().BeFalse();
         target.ReportAssembliesMode.Should().Be(ReportAssembliesMode.None);
         target.SendClientReports.Should().BeFalse();

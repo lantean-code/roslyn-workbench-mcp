@@ -7,6 +7,7 @@ using Sentry.Protocol.Envelopes;
 
 namespace Roslyn.Workbench.Mcp.Test.ErrorReporting;
 
+[Collection(SentrySdkCollectionDefinition.Name)]
 public sealed class SentryOutboundEnvelopeIntegrationTests
 {
     private const string _destination = "Sentry project 1000000000000000 at o100000.ingest.us.sentry.io";
@@ -63,6 +64,25 @@ public sealed class SentryOutboundEnvelopeIntegrationTests
         transport.Verify(item => item.SendEnvelopeAsync(
             It.IsAny<Envelope>(),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_IsolatedOptions_WHEN_SdkEmitsMetricsAndLogs_THEN_ShouldDropTelemetry()
+    {
+        var configuration = new SentryProviderConfiguration(_dsn, _destination);
+        var options = new RoslynWorkbenchSentryOptions(configuration);
+        var transport = new Mock<Sentry.Extensibility.ITransport>();
+        options.Transport = transport.Object;
+        using var sdk = SentrySdk.Init(options);
+
+        SentrySdk.Metrics.EmitCounter("roslyn_workbench.test", 1);
+        SentrySdk.Logger.LogInfo("Roslyn Workbench test log");
+        await SentrySdk.FlushAsync(TimeSpan.FromSeconds(5));
+
+        transport.Verify(item => item.SendEnvelopeAsync(
+            It.IsAny<Envelope>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static ExternalErrorReport CreateReport()

@@ -18,7 +18,6 @@ internal sealed class RoslynWorkbenchSentryOptions : SentryOptions
         AutoSessionTracking = false;
         DisableSentryHttpMessageHandler = true;
         EnableLogs = false;
-        EnableMetrics = false;
         IsGlobalModeEnabled = false;
         ReportAssembliesMode = ReportAssembliesMode.None;
         SendClientReports = false;
@@ -26,6 +25,8 @@ internal sealed class RoslynWorkbenchSentryOptions : SentryOptions
         ShutdownTimeout = SentrySdkPolicy.ShutdownTimeout;
         CreateHttpMessageHandler = CreateIsolatedHttpMessageHandler;
         SetBeforeSend(SentryEventAllowList.CreateAllowedCopy);
+        SetBeforeSendLog(static _ => null);
+        SetBeforeSendMetric(static _ => null);
     }
 
     private static HttpClientHandler CreateIsolatedHttpMessageHandler()

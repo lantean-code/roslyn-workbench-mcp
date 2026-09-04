@@ -533,6 +533,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#github-copilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Copilot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#claude-code" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -576,6 +587,17 @@
     <span class="md-ellipsis">
       
         Codex
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-copilot_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Copilot
       
     </span>
   </a>
@@ -1038,6 +1060,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#github-copilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Copilot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#claude-code" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1081,6 +1114,17 @@
     <span class="md-ellipsis">
       
         Codex
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-copilot_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Copilot
       
     </span>
   </a>
@@ -1167,6 +1211,17 @@
 </code></pre></div>
 <p>Where <code>developer_instructions</code> already contains other guidance, this text can be incorporated into the existing value rather than adding a second key.</p>
 <p>Codex loads repository guidance from <code>AGENTS.md</code> before it starts work. See the <a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md">Codex AGENTS.md documentation</a> for instruction discovery, precedence and user-level alternatives.</p>
+<h3 id="github-copilot">GitHub Copilot</h3>
+<p>GitHub Copilot can load shared user instructions from <code>~/.copilot/instructions</code>. Add the recommended guidance to a file such as <code>~/.copilot/instructions/roslyn-workbench.instructions.md</code> so it is available across repositories:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>---
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>name: Roslyn Workbench
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>description: Guidance for selecting Roslyn Workbench tools for C# work
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="gu">applyTo: "**"</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="gu">---</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
+</code></pre></div>
+<p>This location is supported by GitHub Copilot in VS Code and Copilot CLI. See the <a href="https://code.visualstudio.com/docs/agent-customization/custom-instructions">VS Code custom-instructions documentation</a> and <a href="https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions">Copilot CLI custom-instructions documentation</a> for instruction discovery and diagnostics.</p>
 <h3 id="claude-code">Claude Code</h3>
 <p>Claude Code can load the recommended instruction from <code>~/.claude/CLAUDE.md</code>, where it can sit alongside other user preferences shared across projects.</p>
 <p>Claude Code uses <code>CLAUDE.md</code> for shared project instructions and can apply more specific files within subdirectories. See the <a href="https://docs.anthropic.com/en/docs/claude-code/memory">Claude Code memory documentation</a> for discovery and import behaviour.</p>
@@ -1176,6 +1231,8 @@
 <p>Repository guidance is loaded in addition to user-level guidance and gives an agent more specific context for the codebase it is currently working with. The recommended instruction can be included here instead of, or alongside, user-level setup.</p>
 <h3 id="codex_1">Codex</h3>
 <p>The recommended instruction can be added to the repository's root <code>AGENTS.md</code>. Where that file already exists, the section can sit alongside its existing instructions. More specific <code>AGENTS.md</code> files may refine the guidance for individual directories.</p>
+<h3 id="github-copilot_1">GitHub Copilot</h3>
+<p>The recommended instruction can be added to <code>.github/copilot-instructions.md</code>, which GitHub Copilot applies throughout the repository. Copilot also understands a root <code>AGENTS.md</code>, so a repository already sharing suitable guidance with other agents can use that file instead of maintaining a duplicate Copilot-specific copy. See the <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions">GitHub Copilot repository-instructions documentation</a> for the supported repository options.</p>
 <h3 id="claude-code_1">Claude Code</h3>
 <p>The recommended instruction can be added to the repository's root <code>CLAUDE.md</code>. Where that file already exists, the section can sit alongside its existing instructions.</p>
 <h3 id="other-mcp-clients_1">Other MCP clients</h3>

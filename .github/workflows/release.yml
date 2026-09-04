@@ -481,7 +481,7 @@ jobs:
             --env DOTNET_ROOT=/opt/dotnet \
             --env PATH="/opt/dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
             fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80 \
-            bash -c 'dnf install --assumeyes python3 rpm-build cpio && python3 packaging/linux/build-rpm.py --output-directory artifacts/rpm/release --artifacts-path /tmp/artifacts/roslyn-workbench-mcp'
+            bash -c 'dnf install --assumeyes python3 rpm-build cpio glibc libgcc ca-certificates openssl-libs libstdc++ libicu tzdata krb5-libs && python3 packaging/linux/build-rpm.py --output-directory artifacts/rpm/release --artifacts-path /tmp/artifacts/roslyn-workbench-mcp'
       - name: Validate RPM installation, reinstallation and removal on Fedora 44
         if: inputs.build-rpm
         run: |

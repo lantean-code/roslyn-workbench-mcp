@@ -23,6 +23,27 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     }
 
     [Fact]
+    public async Task GIVEN_AsyncDisposableHandler_WHEN_Analyzing_THEN_ShouldReportRwmcp006()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class {|RWMCP006:Handler|} :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>,
+                System.IAsyncDisposable
+            {
+                public System.Threading.Tasks.ValueTask DisposeAsync()
+                {
+                    return default;
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerMemberHasImport_WHEN_Analyzing_THEN_ShouldReportRwmcp007()
     {
         const string source = """
@@ -41,6 +62,45 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
     }
 
     [Fact]
+    public async Task GIVEN_HandlerConstructorParameterHasImportMany_WHEN_Analyzing_THEN_ShouldReportRwmcp007()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                public Handler([{|RWMCP007:System.Composition.ImportMany|}] object[] values)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_HandlerConstructorHasImportingConstructor_WHEN_Analyzing_THEN_ShouldReportRwmcp007()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                [{|RWMCP007:System.Composition.ImportingConstructor|}]
+                public Handler(object value)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerHasDisposableField_WHEN_Analyzing_THEN_ShouldReportStateAndRwmcp011()
     {
         const string source = """
@@ -51,6 +111,41 @@ public sealed class PluginHandlerAnalyzerLifetimeTests
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
             {
                 private readonly System.IO.MemoryStream {|RWMCP009:{|RWMCP011:_stream|}|} = new();
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_HandlerFieldUsesDisposableInterface_WHEN_Analyzing_THEN_ShouldReportStateAndRwmcp011()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly System.IDisposable {|RWMCP009:{|RWMCP011:_resource|}|} =
+                    new System.IO.MemoryStream();
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_HandlerOwnsArrayState_WHEN_Analyzing_THEN_ShouldReportOnlyInstanceState()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private readonly string[] {|RWMCP009:_values|} = new string[0];
             }
             """;
 

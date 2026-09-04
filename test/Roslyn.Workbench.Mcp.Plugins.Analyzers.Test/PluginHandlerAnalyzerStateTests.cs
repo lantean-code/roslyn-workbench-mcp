@@ -96,4 +96,39 @@ public sealed class PluginHandlerAnalyzerStateTests
 
         await AnalyzerVerifier.VerifyHandlerAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_HandlerHasSettablePropertyAndEvent_WHEN_Analyzing_THEN_ShouldReportRwmcp009ForEach()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                public int {|RWMCP009:Value|} { get; set; }
+                public event System.EventHandler {|RWMCP009:Changed|};
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_HandlerHasMutableStaticDisposableField_WHEN_Analyzing_THEN_ShouldReportStaticAndOwnershipDiagnostics()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                private static System.IO.MemoryStream {|RWMCP010:{|RWMCP011:_stream|}|};
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
 }

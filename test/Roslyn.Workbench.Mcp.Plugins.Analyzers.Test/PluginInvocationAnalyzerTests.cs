@@ -228,6 +228,84 @@ public sealed class PluginInvocationAnalyzerTests
     }
 
     [Fact]
+    public async Task GIVEN_HandlerExecuteMethodHasNoCancellationToken_WHEN_Analyzing_THEN_ShouldNotReport()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                public void ExecuteAsync(Request request, object context)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_MutationHandlerIgnoresCancellation_WHEN_Analyzing_THEN_ShouldReportRwmcp013()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceMutationRequest;
+
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler<Request>
+            {
+                public void ExecuteAsync(
+                    Request request,
+                    object context,
+                    System.Threading.CancellationToken {|RWMCP013:cancellationToken|})
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_NonExecuteMethodHasCancellationToken_WHEN_Analyzing_THEN_ShouldNotReport()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                public void Observe(System.Threading.CancellationToken cancellationToken)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ParenthesizedDiscardedCancellation_WHEN_Analyzing_THEN_ShouldReportRwmcp013()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+                public void ExecuteAsync(
+                    Request request,
+                    object context,
+                    System.Threading.CancellationToken {|RWMCP013:cancellationToken|})
+                {
+                    _ = (object)cancellationToken;
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_QueryReturnsRawCollection_WHEN_Analyzing_THEN_ShouldReportRwmcp014()
     {
         const string source = """
@@ -282,6 +360,32 @@ public sealed class PluginInvocationAnalyzerTests
 
             public sealed class Handler :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyInvocationAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_QueryResponseHasArrayProperty_WHEN_Analyzing_THEN_ShouldReportRwmcp014()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse
+            {
+                public string[] {|RWMCP014:Items|} { get; init; } = new string[0];
+                public System.Collections.Generic.IAsyncEnumerable<string> {|RWMCP014:Stream|} { get; init; }
+                public string Name { get; init; } = "Name";
+                public object Value { get; init; } = new object();
+                private System.Collections.Generic.List<string> Hidden { get; init; }
+                    = new System.Collections.Generic.List<string>();
+                public static System.Collections.Generic.List<string> Shared { get; }
+                    = new System.Collections.Generic.List<string>();
+            }
+
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
             {
             }
             """;

@@ -177,6 +177,11 @@ public sealed class PluginQueryCacheAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
+        if (type is ITypeParameterSymbol)
+        {
+            return true;
+        }
+
         if (type is not INamedTypeSymbol namedType)
         {
             return false;

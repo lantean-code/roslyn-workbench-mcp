@@ -146,4 +146,75 @@ public sealed class PluginHandlerAnalyzerContractTests
 
         await AnalyzerVerifier.VerifyHandlerAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_AbstractHandlerWithInvalidToolName_WHEN_Analyzing_THEN_ShouldIgnoreIt()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            [Roslyn.Workbench.Mcp.Plugins.RoslynTool(
+                "invalid name",
+                "Query",
+                "Queries the workspace.")]
+            public abstract class AbstractHandler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_GenericHandlerWithInvalidToolName_WHEN_Analyzing_THEN_ShouldIgnoreIt()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Response : Roslyn.Workbench.Mcp.Plugins.IQueryResponse;
+
+            [Roslyn.Workbench.Mcp.Plugins.RoslynTool(
+                "invalid name",
+                "Query",
+                "Queries the workspace.")]
+            public sealed class GenericHandler<T> :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ExternalHandlerUsesInternalResponse_WHEN_Analyzing_THEN_ShouldReportRwmcp008()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin", "Plugin", "1")]
+            public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+            {
+                public void Configure(Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                {
+                }
+            }
+
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            internal sealed class Item
+            {
+            }
+
+            internal sealed class {|RWMCP008:Response|} : Roslyn.Workbench.Mcp.Plugins.IQueryResponse
+            {
+                public Item[] Items { get; } = new Item[0];
+            }
+
+            internal sealed class Handler :
+                Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyHandlerAsync(source);
+    }
 }

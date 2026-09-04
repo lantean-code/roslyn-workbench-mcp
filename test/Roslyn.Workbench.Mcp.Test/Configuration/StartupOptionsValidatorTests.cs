@@ -102,6 +102,46 @@ public sealed class StartupOptionsValidatorTests
             "CodeActionReferenceLifetime must be greater than zero and no greater than 1.00:00:00.");
     }
 
+    [Fact]
+    public void GIVEN_InvalidCacheAndErrorReportingOptions_WHEN_Validating_THEN_ShouldReportEveryFailure()
+    {
+        var options = new StartupOptions
+        {
+            WorkspaceQueryCacheSizeLimit = 4_999,
+            PluginQueryCacheEntryLimit = 50_001,
+            WorkspaceQueryCacheSlidingExpiration = TimeSpan.Zero,
+            PluginQueryCacheSlidingExpiration = TimeSpan.FromDays(1) + TimeSpan.FromTicks(1),
+            ErrorReporting = new ErrorReportingOptions
+            {
+                ConsentMode = (ErrorReportingConsentMode)999,
+                CapturedErrorCapacity = 9,
+                MaximumCapturedErrorBytes = 16_383,
+                PreparedSubmissionCapacity = 4,
+                MaximumPayloadBytes = 8_191,
+                CapturedErrorLifetime = TimeSpan.Zero,
+                PreparedSubmissionLifetime = TimeSpan.FromHours(4) + TimeSpan.FromTicks(1),
+            },
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+        result.Failures.Should().BeEquivalentTo(
+        [
+            "WorkspaceQueryCacheSizeLimit must be between 5000 and 100000, inclusive.",
+            "PluginQueryCacheEntryLimit must be between 7500 and 50000, inclusive.",
+            "WorkspaceQueryCacheSlidingExpiration must be greater than zero and no greater than 1.00:00:00.",
+            "PluginQueryCacheSlidingExpiration must be greater than zero and no greater than 1.00:00:00.",
+            "ConsentMode must be a supported value.",
+            "CapturedErrorCapacity must be between 10 and 1000, inclusive.",
+            "MaximumCapturedErrorBytes must be between 16384 and 262144, inclusive.",
+            "PreparedSubmissionCapacity must be between 5 and 500, inclusive.",
+            "MaximumPayloadBytes must be between 8192 and 262144, inclusive.",
+            "CapturedErrorLifetime must be greater than zero and no greater than 1.00:00:00.",
+            "PreparedSubmissionLifetime must be greater than zero and no greater than 04:00:00.",
+        ]);
+    }
+
     private static StartupOptions CreateInvalidOptions()
     {
         return new StartupOptions

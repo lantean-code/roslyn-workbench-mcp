@@ -133,4 +133,52 @@ public sealed class PluginAuthoringAnalyzerWorkspaceTests
 
         await AnalyzerVerifier.VerifyAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_MutationHandlerWithoutPluginEntryPoint_WHEN_UsingLiveWorkspace_THEN_ShouldReportBothDiagnostics()
+    {
+        const string source = """
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler
+            {
+                public Microsoft.CodeAnalysis.Solution Apply(
+                    Microsoft.CodeAnalysis.Workspace workspace,
+                    Microsoft.CodeAnalysis.Solution solution)
+                {
+                    {|RWMCP001:workspace.TryApplyChanges(solution)|};
+                    return {|RWMCP002:workspace.CurrentSolution|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_NestedMarkedPlugin_WHEN_HelperMutatesWorkspace_THEN_ShouldReportRwmcp001()
+    {
+        const string source = """
+            public static class PluginContainer
+            {
+                [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin("plugin", "Plugin", "1")]
+                public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+                {
+                    public void Configure(Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                    {
+                    }
+                }
+            }
+
+            public static class Helper
+            {
+                public static void Apply(
+                    Microsoft.CodeAnalysis.Workspace workspace,
+                    Microsoft.CodeAnalysis.Solution solution)
+                {
+                    {|RWMCP001:workspace.TryApplyChanges(solution)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyAsync(source);
+    }
 }

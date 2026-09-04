@@ -90,6 +90,28 @@ public sealed class StartupOptionsResolverTests
         }
     }
 
+    [Theory]
+    [InlineData("never", "Never")]
+    [InlineData("prompt", "Prompt")]
+    public void GIVEN_ExplicitCommandLineConsent_WHEN_Resolving_THEN_ShouldUseRequestedMode(
+        string configuredValue,
+        string expectedMode)
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([$"--error-reporting-consent={configuredValue}"]);
+
+            result.Options.ErrorReporting.ConsentMode.ToString().Should().Be(expectedMode);
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
     [Fact]
     public void GIVEN_AmbientAlwaysConsent_WHEN_Resolving_THEN_ShouldIgnoreItAndWarn()
     {
@@ -314,6 +336,72 @@ public sealed class StartupOptionsResolverTests
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
             result.Options.StateDirectory.Should().Be("/environment-state");
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ValidCacheAndErrorReportingBounds_WHEN_Resolving_THEN_ShouldUseConfiguredValues()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--workspace-query-cache-sliding-expiration=00:30:00",
+                "--plugin-query-cache-sliding-expiration=00:45:00",
+                "--error-record-capacity=10",
+                "--error-record-lifetime=01:00:00",
+                "--error-record-max-bytes=16384",
+                "--error-submission-capacity=5",
+                "--error-submission-lifetime=00:15:00",
+                "--error-report-max-bytes=8192",
+            ]);
+
+            result.Options.WorkspaceQueryCacheSlidingExpiration.Should().Be(TimeSpan.FromMinutes(30));
+            result.Options.PluginQueryCacheSlidingExpiration.Should().Be(TimeSpan.FromMinutes(45));
+            result.Options.ErrorReporting.CapturedErrorCapacity.Should().Be(10);
+            result.Options.ErrorReporting.CapturedErrorLifetime.Should().Be(TimeSpan.FromHours(1));
+            result.Options.ErrorReporting.MaximumCapturedErrorBytes.Should().Be(16_384);
+            result.Options.ErrorReporting.PreparedSubmissionCapacity.Should().Be(5);
+            result.Options.ErrorReporting.PreparedSubmissionLifetime.Should().Be(TimeSpan.FromMinutes(15));
+            result.Options.ErrorReporting.MaximumPayloadBytes.Should().Be(8_192);
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_InvalidCacheAndErrorReportingBounds_WHEN_Resolving_THEN_ShouldUseDefaultsAndWarn()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--workspace-query-cache-sliding-expiration=00:00:00",
+                "--plugin-query-cache-sliding-expiration=1.00:00:00.0000001",
+                "--error-record-capacity=9",
+                "--error-record-lifetime=00:00:00",
+                "--error-record-max-bytes=16383",
+                "--error-submission-capacity=4",
+                "--error-submission-lifetime=04:00:00.0000001",
+                "--error-report-max-bytes=8191",
+            ]);
+
+            var defaults = new StartupOptions();
+            result.Options.WorkspaceQueryCacheSlidingExpiration.Should().Be(defaults.WorkspaceQueryCacheSlidingExpiration);
+            result.Options.PluginQueryCacheSlidingExpiration.Should().Be(defaults.PluginQueryCacheSlidingExpiration);
+            result.Options.ErrorReporting.Should().BeEquivalentTo(defaults.ErrorReporting);
+            result.Warnings.Should().HaveCount(8);
         }
         finally
         {

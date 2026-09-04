@@ -118,6 +118,46 @@ public sealed class PluginEntryPointAnalyzerTests
     }
 
     [Fact]
+    public async Task GIVEN_PluginDisplayNameIsBlank_WHEN_Analyzing_THEN_ShouldReportRwmcp018()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin(
+                "plugin-id",
+                {|RWMCP018:" "|},
+                Roslyn.Workbench.Mcp.Plugins.PluginApiVersions.V1)]
+            public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+            {
+                public void Configure(
+                    Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyEntryPointAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ValidMarkedPluginUsesNamedConstructorArguments_WHEN_Analyzing_THEN_ShouldNotReport()
+    {
+        const string source = """
+            [Roslyn.Workbench.Mcp.Plugins.RoslynPlugin(
+                pluginId: "plugin-id",
+                displayName: "Plugin",
+                apiVersion: Roslyn.Workbench.Mcp.Plugins.PluginApiVersions.V1)]
+            public sealed class Plugin : Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+            {
+                public void Configure(
+                    Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration configuration)
+                {
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyEntryPointAsync(source);
+    }
+
+    [Fact]
     public async Task GIVEN_ToolMetadataDecoratesNonHandler_WHEN_Analyzing_THEN_ShouldReportRwmcp019()
     {
         const string source = """
@@ -146,6 +186,21 @@ public sealed class PluginEntryPointAnalyzerTests
                 "Tool description.")]
             public sealed class Tool :
                 Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<Request, Response>
+            {
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyEntryPointAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ToolMetadataDecoratesMutationHandler_WHEN_Analyzing_THEN_ShouldNotReport()
+    {
+        const string source = """
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceMutationRequest;
+
+            [Roslyn.Workbench.Mcp.Plugins.RoslynTool("mutation", "Mutation", "Mutates the workspace.")]
+            public sealed class Handler : Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler<Request>
             {
             }
             """;

@@ -244,4 +244,186 @@ public sealed class PluginQueryCacheAnalyzerTests
 
         await AnalyzerVerifier.VerifyQueryCacheAsync(source);
     }
+
+    [Fact]
+    public async Task GIVEN_ArrayValue_WHEN_UsingQueryCache_THEN_ShouldReportRwmcp021()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey;
+
+            public static class Consumer
+            {
+                public static string[] Get(Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return {|RWMCP021:cache.GetOrCreate(new Key(), _ => new string[0], default)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_AsyncDisposableValue_WHEN_UsingQueryCache_THEN_ShouldReportRwmcp021()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey;
+
+            public sealed class CachedValue : System.IAsyncDisposable
+            {
+                public System.Threading.Tasks.ValueTask DisposeAsync()
+                {
+                    return default;
+                }
+            }
+
+            public static class Consumer
+            {
+                public static CachedValue Get(Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return {|RWMCP021:cache.GetOrCreate(new Key(), _ => new CachedValue(), default)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_MutableCollectionValue_WHEN_UsingQueryCache_THEN_ShouldReportRwmcp021()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey;
+
+            public static class Consumer
+            {
+                public static System.Collections.Generic.Dictionary<string, string> Get(
+                    Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return {|RWMCP021:cache.GetOrCreate(
+                        new Key(),
+                        _ => new System.Collections.Generic.Dictionary<string, string>(),
+                        default)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ImmutableArrayContainsUnsafeValue_WHEN_UsingQueryCache_THEN_ShouldReportRwmcp021()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey;
+
+            public static class Consumer
+            {
+                public static System.Collections.Immutable.ImmutableArray<System.IO.MemoryStream> Get(
+                    Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return {|RWMCP021:cache.GetOrCreate(
+                        new Key(),
+                        _ => System.Collections.Immutable.ImmutableArray<System.IO.MemoryStream>.Empty,
+                        default)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_RecursiveImmutableShapes_WHEN_UsingQueryCache_THEN_ShouldNotReportDiagnostic()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey
+            {
+                public Key Next { get; init; }
+            }
+
+            public sealed class CachedValue
+            {
+                public CachedValue Next { get; }
+            }
+
+            public static class Consumer
+            {
+                public static CachedValue Get(Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return cache.GetOrCreate(new Key(), _ => new CachedValue(), default);
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReadonlyFieldKeyWithValueEquality_WHEN_UsingQueryCache_THEN_ShouldNotReportDiagnostic()
+    {
+        const string source = """
+            public sealed class Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey
+            {
+                public readonly string Value;
+
+                public override bool Equals(object other)
+                {
+                    return other is Key;
+                }
+
+                public override int GetHashCode()
+                {
+                    return 0;
+                }
+            }
+
+            public static class Consumer
+            {
+                public static string Get(Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache)
+                {
+                    return cache.GetOrCreate(new Key(), _ => "Value", default);
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_OrdinaryInvocation_WHEN_Analyzing_THEN_ShouldIgnoreIt()
+    {
+        const string source = """
+            public static class Consumer
+            {
+                public static bool Compare(string value)
+                {
+                    return string.Equals(value, "Value", System.StringComparison.Ordinal);
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnconstrainedGenericCachedValue_WHEN_UsingQueryCache_THEN_ShouldReportRwmcp021()
+    {
+        const string source = """
+            public sealed record Key : Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey;
+
+            public static class Consumer
+            {
+                public static TValue Get<TValue>(
+                    Roslyn.Workbench.Mcp.Plugins.IQueryResultCache cache,
+                    TValue value)
+                    where TValue : notnull
+                {
+                    return {|RWMCP021:cache.GetOrCreate(new Key(), _ => value, default)|};
+                }
+            }
+            """;
+
+        await AnalyzerVerifier.VerifyQueryCacheAsync(source);
+    }
 }

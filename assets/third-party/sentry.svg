@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 222 66">
+<svg xmlns="http://www.w3.org/2000/svg" width="161" height="48" viewBox="0 0 222 66">
   <style>
     path { fill: #181225; }
     @media (prefers-color-scheme: dark) { path { fill: #ffffff; } }

@@ -347,6 +347,294 @@ public sealed class QueryCacheStateCoreTests
         cachedValue.Should().BeNull();
     }
 
+    [Fact]
+    public void GIVEN_MissingPartition_WHEN_Invalidating_THEN_ShouldRemainUsable()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "MissingPartitionTest");
+
+        target.InvalidatePartition("MissingPartition");
+
+        var scope = target.CreateScope("Partition", "Scope");
+        scope.Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(11)]
+    public void GIVEN_InvalidEntryCharge_WHEN_GettingTwice_THEN_ShouldNotCacheValue(long entryCharge)
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "InvalidChargeTest");
+
+        var scope = target.CreateScope("Partition", "Scope");
+        var key = new TestKey("Key");
+        var factoryCalls = 0;
+
+        TestValue? CreateValue(CancellationToken _)
+        {
+            factoryCalls++;
+            return new TestValue($"Value{factoryCalls}");
+        }
+
+        var first = target.GetOrCreate(
+            scope,
+            key,
+            CreateValue,
+            _ => entryCharge,
+            static _ => true,
+            CancellationToken.None);
+
+        var second = target.GetOrCreate(
+            scope,
+            key,
+            CreateValue,
+            _ => entryCharge,
+            static _ => true,
+            CancellationToken.None);
+
+        first.Should().NotBeSameAs(second);
+        factoryCalls.Should().Be(2);
+    }
+
+    [Fact]
+    public void GIVEN_RecursiveFactory_WHEN_GettingSameEntry_THEN_ShouldRejectRecursion()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "RecursiveFactoryTest");
+
+        var scope = target.CreateScope("Partition", "Scope");
+        var key = new TestKey("Key");
+
+        var action = () => target.GetOrCreate<TestKey, TestValue>(
+            scope,
+            key,
+            _ => target.GetOrCreate(
+                scope,
+                key,
+                static _ => new TestValue("NestedValue"),
+                static _ => 1,
+                static _ => true,
+                CancellationToken.None),
+            static _ => 1,
+            static _ => true,
+            CancellationToken.None);
+
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("A query-cache value factory cannot recursively request its own scoped key.");
+    }
+
+    [Fact]
+    public async Task GIVEN_InvalidatedInFlightFactory_WHEN_Waiting_THEN_ShouldCancelFactory()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "InvalidatedFactoryTest");
+
+        var scope = target.CreateScope("Partition", "Scope");
+        var key = new TestKey("Key");
+        var factoryStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var neverCompletes = new TaskCompletionSource<TestValue>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var result = target.GetOrCreateAsync(
+            scope,
+            key,
+            async token =>
+            {
+                factoryStarted.SetResult();
+                return await neverCompletes.Task.WaitAsync(token);
+            },
+            static _ => 1,
+            static _ => true,
+            CancellationToken.None).AsTask();
+
+        await factoryStarted.Task;
+        target.InvalidatePartition("Partition");
+
+        var action = async () => await result;
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_CancelledOnlyWaiter_WHEN_FactoryIsRunning_THEN_ShouldCancelFactoryComputation()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "CancelledWaiterTest");
+
+        using var callerCancellation = new CancellationTokenSource();
+        var scope = target.CreateScope("Partition", "Scope");
+        var key = new TestKey("Key");
+        var factoryStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var neverCompletes = new TaskCompletionSource<TestValue>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var factoryToken = CancellationToken.None;
+
+        var result = target.GetOrCreateAsync(
+            scope,
+            key,
+            async token =>
+            {
+                factoryToken = token;
+                factoryStarted.SetResult();
+                return await neverCompletes.Task.WaitAsync(token);
+            },
+            static _ => 1,
+            static _ => true,
+            callerCancellation.Token).AsTask();
+
+        await factoryStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+        CancelSynchronously(callerCancellation);
+
+        var action = async () => await result.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        factoryToken.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_TwoWaiters_WHEN_OneWaiterIsCancelled_THEN_ShouldKeepSharedFactoryRunning()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        var cacheFamily = $"RemainingWaiterTest-{Guid.NewGuid():N}";
+        using var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            cacheFamily);
+
+        using var firstCallerCancellation = new CancellationTokenSource();
+        var eventSource = WorkbenchPerformanceEventSource.Log;
+        using var listener = new WorkbenchPerformanceEventListener(eventSource);
+        var scope = target.CreateScope("Partition", "Scope");
+        var key = new TestKey("Key");
+        var factoryStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var factoryCompletion = new TaskCompletionSource<TestValue>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var factoryCalls = 0;
+        var factoryToken = CancellationToken.None;
+
+        var first = target.GetOrCreateAsync(
+            scope,
+            key,
+            async token =>
+            {
+                factoryCalls++;
+                factoryToken = token;
+                factoryStarted.SetResult();
+                return await factoryCompletion.Task.WaitAsync(token);
+            },
+            static _ => 1,
+            static _ => true,
+            firstCallerCancellation.Token).AsTask();
+
+        await factoryStarted.Task;
+
+        var second = target.GetOrCreateAsync(
+            scope,
+            key,
+            _ => ValueTask.FromResult<TestValue?>(new TestValue("Unexpected")),
+            static _ => 1,
+            static _ => true,
+            CancellationToken.None).AsTask();
+
+        await WaitForMetricAsync(
+            listener,
+            cacheFamily,
+            "in-flight-joins",
+            TestContext.Current.CancellationToken);
+
+        CancelSynchronously(firstCallerCancellation);
+
+        var firstAction = async () => await first.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        await firstAction.Should().ThrowAsync<OperationCanceledException>();
+        factoryToken.IsCancellationRequested.Should().BeFalse();
+
+        var expected = new TestValue("Value");
+        factoryCompletion.SetResult(expected);
+
+        var secondResult = await second;
+
+        secondResult.Should().BeSameAs(expected);
+        factoryCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public void GIVEN_DisposedCore_WHEN_DisposingAgain_THEN_ShouldNotThrow()
+    {
+        var applicationLifetime = new Mock<IHostApplicationLifetime>();
+        applicationLifetime
+            .SetupGet(item => item.ApplicationStopping)
+            .Returns(CancellationToken.None);
+
+        var target = new QueryCacheStateCore(
+            10,
+            TimeSpan.FromHours(1),
+            applicationLifetime.Object,
+            "RepeatedDisposeTest");
+
+        target.Dispose();
+
+        var action = target.Dispose;
+
+        action.Should().NotThrow();
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference CreateCompletedNonAdmittedComputation(QueryCacheStateCore target)
     {
@@ -375,6 +663,11 @@ public sealed class QueryCacheStateCoreTests
         }
     }
 
+    private static void CancelSynchronously(CancellationTokenSource source)
+    {
+        source.Cancel();
+    }
+
     private static bool IsCacheMetric(EventWrittenEventArgs traceEvent, string cacheFamily)
     {
         return traceEvent.EventName == "CacheMetric"
@@ -398,12 +691,11 @@ public sealed class QueryCacheStateCoreTests
         string metric,
         CancellationToken cancellationToken)
     {
-        while (!listener.Events.Any(item =>
+        await listener.WaitForEventAsync(
+            item =>
             IsCacheMetric(item, cacheFamily)
-            && GetMetric(item) == metric))
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
-        }
+                && GetMetric(item) == metric,
+            cancellationToken);
     }
 
     private static TestValue? SelectTestCacheValue(TestComputationResult result)

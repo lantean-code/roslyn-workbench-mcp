@@ -36,6 +36,10 @@ This table preserves the reasoning for the approved cases, without carrying forw
 | `ResolveSymbolTool` | Snapshot/location/symbol failures, source selectors/declarations and metadata fallback are covered. Remaining alternatives require a retained resolved source location without document/span ordering fields. Approved defensive. |
 | `SearchSymbolsTool` | Query and metadata-name modes, kind/accessibility/namespace filters, global namespace, missing projections, ordering and bounds are covered. Remaining alternatives are the post-validation missing-pattern invariant and a null containing namespace that Roslyn symbols do not expose. Approved defensive. |
 
+## Code Action tools
+
+`ListCodeActionsTool` covers composition and snapshot failures, document/range resolution, refactoring and Code Fix discovery, provider and diagnostic filtering, bounded results, every stable ordering tie-breaker, projection failures, provider warnings and reference cleanup after returned failures or thrown exceptions. A resolved supported C# source document does not return a null syntax tree, and `CodeActionInfoCreationResult` cannot expose an unknown `CodeActionInfoCreationStatus` through its private constructor and named factories. Those two alternatives remain approved defensive guards; do not introduce unsupported Roslyn documents, reflection or test-only production seams solely to execute them.
+
 ## Control-flow resolution
 
 `ControlFlowGraphResolver` derives the enclosing symbol from the resolved node and semantic model. Supported executable roots, local functions, lambdas and standalone parameter-initialiser graphs are covered through real Roslyn objects. Nullable nested-graph results and future unsupported operation roots remain defensive external-API guards; they do not justify replacing Roslyn with artificial objects solely to raise a percentage.

@@ -279,6 +279,65 @@ public sealed class ListCodeActionsToolTests
     }
 
     [Fact]
+    public async Task GIVEN_NoCodeFixProvidersMatch_WHEN_Executing_THEN_ShouldReturnEmptyResultWithoutCollectingDiagnostics()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([]);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.CodeFixes, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        _discoveryService.Verify(item => item.ReadCodeFixProviderMetadata(
+            It.IsAny<CodeFixProvider>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan?>(),
+            It.IsAny<IReadOnlyList<string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_EmptyDiagnosticFilter_WHEN_Executing_THEN_ShouldUseAllProviderDiagnosticIds()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeFixProvider>();
+        var providerMetadata = CreateProviderMetadata(provider.Object, "DIAG001");
+        var diagnosticCollection = new CodeActionDiagnosticCollection([], []);
+        _providerCatalog.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.ReadCodeFixProviderMetadata(provider.Object, TestContext.Current.CancellationToken))
+            .Returns(CodeActionProviderInvocationResult.Success(providerMetadata));
+        _diagnosticService
+            .Setup(item => item.CollectDocumentDiagnosticsAsync(
+                roslyn.Document,
+                null,
+                It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_firstDiagnosticIds)),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(diagnosticCollection);
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(
+                providerMetadata,
+                roslyn.Document,
+                diagnosticCollection.Diagnostics,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.CodeFixes, selector, diagnosticIds: []),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        _diagnosticService.VerifyAll();
+    }
+
+    [Fact]
     public async Task GIVEN_ActionsExceedLimit_WHEN_Executing_THEN_ShouldPublishBoundedMetadataAndCreateOnlyReturnedReferences()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
@@ -311,6 +370,74 @@ public sealed class ListCodeActionsToolTests
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
             It.IsAny<ResolvedLocation>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionsHaveMatchingEarlierSortKeys_WHEN_Executing_THEN_ShouldUseEveryStableTieBreaker()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var byTitle = CreateSortableAction(roslyn.Solution, "B", "ProviderA", equivalenceKey: null, [0], new TextSpan(0, 1));
+        var byProvider = CreateSortableAction(roslyn.Solution, "A", "ProviderB", equivalenceKey: null, [0], new TextSpan(0, 1));
+        var byEquivalenceKeyB = CreateSortableAction(roslyn.Solution, "A", "ProviderA", "B", [0], new TextSpan(0, 1));
+        var byEquivalenceKeyA = CreateSortableAction(roslyn.Solution, "A", "ProviderA", "A", [0], new TextSpan(0, 1));
+        var byPathSegment = CreateSortableAction(roslyn.Solution, "A", "ProviderA", equivalenceKey: null, [1], new TextSpan(0, 1));
+        var byPathLength = CreateSortableAction(roslyn.Solution, "A", "ProviderA", equivalenceKey: null, [0, 1], new TextSpan(0, 1));
+        var bySpanStart = CreateSortableAction(roslyn.Solution, "A", "ProviderA", equivalenceKey: null, [0], new TextSpan(1, 1));
+        var bySpanLength = CreateSortableAction(roslyn.Solution, "A", "ProviderA", equivalenceKey: null, [0], new TextSpan(0, 2));
+        var first = CreateSortableAction(roslyn.Solution, "A", "ProviderA", equivalenceKey: null, [0], new TextSpan(0, 1));
+        var byTitleItem = CreateItem("ByTitle", CodeActionKind.Refactoring, 0, 1);
+        var byProviderItem = CreateItem("ByProvider", CodeActionKind.Refactoring, 0, 1);
+        var byEquivalenceKeyBItem = CreateItem("ByEquivalenceKeyB", CodeActionKind.Refactoring, 0, 1);
+        var byEquivalenceKeyAItem = CreateItem("ByEquivalenceKeyA", CodeActionKind.Refactoring, 0, 1);
+        var byPathSegmentItem = CreateItem("ByPathSegment", CodeActionKind.Refactoring, 0, 1);
+        var byPathLengthItem = CreateItem("ByPathLength", CodeActionKind.Refactoring, 0, 1);
+        var bySpanStartItem = CreateItem("BySpanStart", CodeActionKind.Refactoring, 1, 1);
+        var bySpanLengthItem = CreateItem("BySpanLength", CodeActionKind.Refactoring, 0, 2);
+        var firstItem = CreateItem("First", CodeActionKind.Refactoring, 0, 1);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(
+                byTitle,
+                byProvider,
+                byEquivalenceKeyB,
+                byEquivalenceKeyA,
+                byPathSegment,
+                byPathLength,
+                bySpanStart,
+                bySpanLength,
+                first));
+        SetupProjection(byTitle, roslyn.Document, byTitleItem);
+        SetupProjection(byProvider, roslyn.Document, byProviderItem);
+        SetupProjection(byEquivalenceKeyB, roslyn.Document, byEquivalenceKeyBItem);
+        SetupProjection(byEquivalenceKeyA, roslyn.Document, byEquivalenceKeyAItem);
+        SetupProjection(byPathSegment, roslyn.Document, byPathSegmentItem);
+        SetupProjection(byPathLength, roslyn.Document, byPathLengthItem);
+        SetupProjection(bySpanStart, roslyn.Document, bySpanStartItem);
+        SetupProjection(bySpanLength, roslyn.Document, bySpanLengthItem);
+        SetupProjection(first, roslyn.Document, firstItem);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().Equal(
+            firstItem,
+            bySpanLengthItem,
+            bySpanStartItem,
+            byPathLengthItem,
+            byPathSegmentItem,
+            byEquivalenceKeyAItem,
+            byEquivalenceKeyBItem,
+            byProviderItem,
+            byTitleItem);
     }
 
     [Fact]
@@ -465,6 +592,41 @@ public sealed class ListCodeActionsToolTests
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("ActionReferenceCapacityExceeded");
+        _referenceStore.Verify(item => item.Remove(firstItem.ActionId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_LaterActionProjectionThrows_WHEN_Executing_THEN_ShouldRemoveEarlierRequestReferences()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var first = CreateAction(roslyn.Solution, "A", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var second = CreateAction(roslyn.Solution, "B", DiscoveredActionKind.Refactoring, new TextSpan(1, 1));
+        var firstItem = CreateItem("A", CodeActionKind.Refactoring, 0, 1);
+        _providerCatalog.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(first, second));
+        SetupProjection(first, roslyn.Document, firstItem);
+        _infoFactory
+            .Setup(item => item.Create(
+                second,
+                _context.Object,
+                roslyn.Document,
+                It.IsAny<ResolvedLocation>()))
+            .Throws(new InvalidOperationException("Projection failed."));
+
+        var action = async () => await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
         _referenceStore.Verify(item => item.Remove(firstItem.ActionId), Times.Once);
     }
 
@@ -739,6 +901,26 @@ public sealed class ListCodeActionsToolTests
             Title = title,
             TargetSpan = targetSpan,
             EquivalenceKey = title,
+        };
+    }
+
+    private static DiscoveredCodeAction CreateSortableAction(
+        Solution solution,
+        string title,
+        string providerId,
+        string? equivalenceKey,
+        IReadOnlyList<int> actionPath,
+        TextSpan targetSpan)
+    {
+        return new DiscoveredCodeAction
+        {
+            Action = CodeAction.Create(title, _ => Task.FromResult(solution), title),
+            Kind = DiscoveredActionKind.Refactoring,
+            ProviderId = providerId,
+            Title = title,
+            TargetSpan = targetSpan,
+            EquivalenceKey = equivalenceKey,
+            ActionPath = actionPath,
         };
     }
 

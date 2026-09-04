@@ -173,14 +173,6 @@ jobs:
           --results-directory TestResults/release-integration/host
           --minimum-expected-tests 40
           --hangdump --hangdump-timeout 5m --hangdump-type None
-      - name: Run Code Action compatibility audit
-        run: >-
-          dotnet test --project test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
-          --configuration Release --no-build --no-restore
-          --report-trx
-          --results-directory TestResults/release-audit
-          --minimum-expected-tests 93
-          --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Run latest-all analysis
         env:
           ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}

@@ -138,7 +138,7 @@ Fast development loop:
 dotnet test --project <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"
 ```
 
-Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit on a weekly schedule, by manual dispatch and during release preparation; Roslyn dependency updates should invoke the manual workflow rather than making the audit part of ordinary pull-request or push validation. Run the full suite before completion of behaviour-affecting work.
+Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit on a weekly schedule and by manual dispatch; Roslyn dependency updates should invoke the manual workflow rather than making the audit part of ordinary pull-request, push or release validation. Run the full suite before completion of behaviour-affecting work.
 
 Documentation-only changes do not require restore, build or test execution.
 

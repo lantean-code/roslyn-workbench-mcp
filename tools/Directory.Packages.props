@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.661903" />
+    <PackageVersion Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.731102" />
     <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.6" />
     <!-- Allow compatible 1.x SDK updates while keeping the planned 2.x migration as an explicit product change. -->
     <PackageVersion Include="ModelContextProtocol" Version="[1.4.1,2.0.0)" />

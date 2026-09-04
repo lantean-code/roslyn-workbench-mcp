@@ -317,14 +317,47 @@ jobs:
           path: TestResults
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
+      - name: Upload failed acceptance diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-acceptance-diagnostics-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
+            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime
+          if-no-files-found: ignore
+          retention-days: 30
+
+  windows_packages:
+    if: inputs.build-msi || inputs.build-msix
+    name: Build and validate Windows packages
+    needs:
+      - prepare
+      - acceptance
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      RoslynWorkbenchReleaseBuild: true
+      RoslynWorkbenchVersion: ${{ needs.prepare.outputs.version }}
+      RoslynWorkbenchFullSemVer: ${{ needs.prepare.outputs.full-semver }}
+      RoslynWorkbenchCommitSha: ${{ needs.prepare.outputs.commit }}
+      RoslynWorkbenchVersionSourceDistance: ${{ needs.prepare.outputs.source-distance }}
+      RoslynWorkbenchSourceTag: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
       - name: Build unsigned Windows MSI
-        if: runner.os == 'Windows' && inputs.build-msi
+        if: inputs.build-msi
         shell: pwsh
         env:
           ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: ./packaging/windows/build-msi.ps1 -OutputDirectory artifacts/installer/release
       - name: Validate MSI installation, repair and removal
-        if: runner.os == 'Windows' && inputs.build-msi
+        if: inputs.build-msi
         shell: pwsh
         run: >-
           ./packaging/windows/test-msi.ps1
@@ -332,7 +365,7 @@ jobs:
           -ExpectedVersion "${{ needs.prepare.outputs.version }}"
           -Install
       - name: Upload Windows MSI
-        if: runner.os == 'Windows' && inputs.build-msi
+        if: inputs.build-msi
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msi
@@ -342,7 +375,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Upload MSI validation logs
-        if: always() && runner.os == 'Windows' && inputs.build-msi
+        if: always() && inputs.build-msi
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-msi-validation
@@ -350,7 +383,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Build unsigned Windows MSIX
-        if: runner.os == 'Windows' && inputs.build-msix
+        if: inputs.build-msix
         shell: pwsh
         env:
           ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -361,7 +394,7 @@ jobs:
           -OutputDirectory artifacts/msix/release
           -WindowsSdkVersion 10.0.26100.0
       - name: Upload Windows MSIX
-        if: runner.os == 'Windows' && inputs.build-msix
+        if: inputs.build-msix
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-win-x64-msix
@@ -370,20 +403,45 @@ jobs:
             artifacts/msix/release/*.msix.sha256
           if-no-files-found: error
           retention-days: 14
+
+  linux_packages:
+    if: inputs.build-deb || inputs.build-rpm
+    name: Build and validate Linux packages
+    needs:
+      - prepare
+      - acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RoslynWorkbenchReleaseBuild: true
+      RoslynWorkbenchVersion: ${{ needs.prepare.outputs.version }}
+      RoslynWorkbenchFullSemVer: ${{ needs.prepare.outputs.full-semver }}
+      RoslynWorkbenchCommitSha: ${{ needs.prepare.outputs.commit }}
+      RoslynWorkbenchVersionSourceDistance: ${{ needs.prepare.outputs.source-distance }}
+      RoslynWorkbenchSourceTag: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
       - name: Build Linux DEB
-        if: runner.os == 'Linux' && inputs.build-deb
+        if: inputs.build-deb
         env:
           ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: python3 packaging/linux/build-deb.py --output-directory artifacts/debian/release
       - name: Validate DEB installation, reinstallation and removal
-        if: runner.os == 'Linux' && inputs.build-deb
+        if: inputs.build-deb
         run: |
+          runner_owner="$(id -u):$(id -g)"
+          trap 'sudo chown -R "$runner_owner" artifacts/debian' EXIT
           sudo apt-get update
           sudo python3 packaging/linux/test-deb.py \
             --package artifacts/debian/release/*.deb \
             --expected-version "${{ needs.prepare.outputs.version }}" --install
       - name: Upload Linux DEB
-        if: runner.os == 'Linux' && inputs.build-deb
+        if: inputs.build-deb
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-linux-x64-deb
@@ -393,7 +451,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Upload DEB validation logs
-        if: always() && runner.os == 'Linux' && inputs.build-deb
+        if: always() && inputs.build-deb
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-deb-validation
@@ -403,10 +461,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Build Linux RPM on Fedora 44
-        if: runner.os == 'Linux' && inputs.build-rpm
+        if: inputs.build-rpm
         env:
           ROSLYN_WORKBENCH_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
+          runner_owner="$(id -u):$(id -g)"
+          trap 'sudo chown -R "$runner_owner" artifacts/rpm' EXIT
           host_dotnet_root="$(dirname "$(readlink -f "$(command -v dotnet)")")"
           docker run --rm \
             --volume "$PWD:/workspace" --workdir /workspace \
@@ -422,17 +482,17 @@ jobs:
             --env PATH="/opt/dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
             fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80 \
             bash -c 'dnf install --assumeyes python3 rpm-build cpio && python3 packaging/linux/build-rpm.py --output-directory artifacts/rpm/release --artifacts-path /tmp/artifacts/roslyn-workbench-mcp'
-          sudo chown -R "$(id -u):$(id -g)" artifacts/rpm
       - name: Validate RPM installation, reinstallation and removal on Fedora 44
-        if: runner.os == 'Linux' && inputs.build-rpm
+        if: inputs.build-rpm
         run: |
+          runner_owner="$(id -u):$(id -g)"
+          trap 'sudo chown -R "$runner_owner" artifacts/rpm' EXIT
           docker run --rm \
             --volume "$PWD:/workspace" --workdir /workspace \
             fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80 \
             bash -c 'dnf install --assumeyes python3 rpm cpio && python3 packaging/linux/test-rpm.py --package artifacts/rpm/release/*.rpm --expected-version "${{ needs.prepare.outputs.version }}" --install'
-          sudo chown -R "$(id -u):$(id -g)" artifacts/rpm
       - name: Upload Linux RPM
-        if: runner.os == 'Linux' && inputs.build-rpm
+        if: inputs.build-rpm
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-linux-x64-rpm
@@ -442,7 +502,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Upload RPM validation logs
-        if: always() && runner.os == 'Linux' && inputs.build-rpm
+        if: always() && inputs.build-rpm
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-rpm-validation
@@ -451,23 +511,21 @@ jobs:
             artifacts/rpm/release/validation-*/*.json
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
-      - name: Upload failed acceptance diagnostics
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-acceptance-diagnostics-${{ matrix.os }}
-          path: |
-            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
-            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime
-          if-no-files-found: ignore
-          retention-days: 30
 
   publish-documentation:
-    if: needs.prepare.outputs.publish == 'true'
+    if: >-
+      !cancelled() &&
+      needs.prepare.outputs.publish == 'true' &&
+      needs.prepare.result == 'success' &&
+      needs.acceptance.result == 'success' &&
+      (needs.windows_packages.result == 'success' || needs.windows_packages.result == 'skipped') &&
+      (needs.linux_packages.result == 'success' || needs.linux_packages.result == 'skipped')
     name: Publish versioned documentation
     needs:
       - prepare
       - acceptance
+      - windows_packages
+      - linux_packages
     runs-on: ubuntu-latest
     environment:
       name: github-pages

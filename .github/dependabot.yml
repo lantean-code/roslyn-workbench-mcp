@@ -4,6 +4,8 @@ updates:
     directory: "/"
     exclude-paths:
       - "ref/**"
+      # These compiler packages define the analyser's supported host baseline and are intentionally fixed.
+      - "src/Roslyn.Workbench.Mcp.Plugins.Analyzers/**"
     target-branch: develop
     schedule:
       interval: weekly
@@ -14,6 +16,11 @@ updates:
     labels:
       - type/maintenance
       - area/ci-release
+    ignore:
+      # The MCP SDK 2.x migration is deferred to the corresponding product major release.
+      - dependency-name: ModelContextProtocol
+        update-types:
+          - version-update:semver-major
     groups:
       nuget-minor-patch:
         applies-to: version-updates

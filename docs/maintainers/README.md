@@ -9,7 +9,7 @@ These documents describe lasting engineering decisions and maintenance procedure
 - [Analysers](analysers.md): extended analysis and suppression policy.
 - [Releasing](releasing.md): versioning, evidence, publication and repository activation.
 - [Distribution identities](distribution.md): product naming, package IDs and distribution target status.
-- [Documentation cleanup](documentation-cleanup.md): removing old prerelease pages after tag deletion.
+- [Documentation cleanup](documentation-cleanup.md): synchronising published versions with repository tags.
 - [Roadmap](roadmap.md): intentionally deferred capabilities and conditions for revisiting them.
 
 User-facing instructions and the generated tool reference belong in the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/). MCP `tools/list` remains authoritative for the running server.

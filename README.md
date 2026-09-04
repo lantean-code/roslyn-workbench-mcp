@@ -46,7 +46,7 @@ Add this basic instruction to the user-level guidance used by your agent, or to 
 When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
 ```
 
-The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) explains user-level and repository-level setup for Codex, Claude Code and other MCP clients. User-level guidance avoids repeating the instruction when Roslyn Workbench is available across repositories, while repository guidance can provide a more specific layer for an individual codebase.
+The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) explains user-level and repository-level setup for Codex, GitHub Copilot, Claude Code and other MCP clients. User-level guidance avoids repeating the instruction when Roslyn Workbench is available across repositories, while repository guidance can provide a more specific layer for an individual codebase.
 
 ## Trust and transaction safety
 
@@ -79,11 +79,11 @@ The existing plugin runtime remains available to source consumers, but the Plugi
 
 ## Thanks
 
-<a href="https://github.com/dotnet/roslyn"><img src="assets/third-party/roslyn.svg" alt="Roslyn" height="64"></a>
+[![Roslyn](assets/third-party/roslyn.svg)](https://github.com/dotnet/roslyn)
 
 Roslyn Workbench MCP is made possible by the [.NET Compiler Platform](https://github.com/dotnet/roslyn). Thank you to the Roslyn team for building and maintaining the compiler tooling that powers its semantic analysis and refactoring capabilities.
 
-<a href="https://sentry.io/"><img src="assets/third-party/sentry.svg" alt="Sentry" height="48"></a>
+[![Sentry](assets/third-party/sentry.svg)](https://sentry.io/)
 
 Thank you to [Sentry](https://sentry.io/) for supporting the project with an open-source licence for its opt-in error-reporting service.
 

@@ -38,6 +38,22 @@ Where `developer_instructions` already contains other guidance, this text can be
 
 Codex loads repository guidance from `AGENTS.md` before it starts work. See the [Codex AGENTS.md documentation](https://learn.chatgpt.com/docs/agent-configuration/agents-md) for instruction discovery, precedence and user-level alternatives.
 
+### GitHub Copilot
+
+GitHub Copilot can load shared user instructions from `~/.copilot/instructions`. Add the recommended guidance to a file such as `~/.copilot/instructions/roslyn-workbench.instructions.md` so it is available across repositories:
+
+```markdown
+---
+name: Roslyn Workbench
+description: Guidance for selecting Roslyn Workbench tools for C# work
+applyTo: "**"
+---
+
+When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
+```
+
+This location is supported by GitHub Copilot in VS Code and Copilot CLI. See the [VS Code custom-instructions documentation](https://code.visualstudio.com/docs/agent-customization/custom-instructions) and [Copilot CLI custom-instructions documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) for instruction discovery and diagnostics.
+
 ### Claude Code
 
 Claude Code can load the recommended instruction from `~/.claude/CLAUDE.md`, where it can sit alongside other user preferences shared across projects.
@@ -55,6 +71,10 @@ Repository guidance is loaded in addition to user-level guidance and gives an ag
 ### Codex
 
 The recommended instruction can be added to the repository's root `AGENTS.md`. Where that file already exists, the section can sit alongside its existing instructions. More specific `AGENTS.md` files may refine the guidance for individual directories.
+
+### GitHub Copilot
+
+The recommended instruction can be added to `.github/copilot-instructions.md`, which GitHub Copilot applies throughout the repository. Copilot also understands a root `AGENTS.md`, so a repository already sharing suitable guidance with other agents can use that file instead of maintaining a duplicate Copilot-specific copy. See the [GitHub Copilot repository-instructions documentation](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions) for the supported repository options.
 
 ### Claude Code
 

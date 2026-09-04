@@ -34,6 +34,10 @@
     <PackageReadmeOutput>$(BaseIntermediateOutputPath)PackageREADME.md</PackageReadmeOutput>
     <PackageWordmarkSource>assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkSource>
     <PackageWordmarkUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkUrl>
+    <PackageRoslynLogoSource>assets/third-party/roslyn.svg</PackageRoslynLogoSource>
+    <PackageRoslynLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/roslyn.svg</PackageRoslynLogoUrl>
+    <PackageSentryLogoSource>assets/third-party/sentry.svg</PackageSentryLogoSource>
+    <PackageSentryLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/sentry.svg</PackageSentryLogoUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -103,7 +107,7 @@
 
   <Target Name="PreparePackageReadme">
     <PropertyGroup>
-      <_PackageReadmeContents>$([System.IO.File]::ReadAllText('$(PackageReadmeSource)').Replace('$(PackageWordmarkSource)', '$(PackageWordmarkUrl)'))</_PackageReadmeContents>
+      <_PackageReadmeContents>$([System.IO.File]::ReadAllText('$(PackageReadmeSource)').Replace('$(PackageWordmarkSource)', '$(PackageWordmarkUrl)').Replace('$(PackageRoslynLogoSource)', '$(PackageRoslynLogoUrl)').Replace('$(PackageSentryLogoSource)', '$(PackageSentryLogoUrl)'))</_PackageReadmeContents>
     </PropertyGroup>
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PackageReadmeOutput)'))" />
     <WriteLinesToFile File="$(PackageReadmeOutput)"

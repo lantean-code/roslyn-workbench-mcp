@@ -1,24 +1,14 @@
-name: Remove deleted prerelease documentation
+name: Synchronise documentation versions
 
 on:
-  delete:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Exact deleted prerelease tag (for example 0.1.0-beta.294)
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 jobs:
-  cleanup:
-    if: >-
-      vars.PAGES_DEPLOYMENT_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event.ref_type == 'tag' &&
-        (contains(github.event.ref, '-alpha.') || contains(github.event.ref, '-beta.') || contains(github.event.ref, '-rc.'))))
+  synchronise:
+    if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -33,7 +23,7 @@ jobs:
       cancel-in-progress: false
       queue: max
     steps:
-      - name: Check out cleanup tooling
+      - name: Check out synchronisation tooling
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.repository.default_branch }}
@@ -50,28 +40,26 @@ jobs:
         run: |
           git config user.name "lantean-code"
           git config user.email "lanteancode@gmail.com"
-      - name: Remove the deleted prerelease documentation
-        id: cleanup
-        env:
-          DELETED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.ref }}
-        run: python docs/delete-version.py "$DELETED_TAG" --push
+      - name: Synchronise documentation with remote tags
+        id: sync
+        run: python docs/sync-versions.py --push
       - name: Prepare Pages deployment
-        if: steps.cleanup.outputs.deploy == 'true'
+        if: steps.sync.outputs.deploy == 'true'
         run: |
           mkdir -p "${{ runner.temp }}/pages-site"
           git archive refs/remotes/origin/gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
       - name: Upload Pages deployment
-        if: steps.cleanup.outputs.deploy == 'true'
+        if: steps.sync.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          name: github-pages-cleanup-${{ github.run_attempt }}
+          name: github-pages-sync-${{ github.run_attempt }}
           path: ${{ runner.temp }}/pages-site
       - name: Configure Pages
-        if: steps.cleanup.outputs.deploy == 'true'
+        if: steps.sync.outputs.deploy == 'true'
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Deploy Pages
-        if: steps.cleanup.outputs.deploy == 'true'
+        if: steps.sync.outputs.deploy == 'true'
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
         with:
-          artifact_name: github-pages-cleanup-${{ github.run_attempt }}
+          artifact_name: github-pages-sync-${{ github.run_attempt }}

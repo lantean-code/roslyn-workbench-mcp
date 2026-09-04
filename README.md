@@ -79,11 +79,11 @@ The existing plugin runtime remains available to source consumers, but the Plugi
 
 ## Thanks
 
-[![Roslyn](assets/third-party/roslyn.svg)](https://github.com/dotnet/roslyn)
+[![Roslyn](assets/third-party/roslyn-readme.svg)](https://github.com/dotnet/roslyn)
 
 Roslyn Workbench MCP is made possible by the [.NET Compiler Platform](https://github.com/dotnet/roslyn). Thank you to the Roslyn team for building and maintaining the compiler tooling that powers its semantic analysis and refactoring capabilities.
 
-[![Sentry](assets/third-party/sentry.svg)](https://sentry.io/)
+[![Sentry](assets/third-party/sentry-readme.svg)](https://sentry.io/)
 
 Thank you to [Sentry](https://sentry.io/) for supporting the project with an open-source licence for its opt-in error-reporting service.
 

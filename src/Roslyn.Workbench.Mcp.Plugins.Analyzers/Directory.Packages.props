@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      Keep these baselines independent from general package updates and change
+      them only after an explicit analyser compatibility review.
+      Microsoft.CodeAnalysis.Analyzers defines the rules used to validate this
+      project. Microsoft.CodeAnalysis.CSharp defines the oldest compiler API
+      against which the analyser is built; raising it can prevent the analyser
+      from loading in otherwise supported compiler and IDE hosts.
+    -->
+    <RoslynAnalyserRulesVersion>3.11.0</RoslynAnalyserRulesVersion>
+    <RoslynAnalyserCompilerApiVersion>5.0.0</RoslynAnalyserCompilerApiVersion>
   </PropertyGroup>
-
-  <!--
-    Keep the analyser's compiler API baseline independent from the Host's Roslyn
-    runtime. Raising Microsoft.CodeAnalysis.CSharp can prevent the analyser from
-    loading in otherwise supported compiler and IDE hosts.
-  -->
-  <ItemGroup>
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-  </ItemGroup>
 
 </Project>

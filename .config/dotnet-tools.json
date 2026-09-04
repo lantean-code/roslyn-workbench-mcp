@@ -2,22 +2,15 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "dotnet-trace": {
-      "version": "9.0.661903",
-      "commands": [
-        "dotnet-trace"
-      ],
-      "rollForward": false
-    },
     "dotnet-counters": {
-      "version": "9.0.661903",
+      "version": "10.0.731102",
       "commands": [
         "dotnet-counters"
       ],
       "rollForward": false
     },
     "dotnet-gcdump": {
-      "version": "9.0.661903",
+      "version": "10.0.731102",
       "commands": [
         "dotnet-gcdump"
       ],

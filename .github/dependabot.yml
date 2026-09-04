@@ -4,8 +4,6 @@ updates:
     directory: "/"
     exclude-paths:
       - "ref/**"
-      # These compiler packages define the analyser's supported host baseline and are intentionally fixed.
-      - "src/Roslyn.Workbench.Mcp.Plugins.Analyzers/**"
     target-branch: develop
     schedule:
       interval: weekly
@@ -17,6 +15,8 @@ updates:
       - type/maintenance
       - area/ci-release
     ignore:
+      # Roslyn runtime and analyser baselines are coordinated manually because they intentionally differ.
+      - dependency-name: "Microsoft.CodeAnalysis.*"
       # The MCP SDK 2.x migration is deferred to the corresponding product major release.
       - dependency-name: ModelContextProtocol
         update-types:

@@ -62,6 +62,71 @@ public sealed class PublishedDistributionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_CommandLineWorkspaceAuthority_WHEN_OpeningPaths_THEN_ShouldReplaceEnvironmentAndRejectOutsidePath()
+    {
+        var environmentVariables = new Dictionary<string, string?>
+        {
+            ["ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS"] = "/environment/root/that/does/not/exist",
+            ["ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY"] = "allow-read-only",
+        };
+        var arguments = new[]
+        {
+            "--allowed-workspace-root",
+            AcceptanceProcessFixture.WorkspaceRootArgument,
+            "--external-document-policy=reject-workspace",
+            "--external-document-policy=allow-read-only",
+        };
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: arguments,
+            environmentVariables: environmentVariables);
+
+        try
+        {
+            var statusResult = await target.CallToolAsync(
+                "server-status",
+                new Dictionary<string, object?> { ["detail"] = "Full" },
+                TestContext.Current.CancellationToken);
+            var configuration = AcceptanceProtocol.GetSuccessData(statusResult).GetProperty("configuration");
+            configuration.GetProperty("workspaceAdmission").GetString().Should().Be("Restricted");
+            configuration.GetProperty("allowedWorkspaceRootCount").GetInt32().Should().Be(1);
+            configuration.GetProperty("externalDocumentPolicy").GetString().Should().Be("allow-read-only");
+            configuration.GetRawText().Should().NotContain(target.WorkspaceRoot);
+
+            var allowedResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?> { ["path"] = Path.Combine(target.WorkspaceRoot, "Sample.csproj") },
+                TestContext.Current.CancellationToken);
+            allowedResult.IsError.Should().NotBeTrue();
+
+            var outsideResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?> { ["path"] = Path.Combine(target.StateRoot, "Outside.csproj") },
+                TestContext.Current.CancellationToken);
+            AcceptanceProtocol.GetError(outsideResult).GetProperty("code").GetString().Should().Be("WorkspacePathNotAllowed");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_InvalidWorkspaceAuthorityPolicy_WHEN_StartingHost_THEN_ShouldFailInitialisation()
+    {
+        var action = async () => await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--external-document-policy=invalid"]);
+
+        var exception = await action.Should().ThrowAsync<InvalidOperationException>();
+
+        exception.Which.Message.Should().Contain("MCP initialization failed");
+        exception.Which.Message.Should().Contain("ExternalDocumentPolicy");
+    }
+
+    [Fact]
     public async Task GIVEN_DefaultAndFullSchemaModes_WHEN_ListingTools_THEN_ShouldPublishSchemasOnlyInFullMode()
     {
         await using var defaultTarget = await AcceptanceProcessFixture.StartPublishedHostAsync(

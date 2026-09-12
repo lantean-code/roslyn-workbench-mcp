@@ -40,6 +40,16 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
     {
         var failures = new List<string>();
 
+        if (!StartupOptionsRules.AreValidAllowedWorkspaceRoots(options.AllowedWorkspaceRoots))
+        {
+            failures.Add($"{nameof(StartupOptions.AllowedWorkspaceRoots)} must contain only existing absolute directories.");
+        }
+
+        if (!StartupOptionsRules.IsSupportedExternalDocumentPolicy(options.ExternalDocumentPolicy))
+        {
+            failures.Add($"{nameof(StartupOptions.ExternalDocumentPolicy)} must be 'allow-read-only' or 'reject-workspace'.");
+        }
+
         if (!StartupOptionsRules.IsPositive(options.DefaultMaxResults))
         {
             failures.Add($"{nameof(StartupOptions.DefaultMaxResults)} must be greater than zero.");

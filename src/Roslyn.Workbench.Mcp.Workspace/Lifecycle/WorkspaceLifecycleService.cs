@@ -15,6 +15,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceLoader _workspaceLoader;
     private readonly IWorkspaceMsBuildPropertiesResolver _msBuildPropertiesResolver;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathNormalizer _workspacePathNormalizer;
     private readonly IWorkspaceLoadWorkflow _workspaceLoadWorkflow;
@@ -35,6 +36,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     /// <param name="workspaceLoader">The service that normalises workspace inputs and opens Roslyn workspaces.</param>
     /// <param name="msBuildPropertiesResolver">The service that validates optional MSBuild properties.</param>
     /// <param name="workspaceRootResolver">The service that resolves and enforces workspace-root boundaries.</param>
+    /// <param name="workspaceAuthority">The Host-owned Workspace admission policy.</param>
     /// <param name="workspacePathComparison">The platform-aware path comparison service.</param>
     /// <param name="workspacePathNormalizer">The service that canonicalises workspace paths.</param>
     /// <param name="workspaceLoadWorkflow">The workflow that loads and validates supported projects.</param>
@@ -52,6 +54,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceLoader workspaceLoader,
         IWorkspaceMsBuildPropertiesResolver msBuildPropertiesResolver,
         IWorkspaceRootResolver workspaceRootResolver,
+        IWorkspaceAuthority workspaceAuthority,
         IWorkspacePathComparison workspacePathComparison,
         IWorkspacePathNormalizer workspacePathNormalizer,
         IWorkspaceLoadWorkflow workspaceLoadWorkflow,
@@ -69,6 +72,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _workspaceLoader = workspaceLoader;
         _msBuildPropertiesResolver = msBuildPropertiesResolver;
         _workspaceRootResolver = workspaceRootResolver;
+        _workspaceAuthority = workspaceAuthority;
         _workspacePathComparison = workspacePathComparison;
         _workspacePathNormalizer = workspacePathNormalizer;
         _workspaceLoadWorkflow = workspaceLoadWorkflow;
@@ -166,6 +170,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             if (readOnlyDocumentValidation == WorkspaceReadOnlyDocumentValidationStatus.Invalid)
             {
                 return CreateInputCertificationFailureResult<WorkspaceOpenOutcome>();
+            }
+
+            if (readOnlyDocumentValidation == WorkspaceReadOnlyDocumentValidationStatus.Rejected)
+            {
+                return CreateExternalDocumentRejectionResult<WorkspaceOpenOutcome>();
             }
 
             var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
@@ -410,6 +419,16 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 context: context);
         }
 
+        if (!_workspaceAuthority.IsWorkspaceAllowed(
+            currentSession.Workspace.LoadedPath,
+            currentSession.Workspace.WorkspaceRoot))
+        {
+            return _resultFactory.Rejected<WorkspaceReloadOutcome>(
+                WorkspaceErrorCodes.WorkspaceAuthorityChanged,
+                "The Workspace path or effective root no longer complies with the Host's configured authority. Restore the original directory topology, then close and reopen the Workspace.",
+                context: context);
+        }
+
         using var inputCertification = _workspaceChangeDetector.BeginCertification(
             currentSession.Workspace.WorkspaceRoot);
         var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
@@ -451,6 +470,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 inputManifest.Dispose();
                 loadedWorkspace.Workspace.Dispose();
                 return CreateInputCertificationFailureResult<WorkspaceReloadOutcome>(context);
+            }
+
+            if (readOnlyDocumentValidation == WorkspaceReadOnlyDocumentValidationStatus.Rejected)
+            {
+                inputManifest.Dispose();
+                loadedWorkspace.Workspace.Dispose();
+                return CreateExternalDocumentRejectionResult<WorkspaceReloadOutcome>(context);
             }
 
             var workspaceInputsChanged = _workspaceChangeDetector.HasChanged(
@@ -600,6 +626,27 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var resolvedWorkspaceRoot = _workspaceRootResolver.Resolve(normalizedPath, workspaceRoot);
         if (resolvedWorkspaceRoot is null)
         {
+            if (!_workspaceAuthority.TryGetAllowedRoot(normalizedPath, out _))
+            {
+                return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+                {
+                    Code = "WorkspacePathNotAllowed",
+                    Message = "The requested Workspace path is outside the Host's configured authority.",
+                });
+            }
+
+            if (workspaceRoot is not null
+                && Path.IsPathFullyQualified(workspaceRoot)
+                && _workspacePathNormalizer.TryGetFullPath(workspaceRoot, out var normalizedRequestedRoot)
+                && !_workspaceAuthority.IsWorkspaceRootAllowed(normalizedRequestedRoot))
+            {
+                return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+                {
+                    Code = "WorkspaceRootNotAllowed",
+                    Message = "The requested Workspace root cannot widen the Host's configured authority.",
+                });
+            }
+
             var error = new WorkspaceOperationError
             {
                 Code = "WorkspaceRootInvalid",
@@ -993,6 +1040,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
             RequiredAction.Retry,
             context);
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateExternalDocumentRejectionResult<TOutcome>(
+        WorkspaceOperationContext? context = null)
+    {
+        return _resultFactory.Rejected<TOutcome>(
+            "WorkspaceExternalDocumentRejected",
+            "The Workspace contains an evaluated document outside its effective root.",
+            context: context);
     }
 
     private static void DisposeFailedAcquisition(WorkspaceSessionAcquisition acquisition)

@@ -8,6 +8,7 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
     private readonly ICommitRecoveryStore _store;
     private readonly IWorkspaceCommitWriter _writer;
     private readonly IWorkspaceCommitLockManager _lockManager;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkspaceCommitRecoveryService"/> class.
@@ -15,14 +16,17 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
     /// <param name="store">The durable store containing incomplete commit recovery plans.</param>
     /// <param name="writer">The commit writer used to restore or complete interrupted file operations.</param>
     /// <param name="lockManager">The manager that acquires exclusive workspace commit locks.</param>
+    /// <param name="workspaceAuthority">The Host-owned authority used to gate recovery writes.</param>
     public WorkspaceCommitRecoveryService(
         ICommitRecoveryStore store,
         IWorkspaceCommitWriter writer,
-        IWorkspaceCommitLockManager lockManager)
+        IWorkspaceCommitLockManager lockManager,
+        IWorkspaceAuthority workspaceAuthority)
     {
         _store = store;
         _writer = writer;
         _lockManager = lockManager;
+        _workspaceAuthority = workspaceAuthority;
     }
 
     /// <inheritdoc/>
@@ -31,6 +35,11 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
         foreach (var owner in await _store.GetOrphanedCommitOwnersAsync(cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!_workspaceAuthority.TryGetAllowedRoot(owner.WorkspaceRoot, out _))
+            {
+                continue;
+            }
+
             var orphanLock = _lockManager.Acquire(owner.WorkspaceRoot);
             if (orphanLock.IsAcquired)
             {
@@ -42,6 +51,11 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
         foreach (var manifest in await _store.GetManifestsAsync(cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!_workspaceAuthority.TryGetAllowedRoot(manifest.WorkspaceRoot, out _))
+            {
+                continue;
+            }
+
             if (manifest.State is RecoveryState.Committed or RecoveryState.Restored)
             {
                 if (manifest.State == RecoveryState.Committed)

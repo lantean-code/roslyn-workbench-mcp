@@ -24,6 +24,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             .Configure(options =>
             {
                 options.PluginDirectories = startupOptions.PluginDirectories;
+                options.AllowedWorkspaceRoots = startupOptions.AllowedWorkspaceRoots;
+                options.ExternalDocumentPolicy = startupOptions.ExternalDocumentPolicy;
                 options.DefaultMaxResults = startupOptions.DefaultMaxResults;
                 options.CodeActionReferenceLifetime = startupOptions.CodeActionReferenceLifetime;
                 options.WorkspaceQueryCacheSizeLimit = startupOptions.WorkspaceQueryCacheSizeLimit;
@@ -70,6 +72,19 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.StateDirectory = configured.StateDirectory;
             });
 
+        services.AddOptions<WorkspaceAuthorityOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
+            {
+                var configured = configuredStartupOptions.Value;
+                options.AllowedRoots = configured.AllowedWorkspaceRoots;
+                options.ExternalDocumentPolicy = configured.ExternalDocumentPolicy switch
+                {
+                    "allow-read-only" => ExternalDocumentPolicy.AllowReadOnly,
+                    "reject-workspace" => ExternalDocumentPolicy.RejectWorkspace,
+                    _ => throw new InvalidOperationException("Validated external-document policy is not supported."),
+                };
+            });
+
         services.AddOptions<WorkspaceQueryCacheOptions>()
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {
@@ -104,6 +119,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspacePathNormalizer, WorkspacePathNormalizer>();
         services.AddSingleton<IWorkspacePathServiceFactory, WorkspacePathServiceFactory>();
         services.AddSingleton<IPhysicalPathContainment, PhysicalPathContainment>();
+        services.AddSingleton<IWorkspaceAuthority, WorkspaceAuthority>();
         services.AddSingleton<IAtomicFileCommitter, NativeAtomicFileCommitter>();
         services.AddSingleton<IWorkspaceInstanceStatusPublisher, WorkspaceInstanceStatusPublisher>();
         services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();

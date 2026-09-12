@@ -22,6 +22,12 @@ public sealed record RecoveryStatus
     public required string CommitId { get; init; }
 
     /// <summary>
+    /// Stable machine-readable recovery status code, when operator action is required.
+    /// </summary>
+    [Description("Stable machine-readable recovery status code, when operator action is required.")]
+    public string? Code { get; init; }
+
+    /// <summary>
     /// Absolute solution or project path associated with the recovery record, or empty when malformed recovery evidence does not provide a safe path.
     /// </summary>
     [Description("Absolute solution or project path associated with the recovery record, or empty when malformed recovery evidence does not provide a safe path.")]

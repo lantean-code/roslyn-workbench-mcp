@@ -9,6 +9,7 @@ global using Microsoft.CodeAnalysis.MSBuild;
 global using Microsoft.CodeAnalysis.Text;
 global using Microsoft.VisualStudio.SolutionPersistence.Model;
 global using Microsoft.VisualStudio.SolutionPersistence.Serializer;
+global using Roslyn.Workbench.Mcp.Workspace.Authority;
 global using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.Coordination;

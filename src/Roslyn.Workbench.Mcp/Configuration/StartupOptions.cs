@@ -6,6 +6,16 @@ namespace Roslyn.Workbench.Mcp.Configuration;
 internal sealed class StartupOptions
 {
     /// <summary>
+    /// Gets or sets the Host-owned roots from which workspaces may be admitted.
+    /// </summary>
+    public IReadOnlyList<string> AllowedWorkspaceRoots { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the policy applied to evaluated documents outside the effective Workspace root.
+    /// </summary>
+    public string ExternalDocumentPolicy { get; set; } = "allow-read-only";
+
+    /// <summary>
     /// Gets or sets the directories searched for plugin packages during startup.
     /// </summary>
     public IReadOnlyList<string> PluginDirectories { get; set; } = [];

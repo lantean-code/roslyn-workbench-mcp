@@ -8,6 +8,7 @@ internal sealed class WorkspaceReadOnlyDocumentValidator : IWorkspaceReadOnlyDoc
     private readonly IFileSystem _fileSystem;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkspaceReadOnlyDocumentValidator"/> class.
@@ -15,14 +16,17 @@ internal sealed class WorkspaceReadOnlyDocumentValidator : IWorkspaceReadOnlyDoc
     /// <param name="fileSystem">The filesystem abstraction used to read external documents.</param>
     /// <param name="pathContainment">The physical containment service used to distinguish writable documents.</param>
     /// <param name="pathComparison">The platform-aware path comparer used to deduplicate linked files.</param>
+    /// <param name="workspaceAuthority">The policy governing evaluated documents outside the effective root.</param>
     public WorkspaceReadOnlyDocumentValidator(
         IFileSystem fileSystem,
         IPhysicalPathContainment pathContainment,
-        IWorkspacePathComparison pathComparison)
+        IWorkspacePathComparison pathComparison,
+        IWorkspaceAuthority workspaceAuthority)
     {
         _fileSystem = fileSystem;
         _pathContainment = pathContainment;
         _pathComparison = pathComparison;
+        _workspaceAuthority = workspaceAuthority;
     }
 
     /// <inheritdoc/>
@@ -48,6 +52,11 @@ internal sealed class WorkspaceReadOnlyDocumentValidator : IWorkspaceReadOnlyDoc
                     || _pathContainment.TryGetContainedPath(workspaceRoot, document.FilePath, out _))
                 {
                     continue;
+                }
+
+                if (_workspaceAuthority.ExternalDocumentPolicy == ExternalDocumentPolicy.RejectWorkspace)
+                {
+                    return WorkspaceReadOnlyDocumentValidationStatus.Rejected;
                 }
 
                 var documentText = await document.GetTextAsync(cancellationToken);

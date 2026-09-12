@@ -9,6 +9,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkspaceRootResolver"/> class.
@@ -17,16 +18,19 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
     /// <param name="pathComparison">The platform-aware path comparison service.</param>
     /// <param name="pathContainment">The service that verifies physical containment.</param>
     /// <param name="pathNormalizer">The service that canonicalises workspace paths.</param>
+    /// <param name="workspaceAuthority">The Host-owned Workspace admission policy.</param>
     public WorkspaceRootResolver(
         IFileSystem fileSystem,
         IWorkspacePathComparison pathComparison,
         IPhysicalPathContainment pathContainment,
-        IWorkspacePathNormalizer pathNormalizer)
+        IWorkspacePathNormalizer pathNormalizer,
+        IWorkspaceAuthority workspaceAuthority)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
         _pathContainment = pathContainment;
         _pathNormalizer = pathNormalizer;
+        _workspaceAuthority = workspaceAuthority;
     }
 
     /// <inheritdoc/>
@@ -35,6 +39,11 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
         if (string.IsNullOrWhiteSpace(loadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(loadedPath)
             || !_pathNormalizer.TryGetFullPath(loadedPath, out var canonicalLoadedPath))
+        {
+            return null;
+        }
+
+        if (!_workspaceAuthority.TryGetAllowedRoot(canonicalLoadedPath, out var allowedRoot))
         {
             return null;
         }
@@ -48,10 +57,14 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
                 return null;
             }
 
-            return _fileSystem.Directory.Exists(canonicalRequestedRoot)
-                && Contains(canonicalRequestedRoot, canonicalLoadedPath)
-                ? canonicalRequestedRoot
-                : null;
+            if (!_fileSystem.Directory.Exists(canonicalRequestedRoot)
+                || !Contains(canonicalRequestedRoot, canonicalLoadedPath)
+                || !_workspaceAuthority.IsWorkspaceRootAllowed(canonicalRequestedRoot))
+            {
+                return null;
+            }
+
+            return canonicalRequestedRoot;
         }
 
         var directory = _fileSystem.Path.GetDirectoryName(canonicalLoadedPath);
@@ -61,7 +74,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
             if (_fileSystem.Directory.Exists(_fileSystem.Path.Combine(directory, ".git"))
                 || _fileSystem.File.Exists(_fileSystem.Path.Combine(directory, ".git")))
             {
-                return directory;
+                return CapAtAllowedRoot(directory, allowedRoot);
             }
 
             var parent = _fileSystem.Path.GetDirectoryName(directory);
@@ -73,12 +86,27 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
             directory = parent;
         }
 
-        return fallback;
+        if (fallback is null)
+        {
+            return null;
+        }
+
+        return CapAtAllowedRoot(fallback, allowedRoot);
     }
 
     /// <inheritdoc/>
     public bool Contains(string workspaceRoot, string path)
     {
         return _pathContainment.TryGetContainedPath(workspaceRoot, path, out _);
+    }
+
+    private string CapAtAllowedRoot(string candidateRoot, string? allowedRoot)
+    {
+        if (allowedRoot is null || Contains(allowedRoot, candidateRoot))
+        {
+            return candidateRoot;
+        }
+
+        return allowedRoot;
     }
 }

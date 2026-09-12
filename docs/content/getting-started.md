@@ -47,13 +47,29 @@ Configure the MCP client to launch the installed `roslyn-workbench-mcp` command.
 }
 ```
 
+To restrict Workspace admission to specific source trees, configure one or more allowed roots. This example also rejects a Workspace when its evaluated documents extend outside its effective root:
+
+```json
+{
+  "command": "roslyn-workbench-mcp",
+  "args": [
+    "--state-directory", "/absolute/path/to/roslyn-workbench-state",
+    "--allowed-workspace-root", "/absolute/path/to/engineering-source",
+    "--allowed-workspace-root", "/absolute/path/to/team-source",
+    "--external-document-policy", "reject-workspace"
+  ]
+}
+```
+
+Use `allow-read-only` instead of `reject-workspace` when trusted builds legitimately evaluate linked or generated documents outside the source boundary. Command-line roots replace, rather than extend, any `ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS` environment value.
+
 The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.
 
 For a source build, use the absolute path to the published `Roslyn.Workbench.Mcp` executable instead of the installed command.
 
 ## Trust the workspace before opening it
 
-Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project logic, including repository-controlled projects and imports, before an agent can inspect every input. Later diagnostic and Code Action operations can load and execute project analyzers with the Host's operating system permissions. Roslyn Workbench does not sandbox this code. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox before opening it.
+Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project logic, including repository-controlled projects and imports, before an agent can inspect every input. Later diagnostic and Code Action operations can load and execute project analyzers with the Host's operating system permissions. Allowed Workspace roots reduce accidental agent scope; they do not sandbox this code or constrain build-tool inputs. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox before opening it.
 
 ## First workflow
 

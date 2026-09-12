@@ -10,6 +10,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
     private const string _pendingStateRootArgument = "{acceptance-state-root}";
     private const string _pendingPluginRootArgument = "{acceptance-plugin-root}";
+    internal const string WorkspaceRootArgument = "{acceptance-workspace-root}";
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan _invocationTimeout = TimeSpan.FromSeconds(30);
 
@@ -358,11 +359,13 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
         var stateRoot = Path.Combine(scenarioRoot, "state");
         var pluginRoot = Path.Combine(scenarioRoot, "plugins");
+        var workspaceRoot = Path.Combine(scenarioRoot, "workspace");
         var effectiveArguments = arguments
             .Select(argument => argument switch
             {
                 _pendingStateRootArgument => stateRoot,
                 _pendingPluginRootArgument => pluginRoot,
+                WorkspaceRootArgument => workspaceRoot,
                 _ => argument,
             })
             .ToArray();

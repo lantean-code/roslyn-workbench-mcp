@@ -8,6 +8,8 @@ public sealed class StartupOptionsResolverTests
     private static readonly string[] _environmentVariables =
     [
         "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
+        "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS",
+        "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
         "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
         "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SIZE_LIMIT",
@@ -49,6 +51,8 @@ public sealed class StartupOptionsResolverTests
             var result = Resolve([]);
 
             result.Options.PluginDirectories.Should().BeEmpty();
+            result.Options.AllowedWorkspaceRoots.Should().BeEmpty();
+            result.Options.ExternalDocumentPolicy.Should().Be("allow-read-only");
             result.Options.DefaultMaxResults.Should().Be(100);
             result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(5));
             result.Options.WorkspaceQueryCacheSizeLimit.Should().Be(10_000);
@@ -62,6 +66,55 @@ public sealed class StartupOptionsResolverTests
             result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
             result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Prompt);
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_CommandLineWorkspaceRoots_WHEN_EnvironmentAlsoConfigured_THEN_ShouldReplaceEnvironmentRoots()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS",
+                $"/environment/one{Path.PathSeparator}/environment/two");
+
+            var result = Resolve(
+            [
+                "--allowed-workspace-root=/argument/one",
+                "--allowed-workspace-root",
+                "/argument/two",
+            ]);
+
+            result.Options.AllowedWorkspaceRoots.Should().Equal("/argument/one", "/argument/two");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_RepeatedExternalDocumentPolicy_WHEN_Resolving_THEN_ShouldUseLastCommandLineValue()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY", "allow-read-only");
+
+            var result = Resolve(
+            [
+                "--external-document-policy=allow-read-only",
+                "--external-document-policy=reject-workspace",
+            ]);
+
+            result.Options.ExternalDocumentPolicy.Should().Be("reject-workspace");
         }
         finally
         {

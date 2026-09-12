@@ -41,6 +41,11 @@ internal static class WorkspaceErrorCodes
     public const string WorkspaceCapacityReached = "WorkspaceCapacityReached";
 
     /// <summary>
+    /// A loaded Workspace's path or effective root no longer complies with Host authority.
+    /// </summary>
+    public const string WorkspaceAuthorityChanged = "WorkspaceAuthorityChanged";
+
+    /// <summary>
     /// The request violates a Workspace operation contract.
     /// </summary>
     public const string InvalidRequest = "InvalidRequest";

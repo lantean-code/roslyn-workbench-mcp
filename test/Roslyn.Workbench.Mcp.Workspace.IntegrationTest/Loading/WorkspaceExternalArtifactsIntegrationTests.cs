@@ -81,7 +81,8 @@ public sealed class WorkspaceExternalArtifactsIntegrationTests
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
-        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer);
+        var authority = CreateUnrestrictedAuthority();
+        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer, authority.Object);
         var compatibilityInspector = new WorkspaceProjectCompatibilityInspector();
         var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathComparison, pathNormalizer);
         var target = new WorkspaceLoadWorkflow(loader, rootResolver);
@@ -105,7 +106,8 @@ public sealed class WorkspaceExternalArtifactsIntegrationTests
         var readOnlyDocumentValidator = new WorkspaceReadOnlyDocumentValidator(
             fileSystem,
             pathContainment,
-            pathComparison);
+            pathComparison,
+            authority.Object);
 
         var validation = await readOnlyDocumentValidator.ValidateAsync(
             result.Solution,
@@ -118,6 +120,21 @@ public sealed class WorkspaceExternalArtifactsIntegrationTests
         compilation.Should().NotBeNull();
         compilation!.GetDiagnostics(cancellationToken).Should().NotContain(diagnostic => diagnostic.Id == "CS0246");
         workspaceFactory.Verify(item => item.Create(It.IsAny<IReadOnlyDictionary<string, string>>()), Times.Once);
+    }
+
+    private static Mock<IWorkspaceAuthority> CreateUnrestrictedAuthority()
+    {
+        var authority = new Mock<IWorkspaceAuthority>();
+        authority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        authority.Setup(item => item.IsWorkspaceRootAllowed(It.IsAny<string>())).Returns(true);
+        authority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.AllowReadOnly);
+        return authority;
     }
 
     private static string GetProjectRelativePath(string projectDirectory, string path)

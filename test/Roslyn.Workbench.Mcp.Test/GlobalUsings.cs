@@ -42,6 +42,8 @@ global using Roslyn.Workbench.Mcp.Test.Protocol;
 global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.ToolExecution;
 global using Roslyn.Workbench.Mcp.Tools;
+global using Roslyn.Workbench.Mcp.Workspace.Authority;
+global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;

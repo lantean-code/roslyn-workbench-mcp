@@ -40,8 +40,17 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathNormalizer = new WorkspacePathNormalizer(fileSystem);
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
+        var authority = new Mock<IWorkspaceAuthority>();
+        authority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        authority.Setup(item => item.IsWorkspaceRootAllowed(It.IsAny<string>())).Returns(true);
         var compatibilityInspector = new WorkspaceProjectCompatibilityInspector();
-        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer);
+        var rootResolver = new WorkspaceRootResolver(fileSystem, pathComparison, pathContainment, pathNormalizer, authority.Object);
         var loader = new WorkspaceLoader(workspaceFactory.Object, compatibilityInspector, pathComparison, pathNormalizer);
         var target = new WorkspaceLoadWorkflow(loader, rootResolver);
 

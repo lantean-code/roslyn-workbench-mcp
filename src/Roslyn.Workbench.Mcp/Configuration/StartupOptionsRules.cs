@@ -6,6 +6,46 @@ namespace Roslyn.Workbench.Mcp.Configuration;
 internal static class StartupOptionsRules
 {
     /// <summary>
+    /// Determines whether every configured Workspace authority root is an existing absolute directory.
+    /// </summary>
+    /// <param name="values">The configured root values to validate.</param>
+    /// <returns><see langword="true"/> when every root is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool AreValidAllowedWorkspaceRoots(IReadOnlyList<string> values)
+    {
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value) || !Path.IsPathFullyQualified(value))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!Directory.Exists(Path.GetFullPath(value)))
+                {
+                    return false;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException or UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Determines whether an external-document policy value is supported.
+    /// </summary>
+    /// <param name="value">The configured policy value.</param>
+    /// <returns><see langword="true"/> when the value is supported; otherwise, <see langword="false"/>.</returns>
+    public static bool IsSupportedExternalDocumentPolicy(string value)
+    {
+        return value is "allow-read-only" or "reject-workspace";
+    }
+
+    /// <summary>
     /// Gets the maximum Code Action reference lifetime.
     /// </summary>
     public static TimeSpan MaximumCodeActionReferenceLifetime { get; } = TimeSpan.FromDays(1);

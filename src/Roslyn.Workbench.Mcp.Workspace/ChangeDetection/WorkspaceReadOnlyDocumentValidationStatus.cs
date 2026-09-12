@@ -14,4 +14,9 @@ internal enum WorkspaceReadOnlyDocumentValidationStatus
     /// At least one external document changed, disappeared or could not be validated.
     /// </summary>
     Invalid,
+
+    /// <summary>
+    /// At least one evaluated document is outside the Workspace root and policy rejects the Workspace.
+    /// </summary>
+    Rejected,
 }

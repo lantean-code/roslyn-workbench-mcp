@@ -1,3 +1,7 @@
+using Moq;
+using Roslyn.Workbench.Mcp.Workspace.Authority;
+using Roslyn.Workbench.Mcp.Workspace.Configuration;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.ChangeDetection;
 
 public sealed class WorkspaceReadOnlyDocumentValidatorIntegrationTests
@@ -114,11 +118,35 @@ public sealed class WorkspaceReadOnlyDocumentValidatorIntegrationTests
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    private static WorkspaceReadOnlyDocumentValidator CreateTarget()
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_RejectPolicyAndExternalDocument_WHEN_Validating_THEN_ShouldRejectWorkspace()
+    {
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-read-only-document-tests");
+        var workspaceRoot = Path.Combine(directory.DirectoryPath, "workspace");
+        var externalPath = Path.Combine(directory.DirectoryPath, "External.cs");
+        Directory.CreateDirectory(workspaceRoot);
+        await File.WriteAllTextAsync(externalPath, "internal sealed class External { }", TestContext.Current.CancellationToken);
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var solution = workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp))
+            .AddDocument(DocumentId.CreateNewId(projectId), "External.cs", SourceText.From("internal sealed class External { }"), filePath: externalPath);
+        var target = CreateTarget(ExternalDocumentPolicy.RejectWorkspace);
+
+        var result = await target.ValidateAsync(solution, workspaceRoot, TestContext.Current.CancellationToken);
+
+        result.Should().Be(WorkspaceReadOnlyDocumentValidationStatus.Rejected);
+    }
+
+    private static WorkspaceReadOnlyDocumentValidator CreateTarget(
+        ExternalDocumentPolicy policy = ExternalDocumentPolicy.AllowReadOnly)
     {
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison(fileSystem);
         var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
-        return new WorkspaceReadOnlyDocumentValidator(fileSystem, pathContainment, pathComparison);
+        var authority = new Mock<IWorkspaceAuthority>();
+        authority.SetupGet(item => item.ExternalDocumentPolicy).Returns(policy);
+        return new WorkspaceReadOnlyDocumentValidator(fileSystem, pathContainment, pathComparison, authority.Object);
     }
 }

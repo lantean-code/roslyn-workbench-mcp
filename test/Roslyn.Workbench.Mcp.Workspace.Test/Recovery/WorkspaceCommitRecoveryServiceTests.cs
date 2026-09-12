@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Authority;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Recovery;
@@ -7,6 +8,7 @@ public sealed class WorkspaceCommitRecoveryServiceTests
     private readonly Mock<ICommitRecoveryStore> _store = new();
     private readonly Mock<IWorkspaceCommitWriter> _writer = new();
     private readonly Mock<IWorkspaceCommitLockManager> _lockManager = new();
+    private readonly Mock<IWorkspaceAuthority> _workspaceAuthority = new();
     private readonly WorkspaceCommitRecoveryService _target;
 
     public WorkspaceCommitRecoveryServiceTests()
@@ -14,7 +16,14 @@ public sealed class WorkspaceCommitRecoveryServiceTests
         _store.Setup(item => item.GetOrphanedCommitOwnersAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(() => CreateAcquisition(lockAvailable: true));
         _writer.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(true);
-        _target = new WorkspaceCommitRecoveryService(_store.Object, _writer.Object, _lockManager.Object);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        _target = new WorkspaceCommitRecoveryService(_store.Object, _writer.Object, _lockManager.Object, _workspaceAuthority.Object);
     }
 
     [Theory]
@@ -84,6 +93,52 @@ public sealed class WorkspaceCommitRecoveryServiceTests
         await _target.RecoverAsync(TestContext.Current.CancellationToken);
 
         _writer.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        _store.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ManifestOutsideWorkspaceAuthority_WHEN_Recovering_THEN_ShouldLeaveItUntouched()
+    {
+        var manifest = CreateManifest(RecoveryState.Applying);
+        _store.Setup(item => item.GetManifestsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([manifest]);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(manifest.WorkspaceRoot, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return false;
+            });
+
+        await _target.RecoverAsync(TestContext.Current.CancellationToken);
+
+        _lockManager.Verify(item => item.Acquire(manifest.WorkspaceRoot), Times.Never);
+        _writer.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        _store.Verify(item => item.WriteManifestAsync(It.IsAny<WorkspaceCommitManifest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _store.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PreManifestOwnerOutsideWorkspaceAuthority_WHEN_Recovering_THEN_ShouldLeaveItUntouched()
+    {
+        var owner = new WorkspaceCommitOwner
+        {
+            CommitId = "orphan",
+            LoadedPath = "/outside/orphan.slnx",
+            WorkspaceRoot = "/outside",
+        };
+        _store.Setup(item => item.GetOrphanedCommitOwnersAsync(It.IsAny<CancellationToken>())).ReturnsAsync([owner]);
+        _store.Setup(item => item.GetManifestsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(owner.WorkspaceRoot, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return false;
+            });
+
+        await _target.RecoverAsync(TestContext.Current.CancellationToken);
+
+        _lockManager.Verify(item => item.Acquire(owner.WorkspaceRoot), Times.Never);
         _store.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
     }
 

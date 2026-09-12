@@ -14,7 +14,7 @@ The tool list does not vary with workspace or transaction state and does not cha
 
 `get-error-details` is always published for local correlated failure inspection. The two external-reporting tools are published whenever startup consent is not `never`; the Host supplies the provider and destination as application configuration. Their names remain reserved against plugin collisions when omitted under `never`. Per-report prompt outcomes do not change `tools/list` or establish runtime overrides.
 
-`server-status` reports the total published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.
+`server-status` reports the total published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Its Workspace configuration projection reports `workspaceAdmission`, `allowedWorkspaceRootCount` and `externalDocumentPolicy` without disclosing configured root paths. Internal Code Actions are reported as a component, not as a plugin.
 
 The three-tool [Code Action workflow](code-actions.md) discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.
 

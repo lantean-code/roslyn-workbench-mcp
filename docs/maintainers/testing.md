@@ -59,6 +59,7 @@ Integration tests prove behaviour that requires real boundaries, including:
 
 - MSBuild and filesystem-backed workspace loading
 - Workspace lifecycle, selection and transaction persistence
+- Host-owned Workspace authority across startup parsing, physical admission, root capping, external-document policy, reload and recovery gating
 - real Roslyn cross-project and semantic behaviour
 - plugin package enumeration, PE-metadata discovery, MEF composition and load-context routing
 - Host dependency-injection and MCP composition
@@ -102,6 +103,7 @@ Architecture assertions should be behavioural or project-reference based whereve
 - Plugins.Core follows the same MEF configuration and materialisation path while remaining in the default load context
 - Host composes all four adapter families
 - `server-status` excludes CodeActions from plugin status
+- MCP callers can narrow but cannot widen Host-owned Workspace authority, and status exposes only admission mode, effective root count and external-document policy
 
 Do not add reflection-only tests for internal interface shape. If a least-privilege boundary cannot be demonstrated through compilation, assignability, public behaviour or project references, improve the production seam before adding a brittle shape lock.
 

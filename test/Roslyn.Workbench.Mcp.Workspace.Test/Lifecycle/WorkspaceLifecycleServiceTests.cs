@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Workspace.Authority;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
@@ -18,6 +19,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private readonly Mock<IWorkspaceLoader> _workspaceLoader;
     private readonly Mock<IWorkspaceMsBuildPropertiesResolver> _msBuildPropertiesResolver;
     private readonly Mock<IWorkspaceRootResolver> _workspaceRootResolver;
+    private readonly Mock<IWorkspaceAuthority> _workspaceAuthority;
     private readonly Mock<IWorkspacePathComparison> _workspacePathComparison;
     private readonly Mock<IWorkspacePathNormalizer> _workspacePathNormalizer;
     private readonly Mock<IWorkspaceLoadWorkflow> _workspaceLoadWorkflow;
@@ -44,6 +46,16 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .Returns(WorkspaceMsBuildPropertiesResolution.Success(properties: null));
         _workspaceRootResolver = new Mock<IWorkspaceRootResolver>();
         _workspaceRootResolver.Setup(item => item.Resolve(It.IsAny<string>(), It.IsAny<string?>())).Returns("/workspace");
+        _workspaceAuthority = new Mock<IWorkspaceAuthority>();
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed(It.IsAny<string>())).Returns(true);
+        _workspaceAuthority.Setup(item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
         _workspacePathComparison = new Mock<IWorkspacePathComparison>();
         _workspacePathComparison
             .Setup(item => item.GetComparison(It.IsAny<string>()))
@@ -105,6 +117,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             _workspaceLoader.Object,
             _msBuildPropertiesResolver.Object,
             _workspaceRootResolver.Object,
+            _workspaceAuthority.Object,
             _workspacePathComparison.Object,
             _workspacePathNormalizer.Object,
             _workspaceLoadWorkflow.Object,
@@ -213,20 +226,74 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
-    [Fact]
-    public async Task GIVEN_InvalidExplicitWorkspaceRoot_WHEN_OpeningWorkspace_THEN_ShouldReturnRejection()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("relative")]
+    [InlineData("/\0")]
+    [InlineData("/other")]
+    public async Task GIVEN_UnresolvableWorkspaceRoot_WHEN_OpeningWorkspace_THEN_ShouldReturnRejection(string? workspaceRoot)
     {
+        const string normalizedPath = "/workspace/Project.csproj";
         var expected = CreateResult<WorkspaceOpenOutcome>();
-        _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns("/workspace/Project.csproj");
-        _workspaceRootResolver.Setup(item => item.Resolve("/workspace/Project.csproj", "/other")).Returns((string?)null);
+        _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns(normalizedPath);
+        _workspaceRootResolver.Setup(item => item.Resolve(normalizedPath, workspaceRoot)).Returns((string?)null);
+        if (workspaceRoot == "/\0")
+        {
+            _workspacePathNormalizer
+                .Setup(item => item.TryGetFullPath(workspaceRoot, out It.Ref<string>.IsAny))
+                .Returns(false);
+        }
+
         SetupRejectedResult(expected, "WorkspaceRootInvalid");
 
         var result = await _target.OpenAsync(
             "Path",
             null,
-            "/other",
+            workspaceRoot,
             null,
             TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _workspaceLoadWorkflow.Verify(
+            item => item.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), null, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PathOutsideHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading()
+    {
+        const string normalizedPath = "/outside/Project.csproj";
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns(normalizedPath);
+        _workspaceRootResolver.Setup(item => item.Resolve(normalizedPath, null)).Returns((string?)null);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(normalizedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = null;
+                return false;
+            });
+        SetupRejectedResult(expected, "WorkspacePathNotAllowed");
+
+        var result = await _target.OpenAsync("Path", null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _workspaceLoadWorkflow.Verify(
+            item => item.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), null, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RootWideningHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading()
+    {
+        const string normalizedPath = "/allowed/Project.csproj";
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns(normalizedPath);
+        _workspaceRootResolver.Setup(item => item.Resolve(normalizedPath, "/")).Returns((string?)null);
+        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed("/")).Returns(false);
+        SetupRejectedResult(expected, "WorkspaceRootNotAllowed");
+
+        var result = await _target.OpenAsync("Path", null, "/", null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
         _workspaceLoadWorkflow.Verify(
@@ -933,6 +1000,36 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_ExternalDocumentRejectedByPolicy_WHEN_OpeningWorkspace_THEN_ShouldRejectAndDispose()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        using var manifest = new WorkspaceInputManifest();
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _changeDetector
+            .Setup(item => item.BuildManifest(
+                solution,
+                "/workspace/New.sln",
+                "/workspace",
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
+            .Returns(manifest);
+        _readOnlyDocumentValidator
+            .Setup(item => item.ValidateAsync(solution, "/workspace", TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceReadOnlyDocumentValidationStatus.Rejected);
+        SetupRejectedResult(expected, "WorkspaceExternalDocumentRejected");
+
+        var result = await _target.OpenAsync("Path", null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _changeDetector.Verify(item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_UnexpectedManifestFailure_WHEN_OpeningWorkspace_THEN_ShouldCleanUpAndPropagateFailure()
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
@@ -1512,6 +1609,39 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
+    [Fact]
+    public async Task GIVEN_WorkspaceNoLongerWithinHostAuthority_WHEN_Reloading_THEN_ShouldRejectBeforeFileSystemAccess()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), "/workspace/Project.csproj", alias: null, transaction: null) with
+        {
+            OperationGate = gate.Object,
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+
+        var expected = CreateResult<WorkspaceReloadOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        _workspaceAuthority
+            .Setup(item => item.IsWorkspaceAllowed(session.Workspace.LoadedPath, session.Workspace.WorkspaceRoot))
+            .Returns(false);
+        _resultFactory.Setup(item => item.Rejected<WorkspaceReloadOutcome>(
+            WorkspaceErrorCodes.WorkspaceAuthorityChanged,
+            It.IsAny<string>(),
+            null,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _changeDetector.Verify(item => item.BeginCertification(It.IsAny<string>()), Times.Never);
+        _workspaceLoadWorkflow.Verify(
+            item => item.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<WorkspaceMsBuildProperties?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -1876,6 +2006,57 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "WorkspaceChangedDuringLoad",
             "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
             RequiredAction.Retry,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        newWorkspace.Verify(item => item.Dispose(), Times.Once);
+        oldWorkspace.Verify(item => item.Dispose(), Times.Never);
+        _changeDetector.Verify(item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ExternalDocumentIsRejected_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndRejectWorkspace()
+    {
+        var solutionPath = Path.GetFullPath("/workspace/Solution.sln");
+        var workspaceRoot = Path.GetDirectoryName(solutionPath)!;
+        var projectPath = Path.Combine(workspaceRoot, "Project.csproj");
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var oldWorkspace = new Mock<ILoadedWorkspace>();
+        var newWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject(projectPath);
+        var session = CreateSession(Guid.Parse("11111111-1111-1111-1111-111111111111"), solutionPath, alias: null, transaction: null) with
+        {
+            OperationGate = gate.Object,
+            LoadedWorkspace = oldWorkspace.Object,
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+
+        using var manifest = new WorkspaceInputManifest();
+        var expected = CreateResult<WorkspaceReloadOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        SetupLoadedWorkspace(solutionPath, solution, newWorkspace, workspaceRoot);
+        _changeDetector
+            .Setup(item => item.BuildManifest(
+                solution,
+                solutionPath,
+                workspaceRoot,
+                _inputCertification.Object,
+                null,
+                TestContext.Current.CancellationToken))
+            .Returns(manifest);
+        _readOnlyDocumentValidator
+            .Setup(item => item.ValidateAsync(solution, workspaceRoot, TestContext.Current.CancellationToken))
+            .ReturnsAsync(WorkspaceReadOnlyDocumentValidationStatus.Rejected);
+        _resultFactory.Setup(item => item.Rejected<WorkspaceReloadOutcome>(
+            "WorkspaceExternalDocumentRejected",
+            "The Workspace contains an evaluated document outside its effective root.",
+            null,
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);

@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Authority;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
@@ -10,6 +11,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace = new();
     private readonly Mock<IWorkspaceSessionStore> _sessionStore = new();
+    private readonly Mock<IWorkspaceAuthority> _workspaceAuthority = new();
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector = new();
     private readonly Mock<IWorkspaceInputCertification> _applicationCertification = new();
     private readonly Mock<IWorkspaceInputCertification> _promotionCertification = new();
@@ -47,6 +49,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _snapshotGuard
             .Setup(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotValidationResult.Valid());
+        _workspaceAuthority
+            .Setup(item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(true);
 
         _recoveryStore
             .Setup(item => item.PersistPlanAsync(
@@ -56,6 +61,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         _target = new TransactionCommitService(
             _sessionStore.Object,
+            _workspaceAuthority.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
             _snapshotGuard.Object,
@@ -65,6 +71,34 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _planner.Object,
             _lockManager.Object,
             _statusPublisher.Object);
+    }
+
+    [Fact]
+    public async Task GIVEN_WorkspaceNoLongerWithinHostAuthority_WHEN_Committing_THEN_ShouldRejectBeforeFileSystemAccess()
+    {
+        var session = CreateSession();
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+        _workspaceAuthority
+            .Setup(item => item.IsWorkspaceAllowed(session.Workspace.LoadedPath, session.Workspace.WorkspaceRoot))
+            .Returns(false);
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.WorkspaceAuthorityChanged,
+            It.IsAny<string>(),
+            RequiredAction.RollbackTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _snapshotGuard.Verify(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()), Times.Never);
+        _changeDetector.Verify(item => item.BeginCertification(It.IsAny<string>()), Times.Never);
+        _lockManager.Verify(item => item.Acquire(It.IsAny<string>()), Times.Never);
+        _recoveryStore.Verify(
+            item => item.PersistPlanAsync(It.IsAny<WorkspaceCommitPlan>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

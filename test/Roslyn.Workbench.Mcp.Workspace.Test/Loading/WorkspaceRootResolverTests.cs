@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Workspace.Authority;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Loading;
@@ -11,6 +12,7 @@ public sealed class WorkspaceRootResolverTests
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly Mock<IWorkspacePathNormalizer> _pathNormalizer;
+    private readonly Mock<IWorkspaceAuthority> _workspaceAuthority;
     private readonly WorkspaceRootResolver _target;
 
     public WorkspaceRootResolverTests()
@@ -22,6 +24,15 @@ public sealed class WorkspaceRootResolverTests
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathContainment = new Mock<IPhysicalPathContainment>();
         _pathNormalizer = new Mock<IWorkspacePathNormalizer>();
+        _workspaceAuthority = new Mock<IWorkspaceAuthority>();
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed(It.IsAny<string>())).Returns(true);
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -62,7 +73,8 @@ public sealed class WorkspaceRootResolverTests
             _fileSystem.Object,
             _pathComparison.Object,
             _pathContainment.Object,
-            _pathNormalizer.Object);
+            _pathNormalizer.Object,
+            _workspaceAuthority.Object);
     }
 
     [Theory]
@@ -93,6 +105,24 @@ public sealed class WorkspaceRootResolverTests
     }
 
     [Fact]
+    public void GIVEN_LoadedPathOutsideHostAuthority_WHEN_Resolving_THEN_ShouldRejectIt()
+    {
+        var loadedPath = Path.Combine(Path.GetTempPath(), "outside", "Project.csproj");
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return false;
+            });
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().BeNull();
+        _directory.Verify(item => item.Exists(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public void GIVEN_ExplicitContainingRoot_WHEN_Resolving_THEN_ShouldUseCanonicalExplicitRoot()
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
@@ -102,6 +132,60 @@ public sealed class WorkspaceRootResolverTests
         var result = _target.Resolve(loadedPath, root);
 
         result.Should().Be(root);
+    }
+
+    [Fact]
+    public void GIVEN_GitRootAboveHostAuthority_WHEN_InferringRoot_THEN_ShouldCapAtAllowedRoot()
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var allowedRoot = Path.Combine(repositoryRoot, "team");
+        var loadedPath = Path.Combine(allowedRoot, "Project.csproj");
+        _directory.Setup(item => item.Exists(Path.Combine(repositoryRoot, ".git"))).Returns(true);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = allowedRoot;
+                return true;
+            });
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().Be(allowedRoot);
+    }
+
+    [Fact]
+    public void GIVEN_GitRootInsideHostAuthority_WHEN_InferringRoot_THEN_ShouldUseGitRoot()
+    {
+        var allowedRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "authority"));
+        var repositoryRoot = Path.Combine(allowedRoot, "repository");
+        var loadedPath = Path.Combine(repositoryRoot, "Project.csproj");
+        _directory.Setup(item => item.Exists(Path.Combine(repositoryRoot, ".git"))).Returns(true);
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = allowedRoot;
+                return true;
+            });
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().Be(repositoryRoot);
+    }
+
+    [Fact]
+    public void GIVEN_CallerRootOutsideHostAuthority_WHEN_Resolving_THEN_ShouldRejectIt()
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var allowedRoot = Path.Combine(repositoryRoot, "team");
+        var loadedPath = Path.Combine(allowedRoot, "Project.csproj");
+        _directory.Setup(item => item.Exists(repositoryRoot)).Returns(true);
+        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed(repositoryRoot)).Returns(false);
+
+        var result = _target.Resolve(loadedPath, repositoryRoot);
+
+        result.Should().BeNull();
     }
 
     [Theory]
@@ -135,6 +219,64 @@ public sealed class WorkspaceRootResolverTests
         var result = _target.Resolve(loadedPath, requestedRoot: null);
 
         result.Should().Be(root);
+    }
+
+    [Fact]
+    public void GIVEN_NoRepositoryMarkerAndFallbackInsideAuthority_WHEN_Resolving_THEN_ShouldUseLoadedPathDirectory()
+    {
+        var allowedRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var fallback = Path.Combine(allowedRoot, "project");
+        var loadedPath = Path.Combine(fallback, "Project.csproj");
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = allowedRoot;
+                return true;
+            });
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().Be(fallback);
+    }
+
+    [Fact]
+    public void GIVEN_PhysicalFallbackOutsideAuthority_WHEN_Resolving_THEN_ShouldCapAtAllowedRoot()
+    {
+        var allowedRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "authority"));
+        var fallback = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "linked-project"));
+        var loadedPath = Path.Combine(fallback, "Project.csproj");
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = allowedRoot;
+                return true;
+            });
+        _pathContainment
+            .Setup(item => item.TryGetContainedPath(allowedRoot, fallback, out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().Be(allowedRoot);
+    }
+
+    [Fact]
+    public void GIVEN_LoadedPathWithoutParentAndRestrictedAuthority_WHEN_Resolving_THEN_ShouldReturnNull()
+    {
+        var loadedPath = Path.GetPathRoot(Path.GetTempPath())!;
+        _workspaceAuthority
+            .Setup(item => item.TryGetAllowedRoot(loadedPath, out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? root) =>
+            {
+                root = loadedPath;
+                return true;
+            });
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().BeNull();
     }
 
     [Theory]

@@ -23,6 +23,12 @@ internal static class StartupOptionsResolver
 
         var options = new StartupOptions
         {
+            AllowedWorkspaceRoots = ResolveAllowedWorkspaceRoots(optionMap),
+            ExternalDocumentPolicy = ResolveRequiredScalar(
+                optionMap,
+                "external-document-policy",
+                "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
+                defaults.ExternalDocumentPolicy),
             PluginDirectories = ResolvePluginDirectories(optionMap, pathComparison, warnings),
             DefaultMaxResults = ResolvePositiveInt(
                 optionMap,
@@ -104,6 +110,35 @@ internal static class StartupOptionsResolver
             Options = options,
             Warnings = warnings,
         };
+    }
+
+    private static string[] ResolveAllowedWorkspaceRoots(
+        Dictionary<string, List<string?>> optionMap)
+    {
+        const string key = "allowed-workspace-root";
+        const string environmentVariable = "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS";
+
+        if (optionMap.TryGetValue(key, out var configuredRoots))
+        {
+            return configuredRoots
+                .Select(static value => value ?? string.Empty)
+                .ToArray();
+        }
+
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariable);
+        return environmentValue is null
+            ? []
+            : environmentValue.Split(Path.PathSeparator, StringSplitOptions.TrimEntries);
+    }
+
+    private static string ResolveRequiredScalar(
+        Dictionary<string, List<string?>> optionMap,
+        string key,
+        string environmentVariable,
+        string defaultValue)
+    {
+        var value = ReadScalarValue(optionMap, key, environmentVariable, out _);
+        return value ?? defaultValue;
     }
 
     private static Dictionary<string, List<string?>> ParseArguments(string[] args)

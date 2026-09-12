@@ -29,6 +29,8 @@ Opening a Workspace evaluates its MSBuild logic. Project analysers, Code Action 
 
 The Host must still validate external contracts, reject malformed requests, protect transaction invariants, avoid accidental writes outside the selected Workspace, preserve recoverability and report failures accurately. Trusted execution is not permission to ignore ordinary correctness, data-loss or stale-state failures.
 
+Host-owned Workspace authority is an operational guardrail against agent mistakes and misfires, not a hostile-tenant security boundary. Configured roots limit top-level admission, effective Workspace roots, retained project paths, mutation and automatic recovery writes. They do not sandbox MSBuild, analyzers or plugins and do not restrict SDKs, imports, packages or metadata references. A caller may narrow Host authority but no MCP request may widen or replace it.
+
 The Host is not required to defend against interference by code or another process already exercising the same user's authority outside the coordinated boundaries above. Examples outside the product model include structural repository changes during commit application or startup recovery, hostile mutation of Host memory, and an extension intentionally writing around the transaction pipeline. Supporting less-trusted execution in future would require a separate sandbox and threat model rather than incremental pathname checks.
 
 ## Scenario assessment for findings

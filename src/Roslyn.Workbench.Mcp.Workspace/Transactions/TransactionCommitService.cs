@@ -8,6 +8,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 internal sealed class TransactionCommitService : ITransactionCommitService
 {
     private readonly IWorkspaceSessionStore _sessionStore;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly ISnapshotGuard _snapshotGuard;
@@ -22,6 +23,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// Initializes a new instance of the <see cref="TransactionCommitService"/> class.
     /// </summary>
     /// <param name="sessionStore">The store that publishes committed session state.</param>
+    /// <param name="workspaceAuthority">The Host-owned authority revalidated before commit.</param>
     /// <param name="workspaceChangeDetector">The component that detects external changes before commit.</param>
     /// <param name="workspaceStateTransitions">The coordinator that applies workspace lifecycle state changes.</param>
     /// <param name="snapshotGuard">The guard that rejects operations targeting a stale transaction snapshot.</param>
@@ -33,6 +35,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
+        IWorkspaceAuthority workspaceAuthority,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         ISnapshotGuard snapshotGuard,
@@ -44,6 +47,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _sessionStore = sessionStore;
+        _workspaceAuthority = workspaceAuthority;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _snapshotGuard = snapshotGuard;
@@ -77,6 +81,18 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 WorkspaceErrorCodes.TransactionRequired,
                 "Start a transaction before committing changes.",
                 RequiredAction.StartTransaction);
+        }
+
+        if (!_workspaceAuthority.IsWorkspaceAllowed(
+            session.Workspace.LoadedPath,
+            session.Workspace.WorkspaceRoot))
+        {
+            var authorityContext = WorkspaceOperationContextFactory.Create(session);
+            return _resultFactory.Rejected<TransactionCommitOutcome>(
+                WorkspaceErrorCodes.WorkspaceAuthorityChanged,
+                "The Workspace path or effective root no longer complies with the Host's configured authority. Restore the original directory topology or roll back the transaction.",
+                RequiredAction.RollbackTransaction,
+                authorityContext);
         }
 
         WorkspaceOperationResult<TransactionCommitOutcome>? validationFailure;

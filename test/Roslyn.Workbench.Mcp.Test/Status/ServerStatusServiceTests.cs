@@ -9,6 +9,7 @@ public sealed class ServerStatusServiceTests
     private readonly Mock<ICommitRecoveryStore> _recoveryStore = new Mock<ICommitRecoveryStore>();
     private readonly Mock<IErrorReportingConsentService> _errorReportingConsentService = new Mock<IErrorReportingConsentService>();
     private readonly Mock<IErrorReportDispatcher> _errorReportDispatcher = new Mock<IErrorReportDispatcher>();
+    private readonly Mock<IWorkspaceAuthority> _workspaceAuthority = new Mock<IWorkspaceAuthority>();
 
     public ServerStatusServiceTests()
     {
@@ -27,6 +28,7 @@ public sealed class ServerStatusServiceTests
         _errorReportDispatcher
             .SetupGet(item => item.Name)
             .Returns("Dispatcher");
+        _workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.AllowReadOnly);
     }
 
     [Fact]
@@ -84,6 +86,9 @@ public sealed class ServerStatusServiceTests
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.Configuration.Should().NotBeNull();
         data.Configuration!.DefaultMaxResults.Should().Be(100);
+        data.Configuration.WorkspaceAdmission.Should().Be("Unrestricted");
+        data.Configuration.AllowedWorkspaceRootCount.Should().Be(0);
+        data.Configuration.ExternalDocumentPolicy.Should().Be("allow-read-only");
         data.Configuration.ErrorReporting!.Provider.Should().Be("Dispatcher");
         data.StartupWarnings.Should().ContainSingle().Which.Should().Be(startupWarning);
         data.Plugins.Should().BeEquivalentTo(pluginSnapshot.Plugins);
@@ -116,6 +121,135 @@ public sealed class ServerStatusServiceTests
         var errorReporting = result.Data!.Configuration!.ErrorReporting!;
         errorReporting.ConsentMode.Should().Be(consentMode.ToString());
         errorReporting.ConsentState.Should().Be(consentState.ToString());
+    }
+
+    [Fact]
+    public async Task GIVEN_RestrictedAuthorityAndOutsideRecovery_WHEN_GettingFullStatus_THEN_ShouldProjectNonSensitiveAction()
+    {
+        _workspaceAuthority.SetupGet(item => item.IsRestricted).Returns(true);
+        _workspaceAuthority.SetupGet(item => item.AllowedRootCount).Returns(2);
+        _workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.RejectWorkspace);
+        var recovery = new RecoveryStatus
+        {
+            CommitId = "CommitId",
+            WorkspaceRoot = "/outside",
+            SolutionPath = "/outside/Solution.slnx",
+        };
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        var configuration = result.Data!.Configuration!;
+        configuration.WorkspaceAdmission.Should().Be("Restricted");
+        configuration.AllowedWorkspaceRootCount.Should().Be(2);
+        configuration.ExternalDocumentPolicy.Should().Be("reject-workspace");
+        var projectedRecovery = result.Data.Recovery.Should().ContainSingle().Which;
+        projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
+        projectedRecovery.Message.Should().NotContain("/outside");
+        projectedRecovery.SolutionPath.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_RestrictedAuthorityAndCertifiableRecovery_WHEN_GettingFullStatus_THEN_ShouldPreserveRecoveryEvidence()
+    {
+        _workspaceAuthority.SetupGet(item => item.IsRestricted).Returns(true);
+        _workspaceAuthority.Setup(item => item.IsWorkspaceAllowed("/allowed/Solution.slnx", "/allowed")).Returns(true);
+        var allowed = new RecoveryStatus
+        {
+            CommitId = "Allowed",
+            WorkspaceRoot = "/allowed",
+            SolutionPath = "/allowed/Solution.slnx",
+        };
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([allowed]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        result.Data!.Recovery.Should().ContainSingle().Which.Should().Be(allowed);
+    }
+
+    [Fact]
+    public async Task GIVEN_RestrictedAuthorityAndMalformedRecovery_WHEN_GettingFullStatus_THEN_ShouldHideUncertifiablePath()
+    {
+        _workspaceAuthority.SetupGet(item => item.IsRestricted).Returns(true);
+        var recovery = new RecoveryStatus
+        {
+            CommitId = "CommitId",
+            HasMalformedWorkspaceIdentity = true,
+            WorkspaceRoot = "/malformed",
+            SolutionPath = "/outside/Solution.slnx",
+        };
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
+        projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
+        projectedRecovery.SolutionPath.Should().BeEmpty();
+        projectedRecovery.Message.Should().NotContain("/outside");
+        _workspaceAuthority.Verify(
+            item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RestrictedAuthorityAndLegacyRecoveryWithoutWorkspaceRoot_WHEN_GettingFullStatus_THEN_ShouldHideUncertifiablePath()
+    {
+        _workspaceAuthority.SetupGet(item => item.IsRestricted).Returns(true);
+        var recovery = new RecoveryStatus
+        {
+            CommitId = "CommitId",
+            SolutionPath = "/legacy/Solution.slnx",
+        };
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
+        projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
+        projectedRecovery.SolutionPath.Should().BeEmpty();
+        projectedRecovery.Message.Should().NotContain("/legacy");
+        _workspaceAuthority.Verify(
+            item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RestrictedAuthorityAndRecoveryWithoutSolutionPath_WHEN_GettingFullStatus_THEN_ShouldHideUncertifiableIdentity()
+    {
+        _workspaceAuthority.SetupGet(item => item.IsRestricted).Returns(true);
+        var recovery = new RecoveryStatus
+        {
+            CommitId = "CommitId",
+            WorkspaceRoot = "/allowed",
+        };
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
+        projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
+        projectedRecovery.SolutionPath.Should().BeEmpty();
+        _workspaceAuthority.Verify(
+            item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsupportedEffectiveExternalDocumentPolicy_WHEN_GettingFullStatus_THEN_ShouldRejectInvalidRuntimeState()
+    {
+        _workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns((ExternalDocumentPolicy)999);
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("The external-document policy is not supported.");
     }
 
     [Fact]
@@ -217,7 +351,8 @@ public sealed class ServerStatusServiceTests
             _codeActionComposition.Object,
             _recoveryStore.Object,
             _errorReportingConsentService.Object,
-            _errorReportDispatcher.Object);
+            _errorReportDispatcher.Object,
+            _workspaceAuthority.Object);
     }
 
     private static PluginCatalogSnapshot CreatePluginSnapshot()

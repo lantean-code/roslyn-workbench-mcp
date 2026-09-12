@@ -451,7 +451,15 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             fileCommitter,
             pathContainment);
 
-        return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem));
+        var authority = new Mock<IWorkspaceAuthority>();
+        authority
+            .Setup(item => item.TryGetAllowedRoot(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+            .Returns((string _, out string? allowedRoot) =>
+            {
+                allowedRoot = null;
+                return true;
+            });
+        return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem), authority.Object);
     }
 
     private static WorkspaceCommitLockManager CreateLockManager(IFileSystem fileSystem)

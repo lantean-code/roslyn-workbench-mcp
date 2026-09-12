@@ -52,6 +52,8 @@ public sealed class ServerStatusRecoveryIntegrationTests
         var codeActionComposition = new Mock<ICodeActionComposition>();
         var errorReportingConsentService = new Mock<IErrorReportingConsentService>();
         var errorReportDispatcher = new Mock<IErrorReportDispatcher>();
+        var workspaceAuthority = new Mock<IWorkspaceAuthority>();
+        workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.AllowReadOnly);
         codeActionComposition
             .SetupGet(item => item.Status)
             .Returns(CodeActionCompositionStatus.Available());
@@ -69,7 +71,8 @@ public sealed class ServerStatusRecoveryIntegrationTests
             codeActionComposition.Object,
             recoveryStore,
             errorReportingConsentService.Object,
-            errorReportDispatcher.Object);
+            errorReportDispatcher.Object,
+            workspaceAuthority.Object);
 
         var result = await service.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 

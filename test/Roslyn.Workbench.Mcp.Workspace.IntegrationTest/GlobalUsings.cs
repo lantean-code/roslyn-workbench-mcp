@@ -5,6 +5,7 @@ global using Microsoft.CodeAnalysis.Text;
 global using Microsoft.Extensions.Options;
 global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 global using Roslyn.Workbench.Mcp.Plugins;
+global using Roslyn.Workbench.Mcp.Workspace.Authority;
 global using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.IO;

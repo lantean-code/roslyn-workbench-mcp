@@ -21,6 +21,64 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
+    public void GIVEN_ExistingAbsoluteWorkspaceRoot_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions
+        {
+            AllowedWorkspaceRoots = [Path.GetTempPath()],
+            ExternalDocumentPolicy = "reject-workspace",
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("relative")]
+    public void GIVEN_InvalidWorkspaceRoot_WHEN_Validating_THEN_ShouldFail(string root)
+    {
+        var options = new StartupOptions { AllowedWorkspaceRoots = [root] };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("AllowedWorkspaceRoots");
+    }
+
+    [Fact]
+    public void GIVEN_MissingAbsoluteWorkspaceRoot_WHEN_Validating_THEN_ShouldFail()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var options = new StartupOptions { AllowedWorkspaceRoots = [root] };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("AllowedWorkspaceRoots");
+    }
+
+    [Fact]
+    public void GIVEN_UncanonicalisableAbsoluteWorkspaceRoot_WHEN_Validating_THEN_ShouldFail()
+    {
+        var root = Path.GetPathRoot(Path.GetTempPath()) + "\0";
+        var options = new StartupOptions { AllowedWorkspaceRoots = [root] };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("AllowedWorkspaceRoots");
+    }
+
+    [Fact]
+    public void GIVEN_UnsupportedExternalDocumentPolicy_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions { ExternalDocumentPolicy = "Allow" };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("ExternalDocumentPolicy");
+    }
+
+    [Fact]
     public void GIVEN_MinimumCodeActionReferenceCacheSize_WHEN_Validating_THEN_ShouldSucceed()
     {
         var options = new StartupOptions

@@ -19,6 +19,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly IErrorReportingConsentService _errorReportingConsentService;
     private readonly IErrorReportDispatcher _errorReportDispatcher;
+    private readonly IWorkspaceAuthority _workspaceAuthority;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServerStatusService"/> class.
@@ -32,6 +33,7 @@ internal sealed class ServerStatusService : IServerStatusService
     /// <param name="recoveryStore">The store containing durable commit-recovery status.</param>
     /// <param name="errorReportingConsentService">The service that provides the effective reporting consent state.</param>
     /// <param name="errorReportDispatcher">The configured error-reporting provider.</param>
+    /// <param name="workspaceAuthority">The effective Host-owned Workspace authority.</param>
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
         StartupConfigurationSnapshot startupConfiguration,
@@ -41,7 +43,8 @@ internal sealed class ServerStatusService : IServerStatusService
         ICodeActionComposition codeActionComposition,
         ICommitRecoveryStore recoveryStore,
         IErrorReportingConsentService errorReportingConsentService,
-        IErrorReportDispatcher errorReportDispatcher)
+        IErrorReportDispatcher errorReportDispatcher,
+        IWorkspaceAuthority workspaceAuthority)
     {
         _startupOptions = startupOptions.Value;
         _startupConfiguration = startupConfiguration;
@@ -52,6 +55,7 @@ internal sealed class ServerStatusService : IServerStatusService
         _recoveryStore = recoveryStore;
         _errorReportingConsentService = errorReportingConsentService;
         _errorReportDispatcher = errorReportDispatcher;
+        _workspaceAuthority = workspaceAuthority;
     }
 
     /// <summary>
@@ -77,7 +81,9 @@ internal sealed class ServerStatusService : IServerStatusService
 
         if (includeExpandedDetail)
         {
-            recovery = await _recoveryStore.GetStatusesAsync(cancellationToken);
+            recovery = (await _recoveryStore.GetStatusesAsync(cancellationToken))
+                .Select(ProjectRecoveryStatus)
+                .ToArray();
             configuration = GetConfiguration();
             startupWarnings = _startupConfiguration.Warnings;
             plugins = pluginCatalog.Plugins;
@@ -110,6 +116,14 @@ internal sealed class ServerStatusService : IServerStatusService
     {
         return new ServerConfiguration
         {
+            WorkspaceAdmission = _workspaceAuthority.IsRestricted ? "Restricted" : "Unrestricted",
+            AllowedWorkspaceRootCount = _workspaceAuthority.AllowedRootCount,
+            ExternalDocumentPolicy = _workspaceAuthority.ExternalDocumentPolicy switch
+            {
+                ExternalDocumentPolicy.AllowReadOnly => "allow-read-only",
+                ExternalDocumentPolicy.RejectWorkspace => "reject-workspace",
+                _ => throw new InvalidOperationException("The external-document policy is not supported."),
+            },
             DefaultMaxResults = _startupOptions.DefaultMaxResults,
             CodeActionReferenceLifetime = _startupOptions.CodeActionReferenceLifetime,
             MaxTransactionRevisions = _startupOptions.MaxTransactionRevisions,
@@ -124,5 +138,45 @@ internal sealed class ServerStatusService : IServerStatusService
                     .ToString(),
             },
         };
+    }
+
+    private RecoveryStatus ProjectRecoveryStatus(RecoveryStatus status)
+    {
+        if (!_workspaceAuthority.IsRestricted)
+        {
+            return status;
+        }
+
+        if (CanExposeRecoveryPath(status))
+        {
+            return status;
+        }
+
+        return status with
+        {
+            Code = "RecoveryOutsideWorkspaceAuthority",
+            SolutionPath = string.Empty,
+            Message = "Restart the server with authority covering this Workspace to continue recovery.",
+        };
+    }
+
+    private bool CanExposeRecoveryPath(RecoveryStatus status)
+    {
+        if (status.HasMalformedWorkspaceIdentity)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(status.SolutionPath))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(status.WorkspaceRoot))
+        {
+            return false;
+        }
+
+        return _workspaceAuthority.IsWorkspaceAllowed(status.SolutionPath, status.WorkspaceRoot);
     }
 }

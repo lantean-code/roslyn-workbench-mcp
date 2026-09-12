@@ -8,6 +8,12 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 internal sealed record WorkspaceCommitManifest
 {
     /// <summary>
+    /// Gets the machine-readable status code produced while reading the manifest.
+    /// </summary>
+    [JsonIgnore]
+    public string? StatusCode { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the workspace identity could not be parsed.
     /// </summary>
     [JsonIgnore]
@@ -16,7 +22,7 @@ internal sealed record WorkspaceCommitManifest
     /// <summary>
     /// Gets the manifest format version.
     /// </summary>
-    public int Version { get; init; } = 1;
+    public int Version { get; init; } = RecoveryFormatVersions.Current;
 
     /// <summary>
     /// Gets the durable commit identifier.

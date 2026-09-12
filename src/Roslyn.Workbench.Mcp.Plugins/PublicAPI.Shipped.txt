@@ -1,0 +1,238 @@
+#nullable enable
+const Roslyn.Workbench.Mcp.Plugins.PluginApiVersions.V1 = "1.0" -> string!
+override Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.MutationCandidate.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.MutationCandidate.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.ToString() -> string!
+override Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.ToString() -> string!
+Roslyn.Workbench.Mcp.Plugins.IMutationContext
+Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler
+Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler<TRequest>
+Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler<TRequest>.ExecuteAsync(TRequest! request, Roslyn.Workbench.Mcp.Plugins.IMutationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<Roslyn.Workbench.Mcp.Plugins.MutationCandidate!>!>
+Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration
+Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration.AddMutationTool<THandler>() -> Roslyn.Workbench.Mcp.Plugins.MutationToolConfigurationBuilder!
+Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration.AddQueryTool<THandler>() -> Roslyn.Workbench.Mcp.Plugins.QueryToolConfigurationBuilder!
+Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration.Services.get -> Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration!
+Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration
+Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration.AddSingleton<TImplementation>() -> void
+Roslyn.Workbench.Mcp.Plugins.IPluginServiceConfiguration.AddSingleton<TService, TImplementation>() -> void
+Roslyn.Workbench.Mcp.Plugins.IQueryContext
+Roslyn.Workbench.Mcp.Plugins.IQueryContext.QueryResultCache.get -> Roslyn.Workbench.Mcp.Plugins.IQueryResultCache!
+Roslyn.Workbench.Mcp.Plugins.IQueryResponse
+Roslyn.Workbench.Mcp.Plugins.IQueryResultCache
+Roslyn.Workbench.Mcp.Plugins.IQueryResultCache.GetOrCreate<TKey, TValue>(TKey! key, System.Func<System.Threading.CancellationToken, TValue?>! valueFactory, System.Threading.CancellationToken cancellationToken) -> TValue?
+Roslyn.Workbench.Mcp.Plugins.IQueryResultCache.GetOrCreateAsync<TKey, TValue>(TKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TValue?>>! valueFactory, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TValue?>
+Roslyn.Workbench.Mcp.Plugins.IQueryResultCacheKey
+Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler
+Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<TRequest, TResponse>
+Roslyn.Workbench.Mcp.Plugins.IQueryToolHandler<TRequest, TResponse>.ExecuteAsync(TRequest! request, Roslyn.Workbench.Mcp.Plugins.IQueryContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!>
+Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin
+Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin.Configure(Roslyn.Workbench.Mcp.Plugins.IPluginConfiguration! configuration) -> void
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.CurrentSolution.get -> Microsoft.CodeAnalysis.Solution!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.DefaultMaxResults.get -> int
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.Snapshot.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.ToolExecutionServices.get -> Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.TransactionRevision.get -> int?
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.WorkspaceIdentity.get -> Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.WorkspacePathService.get -> Roslyn.Workbench.Mcp.Workspace.Paths.IWorkspacePathService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.WorkspaceResolver.get -> Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.CompilerDiagnosticService.get -> Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.DependencyAnalysisService.get -> Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.InspectionContextService.get -> Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.ProjectStructureService.get -> Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.ProjectTargetFrameworkResolver.get -> Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.ReferenceDiscoveryService.get -> Roslyn.Workbench.Mcp.Workspace.References.IReferenceDiscoveryService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.RequestResolver.get -> Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.TypeHierarchyService.get -> Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.WorkspaceSelectorFactory.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory!
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.MutationCandidate!
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.CandidateSolution.get -> Microsoft.CodeAnalysis.Solution!
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.CandidateSolution.init -> void
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Equals(Roslyn.Workbench.Mcp.Plugins.MutationCandidate? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.MutationCandidate() -> void
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Summary.get -> string!
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Summary.init -> void
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Warnings.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>!
+Roslyn.Workbench.Mcp.Plugins.MutationCandidate.Warnings.init -> void
+Roslyn.Workbench.Mcp.Plugins.MutationToolConfigurationBuilder
+Roslyn.Workbench.Mcp.Plugins.MutationToolConfigurationBuilder.IsDestructive(bool destructive = true) -> Roslyn.Workbench.Mcp.Plugins.MutationToolConfigurationBuilder!
+Roslyn.Workbench.Mcp.Plugins.MutationToolConfigurationBuilder.MutationToolConfigurationBuilder() -> void
+Roslyn.Workbench.Mcp.Plugins.PluginApiVersions
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionError!
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Code.get -> string!
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Code.init -> void
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.CorrelationId.get -> string?
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.CorrelationId.init -> void
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Equals(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Message.get -> string!
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.Message.init -> void
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.PluginExecutionError() -> void
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome.Conflict = 3 -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome.Faulted = 4 -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome.NoChange = 1 -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome.Rejected = 2 -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome.Succeeded = 0 -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcomeExtensions
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Changes.get -> Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary?
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Data.get -> TResponse?
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>!
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Equals(Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Error.get -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionError?
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.HasError.get -> bool
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.IsSucceeded.get -> bool
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Outcome.get -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.RequiredAction.get -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction?
+Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.Warnings.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>!
+Roslyn.Workbench.Mcp.Plugins.QueryToolConfigurationBuilder
+Roslyn.Workbench.Mcp.Plugins.QueryToolConfigurationBuilder.QueryToolConfigurationBuilder() -> void
+Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute
+Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute.DisplayName.get -> string!
+Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute.PluginId.get -> string!
+Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute.RoslynPluginAttribute(string! pluginId, string! displayName, string! supportedApiVersion) -> void
+Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute.SupportedApiVersion.get -> string!
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.Description.get -> string!
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.Destructive.get -> bool
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.Destructive.set -> void
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.Name.get -> string!
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.ResultSummary.get -> string?
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.ResultSummary.set -> void
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.RoslynToolAttribute(string! name, string! title, string! description) -> void
+Roslyn.Workbench.Mcp.Plugins.RoslynToolAttribute.Title.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle!
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.DependencyCycle() -> void
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.Equals(Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.Nodes.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.GraphNode!>!
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.Nodes.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.Cycles.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle!>?
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.IsCompleted.get -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.Status.get -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.TotalCount.get -> int?
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus.Completed = 0 -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus.EdgeLimitExceeded = 2 -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus
+Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus.NodeLimitExceeded = 1 -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisStatus
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.Equals(Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.FromDisplayName.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.FromDisplayName.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.FromId.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.FromId.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.GraphEdge() -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.Kind.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.Kind.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.ToDisplayName.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.ToDisplayName.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.ToId.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.ToId.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.Services.GraphNode!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.DisplayName.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.DisplayName.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Equals(Roslyn.Workbench.Mcp.Plugins.Services.GraphNode? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.GraphNode() -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Id.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Id.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Kind.get -> string!
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Kind.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Symbol.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference?
+Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.Symbol.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService
+Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService.GetCompilerDiagnosticsAsync(System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>! selectedDocuments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Diagnostic!>!>
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService.BuildGraphAsync(string! granularity, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Project!>! projects, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>! documents, int maxNodes, int maxEdges, Roslyn.Workbench.Mcp.Plugins.IQueryContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<(System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.GraphNode!>! Nodes, bool NodesHaveMore, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge!>! Edges, bool EdgesHaveMore)>
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService.FindCyclesAsync(string! granularity, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Project!>! projects, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>! documents, int maxResults, int maxNodes, int maxEdges, Roslyn.Workbench.Mcp.Plugins.IQueryContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult!>
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService.FindTestImpactsAsync(Microsoft.CodeAnalysis.ISymbol! targetSymbol, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>! documents, bool includeReasons, int maxResults, Roslyn.Workbench.Mcp.Plugins.IQueryContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<(System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo!>! Tests, bool HasMore)>
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService.IsSupportedCycleGranularity(string! value) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService.IsSupportedGraphGranularity(string! value) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService
+Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService.ReadContextAsync(Microsoft.CodeAnalysis.Document? document, Microsoft.CodeAnalysis.Text.TextSpan span, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService.TryCreateContainingSymbolAsync(Microsoft.CodeAnalysis.Document! document, int position, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.CodeAnalysis.ISymbol?>
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ResolveDocument<TResponse>(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? selector, Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<Microsoft.CodeAnalysis.Document!, TResponse>!
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ResolveDocuments<TResponse>(Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? scope, Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>!, TResponse>!
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ResolveProject<TResponse>(Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? selector, Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<Microsoft.CodeAnalysis.Project!, TResponse>!
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ResolveProjects<TResponse>(Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? scope, Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Project!>!, TResponse>!
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ResolveSymbolAsync<TResponse>(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? selector, Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? expectedSnapshot, Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<Microsoft.CodeAnalysis.ISymbol!, TResponse>!>
+Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver.ValidateSnapshot<TResponse>(Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext! context, Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? expectedSnapshot) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>?
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo!
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Equals(Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo? other) -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Location.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation?
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Location.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Reasons.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Reasons.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Test.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference?
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.Test.init -> void
+Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.TestImpactInfo() -> void
+Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult
+Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>
+Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.HasRejection.get -> bool
+Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.Rejection.get -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>?
+Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.Value.get -> TValue?
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.EnsureMutable() -> void
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.ToolConfigurationBuilder() -> void
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.WithDescription(string! description) -> TBuilder!
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.WithName(string! name) -> TBuilder!
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.WithResultSummary(string! resultSummary) -> TBuilder!
+Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder<TBuilder>.WithTitle(string! title) -> TBuilder!
+static Roslyn.Workbench.Mcp.Plugins.MutationCandidate.operator !=(Roslyn.Workbench.Mcp.Plugins.MutationCandidate? left, Roslyn.Workbench.Mcp.Plugins.MutationCandidate? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.MutationCandidate.operator ==(Roslyn.Workbench.Mcp.Plugins.MutationCandidate? left, Roslyn.Workbench.Mcp.Plugins.MutationCandidate? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.operator !=(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError? left, Roslyn.Workbench.Mcp.Plugins.PluginExecutionError? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionError.operator ==(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError? left, Roslyn.Workbench.Mcp.Plugins.PluginExecutionError? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcomeExtensions.IsError(this Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome outcome) -> bool
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult.Conflict<TResponse>(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError! error, Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction? requiredAction = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>? diagnostics = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>? warnings = null) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult.Faulted<TResponse>(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError! error, Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction? requiredAction = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>? diagnostics = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>? warnings = null) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult.NoChange<TResponse>(TResponse? data = default(TResponse?), System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>? diagnostics = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>? warnings = null) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult.Rejected<TResponse>(Roslyn.Workbench.Mcp.Plugins.PluginExecutionError! error, Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction? requiredAction = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>? diagnostics = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>? warnings = null) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult.Success<TResponse>(TResponse data, Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? changes = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!>? diagnostics = null, System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!>? warnings = null) -> Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.operator !=(Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>? left, Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>.operator ==(Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>? left, Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.operator !=(Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle? left, Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle.operator ==(Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle? left, Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.Completed(System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycle!>! cycles, int totalCount) -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult!
+static Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.EdgeLimitExceeded() -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult!
+static Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult.NodeLimitExceeded() -> Roslyn.Workbench.Mcp.Plugins.Services.DependencyCycleAnalysisResult!
+static Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.operator !=(Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge? left, Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge.operator ==(Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge? left, Roslyn.Workbench.Mcp.Plugins.Services.GraphEdge? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.operator !=(Roslyn.Workbench.Mcp.Plugins.Services.GraphNode? left, Roslyn.Workbench.Mcp.Plugins.Services.GraphNode? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.GraphNode.operator ==(Roslyn.Workbench.Mcp.Plugins.Services.GraphNode? left, Roslyn.Workbench.Mcp.Plugins.Services.GraphNode? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.operator !=(Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo? left, Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo.operator ==(Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo? left, Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult.Rejected<TValue, TResponse>(Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult<TResponse>! rejection) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue!, TResponse>!
+static Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult.Resolved<TValue, TResponse>(TValue! value) -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue!, TResponse>!
+~Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.<Clone>$() -> Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>!
+~Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.Equals(Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>? other) -> bool
+~static Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.operator !=(Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>? left, Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>? right) -> bool
+~static Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>.operator ==(Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>? left, Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult<TValue, TResponse>? right) -> bool

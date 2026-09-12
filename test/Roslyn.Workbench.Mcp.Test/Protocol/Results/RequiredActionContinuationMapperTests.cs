@@ -23,6 +23,7 @@ public sealed class RequiredActionContinuationMapperTests
     }
 
     [Theory]
+    [Trait("Category", "Contract")]
     [MemberData(nameof(Mappings))]
     public void GIVEN_RequiredAction_WHEN_Mapping_THEN_ShouldPublishExactContinuation(
         RequiredAction requiredAction,

@@ -16,6 +16,8 @@ If startup reports invalid allowed Workspace roots, ensure every value is a non-
 
 State-directory failures require a writable, supported location. Do not bypass owner-only permissions or remove unresolved recovery records to force startup. See [Configuration](configuration.md) and [Workspaces and transactions](workspaces-and-transactions.md).
 
+`RecoveryVersionUnsupported` means an owner record or manifest was written in a recovery format this Host cannot safely interpret. Stop the Host and start the same or a newer compatible Roslyn Workbench version. The unsupported evidence is retained unchanged; do not edit its version or delete it merely to clear status. See the [Compatibility policy](compatibility.md).
+
 ## A selector or Code Action became stale
 
 Follow the tool's continuation: check Workspace status, reload when appropriate, and resolve the location/symbol or discover the action again. Do not reuse coordinates, snapshot identities or opaque references after unrelated source changes or a server restart. Finish or roll back an active transaction before attempting a reload that requires a non-transactional Workspace.
@@ -26,7 +28,7 @@ The client may not support elicitation or may block it through its approval poli
 
 ## Upgrade or remove
 
-Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's compatibility notes. Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.
+Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's [compatibility notes](compatibility.md). Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.
 
 To remove the installed tool:
 

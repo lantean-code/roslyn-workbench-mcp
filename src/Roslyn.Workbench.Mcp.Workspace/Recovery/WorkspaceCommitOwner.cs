@@ -8,7 +8,7 @@ internal sealed record WorkspaceCommitOwner
     /// <summary>
     /// Gets the owner record format version.
     /// </summary>
-    public int Version { get; init; } = 1;
+    public int Version { get; init; } = RecoveryFormatVersions.Current;
 
     /// <summary>
     /// Gets the workspace commit identifier.

@@ -8,6 +8,7 @@ Roslyn Workbench MCP is a local stdio server for Roslyn-powered C# inspection an
 - Bounded results with snapshot-aware selectors and a versioned tool reference for deeper guidance.
 - Mutation staging, previews, undo/redo, rollback, explicit commit, conflict detection and durable transaction recovery.
 - Optional Host-owned Workspace admission roots, external-document policy, effective-root capping and recovery write gating for managed deployments. Existing installations remain unrestricted with read-only external documents by default.
+- A candidate 1.x compatibility policy, canonical built-in tool-catalogue baselines, version 1 recovery fixtures, fail-closed unsupported recovery status and public plugin API analyser baselines.
 - Roslyn Code Action discovery, Fix All preparation and staging through the same transaction boundary.
 - Local correlated diagnostics and an explicit, consent-controlled error-reporting workflow.
 

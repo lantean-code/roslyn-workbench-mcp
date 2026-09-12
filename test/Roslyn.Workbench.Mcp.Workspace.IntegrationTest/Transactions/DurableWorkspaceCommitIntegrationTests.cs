@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Moq;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
@@ -14,6 +16,13 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
     private const UnixFileMode _deleteUnixFileMode = UnixFileMode.UserRead
         | UnixFileMode.UserWrite
         | UnixFileMode.GroupRead;
+
+    private const UnixFileMode _privateDirectoryMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite
+        | UnixFileMode.UserExecute;
+
+    private const UnixFileMode _privateFileMode = UnixFileMode.UserRead
+        | UnixFileMode.UserWrite;
 
     private static readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(10);
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
@@ -109,6 +118,119 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         File.Exists(transaction.DeletePath).Should().BeFalse();
         File.Exists(transaction.DeleteMarkerPath).Should().BeFalse();
         (await _store.GetManifestsAsync(TestContext.Current.CancellationToken)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_V1InterruptedRecoveryFixtures_WHEN_CurrentHostRecovers_THEN_ShouldRestoreFilesAndConsumeEarlierDurableFormats()
+    {
+        var recoveryDirectory = Path.Combine(_stateDirectory, "recovery");
+        var loadedPath = Path.Combine(_root, "Sample.slnx");
+        var sourceDirectory = Path.Combine(_root, "source");
+        var createdDirectory = Path.Combine(sourceDirectory, "generated");
+        var replacePath = Path.Combine(sourceDirectory, "Replace.cs");
+        var createPath = Path.Combine(createdDirectory, "Create.cs");
+        var deletePath = Path.Combine(sourceDirectory, "Delete.cs");
+        var deleteMarkerPath = $"{deletePath}.v1-manifest.delete";
+        var replaceOriginal = await ReadRecoveryFixtureArtifactAsync("interrupted", "backup", "replace.txt");
+        var replaceIntended = await ReadRecoveryFixtureArtifactAsync("interrupted", "staged", "replace.txt");
+        var createIntended = await ReadRecoveryFixtureArtifactAsync("interrupted", "staged", "create.txt");
+        var deleteOriginal = await ReadRecoveryFixtureArtifactAsync("interrupted", "backup", "delete.txt");
+        Directory.CreateDirectory(createdDirectory);
+        await File.WriteAllBytesAsync(replacePath, replaceIntended, TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(createPath, createIntended, TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(deleteMarkerPath, deleteOriginal, TestContext.Current.CancellationToken);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(replacePath, _replaceUnixFileMode);
+            File.SetUnixFileMode(deleteMarkerPath, _deleteUnixFileMode);
+        }
+
+        var replaceUnixFileMode = OperatingSystem.IsWindows()
+            ? "null"
+            : ((int)_replaceUnixFileMode).ToString(CultureInfo.InvariantCulture);
+
+        var deleteUnixFileMode = OperatingSystem.IsWindows()
+            ? "null"
+            : ((int)_deleteUnixFileMode).ToString(CultureInfo.InvariantCulture);
+        var replacements = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["{{LOADED_PATH}}"] = JsonEncodedText.Encode(loadedPath).ToString(),
+            ["{{WORKSPACE_ROOT}}"] = JsonEncodedText.Encode(_root).ToString(),
+            ["{{REPLACE_PATH}}"] = JsonEncodedText.Encode(replacePath).ToString(),
+            ["{{CREATE_PATH}}"] = JsonEncodedText.Encode(createPath).ToString(),
+            ["{{DELETE_PATH}}"] = JsonEncodedText.Encode(deletePath).ToString(),
+            ["{{DELETE_MARKER_PATH}}"] = JsonEncodedText.Encode(deleteMarkerPath).ToString(),
+            ["{{CREATED_DIRECTORY}}"] = JsonEncodedText.Encode(createdDirectory).ToString(),
+            ["{{REPLACE_ORIGINAL_HASH}}"] = Hash(replaceOriginal),
+            ["{{REPLACE_INTENDED_HASH}}"] = Hash(replaceIntended),
+            ["{{CREATE_INTENDED_HASH}}"] = Hash(createIntended),
+            ["{{DELETE_ORIGINAL_HASH}}"] = Hash(deleteOriginal),
+            ["{{REPLACE_UNIX_FILE_MODE}}"] = replaceUnixFileMode,
+            ["{{DELETE_UNIX_FILE_MODE}}"] = deleteUnixFileMode,
+        };
+
+        await InstallRecoveryFixtureDirectoryAsync("interrupted", "v1-manifest", replacements);
+        await InstallRecoveryFixtureDirectoryAsync("orphan-owner", "v1-owner", replacements);
+
+        await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
+
+        (await File.ReadAllBytesAsync(replacePath, TestContext.Current.CancellationToken)).Should().Equal(replaceOriginal);
+        File.Exists(createPath).Should().BeFalse();
+        (await File.ReadAllBytesAsync(deletePath, TestContext.Current.CancellationToken)).Should().Equal(deleteOriginal);
+        File.Exists(deleteMarkerPath).Should().BeFalse();
+        Directory.Exists(createdDirectory).Should().BeFalse();
+        if (!OperatingSystem.IsWindows())
+        {
+            File.GetUnixFileMode(replacePath).Should().Be(_replaceUnixFileMode);
+            File.GetUnixFileMode(deletePath).Should().Be(_deleteUnixFileMode);
+        }
+
+        Directory.Exists(Path.Combine(recoveryDirectory, "v1-manifest")).Should().BeFalse();
+        Directory.Exists(Path.Combine(recoveryDirectory, "v1-owner")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GIVEN_FutureRecoveryFormats_WHEN_CurrentHostRecovers_THEN_ShouldReportAndPreserveEvidence()
+    {
+        var recoveryDirectory = Path.Combine(_stateDirectory, "recovery");
+        var manifestDirectory = Path.Combine(recoveryDirectory, "future-manifest");
+        var ownerDirectory = Path.Combine(recoveryDirectory, "future-owner");
+        CreateRecoveryEvidenceDirectory(manifestDirectory);
+        CreateRecoveryEvidenceDirectory(ownerDirectory);
+        var manifestPath = Path.Combine(manifestDirectory, "manifest.json");
+        var ownerPath = Path.Combine(ownerDirectory, "owner.json");
+        var futureManifest = new
+        {
+            version = RecoveryFormatVersions.Current + 1,
+            commitId = "future-manifest",
+            loadedPath = Path.Combine(_root, "Sample.slnx"),
+            workspaceRoot = _root,
+            entries = new { future = "representation" },
+        };
+
+        var futureOwner = new
+        {
+            version = RecoveryFormatVersions.Current + 1,
+            commitId = new { future = "representation" },
+            loadedPath = Path.Combine(_root, "Sample.slnx"),
+            workspaceRoot = _root,
+        };
+
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var manifestJson = JsonSerializer.Serialize(futureManifest, options);
+        var ownerJson = JsonSerializer.Serialize(futureOwner, options);
+        await File.WriteAllTextAsync(manifestPath, manifestJson, TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(ownerPath, ownerJson, TestContext.Current.CancellationToken);
+        ApplyRecoveryEvidenceFileMode(manifestPath);
+        ApplyRecoveryEvidenceFileMode(ownerPath);
+
+        await CreateFreshRecoveryService().RecoverAsync(TestContext.Current.CancellationToken);
+
+        (await File.ReadAllTextAsync(manifestPath, TestContext.Current.CancellationToken)).Should().Be(manifestJson);
+        (await File.ReadAllTextAsync(ownerPath, TestContext.Current.CancellationToken)).Should().Be(ownerJson);
+        var statuses = await _store.GetStatusesAsync(TestContext.Current.CancellationToken);
+        statuses.Should().HaveCount(2);
+        statuses.Should().OnlyContain(status => status.Code == RecoveryStatusCodes.VersionUnsupported);
     }
 
     [Fact]
@@ -460,6 +582,73 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                 return true;
             });
         return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem), authority.Object);
+    }
+
+    private async Task InstallRecoveryFixtureDirectoryAsync(
+        string fixtureDirectoryName,
+        string commitId,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        var fixtureDirectory = Path.Combine(AppContext.BaseDirectory, "TestAssets", "Recovery", "V1", fixtureDirectoryName);
+        var commitDirectory = Path.Combine(_stateDirectory, "recovery", commitId);
+        CreateRecoveryEvidenceDirectory(commitDirectory);
+        foreach (var fixturePath in Directory.EnumerateFiles(fixtureDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(fixtureDirectory, fixturePath);
+            var destinationPath = Path.Combine(commitDirectory, relativePath);
+            var destinationDirectory = Path.GetDirectoryName(destinationPath)
+                ?? throw new InvalidOperationException($"Recovery fixture destination '{destinationPath}' does not have a parent directory.");
+
+            CreateRecoveryEvidenceDirectory(destinationDirectory);
+            if (string.Equals(Path.GetExtension(fixturePath), ".json", StringComparison.OrdinalIgnoreCase))
+            {
+                var json = await File.ReadAllTextAsync(fixturePath, TestContext.Current.CancellationToken);
+                foreach (var (token, value) in replacements)
+                {
+                    json = json.Replace(token, value, StringComparison.Ordinal);
+                }
+
+                await File.WriteAllTextAsync(
+                    destinationPath,
+                    json,
+                    TestContext.Current.CancellationToken);
+            }
+            else
+            {
+                var contents = await File.ReadAllBytesAsync(fixturePath, TestContext.Current.CancellationToken);
+                await File.WriteAllBytesAsync(destinationPath, contents, TestContext.Current.CancellationToken);
+            }
+
+            ApplyRecoveryEvidenceFileMode(destinationPath);
+        }
+    }
+
+    private static async Task<byte[]> ReadRecoveryFixtureArtifactAsync(params string[] relativeSegments)
+    {
+        var segments = new[] { AppContext.BaseDirectory, "TestAssets", "Recovery", "V1" }
+            .Concat(relativeSegments)
+            .ToArray();
+        var fixturePath = Path.Combine(segments);
+        return await File.ReadAllBytesAsync(fixturePath, TestContext.Current.CancellationToken);
+    }
+
+    private static void CreateRecoveryEvidenceDirectory(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(path);
+            return;
+        }
+
+        Directory.CreateDirectory(path, _privateDirectoryMode);
+    }
+
+    private static void ApplyRecoveryEvidenceFileMode(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(path, _privateFileMode);
+        }
     }
 
     private static WorkspaceCommitLockManager CreateLockManager(IFileSystem fileSystem)

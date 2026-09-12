@@ -76,6 +76,8 @@ Acceptance bar:
 - unknown or unsupported recovery versions fail closed with actionable status and do not reinterpret state; and
 - plugin compatibility and package versioning rules are documented independently from the Host's MCP contract.
 
+Implementation evidence is maintained in the docs-site [compatibility policy](../content/compatibility.md), canonical published-Host catalogue baselines for both output-schema modes, explicit V1 recovery fixtures and unsupported-version preservation coverage, stable error/continuation contract tests, and shipped public-API analyser baselines for Plugins and Abstractions.
+
 ## Priority 1: bind review, validation and persistence
 
 ### 4. Produce a canonical transaction review receipt

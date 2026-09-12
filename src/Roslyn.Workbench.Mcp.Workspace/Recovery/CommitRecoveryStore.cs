@@ -63,10 +63,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         cancellationToken.ThrowIfCancellationRequested();
         var commitDirectory = GetCommitDirectory(plan.Manifest.CommitId);
         var owner = CreateOwner(plan.Manifest);
-        var ownerJson = JsonSerializer.Serialize(owner, _serializerOptions);
-        var manifestJson = JsonSerializer.Serialize(plan.Manifest, _serializerOptions);
+        var ownerJson = RecoveryFormatWriter.SerializeOwner(owner, _serializerOptions);
+        var manifestJson = RecoveryFormatWriter.SerializeManifest(plan.Manifest, _serializerOptions);
         var committedManifest = plan.Manifest with { State = RecoveryState.Committed };
-        var committedManifestJson = JsonSerializer.Serialize(committedManifest, _serializerOptions);
+        var committedManifestJson = RecoveryFormatWriter.SerializeManifest(committedManifest, _serializerOptions);
         var capacity = ValidatePlanCapacity(
             plan,
             ownerJson,
@@ -90,8 +90,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     {
         cancellationToken.ThrowIfCancellationRequested();
         var commitDirectory = GetCommitDirectory(manifest.CommitId);
-        var json = SerializeJson(
-            manifest,
+        var json = RecoveryFormatWriter.SerializeManifest(manifest, _serializerOptions);
+        ValidateSerializedJsonSize(
+            json,
             _limits.MaximumManifestBytes,
             "recovery manifest");
 
@@ -136,17 +137,32 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                     "recovery manifest");
 
                 var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
-                var manifest = JsonSerializer.Deserialize<WorkspaceCommitManifest>(json, _serializerOptions);
-                if (manifest is not null && IsValidManifest(manifest, containedDirectory))
-                {
-                    manifests.Add(manifest);
-                }
-                else
+                var header = RecoveryFormatReader.ReadHeader(json);
+                if (header is null)
                 {
                     manifests.Add(CreateInvalidManifest(
                         containedDirectory,
-                        manifest?.LoadedPath,
-                        manifest?.WorkspaceRoot));
+                        loadedPath: null,
+                        workspaceRoot: null));
+                }
+                else if (!RecoveryFormatVersions.IsSupported(header.Version))
+                {
+                    manifests.Add(CreateUnsupportedManifest(containedDirectory, header));
+                }
+                else
+                {
+                    var manifest = RecoveryFormatReader.ReadManifest(json, header.Version, _serializerOptions);
+                    if (manifest is not null && IsValidManifest(manifest, containedDirectory))
+                    {
+                        manifests.Add(manifest);
+                    }
+                    else
+                    {
+                        manifests.Add(CreateInvalidManifest(
+                            containedDirectory,
+                            header.LoadedPath,
+                            header.WorkspaceRoot));
+                    }
                 }
             }
             catch (IOException)
@@ -201,6 +217,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 WorkspaceRoot = manifest.WorkspaceRoot,
                 HasMalformedWorkspaceIdentity = manifest.HasMalformedWorkspaceIdentity,
                 State = manifest.State,
+                Code = manifest.StatusCode,
                 Message = manifest.Message,
             }).ToList();
 
@@ -319,18 +336,30 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                     "recovery owner record");
 
                 var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
-                var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
+                var header = RecoveryFormatReader.ReadHeader(json);
+                if (header is null)
+                {
+                    conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
+                    continue;
+                }
+
+                if (!RecoveryFormatVersions.IsSupported(header.Version))
+                {
+                    conflicts.Add(CreateUnsupportedOwnerStatus(containedDirectory, header));
+                    continue;
+                }
+
+                var owner = RecoveryFormatReader.ReadOwner(json, header.Version, _serializerOptions);
                 if (owner is null)
                 {
                     conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner));
                     continue;
                 }
 
-                var hasValidMetadata = owner.Version == 1
-                    && string.Equals(
-                        owner.CommitId,
-                        _fileSystem.Path.GetFileName(containedDirectory),
-                        _pathComparison.GetComparison(containedDirectory));
+                var hasValidMetadata = string.Equals(
+                    owner.CommitId,
+                    _fileSystem.Path.GetFileName(containedDirectory),
+                    _pathComparison.GetComparison(containedDirectory));
 
                 if (!hasValidMetadata)
                 {
@@ -422,6 +451,23 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
             State = RecoveryState.RecoveryConflict,
             Message = "The recovery owner record is malformed or unreadable.",
+        };
+    }
+
+    private RecoveryStatus CreateUnsupportedOwnerStatus(string directory, RecoveryEvidenceHeader header)
+    {
+        var hasValidLoadedPath = TryGetSafeNormalizedPath(header.LoadedPath, allowMissing: false, out var loadedPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(header.WorkspaceRoot, allowMissing: false, out var workspaceRoot);
+
+        return new RecoveryStatus
+        {
+            CommitId = _fileSystem.Path.GetFileName(directory),
+            SolutionPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
+            State = RecoveryState.RecoveryConflict,
+            Code = RecoveryStatusCodes.VersionUnsupported,
+            Message = CreateUnsupportedVersionMessage(header.Version),
         };
     }
 
@@ -523,8 +569,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
     {
-        if (manifest.Version != 1
-            || string.IsNullOrWhiteSpace(manifest.CommitId)
+        if (string.IsNullOrWhiteSpace(manifest.CommitId)
             || string.IsNullOrWhiteSpace(manifest.LoadedPath)
             || string.IsNullOrWhiteSpace(manifest.WorkspaceRoot)
             || manifest.Entries is null
@@ -758,6 +803,31 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         };
     }
 
+    private WorkspaceCommitManifest CreateUnsupportedManifest(string directory, RecoveryEvidenceHeader header)
+    {
+        var hasValidLoadedPath = TryGetSafeNormalizedPath(header.LoadedPath, allowMissing: false, out var normalizedLoadedPath);
+        var hasValidWorkspaceRoot = TryGetSafeNormalizedPath(header.WorkspaceRoot, allowMissing: false, out var normalizedWorkspaceRoot);
+
+        return new WorkspaceCommitManifest
+        {
+            Version = header.Version,
+            CommitId = _fileSystem.Path.GetFileName(directory),
+            LoadedPath = normalizedLoadedPath,
+            WorkspaceRoot = normalizedWorkspaceRoot,
+            HasMalformedWorkspaceIdentity = !hasValidLoadedPath || !hasValidWorkspaceRoot,
+            State = RecoveryState.RecoveryConflict,
+            Entries = [],
+            CreatedDirectories = [],
+            StatusCode = RecoveryStatusCodes.VersionUnsupported,
+            Message = CreateUnsupportedVersionMessage(header.Version),
+        };
+    }
+
+    private static string CreateUnsupportedVersionMessage(int version)
+    {
+        return $"Recovery evidence uses unsupported format version {version}. Start the same or a newer compatible Roslyn Workbench version; the evidence was not modified.";
+    }
+
     private void ValidateCommitId(string commitId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
@@ -874,15 +944,19 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             $"The {description} requires {actualBytes} bytes, exceeding the supported maximum of {maximumBytes} bytes.");
     }
 
-    private static string SerializeJson<T>(T value, long maximumBytes, string description)
+    private static void ValidateSerializedJsonSize(string json, long maximumBytes, string description)
     {
-        var json = JsonSerializer.Serialize(value, _serializerOptions);
         if (_encoding.GetByteCount(json) > maximumBytes)
         {
             throw new InvalidDataException(
                 $"The {description} exceeds the supported maximum size.");
         }
+    }
 
+    private static string SerializeJson<T>(T value, long maximumBytes, string description)
+    {
+        var json = JsonSerializer.Serialize(value, _serializerOptions);
+        ValidateSerializedJsonSize(json, maximumBytes, description);
         return json;
     }
 

@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public static class PluginApiVersions
 {
     /// <summary>
-    /// Gets the current stage 2 plugin API version.
+    /// Gets the plugin API version supported throughout Host 1.x releases.
     /// </summary>
     public const string V1 = "1.0";
 }

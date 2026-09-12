@@ -2,6 +2,34 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class PublishedCatalogueIntegrationTests
 {
+    [Theory]
+    [InlineData("Full", "tools-list-v1-full.json")]
+    [InlineData("Omit", "tools-list-v1-omit.json")]
+    public async Task GIVEN_BuiltInCatalogue_WHEN_ListingTools_THEN_ShouldMatchCanonicalCompatibilityBaseline(
+        string outputSchemaMode,
+        string baselineFileName)
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--tool-output-schema-mode", outputSchemaMode]);
+
+        try
+        {
+            var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+            var actual = ToolCatalogueCanonicalizer.Create(tools);
+            CaptureCompatibilityBaselineWhenRequested(baselineFileName, actual);
+            var baselinePath = Path.Combine(AppContext.BaseDirectory, "CompatibilityBaselines", baselineFileName);
+            var expected = await File.ReadAllTextAsync(baselinePath, TestContext.Current.CancellationToken);
+
+            actual.Should().Be(expected);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
     [Fact]
     public async Task GIVEN_WorkspaceLifecycleChanges_WHEN_ListingTools_THEN_ShouldKeepCatalogueAndMetadataStable()
     {
@@ -155,5 +183,17 @@ public sealed class PublishedCatalogueIntegrationTests
             tool.ProtocolTool.Annotations.Should().NotBeNull();
             tool.ProtocolTool.Annotations!.Title.Should().NotBeNullOrWhiteSpace();
         }
+    }
+
+    private static void CaptureCompatibilityBaselineWhenRequested(string baselineFileName, string contents)
+    {
+        var captureDirectory = Environment.GetEnvironmentVariable("ROSLYN_WORKBENCH_CAPTURE_TOOL_BASELINES");
+        if (string.IsNullOrWhiteSpace(captureDirectory))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(captureDirectory);
+        File.WriteAllText(Path.Combine(captureDirectory, baselineFileName), contents);
     }
 }

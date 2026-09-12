@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "commitId": "v1-manifest",
+  "loadedPath": "{{LOADED_PATH}}",
+  "workspaceRoot": "{{WORKSPACE_ROOT}}",
+  "state": 1,
+  "entries": [
+    {
+      "targetPath": "{{REPLACE_PATH}}",
+      "operation": 1,
+      "originalExists": true,
+      "originalHash": "{{REPLACE_ORIGINAL_HASH}}",
+      "intendedHash": "{{REPLACE_INTENDED_HASH}}",
+      "originalUnixFileMode": {{REPLACE_UNIX_FILE_MODE}},
+      "intendedUnixFileMode": {{REPLACE_UNIX_FILE_MODE}},
+      "backupPath": "backup/replace.txt",
+      "stagedPath": "staged/replace.txt"
+    },
+    {
+      "targetPath": "{{CREATE_PATH}}",
+      "operation": 0,
+      "originalExists": false,
+      "intendedHash": "{{CREATE_INTENDED_HASH}}",
+      "stagedPath": "staged/create.txt"
+    },
+    {
+      "targetPath": "{{DELETE_PATH}}",
+      "operation": 2,
+      "originalExists": true,
+      "originalHash": "{{DELETE_ORIGINAL_HASH}}",
+      "originalUnixFileMode": {{DELETE_UNIX_FILE_MODE}},
+      "backupPath": "backup/delete.txt",
+      "deleteMarkerPath": "{{DELETE_MARKER_PATH}}"
+    }
+  ],
+  "createdDirectories": [
+    "{{CREATED_DIRECTORY}}"
+  ]
+}

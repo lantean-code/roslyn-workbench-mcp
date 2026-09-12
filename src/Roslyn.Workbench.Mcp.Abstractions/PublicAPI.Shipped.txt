@@ -1,0 +1,543 @@
+#nullable enable
+abstract Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest!
+override abstract Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest!
+override Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.EqualityContract.get -> System.Type!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Equals(object? obj) -> bool
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.GetHashCode() -> int
+override Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.ToString() -> string!
+override Roslyn.Workbench.Mcp.Workspace.Validation.NonEmptyGuidAttribute.IsValid(object? value) -> bool
+override sealed Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.ITypeHierarchyService.FindDerivedTypesAsync(Microsoft.CodeAnalysis.INamedTypeSymbol! root, Microsoft.CodeAnalysis.Solution! solution, System.Collections.Generic.IReadOnlyCollection<Microsoft.CodeAnalysis.Project!>! projects, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch!>!>
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch!
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Depth.get -> int
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Depth.init -> void
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Equals(Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Type.get -> Microsoft.CodeAnalysis.INamedTypeSymbol!
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.Type.init -> void
+Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.TypeHierarchyMatch() -> void
+Roslyn.Workbench.Mcp.Workspace.Paths.IWorkspacePathService
+Roslyn.Workbench.Mcp.Workspace.Paths.IWorkspacePathService.TryNormalizePath(string! path, out string? normalizedPath) -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService.GetSolutionHierarchyAsync(Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity! workspace, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult!>!
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService.GetTargetFrameworks(System.Guid workspaceId, Microsoft.CodeAnalysis.Project! project) -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService.GetTargetFrameworks(System.Guid workspaceId, string? projectPath) -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService.GetTargetFrameworks(System.Guid workspaceId, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Project!>! projects, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!>!
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver.Resolve(System.Guid workspaceId, Microsoft.CodeAnalysis.Project! project, System.Threading.CancellationToken cancellationToken) -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver.Resolve(System.Guid workspaceId, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Project!>! projects, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!>!
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.Equals(Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.ErrorMessage.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.IsSucceeded.get -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.TargetFrameworks.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Equals(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Name.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Name.init -> void
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.ParentPath.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.ParentPath.init -> void
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Path.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.Path.init -> void
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.SolutionFolderInfo() -> void
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.Equals(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.ErrorMessage.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.Folders.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo!>!
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.IsSucceeded.get -> bool
+Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.ProjectFolderPaths.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>!
+Roslyn.Workbench.Mcp.Workspace.References.IReferenceDiscoveryService
+Roslyn.Workbench.Mcp.Workspace.References.IReferenceDiscoveryService.FindReferencesAsync(System.Guid workspaceId, Microsoft.CodeAnalysis.Solution! solution, Microsoft.CodeAnalysis.ISymbol! symbol, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>! documents, bool includeDefinitions, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence!>!>
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence!
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Definition.get -> Microsoft.CodeAnalysis.ISymbol!
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Definition.init -> void
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Document.get -> Microsoft.CodeAnalysis.Document!
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Equals(Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.IsDefinition.get -> bool
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.IsDefinition.init -> void
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Location.get -> Microsoft.CodeAnalysis.Location!
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Location.init -> void
+Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.ReferenceOccurrence() -> void
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.CreateDocumentReference(Microsoft.CodeAnalysis.Document! document) -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference?
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.CreateResolvedLocation(Microsoft.CodeAnalysis.Location! location) -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation?
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.CreateSymbolReference(Microsoft.CodeAnalysis.ISymbol! symbol) -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference!
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.GetDocuments(Microsoft.CodeAnalysis.Project! project) -> System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>!
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.GetDocuments(Microsoft.CodeAnalysis.Solution! solution) -> System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.Document!>!
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.ResolveDocument(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector! selector) -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<Microsoft.CodeAnalysis.Document!>!
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.ResolveLocationAsync(Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector! selector, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<Microsoft.CodeAnalysis.Location!>!>
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.ResolveProject(Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector! selector) -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<Microsoft.CodeAnalysis.Project!>!
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.ResolveSymbolAsync(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector! selector, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<Microsoft.CodeAnalysis.ISymbol!>!>
+Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.ValidateSnapshot(Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? precondition) -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.IsResolved.get -> bool
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.Status.get -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.Value.get -> T?
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus.Ambiguous = 2 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus.Invalid = 3 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus.NotFound = 1 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus.Resolved = 0 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind.Matched = 0 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind.SnapshotIdMismatch = 2 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind.TransactionRevisionMismatch = 3 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind.WorkspaceEpochMismatch = 1 -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.Equals(Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.Kind.get -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.Kind.init -> void
+Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.SnapshotMatchResult() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>!
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.Equals(Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.HasMore.get -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.Items.get -> System.Collections.Generic.IReadOnlyList<TItem>!
+Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.TotalCount.get -> int?
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary!
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Added.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange!>!
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Added.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.AffectedSymbols.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference!>!
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.AffectedSymbols.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.ChangeSummary() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Deleted.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange!>!
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Deleted.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Equals(Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Modified.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange!>!
+Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.Modified.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo!
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.DiagnosticInfo() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Equals(Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Id.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Id.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Location.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation?
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Location.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Message.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Message.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Severity.get -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.Severity.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Error = 3 -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Hidden = 0 -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Info = 1 -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Warning = 2 -> Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary!
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.AddedLines.get -> int
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.AddedLines.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.ChangedLines.get -> int
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.ChangedLines.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.DiffSummary() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.Equals(Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.RemovedLines.get -> int
+Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.RemovedLines.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange!
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.ChangeKind.get -> Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.ChangeKind.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Document.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference?
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.DocumentChange() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Equals(Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Preview.get -> Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary?
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.Preview.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind.Added = 0 -> Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind.Deleted = 2 -> Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind
+Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind.Modified = 1 -> Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.CommitOrRollback = 5 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.NarrowRequest = 9 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.OpenWorkspace = 0 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReduceTransactionHistory = 6 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReloadWorkspace = 3 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ResolveRecovery = 8 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ResolveTargetAgain = 4 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.Retry = 7 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.RollbackTransaction = 2 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.StartTransaction = 1 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.ResultLimit
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo!
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Code.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Code.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Equals(Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Message.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.Message.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.WarningInfo() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity!
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.Alias.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.Alias.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.Equals(Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.LoadedPath.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.LoadedPath.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceEpoch.get -> long
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceEpoch.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceId.get -> System.Guid
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceIdentity() -> void
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceRoot.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.WorkspaceRoot.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.CanonicalLocationSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.Span.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.Span.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference!
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.DocumentId.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.DocumentId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.DocumentReference() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.Path.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.Path.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.ProjectId.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.ProjectId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.DocumentId.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.DocumentId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.DocumentSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Path.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Path.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Project.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.Project.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory
+Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory.CreateCanonicalLocationSelector(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? resolvedLocation) -> Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory.CreateLocationSelector(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? resolvedLocation) -> Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.IWorkspaceSelectorFactory.CreateSymbolSelector(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? resolvedLocation) -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.LocationSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Selection.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Selection.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Span.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.Span.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Name.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Name.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Path.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.Path.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.ProjectId.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.ProjectId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.ProjectSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.TargetFramework.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.TargetFramework.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation!
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Column.get -> int
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Column.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Document.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Line.get -> int
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Line.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.ResolvedLocation() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Selector.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Selector.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Snapshot.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition!
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Snapshot.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Span.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.Span.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind.Document = 2 -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind.Project = 1 -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind.Projects = 3 -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind.Solution = 0 -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Document.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Kind.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Kind.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Project.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Project.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Projects.get -> System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector!>?
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.Projects.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.ScopeSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition!
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.SnapshotId.get -> System.Guid
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.SnapshotId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.SnapshotPrecondition() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.TransactionRevision.get -> int?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.TransactionRevision.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.WorkspaceEpoch.get -> long
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.WorkspaceEpoch.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.WorkspaceId.get -> System.Guid
+Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.WorkspaceId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference!
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.DisplayName.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.DisplayName.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.DocumentationCommentId.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.DocumentationCommentId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Kind.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Kind.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Location.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.Location.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.SymbolReference() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.DocumentationCommentId.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.DocumentationCommentId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Location.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Location.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Project.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.Project.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.SymbolSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.ContextAfter.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.ContextAfter.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.ContextBefore.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.ContextBefore.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.Document.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.SelectedText.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.SelectedText.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.TextSelectionSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Length.get -> int
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Length.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Start.get -> int
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.Start.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.TextSpanRange() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Document.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Document.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Range.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange!
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.Range.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.TextSpanSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.Workspace.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector?
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.Workspace.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.WorkspaceBoundRequest() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.WorkspaceBoundRequest(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest! original) -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.ExpectedSnapshot.get -> Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition!
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.ExpectedSnapshot.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.WorkspaceMutationRequest() -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.WorkspaceMutationRequest(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest! original) -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector!
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Alias.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Alias.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector? other) -> bool
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Path.get -> string?
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.Path.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.WorkspaceId.get -> System.Guid?
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.WorkspaceId.init -> void
+Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.WorkspaceSelector() -> void
+Roslyn.Workbench.Mcp.Workspace.Validation.NonEmptyGuidAttribute
+Roslyn.Workbench.Mcp.Workspace.Validation.NonEmptyGuidAttribute.NonEmptyGuidAttribute() -> void
+Roslyn.Workbench.Mcp.Workspace.Validation.ProhibitedUnlessAttribute
+Roslyn.Workbench.Mcp.Workspace.Validation.ProhibitedUnlessAttribute.ExpectedValue.get -> object!
+Roslyn.Workbench.Mcp.Workspace.Validation.ProhibitedUnlessAttribute.OtherProperty.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Validation.ProhibitedUnlessAttribute.ProhibitedUnlessAttribute(string! otherProperty, object! expectedValue) -> void
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiredWhenAttribute
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiredWhenAttribute.ExpectedValue.get -> object!
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiredWhenAttribute.OtherProperty.get -> string!
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiredWhenAttribute.RequiredWhenAttribute(string! otherProperty, object! expectedValue) -> void
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresAtLeastOneAttribute
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresAtLeastOneAttribute.MemberNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresAtLeastOneAttribute.RequiresAtLeastOneAttribute(params string![]! memberNames) -> void
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresExactlyOneAttribute
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresExactlyOneAttribute.MemberNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Roslyn.Workbench.Mcp.Workspace.Validation.RequiresExactlyOneAttribute.RequiresExactlyOneAttribute(params string![]! memberNames) -> void
+static Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.operator !=(Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch? left, Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch.operator ==(Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch? left, Roslyn.Workbench.Mcp.Workspace.Hierarchy.TypeHierarchyMatch? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.Failed(string! errorMessage) -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+static Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.operator !=(Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult? left, Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.operator ==(Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult? left, Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult.Succeeded(System.Collections.Generic.IReadOnlyList<string!>? targetFrameworks = null) -> Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult!
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.operator !=(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo? left, Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo.operator ==(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo? left, Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.Failed(string! errorMessage) -> Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult!
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.operator !=(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult? left, Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.operator ==(Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult? left, Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult.Succeeded(System.Collections.Generic.IReadOnlyList<Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo!>? folders = null, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? projectFolderPaths = null) -> Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult!
+static Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.operator !=(Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence? left, Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.operator ==(Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence? left, Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult.Ambiguous<T>() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T!>!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult.Invalid<T>() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T!>!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult.NotFound<T>() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T!>!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult.Resolved<T>(T! value) -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T!>!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.Matched() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.operator !=(Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult? left, Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.operator ==(Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult? left, Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.SnapshotIdMismatch() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.TransactionRevisionMismatch() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+static Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult.WorkspaceEpochMismatch() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult!
+static Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection.CreatePrebounded<TItem>(System.Collections.Generic.IReadOnlyList<TItem>! items, bool hasMore) -> Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>!
+static Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection.CreatePrebounded<TItem>(System.Collections.Generic.IReadOnlyList<TItem>! items, int totalCount) -> Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>!
+static Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection.Empty<TItem>() -> Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>!
+static Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>? left, Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>? left, Roslyn.Workbench.Mcp.Workspace.Results.BoundedCollection<TItem>? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? left, Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? left, Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo? left, Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo? left, Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary? left, Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary? left, Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange? left, Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange? left, Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.ResultLimit.GetEffectiveValue(int? requestedLimit, int defaultLimit) -> int
+static Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo? left, Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo? left, Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.operator !=(Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity? left, Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity.operator ==(Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity? left, Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.CanonicalLocationSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference? left, Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference? left, Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.operator !=(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector? right) -> bool
+static Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector.operator ==(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector? left, Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector? right) -> bool
+virtual Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.EqualityContract.get -> System.Type!
+virtual Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest? other) -> bool
+virtual Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest.Equals(Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest? other) -> bool
+~Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.<Clone>$() -> Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>!
+~Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.Equals(Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>? other) -> bool
+~static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.operator !=(Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>? left, Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>? right) -> bool
+~static Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>.operator ==(Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>? left, Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult<T>? right) -> bool

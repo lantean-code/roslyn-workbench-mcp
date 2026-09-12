@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "commitId": "v1-manifest",
+  "loadedPath": "{{LOADED_PATH}}",
+  "workspaceRoot": "{{WORKSPACE_ROOT}}"
+}

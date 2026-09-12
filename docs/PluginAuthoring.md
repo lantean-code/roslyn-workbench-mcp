@@ -85,6 +85,8 @@ Host and Workspace capabilities come only from `IQueryContext` or `IMutationCont
 
 ## Supported API and trust boundary
 
+`PluginApiVersions.V1` is the plugin API family supported throughout Host 1.x. Host package SemVer and plugin API versions are independent: a plugin targets V1 rather than a particular Host patch or minor release. Existing V1 public types, members, signatures, constants and enum meanings remain binary compatible; required members are not added to contracts implemented by plugins, and deprecated V1 members are not removed before Host 2.0. Compatible additions remain possible. See the [Host compatibility policy](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/docs/content/compatibility.md) for the complete boundary and release rules.
+
 The supported third-party API consists of plugin and tool attributes, configuration builders, handler contracts, execution contexts, execution results, mutation candidates, selector and result contracts, and the read-only analysis services exposed through `IToolExecutionServices`. Host composition, registration, execution leases, staging, result mapping and plugin-catalogue metadata are implementation details and are not public API.
 
 Plugin authors compile against these service contracts and do not construct their implementations. Host supplies the composed `IToolExecutionServices` instance for each execution context. General plugin analysis services are defined by the Plugins assembly. Workspace selectors, result models, resolver contracts and project-system metadata service contracts are supplied by the bundled Abstractions assembly; their Host implementations remain outside the supported plugin API.

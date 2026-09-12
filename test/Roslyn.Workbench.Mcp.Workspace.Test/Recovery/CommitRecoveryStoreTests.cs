@@ -693,7 +693,6 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Theory]
-    [InlineData("version")]
     [InlineData("commit")]
     [InlineData("loaded")]
     [InlineData("root")]
@@ -772,15 +771,44 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
-    public async Task GIVEN_InvalidManifestWithUnnormalisableIdentity_WHEN_ReadingStatuses_THEN_ShouldReturnGlobalRecoveryConflict()
+    public async Task GIVEN_UnsupportedManifestVersion_WHEN_ReadingStatuses_THEN_ShouldReturnActionableConflict()
     {
         var directory = _recoveryDirectory + "/CommitId";
         var path = directory + "/manifest.json";
-        var loadedPath = "/Workspace/Invalid.sln";
+        var manifest = CreateManifest() with { Version = RecoveryFormatVersions.Current + 1 };
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns([]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        var status = result.Should().ContainSingle().Which;
+        status.Code.Should().Be(RecoveryStatusCodes.VersionUnsupported);
+        status.State.Should().Be(RecoveryState.RecoveryConflict);
+        status.SolutionPath.Should().Be("/Workspace/Workspace.sln");
+        status.WorkspaceRoot.Should().Be("/Workspace");
+        status.HasMalformedWorkspaceIdentity.Should().BeFalse();
+        status.Message.Should().Contain("same or a newer compatible Roslyn Workbench version");
+    }
+
+    [Theory]
+    [InlineData("loadedPath")]
+    [InlineData("workspaceRoot")]
+    public async Task GIVEN_UnsupportedManifestWithUnnormalisableIdentity_WHEN_ReadingStatuses_THEN_ShouldReturnGlobalRecoveryConflict(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var loadedPath = scenario == "loadedPath" ? "/Workspace/Invalid.sln" : "/Workspace/Workspace.sln";
+        var workspaceRoot = scenario == "workspaceRoot" ? "/InvalidWorkspace" : "/Workspace";
+        var invalidPath = scenario == "loadedPath" ? loadedPath : workspaceRoot;
         var manifest = CreateManifest() with
         {
-            Version = 2,
+            Version = RecoveryFormatVersions.Current + 1,
             LoadedPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -790,7 +818,7 @@ public sealed class CommitRecoveryStoreTests
             .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
 
         _pathNormalizer
-            .Setup(item => item.TryGetFullPath(loadedPath, out It.Ref<string>.IsAny))
+            .Setup(item => item.TryGetFullPath(invalidPath, out It.Ref<string>.IsAny))
             .Returns((string _, out string normalizedPath) =>
             {
                 normalizedPath = string.Empty;
@@ -800,9 +828,10 @@ public sealed class CommitRecoveryStoreTests
         var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
 
         var conflict = result.Should().ContainSingle().Which;
+        conflict.Code.Should().Be(RecoveryStatusCodes.VersionUnsupported);
         conflict.State.Should().Be(RecoveryState.RecoveryConflict);
-        conflict.SolutionPath.Should().BeEmpty();
-        conflict.WorkspaceRoot.Should().Be("/Workspace");
+        conflict.SolutionPath.Should().Be(scenario == "loadedPath" ? string.Empty : "/Workspace/Workspace.sln");
+        conflict.WorkspaceRoot.Should().Be(scenario == "workspaceRoot" ? string.Empty : "/Workspace");
         conflict.HasMalformedWorkspaceIdentity.Should().BeTrue();
     }
 
@@ -962,7 +991,6 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("manifest")]
     [InlineData("missing")]
     [InlineData("null")]
-    [InlineData("version")]
     [InlineData("commit")]
     [InlineData("loaded")]
     [InlineData("root")]
@@ -979,7 +1007,7 @@ public sealed class CommitRecoveryStoreTests
             CommitId = scenario == "commit" ? "OtherCommitId" : "CommitId",
             LoadedPath = scenario == "loaded" ? "Workspace.sln" : "/Workspace/Workspace.sln",
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
-            Version = scenario == "version" ? 2 : 1,
+            Version = RecoveryFormatVersions.Current,
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -1003,7 +1031,6 @@ public sealed class CommitRecoveryStoreTests
 
     [Theory]
     [InlineData("null")]
-    [InlineData("version")]
     [InlineData("commit")]
     [InlineData("loaded")]
     [InlineData("root")]
@@ -1019,7 +1046,7 @@ public sealed class CommitRecoveryStoreTests
             CommitId = scenario == "commit" ? "OtherCommitId" : "CommitId",
             LoadedPath = scenario == "loaded" ? "Workspace.sln" : "/Workspace/Workspace.sln",
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
-            Version = scenario == "version" ? 2 : 1,
+            Version = RecoveryFormatVersions.Current,
         };
 
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -1043,9 +1070,56 @@ public sealed class CommitRecoveryStoreTests
         status.CommitId.Should().Be("CommitId");
         status.State.Should().Be(RecoveryState.RecoveryConflict);
         status.Message.Should().Be("The recovery owner record is malformed or unreadable.");
-        status.SolutionPath.Should().Be(scenario is "version" or "commit" or "root" ? "/Workspace/Workspace.sln" : string.Empty);
-        status.WorkspaceRoot.Should().Be(scenario is "version" or "commit" or "loaded" ? "/Workspace" : string.Empty);
-        status.HasMalformedWorkspaceIdentity.Should().Be(scenario is not "version" and not "commit");
+        status.SolutionPath.Should().Be(scenario is "commit" or "root" ? "/Workspace/Workspace.sln" : string.Empty);
+        status.WorkspaceRoot.Should().Be(scenario is "commit" or "loaded" ? "/Workspace" : string.Empty);
+        status.HasMalformedWorkspaceIdentity.Should().Be(scenario != "commit");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("loadedPath")]
+    [InlineData("workspaceRoot")]
+    public async Task GIVEN_UnsupportedOrphanOwnerVersion_WHEN_ReadingStatuses_THEN_ShouldReturnActionableConflict(string? invalidIdentity)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var ownerPath = directory + "/owner.json";
+        var owner = new WorkspaceCommitOwner
+        {
+            Version = RecoveryFormatVersions.Current + 1,
+            CommitId = "CommitId",
+            LoadedPath = "/Workspace/Workspace.sln",
+            WorkspaceRoot = "/Workspace",
+        };
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns([]);
+        _file.Setup(item => item.Exists(directory + "/manifest.json")).Returns(false);
+        _file.Setup(item => item.Exists(ownerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(ownerPath, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(owner, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        if (invalidIdentity is not null)
+        {
+            var invalidPath = invalidIdentity == "loadedPath" ? owner.LoadedPath : owner.WorkspaceRoot;
+            _pathNormalizer
+                .Setup(item => item.TryGetFullPath(invalidPath, out It.Ref<string>.IsAny))
+                .Returns((string _, out string normalizedPath) =>
+                {
+                    normalizedPath = string.Empty;
+                    return false;
+                });
+        }
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        var status = result.Should().ContainSingle().Which;
+        status.Code.Should().Be(RecoveryStatusCodes.VersionUnsupported);
+        status.State.Should().Be(RecoveryState.RecoveryConflict);
+        status.SolutionPath.Should().Be(invalidIdentity == "loadedPath" ? string.Empty : "/Workspace/Workspace.sln");
+        status.WorkspaceRoot.Should().Be(invalidIdentity == "workspaceRoot" ? string.Empty : "/Workspace");
+        status.HasMalformedWorkspaceIdentity.Should().Be(invalidIdentity is not null);
+        status.Message.Should().Contain("same or a newer compatible Roslyn Workbench version");
     }
 
     [Fact]
@@ -1156,7 +1230,6 @@ public sealed class CommitRecoveryStoreTests
         var manifest = CreateManifest();
         return scenario switch
         {
-            "version" => manifest with { Version = 2 },
             "commit" => manifest with { CommitId = "OtherCommitId" },
             "loaded" => manifest with { LoadedPath = "Workspace.sln" },
             "root" => manifest with { WorkspaceRoot = "Workspace" },

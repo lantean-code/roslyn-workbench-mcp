@@ -32,10 +32,12 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
     public long GetWorkspaceEpoch(Guid workspaceId)
     {
-        return _workspaceSnapshots.TryGetValue(workspaceId, out var snapshot)
-            ? snapshot.WorkspaceEpoch
-            : throw new InvalidOperationException(
-                $"Workspace '{workspaceId}' has no recorded epoch.");
+        if (!_workspaceSnapshots.TryGetValue(workspaceId, out var snapshot))
+        {
+            throw new InvalidOperationException($"Workspace '{workspaceId}' has no recorded epoch.");
+        }
+
+        return snapshot.WorkspaceEpoch;
     }
 
     public IReadOnlyDictionary<string, object?> GetSnapshot(Guid workspaceId)
@@ -64,6 +66,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
             tool,
             PrepareArguments(arguments),
             cancellationToken: cancellationToken);
+
         ObserveSnapshot(result);
         return result;
     }
@@ -297,6 +300,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
             workingDirectory,
             stateDirectory,
             pluginDirectory);
+
         var process = new Process
         {
             StartInfo = startInfo,
@@ -397,10 +401,13 @@ internal sealed class ScenarioHost : IAsyncDisposable
             startInfo.FileName = hostPath;
         }
 
+        startInfo.ArgumentList.Add("--operational-mode");
+        startInfo.ArgumentList.Add("autonomous-trusted");
         startInfo.ArgumentList.Add("--state-directory");
         startInfo.ArgumentList.Add(stateDirectory);
         if (!string.IsNullOrWhiteSpace(pluginDirectory))
         {
+            startInfo.ArgumentList.Add("--enable-plugins");
             startInfo.ArgumentList.Add("--plugin-directory");
             startInfo.ArgumentList.Add(pluginDirectory);
         }

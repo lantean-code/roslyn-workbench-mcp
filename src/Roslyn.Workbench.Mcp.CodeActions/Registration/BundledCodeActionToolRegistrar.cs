@@ -5,29 +5,49 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Registration;
 /// </summary>
 internal static class BundledCodeActionToolRegistrar
 {
+    private const string _listCodeActionsName = "list-code-actions";
+    private const string _prepareFixAllName = "prepare-fix-all";
+    private const string _stageCodeActionName = "stage-code-action";
+
     /// <summary>
-    /// Registers every bundled Code Action tool with the supplied registry.
+    /// Gets every host-owned Code Action tool name regardless of the active publication policy.
+    /// </summary>
+    public static IReadOnlyList<string> ToolNames { get; } = Array.AsReadOnly(
+    [
+        _listCodeActionsName,
+        _prepareFixAllName,
+        _stageCodeActionName,
+    ]);
+
+    /// <summary>
+    /// Registers each permitted bundled Code Action tool with the supplied registry.
     /// </summary>
     /// <param name="registry">The registry populated with bundled Code Action tools.</param>
-    public static void RegisterAll(ICodeActionToolRegistry registry)
+    /// <param name="includeMutationTools">Whether mutation tools are created and registered.</param>
+    public static void RegisterAll(
+        ICodeActionToolRegistry registry,
+        bool includeMutationTools)
     {
         registry.RegisterQueryTool<ListCodeActionsTool, ListCodeActionsRequest, CodeActionListData>(
             CreateReferenceProducingQueryMetadata(
-                "list-code-actions",
+                _listCodeActionsName,
                 "List Code Actions",
                 "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret."));
 
         registry.RegisterQueryTool<PrepareFixAllTool, PrepareFixAllRequest, PrepareFixAllData>(
             CreateReferenceProducingQueryMetadata(
-                "prepare-fix-all",
+                _prepareFixAllName,
                 "Prepare Fix All",
                 "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes."));
 
-        registry.RegisterMutationTool<StageCodeActionTool, StageCodeActionRequest>(
-            CreateMutationMetadata(
-                "stage-code-action",
-                "Stage Code Action",
-                "Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction."));
+        if (includeMutationTools)
+        {
+            registry.RegisterMutationTool<StageCodeActionTool, StageCodeActionRequest>(
+                CreateMutationMetadata(
+                    _stageCodeActionName,
+                    "Stage Code Action",
+                    "Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction."));
+        }
     }
 
     private static CodeActionToolMetadata CreateReferenceProducingQueryMetadata(

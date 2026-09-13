@@ -10,6 +10,7 @@ public sealed class ServerStatusServiceTests
     private readonly Mock<IErrorReportingConsentService> _errorReportingConsentService = new Mock<IErrorReportingConsentService>();
     private readonly Mock<IErrorReportDispatcher> _errorReportDispatcher = new Mock<IErrorReportDispatcher>();
     private readonly Mock<IWorkspaceAuthority> _workspaceAuthority = new Mock<IWorkspaceAuthority>();
+    private readonly Mock<ICommitConfirmationState> _commitConfirmationState = new Mock<ICommitConfirmationState>();
 
     public ServerStatusServiceTests()
     {
@@ -25,9 +26,11 @@ public sealed class ServerStatusServiceTests
         _codeActionComposition
             .SetupGet(item => item.Status)
             .Returns(CodeActionCompositionStatus.Available());
+
         _errorReportDispatcher
             .SetupGet(item => item.Name)
             .Returns("Dispatcher");
+
         _workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.AllowReadOnly);
     }
 
@@ -37,12 +40,15 @@ public sealed class ServerStatusServiceTests
         var pluginSnapshot = CreatePluginSnapshot();
         var target = CreateTarget(new StartupOptions(), pluginSnapshot);
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, clientSupportsElicitation: null, CancellationToken.None);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.ToolCount.Should().Be(
             pluginSnapshot.Tools.Count
-            + ServerOwnedToolRegistration.GetPublishedToolCount(new ErrorReportingOptions()));
+            + ServerOwnedToolRegistration.GetPublishedToolCount(
+                new ErrorReportingOptions(),
+                OperationalPolicyResolver.Resolve(OperationalMode.InspectionOnly)));
+
         var msBuild = data.MsBuild ?? throw new InvalidOperationException("The status response did not contain MSBuild status.");
         var codeActions = data.CodeActions ?? throw new InvalidOperationException("The status response did not contain code-action status.");
         msBuild.IsAvailable.Should().BeTrue();
@@ -81,11 +87,19 @@ public sealed class ServerStatusServiceTests
 
         var target = CreateTarget(options, pluginSnapshot, startupWarnings: [startupWarning]);
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: true, TestContext.Current.CancellationToken);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.Configuration.Should().NotBeNull();
         data.Configuration!.DefaultMaxResults.Should().Be(100);
+        data.Configuration.OperationalMode.Should().Be("inspection-only");
+        data.Configuration.SourceMutationEnabled.Should().BeFalse();
+        data.Configuration.ExternalPluginsEnabled.Should().BeFalse();
+        data.Configuration.CommitConfirmationRequired.Should().BeFalse();
+        data.Configuration.ReceiptApprovalRequired.Should().BeFalse();
+        data.Configuration.CompilerValidationRequired.Should().BeFalse();
+        data.Configuration.ClientSupportsElicitation.Should().BeTrue();
+        data.Configuration.CommitConfirmationState.Should().Be("not-required");
         data.Configuration.WorkspaceAdmission.Should().Be("Unrestricted");
         data.Configuration.AllowedWorkspaceRootCount.Should().Be(0);
         data.Configuration.ExternalDocumentPolicy.Should().Be("allow-read-only");
@@ -93,6 +107,68 @@ public sealed class ServerStatusServiceTests
         data.StartupWarnings.Should().ContainSingle().Which.Should().Be(startupWarning);
         data.Plugins.Should().BeEquivalentTo(pluginSnapshot.Plugins);
         data.Recovery.Should().ContainSingle().Which.Should().Be(recovery);
+    }
+
+    [Theory]
+    [InlineData((int)OperationalMode.Transactional, false, "transactional", true, false, "required")]
+    [InlineData((int)OperationalMode.Transactional, true, "transactional", true, false, "approved-for-session")]
+    [InlineData((int)OperationalMode.ApprovalRequired, false, "approval-required", false, true, "not-required")]
+    [InlineData((int)OperationalMode.AutonomousTrusted, false, "autonomous-trusted", false, false, "not-required")]
+    public async Task GIVEN_OperationalPolicy_WHEN_GettingFullStatus_THEN_ShouldPublishEffectivePrimitives(
+        int modeValue,
+        bool sessionApproved,
+        string expectedMode,
+        bool expectedConfirmation,
+        bool expectedReceiptApproval,
+        string expectedConfirmationState)
+    {
+        var mode = (OperationalMode)modeValue;
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
+        _commitConfirmationState.SetupGet(item => item.IsApprovedForSession).Returns(sessionApproved);
+        var options = new StartupOptions
+        {
+            OperationalMode = mode,
+            ExternalPluginsEnabled = true,
+        };
+
+        var policy = OperationalPolicyResolver.Resolve(mode);
+        var target = CreateTarget(
+            options,
+            new PluginCatalogSnapshot(),
+            operationalPolicy: policy);
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: false, CancellationToken.None);
+
+        var configuration = result.Data!.Configuration!;
+        configuration.OperationalMode.Should().Be(expectedMode);
+        configuration.SourceMutationEnabled.Should().BeTrue();
+        configuration.ExternalPluginsEnabled.Should().BeTrue();
+        configuration.CommitConfirmationRequired.Should().Be(expectedConfirmation);
+        configuration.ReceiptApprovalRequired.Should().Be(expectedReceiptApproval);
+        configuration.ClientSupportsElicitation.Should().BeFalse();
+        configuration.CommitConfirmationState.Should().Be(expectedConfirmationState);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsupportedOperationalMode_WHEN_GettingFullStatus_THEN_ShouldRejectInvalidRuntimeState()
+    {
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
+        var policy = new OperationalPolicy
+        {
+            Mode = (OperationalMode)999,
+            SourceMutation = SourceMutationPolicy.Enabled,
+            CommitAuthorisation = CommitAuthorisationPolicy.None,
+        };
+
+        var target = CreateTarget(
+            new StartupOptions(),
+            new PluginCatalogSnapshot(),
+            operationalPolicy: policy);
+
+        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("The operational mode is not supported.");
     }
 
     [Theory]
@@ -112,11 +188,12 @@ public sealed class ServerStatusServiceTests
                 ConsentMode = consentMode,
             },
         };
+
         _errorReportingConsentService.Setup(item => item.GetState()).Returns(consentState);
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
         var target = CreateTarget(options, new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         var errorReporting = result.Data!.Configuration!.ErrorReporting!;
         errorReporting.ConsentMode.Should().Be(consentMode.ToString());
@@ -135,10 +212,11 @@ public sealed class ServerStatusServiceTests
             WorkspaceRoot = "/outside",
             SolutionPath = "/outside/Solution.slnx",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         var configuration = result.Data!.Configuration!;
         configuration.WorkspaceAdmission.Should().Be("Restricted");
@@ -161,10 +239,11 @@ public sealed class ServerStatusServiceTests
             WorkspaceRoot = "/allowed",
             SolutionPath = "/allowed/Solution.slnx",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([allowed]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         result.Data!.Recovery.Should().ContainSingle().Which.Should().Be(allowed);
     }
@@ -180,10 +259,11 @@ public sealed class ServerStatusServiceTests
             WorkspaceRoot = "/malformed",
             SolutionPath = "/outside/Solution.slnx",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
         projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
@@ -203,10 +283,11 @@ public sealed class ServerStatusServiceTests
             CommitId = "CommitId",
             SolutionPath = "/legacy/Solution.slnx",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
         projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
@@ -226,10 +307,11 @@ public sealed class ServerStatusServiceTests
             CommitId = "CommitId",
             WorkspaceRoot = "/allowed",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([recovery]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         var projectedRecovery = result.Data!.Recovery.Should().ContainSingle().Which;
         projectedRecovery.Code.Should().Be("RecoveryOutsideWorkspaceAuthority");
@@ -246,7 +328,7 @@ public sealed class ServerStatusServiceTests
         _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("The external-document policy is not supported.");
@@ -261,7 +343,7 @@ public sealed class ServerStatusServiceTests
 
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, clientSupportsElicitation: null, CancellationToken.None);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         var codeActions = data.CodeActions ?? throw new InvalidOperationException("The status response did not contain code-action status.");
@@ -291,10 +373,12 @@ public sealed class ServerStatusServiceTests
 
         var target = CreateTarget(new StartupOptions(), pluginSnapshot, codeActionSnapshot);
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, clientSupportsElicitation: null, CancellationToken.None);
 
         result.Data!.ToolCount.Should().Be(
-            3 + ServerOwnedToolRegistration.GetPublishedToolCount(new ErrorReportingOptions()));
+            3 + ServerOwnedToolRegistration.GetPublishedToolCount(
+                new ErrorReportingOptions(),
+                OperationalPolicyResolver.Resolve(OperationalMode.InspectionOnly)));
     }
 
     [Fact]
@@ -303,8 +387,8 @@ public sealed class ServerStatusServiceTests
         _recoveryStore.Setup(item => item.GetStatusesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
-        var first = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
-        var second = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var first = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
+        var second = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, CancellationToken.None);
 
         first.Data!.Configuration.Should().NotBeSameAs(second.Data!.Configuration);
         first.Data.Configuration.Should().BeEquivalentTo(second.Data.Configuration);
@@ -317,7 +401,7 @@ public sealed class ServerStatusServiceTests
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
-        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Standard, cancellationSource.Token);
+        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Standard, clientSupportsElicitation: null, cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
@@ -326,7 +410,8 @@ public sealed class ServerStatusServiceTests
         StartupOptions options,
         PluginCatalogSnapshot pluginSnapshot,
         CodeActionCatalogSnapshot? codeActionSnapshot = null,
-        IReadOnlyList<WarningInfo>? startupWarnings = null)
+        IReadOnlyList<WarningInfo>? startupWarnings = null,
+        OperationalPolicy? operationalPolicy = null)
     {
         var configuration = new StartupConfigurationSnapshot
         {
@@ -339,11 +424,14 @@ public sealed class ServerStatusServiceTests
         {
             Catalog = pluginSnapshot,
         };
+
         var pluginCatalogState = new Mock<IPluginCatalogState>();
         pluginCatalogState.SetupGet(static state => state.Current).Returns(pluginRuntimeCatalog);
+        operationalPolicy ??= OperationalPolicyResolver.Resolve(options.OperationalMode);
 
         return new ServerStatusService(
             Options.Create(options),
+            operationalPolicy,
             configuration,
             pluginCatalogState.Object,
             codeActionSnapshot,
@@ -352,7 +440,8 @@ public sealed class ServerStatusServiceTests
             _recoveryStore.Object,
             _errorReportingConsentService.Object,
             _errorReportDispatcher.Object,
-            _workspaceAuthority.Object);
+            _workspaceAuthority.Object,
+            _commitConfirmationState.Object);
     }
 
     private static PluginCatalogSnapshot CreatePluginSnapshot()

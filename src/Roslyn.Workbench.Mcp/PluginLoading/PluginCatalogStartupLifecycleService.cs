@@ -23,7 +23,7 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
     /// <param name="catalogLoader">The component that discovers and materializes plugin catalogue entries.</param>
     /// <param name="toolFactory">The factory that wraps registered plugin tools for MCP invocation.</param>
     /// <param name="catalogState">The published plugin catalogue used to resolve tool invocations.</param>
-    /// <param name="startupOptions">The configured external plugin directories.</param>
+    /// <param name="startupOptions">The external-plugin enablement and configured package directories.</param>
     /// <param name="codeActionCatalog">The catalogue of host-published Code Action tools.</param>
     public PluginCatalogStartupLifecycleService(
         IPluginCatalogLoader catalogLoader,
@@ -53,7 +53,8 @@ internal sealed class PluginCatalogStartupLifecycleService : IHostedLifecycleSer
         cancellationToken.ThrowIfCancellationRequested();
 
         var reservedToolNames = ServerOwnedToolRegistration.ToolNames
-            .Concat(_codeActionCatalog.Tools.Select(static tool => tool.Metadata.Name));
+            .Concat(_codeActionCatalog.ReservedToolNames);
+
         var catalog = _catalogLoader.Load(
             _startupOptions,
             [typeof(BundledCorePlugin).Assembly],

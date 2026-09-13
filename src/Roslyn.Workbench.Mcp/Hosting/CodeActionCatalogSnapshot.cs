@@ -9,4 +9,9 @@ internal sealed record CodeActionCatalogSnapshot
     /// Gets the registered Code Action tools available to the MCP host.
     /// </summary>
     public IReadOnlyList<IRegisteredCodeActionTool> Tools { get; init; } = [];
+
+    /// <summary>
+    /// Gets every host-owned Code Action tool name reserved against external plugin publication.
+    /// </summary>
+    public IReadOnlyList<string> ReservedToolNames { get; init; } = [];
 }

@@ -6,6 +6,54 @@ namespace Roslyn.Workbench.Mcp.Contracts.Server;
 internal sealed record ServerConfiguration
 {
     /// <summary>
+    /// The selected operational mode.
+    /// </summary>
+    [Description("The selected operational mode.")]
+    public required string OperationalMode { get; init; }
+
+    /// <summary>
+    /// Whether source mutation is enabled.
+    /// </summary>
+    [Description("Whether source mutation is enabled.")]
+    public bool SourceMutationEnabled { get; init; }
+
+    /// <summary>
+    /// Whether loading external plugin packages was explicitly enabled at startup.
+    /// </summary>
+    [Description("Whether loading external plugin packages was explicitly enabled at startup.")]
+    public bool ExternalPluginsEnabled { get; init; }
+
+    /// <summary>
+    /// Whether Host confirmation is required before transaction commit.
+    /// </summary>
+    [Description("Whether Host confirmation is required before transaction commit.")]
+    public bool CommitConfirmationRequired { get; init; }
+
+    /// <summary>
+    /// Whether receipt-bound approval is required before transaction commit.
+    /// </summary>
+    [Description("Whether receipt-bound approval is required before transaction commit.")]
+    public bool ReceiptApprovalRequired { get; init; }
+
+    /// <summary>
+    /// Whether compiler validation is required before transaction commit.
+    /// </summary>
+    [Description("Whether compiler validation is required before transaction commit.")]
+    public bool CompilerValidationRequired { get; init; }
+
+    /// <summary>
+    /// Whether the connected client advertised MCP elicitation, when known.
+    /// </summary>
+    [Description("Whether the connected client advertised MCP elicitation, when known.")]
+    public bool? ClientSupportsElicitation { get; init; }
+
+    /// <summary>
+    /// The current process-local transaction commit-confirmation state.
+    /// </summary>
+    [Description("The current process-local transaction commit-confirmation state.")]
+    public required string CommitConfirmationState { get; init; }
+
+    /// <summary>
     /// Indicates whether Workspace admission is unrestricted or restricted by Host configuration.
     /// </summary>
     [Description("Indicates whether Workspace admission is unrestricted or restricted by Host configuration.")]

@@ -20,6 +20,7 @@ public sealed class PluginCatalogEntryMaterializerTests
         _schemaPreflight
             .Setup(preflight => preflight.Preflight(It.IsAny<IReadOnlyList<PreparedPluginTool>>()))
             .Returns(PluginTransportSchemaPreflightResult.Success());
+
         _schemaFactory
             .Setup(factory => factory.CreateInputSchemaForType(It.IsAny<Type>()))
             .Returns(JsonSerializer.SerializeToElement(new { }));
@@ -47,9 +48,10 @@ public sealed class PluginCatalogEntryMaterializerTests
         _schemaFactory
             .Setup(factory => factory.CreateInputSchemaForType(plugin.Preparation.Tools.Single().Tool.RequestType))
             .Returns(oversizedSchema);
+
         _logger.Setup(item => item.IsEnabled(LogLevel.Warning)).Returns(true);
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         var expectedSize = InputSchemaBudget.GetSizeInBytes(oversizedSchema);
         var requestTypeName = plugin.Preparation.Tools.Single().Tool.RequestType.Name;
@@ -80,7 +82,7 @@ public sealed class PluginCatalogEntryMaterializerTests
 
         _logger.Setup(item => item.IsEnabled(LogLevel.Warning)).Returns(true);
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Status.Enabled.Should().BeTrue();
         result.Status.Diagnostics.Should().BeEmpty();
@@ -118,7 +120,7 @@ public sealed class PluginCatalogEntryMaterializerTests
             ServiceProviderLifetime = serviceProviderLifetime.Object,
         });
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Tools.Should().ContainSingle().Which.Should().BeSameAs(registration.Object);
         result.Status.Enabled.Should().BeTrue();
@@ -145,7 +147,7 @@ public sealed class PluginCatalogEntryMaterializerTests
             ServiceProviderLifetime = serviceProviderLifetime.Object,
         });
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Status.Enabled.Should().BeFalse();
         result.ServiceProviderLifetime.Should().BeNull();
@@ -161,6 +163,7 @@ public sealed class PluginCatalogEntryMaterializerTests
         registration
             .SetupGet(static value => value.Tool)
             .Throws(new InvalidOperationException("Inspection failed."));
+
         serviceProviderLifetime
             .Setup(item => item.Dispose())
             .Throws(new IOException("Cleanup failed."));
@@ -171,13 +174,14 @@ public sealed class PluginCatalogEntryMaterializerTests
             ServiceProviderLifetime = serviceProviderLifetime.Object,
         });
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Status.Enabled.Should().BeFalse();
         result.Status.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == PluginDiagnosticIds.Materialization
             && diagnostic.Message.Contains(nameof(InvalidOperationException), StringComparison.Ordinal)
             && diagnostic.Message.Contains(nameof(IOException), StringComparison.Ordinal));
+
         result.ServiceProviderLifetime.Should().BeNull();
         serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
     }
@@ -189,7 +193,7 @@ public sealed class PluginCatalogEntryMaterializerTests
         _toolRegistrationMaterializer.Setup(value => value.Materialize(plugin.Preparation))
             .Throws(new InvalidOperationException("Construction failed"));
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Tools.Should().BeEmpty();
         result.Status.Enabled.Should().BeFalse();
@@ -209,11 +213,12 @@ public sealed class PluginCatalogEntryMaterializerTests
             Severity = DiagnosticSeverity.Error,
             Message = "Schema failed.",
         };
+
         _schemaPreflight
             .Setup(preflight => preflight.Preflight(plugin.Preparation.Tools))
             .Returns(PluginTransportSchemaPreflightResult.Failure([diagnostic]));
 
-        var result = _target.Materialize(plugin);
+        var result = Materialize(plugin);
 
         result.Tools.Should().BeEmpty();
         result.Status.Enabled.Should().BeFalse();
@@ -221,6 +226,67 @@ public sealed class PluginCatalogEntryMaterializerTests
         _toolRegistrationMaterializer.Verify(
             materializer => materializer.Materialize(It.IsAny<PluginPreparationResult>()),
             Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_AllToolsExcluded_WHEN_MaterializingEntry_THEN_ShouldNotCreateRuntimePluginState()
+    {
+        var plugin = CreatePreparedPlugin(ToolKind.Mutation);
+
+        var result = _target.Materialize(plugin, includeMutationTools: false);
+
+        result.Tools.Should().BeEmpty();
+        result.Status.Enabled.Should().BeTrue();
+        result.ServiceProviderLifetime.Should().BeNull();
+        _schemaPreflight.Verify(
+            preflight => preflight.Preflight(It.IsAny<IReadOnlyList<PreparedPluginTool>>()),
+            Times.Never);
+
+        _toolRegistrationMaterializer.Verify(
+            materializer => materializer.Materialize(It.IsAny<PluginPreparationResult>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_MixedToolKinds_WHEN_MaterializingEntry_THEN_ShouldCreateOnlyPermittedRuntimeTools()
+    {
+        var queryPlugin = CreatePreparedPlugin(ToolKind.Query, toolName: "query");
+        var mutationPlugin = CreatePreparedPlugin(ToolKind.Mutation, toolName: "mutation");
+        var queryTool = queryPlugin.Preparation.Tools.Single();
+        var mutationTool = mutationPlugin.Preparation.Tools.Single();
+        var plugin = queryPlugin with
+        {
+            Preparation = queryPlugin.Preparation with
+            {
+                Tools = [queryTool, mutationTool],
+            },
+        };
+
+        var registration = new Mock<IRegisteredPluginTool>();
+        registration.SetupGet(static value => value.Tool).Returns(queryTool.Tool);
+        _toolRegistrationMaterializer
+            .Setup(materializer => materializer.Materialize(
+                It.Is<PluginPreparationResult>(preparation =>
+                    preparation.Tools.Count == 1
+                    && ReferenceEquals(preparation.Tools[0], queryTool))))
+            .Returns(new PluginMaterializationResult
+            {
+                Tools = [registration.Object],
+            });
+
+        var result = _target.Materialize(plugin, includeMutationTools: false);
+
+        result.Tools.Should().ContainSingle().Which.Should().BeSameAs(registration.Object);
+        _schemaPreflight.Verify(
+            preflight => preflight.Preflight(It.Is<IReadOnlyList<PreparedPluginTool>>(tools =>
+                tools.Count == 1
+                && ReferenceEquals(tools[0], queryTool))),
+            Times.Once);
+
+        _toolRegistrationMaterializer.Verify(
+            materializer => materializer.Materialize(It.Is<PluginPreparationResult>(preparation =>
+                preparation.Tools.All(tool => tool.Tool.Kind == ToolKind.Query))),
+            Times.Once);
     }
 
     private static bool HasLogProperty(object value, string propertyName, object expectedValue)
@@ -235,9 +301,15 @@ public sealed class PluginCatalogEntryMaterializerTests
             && Equals(property.Value, expectedValue));
     }
 
+    private PluginCatalogEntryMaterialization Materialize(PreparedCatalogPlugin plugin)
+    {
+        return _target.Materialize(plugin, includeMutationTools: true);
+    }
+
     private static PreparedCatalogPlugin CreatePreparedPlugin(
         ToolKind kind = ToolKind.Mutation,
-        Type? responseType = null)
+        Type? responseType = null,
+        string toolName = "tool")
     {
         var metadata = new PluginMetadata
         {
@@ -263,7 +335,7 @@ public sealed class PluginCatalogEntryMaterializerTests
                             Plugin = metadata,
                             Metadata = new ToolRegistrationMetadata
                             {
-                                Name = "tool",
+                                Name = toolName,
                                 Title = "Title",
                                 Description = "Description",
                             },

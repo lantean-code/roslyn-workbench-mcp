@@ -14,6 +14,7 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
     private readonly IPluginCatalogEntryMaterializer _entryMaterializer;
     private readonly IPluginCollisionPolicy _collisionPolicy;
     private readonly IPluginPackageDiscovery _packageDiscovery;
+    private readonly OperationalPolicy _operationalPolicy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PluginCatalogLoader"/> class.
@@ -22,22 +23,25 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
     /// <param name="entryMaterializer">The component that creates runtime entries for prepared plugins.</param>
     /// <param name="collisionPolicy">The policy that rejects duplicate plugins and protected tool names.</param>
     /// <param name="packageDiscovery">The component that discovers plugin packages beneath configured roots.</param>
+    /// <param name="operationalPolicy">The policy that controls source-mutation tool publication.</param>
     public PluginCatalogLoader(
         IPluginCandidatePreparer candidatePreparer,
         IPluginCatalogEntryMaterializer entryMaterializer,
         IPluginCollisionPolicy collisionPolicy,
-        IPluginPackageDiscovery packageDiscovery)
+        IPluginPackageDiscovery packageDiscovery,
+        OperationalPolicy operationalPolicy)
     {
         _candidatePreparer = candidatePreparer;
         _entryMaterializer = entryMaterializer;
         _collisionPolicy = collisionPolicy;
         _packageDiscovery = packageDiscovery;
+        _operationalPolicy = operationalPolicy;
     }
 
     /// <summary>
     /// Discovers, validates, collision-checks and materializes bundled and external plugins.
     /// </summary>
-    /// <param name="startupOptions">The configured external plugin directories.</param>
+    /// <param name="startupOptions">The external-plugin enablement and configured package directories.</param>
     /// <param name="bundledAssemblies">The bundled assemblies to include in discovery.</param>
     /// <param name="reservedToolNames">The host-owned tool names that external plugins may not publish.</param>
     /// <returns>The immutable catalogue snapshot and all resources it owns.</returns>
@@ -55,6 +59,7 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         var loadContexts = new List<AssemblyLoadContext>();
         var serviceProviderLifetimes = new List<IDisposable>();
         var protectedToolNames = new HashSet<string>(reservedToolNames ?? [], StringComparer.Ordinal);
+        var includeMutationTools = _operationalPolicy.SourceMutationEnabled;
 
         try
         {
@@ -63,15 +68,20 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
                 protectedToolNames,
                 tools,
                 statuses,
-                serviceProviderLifetimes);
+                serviceProviderLifetimes,
+                includeMutationTools);
 
-            LoadExternalPlugins(
-                startupOptions,
-                protectedToolNames,
-                tools,
-                statuses,
-                loadContexts,
-                serviceProviderLifetimes);
+            if (startupOptions.ExternalPluginsEnabled)
+            {
+                LoadExternalPlugins(
+                    startupOptions,
+                    protectedToolNames,
+                    tools,
+                    statuses,
+                    loadContexts,
+                    serviceProviderLifetimes,
+                    includeMutationTools);
+            }
 
             return new PluginCatalogSnapshot
             {
@@ -115,7 +125,8 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         HashSet<string> protectedToolNames,
         ICollection<IRegisteredPluginTool> tools,
         ICollection<PluginStatus> statuses,
-        ICollection<IDisposable> serviceProviderLifetimes)
+        ICollection<IDisposable> serviceProviderLifetimes,
+        bool includeMutationTools)
     {
         var preparation = _candidatePreparer.PrepareBundled(bundledAssemblies);
         AddStatuses(preparation.Statuses, statuses);
@@ -133,7 +144,7 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
 
         foreach (var plugin in preparation.Plugins)
         {
-            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes);
+            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes, includeMutationTools);
         }
     }
 
@@ -143,7 +154,8 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         ICollection<IRegisteredPluginTool> tools,
         List<PluginStatus> statuses,
         ICollection<AssemblyLoadContext> loadContexts,
-        ICollection<IDisposable> serviceProviderLifetimes)
+        ICollection<IDisposable> serviceProviderLifetimes,
+        bool includeMutationTools)
     {
         var discoveryResults = _packageDiscovery.Discover(startupOptions.PluginDirectories);
         var duplicateIds = _collisionPolicy.FindDuplicateExternalPluginIds(discoveryResults);
@@ -164,7 +176,7 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
                 continue;
             }
 
-            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes);
+            AddMaterializedPlugin(plugin, tools, statuses, serviceProviderLifetimes, includeMutationTools);
         }
     }
 
@@ -172,13 +184,11 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         PreparedCatalogPlugin plugin,
         ICollection<IRegisteredPluginTool> tools,
         ICollection<PluginStatus> statuses,
-        ICollection<IDisposable> serviceProviderLifetimes)
+        ICollection<IDisposable> serviceProviderLifetimes,
+        bool includeMutationTools)
     {
-        var materialization = _entryMaterializer.Materialize(plugin);
-        foreach (var tool in materialization.Tools)
-        {
-            tools.Add(tool);
-        }
+        var materialization = _entryMaterializer.Materialize(plugin, includeMutationTools);
+        AddTools(materialization.Tools, tools);
 
         if (materialization.ServiceProviderLifetime is not null)
         {
@@ -186,6 +196,16 @@ internal sealed class PluginCatalogLoader : IPluginCatalogLoader
         }
 
         statuses.Add(materialization.Status);
+    }
+
+    private static void AddTools(
+        IEnumerable<IRegisteredPluginTool> source,
+        ICollection<IRegisteredPluginTool> destination)
+    {
+        foreach (var tool in source)
+        {
+            destination.Add(tool);
+        }
     }
 
     private static IEnumerable<string> GetToolNames(PreparedCatalogPlugin plugin)

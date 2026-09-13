@@ -17,6 +17,13 @@ namespace Roslyn.Workbench.Mcp.ToolReferenceGenerator;
 /// </summary>
 internal sealed class ToolReferenceGenerator
 {
+    private static readonly HashSet<string> _supportedOperationalModes =
+    [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted",
+    ];
+
     private const string _commitMetadataKey = "RoslynWorkbenchCommitSha";
     private const string _formatVersion = "roslyn-workbench-tool-reference/v1";
     private const string _pluginDirectoryEnvironmentVariable = "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY";
@@ -65,6 +72,8 @@ internal sealed class ToolReferenceGenerator
         var builder = Host.CreateApplicationBuilder();
         builder.AddRoslynWorkbench(
         [
+            "--operational-mode",
+            "autonomous-trusted",
             "--state-directory",
             stateDirectory,
             "--tool-output-schema-mode",
@@ -80,6 +89,7 @@ internal sealed class ToolReferenceGenerator
         var pluginStartup = serviceProvider.GetServices<IHostedService>()
             .OfType<PluginCatalogStartupLifecycleService>()
             .Single();
+
         await pluginStartup.StartingAsync(cancellationToken);
 
         var tools = new List<Tool>();
@@ -103,6 +113,7 @@ internal sealed class ToolReferenceGenerator
             var matchingExamples = examples
                 .Where(example => StringComparer.Ordinal.Equals(example.Tool, tool.Name))
                 .ToArray();
+
             entries.Add(CreateEntry(tool, matchingExamples));
         }
 
@@ -118,6 +129,7 @@ internal sealed class ToolReferenceGenerator
 
         var root = JsonNode.Parse(File.ReadAllText(file)) as JsonObject
             ?? throw new InvalidOperationException("The canonical examples document must be a JSON object.");
+
         var exampleNodes = root["examples"] as JsonArray
             ?? throw new InvalidOperationException("The canonical examples document must contain an examples array.");
 
@@ -126,8 +138,10 @@ internal sealed class ToolReferenceGenerator
         {
             var example = exampleNode as JsonObject
                 ?? throw new InvalidOperationException("Every canonical example must be a JSON object.");
+
             examples.Add(new ToolReferenceExample
             {
+                OperationalModes = ReadRequiredStringArray(example, "operationalModes"),
                 WorkflowId = ReadRequiredString(example, "workflowId"),
                 WorkflowTitle = ReadRequiredString(example, "workflowTitle"),
                 Step = example["step"]?.GetValue<int>()
@@ -145,6 +159,7 @@ internal sealed class ToolReferenceGenerator
 
         var duplicate = examples.GroupBy(static example => example.Id, StringComparer.Ordinal)
             .FirstOrDefault(static group => group.Count() > 1);
+
         if (duplicate is not null)
         {
             throw new InvalidOperationException($"Canonical example id '{duplicate.Key}' is duplicated.");
@@ -180,6 +195,14 @@ internal sealed class ToolReferenceGenerator
 
         foreach (var example in examples)
         {
+            foreach (var operationalMode in example.OperationalModes)
+            {
+                if (!_supportedOperationalModes.Contains(operationalMode))
+                {
+                    throw new InvalidOperationException($"Canonical example '{example.Id}' refers to unsupported operational mode '{operationalMode}'.");
+                }
+            }
+
             if (!entriesByName.TryGetValue(example.Tool, out var entry))
             {
                 throw new InvalidOperationException($"Canonical example '{example.Id}' refers to unknown tool '{example.Tool}'.");
@@ -187,6 +210,7 @@ internal sealed class ToolReferenceGenerator
 
             var schemaNode = entry.ProtocolTool["inputSchema"]
                 ?? throw new InvalidOperationException($"Tool '{entry.Name}' does not contain an input schema.");
+
             using var schemaDocument = JsonDocument.Parse(schemaNode.ToJsonString());
             using var requestDocument = JsonDocument.Parse(example.Request.ToJsonString());
             var schema = JsonSchema.Build(schemaDocument.RootElement);
@@ -294,6 +318,7 @@ internal sealed class ToolReferenceGenerator
         var protocolToolElement = JsonSerializer.SerializeToElement(tool, McpJsonUtilities.DefaultOptions);
         var protocolTool = JsonObject.Create(protocolToolElement)
             ?? throw new InvalidOperationException($"Tool '{tool.Name}' could not be serialized as an object.");
+
         return new ToolReferenceEntry
         {
             Name = tool.Name,
@@ -329,9 +354,29 @@ internal sealed class ToolReferenceGenerator
     private static string ReadRequiredString(JsonObject value, string propertyName)
     {
         var result = value[propertyName]?.GetValue<string>();
-        return string.IsNullOrWhiteSpace(result)
-            ? throw new InvalidOperationException($"Canonical example property '{propertyName}' is required.")
-            : result;
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            throw new InvalidOperationException($"Canonical example property '{propertyName}' is required.");
+        }
+
+        return result;
+    }
+
+    private static string[] ReadRequiredStringArray(JsonObject value, string propertyName)
+    {
+        if (value[propertyName] is not JsonArray values || values.Count == 0)
+        {
+            throw new InvalidOperationException($"Canonical example property '{propertyName}' must be a non-empty array.");
+        }
+
+        var result = values.Select(static item => item?.GetValue<string>()).ToArray();
+        if (result.Any(string.IsNullOrWhiteSpace)
+            || result.Distinct(StringComparer.Ordinal).Count() != result.Length)
+        {
+            throw new InvalidOperationException($"Canonical example property '{propertyName}' must contain unique, non-empty strings.");
+        }
+
+        return result!;
     }
 
     private static JsonObject? ReadOptionalObject(JsonObject value, string propertyName)
@@ -349,6 +394,7 @@ internal sealed class ToolReferenceGenerator
     {
         var duplicate = tools.GroupBy(static tool => tool.Name, StringComparer.Ordinal)
             .FirstOrDefault(static group => group.Count() > 1);
+
         if (duplicate is not null)
         {
             throw new InvalidOperationException($"Production composition publishes duplicate tool name '{duplicate.Key}'.");

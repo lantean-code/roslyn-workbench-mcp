@@ -46,11 +46,16 @@ public sealed class ServerOwnedToolBaseTests
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var service = new Mock<ITransactionService>();
         var requestBinder = new Mock<IToolRequestBinder>();
+        var interactionServiceFactory = new Mock<IMcpUserInteractionServiceFactory>();
+        var confirmationState = new Mock<ICommitConfirmationState>();
         var target = new TransactionCommitTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
             requestBinder.Object,
-            service.Object);
+            service.Object,
+            OperationalPolicyResolver.Resolve(OperationalMode.AutonomousTrusted),
+            interactionServiceFactory.Object,
+            confirmationState.Object);
 
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionCommitRequest, TransactionCommitData>(
             "transaction-commit",
@@ -76,12 +81,14 @@ public sealed class ServerOwnedToolBaseTests
             Message = "Message",
             RequiredAction = RequiredAction.Retry,
         };
+
         var diagnostic = new DiagnosticInfo
         {
             Id = "Id",
             Severity = DiagnosticSeverity.Error,
             Message = "Message",
         };
+
         var warning = new WarningInfo
         {
             Code = "Code",
@@ -120,6 +127,7 @@ public sealed class ServerOwnedToolBaseTests
                 out boundRequest,
                 out errorMessage))
             .Returns(true);
+
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
@@ -159,6 +167,7 @@ public sealed class ServerOwnedToolBaseTests
                 out boundRequest,
                 out errorMessage))
             .Returns(true);
+
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
@@ -238,6 +247,7 @@ public sealed class ServerOwnedToolBaseTests
                 out boundRequest,
                 out errorMessage))
             .Returns(false);
+
         var target = new WorkspaceOpenTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
@@ -282,11 +292,13 @@ public sealed class ServerOwnedToolBaseTests
                 out boundRequest,
                 out errorMessage))
             .Returns(true);
+
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
             requestBinder.Object,
             service.Object);
+
         var server = ServerOwnedToolTestSupport.CreateServer();
         await using var serverDisposal = server;
         var requestContext = new RequestContext<CallToolRequestParams>(

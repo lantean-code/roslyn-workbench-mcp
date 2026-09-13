@@ -43,9 +43,16 @@ Configure the MCP client to launch the installed `roslyn-workbench-mcp` command.
 ```json
 {
   "command": "roslyn-workbench-mcp",
-  "args": ["--state-directory", "/absolute/path/to/roslyn-workbench-state"]
+  "args": [
+    "--operational-mode", "inspection-only",
+    "--state-directory", "/absolute/path/to/roslyn-workbench-state"
+  ]
 }
 ```
+
+`inspection-only` is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select `transactional` when the client supports MCP elicitation and every commit should request confirmation, or deliberately select `autonomous-trusted` to enable the pre-existing transaction workflow without Host confirmation. `approval-required` is reserved and currently fails startup. See [Configuration](configuration.md#operational-modes) before enabling mutation.
+
+External plugin loading is independently disabled by default. To load trusted third-party packages, add the valueless `--enable-plugins` switch and one or more `--plugin-directory` values. Inspection-only then publishes plugin query tools but continues to omit their mutation tools. Plugins execute in-process with the Host user's permissions, so enable only reviewed packages.
 
 To restrict Workspace admission to specific source trees, configure one or more allowed roots. This example also rejects a Workspace when its evaluated documents extend outside its effective root:
 
@@ -53,6 +60,7 @@ To restrict Workspace admission to specific source trees, configure one or more 
 {
   "command": "roslyn-workbench-mcp",
   "args": [
+    "--operational-mode", "inspection-only",
     "--state-directory", "/absolute/path/to/roslyn-workbench-state",
     "--allowed-workspace-root", "/absolute/path/to/engineering-source",
     "--allowed-workspace-root", "/absolute/path/to/team-source",
@@ -76,6 +84,6 @@ Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project 
 1. Call `server-status` with `detail` set to `Full` and review component status, startup fallbacks, recovery state and the published tool count.
 2. After establishing that the workspace and its build inputs are fully trusted, call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. If the project requires caller-specific MSBuild configuration, include the optional allowlisted `msBuildProperties`; use `artifactsPath` only when the build itself requires a non-default artifacts location. Standard SDK, NuGet and Visual Studio locations are discovered through normal MSBuild evaluation. Evaluated documents outside the workspace root are queryable but read-only. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
 3. Use query tools against the loaded workspace.
-4. Before any mutation, read [Workspaces and transactions](workspaces-and-transactions.md) and check `workspace-status`.
+4. If the configured operational mode supports mutation, read [Workspaces and transactions](workspaces-and-transactions.md) and check `workspace-status` before starting a transaction.
 
 The server starts without a loaded workspace. It can keep multiple workspaces open, but only one loaded workspace may own the active transaction slot.

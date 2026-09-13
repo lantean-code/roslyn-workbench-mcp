@@ -94,12 +94,9 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         if (payload is not PreparedDispatchPayload<SentryEvent> preparedPayload
             || !string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
         {
-            return ValueTask.FromResult(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Rejected,
-                ErrorCode = "InvalidPreparedErrorReport",
-                ErrorMessage = "The immutable error report identifier does not match its prepared submission.",
-            });
+            return ValueTask.FromResult(ErrorDispatchResult.Rejected(
+                "InvalidPreparedErrorReport",
+                "The immutable error report identifier does not match its prepared submission."));
         }
 
         var dispatchPayload = messageHandling switch
@@ -110,12 +107,9 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         };
         if (dispatchPayload is null)
         {
-            return ValueTask.FromResult(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Rejected,
-                ErrorCode = "InvalidExceptionMessageHandling",
-                ErrorMessage = "The requested exception-message handling mode is not supported.",
-            });
+            return ValueTask.FromResult(ErrorDispatchResult.Rejected(
+                "InvalidExceptionMessageHandling",
+                "The requested exception-message handling mode is not supported."));
         }
 
         var sentryEvent = SentryEventAllowList.CreateAllowedCopy(dispatchPayload.DispatchState);
@@ -123,21 +117,14 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         var eventId = _client.CaptureEvent(sentryEvent, scope: null, hint: null);
         if (eventId == SentryId.Empty)
         {
-            return ValueTask.FromResult(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Rejected,
-                ErrorCode = "SentryCaptureRejected",
-                ErrorMessage = "The Sentry SDK did not accept the prepared error report.",
-            });
+            return ValueTask.FromResult(ErrorDispatchResult.Rejected(
+                "SentryCaptureRejected",
+                "The Sentry SDK did not accept the prepared error report."));
         }
 
-        return ValueTask.FromResult(new ErrorDispatchResult
-        {
-            Outcome = ErrorDispatchOutcome.Accepted,
-            ReportReference = eventId.ToString(),
-            PayloadDigest = Convert.ToHexStringLower(
-                SHA256.HashData(dispatchPayload.PreviewBytes.AsSpan())),
-        });
+        return ValueTask.FromResult(ErrorDispatchResult.Accepted(
+            eventId.ToString(),
+            Convert.ToHexStringLower(SHA256.HashData(dispatchPayload.PreviewBytes.AsSpan()))));
     }
 
     private PreparedDispatchPayload<SentryEvent> RemoveExceptionMessages(

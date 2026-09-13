@@ -10,16 +10,20 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
 {
     private const string _documentationUrlPrefix = "https://lantean-code.github.io/roslyn-workbench-mcp";
     private const string _sourceTagMetadataKey = "RoslynWorkbenchSourceTag";
-    private static readonly string _instructions = CreateInstructions();
     private readonly IPluginMcpRequestHandler _pluginRequestHandler;
+    private readonly OperationalPolicy _operationalPolicy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RoslynWorkbenchMcpServerOptionsConfiguration"/> class.
     /// </summary>
     /// <param name="pluginRequestHandler">The handler that lists and invokes loaded plugin tools.</param>
-    public RoslynWorkbenchMcpServerOptionsConfiguration(IPluginMcpRequestHandler pluginRequestHandler)
+    /// <param name="operationalPolicy">The effective immutable operational policy.</param>
+    public RoslynWorkbenchMcpServerOptionsConfiguration(
+        IPluginMcpRequestHandler pluginRequestHandler,
+        OperationalPolicy operationalPolicy)
     {
         _pluginRequestHandler = pluginRequestHandler;
+        _operationalPolicy = operationalPolicy;
     }
 
     /// <summary>
@@ -28,12 +32,12 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
     /// <param name="options">The MCP server options to configure.</param>
     public void Configure(McpServerOptions options)
     {
-        options.ServerInstructions = _instructions;
+        options.ServerInstructions = CreateInstructions(_operationalPolicy);
         options.Handlers.ListToolsHandler = _pluginRequestHandler.ListToolsAsync;
         options.Handlers.CallToolHandler = _pluginRequestHandler.CallToolAsync;
     }
 
-    private static string CreateInstructions()
+    private static string CreateInstructions(OperationalPolicy policy)
     {
         var sourceTag = typeof(RoslynWorkbenchMcpServerOptionsConfiguration)
             .Assembly
@@ -49,14 +53,27 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
         var documentationVersion = StringComparer.Ordinal.Equals(sourceTag, "0.0.0-dev")
             ? "dev"
             : sourceTag;
+
         var agentGuideUrl = $"{_documentationUrlPrefix}/{documentationVersion}/agent/";
+
+        var workflow = policy.Mode switch
+        {
+            OperationalMode.InspectionOnly => "Use semantic inspection tools; source mutation and transaction tools are disabled by Host policy.",
+            OperationalMode.Transactional => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit for Host confirmation or transaction-rollback promptly.",
+            OperationalMode.AutonomousTrusted => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.",
+            _ => throw new InvalidOperationException("The operational mode is not available for server instruction publication."),
+        };
+
+        var persistenceGuidance = policy.SourceMutationEnabled
+            ? "transaction-commit writes source files but does not create a Git commit."
+            : "Inspection-only policy does not make untrusted workspace build logic safe to execute.";
 
         return $$"""
         Open only fully trusted C# workspaces; build logic and analysers run unsandboxed with Host permissions.
 
-        Prefer queries before mutations. Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.
+        Prefer queries before mutations. {{workflow}}
 
-        transaction-commit writes source files but does not create a Git commit.
+        {{persistenceGuidance}}
         Docs: {{agentGuideUrl}}
         """;
     }

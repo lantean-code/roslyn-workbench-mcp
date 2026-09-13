@@ -67,6 +67,13 @@ internal sealed class TransactionService : ITransactionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (!_options.SourceMutationEnabled)
+        {
+            return _resultFactory.Rejected<TransactionStartOutcome>(
+                WorkspaceErrorCodes.SourceMutationDisabled,
+                "Source mutation is disabled by Host operational policy.");
+        }
+
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
@@ -198,6 +205,7 @@ internal sealed class TransactionService : ITransactionService
         var snapshot = WorkspaceSnapshotPreconditionFactory.Create(
             session.CurrentSnapshotIdentity,
             session.Transaction.CurrentRevision);
+
         var resolver = _resolverFactory.Create(
             session.Transaction.CurrentSolution,
             session.Workspace,

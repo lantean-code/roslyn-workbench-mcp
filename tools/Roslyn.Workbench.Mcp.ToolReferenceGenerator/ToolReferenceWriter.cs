@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -94,6 +95,7 @@ internal static class ToolReferenceWriter
         {
             examples.Add(new JsonObject
             {
+                ["operationalModes"] = new JsonArray(example.OperationalModes.Select(static mode => JsonValue.Create(mode)).ToArray()),
                 ["workflowId"] = example.WorkflowId,
                 ["workflowTitle"] = example.WorkflowTitle,
                 ["step"] = example.Step,
@@ -354,6 +356,8 @@ internal static class ToolReferenceWriter
             builder.AppendLine();
             builder.AppendLine($"Workflow: **{example.WorkflowTitle}**, step {example.Step}.");
             builder.AppendLine();
+            builder.AppendLine(CultureInfo.InvariantCulture, $"Operational modes: {string.Join(", ", example.OperationalModes.Select(static mode => $"`{mode}`"))}.");
+            builder.AppendLine();
             builder.AppendLine(example.Purpose);
             builder.AppendLine();
             builder.AppendLine($"Expected outcome: {example.ExpectedOutcome}");
@@ -541,6 +545,7 @@ internal static class ToolReferenceWriter
                 .Select(static option => option is null ? "null" : DescribeJsonValueType(option))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
+
             var enumType = optionTypes.Length == 1 ? optionTypes[0] : "mixed";
             return $"{declaredType ?? enumType} enum ({values})";
         }
@@ -652,8 +657,14 @@ internal static class ToolReferenceWriter
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["workflowId", "workflowTitle", "step", "id", "title", "purpose", "expectedOutcome", "request"],
+                    "required": ["operationalModes", "workflowId", "workflowTitle", "step", "id", "title", "purpose", "expectedOutcome", "request"],
                     "properties": {
+                      "operationalModes": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": { "enum": ["inspection-only", "transactional", "autonomous-trusted"] }
+                      },
                       "workflowId": { "type": "string", "minLength": 1 },
                       "workflowTitle": { "type": "string", "minLength": 1 },
                       "step": { "type": "integer", "minimum": 1 },

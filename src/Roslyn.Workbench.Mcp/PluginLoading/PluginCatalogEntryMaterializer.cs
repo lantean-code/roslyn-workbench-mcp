@@ -39,17 +39,43 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
     /// Materializes one prepared plugin for runtime catalogue publication.
     /// </summary>
     /// <param name="plugin">The plugin instance being registered or inspected.</param>
+    /// <param name="includeMutationTools">Whether mutation tools may be materialized.</param>
     /// <returns>The published tools and enabled status, or a disabled status when materialization fails.</returns>
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Tool materialization executes third-party plugin configuration; any plugin-defined failure must disable only that plugin and be reported through catalogue diagnostics.")]
-    public PluginCatalogEntryMaterialization Materialize(PreparedCatalogPlugin plugin)
+    public PluginCatalogEntryMaterialization Materialize(
+        PreparedCatalogPlugin plugin,
+        bool includeMutationTools)
     {
+        var permittedTools = plugin.Preparation.Tools
+            .Where(tool => includeMutationTools || tool.Tool.Kind == ToolKind.Query)
+            .ToArray();
+
+        if (permittedTools.Length == 0)
+        {
+            return new PluginCatalogEntryMaterialization
+            {
+                Status = PluginCatalogStatusFactory.CreateEnabled(
+                    plugin.Metadata,
+                    plugin.Preparation.Diagnostics),
+            };
+        }
+
+        var permittedPreparation = plugin.Preparation;
+        if (permittedTools.Length != plugin.Preparation.Tools.Count)
+        {
+            permittedPreparation = plugin.Preparation with
+            {
+                Tools = permittedTools,
+            };
+        }
+
         PluginMaterializationResult? materialization = null;
         try
         {
-            var schemaPreflight = _schemaPreflight.Preflight(plugin.Preparation.Tools);
+            var schemaPreflight = _schemaPreflight.Preflight(permittedPreparation.Tools);
             if (!schemaPreflight.Succeeded)
             {
                 var disabledStatus = PluginCatalogStatusFactory.CreateDisabled(plugin.Metadata, schemaPreflight.Failures);
@@ -60,7 +86,7 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
                 };
             }
 
-            materialization = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
+            materialization = _toolRegistrationMaterializer.Materialize(permittedPreparation);
             ReportInputSchemaSizeWarnings(plugin.Metadata.PluginId, materialization.Tools);
             ReportQueryResponseContractWarnings(plugin.Metadata.PluginId, materialization.Tools);
             var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, materialization.Diagnostics);

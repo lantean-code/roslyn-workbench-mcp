@@ -27,7 +27,7 @@ The following controls already form the baseline and should be preserved:
 - bounded semantic results and bounded query concurrency;
 - short-lived, snapshot-bound Code Action references with replay validation;
 - advisory cross-instance status, final commit locking and external-change detection;
-- fixed startup plugin discovery, with no third-party plugins loaded unless plugin directories are configured;
+- fixed startup plugin discovery, with external plugin loading disabled unless the operator explicitly enables it and configures plugin directories;
 - allow-listed error-report projection, explicit preparation and submission, payload digests and configurable consent;
 - low-overhead performance events for operation phases, caches, retries and input monitoring; and
 - release checksums, pinned workflow actions, build identity, installed-tool acceptance coverage, OIDC NuGet publication and manual GitHub Release publication.
@@ -80,20 +80,51 @@ Implementation evidence is maintained in the docs-site [compatibility policy](..
 
 ## Priority 1: bind review, validation and persistence
 
-### 4. Produce a canonical transaction review receipt
+### 4. Establish operational modes and transactional confirmation
 
-Extend transaction review so one deterministic result describes the exact staged change. Prefer enriching the existing preview workflow or adding one cohesive review operation over creating several overlapping tools.
+Implement the startup-owned policy resolution and conditional catalogue composition needed by the target operational modes before adding receipt-specific review work. Named operational-mode profiles should resolve to the composable source-mutation, commit-authorisation and commit-validation primitives defined by the deployment-mode design; they must not create independent execution paths. The safe default is inspection-only; retaining the current mutation behaviour requires explicit autonomous-trusted selection.
+
+Policy-dependent operations and schemas must be published only when they are usable under the complete effective policy. In particular, receipt review must not add a tool, output field, schema member, description or example to the agent's catalogue outside receipt-approval operation. A partially implemented approval-required profile must not be selectable or published: unsupported or incomplete combinations fail during startup rather than silently degrading to a less restrictive policy.
+
+This item also introduces the protocol-neutral `IUserInteractionService`, its MCP SDK-backed elicitation adapter and client-capability discovery, then migrates error-report consent to that service without changing established behaviour. Transactional mode becomes fully usable by requesting commit confirmation with three deliberate outcomes: approve this commit, approve transaction commits for the rest of the current server session, or decline. Session approval is memory-only, commit-specific in scope, unavailable to receipt approval and error reporting, and cleared by process termination; every commit still performs snapshot, conflict, filesystem and recovery validation.
+
+Inspection-only, transactional and autonomous-trusted become supported modes in this item. Approval-required remains a reserved but startup-rejected value until the canonical receipt and exact-change approval are delivered together by the next item.
+
+Acceptance bar:
+
+- policy is resolved and validated before the fixed tool catalogue is composed and cannot be widened by an MCP request;
+- the default resolves to inspection-only, while autonomous trusted behaviour requires explicit selection;
+- inspection-only publication omits transaction and mutation operations, while lower-level policy enforcement prevents invocation bypass;
+- external plugin loading defaults to disabled, requires an explicit startup switch and publishes only plugin queries under inspection-only policy;
+- lightweight transaction preview remains the only review contract for confirmation and autonomous operation;
+- transactional confirmation supports approve once, approve transaction commits for this server session and decline, with session approval remaining memory-only;
+- missing elicitation capability and unavailable, declined, cancelled, invalid or failed interaction outcomes fail closed without persistence and leave the transaction available;
+- the migrated error-report workflow preserves its existing consent, submission-handle and failure behaviour;
+- receipt review contracts are absent from `tools/list`, generated descriptions and examples unless receipt approval is both selected and fully supported; and
+- `server-status` reports the effective non-sensitive policy primitives and operational profile.
+
+### 5. Produce a canonical transaction review receipt and activate exact-change approval
+
+Add one cohesive receipt-review operation for receipt-approval policy so one deterministic result describes the exact staged change, then activate approval-required mode with one-use approval bound to that receipt. Keep the existing lightweight `transaction-preview` contract for confirmation and autonomous operation. The receipt operation, its result contract and its supporting agent guidance must be conditionally composed only for receipt-approval operation and must not appear in any other mode's tool-list context.
 
 The receipt should bind the Workspace identity, snapshot identity, transaction revision and a canonical change-set digest. It should include changed-document counts and line summaries, affected projects, mutation provenance, generated/intermediate classification, containment status and validation results. Detailed source diffs should remain explicitly requested and bounded.
+
+Approval-required commit consumes the protocol-neutral interaction service introduced by the preceding item but never inherits transactional session approval. The control proves that Roslyn Workbench requested approval for a particular receipt; it does not claim that a user carefully understood the diff or that unrelated tools cannot modify files with the same operating-system authority.
 
 Acceptance bar:
 
 - identical staged content produces the same canonical digest under a documented algorithm;
 - any content, path, project ownership or transaction revision change invalidates the receipt;
-- the review projection is sufficient for a client or user to identify the exact proposed persistence set; and
-- receipt generation performs no source mutation or external network activity.
+- the review projection is sufficient for a client or user to identify the exact proposed persistence set;
+- receipt generation performs no source mutation or external network activity;
+- no receipt projection or digest work occurs outside receipt-approval operation;
+- repeated review of the same immutable Workspace epoch, snapshot and revision may reuse a bounded cached receipt without weakening final commit revalidation;
+- receipt approval is one-use, short-lived and cannot be replayed for another Workspace, revision or content set;
+- mutation or external-change detection after approval invalidates approval, while final filesystem and transaction revalidation still occurs after approval;
+- missing capability and unavailable, declined, cancelled, invalid or failed interaction outcomes fail closed without persistence and return actionable client guidance; and
+- failed approval leaves the active transaction available for inspection and deliberate retry.
 
-### 5. Validate staged compiler impact
+### 6. Validate staged compiler impact
 
 Add deterministic validation comparing baseline and staged compiler diagnostics for the same loaded project and target-framework evaluation. The first required rule is to identify newly introduced compiler errors rather than requiring an already imperfect Workspace to become error-free.
 
@@ -105,27 +136,6 @@ Acceptance bar:
 - incomplete compilations, skipped projects, load diagnostics and multi-targeting limitations are reported without false assurance;
 - validation is snapshot- and revision-bound and is invalidated by staged or external changes; and
 - host policy can require successful no-new-compiler-error validation before commit.
-
-### 6. Support exact-change approval where required
-
-Implement the commit-authorisation policies required by the operational modes. Transactional mode requests a simple commit confirmation, approval-required mode requests approval bound to the canonical transaction receipt, and autonomous trusted mode deliberately omits Host interaction. Receipt approval must be one-use, short-lived and bound to the exact Workspace, snapshot, transaction revision and change-set digest. If the connected client cannot provide an interaction required by the configured mode, commit must fail closed with an actionable response.
-
-First introduce a protocol-neutral `IUserInteractionService` in the Host with an MCP SDK-backed adapter, then migrate the existing error-report consent workflow to it without changing behaviour. Transaction and error-report workflows consume only neutral requests and normalised outcomes; MCP SDK elicitation capability, schema, result, exception and server types remain within the adapter. This work closes the enterprise review's MCP protocol-evolution isolation finding for interactive workflows.
-
-The control proves that Roslyn Workbench requested approval for a particular receipt; it does not claim that a user carefully understood the diff or that unrelated tools cannot modify files with the same operating-system authority.
-
-Acceptance bar:
-
-- transactional mode requires accepted simple elicitation before commit, while autonomous trusted mode requires none;
-- approval cannot be replayed for another Workspace, revision or content set;
-- mutation or external-change detection after approval invalidates the approval;
-- final filesystem and transaction revalidation still occurs after approval;
-- missing capability and unavailable, declined, cancelled, invalid or failed interaction outcomes fail closed without persistence and return actionable client guidance;
-- failed commit interaction leaves the active transaction available for inspection and deliberate retry;
-- the migrated error-report workflow preserves its established consent, submission-handle and failure behaviour;
-- protocol/client capability combinations are covered explicitly at the adapter and workflow boundaries;
-- autonomous commit remains available only when host policy explicitly permits it; and
-- protocol-specific elicitation remains inside the reusable Host adapter, outside Workspace and the transaction and error-report domain workflows.
 
 ## Priority 1: complete mutation policy and provenance
 
@@ -190,7 +200,7 @@ Until the roadmap controls are implemented, an enterprise pilot should apply com
 
 - use only fully trusted repositories already approved for local MSBuild development;
 - pin the exact Roslyn Workbench package version and verify it through an approved package source and recorded checksum;
-- configure no third-party plugin directories;
+- leave external plugin loading disabled unless each configured package has been reviewed and deliberately approved;
 - select `never` or `prompt` error-report consent according to organisational policy;
 - use an enterprise-approved MCP client and model data-handling configuration;
 - restrict generic shell and filesystem mutation tools through client or endpoint policy when Roslyn Workbench is intended to provide the safer semantic path;

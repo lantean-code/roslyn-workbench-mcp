@@ -5,11 +5,23 @@ namespace Roslyn.Workbench.Mcp.ToolReferenceGenerator;
 /// </summary>
 internal static class ToolReferenceMetadata
 {
-    private static readonly IReadOnlySet<string> _codeActionTools = new HashSet<string>(StringComparer.Ordinal)
+    private static readonly HashSet<string> _codeActionTools = new(StringComparer.Ordinal)
     {
         "list-code-actions",
         "prepare-fix-all",
         "stage-code-action",
+    };
+
+    private static readonly HashSet<string> _sourceMutationTools = new(StringComparer.Ordinal)
+    {
+        "format-document",
+        "rename-symbol",
+        "stage-code-action",
+        "transaction-commit",
+        "transaction-history",
+        "transaction-preview",
+        "transaction-rollback",
+        "transaction-start",
     };
 
     /// <summary>
@@ -55,8 +67,16 @@ internal static class ToolReferenceMetadata
     /// <returns>The availability statement.</returns>
     public static string GetAvailability(string name)
     {
-        return name is "prepare-error-report" or "submit-error-report"
-            ? "Published when external error-report consent is configured as Prompt or Always."
-            : "Built in and published by default.";
+        if (name is "prepare-error-report" or "submit-error-report")
+        {
+            return "Published in every operational mode when external error-report consent is configured as Prompt or Always.";
+        }
+
+        if (_sourceMutationTools.Contains(name))
+        {
+            return "Published only in transactional and autonomous-trusted operational modes.";
+        }
+
+        return "Built in and published in every operational mode.";
     }
 }

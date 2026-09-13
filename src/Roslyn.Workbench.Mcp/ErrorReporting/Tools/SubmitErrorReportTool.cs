@@ -1,6 +1,5 @@
-using System.Text.Json;
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.Options;
-using ModelContextProtocol;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Tools;
@@ -11,15 +10,16 @@ namespace Roslyn.Workbench.Mcp.ErrorReporting.Tools;
 internal sealed class SubmitErrorReportTool :
     ServerOwnedToolBase<SubmitErrorReportRequest, SubmittedErrorReportData>
 {
-    private const string _choiceProperty = "choice";
     private const string _send = "send";
     private const string _sendWithoutExceptionMessages = "send-without-exception-messages";
     private const string _doNotSend = "do-not-send";
     private const string _notApprovedMessage = "No error report was sent. If no consent prompt was displayed, the client may have blocked MCP elicitation. Enable manual MCP approvals, prepare a new report, and try again. If you selected 'No', no further action is required.";
+    private static readonly ReadOnlyCollection<UserInteractionChoice> _choices = CreateChoices();
 
     private readonly IPreparedSubmissionStore _store;
     private readonly IErrorReportingConsentService _consentService;
     private readonly IErrorReportDispatcher _dispatcher;
+    private readonly IMcpUserInteractionServiceFactory _interactionServiceFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SubmitErrorReportTool"/> class.
@@ -30,13 +30,15 @@ internal sealed class SubmitErrorReportTool :
     /// <param name="store">The store containing prepared submissions awaiting approval.</param>
     /// <param name="consentService">The service that determines whether submission is disabled, prompted or pre-approved.</param>
     /// <param name="dispatcher">The dispatcher that sends the approved error-report payload.</param>
+    /// <param name="interactionServiceFactory">The factory that isolates MCP elicitation behind a neutral interaction service.</param>
     public SubmitErrorReportTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
         IToolRequestBinder requestBinder,
         IPreparedSubmissionStore store,
         IErrorReportingConsentService consentService,
-        IErrorReportDispatcher dispatcher)
+        IErrorReportDispatcher dispatcher,
+        IMcpUserInteractionServiceFactory interactionServiceFactory)
         : base(
             startupOptions,
             protocolFactory,
@@ -53,6 +55,7 @@ internal sealed class SubmitErrorReportTool :
         _store = store;
         _consentService = consentService;
         _dispatcher = dispatcher;
+        _interactionServiceFactory = interactionServiceFactory;
     }
 
     /// <inheritdoc/>
@@ -69,7 +72,8 @@ internal sealed class SubmitErrorReportTool :
         RequestContext<CallToolRequestParams> requestContext,
         CancellationToken cancellationToken)
     {
-        var result = await ExecuteWithContextAsync(request, requestContext.Server, cancellationToken);
+        var interactionService = _interactionServiceFactory.Create(requestContext.Server);
+        var result = await ExecuteWithContextAsync(request, interactionService, cancellationToken);
         var content = result.Outcome.IsError()
             ? ToolResultEnvelopeSerializer.CreateFailure(result.Error, result.RequiredAction)
             : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
@@ -79,7 +83,7 @@ internal sealed class SubmitErrorReportTool :
 
     private async ValueTask<ToolResult<SubmittedErrorReportData>> ExecuteWithContextAsync(
         SubmitErrorReportRequest request,
-        McpServer server,
+        IUserInteractionService interactionService,
         CancellationToken cancellationToken)
     {
         var acquisition = _store.TryBeginSubmission(request.SubmissionHandle);
@@ -120,7 +124,7 @@ internal sealed class SubmitErrorReportTool :
             if (consentState == ErrorReportingConsentState.PromptRequired)
             {
                 var consentResult = await RequestConsentAsync(
-                    server,
+                    interactionService,
                     submission,
                     cancellationToken);
 
@@ -152,21 +156,20 @@ internal sealed class SubmitErrorReportTool :
                 submission.Payload,
                 messageHandling,
                 cancellationToken);
-            if (dispatchResult.Outcome != ErrorDispatchOutcome.Accepted)
+
+            if (!dispatchResult.IsAccepted)
             {
                 _store.ReleaseForRetry(request.SubmissionHandle);
                 return CreateFailure(
-                    dispatchResult.ErrorCode ?? "ErrorReportDispatchFailed",
-                    dispatchResult.ErrorMessage ?? "The error report could not be submitted.");
+                    dispatchResult.ErrorCode,
+                    dispatchResult.ErrorMessage);
             }
 
-            var digest = dispatchResult.PayloadDigest
-                ?? throw new InvalidOperationException("An accepted error-report dispatch must include its payload digest.");
             var receipt = new ErrorSubmissionReceipt
             {
                 Dispatcher = submission.Payload.DispatcherName,
-                ReportReference = dispatchResult.ReportReference ?? submission.Payload.ReportId,
-                PayloadDigest = digest,
+                ReportReference = dispatchResult.ReportReference,
+                PayloadDigest = dispatchResult.PayloadDigest,
             };
 
             _store.Complete(request.SubmissionHandle, receipt);
@@ -185,59 +188,24 @@ internal sealed class SubmitErrorReportTool :
     }
 
     private static async ValueTask<ConsentResult> RequestConsentAsync(
-        McpServer server,
+        IUserInteractionService interactionService,
         PreparedSubmission submission,
         CancellationToken cancellationToken)
     {
-        if (server.ClientCapabilities?.Elicitation is null)
+        var request = CreateInteractionRequest(submission);
+        var result = await interactionService.RequestAsync(request, cancellationToken);
+        if (!result.IsAccepted)
         {
-            return new ConsentResult
+            return result.Outcome switch
             {
-                Failure = CreateFailure(
-                    "ApprovalUnavailable",
-                    "The connected MCP client does not advertise elicitation support, so user approval cannot be obtained."),
+                UserInteractionOutcome.Declined or UserInteractionOutcome.Cancelled => CreateNotApprovedResult(),
+                UserInteractionOutcome.InvalidResponse => CreateNotApprovedResult(),
+                UserInteractionOutcome.Unavailable or UserInteractionOutcome.Failed => CreateUnavailableResult(),
+                _ => throw new InvalidOperationException("The interaction service returned an unsupported outcome."),
             };
         }
 
-        ElicitResult result;
-        try
-        {
-            result = await server.ElicitAsync(CreateElicitation(submission), cancellationToken);
-        }
-        catch (InvalidOperationException)
-        {
-            return new ConsentResult
-            {
-                Failure = CreateFailure(
-                    "ApprovalUnavailable",
-                    "The connected MCP client cannot perform the required consent elicitation."),
-            };
-        }
-        catch (McpException)
-        {
-            return new ConsentResult
-            {
-                Failure = CreateFailure(
-                    "ApprovalUnavailable",
-                    "The MCP client failed to complete the required consent elicitation."),
-            };
-        }
-
-        if (string.Equals(result.Action, "decline", StringComparison.Ordinal))
-        {
-            return CreateNotApprovedResult();
-        }
-
-        if (!result.IsAccepted
-            || result.Content is null
-            || !result.Content.TryGetValue(_choiceProperty, out var choiceElement)
-            || choiceElement.ValueKind != JsonValueKind.String)
-        {
-            return CreateNotApprovedResult();
-        }
-
-        var choice = choiceElement.GetString();
-        switch (choice)
+        switch (result.SelectedValue)
         {
             case _send:
                 return new ConsentResult();
@@ -252,13 +220,28 @@ internal sealed class SubmitErrorReportTool :
                 return CreateNotApprovedResult();
 
             default:
-                return new ConsentResult
-                {
-                    Failure = CreateFailure(
-                        "InvalidApprovalResponse",
-                        "The client returned an unsupported consent choice; nothing was submitted."),
-                };
+                return CreateInvalidResponseResult();
         }
+    }
+
+    private static ConsentResult CreateUnavailableResult()
+    {
+        return new ConsentResult
+        {
+            Failure = CreateFailure(
+                "ApprovalUnavailable",
+                "The connected MCP client could not complete the required consent elicitation."),
+        };
+    }
+
+    private static ConsentResult CreateInvalidResponseResult()
+    {
+        return new ConsentResult
+        {
+            Failure = CreateFailure(
+                "InvalidApprovalResponse",
+                "The client returned an unsupported consent choice; nothing was submitted."),
+        };
     }
 
     private static ConsentResult CreateNotApprovedResult()
@@ -270,47 +253,39 @@ internal sealed class SubmitErrorReportTool :
         };
     }
 
-    private static ElicitRequestParams CreateElicitation(PreparedSubmission submission)
+    private static UserInteractionRequest CreateInteractionRequest(PreparedSubmission submission)
     {
-        var choices = new List<ElicitRequestParams.EnumSchemaOption>
+        return new UserInteractionRequest
         {
-            new ElicitRequestParams.EnumSchemaOption
+            Message = $"Send this error report to {submission.Payload.Destination}?",
+            Title = "Error report consent",
+            Description = "Choose whether to submit the reviewed error report.",
+            Choices = _choices,
+        };
+    }
+
+    private static ReadOnlyCollection<UserInteractionChoice> CreateChoices()
+    {
+        var choices = new UserInteractionChoice[]
+        {
+            new UserInteractionChoice
             {
-                Const = _send,
+                Value = _send,
                 Title = "Yes, send it",
             },
-            new ElicitRequestParams.EnumSchemaOption
+            new UserInteractionChoice
             {
-                Const = _sendWithoutExceptionMessages,
+                Value = _sendWithoutExceptionMessages,
                 Title = "Yes, without exception messages",
             },
-            new ElicitRequestParams.EnumSchemaOption
+            new UserInteractionChoice
             {
-                Const = _doNotSend,
+                Value = _doNotSend,
                 Title = "No, don't send it",
             },
         };
 
-        var choice = new ElicitRequestParams.TitledSingleSelectEnumSchema
-        {
-            Title = "Error report consent",
-            Description = "Choose whether to submit the reviewed error report.",
-            OneOf = choices,
-        };
-
-        return new ElicitRequestParams
-        {
-            Message = $"Send this error report to {submission.Payload.Destination}?",
-            RequestedSchema = new ElicitRequestParams.RequestSchema
-            {
-                Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>(
-                    StringComparer.Ordinal)
-                {
-                    [_choiceProperty] = choice,
-                },
-                Required = [_choiceProperty],
-            },
-        };
+        return Array.AsReadOnly(choices);
     }
 
     private static ToolResult<SubmittedErrorReportData> CreateSuccess(PreparedSubmission? submission)

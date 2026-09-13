@@ -9,7 +9,12 @@
       "purpose": "Discover the workspaces that are already available before opening another solution.",
       "expectedOutcome": "A bounded inventory of open workspaces, or an empty inventory when none are open.",
       "tool": "workspace-list",
-      "request": {}
+      "request": {},
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "workspace-setup",
@@ -23,7 +28,12 @@
       "request": {
         "path": "/workspace/Sample.slnx",
         "alias": "sample"
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "symbol-discovery",
@@ -49,7 +59,12 @@
             "hasMore": true
           }
         }
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "symbol-discovery",
@@ -68,7 +83,12 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "transaction-change",
@@ -83,7 +103,11 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "transaction-change",
@@ -107,7 +131,11 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "transaction-change",
@@ -127,7 +155,11 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "transaction-change",
@@ -160,7 +192,11 @@
           "tool": "transaction-preview",
           "instruction": "Preview the current staged revision and ask the user to review it before committing."
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "code-action-change",
@@ -175,7 +211,11 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "code-action-change",
@@ -201,7 +241,12 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "code-action-change",
@@ -223,7 +268,11 @@
         "workspace": {
           "alias": "sample"
         }
-      }
+      },
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "approved-error-report",
@@ -236,7 +285,12 @@
       "tool": "prepare-error-report",
       "request": {
         "correlationId": "44444444-4444-4444-4444-444444444444"
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     },
     {
       "workflowId": "approved-error-report",
@@ -249,7 +303,12 @@
       "tool": "submit-error-report",
       "request": {
         "submissionHandle": "opaque-reviewed-submission-handle"
-      }
+      },
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ]
     }
   ]
 }

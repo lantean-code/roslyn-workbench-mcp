@@ -48,6 +48,8 @@ global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.Protocol;
 global using Roslyn.Workbench.Mcp.Protocol.Results;
 global using Roslyn.Workbench.Mcp.Status;
+global using Roslyn.Workbench.Mcp.Transactions;
+global using Roslyn.Workbench.Mcp.UserInteraction;
 global using Roslyn.Workbench.Mcp.Workspace.Authority;
 global using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 global using Roslyn.Workbench.Mcp.Workspace.Configuration;

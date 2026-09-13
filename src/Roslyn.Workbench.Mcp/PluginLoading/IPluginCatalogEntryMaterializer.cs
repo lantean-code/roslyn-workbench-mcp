@@ -9,6 +9,9 @@ internal interface IPluginCatalogEntryMaterializer
     /// Materializes one validated plugin for runtime publication.
     /// </summary>
     /// <param name="plugin">The plugin instance being registered or inspected.</param>
+    /// <param name="includeMutationTools">Whether mutation tools may be materialized.</param>
     /// <returns>The plugin status and runtime tools, or the reason materialization failed.</returns>
-    PluginCatalogEntryMaterialization Materialize(PreparedCatalogPlugin plugin);
+    PluginCatalogEntryMaterialization Materialize(
+        PreparedCatalogPlugin plugin,
+        bool includeMutationTools);
 }

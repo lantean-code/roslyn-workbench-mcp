@@ -9,6 +9,7 @@ public sealed class WorkspaceOptionsTests
     {
         var target = new WorkspaceOptions();
 
+        target.SourceMutationEnabled.Should().BeFalse();
         target.MaxConcurrentQueries.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
         target.MaxTransactionRevisions.Should().Be(20);

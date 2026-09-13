@@ -7,6 +7,8 @@ public sealed class HostStartupComposerTests
     {
         var result = HostStartupComposer.Compose(
         [
+            "--operational-mode=autonomous-trusted",
+            "--enable-plugins",
             "--plugin-directory=/missing/plugins",
             "--default-max-results=25",
             "--code-action-reference-lifetime=00:10:00",
@@ -18,6 +20,7 @@ public sealed class HostStartupComposerTests
 
         result.Options.Should().BeSameAs(result.Configuration.Options);
         result.Configuration.Warnings.Should().BeEmpty();
+        result.Policy.Mode.Should().Be(OperationalMode.AutonomousTrusted);
         result.CodeActions.Tools
             .Select(static tool => tool.Metadata.Name)
             .Should()
@@ -25,5 +28,24 @@ public sealed class HostStartupComposerTests
                 "list-code-actions",
                 "prepare-fix-all",
                 "stage-code-action");
+    }
+
+    [Fact]
+    public void GIVEN_DefaultInspectionMode_WHEN_Composing_THEN_ShouldPublishOnlyCodeActionQueries()
+    {
+        var result = HostStartupComposer.Compose([]);
+
+        result.Policy.Mode.Should().Be(OperationalMode.InspectionOnly);
+        result.CodeActions.Tools
+            .Select(static tool => tool.Metadata.Name)
+            .Should()
+            .Equal(
+                "list-code-actions",
+                "prepare-fix-all");
+
+        result.CodeActions.ReservedToolNames.Should().Equal(
+            "list-code-actions",
+            "prepare-fix-all",
+            "stage-code-action");
     }
 }

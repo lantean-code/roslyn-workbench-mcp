@@ -84,12 +84,9 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
         if (payload is not PreparedDispatchPayload<string> preparedPayload
             || !string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
         {
-            return ValueTask.FromResult(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Rejected,
-                ErrorCode = "InvalidPreparedErrorReport",
-                ErrorMessage = "The immutable error report identifier does not match its prepared submission.",
-            });
+            return ValueTask.FromResult(ErrorDispatchResult.Rejected(
+                "InvalidPreparedErrorReport",
+                "The immutable error report identifier does not match its prepared submission."));
         }
 
         PreparedDispatchPayload<string>? dispatchPayload = messageHandling switch
@@ -101,23 +98,15 @@ internal sealed partial class LoggingErrorReportDispatcher : IErrorReportDispatc
         };
         if (dispatchPayload is null)
         {
-            return ValueTask.FromResult(new ErrorDispatchResult
-            {
-                Outcome = ErrorDispatchOutcome.Rejected,
-                ErrorCode = "InvalidExceptionMessageHandling",
-                ErrorMessage = "The requested exception-message handling mode is not supported.",
-            });
+            return ValueTask.FromResult(ErrorDispatchResult.Rejected(
+                "InvalidExceptionMessageHandling",
+                "The requested exception-message handling mode is not supported."));
         }
 
         LogApprovedErrorReport(_loggerInstance, report.ReportId, dispatchPayload.DispatchState);
         var digest = Convert.ToHexStringLower(SHA256.HashData(dispatchPayload.PreviewBytes.AsSpan()));
 
-        return ValueTask.FromResult(new ErrorDispatchResult
-        {
-            Outcome = ErrorDispatchOutcome.Accepted,
-            ReportReference = report.ReportId,
-            PayloadDigest = digest,
-        });
+        return ValueTask.FromResult(ErrorDispatchResult.Accepted(report.ReportId, digest));
     }
 
     private static LoggingPayload CreateLogEntry(ExternalErrorReport report)

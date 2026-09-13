@@ -53,6 +53,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         var errorReportingConsentService = new Mock<IErrorReportingConsentService>();
         var errorReportDispatcher = new Mock<IErrorReportDispatcher>();
         var workspaceAuthority = new Mock<IWorkspaceAuthority>();
+        var commitConfirmationState = new Mock<ICommitConfirmationState>();
         workspaceAuthority.SetupGet(item => item.ExternalDocumentPolicy).Returns(ExternalDocumentPolicy.AllowReadOnly);
         codeActionComposition
             .SetupGet(item => item.Status)
@@ -61,6 +62,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         using var pluginCatalogState = new PluginCatalogState();
         var service = new ServerStatusService(
             Options.Create(options),
+            OperationalPolicyResolver.Resolve(OperationalMode.InspectionOnly),
             new StartupConfigurationSnapshot
             {
                 Options = options,
@@ -72,9 +74,10 @@ public sealed class ServerStatusRecoveryIntegrationTests
             recoveryStore,
             errorReportingConsentService.Object,
             errorReportDispatcher.Object,
-            workspaceAuthority.Object);
+            workspaceAuthority.Object,
+            commitConfirmationState.Object);
 
-        var result = await service.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+        var result = await service.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Recovery.Should().ContainSingle(static status => status.CommitId == "commit-id");

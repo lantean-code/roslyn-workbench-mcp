@@ -8,6 +8,7 @@ public sealed class StartupOptionsResolverTests
     private static readonly string[] _environmentVariables =
     [
         "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
+        "ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE",
         "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS",
         "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
@@ -51,6 +52,10 @@ public sealed class StartupOptionsResolverTests
             var result = Resolve([]);
 
             result.Options.PluginDirectories.Should().BeEmpty();
+            result.Options.OperationalMode.Should().Be(OperationalMode.InspectionOnly);
+            result.Options.OperationalModeConfigurationError.Should().BeNull();
+            result.Options.ExternalPluginsEnabled.Should().BeFalse();
+            result.Options.ExternalPluginsConfigurationError.Should().BeNull();
             result.Options.AllowedWorkspaceRoots.Should().BeEmpty();
             result.Options.ExternalDocumentPolicy.Should().Be("allow-read-only");
             result.Options.DefaultMaxResults.Should().Be(100);
@@ -66,6 +71,190 @@ public sealed class StartupOptionsResolverTests
             result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
             result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Prompt);
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_EnablePluginsSwitch_WHEN_Resolving_THEN_ShouldEnableExternalPlugins()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--enable-plugins"]);
+
+            result.Options.ExternalPluginsEnabled.Should().BeTrue();
+            result.Options.ExternalPluginsConfigurationError.Should().BeNull();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Theory]
+    [InlineData("--enable-plugins=true")]
+    [InlineData("--enable-plugins", "true")]
+    public void GIVEN_EnablePluginsSwitchWithValue_WHEN_Resolving_THEN_ShouldRetainDisabledDefaultAndError(params string[] arguments)
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(arguments);
+
+            result.Options.ExternalPluginsEnabled.Should().BeFalse();
+            result.Options.ExternalPluginsConfigurationError.Should().Be("--enable-plugins does not accept a value.");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_RepeatedEnablePluginsSwitch_WHEN_Resolving_THEN_ShouldRetainDisabledDefaultAndError()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--enable-plugins", "--enable-plugins"]);
+
+            result.Options.ExternalPluginsEnabled.Should().BeFalse();
+            result.Options.ExternalPluginsConfigurationError.Should().Be("--enable-plugins must be provided at most once.");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Theory]
+    [InlineData("inspection-only", (int)OperationalMode.InspectionOnly)]
+    [InlineData("transactional", (int)OperationalMode.Transactional)]
+    [InlineData("approval-required", (int)OperationalMode.ApprovalRequired)]
+    [InlineData("autonomous-trusted", (int)OperationalMode.AutonomousTrusted)]
+    public void GIVEN_SupportedOperationalModeArgument_WHEN_Resolving_THEN_ShouldUseRequestedMode(
+        string configuredValue,
+        int expectedModeValue)
+    {
+        var expectedMode = (OperationalMode)expectedModeValue;
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([$"--operational-mode={configuredValue}"]);
+
+            result.Options.OperationalMode.Should().Be(expectedMode);
+            result.Options.OperationalModeConfigurationError.Should().BeNull();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_OperationalModeArgument_WHEN_EnvironmentAlsoConfigured_THEN_ShouldUseArgument()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE", "transactional");
+
+            var result = Resolve(["--operational-mode=autonomous-trusted"]);
+
+            result.Options.OperationalMode.Should().Be(OperationalMode.AutonomousTrusted);
+            result.Options.OperationalModeConfigurationError.Should().BeNull();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_OperationalModeEnvironmentValue_WHEN_NoArgumentConfigured_THEN_ShouldUseEnvironment()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE", "transactional");
+
+            var result = Resolve([]);
+
+            result.Options.OperationalMode.Should().Be(OperationalMode.Transactional);
+            result.Options.OperationalModeConfigurationError.Should().BeNull();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Theory]
+    [InlineData("--operational-mode")]
+    [InlineData("--operational-mode=Transactional")]
+    [InlineData("--operational-mode=unknown")]
+    public void GIVEN_InvalidOperationalModeArgument_WHEN_Resolving_THEN_ShouldRetainSafeDefaultAndError(string argument)
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([argument]);
+
+            result.Options.OperationalMode.Should().Be(OperationalMode.InspectionOnly);
+            result.Options.OperationalModeConfigurationError.Should().Contain("--operational-mode");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_InvalidOperationalModeEnvironmentValue_WHEN_Resolving_THEN_ShouldRetainSafeDefaultAndError()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE", "unknown");
+
+            var result = Resolve([]);
+
+            result.Options.OperationalMode.Should().Be(OperationalMode.InspectionOnly);
+            result.Options.OperationalModeConfigurationError.Should().Contain("ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_RepeatedOperationalModeArguments_WHEN_Resolving_THEN_ShouldRetainSafeDefaultAndError()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--operational-mode=transactional",
+                "--operational-mode=autonomous-trusted",
+            ]);
+
+            result.Options.OperationalMode.Should().Be(OperationalMode.InspectionOnly);
+            result.Options.OperationalModeConfigurationError.Should().Be("--operational-mode must be provided at most once.");
         }
         finally
         {
@@ -285,6 +474,7 @@ public sealed class StartupOptionsResolverTests
             var result = Resolve(
             [
                 "ignored",
+                "--enable-plugins",
                 "--plugin-directory=/plugins/one",
                 "--plugin-directory",
                 "/plugins/two",
@@ -300,6 +490,7 @@ public sealed class StartupOptionsResolverTests
             ]);
 
             result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
+            result.Options.ExternalPluginsEnabled.Should().BeTrue();
             result.Options.DefaultMaxResults.Should().Be(25);
             result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(10));
             result.Options.MaxTransactionRevisions.Should().Be(30);

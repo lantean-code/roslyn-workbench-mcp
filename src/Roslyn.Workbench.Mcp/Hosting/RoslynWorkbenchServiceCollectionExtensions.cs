@@ -18,11 +18,19 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     /// <param name="startupOptions">The options that control server startup.</param>
-    public static void AddRoslynWorkbenchOptions(this IServiceCollection services, StartupOptions startupOptions)
+    /// <param name="operationalPolicy">The resolved policy primitives for the selected operational mode.</param>
+    public static void AddRoslynWorkbenchOptions(
+        this IServiceCollection services,
+        StartupOptions startupOptions,
+        OperationalPolicy operationalPolicy)
     {
         services.AddOptions<StartupOptions>()
             .Configure(options =>
             {
+                options.OperationalMode = startupOptions.OperationalMode;
+                options.OperationalModeConfigurationError = startupOptions.OperationalModeConfigurationError;
+                options.ExternalPluginsEnabled = startupOptions.ExternalPluginsEnabled;
+                options.ExternalPluginsConfigurationError = startupOptions.ExternalPluginsConfigurationError;
                 options.PluginDirectories = startupOptions.PluginDirectories;
                 options.AllowedWorkspaceRoots = startupOptions.AllowedWorkspaceRoots;
                 options.ExternalDocumentPolicy = startupOptions.ExternalDocumentPolicy;
@@ -66,6 +74,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {
                 var configured = configuredStartupOptions.Value;
+                options.SourceMutationEnabled = operationalPolicy.SourceMutationEnabled;
                 options.DefaultMaxResults = configured.DefaultMaxResults;
                 options.MaxConcurrentQueries = configured.MaxConcurrentQueries;
                 options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
@@ -239,6 +248,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IPreparedSubmissionStore, PreparedSubmissionStore>();
         services.AddSingleton<IErrorReportingConsentService, ErrorReportingConsentService>();
         services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
+        services.AddSingleton<IMcpUserInteractionServiceFactory, McpUserInteractionServiceFactory>();
+        services.AddSingleton<ICommitConfirmationState, CommitConfirmationState>();
         AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
         services.AddSingleton<IToolSchemaFactory, ToolSchemaFactory>();
@@ -277,9 +288,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         this IServiceCollection services,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools)
     {
+        var policy = OperationalPolicyResolver.Resolve(OperationalMode.InspectionOnly);
         services.AddMcpTools(
             codeActionTools,
-            new ErrorReportingOptions());
+            new ErrorReportingOptions(),
+            policy);
     }
 
     /// <summary>
@@ -288,10 +301,12 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     /// <param name="services">The service collection to configure.</param>
     /// <param name="codeActionTools">The host-published Code Action tools to register with MCP.</param>
     /// <param name="errorReportingOptions">The options that configure error reporting.</param>
+    /// <param name="policy">The operational policy that controls source-mutation tool publication.</param>
     public static void AddMcpTools(
         this IServiceCollection services,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
-        ErrorReportingOptions errorReportingOptions)
+        ErrorReportingOptions errorReportingOptions,
+        OperationalPolicy policy)
     {
         var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in codeActionTools)
@@ -299,7 +314,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             registeredTool.Accept(codeActionVisitor);
         }
 
-        ServerOwnedToolRegistration.AddMcpTools(services, errorReportingOptions);
+        ServerOwnedToolRegistration.AddMcpTools(services, errorReportingOptions, policy);
     }
 
     /// <summary>

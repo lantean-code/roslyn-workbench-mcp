@@ -10,7 +10,7 @@ public sealed class ServerStatusToolTests
     {
         var service = new Mock<IServerStatusService>();
         service
-            .Setup(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None))
+            .Setup(item => item.GetStatusAsync(StatusDetailLevel.Full, false, CancellationToken.None))
             .ReturnsAsync(ToolResult.Succeeded(new ServerStatusData
             {
                 ToolCount = 5,
@@ -26,6 +26,7 @@ public sealed class ServerStatusToolTests
                 out boundRequest,
                 out errorMessage))
             .Returns(true);
+
         var target = new ServerStatusTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
@@ -43,6 +44,6 @@ public sealed class ServerStatusToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("data").GetProperty("toolCount").GetInt32().Should().Be(5);
-        service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None), Times.Once);
+        service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, false, CancellationToken.None), Times.Once);
     }
 }

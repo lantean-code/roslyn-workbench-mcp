@@ -16,6 +16,11 @@ internal sealed record HostStartupComposition
     public required CodeActionCatalogSnapshot CodeActions { get; init; }
 
     /// <summary>
+    /// Gets the immutable operational policy resolved before service composition.
+    /// </summary>
+    public required OperationalPolicy Policy { get; init; }
+
+    /// <summary>
     /// Gets the validated options from the resolved configuration.
     /// </summary>
     public StartupOptions Options => Configuration.Options;

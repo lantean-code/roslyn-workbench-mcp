@@ -101,6 +101,17 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             protocolTool.GetProperty("name").GetString().Should().Be(name);
             protocolTool.GetProperty("inputSchema").ValueKind.Should().Be(JsonValueKind.Object);
             protocolTool.GetProperty("outputSchema").ValueKind.Should().Be(JsonValueKind.Object);
+            foreach (var example in detail.RootElement.GetProperty("examples").EnumerateArray())
+            {
+                var operationalModes = example.GetProperty("operationalModes").EnumerateArray().ToArray();
+                operationalModes.Should().NotBeEmpty();
+                operationalModes.Select(static mode => mode.GetString()).Should().BeSubsetOf(
+                [
+                    "inspection-only",
+                    "transactional",
+                    "autonomous-trusted",
+                ]);
+            }
         }
     }
 
@@ -173,6 +184,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             "\"tool\": \"workspace-list\"",
             "\"tool\": \"unknown-tool\"",
             StringComparison.Ordinal);
+
         var examplesFile = Path.Combine(directory.DirectoryPath, "examples.json");
         await File.WriteAllTextAsync(examplesFile, unknownToolExamples, TestContext.Current.CancellationToken);
         var outputDirectory = Path.Combine(directory.DirectoryPath, "reference", "tools");
@@ -211,6 +223,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             directory.DirectoryPath,
             "\"request\": {}",
             "\"request\": { \"unexpected\": true }");
+
         var outputDirectory = Path.Combine(directory.DirectoryPath, "reference", "tools");
         var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
 
@@ -230,6 +243,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             directory.DirectoryPath,
             "\"id\": \"open-solution\"",
             "\"id\": \"list-open-workspaces\"");
+
         var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
 
         var action = async () => await generator.GenerateAsync(
@@ -248,6 +262,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             directory.DirectoryPath,
             "\"step\": 1",
             "\"step\": 3");
+
         var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
 
         var action = async () => await generator.GenerateAsync(
@@ -266,6 +281,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
             directory.DirectoryPath,
             "\"workflowTitle\": \"Open and select a workspace\"",
             "\"workflowTitle\": \"Different title\"");
+
         var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
 
         var action = async () => await generator.GenerateAsync(
@@ -274,6 +290,63 @@ public sealed class ToolReferenceGeneratorIntegrationTests
 
         await action.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*must use one title*");
+    }
+
+    [Fact]
+    public async Task GIVEN_CanonicalExampleHasNoOperationalModes_WHEN_Generating_THEN_ShouldRejectExample()
+    {
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-tool-reference-tests");
+        var examplesFile = await WriteModifiedExamplesAsync(
+            directory.DirectoryPath,
+            "\"operationalModes\": [\n        \"inspection-only\",\n        \"transactional\",\n        \"autonomous-trusted\"\n      ]",
+            "\"operationalModes\": []");
+
+        var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
+
+        var action = async () => await generator.GenerateAsync(
+            CreateOptions(Path.Combine(directory.DirectoryPath, "reference", "tools"), examplesFile),
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*operationalModes*non-empty array*");
+    }
+
+    [Fact]
+    public async Task GIVEN_CanonicalExampleHasDuplicateOperationalModes_WHEN_Generating_THEN_ShouldRejectExample()
+    {
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-tool-reference-tests");
+        var examplesFile = await WriteModifiedExamplesAsync(
+            directory.DirectoryPath,
+            "\"inspection-only\",\n        \"transactional\",",
+            "\"inspection-only\",\n        \"inspection-only\",");
+
+        var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
+
+        var action = async () => await generator.GenerateAsync(
+            CreateOptions(Path.Combine(directory.DirectoryPath, "reference", "tools"), examplesFile),
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*unique, non-empty strings*");
+    }
+
+    [Fact]
+    public async Task GIVEN_CanonicalExampleHasUnsupportedOperationalMode_WHEN_Generating_THEN_ShouldRejectExample()
+    {
+        using var directory = TemporaryDirectory.Create("roslyn-workbench-tool-reference-tests");
+        var examplesFile = await WriteModifiedExamplesAsync(
+            directory.DirectoryPath,
+            "\"inspection-only\",",
+            "\"unsupported\",");
+
+        var generator = new ToolReferenceGenerator.ToolReferenceGenerator();
+
+        var action = async () => await generator.GenerateAsync(
+            CreateOptions(Path.Combine(directory.DirectoryPath, "reference", "tools"), examplesFile),
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*unsupported operational mode*unsupported*");
     }
 
     private static ToolReferenceGeneratorOptions CreateOptions(string outputDirectory, string examplesFile)
@@ -305,6 +378,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
         var repositoryRoot = GetRepositoryRoot();
         var canonicalExamplesFile = Path.Combine(repositoryRoot, "docs", "examples", "tool-reference-examples.json");
         var examples = await File.ReadAllTextAsync(canonicalExamplesFile, TestContext.Current.CancellationToken);
+        examples = examples.ReplaceLineEndings("\n");
         var originalIndex = examples.IndexOf(original, StringComparison.Ordinal);
         originalIndex.Should().BeGreaterThanOrEqualTo(0);
         var modifiedExamples = string.Concat(

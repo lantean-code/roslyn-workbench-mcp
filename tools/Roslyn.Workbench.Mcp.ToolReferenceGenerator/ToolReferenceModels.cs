@@ -59,6 +59,11 @@ internal sealed class ToolReferenceEntry
 internal sealed class ToolReferenceExample
 {
     /// <summary>
+    /// Gets the operational modes in which this example can be invoked.
+    /// </summary>
+    public required IReadOnlyList<string> OperationalModes { get; init; }
+
+    /// <summary>
     /// Gets the stable workflow identifier that groups related calls.
     /// </summary>
     public required string WorkflowId { get; init; }

@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Configuration;
 internal sealed class WorkspaceOptions
 {
     /// <summary>
+    /// Gets or sets whether supported source mutation is enabled by Host policy.
+    /// </summary>
+    public bool SourceMutationEnabled { get; set; }
+
+    /// <summary>
     /// Gets the maximum number of concurrent query leases.
     /// </summary>
     public int MaxConcurrentQueries { get; set; } = 2;

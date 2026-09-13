@@ -63,17 +63,49 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         TRequest request,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Executes a tool request with access to its MCP request context.
+    /// </summary>
+    /// <param name="request">The validated tool request.</param>
+    /// <param name="requestContext">The current MCP request context.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The structured result to publish for the request.</returns>
+    protected virtual ValueTask<ToolResult<TResponse>> ExecuteAsync(
+        TRequest request,
+        RequestContext<CallToolRequestParams> requestContext,
+        CancellationToken cancellationToken)
+    {
+        return ExecuteAsync(request, cancellationToken);
+    }
+
     /// <inheritdoc/>
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
         TRequest request,
         CancellationToken cancellationToken)
+    {
+        return await InvokeBoundRequestCoreAsync(
+            () => ExecuteAsync(request, cancellationToken));
+    }
+
+    /// <inheritdoc/>
+    protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
+        RequestContext<CallToolRequestParams> requestContext,
+        CancellationToken cancellationToken)
+    {
+        return await InvokeBoundRequestCoreAsync(
+            () => ExecuteAsync(request, requestContext, cancellationToken));
+    }
+
+    private async ValueTask<CallToolResult> InvokeBoundRequestCoreAsync(
+        Func<ValueTask<ToolResult<TResponse>>> executeAsync)
     {
         ToolResult<TResponse> result;
         using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
         {
             try
             {
-                result = await ExecuteAsync(request, cancellationToken);
+                result = await executeAsync();
             }
             catch (WorkspaceOperationException exception)
                 when (exception.InnerException is Exception failure)
@@ -95,15 +127,6 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
             var content = SerializeResult(result);
             return CreateStructuredResult(content, result.Outcome.IsError());
         }
-    }
-
-    /// <inheritdoc/>
-    protected override ValueTask<CallToolResult> InvokeBoundRequestAsync(
-        TRequest request,
-        RequestContext<CallToolRequestParams> requestContext,
-        CancellationToken cancellationToken)
-    {
-        return InvokeBoundRequestAsync(request, cancellationToken);
     }
 
     private static JsonElement SerializeResult(ToolResult<TResponse> result)

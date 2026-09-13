@@ -28,14 +28,17 @@ public sealed class ConcurrentSubmissionIntegrationTests
                 Timeout.InfiniteTimeSpan,
                 Timeout.InfiniteTimeSpan))
             .Returns(expirationTimer.Object);
+
         expirationTimer
             .Setup(item => item.Change(It.IsAny<TimeSpan>(), Timeout.InfiniteTimeSpan))
             .Returns(true);
+
         var options = Options.Create(new ErrorReportingOptions());
         var retentionPolicy = new PreparedSubmissionRetentionPolicy(options);
         await using var entries = new BoundedExpiringStore<string, PreparedSubmission>(
             retentionPolicy,
             timeProvider.Object);
+
         var store = new PreparedSubmissionStore(entries);
         var submission = CreateSubmission(now);
         store.TryAdd(submission).Should().BeTrue();
@@ -49,6 +52,7 @@ public sealed class ConcurrentSubmissionIntegrationTests
                 out request,
                 out bindingError))
             .Returns(true);
+
         var consentService = new Mock<IErrorReportingConsentService>();
         consentService.Setup(item => item.GetState()).Returns(ErrorReportingConsentState.AlwaysApproved);
         var dispatchEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -63,26 +67,26 @@ public sealed class ConcurrentSubmissionIntegrationTests
             {
                 dispatchEntered.SetResult();
                 await releaseDispatch.Task;
-                return new ErrorDispatchResult
-                {
-                    Outcome = ErrorDispatchOutcome.Accepted,
-                    ReportReference = "ReportReference",
-                    PayloadDigest = "PayloadDigest",
-                };
+                return ErrorDispatchResult.Accepted("ReportReference", "PayloadDigest");
             });
+
         var protocolFactory = new Mock<IMcpToolProtocolFactory>();
         protocolFactory.SetReturnsDefault(new Tool { Name = "Name" });
+        var interactionServiceFactory = new Mock<IMcpUserInteractionServiceFactory>();
         var target = new SubmitErrorReportTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
             requestBinder.Object,
             store,
             consentService.Object,
-            dispatcher.Object);
+            dispatcher.Object,
+            interactionServiceFactory.Object);
+
         var server = new Mock<McpServer>();
         var firstCall = target.InvokeAsync(
             CreateRequestContext(server.Object, submission.Handle),
             TestContext.Current.CancellationToken).AsTask();
+
         await dispatchEntered.Task.WaitAsync(
             TimeSpan.FromSeconds(10),
             TestContext.Current.CancellationToken);
@@ -90,6 +94,7 @@ public sealed class ConcurrentSubmissionIntegrationTests
         var secondResult = await target.InvokeAsync(
             CreateRequestContext(server.Object, submission.Handle),
             TestContext.Current.CancellationToken);
+
         releaseDispatch.SetResult();
         var firstResult = await firstCall;
 
@@ -97,6 +102,7 @@ public sealed class ConcurrentSubmissionIntegrationTests
         secondResult.IsError.Should().BeTrue();
         secondResult.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
             .Should().Be("ErrorReportSubmissionInProgress");
+
         dispatcher.Verify(item => item.DispatchAsync(
             submission.Payload,
             ExceptionMessageHandling.Include,
@@ -140,6 +146,7 @@ public sealed class ConcurrentSubmissionIntegrationTests
             OperatingSystem = "OperatingSystem",
             ProcessorArchitecture = "ProcessorArchitecture",
         };
+
         var payload = new PreparedDispatchPayload<string>
         {
             DispatcherName = "DispatcherName",

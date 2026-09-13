@@ -12,7 +12,11 @@ public sealed class HostToolCompositionIntegrationTests
     public async Task GIVEN_CompleteHostComposition_WHEN_ValidatingContainer_THEN_ShouldResolveEveryRegisteredMcpTool()
     {
         var builder = Host.CreateApplicationBuilder();
-        builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath()]);
+        builder.AddRoslynWorkbench(
+        [
+            "--state-directory", Path.GetTempPath(),
+            "--operational-mode", "autonomous-trusted",
+        ]);
 
         await using var serviceProvider = builder.Services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -24,11 +28,13 @@ public sealed class HostToolCompositionIntegrationTests
         var pluginStartup = serviceProvider.GetServices<IHostedService>()
             .OfType<PluginCatalogStartupLifecycleService>()
             .Single();
+
         await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
 
         var pluginCatalog = pluginCatalogState.Current.Catalog;
         var codeActionCatalog = serviceProvider.GetRequiredService<CodeActionCatalogSnapshot>();
         var startupConfiguration = serviceProvider.GetRequiredService<StartupConfigurationSnapshot>();
+        var operationalPolicy = serviceProvider.GetRequiredService<OperationalPolicy>();
         var mcpServerOptions = serviceProvider.GetRequiredService<IOptions<McpServerOptions>>().Value;
         var sourceTag = typeof(HostCommandLine).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -40,13 +46,15 @@ public sealed class HostToolCompositionIntegrationTests
         tools.Should().HaveCount(
             codeActionCatalog.Tools.Count
             + ServerOwnedToolRegistration.GetPublishedToolCount(
-                startupConfiguration.Options.ErrorReporting));
+                startupConfiguration.Options.ErrorReporting,
+                operationalPolicy));
 
         pluginCatalogState.Current.Tools.Should().HaveCount(pluginCatalog.Tools.Count);
         tools.Select(static tool => tool.ProtocolTool.Name)
             .Concat(pluginCatalogState.Current.Tools.Keys)
             .Should()
             .OnlyHaveUniqueItems();
+
         var dispatcher = serviceProvider.GetRequiredService<IErrorReportDispatcher>();
         if (SentrySdkPolicy.EmbeddedConfiguration is null)
         {
@@ -190,6 +198,7 @@ public sealed class HostToolCompositionIntegrationTests
             "Sensitive unrelated cancellation",
             innerException: null,
             unrelatedCancellation.Token);
+
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
             ValueTask.FromException<CallToolResult>(exception);
 

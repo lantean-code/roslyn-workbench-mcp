@@ -29684,11 +29684,30 @@
                       "description": "The number of effective configured Workspace authority roots.",
                       "type": "integer"
                     },
+                    "clientSupportsElicitation": {
+                      "description": "Whether the connected client advertised MCP elicitation, when known.",
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
                     "codeActionReferenceLifetime": {
                       "$comment": "Represents a System.TimeSpan value.",
                       "description": "The configured code-action reference lifetime.",
                       "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
                       "type": "string"
+                    },
+                    "commitConfirmationRequired": {
+                      "description": "Whether Host confirmation is required before transaction commit.",
+                      "type": "boolean"
+                    },
+                    "commitConfirmationState": {
+                      "description": "The current process-local transaction commit-confirmation state.",
+                      "type": "string"
+                    },
+                    "compilerValidationRequired": {
+                      "description": "Whether compiler validation is required before transaction commit.",
+                      "type": "boolean"
                     },
                     "defaultMaxResults": {
                       "description": "The default maximum collection result count.",
@@ -29724,6 +29743,10 @@
                       "description": "The policy applied to evaluated documents outside the effective Workspace root.",
                       "type": "string"
                     },
+                    "externalPluginsEnabled": {
+                      "description": "Whether loading external plugin packages was explicitly enabled at startup.",
+                      "type": "boolean"
+                    },
                     "maxConcurrentQueries": {
                       "description": "The configured maximum concurrent query count.",
                       "type": "integer"
@@ -29731,6 +29754,18 @@
                     "maxTransactionRevisions": {
                       "description": "The configured transaction revision capacity.",
                       "type": "integer"
+                    },
+                    "operationalMode": {
+                      "description": "The selected operational mode.",
+                      "type": "string"
+                    },
+                    "receiptApprovalRequired": {
+                      "description": "Whether receipt-bound approval is required before transaction commit.",
+                      "type": "boolean"
+                    },
+                    "sourceMutationEnabled": {
+                      "description": "Whether source mutation is enabled.",
+                      "type": "boolean"
                     },
                     "toolOutputSchemaMode": {
                       "description": "The configured output schema publication mode.",
@@ -29746,6 +29781,8 @@
                     }
                   },
                   "required": [
+                    "operationalMode",
+                    "commitConfirmationState",
                     "workspaceAdmission",
                     "externalDocumentPolicy"
                   ],

@@ -26,9 +26,14 @@ Configure any MCP client capable of launching a local stdio process to run:
 ```json
 {
   "command": "roslyn-workbench-mcp",
-  "args": ["--state-directory", "/absolute/path/to/roslyn-workbench-state"]
+  "args": [
+    "--operational-mode", "inspection-only",
+    "--state-directory", "/absolute/path/to/roslyn-workbench-state"
+  ]
 }
 ```
+
+`inspection-only` is the safe default and exposes no source-mutation or transaction tools. Select `transactional` for client-mediated commit confirmation, or deliberately select `autonomous-trusted` for transactions without Host confirmation. See the configuration guide for client elicitation requirements and the pre-1.0 migration note.
 
 ## Supported environments
 
@@ -50,9 +55,9 @@ The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) e
 
 ## Trust and transaction safety
 
-Open only workspaces you trust. Loading a workspace evaluates MSBuild project logic and later operations can load project analyzers with the Host process's operating-system permissions. Third-party plugins also execute as trusted in-process code and are not sandboxed.
+Open only workspaces you trust. Loading a workspace evaluates MSBuild project logic and later operations can load project analyzers with the Host process's operating-system permissions. External plugin loading is disabled by default; supplying `--enable-plugins` explicitly opts into loading configured third-party plugins as trusted in-process code, which is not sandboxed.
 
-A typical safe workflow is:
+A typical safe workflow when `transactional` or `autonomous-trusted` mode is configured is:
 
 1. Inspect `server-status` and open a trusted solution, solution filter or project with `workspace-open`.
 2. Use query tools to inspect the loaded workspace.

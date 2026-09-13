@@ -14,6 +14,11 @@ internal static class ServerOwnedToolRegistration
     public const int BaseToolCount = 12;
 
     /// <summary>
+    /// Defines the number of Host-owned tools published without source mutation or optional reporting.
+    /// </summary>
+    public const int InspectionToolCount = 7;
+
+    /// <summary>
     /// Defines the published name of the error-details tool.
     /// </summary>
     public const string GetErrorDetailsName = "get-error-details";
@@ -92,22 +97,30 @@ internal static class ServerOwnedToolRegistration
     };
 
     /// <summary>
-    /// Calculates the number of Host-owned tools enabled by the error-reporting configuration.
+    /// Calculates the number of Host-owned tools enabled by the effective operational and error-reporting configuration.
     /// </summary>
     /// <param name="options">The error-reporting settings that control optional tool publication.</param>
+    /// <param name="policy">The operational policy that controls source-mutation tool publication.</param>
     /// <returns>The number of tools that will be published.</returns>
-    public static int GetPublishedToolCount(ErrorReportingOptions options)
+    public static int GetPublishedToolCount(ErrorReportingOptions options, OperationalPolicy policy)
     {
-        return BaseToolCount + (options.AreReportingToolsEnabled ? 2 : 0);
+        var operationalToolCount = policy.SourceMutationEnabled
+            ? BaseToolCount
+            : InspectionToolCount;
+
+        var reportingToolCount = options.AreReportingToolsEnabled ? 2 : 0;
+
+        return operationalToolCount + reportingToolCount;
     }
 
     /// <summary>
-    /// Registers the standard Host-owned tools without optional error-report submission tools.
+    /// Registers the inspection-only Host-owned tools with the default error-reporting configuration.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     public static void AddMcpTools(IServiceCollection services)
     {
-        AddMcpTools(services, new ErrorReportingOptions());
+        var policy = OperationalPolicyResolver.Resolve(OperationalMode.InspectionOnly);
+        AddMcpTools(services, new ErrorReportingOptions(), policy);
     }
 
     /// <summary>
@@ -115,7 +128,11 @@ internal static class ServerOwnedToolRegistration
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     /// <param name="errorReportingOptions">The settings that control publication of error-report tools.</param>
-    public static void AddMcpTools(IServiceCollection services, ErrorReportingOptions errorReportingOptions)
+    /// <param name="policy">The operational policy that controls source-mutation tool publication.</param>
+    public static void AddMcpTools(
+        IServiceCollection services,
+        ErrorReportingOptions errorReportingOptions,
+        OperationalPolicy policy)
     {
         services.AddSingleton<McpServerTool, GetErrorDetailsTool>();
         services.AddSingleton<McpServerTool, ServerStatusTool>();
@@ -124,11 +141,14 @@ internal static class ServerOwnedToolRegistration
         services.AddSingleton<McpServerTool, WorkspaceCloseTool>();
         services.AddSingleton<McpServerTool, WorkspaceStatusTool>();
         services.AddSingleton<McpServerTool, WorkspaceReloadTool>();
-        services.AddSingleton<McpServerTool, TransactionStartTool>();
-        services.AddSingleton<McpServerTool, TransactionPreviewTool>();
-        services.AddSingleton<McpServerTool, TransactionHistoryTool>();
-        services.AddSingleton<McpServerTool, TransactionCommitTool>();
-        services.AddSingleton<McpServerTool, TransactionRollbackTool>();
+        if (policy.SourceMutationEnabled)
+        {
+            services.AddSingleton<McpServerTool, TransactionStartTool>();
+            services.AddSingleton<McpServerTool, TransactionPreviewTool>();
+            services.AddSingleton<McpServerTool, TransactionHistoryTool>();
+            services.AddSingleton<McpServerTool, TransactionCommitTool>();
+            services.AddSingleton<McpServerTool, TransactionRollbackTool>();
+        }
 
         if (errorReportingOptions.AreReportingToolsEnabled)
         {

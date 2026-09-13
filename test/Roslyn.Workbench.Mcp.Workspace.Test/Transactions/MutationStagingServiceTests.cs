@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Options;
+
+using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
@@ -52,6 +55,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                     WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution)));
 
         _target = new MutationStagingService(
+            Options.Create(new WorkspaceOptions { SourceMutationEnabled = true }),
             _resultFactory.Object,
             _sessionStore.Object,
             _diffBuilder.Object,
@@ -59,6 +63,41 @@ public sealed class MutationStagingServiceTests : IDisposable
             _instanceStatusPublisher.Object,
             _candidateProcessor.Object,
             _candidateIdentityService.Object);
+    }
+
+    [Fact]
+    public async Task GIVEN_SourceMutationDisabled_WHEN_Staging_THEN_ShouldRejectBeforeReadingTransactionState()
+    {
+        var expected = CreateRejectedResult(WorkspaceErrorCodes.SourceMutationDisabled);
+        _resultFactory
+            .Setup(item => item.Rejected<MutationStagingOutcome>(
+                WorkspaceErrorCodes.SourceMutationDisabled,
+                "Source mutation is disabled by Host operational policy.",
+                null,
+                null,
+                null,
+                null))
+            .Returns(expected);
+
+        var target = new MutationStagingService(
+            Options.Create(new WorkspaceOptions()),
+            _resultFactory.Object,
+            _sessionStore.Object,
+            _diffBuilder.Object,
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object,
+            _candidateProcessor.Object,
+            _candidateIdentityService.Object);
+
+        var result = await target.StageAsync(
+            "OperationName",
+            new WorkspaceMutationCandidate { CandidateSolution = _workspace.CurrentSolution, Summary = "Summary" },
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReadSnapshot(), Times.Never);
     }
 
     [Fact]
@@ -249,6 +288,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 session.Workspace.WorkspaceRoot,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Failed(processingError));
+
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
                 WorkspaceErrorCodes.MutationCandidateChanged,
@@ -271,11 +311,13 @@ public sealed class MutationStagingServiceTests : IDisposable
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
             It.IsAny<IWorkspaceResolver>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
             It.IsAny<WorkspaceSessionSnapshot>(),
             It.IsAny<IReadOnlyList<WorkspaceSnapshotId>>()), Times.Never);
@@ -330,6 +372,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             Documents = [],
         };
+
         var precondition = new WorkspaceMutationCandidatePrecondition
         {
             ExpectedIdentity = identity,
@@ -353,9 +396,11 @@ public sealed class MutationStagingServiceTests : IDisposable
                 currentSolution,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(identity);
+
         _candidateIdentityService
             .Setup(item => item.MatchesPrecondition(precondition, identity))
             .Returns(false);
+
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
                 WorkspaceErrorCodes.MutationCandidateChanged,
@@ -379,6 +424,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             It.IsAny<Solution>(),
             It.IsAny<IWorkspaceResolver>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
             It.IsAny<WorkspaceSessionSnapshot>(),
             It.IsAny<IReadOnlyList<WorkspaceSnapshotId>>()), Times.Never);
@@ -392,6 +438,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             Documents = [],
         };
+
         var precondition = new WorkspaceMutationCandidatePrecondition
         {
             ExpectedIdentity = identity,
@@ -416,9 +463,11 @@ public sealed class MutationStagingServiceTests : IDisposable
                 currentSolution,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(identity);
+
         _candidateIdentityService
             .Setup(item => item.MatchesPrecondition(precondition, identity))
             .Returns(true);
+
         _diffBuilder
             .Setup(item => item.CreateChangeSummaryAsync(
                 currentSolution,
@@ -426,6 +475,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 It.IsAny<IWorkspaceResolver>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(changes);
+
         _resultFactory
             .Setup(item => item.Succeeded(
                 It.IsAny<MutationStagingOutcome>(),
@@ -478,6 +528,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             ProjectTargetFrameworks = targetFrameworks,
         };
+
         SetupOwner(session);
         var changes = new ChangeSummary();
         var handlerWarning = new WarningInfo { Code = "HandlerWarning", Message = "Message" };
@@ -524,6 +575,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             session.Workspace,
             targetFrameworks,
             It.Is<SnapshotPrecondition>(snapshot => snapshot.TransactionRevision == 1)), Times.Once);
+
         _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
             It.Is<WorkspaceSessionSnapshot>(replacement =>
                 replacement.CurrentSolution == candidateSolution

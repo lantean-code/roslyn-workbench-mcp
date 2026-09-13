@@ -69,16 +69,23 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
             builder.ConfigureContainer(serviceProviderFactory, static _ => { });
             var services = builder.Services;
-            services.AddRoslynWorkbenchOptions(new StartupOptions
+            var startupOptions = new StartupOptions
             {
                 DefaultMaxResults = options.DefaultMaxResults,
                 MaxConcurrentQueries = options.MaxConcurrentQueries,
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
                 StateDirectory = stateDirectory,
-            });
+            };
+
+            services.AddRoslynWorkbenchOptions(
+                startupOptions,
+                OperationalPolicyResolver.Resolve(startupOptions.OperationalMode));
 
             services.Configure<WorkspaceOptions>(configured =>
-                configured.MaxLoadedWorkspaces = options.MaxLoadedWorkspaces);
+            {
+                configured.MaxLoadedWorkspaces = options.MaxLoadedWorkspaces;
+                configured.SourceMutationEnabled = options.SourceMutationEnabled;
+            });
 
             services.Configure<CodeActionCompositionOptions>(configured =>
                 configured.IncludeBuiltInAssemblies = options.IncludeBuiltInCodeActions);

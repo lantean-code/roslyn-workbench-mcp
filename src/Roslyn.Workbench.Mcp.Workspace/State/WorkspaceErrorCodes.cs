@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 internal static class WorkspaceErrorCodes
 {
     /// <summary>
+    /// Indicates that source mutation is disabled by Host policy.
+    /// </summary>
+    public const string SourceMutationDisabled = "SourceMutationDisabled";
+
+    /// <summary>
     /// The selected Workspace cannot currently grant the requested operation lease.
     /// </summary>
     public const string WorkspaceBusy = "WorkspaceBusy";

@@ -113,6 +113,8 @@ Keep each minified UTF-8 input schema at or below 5,000 bytes so property guidan
 
 ## Package layout
 
+External plugin loading is disabled by default. The Host must be started with the valueless `--enable-plugins` switch before any configured plugin directory is accepted. This is an explicit operator decision to load reviewed packages as trusted in-process code; it does not apply to bundled first-party tools.
+
 Each `--plugin-directory` value is a search root. Every immediate child directory is one package:
 
 ```text

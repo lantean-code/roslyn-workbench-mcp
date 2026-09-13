@@ -10,7 +10,7 @@ internal interface IPluginCatalogLoader
     /// <summary>
     /// Discovers, validates and materializes bundled and external plugins.
     /// </summary>
-    /// <param name="startupOptions">The configured external plugin directories.</param>
+    /// <param name="startupOptions">The external-plugin enablement and configured package directories.</param>
     /// <param name="bundledAssemblies">The bundled assemblies to include in discovery.</param>
     /// <param name="reservedToolNames">The host-owned tool names that external plugins may not publish.</param>
     /// <returns>The complete catalogue snapshot, including accepted tools and rejected-plugin status.</returns>

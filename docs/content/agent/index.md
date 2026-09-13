@@ -12,7 +12,7 @@ Treat the connected MCP agent as part of the local trust boundary. Local error d
 
 ## Discover before acting
 
-Use `tools/list` for the live tool inventory and schemas. Call `server-status` with full detail near the start of a session to inspect startup warnings, recovery state, component availability and the published tool count.
+Use `tools/list` for the live tool inventory and schemas. Call `server-status` with full detail near the start of a session to inspect the fixed operational mode, effective mutation and commit-authorisation policy, external-plugin enablement, client elicitation capability, startup warnings, recovery state, component availability and published tool count. Do not attempt an omitted mutation or transaction tool.
 
 When the live declaration is intentionally concise, use the version-matched [tool reference](../reference/tools/index.md) for grouped human guidance or its [machine-readable catalogue](../reference/tools/catalog.json) to retrieve one complete tool definition without loading the whole catalogue into context.
 
@@ -41,6 +41,8 @@ Do not accumulate unrelated work in an open transaction. Run queries outside a t
 Coordinate filesystem activity with the user. While `transaction-commit` is in progress, neither the user nor another development tool should edit the source paths shown in `transaction-preview`, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.
 
 `transaction-commit` writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.
+
+In `transactional` mode, commit first requests one client-mediated choice: approve this commit, approve transaction commits for the remainder of the current Host process, or refuse. A missing prompt can mean the client did not advertise elicitation or its current policy blocked interactive MCP requests even when other client permissions are permissive. On an unavailable, declined, cancelled, failed or invalid interaction, tell the user that no files were persisted and the transaction remains active; enable interactive MCP requests only if the user wants a deliberate retry. Do not interpret a failed prompt as permission to retry autonomously. Session approval ends when the Host process restarts and does not bypass snapshot, filesystem, containment or recovery validation.
 
 Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reconcile those changes after reload. If the project explicitly includes, removes or excludes an affected source path, update the project file separately before relying on the reloaded project graph.
 

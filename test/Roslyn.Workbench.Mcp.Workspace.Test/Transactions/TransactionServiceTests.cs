@@ -36,6 +36,7 @@ public sealed class TransactionServiceTests : IDisposable
         _snapshotGuard
             .Setup(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotValidationResult.Valid());
+
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _commitService = new Mock<ITransactionCommitService>();
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
@@ -43,7 +44,11 @@ public sealed class TransactionServiceTests : IDisposable
         _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _target = new TransactionService(
-            Options.Create(new WorkspaceOptions { MaxTransactionRevisions = 5 }),
+            Options.Create(new WorkspaceOptions
+            {
+                MaxTransactionRevisions = 5,
+                SourceMutationEnabled = true,
+            }),
             _sessionStore.Object,
             _sessionAcquirer.Object,
             _stateTransitions.Object,
@@ -53,6 +58,29 @@ public sealed class TransactionServiceTests : IDisposable
             _diffBuilder.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object);
+    }
+
+    [Fact]
+    public async Task GIVEN_SourceMutationDisabled_WHEN_StartingTransaction_THEN_ShouldRejectBeforeAcquiringWorkspace()
+    {
+        var expected = CreateResult<TransactionStartOutcome>();
+        SetupRejectedResult(expected, WorkspaceErrorCodes.SourceMutationDisabled);
+        var target = new TransactionService(
+            Options.Create(new WorkspaceOptions()),
+            _sessionStore.Object,
+            _sessionAcquirer.Object,
+            _stateTransitions.Object,
+            _snapshotGuard.Object,
+            _resultFactory.Object,
+            _commitService.Object,
+            _diffBuilder.Object,
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object);
+
+        var result = await target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionAcquirer.Verify(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector>()), Times.Never);
     }
 
     [Fact]
@@ -362,6 +390,7 @@ public sealed class TransactionServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSession(Guid.Parse("11111111-1111-1111-1111-111111111111"))).Returns(session);
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.Ready, WorkspaceTrigger.TransactionStarted))
             .Returns(WorkspaceLifecycleState.TransactionActive);
+
         _sessionStore.Setup(item => item.TryStartTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
             .Returns(TransactionAdmissionResult.Admitted());
 

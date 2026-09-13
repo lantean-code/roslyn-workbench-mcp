@@ -6,6 +6,40 @@ namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 public sealed class PluginCatalogStartupLifecycleServiceTests
 {
     [Fact]
+    public async Task GIVEN_UnpublishedCodeActionName_WHEN_HostIsStarting_THEN_ShouldReserveNameAgainstPlugins()
+    {
+        using var catalog = new PluginCatalogSnapshot();
+        var loader = new Mock<IPluginCatalogLoader>();
+        loader
+            .Setup(value => value.Load(
+                It.IsAny<StartupOptions>(),
+                It.IsAny<IReadOnlyList<System.Reflection.Assembly>>(),
+                It.Is<IEnumerable<string>>(names => names.Contains("stage-code-action", StringComparer.Ordinal))))
+            .Returns(catalog);
+
+        var toolFactory = new Mock<IPluginMcpServerToolFactory>();
+        var catalogState = new Mock<IPluginCatalogState>();
+        var codeActionCatalog = new CodeActionCatalogSnapshot
+        {
+            ReservedToolNames = ["stage-code-action"],
+        };
+
+        var target = new PluginCatalogStartupLifecycleService(
+            loader.Object,
+            toolFactory.Object,
+            catalogState.Object,
+            Options.Create(new StartupOptions()),
+            codeActionCatalog);
+
+        await target.StartingAsync(TestContext.Current.CancellationToken);
+
+        loader.Verify(value => value.Load(
+            It.IsAny<StartupOptions>(),
+            It.IsAny<IReadOnlyList<System.Reflection.Assembly>>(),
+            It.Is<IEnumerable<string>>(names => names.Contains("stage-code-action", StringComparer.Ordinal))), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_LoadedPluginCatalogue_WHEN_HostIsStarting_THEN_ShouldPublishAtomicRuntimeCatalogue()
     {
         var serviceProviderLifetime = new Mock<IDisposable>();

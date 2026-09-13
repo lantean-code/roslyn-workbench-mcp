@@ -21,6 +21,80 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
+    public void GIVEN_OperationalModeConfigurationError_WHEN_Validating_THEN_ShouldFailWithCapturedError()
+    {
+        var options = new StartupOptions { OperationalModeConfigurationError = "ConfigurationError" };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("ConfigurationError");
+    }
+
+    [Fact]
+    public void GIVEN_UnsupportedOperationalMode_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions { OperationalMode = (OperationalMode)999 };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("OperationalMode must be a supported value.");
+    }
+
+    [Fact]
+    public void GIVEN_ApprovalRequiredMode_WHEN_Validating_THEN_ShouldFailUntilReceiptApprovalExists()
+    {
+        var options = new StartupOptions { OperationalMode = OperationalMode.ApprovalRequired };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("receipt-bound approval");
+    }
+
+    [Fact]
+    public void GIVEN_PluginDirectoryWithoutExplicitEnablement_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions { PluginDirectories = ["PluginDirectory"] };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("Plugin directories require the --enable-plugins switch.");
+    }
+
+    [Fact]
+    public void GIVEN_PluginsEnabledWithoutDirectories_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions { ExternalPluginsEnabled = true };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_PluginDirectoryEnabledInInspectionOnlyMode_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions
+        {
+            ExternalPluginsEnabled = true,
+            PluginDirectories = ["PluginDirectory"],
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_ExternalPluginsConfigurationError_WHEN_Validating_THEN_ShouldFailWithCapturedError()
+    {
+        var options = new StartupOptions { ExternalPluginsConfigurationError = "ConfigurationError" };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("ConfigurationError");
+    }
+
+    [Fact]
     public void GIVEN_ExistingAbsoluteWorkspaceRoot_WHEN_Validating_THEN_ShouldSucceed()
     {
         var options = new StartupOptions
@@ -204,6 +278,8 @@ public sealed class StartupOptionsValidatorTests
     {
         return new StartupOptions
         {
+            OperationalMode = OperationalMode.AutonomousTrusted,
+            ExternalPluginsEnabled = true,
             PluginDirectories = [" "],
             DefaultMaxResults = 0,
             CodeActionReferenceLifetime = TimeSpan.Zero,

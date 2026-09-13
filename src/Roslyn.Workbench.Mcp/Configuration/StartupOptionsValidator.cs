@@ -40,6 +40,30 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
     {
         var failures = new List<string>();
 
+        if (options.OperationalModeConfigurationError is not null)
+        {
+            failures.Add(options.OperationalModeConfigurationError);
+        }
+
+        if (options.ExternalPluginsConfigurationError is not null)
+        {
+            failures.Add(options.ExternalPluginsConfigurationError);
+        }
+
+        if (!Enum.IsDefined(options.OperationalMode))
+        {
+            failures.Add($"{nameof(StartupOptions.OperationalMode)} must be a supported value.");
+        }
+        else if (options.OperationalMode == OperationalMode.ApprovalRequired)
+        {
+            failures.Add("The approval-required operational mode is unavailable until receipt-bound approval is implemented.");
+        }
+
+        if (!options.ExternalPluginsEnabled && options.PluginDirectories.Count > 0)
+        {
+            failures.Add("Plugin directories require the --enable-plugins switch.");
+        }
+
         if (!StartupOptionsRules.AreValidAllowedWorkspaceRoots(options.AllowedWorkspaceRoots))
         {
             failures.Add($"{nameof(StartupOptions.AllowedWorkspaceRoots)} must contain only existing absolute directories.");
@@ -137,29 +161,34 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             options.CapturedErrorCapacity,
             ErrorReportingOptionsRules.MinimumCapturedErrorCapacity,
             ErrorReportingOptionsRules.MaximumCapturedErrorCapacity);
+
         AddErrorReportingRangeFailure(
             failures,
             nameof(ErrorReportingOptions.MaximumCapturedErrorBytes),
             options.MaximumCapturedErrorBytes,
             ErrorReportingOptionsRules.MinimumCapturedErrorBytes,
             ErrorReportingOptionsRules.MaximumCapturedErrorBytes);
+
         AddErrorReportingRangeFailure(
             failures,
             nameof(ErrorReportingOptions.PreparedSubmissionCapacity),
             options.PreparedSubmissionCapacity,
             ErrorReportingOptionsRules.MinimumPreparedSubmissionCapacity,
             ErrorReportingOptionsRules.MaximumPreparedSubmissionCapacity);
+
         AddErrorReportingRangeFailure(
             failures,
             nameof(ErrorReportingOptions.MaximumPayloadBytes),
             options.MaximumPayloadBytes,
             ErrorReportingOptionsRules.MinimumPayloadBytes,
             ErrorReportingOptionsRules.MaximumPayloadBytes);
+
         AddErrorReportingLifetimeFailure(
             failures,
             nameof(ErrorReportingOptions.CapturedErrorLifetime),
             options.CapturedErrorLifetime,
             ErrorReportingOptionsRules.MaximumCapturedErrorLifetime);
+
         AddErrorReportingLifetimeFailure(
             failures,
             nameof(ErrorReportingOptions.PreparedSubmissionLifetime),

@@ -45,6 +45,8 @@ public sealed class HostCompositionIntegrationTests
 
         builder.AddRoslynWorkbench(
         [
+            "--operational-mode", "autonomous-trusted",
+            "--enable-plugins",
             "--default-max-results", "123",
             "--max-concurrent-queries", "7",
             "--max-transaction-revisions", "8",
@@ -64,6 +66,9 @@ public sealed class HostCompositionIntegrationTests
         startupOptions.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromSeconds(9));
         startupOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         startupOptions.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
+        startupOptions.OperationalMode.Should().Be(OperationalMode.AutonomousTrusted);
+        startupOptions.ExternalPluginsEnabled.Should().BeTrue();
+        workspaceOptions.SourceMutationEnabled.Should().BeTrue();
         workspaceOptions.DefaultMaxResults.Should().Be(123);
         workspaceOptions.MaxConcurrentQueries.Should().Be(7);
         workspaceOptions.MaxTransactionRevisions.Should().Be(8);
@@ -72,11 +77,46 @@ public sealed class HostCompositionIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_ConfiguredBuilder_WHEN_ComposingHost_THEN_ShouldRegisterHostServicesAndAllMcpTools()
+    public void GIVEN_DefaultOperationalMode_WHEN_ComposingHost_THEN_ShouldPublishInspectionOnlySurface()
     {
         var builder = Host.CreateApplicationBuilder([]);
 
         builder.AddRoslynWorkbench([]);
+
+        using var host = builder.Build();
+        var policy = host.Services.GetRequiredService<OperationalPolicy>();
+        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceOptions>>().Value;
+        var toolNames = host.Services.GetServices<McpServerTool>()
+            .Select(static tool => tool.ProtocolTool.Name)
+            .ToArray();
+
+        var codeActionTools = host.Services.GetRequiredService<CodeActionCatalogSnapshot>().Tools;
+
+        policy.Mode.Should().Be(OperationalMode.InspectionOnly);
+        workspaceOptions.SourceMutationEnabled.Should().BeFalse();
+        toolNames.Should().NotContain(
+        [
+            "transaction-start",
+            "transaction-preview",
+            "transaction-history",
+            "transaction-commit",
+            "transaction-rollback",
+        ]);
+
+        codeActionTools
+            .Select(static tool => tool.Metadata.Name)
+            .Should()
+            .Equal(
+                "list-code-actions",
+                "prepare-fix-all");
+    }
+
+    [Fact]
+    public async Task GIVEN_ConfiguredBuilder_WHEN_ComposingHost_THEN_ShouldRegisterHostServicesAndAllMcpTools()
+    {
+        var builder = Host.CreateApplicationBuilder([]);
+
+        builder.AddRoslynWorkbench(["--operational-mode", "autonomous-trusted"]);
 
         var codeActionCompositionRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(ICodeActionComposition));
@@ -98,10 +138,12 @@ public sealed class HostCompositionIntegrationTests
 
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
+        var operationalPolicy = host.Services.GetRequiredService<OperationalPolicy>();
         var pluginCatalogState = host.Services.GetRequiredService<IPluginCatalogState>();
         var pluginStartup = host.Services.GetServices<IHostedService>()
             .OfType<PluginCatalogStartupLifecycleService>()
             .Single();
+
         await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
 
         var pluginCatalogSnapshot = pluginCatalogState.Current.Catalog;
@@ -144,12 +186,15 @@ public sealed class HostCompositionIntegrationTests
         mcpTools.Should().HaveCount(
             codeActionCatalogSnapshot.Tools.Count
             + ServerOwnedToolRegistration.GetPublishedToolCount(
-                startupOptions.ErrorReporting));
+                startupOptions.ErrorReporting,
+                operationalPolicy));
+
         pluginCatalogState.Current.Tools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count);
         mcpTools.Select(static tool => tool.ProtocolTool.Name)
             .Concat(pluginCatalogState.Current.Tools.Keys)
             .Should()
             .OnlyHaveUniqueItems();
+
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
             "server-status",
@@ -178,6 +223,7 @@ public sealed class HostCompositionIntegrationTests
             "--error-reporting-consent",
             "always",
         ]);
+
         builder.Services.AddSingleton(dispatcher.Object);
 
         using var host = builder.Build();
@@ -189,7 +235,7 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<IErrorReportDispatcher>().Should().BeSameAs(dispatcher.Object);
         reportingTools.Should().HaveCount(2);
         var statusService = host.Services.GetRequiredService<IServerStatusService>();
-        var status = await statusService.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+        var status = await statusService.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, TestContext.Current.CancellationToken);
         status.Data!.Configuration!.ErrorReporting!.Provider.Should().Be("CustomDispatcher");
     }
 
@@ -204,9 +250,11 @@ public sealed class HostCompositionIntegrationTests
         capturedErrorTimer
             .Setup(item => item.DisposeAsync())
             .Returns(ValueTask.CompletedTask);
+
         preparedSubmissionTimer
             .Setup(item => item.DisposeAsync())
             .Returns(ValueTask.CompletedTask);
+
         timeProvider
             .SetupSequence(item => item.CreateTimer(
                 It.IsAny<TimerCallback>(),
@@ -215,6 +263,7 @@ public sealed class HostCompositionIntegrationTests
                 Timeout.InfiniteTimeSpan))
             .Returns(capturedErrorTimer.Object)
             .Returns(preparedSubmissionTimer.Object);
+
         var timeProviderRegistration = ServiceDescriptor.Singleton(timeProvider.Object);
         builder.Services.Replace(timeProviderRegistration);
         var serviceProvider = builder.Services.BuildServiceProvider();
@@ -273,13 +322,14 @@ public sealed class HostCompositionIntegrationTests
         var pluginStartup = host.Services.GetServices<IHostedService>()
             .OfType<PluginCatalogStartupLifecycleService>()
             .Single();
+
         await pluginStartup.StartingAsync(TestContext.Current.CancellationToken);
 
         var pluginCatalogSnapshot = pluginCatalogState.Current.Catalog;
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var target = host.Services.GetRequiredService<IServerStatusService>();
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, clientSupportsElicitation: null, TestContext.Current.CancellationToken);
 
         codeActionCatalogSnapshot.Tools.Should().NotBeEmpty();
         result.Data!.CodeActions.Should().NotBeNull();

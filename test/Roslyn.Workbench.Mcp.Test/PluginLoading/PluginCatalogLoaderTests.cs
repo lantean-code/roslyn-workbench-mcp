@@ -74,11 +74,23 @@ public sealed class PluginCatalogLoaderTests
                 LoadContexts = [loadContext],
             });
 
-        _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(bundledMaterialization);
-        _entryMaterializer.Setup(value => value.Materialize(externalPlugin)).Returns(externalMaterialization);
+        _entryMaterializer
+            .Setup(value => value.Materialize(bundledPlugin, It.IsAny<bool>()))
+            .Returns(bundledMaterialization);
+
+        _entryMaterializer
+            .Setup(value => value.Materialize(externalPlugin, It.IsAny<bool>()))
+            .Returns(externalMaterialization);
+
         var target = CreateTarget();
 
-        var result = target.Load(new StartupOptions { PluginDirectories = ["plugins"] }, [typeof(BundledCorePlugin).Assembly], ["reserved"]);
+        var options = new StartupOptions
+        {
+            ExternalPluginsEnabled = true,
+            PluginDirectories = ["plugins"],
+        };
+
+        var result = target.Load(options, [typeof(BundledCorePlugin).Assembly], ["reserved"]);
 
         result.Tools.Should().HaveCount(2);
         result.Plugins.Should().BeEquivalentTo([bundledStatus, bundledMaterialization.Status, externalStatus, externalMaterialization.Status]);
@@ -86,6 +98,7 @@ public sealed class PluginCatalogLoaderTests
         result.ServiceProviderLifetimes.Should().Equal(
             bundledServiceProviderLifetime.Object,
             externalServiceProviderLifetime.Object);
+
         _collisionPolicy.Verify(value => value.FindExternalToolCollisions(
             It.IsAny<IReadOnlyList<PreparedCatalogPlugin>>(),
             It.Is<IReadOnlySet<string>>(names => names.Count == 2 && names.Contains("reserved") && names.Contains("bundled-tool"))), Times.Once);
@@ -106,7 +119,9 @@ public sealed class PluginCatalogLoaderTests
         var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly], ["reserved"]);
 
         action.Should().Throw<InvalidOperationException>().WithMessage("*collides with a reserved*");
-        _entryMaterializer.Verify(static value => value.Materialize(It.IsAny<PreparedCatalogPlugin>()), Times.Never);
+        _entryMaterializer.Verify(static value => value.Materialize(
+            It.IsAny<PreparedCatalogPlugin>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -130,7 +145,9 @@ public sealed class PluginCatalogLoaderTests
         var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
 
         action.Should().Throw<InvalidOperationException>().WithMessage("*collides with a reserved*");
-        _entryMaterializer.Verify(static value => value.Materialize(It.IsAny<PreparedCatalogPlugin>()), Times.Never);
+        _entryMaterializer.Verify(static value => value.Materialize(
+            It.IsAny<PreparedCatalogPlugin>(),
+            It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -149,7 +166,8 @@ public sealed class PluginCatalogLoaderTests
 
         var target = CreateTarget();
 
-        var result = target.Load(new StartupOptions(), []);
+        var options = new StartupOptions { ExternalPluginsEnabled = true };
+        var result = target.Load(options, []);
 
         result.Tools.Should().BeEmpty();
         result.Plugins.Should().ContainSingle(status =>
@@ -159,7 +177,57 @@ public sealed class PluginCatalogLoaderTests
                 diagnostic.Id == "PluginCollision"
                 && diagnostic.Message.Contains("collide", StringComparison.Ordinal)));
 
-        _entryMaterializer.Verify(static value => value.Materialize(It.IsAny<PreparedCatalogPlugin>()), Times.Never);
+        _entryMaterializer.Verify(static value => value.Materialize(
+            It.IsAny<PreparedCatalogPlugin>(),
+            It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_ExternalPluginsDisabled_WHEN_Loading_THEN_ShouldNotDiscoverExternalPackages()
+    {
+        var target = CreateTarget();
+        var options = new StartupOptions { PluginDirectories = ["plugins"] };
+
+        var result = target.Load(options, []);
+
+        result.Tools.Should().BeEmpty();
+        result.Plugins.Should().BeEmpty();
+        _packageDiscovery.Verify(static value => value.Discover(It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _candidatePreparer.Verify(static value => value.PrepareExternal(
+            It.IsAny<IReadOnlyList<PluginPackageDiscoveryResult>>(),
+            It.IsAny<IReadOnlySet<string>>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GIVEN_OperationalPolicy_WHEN_Loading_THEN_ShouldProvideMutationToolSetting(
+        bool includeMutationTools)
+    {
+        var plugin = CreatePreparedPlugin("bundled", "tool");
+        var materialization = new PluginCatalogEntryMaterialization
+        {
+            Status = CreateStatus("bundled", true),
+        };
+
+        _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
+            .Returns(new PluginCandidatePreparation { Plugins = [plugin] });
+
+        _entryMaterializer
+            .Setup(value => value.Materialize(plugin, It.IsAny<bool>()))
+            .Returns(materialization);
+
+        var mode = includeMutationTools
+            ? OperationalMode.AutonomousTrusted
+            : OperationalMode.InspectionOnly;
+
+        var target = CreateTarget(mode);
+
+        target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+
+        _entryMaterializer.Verify(value => value.Materialize(
+            plugin,
+            includeMutationTools), Times.Once);
     }
 
     [Fact]
@@ -171,15 +239,22 @@ public sealed class PluginCatalogLoaderTests
         {
             ServiceProviderLifetime = serviceProviderLifetime.Object,
         };
+
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
             .Returns(new PluginCandidatePreparation { Plugins = [bundledPlugin] });
-        _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(materialization);
+
+        _entryMaterializer
+            .Setup(value => value.Materialize(bundledPlugin, It.IsAny<bool>()))
+            .Returns(materialization);
+
         _packageDiscovery
             .Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>()))
             .Throws(new InvalidOperationException("Discovery failed."));
+
         var target = CreateTarget();
 
-        var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+        var options = new StartupOptions { ExternalPluginsEnabled = true };
+        var action = () => target.Load(options, [typeof(BundledCorePlugin).Assembly]);
 
         action.Should().Throw<InvalidOperationException>().WithMessage("Discovery failed.");
         serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
@@ -193,19 +268,27 @@ public sealed class PluginCatalogLoaderTests
         serviceProviderLifetime
             .Setup(item => item.Dispose())
             .Throws(new IOException("Cleanup failed."));
+
         var materialization = CreateMaterialization(bundledPlugin, true) with
         {
             ServiceProviderLifetime = serviceProviderLifetime.Object,
         };
+
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
             .Returns(new PluginCandidatePreparation { Plugins = [bundledPlugin] });
-        _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(materialization);
+
+        _entryMaterializer
+            .Setup(value => value.Materialize(bundledPlugin, It.IsAny<bool>()))
+            .Returns(materialization);
+
         _packageDiscovery
             .Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>()))
             .Throws(new InvalidOperationException("Discovery failed."));
+
         var target = CreateTarget();
 
-        var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+        var options = new StartupOptions { ExternalPluginsEnabled = true };
+        var action = () => target.Load(options, [typeof(BundledCorePlugin).Assembly]);
 
         var exception = action.Should().Throw<AggregateException>();
         exception.Which.InnerExceptions.Should().ContainSingle(static item => item is InvalidOperationException);
@@ -213,13 +296,14 @@ public sealed class PluginCatalogLoaderTests
         serviceProviderLifetime.Verify(item => item.Dispose(), Times.Once);
     }
 
-    private PluginCatalogLoader CreateTarget()
+    private PluginCatalogLoader CreateTarget(OperationalMode mode = OperationalMode.InspectionOnly)
     {
         return new PluginCatalogLoader(
             _candidatePreparer.Object,
             _entryMaterializer.Object,
             _collisionPolicy.Object,
-            _packageDiscovery.Object);
+            _packageDiscovery.Object,
+            OperationalPolicyResolver.Resolve(mode));
     }
 
     private static PreparedCatalogPlugin CreatePreparedPlugin(string pluginId, string toolName)

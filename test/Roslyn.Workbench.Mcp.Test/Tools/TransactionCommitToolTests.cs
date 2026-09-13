@@ -31,11 +31,13 @@ public sealed class TransactionCommitToolTests
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
             Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
         var boundRequest = new TransactionCommitRequest
         {
             Workspace = includeWorkspace ? ServerOwnedToolTestData.CreateWorkspaceSelector() : null,
             ExpectedSnapshot = expectedSnapshot,
         };
+
         string? errorMessage = null;
         var requestBinder = new Mock<IToolRequestBinder>();
         requestBinder
@@ -44,11 +46,17 @@ public sealed class TransactionCommitToolTests
                 out boundRequest,
                 out errorMessage))
             .Returns(true);
+
+        var interactionServiceFactory = new Mock<IMcpUserInteractionServiceFactory>();
+        var confirmationState = new Mock<ICommitConfirmationState>();
         var target = new TransactionCommitTool(
             Options.Create(new StartupOptions()),
             protocolFactory.Object,
             requestBinder.Object,
-            service.Object);
+            service.Object,
+            OperationalPolicyResolver.Resolve(OperationalMode.AutonomousTrusted),
+            interactionServiceFactory.Object,
+            confirmationState.Object);
 
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(WorkspaceSnapshotTestFactory.CreatePrecondition(Guid.Parse("11111111-1111-1111-1111-111111111111")));

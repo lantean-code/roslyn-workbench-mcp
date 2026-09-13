@@ -20,9 +20,15 @@ internal static class StartupOptionsResolver
         var optionMap = ParseArguments(args);
         var defaults = new StartupOptions();
         var warnings = new List<WarningInfo>();
+        var operationalMode = ResolveOperationalMode(optionMap, defaults.OperationalMode);
+        var externalPlugins = ResolveExternalPluginsEnabled(optionMap);
 
         var options = new StartupOptions
         {
+            OperationalMode = operationalMode.Mode,
+            OperationalModeConfigurationError = operationalMode.Error,
+            ExternalPluginsEnabled = externalPlugins.Enabled,
+            ExternalPluginsConfigurationError = externalPlugins.Error,
             AllowedWorkspaceRoots = ResolveAllowedWorkspaceRoots(optionMap),
             ExternalDocumentPolicy = ResolveRequiredScalar(
                 optionMap,
@@ -112,6 +118,74 @@ internal static class StartupOptionsResolver
         };
     }
 
+    private static (bool Enabled, string? Error) ResolveExternalPluginsEnabled(
+        Dictionary<string, List<string?>> optionMap)
+    {
+        const string key = "enable-plugins";
+
+        if (!optionMap.TryGetValue(key, out var configuredValues))
+        {
+            return (false, null);
+        }
+
+        if (configuredValues.Count != 1)
+        {
+            return (false, "--enable-plugins must be provided at most once.");
+        }
+
+        if (configuredValues[0] is not null)
+        {
+            return (false, "--enable-plugins does not accept a value.");
+        }
+
+        return (true, null);
+    }
+
+    private static (OperationalMode Mode, string? Error) ResolveOperationalMode(
+        Dictionary<string, List<string?>> optionMap,
+        OperationalMode defaultValue)
+    {
+        const string key = "operational-mode";
+        const string environmentVariable = "ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE";
+
+        if (optionMap.TryGetValue(key, out var configuredValues))
+        {
+            if (configuredValues.Count != 1)
+            {
+                return (defaultValue, "--operational-mode must be provided at most once.");
+            }
+
+            return ParseOperationalMode(configuredValues[0], "--operational-mode", defaultValue);
+        }
+
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariable);
+        return environmentValue is null
+            ? (defaultValue, null)
+            : ParseOperationalMode(environmentValue, environmentVariable, defaultValue);
+    }
+
+    private static (OperationalMode Mode, string? Error) ParseOperationalMode(
+        string? value,
+        string source,
+        OperationalMode defaultValue)
+    {
+        var mode = value switch
+        {
+            "inspection-only" => OperationalMode.InspectionOnly,
+            "transactional" => OperationalMode.Transactional,
+            "approval-required" => OperationalMode.ApprovalRequired,
+            "autonomous-trusted" => OperationalMode.AutonomousTrusted,
+            _ => (OperationalMode?)null,
+        };
+
+        if (mode is null)
+        {
+            return (defaultValue, $"{source} must be 'inspection-only', 'transactional', 'approval-required' or 'autonomous-trusted'.");
+        }
+
+        return (mode.Value, null);
+    }
+
     private static string[] ResolveAllowedWorkspaceRoots(
         Dictionary<string, List<string?>> optionMap)
     {
@@ -167,9 +241,14 @@ internal static class StartupOptionsResolver
             else
             {
                 key = content;
-                value = index + 1 < args.Length && !args[index + 1].StartsWith("--", StringComparison.Ordinal)
-                    ? args[++index]
-                    : null;
+                value = null;
+
+                var nextArgumentIndex = index + 1;
+                if (nextArgumentIndex < args.Length && !args[nextArgumentIndex].StartsWith("--", StringComparison.Ordinal))
+                {
+                    index = nextArgumentIndex;
+                    value = args[index];
+                }
             }
 
             if (!map.TryGetValue(key, out var values))
@@ -302,6 +381,7 @@ internal static class StartupOptionsResolver
                 ErrorReportingConsentMode.Always => "always",
                 _ => throw new ArgumentOutOfRangeException(nameof(defaultValue)),
             };
+
             AddFallbackWarning(
                 warnings,
                 environmentVariable,
@@ -329,6 +409,7 @@ internal static class StartupOptionsResolver
             warnings,
             "--error-reporting-consent",
             "fail-closed consent 'never'");
+
         return ErrorReportingConsentMode.Never;
     }
 

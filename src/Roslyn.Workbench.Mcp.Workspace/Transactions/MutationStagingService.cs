@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 /// </summary>
 internal sealed class MutationStagingService : IMutationStagingService
 {
+    private readonly WorkspaceOptions _options;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceDiffBuilder _diffBuilder;
@@ -16,6 +19,7 @@ internal sealed class MutationStagingService : IMutationStagingService
     /// <summary>
     /// Initializes a new instance of the <see cref="MutationStagingService"/> class.
     /// </summary>
+    /// <param name="options">The effective Workspace policy and operational limits.</param>
     /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
     /// <param name="sessionStore">The store that retains session.</param>
     /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
@@ -24,6 +28,7 @@ internal sealed class MutationStagingService : IMutationStagingService
     /// <param name="candidateProcessor">The processor that normalizes and validates a candidate solution before staging.</param>
     /// <param name="candidateIdentityService">The service that creates and validates candidate solution identities.</param>
     public MutationStagingService(
+        IOptions<WorkspaceOptions> options,
         IWorkspaceOperationResultFactory resultFactory,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceDiffBuilder diffBuilder,
@@ -32,6 +37,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         IWorkspaceMutationCandidateProcessor candidateProcessor,
         IWorkspaceMutationCandidateIdentityService candidateIdentityService)
     {
+        _options = options.Value;
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
         _diffBuilder = diffBuilder;
@@ -58,6 +64,14 @@ internal sealed class MutationStagingService : IMutationStagingService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_options.SourceMutationEnabled)
+        {
+            return _resultFactory.Rejected<MutationStagingOutcome>(
+                WorkspaceErrorCodes.SourceMutationDisabled,
+                "Source mutation is disabled by Host operational policy.");
+        }
+
         var transactionOwnerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
         if (transactionOwnerWorkspaceId is null)
         {

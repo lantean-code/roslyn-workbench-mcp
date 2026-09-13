@@ -75,20 +75,34 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyDictionary<string, string?>? environmentVariables = null,
         AcceptanceStateDirectoryPreparation stateDirectoryPreparation = AcceptanceStateDirectoryPreparation.Private,
         Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler = null,
+        string? operationalMode = "autonomous-trusted",
+        bool enablePlugins = true,
         string? publishedHostPath = null)
     {
         var executablePath = publishedHostPath is null
             ? PublishedHostExecutable.ResolveFromEnvironment()
             : PublishedHostExecutable.Resolve(publishedHostPath);
+
         var arguments = new List<string>
         {
             "--state-directory",
             _pendingStateRootArgument,
         };
 
+        if (operationalMode is not null)
+        {
+            arguments.Add("--operational-mode");
+            arguments.Add(operationalMode);
+        }
+
         arguments.AddRange(additionalArguments ?? []);
         if (pluginAssets is { Count: > 0 })
         {
+            if (enablePlugins)
+            {
+                arguments.Add("--enable-plugins");
+            }
+
             arguments.Add("--plugin-directory");
             arguments.Add(_pendingPluginRootArgument);
         }
@@ -431,6 +445,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             {
                 InitializationTimeout = _initializationTimeout,
             };
+
             if (_elicitationHandler is not null)
             {
                 clientOptions.Capabilities = new ClientCapabilities
@@ -440,6 +455,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                         Form = new FormElicitationCapability(),
                     },
                 };
+
                 clientOptions.Handlers = new McpClientHandlers
                 {
                     ElicitationHandler = _elicitationHandler,

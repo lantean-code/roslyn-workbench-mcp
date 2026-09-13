@@ -14,7 +14,7 @@ Roslyn Workbench is a local stdio process running with the operating-system auth
 
 A Workspace is executable input. Opening a solution or project evaluates MSBuild logic, and later diagnostic or Code Action operations can execute trusted analysers and providers. Inspection-only source policy does not make an untrusted Workspace safe to open. Less-trusted execution requires an operating-system sandbox and a separate support and security model.
 
-Third-party plugins execute as trusted in-process code. A plugin can use ordinary .NET APIs to access files, processes or networks outside the Host's supported tool pipeline. Host mutation policy can prevent compliant plugin mutation handlers from acquiring or staging through that pipeline, but it cannot govern direct filesystem operations performed by plugin implementation code. Strong inspection-only deployment therefore requires that no third-party plugin directories are configured.
+Third-party plugins execute as trusted in-process code. A plugin can use ordinary .NET APIs to access files, processes or networks outside the Host's supported tool pipeline. Host mutation policy prevents agent access to compliant plugin mutation handlers and prevents those handlers from staging through the supported pipeline, but it cannot govern direct filesystem operations performed by plugin implementation code. External plugin loading is therefore a separate, explicit operator opt-in and is disabled by default in every operational mode.
 
 See the [`operating model`](../maintainers/operating-model.md) for the supported actors, concurrency assumptions and scenario-assessment rules.
 
@@ -29,10 +29,22 @@ The current release most closely resembles the autonomous trusted mode:
 - evaluated documents outside the Workspace root can be queried but remain read-only;
 - commit revalidates the transaction snapshot and filesystem inputs but does not compile the staged solution;
 - the Host does not require proof of human approval before commit;
-- third-party plugins are absent unless plugin directories are explicitly configured; and
+- third-party plugins are absent unless plugin loading is explicitly enabled and plugin directories are configured; and
 - error-report availability and consent are configured independently from source mutation.
 
 This baseline remains subject to the trust, transaction and cross-instance constraints documented in [`workspaces and safe transactions`](../content/workspaces-and-transactions.md).
+
+## Initial implementation boundary
+
+The first operational-mode implementation introduces the startup policy resolver, conditional tool composition, authoritative mutation enforcement and protocol-neutral interaction service. It delivers inspection-only, transactional and autonomous-trusted as complete usable modes. Approval-required is a reserved configuration value but must fail startup validation until canonical receipt review and receipt-bound approval are implemented together; it must not publish a partial catalogue or fall back to another mode.
+
+The initial startup contract is `--operational-mode <inspection-only|transactional|approval-required|autonomous-trusted>`, with `ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE` as its environment equivalent and command-line configuration taking precedence. Omitting both selects inspection-only. Missing, unknown or repeated command-line values fail startup. The resolved policy is immutable for the process lifetime. These pre-1.0 names remain subject to compatibility review, but any future replacement must retain a safe inspection-only default.
+
+The named value resolves to explicit source-mutation and commit-authorisation primitives before services and the fixed tool catalogue are composed. Commit validation remains a separate primitive. External plugin loading is independently controlled by a valueless `--enable-plugins` switch that defaults to disabled, may appear only once and has no initial environment equivalent. Configured plugin directories without that opt-in, repeated switches and switches supplied with a value fail startup. When enabled in inspection-only mode, trusted plugin query tools are published while plugin mutation tools remain omitted. Existing mutation and acceptance scenarios must select autonomous-trusted explicitly rather than relying on an ambient permissive default.
+
+Implementation updates the docs-site configuration reference, installation examples, agent workflows, transaction guidance and generated tool reference so each example declares the mode it requires. Mode-specific documentation and tool-reference generation derive from the same effective catalogue rules as the Host; receipt guidance is not published until approval-required is supported. Migration guidance calls out that an omitted mode now selects inspection-only and shows the explicit autonomous-trusted switch for users retaining current pre-1.0 behaviour.
+
+Unit coverage must exercise default, command-line, environment, precedence, repetition and invalid-value resolution; explicit external-plugin opt-in, value rejection and repetition; every profile-to-primitive mapping; session-confirmation state and all normalised interaction outcomes; conditional Host, Code Action, bundled-plugin and third-party-plugin publication; authoritative mutation rejection below the catalogue; and unchanged error-report consent behaviour through the new adapter. Contract and integration coverage must verify mode-specific server instructions, status, tool counts, reserved names and both output-schema modes. Published-Host acceptance must cover the three enabled modes, prove omitted tools cannot be invoked, prove external plugin directories fail without explicit enablement, verify inspection-only plugin query publication and mutation omission, exercise approve-once, approve-for-session and refusal paths, demonstrate that session approval is lost on restart, and run through the complete platform wrapper because catalogue baselines and acceptance assets change. New implementation files require full line and branch coverage unless an approved repository exception applies.
 
 ## Target operational modes
 
@@ -51,17 +63,21 @@ Target Host behaviour:
 
 Inspection-only refers specifically to supported source mutation. Workspace loading still executes trusted build logic, local diagnostic inspection can disclose Workspace context to the connected agent, and error-report submission remains a separately configured external effect.
 
-Strong inspection-only deployment uses no third-party plugins. If an operator deliberately configures a trusted plugin, its in-process behaviour falls within the trusted-extension boundary rather than the source-mutation guarantee.
+External plugins remain disabled by default in inspection-only mode. If an operator explicitly enables and configures a trusted plugin, the Host publishes its query tools but not its mutation tools. This protects against agent selection or invocation of supported mutation routes; the plugin's own in-process behaviour remains inside the trusted-extension boundary rather than the source-mutation guarantee.
 
 ### Transactional
 
-Transactional operation provides the staged mutation pipeline with a simple Host-requested confirmation before each commit. The Host enforces snapshots, transaction revisions, candidate policy, containment, preview, revalidation and durable recovery. The confirmation is a client-mediated checkpoint intended to catch agent mistakes or misfires, but it is not a Host-issued exact-change approval receipt. Whether the client presents that checkpoint to a human depends on client and operator policy.
+Transactional operation provides the staged mutation pipeline with Host-requested confirmation before commit. The Host enforces snapshots, transaction revisions, candidate policy, containment, preview, revalidation and durable recovery. The confirmation is a client-mediated checkpoint intended to catch agent mistakes or misfires, but it is not a Host-issued exact-change approval receipt. Whether the client presents that checkpoint to a human depends on client and operator policy.
 
 Target Host behaviour:
 
 - query, mutation and transaction tools are published;
-- commit requests a simple yes-or-no confirmation through MCP elicitation;
-- commit is permitted only after the client accepts that elicitation and existing transaction and filesystem validation succeeds;
+- commit requests a single-select confirmation through MCP elicitation with `commit-once`, `commit-for-session` and `do-not-commit` choices;
+- `commit-once` authorises only the current invocation, while `commit-for-session` permits later transaction commits for any Workspace served by the current process without further elicitation until that process ends;
+- session approval is held only in memory, applies only to transaction commit, is not shared with error-report consent or receipt approval, and is never restored after restart;
+- `do-not-commit`, protocol decline or cancellation performs no persistence, retains the active transaction and does not suppress a later deliberate confirmation request;
+- commit is permitted only after an applicable confirmation and existing transaction and filesystem validation succeeds;
+- session approval bypasses only later confirmation prompts: snapshot, conflict, filesystem, containment, commit-lock and recovery controls continue to run for every commit;
 - unavailable, declined, cancelled or failed elicitation fails closed without persistence and leaves the transaction available for inspection or a later deliberate retry;
 - the failure result tells the agent that client policy may have blocked interactive MCP requests and that the user may need to enable them before retrying; and
 - compiler validation may be configured independently once available.
@@ -75,6 +91,8 @@ Approval-required operation extends the transactional pipeline by requiring one-
 Target Host behaviour:
 
 - query, mutation and transaction tools are published;
+- one cohesive receipt-review operation replaces the lightweight preview contract for this mode and returns both the exact receipt projection and explicitly requested bounded source diffs;
+- the receipt-review tool, output schema, descriptions and examples are absent from every other mode's published catalogue;
 - commit requires a current receipt bound to the Workspace, snapshot, transaction revision and canonical change-set digest;
 - the Host requests approval through its protocol interaction adapter;
 - unavailable client interaction support, rejected approval, expired approval or receipt mismatch fails closed without persistence;
@@ -100,7 +118,7 @@ Autonomous trusted operation differs from transactional operation because it del
 
 MCP elicitation support is a negotiated client capability, independent from the client's filesystem sandbox, tool permission policy or other measure of agent autonomy. A permissive execution mode must not be assumed to support interactive MCP requests.
 
-The Host records the connected client's advertised elicitation capability during MCP initialisation. Transactional and approval-required commit use that capability at invocation time. If the client does not advertise elicitation, the Host returns an actionable approval-unavailable result without attempting persistence. A client may advertise the capability but still decline, cancel or fail an interaction because of its current policy, so runtime responses must also be handled explicitly and fail closed.
+The Host records the connected client's advertised elicitation capability during MCP initialisation. Transactional and approval-required commit use that capability at invocation time. If the client does not advertise elicitation, the Host returns an actionable approval-unavailable result without attempting persistence. A client may advertise the capability but still decline, cancel or fail an interaction because of its current policy, so runtime responses must also be handled explicitly and fail closed. An accepted form response containing a missing or unsupported choice is invalid and does not authorise commit.
 
 The existing error-report consent workflow is the behavioural precedent. It distinguishes unavailable approval from a request that was not approved, states that client policy may have blocked the prompt and confirms that the external effect did not occur. Transaction commit should apply the same pattern with transaction-specific guidance:
 
@@ -115,11 +133,11 @@ The Host cannot distinguish a client-policy decline from a deliberate user decli
 
 ### Protocol-isolated user interaction
 
-Before transaction commit depends on elicitation, the Host must introduce a protocol-neutral `IUserInteractionService` boundary with an MCP SDK-backed implementation. Transaction and error-report workflows depend only on neutral interaction requests and a closed outcome model such as accepted, declined, cancelled, unavailable, failed and invalid response. MCP SDK capability, request-schema, response, exception and server types remain inside the Host adapter and do not enter Workspace or domain workflow contracts.
+The first operational-mode implementation introduces a protocol-neutral `IUserInteractionService` boundary with an MCP SDK-backed implementation. Transaction and error-report workflows depend only on neutral interaction requests and a closed outcome model such as accepted, declined, cancelled, unavailable, failed and invalid response. Neutral requests support titled single-select choices so transaction confirmation can distinguish one-use approval, server-session approval and refusal without exposing MCP schema types. MCP SDK capability, request-schema, response, exception and server types remain inside the Host adapter and do not enter Workspace or domain workflow contracts.
 
 The service owns client-capability discovery, protocol request translation, outcome normalisation and expected SDK failure translation. It does not decide whether a transaction may commit, bind approval to a receipt, dispatch an error report, discard domain state or construct domain-specific error guidance; those responsibilities remain with the calling workflow.
 
-The existing error-report consent path must be migrated to this service without changing its established consent, handle-lifetime or failure behaviour before transaction commit becomes a second consumer. Tests must cover relevant advertised-capability and runtime-response combinations through the adapter so a future MCP SDK or protocol change can be absorbed at that boundary.
+The existing error-report consent path is migrated to this service without changing its established consent, handle-lifetime or failure behaviour before transaction commit becomes a second consumer. Session-wide transaction approval is maintained by a separate Host-owned commit-confirmation state service rather than by the protocol adapter; the adapter reports only the user's normalised selection. Tests must cover relevant advertised-capability and runtime-response combinations through the adapter so a future MCP SDK or protocol change can be absorbed at that boundary.
 
 ## Composable policy primitives
 
@@ -132,7 +150,7 @@ Later implementation should express deployment policy through independent startu
 | Commit validation | None; No new compiler errors | Determines whether a snapshot-bound compiler comparison is a commit prerequisite. |
 | Workspace admission | Unrestricted trusted paths; configured allowed roots | Constrains which solution and project paths the Host may open. |
 | External document read | Allowed; denied; future narrower policy | Controls agent-facing disclosure of evaluated documents outside admitted source authority. |
-| Plugin loading | No configured directories; configured trusted directories | Selects trusted in-process extensions at startup. |
+| Plugin loading | Disabled; explicitly enabled with configured trusted directories | Selects trusted in-process extensions at startup independently from source-mutation policy. |
 | Error-report consent | Never; prompt; always | Independently controls preparation and explicit submission of allow-listed external diagnostics. |
 
 The table defines semantic alternatives, not final command-line option names. Each implementation work item must design its public configuration contract, defaults, compatibility behaviour and status projection before code changes begin.
@@ -141,7 +159,7 @@ Named operational-mode profiles may later provide recommended combinations:
 
 | Operational mode | Source mutation | Commit authorisation | Recommended validation | Third-party plugins |
 | --- | --- | --- | --- | --- |
-| Inspection-only | Disabled | Not applicable | Not applicable | None |
+| Inspection-only | Disabled | Not applicable | Not applicable | Disabled by default; trusted query plugins when explicitly enabled |
 | Transactional | Enabled | Confirmation | Operator selected | None by default |
 | Approval-required | Enabled | Receipt approval | No new compiler errors | None by default |
 | Autonomous trusted | Enabled | None | No new compiler errors | Explicitly configured trusted plugins only |
@@ -151,6 +169,10 @@ These are presets, not restrictions on valid explicit combinations. For example,
 ## Policy ownership and immutability
 
 Security-sensitive policy is resolved and validated during Host startup. MCP requests may select or narrow authority within that policy but cannot widen, disable or replace it. Invalid security-sensitive values must fail closed when falling back would grant more authority than the supplied value.
+
+Mode-specific contracts are composed only after the effective policy is known. A capability that is not usable under that policy must not consume agent context through an unavailable tool, an inapplicable schema field, mode-irrelevant guidance or an example the client cannot execute. Receipt calculation is gated by receipt-approval policy rather than by a separate feature switch. Confirmation and autonomous operation retain lightweight transaction preview and perform no receipt projection, canonical hashing or receipt-cache work; inspection-only operation publishes neither review contract because it cannot create a transaction.
+
+An operational profile must not become selectable until every control required to preserve its stated semantics is implemented. Incomplete receipt approval therefore fails startup validation rather than publishing a review contract while commit approval is unavailable, or silently falling back to confirmation or autonomous commit.
 
 The Host owns protocol publication, user-interaction adaptation and policy reporting. Workspace owns neutral enforcement needed to ensure transaction acquisition, staging and commit cannot bypass effective source-mutation and validation policy. Protocol-specific commit authorisation remains in the Host and reaches Workspace services only through a validated, protocol-neutral confirmation or receipt.
 
@@ -171,7 +193,9 @@ For disabled source mutation:
 
 Query handlers must continue to lack mutation staging capability. A query result may create bounded process-local cache or replay state without becoming a source mutation. Error-report preparation and submission retain their existing independent publication and consent rules.
 
-Contract and acceptance coverage must exercise every supported publication combination. A tool omitted by policy must be absent from `tools/list`, unavailable through invocation, and unable to reach a lower-level mutation path. Status tool counts and generated documentation must derive from the effective published catalogue rather than fixed assumptions.
+Contract and acceptance coverage must exercise every supported publication combination. A tool omitted by policy must be excluded before runtime tool creation, absent from `tools/list`, unavailable through invocation, and unable to reach a lower-level mutation path. Plugin configuration and collision validation still inspect the complete declared tool set, but policy filtering occurs before transport-schema preflight, plugin service-provider creation, handler resolution and runtime-wrapper materialisation. Status tool counts and generated documentation must derive from the effective published catalogue rather than fixed assumptions.
+
+Receipt-approval coverage must additionally prove that its receipt-review contract is present only in that catalogue. Confirmation and autonomous catalogues must retain the lightweight preview contract without receipt fields, and must prove that preview does not invoke receipt projection or hashing. Compatibility baselines are policy-specific whenever the effective catalogue differs.
 
 ## Responsibility matrix
 
@@ -183,7 +207,7 @@ Contract and acceptance coverage must exercise every supported publication combi
 | Restrict unrelated file or shell tools | No authority outside its process | Applies client tool permissions | Applies endpoint, filesystem, user or sandbox controls |
 | Establish Workspace trust | Warns and documents executable-input boundaries | Opens only approved Workspaces | Controls repository, package, SDK and build-input provenance |
 | Control model disclosure | Bounds and projects tool results | Uses approved model and data-handling settings | Applies network and data-loss-prevention policy |
-| Control third-party plugin effects | Loads only configured packages and enforces supported contracts | Configures only trusted plugins | Sandboxes the entire process when extensions are less trusted |
+| Control third-party plugin effects | Defaults external loading to disabled, requires explicit enablement and enforces supported contracts | Enables and configures only trusted plugins | Sandboxes the entire process when extensions are less trusted |
 | Control external error reports | Enforces configured consent and allow-listed submission | Reviews or grants the configured approval | May block network destinations independently |
 
 ## Provisional requirements for later work

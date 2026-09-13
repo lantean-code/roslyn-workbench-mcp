@@ -40,6 +40,22 @@ internal sealed class ServerStatusTool : ServerOwnedToolBase<ServerStatusRequest
         ServerStatusRequest request,
         CancellationToken cancellationToken)
     {
-        return _serverStatusService.GetStatusAsync(request.Detail, cancellationToken);
+        return _serverStatusService.GetStatusAsync(
+            request.Detail,
+            clientSupportsElicitation: null,
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    protected override ValueTask<ToolResult<ServerStatusData>> ExecuteAsync(
+        ServerStatusRequest request,
+        RequestContext<CallToolRequestParams> requestContext,
+        CancellationToken cancellationToken)
+    {
+        var clientSupportsElicitation = requestContext.Server.ClientCapabilities?.Elicitation is not null;
+        return _serverStatusService.GetStatusAsync(
+            request.Detail,
+            clientSupportsElicitation,
+            cancellationToken);
     }
 }

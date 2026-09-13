@@ -6,6 +6,26 @@ namespace Roslyn.Workbench.Mcp.Configuration;
 internal sealed class StartupOptions
 {
     /// <summary>
+    /// Gets or sets the startup-selected operational policy profile.
+    /// </summary>
+    public OperationalMode OperationalMode { get; set; } = OperationalMode.InspectionOnly;
+
+    /// <summary>
+    /// Gets or sets the operational-mode configuration error captured during startup parsing.
+    /// </summary>
+    public string? OperationalModeConfigurationError { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether external plugin packages may be loaded during startup.
+    /// </summary>
+    public bool ExternalPluginsEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the external-plugin configuration error captured during startup parsing.
+    /// </summary>
+    public string? ExternalPluginsConfigurationError { get; set; }
+
+    /// <summary>
     /// Gets or sets the Host-owned roots from which workspaces may be admitted.
     /// </summary>
     public IReadOnlyList<string> AllowedWorkspaceRoots { get; set; } = [];

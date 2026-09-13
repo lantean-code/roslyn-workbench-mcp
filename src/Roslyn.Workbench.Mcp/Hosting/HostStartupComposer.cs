@@ -16,16 +16,19 @@ internal static class HostStartupComposer
         var configuration = StartupOptionsResolver.Resolve(args, pathComparison);
         var optionsValidator = new StartupOptionsValidator();
         optionsValidator.EnsureValid(configuration.Options);
+        var policy = OperationalPolicyResolver.Resolve(configuration.Options.OperationalMode);
 
         var codeActions = new CodeActionCatalogSnapshot
         {
-            Tools = BundledCodeActionCatalog.Create(),
+            ReservedToolNames = BundledCodeActionCatalog.ToolNames,
+            Tools = BundledCodeActionCatalog.Create(policy.SourceMutationEnabled),
         };
 
         return new HostStartupComposition
         {
             Configuration = configuration,
             CodeActions = codeActions,
+            Policy = policy,
         };
     }
 }

@@ -19,16 +19,19 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         var composition = HostStartupComposer.Compose(args);
 
         builder.Logging.ConfigureRoslynWorkbenchLogging();
-        builder.Services.AddRoslynWorkbenchOptions(composition.Options);
+        builder.Services.AddRoslynWorkbenchOptions(composition.Options, composition.Policy);
         builder.Services.AddSingleton(composition.Configuration);
         builder.Services.AddSingleton(composition.CodeActions);
+        builder.Services.AddSingleton(composition.Policy);
         builder.Services.AddWorkspaceServices();
         builder.Services.AddPluginServices();
         builder.Services.AddCodeActionServices();
         builder.Services.AddHostServices();
         builder.Services.AddMcpTools(
             composition.CodeActions.Tools,
-            composition.Options.ErrorReporting);
+            composition.Options.ErrorReporting,
+            composition.Policy);
+
         builder.Services.AddStartupPrerequisites();
         builder.Services.AddRoslynWorkbenchMcpServer();
 

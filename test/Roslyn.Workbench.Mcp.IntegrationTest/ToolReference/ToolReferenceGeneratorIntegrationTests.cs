@@ -1,7 +1,7 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Json.Schema;
-using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 using Roslyn.Workbench.Mcp.ToolReferenceGenerator;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolReference;
@@ -77,7 +77,7 @@ public sealed class ToolReferenceGeneratorIntegrationTests
         var catalogSchema = JsonSchema.Build(catalogSchemaDocument.RootElement);
         catalogSchema.Evaluate(catalog.RootElement).IsValid.Should().BeTrue();
         var tools = catalog.RootElement.GetProperty("tools").EnumerateArray().ToArray();
-        tools.Should().HaveCount(56);
+        tools.Should().HaveCount(57);
         tools.Select(static tool => tool.GetProperty("name").GetString()).Should().BeInAscendingOrder(StringComparer.Ordinal);
         tools.Select(static tool => tool.GetProperty("name").GetString()).Should().OnlyHaveUniqueItems();
         tools.Select(static tool => tool.GetProperty("area").GetString()).Should().Contain(["Server", "CorePlugin", "CodeAction"]);
@@ -109,10 +109,16 @@ public sealed class ToolReferenceGeneratorIntegrationTests
                 [
                     "inspection-only",
                     "transactional",
+                    "approval-required",
                     "autonomous-trusted",
                 ]);
             }
         }
+
+        var transactionCommitPage = Encoding.UTF8.GetString(firstFiles["transaction-commit.md"]);
+        transactionCommitPage.Should().Contain("### Transactional and autonomous-trusted request");
+        transactionCommitPage.Should().Contain("### Approval-required receipt request");
+        transactionCommitPage.Should().Contain("`receiptId`");
     }
 
     [Theory]

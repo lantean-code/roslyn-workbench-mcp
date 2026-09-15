@@ -224,6 +224,12 @@ internal static class ToolReferenceWriter
             return;
         }
 
+        if (schema["anyOf"] is JsonArray requestVariants)
+        {
+            AppendTitledPropertyVariants(builder, requestVariants);
+            return;
+        }
+
         if (schema["oneOf"] is JsonArray variants)
         {
             foreach (var variantNode in variants)
@@ -245,6 +251,25 @@ internal static class ToolReferenceWriter
         }
 
         builder.AppendLine("This object has no properties.");
+    }
+
+    private static void AppendTitledPropertyVariants(StringBuilder builder, JsonArray variants)
+    {
+        foreach (var variantNode in variants)
+        {
+            if (variantNode is not JsonObject variant
+                || variant["properties"] is not JsonObject variantProperties)
+            {
+                continue;
+            }
+
+            var title = variant["title"]?.GetValue<string>() ?? "Request variant";
+            builder.Append("### ");
+            builder.AppendLine(title);
+            builder.AppendLine();
+            AppendProperties(builder, variant, variantProperties);
+            builder.AppendLine();
+        }
     }
 
     private static void AppendProperties(StringBuilder builder, JsonObject schema, JsonObject properties)
@@ -317,7 +342,7 @@ internal static class ToolReferenceWriter
         builder.AppendLine();
         builder.AppendLine("### Continuations and required actions");
         builder.AppendLine();
-        builder.AppendLine("A non-success response may include a structured continuation at the following schema location. Follow its tool call or user-action instruction instead of guessing how to retry:");
+        builder.AppendLine("A response may include a structured continuation at the following schema location. Follow its tool call or user-action instruction instead of guessing how to continue:");
         builder.AppendLine();
         foreach (var location in locations.Distinct(StringComparer.Ordinal))
         {
@@ -556,7 +581,12 @@ internal static class ToolReferenceWriter
             return $"{declaredType ?? DescribeJsonValueType(constant)} constant ({constant?.ToJsonString() ?? "null"})";
         }
 
-        return declaredType ?? (schema.ContainsKey("oneOf") ? "oneOf" : "object");
+        if (declaredType is not null)
+        {
+            return declaredType;
+        }
+
+        return schema.ContainsKey("oneOf") ? "oneOf" : "object";
     }
 
     private static string DescribeJsonValueType(JsonNode? value)
@@ -663,7 +693,7 @@ internal static class ToolReferenceWriter
                         "type": "array",
                         "minItems": 1,
                         "uniqueItems": true,
-                        "items": { "enum": ["inspection-only", "transactional", "autonomous-trusted"] }
+                        "items": { "enum": ["inspection-only", "transactional", "approval-required", "autonomous-trusted"] }
                       },
                       "workflowId": { "type": "string", "minLength": 1 },
                       "workflowTitle": { "type": "string", "minLength": 1 },

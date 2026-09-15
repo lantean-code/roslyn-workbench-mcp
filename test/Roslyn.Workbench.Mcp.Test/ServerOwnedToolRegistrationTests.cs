@@ -49,6 +49,25 @@ public sealed class ServerOwnedToolRegistrationTests
     }
 
     [Fact]
+    public void GIVEN_ReceiptApprovalPolicy_WHEN_RegisteringServerOwnedTools_THEN_ShouldPublishOnlyReceiptReviewWorkflow()
+    {
+        var services = new ServiceCollection();
+        var policy = OperationalPolicyResolver.Resolve(OperationalMode.ApprovalRequired);
+
+        ServerOwnedToolRegistration.AddMcpTools(services, new ErrorReportingOptions(), policy);
+
+        var implementations = services
+            .Where(item => item.ServiceType == typeof(McpServerTool))
+            .Select(item => item.ImplementationType)
+            .ToArray();
+
+        implementations.Should().Contain(typeof(TransactionReviewTool));
+        implementations.Should().Contain(typeof(TransactionReceiptCommitTool));
+        implementations.Should().NotContain(typeof(TransactionPreviewTool));
+        implementations.Should().NotContain(typeof(TransactionCommitTool));
+    }
+
+    [Fact]
     public void GIVEN_NeverConsent_WHEN_RegisteringServerOwnedTools_THEN_ShouldOmitReportingTools()
     {
         var services = new ServiceCollection();

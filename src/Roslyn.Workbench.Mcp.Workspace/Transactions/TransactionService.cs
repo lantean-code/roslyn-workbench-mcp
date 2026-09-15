@@ -15,8 +15,16 @@ internal sealed class TransactionService : ITransactionService
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ITransactionCommitService _transactionCommitService;
     private readonly IWorkspaceDiffBuilder _diffBuilder;
+    private readonly ITransactionReviewBuilder? _reviewBuilder;
+    private readonly ITransactionReviewIdentityService? _reviewIdentityService;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+
+    private ITransactionReviewBuilder ReviewBuilder => _reviewBuilder
+        ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
+
+    private ITransactionReviewIdentityService ReviewIdentityService => _reviewIdentityService
+        ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionService"/> class.
@@ -53,6 +61,50 @@ internal sealed class TransactionService : ITransactionService
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionService"/> class.
+    /// </summary>
+    /// <param name="options">The configured transaction revision limit.</param>
+    /// <param name="sessionStore">The store that publishes transactional session state.</param>
+    /// <param name="sessionAcquirer">The component that acquires the workspace session used by a transaction operation.</param>
+    /// <param name="workspaceStateTransitions">The coordinator that applies workspace lifecycle state changes.</param>
+    /// <param name="snapshotGuard">The guard that rejects operations targeting a stale transaction snapshot.</param>
+    /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
+    /// <param name="transactionCommitService">The service that provides transaction commit operations.</param>
+    /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
+    /// <param name="reviewBuilder">The builder that produces canonical transaction review receipts.</param>
+    /// <param name="reviewIdentityService">The service that validates transaction review identity bindings.</param>
+    /// <param name="resolverFactory">The factory used to create the required resolver.</param>
+    /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    public TransactionService(
+        IOptions<WorkspaceOptions> options,
+        IWorkspaceSessionStore sessionStore,
+        IWorkspaceSessionAcquirer sessionAcquirer,
+        IWorkspaceStateTransitions workspaceStateTransitions,
+        ISnapshotGuard snapshotGuard,
+        IWorkspaceOperationResultFactory resultFactory,
+        ITransactionCommitService transactionCommitService,
+        IWorkspaceDiffBuilder diffBuilder,
+        ITransactionReviewBuilder reviewBuilder,
+        ITransactionReviewIdentityService reviewIdentityService,
+        IWorkspaceResolverFactory resolverFactory,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        : this(
+            options,
+            sessionStore,
+            sessionAcquirer,
+            workspaceStateTransitions,
+            snapshotGuard,
+            resultFactory,
+            transactionCommitService,
+            diffBuilder,
+            resolverFactory,
+            instanceStatusPublisher)
+    {
+        _reviewBuilder = reviewBuilder;
+        _reviewIdentityService = reviewIdentityService;
     }
 
     /// <summary>
@@ -289,6 +341,163 @@ internal sealed class TransactionService : ITransactionService
     }
 
     /// <summary>
+    /// Produces a canonical review receipt for the active transaction.
+    /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
+    /// <param name="alias">The alias used to address the registered item.</param>
+    /// <param name="path">The path associated with the operation.</param>
+    /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
+    /// <param name="document">The optional document whose detailed diff should be returned.</param>
+    /// <param name="includeDiff">Whether the operation result should include a detailed source diff.</param>
+    /// <param name="contextLines">The number of unchanged context lines to include around each difference.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>A task that completes with the canonical transaction review.</returns>
+    public async ValueTask<WorkspaceOperationResult<TransactionReviewOutcome>> ReviewAsync(
+        Guid? workspaceId,
+        string? alias,
+        string? path,
+        SnapshotPrecondition? expectedSnapshot,
+        DocumentSelector? document,
+        bool includeDiff,
+        int contextLines,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_options.ReceiptAuthorisationRequired)
+        {
+            return _resultFactory.Rejected<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.TransactionReviewUnavailable,
+                "Transaction receipt review is not enabled by Host operational policy.");
+        }
+
+        var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
+        {
+            DisposeFailedAcquisition(acquisition);
+            return CreateAcquisitionFailureResult<TransactionReviewOutcome>(acquisition, acquisition.Error);
+        }
+
+        using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
+        if (session?.Transaction is null)
+        {
+            WorkspaceOperationContext? rejectionContext = null;
+            if (session is not null)
+            {
+                rejectionContext = WorkspaceOperationContextFactory.Create(session);
+            }
+
+            return _resultFactory.Rejected<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.TransactionRequired,
+                "Start a transaction before reviewing changes.",
+                RequiredAction.StartTransaction,
+                rejectionContext);
+        }
+
+        var context = WorkspaceOperationContextFactory.Create(session);
+        var snapshotValidation = _snapshotGuard.Validate(session, expectedSnapshot);
+        if (!snapshotValidation.IsValid)
+        {
+            return _resultFactory.Conflict<TransactionReviewOutcome>(snapshotValidation.Error, context);
+        }
+
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
+        {
+            return _resultFactory.Conflict<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.TransactionConflicted,
+                "Roll back the conflicted transaction before reviewing changes.",
+                RequiredAction.RollbackTransaction,
+                context);
+        }
+
+        if (session.Transaction.CurrentRevision == 0)
+        {
+            return _resultFactory.Rejected<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.TransactionRequired,
+                "Stage at least one change before producing a transaction review receipt.",
+                context: context);
+        }
+
+        var diffDocumentResult = ResolveReviewDiffDocument(session, document, includeDiff, context);
+        if (diffDocumentResult.Error is not null)
+        {
+            return diffDocumentResult.Error;
+        }
+
+        var buildResult = await ReviewBuilder.CreateAsync(
+            session,
+            diffDocumentResult.Document,
+            contextLines,
+            cancellationToken);
+
+        if (!buildResult.IsSucceeded)
+        {
+            return _resultFactory.Conflict<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.TransactionConflicted,
+                buildResult.ErrorMessage,
+                RequiredAction.RollbackTransaction,
+                context);
+        }
+
+        return _resultFactory.Succeeded(buildResult.Outcome, context);
+    }
+
+    /// <inheritdoc/>
+    public ValueTask<WorkspaceOperationResult<TransactionReviewIdentity>> ValidateReceiptAsync(
+        Guid? workspaceId,
+        string? alias,
+        string? path,
+        SnapshotPrecondition? expectedSnapshot,
+        TransactionReviewIdentity identity,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_options.ReceiptAuthorisationRequired)
+        {
+            return ValueTask.FromResult(_resultFactory.Rejected<TransactionReviewIdentity>(
+                WorkspaceErrorCodes.TransactionReviewUnavailable,
+                "Transaction receipt validation is not enabled by Host operational policy."));
+        }
+
+        var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
+        {
+            DisposeFailedAcquisition(acquisition);
+            return ValueTask.FromResult(
+                CreateAcquisitionFailureResult<TransactionReviewIdentity>(acquisition, acquisition.Error));
+        }
+
+        using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
+        var transaction = session.Transaction;
+        var context = WorkspaceOperationContextFactory.Create(session);
+        if (transaction is null)
+        {
+            return ValueTask.FromResult(_resultFactory.Rejected<TransactionReviewIdentity>(
+                WorkspaceErrorCodes.TransactionReceiptMismatch,
+                "The reviewed transaction is no longer active. Run transaction-review again after starting or updating a transaction.",
+                RequiredAction.ReviewTransaction,
+                context));
+        }
+
+        var snapshotValidation = _snapshotGuard.Validate(session, expectedSnapshot);
+        var identityMatches = ReviewIdentityService.IsBoundTo(identity, session, transaction);
+
+        if (!snapshotValidation.IsValid || !identityMatches)
+        {
+            return ValueTask.FromResult(_resultFactory.Conflict<TransactionReviewIdentity>(
+                WorkspaceErrorCodes.TransactionReceiptMismatch,
+                "The transaction changed after this receipt was created. Run transaction-review again and approve the new receipt.",
+                RequiredAction.ReviewTransaction,
+                context));
+        }
+
+        return ValueTask.FromResult(_resultFactory.Succeeded(identity, context));
+    }
+
+    /// <summary>
     /// Moves the transaction backward or forward through revision history.
     /// </summary>
     /// <param name="workspaceId">The workspace identifier.</param>
@@ -390,11 +599,29 @@ internal sealed class TransactionService : ITransactionService
     /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
     /// <returns>A task that completes with the workspace operation result.</returns>
+    public ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
+        Guid? workspaceId,
+        string? alias,
+        string? path,
+        SnapshotPrecondition? expectedSnapshot,
+        CancellationToken cancellationToken)
+    {
+        return CommitAsync(
+            workspaceId,
+            alias,
+            path,
+            expectedSnapshot,
+            receiptAuthorisation: null,
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
         Guid? workspaceId,
         string? alias,
         string? path,
         SnapshotPrecondition? expectedSnapshot,
+        TransactionReceiptAuthorisation? receiptAuthorisation,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -407,7 +634,11 @@ internal sealed class TransactionService : ITransactionService
         }
 
         using var leaseScope = acquisition.Lease;
-        return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken);
+        return await _transactionCommitService.CommitAsync(
+            acquisition.Selection,
+            expectedSnapshot,
+            receiptAuthorisation,
+            cancellationToken);
     }
 
     /// <summary>
@@ -486,6 +717,80 @@ internal sealed class TransactionService : ITransactionService
         var updatedContext = WorkspaceOperationContextFactory.Create(updatedSession);
 
         return _resultFactory.Succeeded(outcome, updatedContext);
+    }
+
+    private ReviewDiffDocumentResolution ResolveReviewDiffDocument(
+        WorkspaceSessionSnapshot session,
+        DocumentSelector? document,
+        bool includeDiff,
+        WorkspaceOperationContext context)
+    {
+        if (!includeDiff)
+        {
+            return ReviewDiffDocumentResolution.Succeeded(document: null);
+        }
+
+        if (document is null)
+        {
+            var error = _resultFactory.Rejected<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.InvalidRequest,
+                "A document selector is required when includeDiff is true.",
+                context: context);
+
+            return ReviewDiffDocumentResolution.Failed(error);
+        }
+
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("Review document resolution requires an active transaction.");
+
+        var snapshot = WorkspaceSnapshotPreconditionFactory.Create(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        var resolver = _resolverFactory.Create(
+            transaction.CurrentSolution,
+            session.Workspace,
+            session.ProjectTargetFrameworks,
+            snapshot);
+
+        var resolution = resolver.ResolveDocument(document);
+        if (!resolution.IsResolved)
+        {
+            var (errorCode, message) = resolution.Status switch
+            {
+                SelectorResolveStatus.Ambiguous => (
+                    WorkspaceErrorCodes.DocumentAmbiguous,
+                    "The document selector matched multiple results."),
+                SelectorResolveStatus.Invalid => (
+                    WorkspaceErrorCodes.InvalidRequest,
+                    "The document selector contains an invalid path."),
+                _ => (
+                    WorkspaceErrorCodes.DocumentNotFound,
+                    "The document selector did not match any result."),
+            };
+
+            var error = _resultFactory.Rejected<TransactionReviewOutcome>(
+                errorCode,
+                message,
+                RequiredAction.ResolveTargetAgain,
+                context);
+
+            return ReviewDiffDocumentResolution.Failed(error);
+        }
+
+        var diffDocument = resolver.CreateDocumentReference(resolution.Value);
+        if (diffDocument is null)
+        {
+            var error = _resultFactory.Rejected<TransactionReviewOutcome>(
+                WorkspaceErrorCodes.DocumentNotFound,
+                "The resolved document cannot be represented within this workspace.",
+                RequiredAction.ResolveTargetAgain,
+                context);
+
+            return ReviewDiffDocumentResolution.Failed(error);
+        }
+
+        return ReviewDiffDocumentResolution.Succeeded(diffDocument);
     }
 
     private static string GetWorkspaceDisplayName(WorkspaceSessionSnapshot? session)

@@ -4,7 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile Condition="'$(EnforceCodeStyleInBuild)' == 'true'">true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors Condition="'$(EnforceCodeStyleInBuild)' == 'true'">$(WarningsNotAsErrors);IDE0005</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA1014;CA2007</NoWarn>
     <LangVersion>latest</LangVersion>
     <RoslynWorkbenchVersion Condition="'$(RoslynWorkbenchVersion)' == ''">0.0.0-dev</RoslynWorkbenchVersion>

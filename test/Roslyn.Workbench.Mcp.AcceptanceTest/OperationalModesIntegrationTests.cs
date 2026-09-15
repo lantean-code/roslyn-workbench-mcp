@@ -95,17 +95,183 @@ public sealed class OperationalModesIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_ApprovalRequiredMode_WHEN_StartingHost_THEN_ShouldFailUntilReceiptApprovalIsImplemented()
+    public async Task GIVEN_ApprovalRequiredMode_WHEN_ReviewingAndApprovingReceipt_THEN_ShouldPublishExactChangeWorkflowAndRejectReplay()
     {
-        var action = async () => await AcceptanceProcessFixture.StartPublishedHostAsync(
+        ValueTask<ElicitResult> HandleElicitationAsync(
+            ElicitRequestParams? request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AssertReceiptApproval(request);
+            return ValueTask.FromResult(CreateElicitationResult("approve-this-receipt"));
+        }
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
+            elicitationHandler: HandleElicitationAsync,
             operationalMode: "approval-required");
 
-        var exception = await action.Should().ThrowAsync<InvalidOperationException>();
+        try
+        {
+            var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+            var toolNames = tools.Select(static tool => tool.Name).ToArray();
+            toolNames.Should().Contain("transaction-review");
+            toolNames.Should().Contain("transaction-commit");
+            toolNames.Should().NotContain("transaction-preview");
 
-        exception.Which.Message.Should().Contain("MCP initialization failed");
-        exception.Which.Message.Should().Contain(
-            "approval-required operational mode is unavailable until receipt-bound approval is implemented");
+            var previewInvocation = async () => await target.CallToolAsync(
+                "transaction-preview",
+                new Dictionary<string, object?>(),
+                TestContext.Current.CancellationToken);
+
+            await previewInvocation.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*transaction-preview*");
+
+            target.ServerInstructions.Should().Contain("call transaction-review for an exact-change receipt");
+            target.ServerInstructions.Should().Contain("transaction-preview is not available");
+
+            var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+            var workspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"), "sample");
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+            var mutation = await RenameAsync(target, workspaceSelector, workspace, "ReceiptApprovedClass");
+            var mutationSnapshot = AcceptanceProtocol.GetSnapshot(mutation);
+            var review = await ReviewAsync(target, workspaceSelector, mutationSnapshot);
+            var reviewData = AcceptanceProtocol.GetSuccessData(review);
+            var receiptId = reviewData.GetProperty("receiptId").GetString()
+                ?? throw new InvalidOperationException("The transaction review did not return a receipt identifier.");
+
+            receiptId.Should().NotBeNullOrWhiteSpace();
+            reviewData.GetProperty("changeSetDigest").GetString().Should().HaveLength(64);
+            reviewData.GetProperty("modifiedDocumentCount").GetInt32().Should().Be(1);
+
+            var commit = await CommitReceiptAsync(target, workspaceSelector, AcceptanceProtocol.GetSnapshot(review), receiptId);
+
+            commit.IsError.Should().NotBeTrue();
+            (await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken)).Should().Contain("class ReceiptApprovedClass");
+
+            var replay = await CommitReceiptAsync(target, workspaceSelector, mutationSnapshot, receiptId);
+            replay.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(replay).GetProperty("code").GetString().Should().Be("TransactionReceiptUnavailable");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "ApprovalUnavailable")]
+    [InlineData(true, "TransactionCommitNotApproved")]
+    public async Task GIVEN_ApprovalRequiredCommitCannotBeApproved_WHEN_Committing_THEN_ShouldRetainFilesTransactionAndReceipt(
+        bool clientCanElicit,
+        string expectedCode)
+    {
+        ValueTask<ElicitResult> RefuseAsync(
+            ElicitRequestParams? request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AssertReceiptApproval(request);
+            return ValueTask.FromResult(CreateElicitationResult("do-not-commit"));
+        }
+
+        Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? handler = null;
+        if (clientCanElicit)
+        {
+            handler = RefuseAsync;
+        }
+
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            elicitationHandler: handler,
+            operationalMode: "approval-required");
+
+        try
+        {
+            var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+            var originalBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
+            var workspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"), "sample");
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+            var mutation = await RenameAsync(target, workspaceSelector, workspace, "UnapprovedClass");
+            var review = await ReviewAsync(target, workspaceSelector, AcceptanceProtocol.GetSnapshot(mutation));
+            var firstReceiptId = AcceptanceProtocol.GetSuccessData(review).GetProperty("receiptId").GetString()
+                ?? throw new InvalidOperationException("The transaction review did not return a receipt identifier.");
+
+            var commit = await CommitReceiptAsync(
+                target,
+                workspaceSelector,
+                AcceptanceProtocol.GetSnapshot(review),
+                firstReceiptId);
+
+            commit.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(commit).GetProperty("code").GetString().Should().Be(expectedCode);
+            (await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken)).Should().Equal(originalBytes);
+
+            var repeatedReview = await ReviewAsync(target, workspaceSelector, AcceptanceProtocol.GetSnapshot(review));
+            var repeatedReceiptId = AcceptanceProtocol.GetSuccessData(repeatedReview).GetProperty("receiptId").GetString();
+            repeatedReceiptId.Should().Be(firstReceiptId);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    private static Task<CallToolResult> ReviewAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        IReadOnlyDictionary<string, object?> expectedSnapshot)
+    {
+        return target.CallToolAsync(
+            "transaction-review",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["expectedSnapshot"] = expectedSnapshot,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static Task<CallToolResult> CommitReceiptAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        IReadOnlyDictionary<string, object?> expectedSnapshot,
+        string receiptId)
+    {
+        return target.CallToolAsync(
+            "transaction-commit",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["expectedSnapshot"] = expectedSnapshot,
+                ["receiptId"] = receiptId,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static void AssertReceiptApproval(ElicitRequestParams? elicitation)
+    {
+        var request = elicitation
+            ?? throw new InvalidOperationException("The receipt approval elicitation was not supplied.");
+
+        request.Message.Should().Contain("Commit reviewed change");
+        request.Message.Should().Contain("affecting 1 file(s)");
+
+        var schema = request.RequestedSchema
+            ?? throw new InvalidOperationException("The receipt approval did not include a form schema.");
+
+        var choiceSchema = schema.Properties["choice"]
+            .Should()
+            .BeOfType<ElicitRequestParams.TitledSingleSelectEnumSchema>()
+            .Which;
+
+        choiceSchema.OneOf.Select(static option => option.Const).Should().Equal(
+            "approve-this-receipt",
+            "do-not-commit");
     }
 
     [Fact]

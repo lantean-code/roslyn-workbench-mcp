@@ -33,12 +33,12 @@ Use this sequence for mutations:
 1. Complete the queries needed to identify the change.
 2. Start a transaction only when ready to mutate.
 3. Apply one coherent mutation or a tightly related set of mutations.
-4. Inspect `transaction-preview` and, when useful, `transaction-history`.
-5. Call `transaction-commit` or `transaction-rollback` promptly.
+4. Follow the negotiated mode-specific review workflow: inspect `transaction-preview` in transactional or autonomous-trusted mode, or call `transaction-review` in approval-required mode and inspect its exact-change receipt. Use `transaction-history` when useful.
+5. Call `transaction-commit` or `transaction-rollback` promptly. In approval-required mode, pass the current review's `receiptId`; if approval or receipt validation fails, explain that no files were written and follow the returned continuation rather than retrying with a learned schema from another mode.
 
-Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.
+Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview or review is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.
 
-Coordinate filesystem activity with the user. While `transaction-commit` is in progress, neither the user nor another development tool should edit the source paths shown in `transaction-preview`, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.
+Coordinate filesystem activity with the user. While `transaction-commit` is in progress, neither the user nor another development tool should edit the source paths shown in `transaction-preview` or `transaction-review`, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.
 
 `transaction-commit` writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.
 

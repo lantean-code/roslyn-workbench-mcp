@@ -4,7 +4,6 @@ using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
-using Sentry;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
@@ -75,6 +74,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             {
                 var configured = configuredStartupOptions.Value;
                 options.SourceMutationEnabled = operationalPolicy.SourceMutationEnabled;
+                options.ReceiptAuthorisationRequired = operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval;
                 options.DefaultMaxResults = configured.DefaultMaxResults;
                 options.MaxConcurrentQueries = configured.MaxConcurrentQueries;
                 options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
@@ -119,7 +119,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     /// Registers workspace loading, coordination, caching, mutation, transaction and recovery services.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
-    public static void AddWorkspaceServices(this IServiceCollection services)
+    /// <param name="operationalPolicy">The policy controlling mode-specific Workspace services.</param>
+    public static void AddWorkspaceServices(
+        this IServiceCollection services,
+        OperationalPolicy operationalPolicy)
     {
         services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
@@ -179,6 +182,13 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceMutationCandidateIdentityService, WorkspaceMutationCandidateIdentityService>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
+        if (operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval)
+        {
+            services.AddSingleton<ITransactionReviewDocumentFactory, TransactionReviewDocumentFactory>();
+            services.AddSingleton<ITransactionReviewIdentityService, TransactionReviewIdentityService>();
+            services.AddSingleton<ITransactionReviewBuilder, TransactionReviewBuilder>();
+        }
+
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
         services.AddSingleton<IProjectStructureService, ProjectStructureService>();
         services.AddSingleton<IProjectTargetFrameworkResolver, ProjectTargetFrameworkResolver>();
@@ -237,7 +247,10 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     /// Registers protocol, plugin loading, status and error-reporting services owned by the MCP host.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
-    public static void AddHostServices(this IServiceCollection services)
+    /// <param name="operationalPolicy">The policy controlling mode-specific Host services.</param>
+    public static void AddHostServices(
+        this IServiceCollection services,
+        OperationalPolicy operationalPolicy)
     {
         services.AddSingleton(TimeProvider.System);
         services.AddBoundedExpiringStore<Guid, CapturedErrorRecord, CapturedErrorRetentionPolicy>();
@@ -250,6 +263,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IErrorReportingAvailabilityService, ErrorReportingAvailabilityService>();
         services.AddSingleton<IMcpUserInteractionServiceFactory, McpUserInteractionServiceFactory>();
         services.AddSingleton<ICommitConfirmationState, CommitConfirmationState>();
+        if (operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval)
+        {
+            services.AddSingleton<ITransactionReceiptStore, TransactionReceiptStore>();
+        }
+
         AddErrorReportDispatcher(services, SentrySdkPolicy.EmbeddedConfiguration);
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
         services.AddSingleton<IToolSchemaFactory, ToolSchemaFactory>();

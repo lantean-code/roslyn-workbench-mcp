@@ -18,6 +18,7 @@ public sealed class RequiredActionContinuationMapperTests
                 { RequiredAction.Retry, "RetryRequest", null, null },
                 { RequiredAction.ResolveRecovery, "ResolveExternally", null, null },
                 { RequiredAction.NarrowRequest, "ReviseRequest", null, null },
+                { RequiredAction.ReviewTransaction, "CallTool", "transaction-review", null },
             };
         }
     }

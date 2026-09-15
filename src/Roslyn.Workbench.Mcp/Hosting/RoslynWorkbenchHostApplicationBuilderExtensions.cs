@@ -23,10 +23,10 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         builder.Services.AddSingleton(composition.Configuration);
         builder.Services.AddSingleton(composition.CodeActions);
         builder.Services.AddSingleton(composition.Policy);
-        builder.Services.AddWorkspaceServices();
+        builder.Services.AddWorkspaceServices(composition.Policy);
         builder.Services.AddPluginServices();
         builder.Services.AddCodeActionServices();
-        builder.Services.AddHostServices();
+        builder.Services.AddHostServices(composition.Policy);
         builder.Services.AddMcpTools(
             composition.CodeActions.Tools,
             composition.Options.ErrorReporting,

@@ -54,11 +54,6 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
         {
             failures.Add($"{nameof(StartupOptions.OperationalMode)} must be a supported value.");
         }
-        else if (options.OperationalMode == OperationalMode.ApprovalRequired)
-        {
-            failures.Add("The approval-required operational mode is unavailable until receipt-bound approval is implemented.");
-        }
-
         if (!options.ExternalPluginsEnabled && options.PluginDirectories.Count > 0)
         {
             failures.Add("Plugin directories require the --enable-plugins switch.");

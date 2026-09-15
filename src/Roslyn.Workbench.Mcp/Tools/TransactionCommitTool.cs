@@ -5,14 +5,13 @@ namespace Roslyn.Workbench.Mcp.Tools;
 /// <summary>
 /// Commits the active workspace transaction to disk.
 /// </summary>
-internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCommitRequest, TransactionCommitData>
+internal sealed class TransactionCommitTool : TransactionCommitToolBase<TransactionCommitRequest>
 {
     private const string _commitOnce = "commit-once";
     private const string _commitForSession = "commit-for-session";
     private const string _doNotCommit = "do-not-commit";
     private static readonly UserInteractionRequest _confirmationRequest = CreateConfirmationRequest();
 
-    private readonly ITransactionService _transactionService;
     private readonly OperationalPolicy _operationalPolicy;
     private readonly IMcpUserInteractionServiceFactory _interactionServiceFactory;
     private readonly ICommitConfirmationState _confirmationState;
@@ -36,16 +35,12 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
         IMcpUserInteractionServiceFactory interactionServiceFactory,
         ICommitConfirmationState confirmationState)
         : base(
-            startupOptions: startupOptions,
-            protocolFactory: protocolFactory,
-            requestBinder: requestBinder,
-            name: ServerOwnedToolRegistration.TransactionCommitName,
-            title: "Transaction Commit",
-            description: "Commits the current staged transaction to disk.",
-            readOnly: false,
-            destructive: true)
+            startupOptions,
+            protocolFactory,
+            requestBinder,
+            transactionService,
+            "Commits the current staged transaction to disk.")
     {
-        _transactionService = transactionService;
         _operationalPolicy = operationalPolicy;
         _interactionServiceFactory = interactionServiceFactory;
         _confirmationState = confirmationState;
@@ -56,18 +51,10 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
         TransactionCommitRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _transactionService.CommitAsync(
-            request.Workspace?.WorkspaceId,
-            request.Workspace?.Alias,
-            request.Workspace?.Path,
-            request.ExpectedSnapshot,
+        return await CommitAuthorisedAsync(
+            request,
+            receiptAuthorisation: null,
             cancellationToken);
-
-        return WorkspaceToolResultMapper.Map(result, static data => new TransactionCommitData
-        {
-            Committed = data.Committed,
-            Transaction = data.Transaction,
-        });
     }
 
     /// <inheritdoc/>
@@ -170,7 +157,7 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
 
     private static ToolResult<TransactionCommitData> CreateNotApprovedFailure()
     {
-        return CreateFailure(
+        return CreateCommitFailure(
             "TransactionCommitNotApproved",
             "No files were persisted because transaction commit was not approved. The transaction remains active. If no prompt was displayed, the client may have blocked MCP elicitation; enable interactive MCP requests before a deliberate retry.",
             requiredAction: null);
@@ -178,7 +165,7 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
 
     private static ToolResult<TransactionCommitData> CreateUnavailableFailure()
     {
-        return CreateFailure(
+        return CreateCommitFailure(
             "ApprovalUnavailable",
             "No files were persisted because the connected MCP client could not complete commit confirmation. The transaction remains active. Enable interactive MCP requests before a deliberate retry.",
             RequiredAction.Retry);
@@ -186,23 +173,9 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
 
     private static ToolResult<TransactionCommitData> CreateInvalidResponseFailure()
     {
-        return CreateFailure(
+        return CreateCommitFailure(
             "InvalidApprovalResponse",
             "No files were persisted because the client returned an invalid commit-confirmation response. The transaction remains active.",
             RequiredAction.Retry);
-    }
-
-    private static ToolResult<TransactionCommitData> CreateFailure(
-        string code,
-        string message,
-        RequiredAction? requiredAction)
-    {
-        var error = new ToolError
-        {
-            Code = code,
-            Message = message,
-        };
-
-        return ToolResult.Rejected<TransactionCommitData>(error, requiredAction);
     }
 }

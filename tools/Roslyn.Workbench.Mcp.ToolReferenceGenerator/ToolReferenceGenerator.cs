@@ -21,6 +21,7 @@ internal sealed class ToolReferenceGenerator
     [
         "inspection-only",
         "transactional",
+        "approval-required",
         "autonomous-trusted",
     ];
 
@@ -69,11 +70,48 @@ internal sealed class ToolReferenceGenerator
         IReadOnlyList<ToolReferenceExample> examples,
         CancellationToken cancellationToken)
     {
+        var tools = await ComposeToolsAsync(
+            stateDirectory,
+            "autonomous-trusted",
+            cancellationToken);
+
+        var approvalTools = await ComposeToolsAsync(
+            stateDirectory,
+            "approval-required",
+            cancellationToken);
+
+        var approvalReview = approvalTools.Single(static tool => tool.Name == ServerOwnedToolRegistration.TransactionReviewName);
+        var approvalCommit = approvalTools.Single(static tool => tool.Name == ServerOwnedToolRegistration.TransactionCommitName);
+        var commitIndex = tools.FindIndex(static tool => tool.Name == ServerOwnedToolRegistration.TransactionCommitName);
+        tools[commitIndex] = CreateCommitReferenceTool(tools[commitIndex], approvalCommit);
+        tools.Add(approvalReview);
+
+        tools.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
+        EnsureUniqueNames(tools);
+
+        var entries = new List<ToolReferenceEntry>(tools.Count);
+        foreach (var tool in tools)
+        {
+            var matchingExamples = examples
+                .Where(example => StringComparer.Ordinal.Equals(example.Tool, tool.Name))
+                .ToArray();
+
+            entries.Add(CreateEntry(tool, matchingExamples));
+        }
+
+        return entries;
+    }
+
+    private static async Task<List<Tool>> ComposeToolsAsync(
+        string stateDirectory,
+        string operationalMode,
+        CancellationToken cancellationToken)
+    {
         var builder = Host.CreateApplicationBuilder();
         builder.AddRoslynWorkbench(
         [
             "--operational-mode",
-            "autonomous-trusted",
+            operationalMode,
             "--state-directory",
             stateDirectory,
             "--tool-output-schema-mode",
@@ -92,32 +130,45 @@ internal sealed class ToolReferenceGenerator
 
         await pluginStartup.StartingAsync(cancellationToken);
 
-        var tools = new List<Tool>();
-        foreach (var serverTool in serviceProvider.GetServices<McpServerTool>())
-        {
-            tools.Add(serverTool.ProtocolTool);
-        }
+        var tools = serviceProvider.GetServices<McpServerTool>()
+            .Select(static tool => tool.ProtocolTool)
+            .ToList();
 
         var pluginCatalog = serviceProvider.GetRequiredService<IPluginCatalogState>().Current;
-        foreach (var pluginTool in pluginCatalog.Tools.Values)
+        tools.AddRange(pluginCatalog.Tools.Values.Select(static tool => tool.ProtocolTool));
+        return tools;
+    }
+
+    private static Tool CreateCommitReferenceTool(Tool standardCommit, Tool receiptCommit)
+    {
+        var inputSchema = new JsonObject
         {
-            tools.Add(pluginTool.ProtocolTool);
-        }
+            ["type"] = "object",
+            ["anyOf"] = new JsonArray
+            {
+                CloneSchemaWithTitle(standardCommit.InputSchema, "Transactional and autonomous-trusted request"),
+                CloneSchemaWithTitle(receiptCommit.InputSchema, "Approval-required receipt request"),
+            },
+        };
 
-        tools.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
-        EnsureUniqueNames(tools);
-
-        var entries = new List<ToolReferenceEntry>(tools.Count);
-        foreach (var tool in tools)
+        return new Tool
         {
-            var matchingExamples = examples
-                .Where(example => StringComparer.Ordinal.Equals(example.Tool, tool.Name))
-                .ToArray();
+            Name = standardCommit.Name,
+            Title = standardCommit.Title,
+            Description = "Commits the active transaction. Transactional and autonomous-trusted modes use the standard request; approval-required mode requires a transaction-review receipt and requests one-use approval for that exact change.",
+            InputSchema = JsonSerializer.SerializeToElement(inputSchema),
+            OutputSchema = standardCommit.OutputSchema,
+            Annotations = standardCommit.Annotations,
+        };
+    }
 
-            entries.Add(CreateEntry(tool, matchingExamples));
-        }
+    private static JsonObject CloneSchemaWithTitle(JsonElement schema, string title)
+    {
+        var clone = JsonNode.Parse(schema.GetRawText()) as JsonObject
+            ?? throw new InvalidOperationException("A composed transaction-commit input schema must be an object.");
 
-        return entries;
+        clone["title"] = title;
+        return clone;
     }
 
     private static IReadOnlyList<ToolReferenceExample> LoadExamples(string file)
@@ -258,6 +309,7 @@ internal sealed class ToolReferenceGenerator
                         changeStaged = true;
                         break;
                     case "transaction-preview":
+                    case "transaction-review":
                     case "transaction-commit":
                         EnsureTransactionStarted(workflow.Key, example, transactionStarted);
                         if (!changeStaged)

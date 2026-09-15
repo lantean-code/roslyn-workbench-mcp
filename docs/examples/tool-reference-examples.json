@@ -275,6 +275,101 @@
       ]
     },
     {
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 1,
+      "id": "start-receipt-approved-transaction",
+      "title": "Start the approval-required transaction",
+      "purpose": "Create the transaction whose exact persistence set will later receive one-use approval.",
+      "expectedOutcome": "The sample workspace owns a new transaction at its initial revision.",
+      "tool": "transaction-start",
+      "request": {
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "operationalModes": [
+        "approval-required"
+      ]
+    },
+    {
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 2,
+      "id": "rename-for-receipt-approval",
+      "title": "Stage the source change",
+      "purpose": "Stage one coherent mutation before producing its exact-change receipt.",
+      "expectedOutcome": "The rename advances the active transaction revision without writing source files.",
+      "tool": "rename-symbol",
+      "request": {
+        "symbol": {
+          "documentationCommentId": "T:Sample.Widget"
+        },
+        "newName": "RenamedWidget",
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 0
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "operationalModes": [
+        "approval-required"
+      ]
+    },
+    {
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 3,
+      "id": "review-exact-transaction",
+      "title": "Create the exact-change receipt",
+      "purpose": "Review the validated file operations and obtain the receipt required by approval-required commit.",
+      "expectedOutcome": "A canonical digest, bounded review projection and short-lived receipt identifier are returned without writing files.",
+      "tool": "transaction-review",
+      "request": {
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "operationalModes": [
+        "approval-required"
+      ]
+    },
+    {
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 4,
+      "id": "commit-reviewed-receipt",
+      "title": "Approve and commit the exact receipt",
+      "purpose": "Request one-use user approval and persist only the exact change represented by the current receipt.",
+      "expectedOutcome": "The Host confirms the receipt is current, elicits approval, revalidates the exact persistence identity and writes the staged source files.",
+      "tool": "transaction-commit",
+      "request": {
+        "receiptId": "4d5b5f7df39e4dd6a6ed9707f927aefa",
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      },
+      "operationalModes": [
+        "approval-required"
+      ]
+    },
+    {
       "workflowId": "approved-error-report",
       "workflowTitle": "Review and submit an error report",
       "step": 1,

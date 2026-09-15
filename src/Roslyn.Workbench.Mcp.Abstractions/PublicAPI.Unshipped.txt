@@ -1,1 +1,2 @@
 #nullable enable
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReviewTransaction = 10 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction

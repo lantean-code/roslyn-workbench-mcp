@@ -17,8 +17,8 @@ Use the normal [workspace and transaction workflow](workspaces-and-transactions.
 3. Call `list-code-actions` against the transaction's current revision.
 4. Select one result using its title, precise location and diagnostic context where present.
 5. Pass its `actionId` and the current `expectedSnapshot` to `stage-code-action`.
-6. Inspect the result and call `transaction-preview`.
-7. Commit the final revision with `transaction-commit`, or discard it with `transaction-rollback`.
+6. Inspect the result and call `transaction-preview` in transactional or autonomous-trusted mode, or `transaction-review` in approval-required mode.
+7. Commit the final revision with `transaction-commit`, supplying the review receipt when approval-required mode requests it, or discard it with `transaction-rollback`.
 
 Successful staging advances the transaction revision. Discover again before selecting another action for that new revision. Do not assume that a title, location or reference from an older revision still identifies the same operation.
 

@@ -60,6 +60,7 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
         {
             OperationalMode.InspectionOnly => "Use semantic inspection tools; source mutation and transaction tools are disabled by Host policy.",
             OperationalMode.Transactional => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit for Host confirmation or transaction-rollback promptly.",
+            OperationalMode.ApprovalRequired => "Start transactions only when ready; keep each to one coherent change or tightly related set, call transaction-review for an exact-change receipt, then pass that receipt to transaction-commit for one-use approval or call transaction-rollback promptly. transaction-preview is not available in this mode.",
             OperationalMode.AutonomousTrusted => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.",
             _ => throw new InvalidOperationException("The operational mode is not available for server instruction publication."),
         };

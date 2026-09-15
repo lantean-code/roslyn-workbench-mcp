@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
@@ -18,6 +19,15 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     private readonly IWorkspaceCommitPlanner _commitPlanner;
     private readonly IWorkspaceCommitLockManager _commitLockManager;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+    private readonly WorkspaceOptions _options;
+    private readonly ITransactionReviewDocumentFactory? _reviewDocumentFactory;
+    private readonly ITransactionReviewIdentityService? _reviewIdentityService;
+
+    private ITransactionReviewDocumentFactory ReviewDocumentFactory => _reviewDocumentFactory
+        ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
+
+    private ITransactionReviewIdentityService ReviewIdentityService => _reviewIdentityService
+        ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionCommitService"/> class.
@@ -33,6 +43,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// <param name="commitPlanner">The planner that converts a transaction into atomic file operations.</param>
     /// <param name="commitLockManager">The manager that acquires exclusive workspace commit locks.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="options">The Workspace policy controlling receipt-authorisation enforcement.</param>
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
         IWorkspaceAuthority workspaceAuthority,
@@ -44,7 +55,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         IWorkspaceCommitWriter commitWriter,
         IWorkspaceCommitPlanner commitPlanner,
         IWorkspaceCommitLockManager commitLockManager,
-        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IOptions<WorkspaceOptions> options)
     {
         _sessionStore = sessionStore;
         _workspaceAuthority = workspaceAuthority;
@@ -57,6 +69,57 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         _commitPlanner = commitPlanner;
         _commitLockManager = commitLockManager;
         _instanceStatusPublisher = instanceStatusPublisher;
+        _options = options.Value;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransactionCommitService"/> class.
+    /// </summary>
+    /// <param name="sessionStore">The store that publishes committed session state.</param>
+    /// <param name="workspaceAuthority">The Host-owned authority revalidated before commit.</param>
+    /// <param name="workspaceChangeDetector">The component that detects external changes before commit.</param>
+    /// <param name="workspaceStateTransitions">The coordinator that applies workspace lifecycle state changes.</param>
+    /// <param name="snapshotGuard">The guard that rejects operations targeting a stale transaction snapshot.</param>
+    /// <param name="resultFactory">The factory used to create protocol result payloads.</param>
+    /// <param name="recoveryStore">The store that persists the recovery plan before file changes begin.</param>
+    /// <param name="commitWriter">The component that applies and validates planned file operations.</param>
+    /// <param name="commitPlanner">The planner that converts a transaction into atomic file operations.</param>
+    /// <param name="commitLockManager">The manager that acquires exclusive workspace commit locks.</param>
+    /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="options">The Workspace policy controlling receipt-authorisation enforcement.</param>
+    /// <param name="reviewDocumentFactory">The factory that recreates canonical receipt entries from the final commit plan.</param>
+    /// <param name="reviewIdentityService">The service that recalculates the canonical receipt identity.</param>
+    public TransactionCommitService(
+        IWorkspaceSessionStore sessionStore,
+        IWorkspaceAuthority workspaceAuthority,
+        IWorkspaceChangeDetector workspaceChangeDetector,
+        IWorkspaceStateTransitions workspaceStateTransitions,
+        ISnapshotGuard snapshotGuard,
+        IWorkspaceOperationResultFactory resultFactory,
+        ICommitRecoveryStore recoveryStore,
+        IWorkspaceCommitWriter commitWriter,
+        IWorkspaceCommitPlanner commitPlanner,
+        IWorkspaceCommitLockManager commitLockManager,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IOptions<WorkspaceOptions> options,
+        ITransactionReviewDocumentFactory reviewDocumentFactory,
+        ITransactionReviewIdentityService reviewIdentityService)
+        : this(
+            sessionStore,
+            workspaceAuthority,
+            workspaceChangeDetector,
+            workspaceStateTransitions,
+            snapshotGuard,
+            resultFactory,
+            recoveryStore,
+            commitWriter,
+            commitPlanner,
+            commitLockManager,
+            instanceStatusPublisher,
+            options)
+    {
+        _reviewDocumentFactory = reviewDocumentFactory;
+        _reviewIdentityService = reviewIdentityService;
     }
 
     /// <summary>
@@ -66,9 +129,23 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// <param name="expectedSnapshot">The snapshot precondition that the operation must satisfy.</param>
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
     /// <returns>A task that completes with the workspace operation result.</returns>
+    public ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
+        WorkspaceSelection selection,
+        SnapshotPrecondition? expectedSnapshot,
+        CancellationToken cancellationToken)
+    {
+        return CommitAsync(
+            selection,
+            expectedSnapshot,
+            receiptAuthorisation: null,
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
         WorkspaceSelection selection,
         SnapshotPrecondition? expectedSnapshot,
+        TransactionReceiptAuthorisation? receiptAuthorisation,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -108,8 +185,15 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             return validationFailure;
         }
 
+        var receiptBindingFailure = ValidateReceiptBinding(session, transaction, receiptAuthorisation);
+        if (receiptBindingFailure is not null)
+        {
+            return receiptBindingFailure;
+        }
+
         using var applicationCertification = _workspaceChangeDetector.BeginCertification(
             session.Workspace.WorkspaceRoot);
+
         var context = WorkspaceOperationContextFactory.Create(session);
         WorkspaceCommitLockAcquisition lockAcquisition;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -143,7 +227,9 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             transaction,
             context,
             applicationCertification,
+            receiptAuthorisation,
             cancellationToken);
+
         return result;
     }
 
@@ -208,6 +294,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         WorkspaceTransaction transaction,
         WorkspaceOperationContext context,
         IWorkspaceInputCertification applicationCertification,
+        TransactionReceiptAuthorisation? receiptAuthorisation,
         CancellationToken cancellationToken)
     {
         var commitId = Guid.NewGuid().ToString("n");
@@ -237,6 +324,18 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
             var plan = planningResult.Plan;
             manifest = plan.Manifest;
+
+            var receiptValidationFailure = ValidateReceiptIdentity(
+                session,
+                plan,
+                receiptAuthorisation,
+                context);
+
+            if (receiptValidationFailure is not null)
+            {
+                return receiptValidationFailure;
+            }
+
             using (WorkbenchPerformanceEventSource.Log.StartPhase(
                 WorkbenchPerformanceEventSource.TransactionCommitOperation,
                 WorkbenchPerformanceEventSource.CommitPlanPersistencePhase))
@@ -314,9 +413,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
             using var promotionCertification = _workspaceChangeDetector.BeginCertification(
                 session.Workspace.WorkspaceRoot);
+
             using var applicationInputManifest = applicationCertification.Complete(
                 session.InputManifest,
                 GetCommitOwnedPaths(manifest));
+
             var appliedState = await _commitWriter.ValidateAppliedStateAsync(manifest);
             if (!appliedState.IsValid)
             {
@@ -458,6 +559,73 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 CreateFileSystemFailureMessage(exception),
                 validationConflict: false);
         }
+    }
+
+    private WorkspaceOperationResult<TransactionCommitOutcome>? ValidateReceiptBinding(
+        WorkspaceSessionSnapshot session,
+        WorkspaceTransaction transaction,
+        TransactionReceiptAuthorisation? receiptAuthorisation)
+    {
+        if (!_options.ReceiptAuthorisationRequired)
+        {
+            return null;
+        }
+
+        var context = WorkspaceOperationContextFactory.Create(session);
+        if (receiptAuthorisation is null)
+        {
+            return _resultFactory.Rejected<TransactionCommitOutcome>(
+                WorkspaceErrorCodes.TransactionReceiptRequired,
+                "Review the current transaction and approve its receipt before committing changes.",
+                RequiredAction.ReviewTransaction,
+                context);
+        }
+
+        var matches = ReviewIdentityService.IsBoundTo(
+            receiptAuthorisation.Identity,
+            session,
+            transaction);
+
+        if (matches)
+        {
+            return null;
+        }
+
+        return _resultFactory.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionReceiptMismatch,
+            "The approved receipt does not identify the current transaction state. Review the transaction again before committing.",
+            RequiredAction.ReviewTransaction,
+            context);
+    }
+
+    private WorkspaceOperationResult<TransactionCommitOutcome>? ValidateReceiptIdentity(
+        WorkspaceSessionSnapshot session,
+        WorkspaceCommitPlan plan,
+        TransactionReceiptAuthorisation? receiptAuthorisation,
+        WorkspaceOperationContext context)
+    {
+        if (!_options.ReceiptAuthorisationRequired)
+        {
+            return null;
+        }
+
+        if (receiptAuthorisation is null)
+        {
+            throw new InvalidOperationException("Receipt binding validation must run before exact identity validation.");
+        }
+
+        var documents = ReviewDocumentFactory.Create(session, plan, changes: null);
+        var currentIdentity = ReviewIdentityService.Create(session, documents);
+        if (currentIdentity == receiptAuthorisation.Identity)
+        {
+            return null;
+        }
+
+        return _resultFactory.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionReceiptMismatch,
+            "The staged persistence set no longer matches the approved receipt. Review the transaction again before committing.",
+            RequiredAction.ReviewTransaction,
+            context);
     }
 
     private ValueTask<WorkspaceCommitPlanResult> CreateCommitPlanAsync(

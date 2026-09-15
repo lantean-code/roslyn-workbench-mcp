@@ -13,7 +13,7 @@ The user and agent operate with the same effective filesystem authority. The pro
 
 ## Expected usage
 
-Most operations are queries. Mutations are expected to be small, coherent changes followed promptly by `transaction-commit` or `transaction-rollback`; a typical sequence is rename a symbol, inspect the preview, commit the transaction and then create a Git commit outside Roslyn Workbench.
+Most operations are queries. Mutations are expected to be small, coherent changes followed promptly by `transaction-commit` or `transaction-rollback`; a typical sequence is rename a symbol, inspect `transaction-preview` in transactional or autonomous-trusted mode, or obtain and inspect an exact-change `transaction-review` receipt in approval-required mode, commit the transaction and then create a Git commit outside Roslyn Workbench.
 
 The user may continue ordinary development while the agent is querying or preparing work. Filesystem change detection, snapshot preconditions, transaction revisions, commit revalidation and recovery must make ordinary overlap fail safely rather than silently applying a stale interpretation. An agent can then reload, resolve its targets again and retry.
 

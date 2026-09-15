@@ -111,6 +111,21 @@ internal static class WorkspaceErrorCodes
     public const string MutationCandidateChanged = "MutationCandidateChanged";
 
     /// <summary>
+    /// Indicates that transaction receipt review is not enabled by Host policy.
+    /// </summary>
+    public const string TransactionReviewUnavailable = "TransactionReviewUnavailable";
+
+    /// <summary>
+    /// Indicates that commit did not receive a current matching receipt authorisation.
+    /// </summary>
+    public const string TransactionReceiptRequired = "TransactionReceiptRequired";
+
+    /// <summary>
+    /// Indicates that receipt authorisation does not identify the current persistence set.
+    /// </summary>
+    public const string TransactionReceiptMismatch = "TransactionReceiptMismatch";
+
+    /// <summary>
     /// The supplied snapshot precondition does not match the current Workspace snapshot.
     /// </summary>
     public const string SnapshotMismatch = "SnapshotMismatch";

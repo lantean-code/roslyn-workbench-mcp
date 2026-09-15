@@ -4,8 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile Condition="'$(EnforceCodeStyleInBuild)' == 'true'">true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors Condition="'$(EnforceCodeStyleInBuild)' == 'true'">$(WarningsNotAsErrors);IDE0005</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA1014;CA2007</NoWarn>
+    <NoWarn Condition="'$(EnforceCodeStyleInBuild)' == 'true'">$(NoWarn);CS1591</NoWarn>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

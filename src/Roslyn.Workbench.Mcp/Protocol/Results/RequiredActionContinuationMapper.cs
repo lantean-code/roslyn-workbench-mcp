@@ -48,6 +48,9 @@ internal static class RequiredActionContinuationMapper
                 "Resolve the unfinished recovery state in the Host state directory or affected workspace before retrying the request."),
             RequiredAction.NarrowRequest => ToolContinuation.ReviseRequest(
                 "Reduce the scope or requested change limit, then retry the request."),
+            RequiredAction.ReviewTransaction => ToolContinuation.CallTool(
+                ServerOwnedToolRegistration.TransactionReviewName,
+                "Review the current transaction, then retry commit with the returned receipt identifier."),
             _ => throw new InvalidOperationException($"Required action '{requiredAction}' does not have a published continuation mapping."),
         };
     }

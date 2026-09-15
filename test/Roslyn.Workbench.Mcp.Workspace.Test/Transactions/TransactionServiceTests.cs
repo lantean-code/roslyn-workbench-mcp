@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
@@ -16,6 +15,8 @@ public sealed class TransactionServiceTests : IDisposable
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
     private readonly Mock<ITransactionCommitService> _commitService;
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
+    private readonly Mock<ITransactionReviewBuilder> _reviewBuilder;
+    private readonly Mock<ITransactionReviewIdentityService> _reviewIdentityService;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
@@ -40,6 +41,8 @@ public sealed class TransactionServiceTests : IDisposable
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _commitService = new Mock<ITransactionCommitService>();
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
+        _reviewBuilder = new Mock<ITransactionReviewBuilder>();
+        _reviewIdentityService = new Mock<ITransactionReviewIdentityService>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
@@ -48,6 +51,7 @@ public sealed class TransactionServiceTests : IDisposable
             {
                 MaxTransactionRevisions = 5,
                 SourceMutationEnabled = true,
+                ReceiptAuthorisationRequired = true,
             }),
             _sessionStore.Object,
             _sessionAcquirer.Object,
@@ -56,6 +60,8 @@ public sealed class TransactionServiceTests : IDisposable
             _resultFactory.Object,
             _commitService.Object,
             _diffBuilder.Object,
+            _reviewBuilder.Object,
+            _reviewIdentityService.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object);
     }
@@ -65,8 +71,9 @@ public sealed class TransactionServiceTests : IDisposable
     {
         var expected = CreateResult<TransactionStartOutcome>();
         SetupRejectedResult(expected, WorkspaceErrorCodes.SourceMutationDisabled);
+        var workspaceOptions = new WorkspaceOptions();
         var target = new TransactionService(
-            Options.Create(new WorkspaceOptions()),
+            Options.Create(workspaceOptions),
             _sessionStore.Object,
             _sessionAcquirer.Object,
             _stateTransitions.Object,
@@ -81,6 +88,39 @@ public sealed class TransactionServiceTests : IDisposable
 
         result.Should().BeSameAs(expected);
         _sessionAcquirer.Verify(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReceiptReviewDisabled_WHEN_ValidatingReceipt_THEN_ShouldRejectBeforeAcquiringWorkspace()
+    {
+        var expected = CreateResult<TransactionReviewIdentity>();
+        SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionReviewUnavailable);
+        var workspaceOptions = new WorkspaceOptions { SourceMutationEnabled = true };
+        var target = new TransactionService(
+            Options.Create(workspaceOptions),
+            _sessionStore.Object,
+            _sessionAcquirer.Object,
+            _stateTransitions.Object,
+            _snapshotGuard.Object,
+            _resultFactory.Object,
+            _commitService.Object,
+            _diffBuilder.Object,
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object);
+
+        var transaction = CreateTransaction();
+        var session = CreateSession(transaction);
+        var identity = CreateReviewIdentity(session, transaction);
+        var result = await target.ValidateReceiptAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            expectedSnapshot: null,
+            identity,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionAcquirer.Verify(item => item.AcquireShared(It.IsAny<WorkspaceSelector>()), Times.Never);
     }
 
     [Fact]
@@ -739,6 +779,121 @@ public sealed class TransactionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_CurrentChangedTransaction_WHEN_Reviewing_THEN_ShouldBuildCanonicalReview()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 1, revisionCount: 1);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        var identity = CreateReviewIdentity(session, transaction);
+        var review = new TransactionReviewOutcome
+        {
+            Identity = identity,
+            Transaction = transaction.ToInfo(conflicted: false),
+        };
+
+        var expected = CreateResult<TransactionReviewOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        _reviewBuilder
+            .Setup(item => item.CreateAsync(session, null, 3, TestContext.Current.CancellationToken))
+            .ReturnsAsync(TransactionReviewBuildResult.Succeeded(review));
+
+        _resultFactory
+            .Setup(item => item.Succeeded(review, It.IsAny<WorkspaceOperationContext>(), null, null))
+            .Returns(expected);
+
+        var result = await _target.ReviewAsync(
+            null,
+            null,
+            null,
+            expectedSnapshot,
+            document: null,
+            includeDiff: false,
+            contextLines: 3,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReceiptBoundToCurrentTransaction_WHEN_ValidatingBeforePrompt_THEN_ShouldSucceedWithoutRebuildingDigest()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 1, revisionCount: 1);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        var identity = CreateReviewIdentity(session, transaction);
+        var expected = CreateResult<TransactionReviewIdentity>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        _reviewIdentityService
+            .Setup(item => item.IsBoundTo(identity, session, transaction))
+            .Returns(true);
+
+        _resultFactory
+            .Setup(item => item.Succeeded(identity, It.IsAny<WorkspaceOperationContext>(), null, null))
+            .Returns(expected);
+
+        var result = await _target.ValidateReceiptAsync(
+            null,
+            null,
+            null,
+            expectedSnapshot,
+            identity,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _reviewBuilder.Verify(
+            item => item.CreateAsync(
+                It.IsAny<WorkspaceSessionSnapshot>(),
+                It.IsAny<DocumentReference?>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReceiptBoundToEarlierRevision_WHEN_ValidatingBeforePrompt_THEN_ShouldRequestNewReview()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 1, revisionCount: 1);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var identity = CreateReviewIdentity(session, transaction) with { TransactionRevision = 0 };
+        var expected = CreateResult<TransactionReviewIdentity>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        SetupConflictResult(expected, WorkspaceErrorCodes.TransactionReceiptMismatch);
+
+        var result = await _target.ValidateReceiptAsync(
+            null,
+            null,
+            null,
+            expectedSnapshot: null,
+            identity,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _resultFactory.Verify(item => item.Conflict<TransactionReviewIdentity>(
+            WorkspaceErrorCodes.TransactionReceiptMismatch,
+            It.IsAny<string>(),
+            RequiredAction.ReviewTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_NoWorkspace_WHEN_MovingHistory_THEN_ShouldReturnWorkspaceNotOpen()
     {
         var expected = CreateResult<TransactionHistoryOutcome>();
@@ -1019,6 +1174,7 @@ public sealed class TransactionServiceTests : IDisposable
         _commitService.Setup(item => item.CommitAsync(
             It.Is<WorkspaceSelection>(selection => selection.WorkspaceId == Guid.Parse("11111111-1111-1111-1111-111111111111")),
             expectedSnapshot,
+            null,
             TestContext.Current.CancellationToken)).ReturnsAsync(expected);
 
         var result = await _target.CommitAsync(
@@ -1406,6 +1562,22 @@ public sealed class TransactionServiceTests : IDisposable
         {
             Revisions = revisions,
             CurrentRevision = currentRevision,
+        };
+    }
+
+    private static TransactionReviewIdentity CreateReviewIdentity(
+        WorkspaceSessionSnapshot session,
+        WorkspaceTransaction transaction)
+    {
+        return new TransactionReviewIdentity
+        {
+            Algorithm = "Algorithm",
+            ChangeSetDigest = "ChangeSetDigest",
+            WorkspaceId = session.Workspace.WorkspaceId,
+            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
+            TransactionId = transaction.TransactionId.Value,
+            SnapshotId = session.CurrentSnapshotIdentity.SnapshotId.Value,
+            TransactionRevision = transaction.CurrentRevision,
         };
     }
 

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Authority;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
+using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
@@ -16,6 +18,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     private readonly Mock<IWorkspaceInputCertification> _applicationCertification = new();
     private readonly Mock<IWorkspaceInputCertification> _promotionCertification = new();
     private readonly WorkspaceInputManifest _applicationInputManifest = new();
+    private readonly WorkspaceInputManifest _promotionInputManifest = new();
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions = new();
     private readonly Mock<ISnapshotGuard> _snapshotGuard = new();
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory = new();
@@ -24,6 +27,8 @@ public sealed class TransactionCommitServiceTests : IDisposable
     private readonly Mock<IWorkspaceCommitPlanner> _planner = new();
     private readonly Mock<IWorkspaceCommitLockManager> _lockManager = new();
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _statusPublisher = new();
+    private readonly Mock<ITransactionReviewDocumentFactory> _reviewDocumentFactory = new();
+    private readonly Mock<ITransactionReviewIdentityService> _reviewIdentityService = new();
     private readonly TransactionCommitService _target;
 
     public TransactionCommitServiceTests()
@@ -32,23 +37,29 @@ public sealed class TransactionCommitServiceTests : IDisposable
             .SetupSequence(item => item.BeginCertification(It.IsAny<string>()))
             .Returns(_applicationCertification.Object)
             .Returns(_promotionCertification.Object);
+
         _applicationCertification
             .Setup(item => item.Complete(
                 It.IsAny<WorkspaceInputManifest>(),
                 It.IsAny<IEnumerable<string>>()))
             .Returns(_applicationInputManifest);
+
         _commitWriter
             .Setup(item => item.ValidateAppliedStateAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _sessionStore
             .Setup(item => item.AllocateWorkspaceSnapshotId())
             .Returns(WorkspaceSnapshotTestFactory.CreateId(3));
+
         _sessionStore
             .Setup(item => item.TryCompleteTransaction(It.IsAny<WorkspaceSessionSnapshot>()))
             .Returns(TransactionCompletionResult.Completed());
+
         _snapshotGuard
             .Setup(item => item.Validate(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotValidationResult.Valid());
+
         _workspaceAuthority
             .Setup(item => item.IsWorkspaceAllowed(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(true);
@@ -59,7 +70,35 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(CommitRecoveryPlanPersistenceResult.Persisted());
 
-        _target = new TransactionCommitService(
+        _target = CreateTarget(receiptAuthorisationRequired: false);
+    }
+
+    private TransactionCommitService CreateTarget(bool receiptAuthorisationRequired)
+    {
+        var workspaceOptions = new WorkspaceOptions
+        {
+            ReceiptAuthorisationRequired = receiptAuthorisationRequired,
+        };
+
+        var options = Options.Create(workspaceOptions);
+        if (!receiptAuthorisationRequired)
+        {
+            return new TransactionCommitService(
+                _sessionStore.Object,
+                _workspaceAuthority.Object,
+                _changeDetector.Object,
+                _stateTransitions.Object,
+                _snapshotGuard.Object,
+                _resultFactory.Object,
+                _recoveryStore.Object,
+                _commitWriter.Object,
+                _planner.Object,
+                _lockManager.Object,
+                _statusPublisher.Object,
+                options);
+        }
+
+        return new TransactionCommitService(
             _sessionStore.Object,
             _workspaceAuthority.Object,
             _changeDetector.Object,
@@ -70,7 +109,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _commitWriter.Object,
             _planner.Object,
             _lockManager.Object,
-            _statusPublisher.Object);
+            _statusPublisher.Object,
+            options,
+            _reviewDocumentFactory.Object,
+            _reviewIdentityService.Object);
     }
 
     [Fact]
@@ -82,6 +124,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _workspaceAuthority
             .Setup(item => item.IsWorkspaceAllowed(session.Workspace.LoadedPath, session.Workspace.WorkspaceRoot))
             .Returns(false);
+
         _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
             WorkspaceErrorCodes.WorkspaceAuthorityChanged,
             It.IsAny<string>(),
@@ -274,6 +317,81 @@ public sealed class TransactionCommitServiceTests : IDisposable
             conflicted.Transaction!.CurrentRevision,
             null,
             null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReceiptApprovalRequiredWithoutAuthorisation_WHEN_Committing_THEN_ShouldRequireReviewBeforeLocking()
+    {
+        var session = CreateSession();
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        var target = CreateTarget(receiptAuthorisationRequired: true);
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionReceiptRequired,
+            It.IsAny<string>(),
+            RequiredAction.ReviewTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await target.CommitAsync(
+            CreateSelection(session),
+            expectedSnapshot: null,
+            receiptAuthorisation: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _lockManager.Verify(item => item.Acquire(It.IsAny<string>()), Times.Never);
+        _planner.Verify(item => item.CreateAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_FinalPersistenceIdentityDiffersFromApprovedReceipt_WHEN_Committing_THEN_ShouldRejectBeforeRecoveryPersistence()
+    {
+        var session = CreateSession();
+        var transaction = session.Transaction!;
+        var approvedIdentity = CreateReviewIdentity(session);
+        var authorisation = new TransactionReceiptAuthorisation { Identity = approvedIdentity };
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var documents = Array.Empty<TransactionReviewDocument>();
+        var currentIdentity = approvedIdentity with { ChangeSetDigest = "DifferentDigest" };
+        var expected = CreateResult(WorkspaceOperationStatus.Conflict);
+        var target = CreateTarget(receiptAuthorisationRequired: true);
+        SetupProtocol(session, plan);
+        _reviewDocumentFactory.Setup(item => item.Create(session, plan, null)).Returns(documents);
+        _reviewIdentityService
+            .Setup(item => item.IsBoundTo(approvedIdentity, session, transaction))
+            .Returns(true);
+
+        _reviewIdentityService.Setup(item => item.Create(session, documents)).Returns(currentIdentity);
+        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionReceiptMismatch,
+            It.IsAny<string>(),
+            RequiredAction.ReviewTransaction,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await target.CommitAsync(
+            CreateSelection(session),
+            expectedSnapshot: null,
+            authorisation,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _reviewIdentityService.Verify(item => item.Create(session, documents), Times.Once);
+        _recoveryStore.Verify(
+            item => item.PersistPlanAsync(It.IsAny<WorkspaceCommitPlan>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _commitWriter.Verify(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
     }
 
     [Fact]
@@ -1203,6 +1321,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     public void Dispose()
     {
         _applicationInputManifest.Dispose();
+        _promotionInputManifest.Dispose();
         _workspace.Dispose();
     }
 
@@ -1278,6 +1397,23 @@ public sealed class TransactionCommitServiceTests : IDisposable
         };
     }
 
+    private static TransactionReviewIdentity CreateReviewIdentity(WorkspaceSessionSnapshot session)
+    {
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("The test session must contain a transaction.");
+
+        return new TransactionReviewIdentity
+        {
+            Algorithm = "Algorithm",
+            ChangeSetDigest = "ChangeSetDigest",
+            WorkspaceId = session.Workspace.WorkspaceId,
+            WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
+            TransactionId = transaction.TransactionId.Value,
+            SnapshotId = session.CurrentSnapshotIdentity.SnapshotId.Value,
+            TransactionRevision = transaction.CurrentRevision,
+        };
+    }
+
     private static WorkspaceOperationResult<TransactionCommitOutcome> CreateResult(WorkspaceOperationStatus status)
     {
         if (status == WorkspaceOperationStatus.Succeeded)
@@ -1339,7 +1475,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 _promotionCertification.Object,
                 It.IsAny<WorkspaceMsBuildProperties?>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(new WorkspaceInputManifest());
+            .Returns(_promotionInputManifest);
 
         _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
     }

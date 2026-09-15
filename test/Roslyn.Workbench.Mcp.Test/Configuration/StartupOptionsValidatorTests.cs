@@ -41,13 +41,14 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
-    public void GIVEN_ApprovalRequiredMode_WHEN_Validating_THEN_ShouldFailUntilReceiptApprovalExists()
+    public void GIVEN_ApprovalRequiredMode_WHEN_Validating_THEN_ShouldSucceed()
     {
         var options = new StartupOptions { OperationalMode = OperationalMode.ApprovalRequired };
 
         var result = _target.Validate(null, options);
 
-        result.Failures.Should().ContainSingle().Which.Should().Contain("receipt-bound approval");
+        result.Succeeded.Should().BeTrue();
+        result.Failures.Should().BeNull();
     }
 
     [Fact]

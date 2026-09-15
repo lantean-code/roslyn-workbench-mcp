@@ -47,6 +47,10 @@ internal static class ServerOwnedToolRegistration
     /// </summary>
     public const string TransactionPreviewName = "transaction-preview";
     /// <summary>
+    /// Defines the published name of the exact transaction-review tool.
+    /// </summary>
+    public const string TransactionReviewName = "transaction-review";
+    /// <summary>
     /// Defines the published name of the transaction-rollback tool.
     /// </summary>
     public const string TransactionRollbackName = "transaction-rollback";
@@ -87,6 +91,7 @@ internal static class ServerOwnedToolRegistration
         TransactionCommitName,
         TransactionHistoryName,
         TransactionPreviewName,
+        TransactionReviewName,
         TransactionRollbackName,
         TransactionStartName,
         WorkspaceCloseName,
@@ -144,9 +149,18 @@ internal static class ServerOwnedToolRegistration
         if (policy.SourceMutationEnabled)
         {
             services.AddSingleton<McpServerTool, TransactionStartTool>();
-            services.AddSingleton<McpServerTool, TransactionPreviewTool>();
+            if (policy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval)
+            {
+                services.AddSingleton<McpServerTool, TransactionReviewTool>();
+                services.AddSingleton<McpServerTool, TransactionReceiptCommitTool>();
+            }
+            else
+            {
+                services.AddSingleton<McpServerTool, TransactionPreviewTool>();
+                services.AddSingleton<McpServerTool, TransactionCommitTool>();
+            }
+
             services.AddSingleton<McpServerTool, TransactionHistoryTool>();
-            services.AddSingleton<McpServerTool, TransactionCommitTool>();
             services.AddSingleton<McpServerTool, TransactionRollbackTool>();
         }
 

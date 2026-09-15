@@ -20,6 +20,7 @@ internal static class ToolReferenceMetadata
         "transaction-commit",
         "transaction-history",
         "transaction-preview",
+        "transaction-review",
         "transaction-rollback",
         "transaction-start",
     };
@@ -50,7 +51,7 @@ internal static class ToolReferenceMetadata
         {
             "server-status" => "Server lifecycle",
             "workspace-close" or "workspace-list" or "workspace-open" or "workspace-reload" or "workspace-status" => "Workspaces",
-            "transaction-commit" or "transaction-history" or "transaction-preview" or "transaction-rollback" or "transaction-start" => "Transactions",
+            "transaction-commit" or "transaction-history" or "transaction-preview" or "transaction-review" or "transaction-rollback" or "transaction-start" => "Transactions",
             "get-error-details" or "prepare-error-report" or "submit-error-report" => "Error reporting",
             "list-code-actions" or "prepare-fix-all" or "stage-code-action" => "Code Actions",
             "format-document" or "rename-symbol" => "Code mutation",
@@ -74,7 +75,12 @@ internal static class ToolReferenceMetadata
 
         if (_sourceMutationTools.Contains(name))
         {
-            return "Published only in transactional and autonomous-trusted operational modes.";
+            return name switch
+            {
+                "transaction-preview" => "Published only in transactional and autonomous-trusted operational modes.",
+                "transaction-review" => "Published only in approval-required operational mode.",
+                _ => "Published in transactional, approval-required and autonomous-trusted operational modes.",
+            };
         }
 
         return "Built in and published in every operational mode.";

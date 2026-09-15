@@ -91,7 +91,8 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 configured.IncludeBuiltInAssemblies = options.IncludeBuiltInCodeActions);
 
             services.AddSingleton(TimeProvider.System);
-            services.AddWorkspaceServices();
+            var operationalPolicy = OperationalPolicyResolver.Resolve(OperationalMode.AutonomousTrusted);
+            services.AddWorkspaceServices(operationalPolicy);
             if (options.CommitPlanner is not null)
             {
                 services.RemoveAll<IWorkspaceCommitPlanner>();

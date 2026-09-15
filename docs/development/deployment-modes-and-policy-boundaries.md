@@ -86,7 +86,7 @@ This mode is suitable when an operator wants transactional integrity and a clien
 
 ### Approval-required
 
-Approval-required operation extends the transactional pipeline by requiring one-use Host approval bound to the canonical transaction review receipt. The receipt and approval mechanisms are later roadmap work; defining this mode does not claim they currently exist.
+Approval-required operation extends the transactional pipeline by requiring one-use Host approval bound to the canonical transaction review receipt. The proposed receipt and approval mechanism is defined in [`transaction-review-receipts-and-exact-change-approval.md`](transaction-review-receipts-and-exact-change-approval.md); it does not become a current guarantee until that design has been implemented and reviewed in full.
 
 Target Host behaviour:
 

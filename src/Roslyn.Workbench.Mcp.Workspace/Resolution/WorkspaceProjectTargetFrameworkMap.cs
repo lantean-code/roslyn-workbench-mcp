@@ -33,6 +33,16 @@ internal sealed class WorkspaceProjectTargetFrameworkMap
             && string.Equals(projectTargetFramework, targetFramework, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Gets the target framework associated with a project when one was recorded during loading.
+    /// </summary>
+    /// <param name="projectId">The project identifier.</param>
+    /// <returns>The target framework, or <see langword="null"/> when the project has no recorded target framework.</returns>
+    public string? GetTargetFramework(ProjectId projectId)
+    {
+        return _targetFrameworksByProjectId.GetValueOrDefault(projectId);
+    }
+
     private static WorkspaceProjectTargetFrameworkMap CreateEmpty()
     {
         var targetFrameworksByProjectId = new Dictionary<ProjectId, string>();

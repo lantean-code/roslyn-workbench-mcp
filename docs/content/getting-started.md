@@ -50,7 +50,7 @@ Configure the MCP client to launch the installed `roslyn-workbench-mcp` command.
 }
 ```
 
-`inspection-only` is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select `transactional` when the client supports MCP elicitation and every commit should request confirmation, or deliberately select `autonomous-trusted` to enable the pre-existing transaction workflow without Host confirmation. `approval-required` is reserved and currently fails startup. See [Configuration](configuration.md#operational-modes) before enabling mutation.
+`inspection-only` is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select `transactional` when the client supports MCP elicitation and commit confirmation should cover one commit or the Host session. Select `approval-required` when every approval must be bound to the exact change returned by `transaction-review`, or deliberately select `autonomous-trusted` to use the preview workflow without Host confirmation. See [Configuration](configuration.md#operational-modes) before enabling mutation.
 
 External plugin loading is independently disabled by default. To load trusted third-party packages, add the valueless `--enable-plugins` switch and one or more `--plugin-directory` values. Inspection-only then publishes plugin query tools but continues to omit their mutation tools. Plugins execute in-process with the Host user's permissions, so enable only reviewed packages.
 

@@ -11,6 +11,11 @@ internal sealed class WorkspaceOptions
     public bool SourceMutationEnabled { get; set; }
 
     /// <summary>
+    /// Gets or sets whether commit requires authorisation bound to a transaction review receipt.
+    /// </summary>
+    public bool ReceiptAuthorisationRequired { get; set; }
+
+    /// <summary>
     /// Gets the maximum number of concurrent query leases.
     /// </summary>
     public int MaxConcurrentQueries { get; set; } = 2;

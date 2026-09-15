@@ -107,6 +107,8 @@ Acceptance bar:
 
 Add one cohesive receipt-review operation for receipt-approval policy so one deterministic result describes the exact staged change, then activate approval-required mode with one-use approval bound to that receipt. Keep the existing lightweight `transaction-preview` contract for confirmation and autonomous operation. The receipt operation, its result contract and its supporting agent guidance must be conditionally composed only for receipt-approval operation and must not appear in any other mode's tool-list context.
 
+The detailed design is recorded in [`transaction-review-receipts-and-exact-change-approval.md`](transaction-review-receipts-and-exact-change-approval.md).
+
 The receipt should bind the Workspace identity, snapshot identity, transaction revision and a canonical change-set digest. It should include changed-document counts and line summaries, affected projects, mutation provenance, generated/intermediate classification, containment status and validation results. Detailed source diffs should remain explicitly requested and bounded.
 
 Approval-required commit consumes the protocol-neutral interaction service introduced by the preceding item but never inherits transactional session approval. The control proves that Roslyn Workbench requested approval for a particular receipt; it does not claim that a user carefully understood the diff or that unrelated tools cannot modify files with the same operating-system authority.

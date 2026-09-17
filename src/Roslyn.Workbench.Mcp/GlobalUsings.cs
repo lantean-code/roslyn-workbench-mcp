@@ -9,6 +9,7 @@ global using ModelContextProtocol.Server;
 global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Configuration;
 global using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+global using Roslyn.Workbench.Mcp.CodeActions.Diagnostics;
 global using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Application;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;

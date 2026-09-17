@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
@@ -533,6 +532,19 @@ public sealed class MutationStagingServiceTests : IDisposable
         var changes = new ChangeSummary();
         var handlerWarning = new WarningInfo { Code = "HandlerWarning", Message = "Message" };
         var proposalWarning = new WarningInfo { Code = "ProposalWarning", Message = "Message" };
+        var provider = new MutationProviderIdentity
+        {
+            TypeName = "Provider.Type",
+            AssemblyName = "Provider.Assembly",
+            AssemblyVersion = "1.0.0.0",
+        };
+
+        var codeActionProvenance = new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.CodeFix,
+            Provider = provider,
+        };
+
         var expected = WorkspaceOperationResult.NoChange<MutationStagingOutcome>();
         _diffBuilder
             .Setup(item => item.CreateChangeSummaryAsync(
@@ -564,6 +576,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 CandidateSolution = candidateSolution,
                 Summary = "Summary",
                 Warnings = [proposalWarning],
+                CodeActionProvenance = codeActionProvenance,
             },
             [],
             [handlerWarning],
@@ -582,6 +595,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 && replacement.Transaction != null
                 && replacement.Transaction.CurrentRevision == 1
                 && replacement.Transaction.Revisions.Count == 1
+                && replacement.Transaction.Revisions[0].CodeActionProvenance == codeActionProvenance
                 && replacement.Transaction.CurrentSnapshotId == WorkspaceSnapshotTestFactory.CreateId(3)
                 && replacement.CurrentSnapshotIdentity.TransactionId == replacement.Transaction.TransactionId
                 && replacement.CurrentSnapshotIdentity.SnapshotId == WorkspaceSnapshotTestFactory.CreateId(3)),

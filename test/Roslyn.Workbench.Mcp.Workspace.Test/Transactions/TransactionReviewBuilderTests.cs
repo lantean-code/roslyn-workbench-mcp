@@ -199,6 +199,8 @@ public sealed class TransactionReviewBuilderTests : IDisposable
         result.Outcome.Transaction.CanCommit.Should().BeFalse();
         result.Outcome.Provenance.Should().ContainSingle()
             .Which.Operation.Should().Be("Operation1");
+        result.Outcome.Provenance[0].CodeAction.Should().BeSameAs(
+            transaction.Revisions[0].CodeActionProvenance);
 
         var expectedValidationCount = includeCompilerValidation ? 3 : 2;
         result.Outcome.Validations.Should().HaveCount(expectedValidationCount);
@@ -240,6 +242,7 @@ public sealed class TransactionReviewBuilderTests : IDisposable
             Operation = "Operation1",
             Summary = "Summary1",
             Preview = new MutationPreview { Summary = "Summary1" },
+            CodeActionProvenance = CreateCodeActionProvenance(),
         };
 
         var futureRevision = revision with
@@ -303,6 +306,22 @@ public sealed class TransactionReviewBuilderTests : IDisposable
             TransactionId = transaction.TransactionId.Value,
             SnapshotId = session.CurrentSnapshotIdentity.SnapshotId.Value,
             TransactionRevision = transaction.CurrentRevision,
+        };
+    }
+
+    private static CodeActionMutationProvenance CreateCodeActionProvenance()
+    {
+        var provider = new MutationProviderIdentity
+        {
+            TypeName = "Provider.Type",
+            AssemblyName = "Provider.Assembly",
+            AssemblyVersion = "1.0.0.0",
+        };
+
+        return new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.CodeFix,
+            Provider = provider,
         };
     }
 }

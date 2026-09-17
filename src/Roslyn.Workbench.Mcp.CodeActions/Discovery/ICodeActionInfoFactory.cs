@@ -12,10 +12,12 @@ internal interface ICodeActionInfoFactory
     /// <param name="context">The current Code Action execution context.</param>
     /// <param name="document">The document in which the action was discovered.</param>
     /// <param name="location">The canonical source location of the action.</param>
+    /// <param name="includeProvenance">Whether concise runtime provider provenance should be published.</param>
     /// <returns>The published item or a categorized reason it could not be created.</returns>
     CodeActionInfoCreationResult Create(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
-        ResolvedLocation location);
+        ResolvedLocation location,
+        bool includeProvenance);
 }

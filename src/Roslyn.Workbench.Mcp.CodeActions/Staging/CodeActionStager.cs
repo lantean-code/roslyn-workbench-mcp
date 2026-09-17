@@ -11,6 +11,7 @@ internal sealed class CodeActionStager : ICodeActionStager
     private readonly ICodeActionResolver _resolver;
     private readonly IPreparedFixAllResolver _preparedFixAllResolver;
     private readonly ICodeActionEvaluator _evaluator;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionReferenceStore _referenceStore;
 
     /// <summary>
@@ -20,18 +21,21 @@ internal sealed class CodeActionStager : ICodeActionStager
     /// <param name="resolver">The resolver for ordinary Code Action references.</param>
     /// <param name="preparedFixAllResolver">The resolver for previously prepared Fix All references.</param>
     /// <param name="evaluator">The component that evaluates a Code Action into a candidate solution.</param>
+    /// <param name="providerCatalog">The catalogue containing provider provenance captured at startup.</param>
     /// <param name="referenceStore">The store containing short-lived Code Action references.</param>
     public CodeActionStager(
         ICodeActionComposition composition,
         ICodeActionResolver resolver,
         IPreparedFixAllResolver preparedFixAllResolver,
         ICodeActionEvaluator evaluator,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionReferenceStore referenceStore)
     {
         _composition = composition;
         _resolver = resolver;
         _preparedFixAllResolver = preparedFixAllResolver;
         _evaluator = evaluator;
+        _providerCatalog = providerCatalog;
         _referenceStore = referenceStore;
     }
 
@@ -102,14 +106,31 @@ internal sealed class CodeActionStager : ICodeActionStager
         }
 
         var candidatePrecondition = resolvedAction.Reference.Recipe.PreparedFixAll?.CandidatePrecondition;
+        var provenance = CreateProvenance(resolvedAction.Action, resolvedAction.Reference);
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = application.CandidateSolution,
             Summary = resolvedAction.Action.Title,
             Precondition = candidatePrecondition,
+            CodeActionProvenance = provenance,
         };
 
         return CodeActionExecutionResult.Success(candidate);
+    }
+
+    private CodeActionMutationProvenance CreateProvenance(
+        DiscoveredCodeAction action,
+        CodeActionReference reference)
+    {
+        if (reference.Recipe.PreparedFixAll is not null)
+        {
+            return reference.Recipe.PreparedFixAll.Provenance;
+        }
+
+        var provider = _providerCatalog.FindProviderProvenance(action.ProviderId)
+            ?? throw new InvalidOperationException($"Code Action provider '{action.ProviderId}' has no captured provenance.");
+
+        return CodeActionMutationProvenanceFactory.Create(action, provider);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

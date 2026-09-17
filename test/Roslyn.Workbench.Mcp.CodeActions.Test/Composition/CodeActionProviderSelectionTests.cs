@@ -37,6 +37,9 @@ public sealed class CodeActionProviderSelectionTests
         target.RefactoringProviders[refactoringProviderId].Should().BeSameAs(includedRefactoring.Object);
         target.CodeFixProviders.Should().ContainSingle();
         target.CodeFixProviders[codeFixProviderId].Should().BeSameAs(includedCodeFix.Object);
+        target.ProviderProvenance.Keys.Should().BeEquivalentTo(refactoringProviderId, codeFixProviderId);
+        target.ProviderProvenance[refactoringProviderId].TypeName.Should().Be(refactoringProviderId);
+        target.ProviderProvenance[codeFixProviderId].TypeName.Should().Be(codeFixProviderId);
         composition.VerifyGet(item => item.RefactoringProviders, Times.Once);
         composition.VerifyGet(item => item.CodeFixProviders, Times.Once);
         policy.Verify(item => item.EvaluateProvider(It.IsAny<string>()), Times.Exactly(4));

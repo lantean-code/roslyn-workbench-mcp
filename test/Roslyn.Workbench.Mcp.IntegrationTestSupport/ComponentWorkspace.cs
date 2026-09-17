@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
@@ -71,7 +70,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             var services = builder.Services;
             var startupOptions = new StartupOptions
             {
-                OperationalMode = OperationalMode.AutonomousTrusted,
+                OperationalMode = options.OperationalMode,
                 CommitValidation = options.CompilerValidationRequired
                     ? CommitValidationPolicy.NoNewCompilerErrors
                     : CommitValidationPolicy.None,

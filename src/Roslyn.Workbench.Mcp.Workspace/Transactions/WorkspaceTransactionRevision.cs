@@ -34,4 +34,9 @@ internal sealed record WorkspaceTransactionRevision
     /// Gets the compact preview produced when the revision was staged.
     /// </summary>
     public required MutationPreview Preview { get; init; }
+
+    /// <summary>
+    /// Gets Code Action attribution when the revision originated from a Code Action.
+    /// </summary>
+    public CodeActionMutationProvenance? CodeActionProvenance { get; init; }
 }

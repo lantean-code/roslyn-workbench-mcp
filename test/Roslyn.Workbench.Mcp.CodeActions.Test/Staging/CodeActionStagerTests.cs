@@ -8,6 +8,7 @@ public sealed class CodeActionStagerTests
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<IPreparedFixAllResolver> _preparedFixAllResolver;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly CodeActionStager _target;
@@ -18,14 +19,20 @@ public sealed class CodeActionStagerTests
         _resolver = new Mock<ICodeActionResolver>();
         _preparedFixAllResolver = new Mock<IPreparedFixAllResolver>();
         _evaluator = new Mock<ICodeActionEvaluator>();
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionExecutionContext>();
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
+        _providerCatalog
+            .Setup(item => item.FindProviderProvenance("ProviderId"))
+            .Returns(CodeActionExecutionTestFactory.CreateProviderIdentity());
+
         _target = new CodeActionStager(
             _composition.Object,
             _resolver.Object,
             _preparedFixAllResolver.Object,
             _evaluator.Object,
+            _providerCatalog.Object,
             _referenceStore.Object);
     }
 
@@ -78,6 +85,8 @@ public sealed class CodeActionStagerTests
         result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
         result.Data.Precondition.Should().BeNull();
         result.Data.Summary.Should().Be("Title");
+        result.Data.CodeActionProvenance.Should().BeEquivalentTo(
+            CodeActionExecutionTestFactory.CreateCodeActionProvenance(CodeActionMutationKind.Refactoring));
     }
 
     [Fact]
@@ -112,6 +121,7 @@ public sealed class CodeActionStagerTests
 
         result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
         result.Data.Precondition.Should().BeSameAs(preparedFixAll.CandidatePrecondition);
+        result.Data.CodeActionProvenance.Should().BeSameAs(preparedFixAll.Provenance);
         _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
             It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
@@ -185,6 +195,7 @@ public sealed class CodeActionStagerTests
             Code = "ActionUnavailable",
             Message = "Message",
         };
+
         var rejection = CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(
             error,
             RequiredAction.Retry);
@@ -298,6 +309,7 @@ public sealed class CodeActionStagerTests
         {
             PreparedFixAll = preparedFixAll,
         };
+
         var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero);
         var reference = new CodeActionReference(Guid.Empty, replayRecipe, expiresAt);
 

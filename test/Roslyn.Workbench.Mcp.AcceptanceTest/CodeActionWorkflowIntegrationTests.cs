@@ -76,6 +76,40 @@ public sealed class CodeActionWorkflowIntegrationTests
                 .EnumerateArray()
                 .ToArray();
             var action = actions.Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string");
+            action.TryGetProperty("providerId", out _).Should().BeFalse();
+            AcceptanceProtocol.GetSuccessData(listResult).TryGetProperty("providers", out _).Should().BeFalse();
+
+            var provenanceListResult = await target.CallToolAsync(
+                "list-code-actions",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["document"] = AcceptanceLocationSelectorFactory.CreateDocument("RawString.cs"),
+                    ["range"] = new Dictionary<string, object?>
+                    {
+                        ["start"] = stringLiteralStart,
+                        ["length"] = 0,
+                    },
+                    ["expectedSnapshot"] = snapshot,
+                    ["kinds"] = _refactoringKind,
+                    ["includeProvenance"] = true,
+                },
+                TestContext.Current.CancellationToken);
+
+            provenanceListResult.IsError.Should().NotBeTrue();
+            var provenanceList = AcceptanceProtocol.GetSuccessData(provenanceListResult);
+            var provenanceAction = provenanceList
+                .GetProperty("actions")
+                .GetProperty("items")
+                .EnumerateArray()
+                .Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string");
+            var providerId = provenanceAction.GetProperty("providerId").GetString();
+            providerId.Should().NotBeNullOrWhiteSpace();
+            var provider = provenanceList.GetProperty("providers").GetProperty(providerId!);
+
+            provider.GetProperty("typeName").GetString().Should().NotBeNullOrWhiteSpace();
+            provider.GetProperty("assemblyName").GetString().Should().NotBeNullOrWhiteSpace();
+            provider.GetProperty("assemblyVersion").GetString().Should().NotBeNullOrWhiteSpace();
 
             var actionIdText = action.GetProperty("actionId").GetString();
             Guid.TryParse(actionIdText, out var actionId).Should().BeTrue();
@@ -122,11 +156,24 @@ public sealed class CodeActionWorkflowIntegrationTests
                 .Be("ActionExpired");
 
             previewResult.IsError.Should().NotBeTrue();
-            AcceptanceProtocol.GetSuccessData(previewResult)
+            var preview = AcceptanceProtocol.GetSuccessData(previewResult);
+            preview
                 .GetProperty("documents")
                 .EnumerateArray()
                 .Should()
                 .ContainSingle(change => change.GetProperty("document").GetProperty("path").GetString() == "RawString.cs");
+            var previewProviderId = preview.GetProperty("provenance")[0]
+                .GetProperty("codeAction")
+                .GetProperty("providerId")
+                .GetString();
+
+            previewProviderId.Should().NotBeNullOrWhiteSpace();
+            preview.GetProperty("providers")
+                .GetProperty(previewProviderId!)
+                .GetProperty("typeName")
+                .GetString()
+                .Should()
+                .NotBeNullOrWhiteSpace();
 
             var rollbackResult = await target.CallToolAsync(
                 "transaction-rollback",
@@ -158,6 +205,87 @@ public sealed class CodeActionWorkflowIntegrationTests
 
             pluginIds.Should().Contain("roslyn.workbench.core");
             pluginIds.Should().NotContain("roslyn.workbench.codeactions");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_StagedBuiltInCodeAction_WHEN_ReviewingTransaction_THEN_ShouldPublishProviderDictionaryReferences()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample,
+            operationalMode: "approval-required");
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var sourceText = await File.ReadAllTextAsync(
+                Path.Combine(target.WorkspaceRoot, "RawString.cs"),
+                TestContext.Current.CancellationToken);
+
+            var stringLiteralStart = sourceText.IndexOf("\"raw\"", StringComparison.Ordinal);
+            stringLiteralStart.Should().BeGreaterThanOrEqualTo(0);
+
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+
+            var listResult = await ListRawStringActionsAsync(
+                target,
+                workspaceSelector,
+                stringLiteralStart,
+                workspace.CreateSnapshot(transactionRevision: 0));
+
+            var stageResult = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = GetRawStringActionId(listResult),
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+                },
+                TestContext.Current.CancellationToken);
+
+            stageResult.IsError.Should().NotBeTrue();
+            var reviewResult = await target.CallToolAsync(
+                "transaction-review",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["expectedSnapshot"] = AcceptanceProtocol.GetSnapshot(stageResult),
+                },
+                TestContext.Current.CancellationToken);
+
+            reviewResult.IsError.Should().NotBeTrue();
+            var review = AcceptanceProtocol.GetSuccessData(reviewResult);
+            var providerId = review.GetProperty("provenance")[0]
+                .GetProperty("codeAction")
+                .GetProperty("providerId")
+                .GetString();
+
+            providerId.Should().NotBeNullOrWhiteSpace();
+            review.GetProperty("providers")
+                .GetProperty(providerId!)
+                .GetProperty("typeName")
+                .GetString()
+                .Should()
+                .NotBeNullOrWhiteSpace();
+
+            await RollbackAsync(target, workspaceSelector);
         }
         catch
         {
@@ -843,6 +971,21 @@ public sealed class CodeActionWorkflowIntegrationTests
             TestContext.Current.CancellationToken);
 
         startResult.IsError.Should().NotBeTrue();
+    }
+
+    private static async Task RollbackAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector)
+    {
+        var rollbackResult = await target.CallToolAsync(
+            "transaction-rollback",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+            },
+            TestContext.Current.CancellationToken);
+
+        rollbackResult.IsError.Should().NotBeTrue();
     }
 
     private static Task<CallToolResult> ListRefactoringsAsync(

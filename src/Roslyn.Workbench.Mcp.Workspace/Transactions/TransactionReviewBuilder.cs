@@ -87,7 +87,7 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
             Identity = identity,
             Transaction = transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             Documents = documents,
-            Provenance = CreateProvenance(transaction),
+            Provenance = TransactionMutationProvenanceFactory.Create(transaction),
             Validations = CreateValidations(compilerValidation),
             Diff = diff,
         };
@@ -114,19 +114,6 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
             resolver,
             contextLines,
             cancellationToken);
-    }
-
-    private static TransactionMutationProvenance[] CreateProvenance(WorkspaceTransaction transaction)
-    {
-        return transaction.Revisions
-            .Take(transaction.CurrentRevision)
-            .Select(static (revision, index) => new TransactionMutationProvenance
-            {
-                Revision = index + 1,
-                Operation = revision.Operation,
-                Summary = revision.Summary,
-            })
-            .ToArray();
     }
 
     private static List<TransactionReviewValidation> CreateValidations(

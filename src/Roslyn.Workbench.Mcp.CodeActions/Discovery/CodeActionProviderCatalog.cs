@@ -61,6 +61,12 @@ internal sealed class CodeActionProviderCatalog : ICodeActionProviderCatalog
         return _providerSelection.CodeFixProviders.GetValueOrDefault(providerId);
     }
 
+    /// <inheritdoc/>
+    public MutationProviderIdentity? FindProviderProvenance(string providerId)
+    {
+        return _providerSelection.ProviderProvenance.GetValueOrDefault(providerId);
+    }
+
     private List<TProvider> GetMatchingProviders<TProvider>(
         IReadOnlyDictionary<string, TProvider> providers,
         string? providerId)

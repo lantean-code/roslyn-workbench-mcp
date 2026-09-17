@@ -14,6 +14,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionResolver _resolver;
+    private readonly ICodeActionProvenanceLogger _provenanceLogger;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
     private readonly IWorkspaceMutationCandidateProcessor _candidateProcessor;
     private readonly IWorkspaceMutationCandidateIdentityService _candidateIdentityService;
@@ -29,6 +30,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
     /// <param name="providerCatalog">The catalogue used to locate Code Action providers.</param>
     /// <param name="referenceStore">The store that retains replayable references.</param>
     /// <param name="resolver">The resolver that rehydrates the originating Code Action reference.</param>
+    /// <param name="provenanceLogger">The logger that records selected Code Action attribution.</param>
     /// <param name="solutionChangeCounter">The component that counts source documents changed by a Code Action.</param>
     /// <param name="candidateProcessor">The processor that normalizes and validates a candidate solution before staging.</param>
     /// <param name="candidateIdentityService">The service that creates and validates candidate solution identities.</param>
@@ -41,6 +43,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionReferenceStore referenceStore,
         ICodeActionResolver resolver,
+        ICodeActionProvenanceLogger provenanceLogger,
         ICodeActionSolutionChangeCounter solutionChangeCounter,
         IWorkspaceMutationCandidateProcessor candidateProcessor,
         IWorkspaceMutationCandidateIdentityService candidateIdentityService,
@@ -53,6 +56,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         _providerCatalog = providerCatalog;
         _referenceStore = referenceStore;
         _resolver = resolver;
+        _provenanceLogger = provenanceLogger;
         _solutionChangeCounter = solutionChangeCounter;
         _candidateProcessor = candidateProcessor;
         _candidateIdentityService = candidateIdentityService;
@@ -99,6 +103,16 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 "FixAllUnavailable",
                 "The originating Code Fix no longer exposes Fix All.");
         }
+
+        var providerProvenance = _providerCatalog.FindProviderProvenance(resolution.Action.ProviderId)
+            ?? throw new InvalidOperationException($"Code Action provider '{resolution.Action.ProviderId}' has no captured provenance.");
+
+        var fixAllProviderProvenance = CodeActionProviderIdentity.CreateProvenance(fixAllProvider.GetType());
+        var actionProvenance = CodeActionMutationProvenanceFactory.CreateFixAll(
+            resolution.Action,
+            providerProvenance,
+            fixAllProviderProvenance,
+            request.Scope);
 
         var creation = await CreateFixAllActionAsync(
             request.Scope,
@@ -159,6 +173,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
             resolution.Reference,
             changedDocuments,
             candidateIdentity,
+            actionProvenance,
             context.WorkspaceResolver,
             cancellationToken);
     }
@@ -168,6 +183,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         CodeActionReference reference,
         IReadOnlyList<Document> changedDocuments,
         WorkspaceMutationCandidateIdentity candidateIdentity,
+        CodeActionMutationProvenance actionProvenance,
         IWorkspaceResolver workspaceResolver,
         CancellationToken cancellationToken)
     {
@@ -181,6 +197,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         {
             Scope = request.Scope,
             CandidatePrecondition = candidatePrecondition,
+            Provenance = actionProvenance,
         };
 
         var preparedRecipe = reference.Recipe with
@@ -201,6 +218,8 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
                 "ActionReferenceCapacityExceeded",
                 "The prepared Fix All reference could not be stored.");
         }
+
+        _provenanceLogger.LogPreparedFixAll(actionProvenance);
 
         var data = new PrepareFixAllData
         {

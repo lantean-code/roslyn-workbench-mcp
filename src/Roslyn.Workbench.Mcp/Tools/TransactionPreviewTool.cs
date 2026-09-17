@@ -48,11 +48,17 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
             request.ContextLines,
             cancellationToken);
 
-        return WorkspaceToolResultMapper.Map(result, static data => new TransactionPreviewData
+        return WorkspaceToolResultMapper.Map(result, static data =>
         {
-            Transaction = data.Transaction,
-            Documents = data.Documents,
-            Diff = data.Diff,
+            var projection = TransactionMutationProvenanceMapper.Create(data.Provenance);
+            return new TransactionPreviewData
+            {
+                Transaction = data.Transaction,
+                Documents = data.Documents,
+                Provenance = projection.Provenance,
+                Providers = projection.Providers,
+                Diff = data.Diff,
+            };
         });
     }
 }

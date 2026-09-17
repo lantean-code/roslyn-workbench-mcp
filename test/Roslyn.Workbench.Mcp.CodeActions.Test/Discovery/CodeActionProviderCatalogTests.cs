@@ -24,6 +24,10 @@ public sealed class CodeActionProviderCatalogTests
             .SetupGet(item => item.CodeFixProviders)
             .Returns(FrozenDictionary<string, CodeFixProvider>.Empty);
 
+        _providerSelection
+            .SetupGet(item => item.ProviderProvenance)
+            .Returns(FrozenDictionary<string, MutationProviderIdentity>.Empty);
+
         _policy
             .Setup(item => item.EvaluateProvider(It.IsAny<string>()))
             .Returns(CodeActionPolicyDecision.Allowed());
@@ -215,6 +219,31 @@ public sealed class CodeActionProviderCatalogTests
         if (matches)
         {
             result.Should().BeSameAs(provider.Object);
+        }
+        else
+        {
+            result.Should().BeNull();
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GIVEN_CapturedProviderProvenance_WHEN_FindingIdentity_THEN_ShouldApplyExactProviderId(bool matches)
+    {
+        var provenance = CodeActionExecutionTestFactory.CreateProviderIdentity();
+        _providerSelection
+            .SetupGet(item => item.ProviderProvenance)
+            .Returns(new Dictionary<string, MutationProviderIdentity>(StringComparer.Ordinal)
+            {
+                ["ProviderId"] = provenance,
+            }.ToFrozenDictionary(StringComparer.Ordinal));
+
+        var result = _target.FindProviderProvenance(matches ? "ProviderId" : "OtherProviderId");
+
+        if (matches)
+        {
+            result.Should().BeSameAs(provenance);
         }
         else
         {

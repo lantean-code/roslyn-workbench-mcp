@@ -18,6 +18,11 @@ internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
     public FrozenDictionary<string, CodeFixProvider> CodeFixProviders { get; }
 
     /// <summary>
+    /// Gets concise runtime provenance keyed by stable provider identifier.
+    /// </summary>
+    public FrozenDictionary<string, MutationProviderIdentity> ProviderProvenance { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CodeActionProviderSelection"/> class.
     /// </summary>
     /// <param name="composition">The composed provider set to filter.</param>
@@ -35,6 +40,10 @@ internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
             composition.CodeFixProviders,
             policy,
             CodeActionProviderIdentity.GetId);
+
+        ProviderProvenance = CreateProviderProvenance(
+            RefactoringProviders.Values,
+            CodeFixProviders.Values);
     }
 
     private static FrozenDictionary<string, TProvider> SelectEligibleProviders<TProvider>(
@@ -61,5 +70,23 @@ internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
         }
 
         return eligibleProviders.ToFrozenDictionary(StringComparer.Ordinal);
+    }
+
+    private static FrozenDictionary<string, MutationProviderIdentity> CreateProviderProvenance(
+        IEnumerable<CodeRefactoringProvider> refactoringProviders,
+        IEnumerable<CodeFixProvider> codeFixProviders)
+    {
+        var providerTypes = refactoringProviders
+            .Select(static provider => provider.GetType())
+            .Concat(codeFixProviders.Select(static provider => provider.GetType()));
+
+        var provenance = new Dictionary<string, MutationProviderIdentity>(StringComparer.Ordinal);
+        foreach (var providerType in providerTypes)
+        {
+            var providerIdentity = CodeActionProviderIdentity.CreateProvenance(providerType);
+            provenance.TryAdd(providerIdentity.TypeName, providerIdentity);
+        }
+
+        return provenance.ToFrozenDictionary(StringComparer.Ordinal);
     }
 }

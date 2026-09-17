@@ -18,6 +18,8 @@ internal sealed record ComponentWorkspaceOptions
 
     public bool CompilerValidationRequired { get; init; }
 
+    public OperationalMode OperationalMode { get; init; } = OperationalMode.AutonomousTrusted;
+
     public IWorkspaceCommitPlanner? CommitPlanner { get; init; }
 
     public string? StateDirectory { get; init; }

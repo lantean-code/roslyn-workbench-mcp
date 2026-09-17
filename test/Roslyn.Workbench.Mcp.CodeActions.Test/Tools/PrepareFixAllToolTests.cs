@@ -1,17 +1,21 @@
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class PrepareFixAllToolTests
 {
+    private static readonly string[] _expectedDiagnosticIds = ["DiagnosticId"];
+
     private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<IFixAllActionFactory> _fixAllActionFactory;
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionResolver> _resolver;
+    private readonly Mock<ICodeActionProvenanceLogger> _provenanceLogger;
     private readonly Mock<ICodeActionSolutionChangeCounter> _solutionChangeCounter;
     private readonly Mock<IWorkspaceMutationCandidateProcessor> _candidateProcessor;
     private readonly Mock<IWorkspaceMutationCandidateIdentityService> _candidateIdentityService;
@@ -28,6 +32,7 @@ public sealed class PrepareFixAllToolTests
         _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
         _resolver = new Mock<ICodeActionResolver>();
+        _provenanceLogger = new Mock<ICodeActionProvenanceLogger>();
         _solutionChangeCounter = new Mock<ICodeActionSolutionChangeCounter>();
         _candidateProcessor = new Mock<IWorkspaceMutationCandidateProcessor>();
         _candidateIdentityService = new Mock<IWorkspaceMutationCandidateIdentityService>();
@@ -53,6 +58,7 @@ public sealed class PrepareFixAllToolTests
             _providerCatalog.Object,
             _referenceStore.Object,
             _resolver.Object,
+            _provenanceLogger.Object,
             _solutionChangeCounter.Object,
             _candidateProcessor.Object,
             _candidateIdentityService.Object,
@@ -383,6 +389,12 @@ public sealed class PrepareFixAllToolTests
         result.Data!.AffectedDocuments.Items.Should().BeEmpty();
         result.Data.AffectedDocuments.TotalCount.Should().Be(0);
         result.Data.AffectedDocuments.HasMore.Should().BeFalse();
+        _provenanceLogger.Verify(item => item.LogPreparedFixAll(
+            It.Is<CodeActionMutationProvenance>(provenance =>
+                provenance.Kind == CodeActionMutationKind.FixAll
+                && provenance.DiagnosticIds.SequenceEqual(_expectedDiagnosticIds)
+                && provenance.EquivalenceKey == "EquivalenceKey"
+                && provenance.FixAllScope == nameof(CodeActionFixAllScope.Document))), Times.Once);
     }
 
     [Theory]
@@ -513,6 +525,10 @@ public sealed class PrepareFixAllToolTests
         var fixAllProvider = new Mock<FixAllProvider>();
         provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
         _providerCatalog.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(provider.Object);
+        _providerCatalog
+            .Setup(item => item.FindProviderProvenance("ProviderId"))
+            .Returns(CodeActionExecutionTestFactory.CreateProviderIdentity());
+
         SetupResolution(CreateResolution(document, DiscoveredActionKind.CodeFix, [scope]));
         return (provider.Object, fixAllProvider.Object);
     }

@@ -79,7 +79,8 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             roslyn.Document,
-            resolvedLocation);
+            resolvedLocation,
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeTrue();
         var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
@@ -106,6 +107,7 @@ public sealed class CodeActionInfoFactoryTests
         item.Diagnostics.TotalCount.Should().Be(1);
         item.FixAllScopes.Should().NotBeNull();
         item.FixAllScopes!.Should().Equal(CodeActionFixAllScope.Document, CodeActionFixAllScope.Project);
+        item.ProviderIdentity.Should().BeNull();
     }
 
     [Fact]
@@ -160,7 +162,8 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeTrue();
         var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
@@ -170,6 +173,101 @@ public sealed class CodeActionInfoFactoryTests
 
         item.Diagnostics.HasMore.Should().BeTrue();
         item.Diagnostics.TotalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public void GIVEN_ProvenanceIsRequested_WHEN_CreatingItem_THEN_ShouldPublishCapturedProviderIdentity()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var referenceStore = new Mock<ICodeActionReferenceStore>();
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var timeProvider = new Mock<TimeProvider>();
+        var context = new Mock<ICodeActionExecutionContext>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var providerIdentity = CodeActionExecutionTestFactory.CreateProviderIdentity();
+        var expiresAt = _utcNow.AddMinutes(5);
+        var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
+        CodeActionReference? reference = new(_actionId, recipe, expiresAt);
+        var normalizedDocumentPath = "DocumentPath";
+
+        timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(true);
+
+        context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
+        referenceStore
+            .Setup(item => item.TryCreate(
+                It.IsAny<CodeActionReplayRecipe>(),
+                expiresAt,
+                out reference))
+            .Returns(true);
+
+        providerCatalog
+            .Setup(item => item.FindProviderProvenance("ProviderId"))
+            .Returns(providerIdentity);
+
+        var target = CreateTarget(
+            referenceStore,
+            timeProvider,
+            TimeSpan.FromMinutes(5),
+            providerCatalog: providerCatalog);
+
+        var result = target.Create(
+            CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
+            context.Object,
+            roslyn.Document,
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            includeProvenance: true);
+
+        result.Item!.ProviderIdentity.Should().BeSameAs(providerIdentity);
+        providerCatalog.Verify(item => item.FindProviderProvenance("ProviderId"), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ProviderProvenanceIsMissing_WHEN_CreatingItemWithProvenance_THEN_ShouldRejectCatalogueInvariantViolation()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var referenceStore = new Mock<ICodeActionReferenceStore>();
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var timeProvider = new Mock<TimeProvider>();
+        var context = new Mock<ICodeActionExecutionContext>();
+        var workspacePathService = new Mock<IWorkspacePathService>();
+        var expiresAt = _utcNow.AddMinutes(5);
+        var recipe = CodeActionExecutionTestFactory.CreateReplayRecipe();
+        CodeActionReference? reference = new(_actionId, recipe, expiresAt);
+        var normalizedDocumentPath = "DocumentPath";
+
+        timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
+        workspacePathService
+            .Setup(item => item.TryNormalizePath(roslyn.Document.FilePath ?? roslyn.Document.Name, out normalizedDocumentPath))
+            .Returns(true);
+
+        context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
+        context.SetupGet(item => item.WorkspacePathService).Returns(workspacePathService.Object);
+        referenceStore
+            .Setup(item => item.TryCreate(
+                It.IsAny<CodeActionReplayRecipe>(),
+                expiresAt,
+                out reference))
+            .Returns(true);
+
+        var target = CreateTarget(
+            referenceStore,
+            timeProvider,
+            TimeSpan.FromMinutes(5),
+            providerCatalog: providerCatalog);
+
+        var act = () => target.Create(
+            CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
+            context.Object,
+            roslyn.Document,
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            includeProvenance: true);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Code Action provider 'ProviderId' has no captured provenance.");
     }
 
     [Fact]
@@ -213,7 +311,8 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             document,
-            SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4));
+            SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4),
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeTrue();
         var item = result.Item.Should().BeOfType<CodeActionListItem>().Which;
@@ -257,7 +356,8 @@ public sealed class CodeActionInfoFactoryTests
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeFalse();
         result.Status.Should().Be(CodeActionInfoCreationStatus.ReferenceCapacityExceeded);
@@ -284,7 +384,8 @@ public sealed class CodeActionInfoFactoryTests
             CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             context.Object,
             roslyn.Document,
-            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4));
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeFalse();
         result.Status.Should().Be(CodeActionInfoCreationStatus.DocumentPathUnavailable);
@@ -311,7 +412,8 @@ public sealed class CodeActionInfoFactoryTests
             {
                 Snapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
                     Guid.Parse("11111111-1111-1111-1111-111111111111")),
-            });
+            },
+            includeProvenance: false);
 
         result.IsSucceeded.Should().BeFalse();
         result.Status.Should().Be(CodeActionInfoCreationStatus.LocationUnavailable);
@@ -326,7 +428,8 @@ public sealed class CodeActionInfoFactoryTests
         Mock<ICodeActionReferenceStore> referenceStore,
         Mock<TimeProvider> timeProvider,
         TimeSpan referenceLifetime,
-        int maximumDiagnosticContextsPerAction = CodeActionExecutionOptions.DefaultMaximumDiagnosticContextsPerAction)
+        int maximumDiagnosticContextsPerAction = CodeActionExecutionOptions.DefaultMaximumDiagnosticContextsPerAction,
+        Mock<ICodeActionProviderCatalog>? providerCatalog = null)
     {
         var executionOptions = new CodeActionExecutionOptions
         {
@@ -335,8 +438,13 @@ public sealed class CodeActionInfoFactoryTests
         };
 
         var options = Options.Create(executionOptions);
+        providerCatalog ??= new Mock<ICodeActionProviderCatalog>();
 
-        return new CodeActionInfoFactory(referenceStore.Object, timeProvider.Object, options);
+        return new CodeActionInfoFactory(
+            referenceStore.Object,
+            providerCatalog.Object,
+            timeProvider.Object,
+            options);
     }
 
     private static WorkspaceSnapshotIdentity CreateSnapshotIdentity()

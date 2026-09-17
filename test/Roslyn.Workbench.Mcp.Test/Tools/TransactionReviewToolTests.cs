@@ -38,12 +38,31 @@ public sealed class TransactionReviewToolTests
             new() { Path = "Modified.cs", Operation = WorkspaceFileOperation.Replace, OriginalExists = true },
             new() { Path = "Deleted.cs", Operation = WorkspaceFileOperation.Delete, OriginalExists = true },
         };
+        var provider = new MutationProviderIdentity
+        {
+            TypeName = "Provider.Type",
+            AssemblyName = "Provider.Assembly",
+            AssemblyVersion = "1.0.0.0",
+        };
+        var codeAction = new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.CodeFix,
+            Provider = provider,
+        };
+        var provenance = new TransactionMutationProvenance
+        {
+            Revision = 2,
+            Operation = "stage-code-action",
+            Summary = "Summary",
+            CodeAction = codeAction,
+        };
 
         var review = new TransactionReviewOutcome
         {
             Identity = identity,
             Transaction = new TransactionInfo { Revision = 2 },
             Documents = documents,
+            Provenance = [provenance],
         };
 
         var expiresAt = new DateTimeOffset(2000, 1, 1, 0, 15, 0, TimeSpan.Zero);
@@ -99,6 +118,18 @@ public sealed class TransactionReviewToolTests
         data.GetProperty("addedDocumentCount").GetInt32().Should().Be(1);
         data.GetProperty("modifiedDocumentCount").GetInt32().Should().Be(1);
         data.GetProperty("deletedDocumentCount").GetInt32().Should().Be(1);
+        data.GetProperty("provenance")[0]
+            .GetProperty("codeAction")
+            .GetProperty("providerId")
+            .GetString()
+            .Should()
+            .Be("p1");
+        data.GetProperty("providers")
+            .GetProperty("p1")
+            .GetProperty("typeName")
+            .GetString()
+            .Should()
+            .Be("Provider.Type");
         data.GetProperty("continuation").GetProperty("kind").GetString().Should().Be("CallTool");
         data.GetProperty("continuation").GetProperty("tool").GetString().Should().Be("transaction-commit");
         receiptStore.Verify(item => item.CreateOrGet(review), Times.Once);

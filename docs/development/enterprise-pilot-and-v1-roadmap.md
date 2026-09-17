@@ -145,6 +145,8 @@ Acceptance bar:
 
 Expose deterministic provenance that helps operators understand which component proposed a transformation. Include provider type and assembly identity, assembly version, action kind, diagnostic identifiers and equivalence key where appropriate. Expose package identity only when it can be established reliably; do not infer a NuGet package from an assembly path or name.
 
+The approved implementation is recorded in [Code Action provenance](code-action-provenance.md). It keeps routine agent responses compact, publishes discovery provenance only when requested, deduplicates provider identities behind response-local dictionary keys, carries concise attribution into transaction review, and reserves detailed equivalence and Fix All data for structured local logging.
+
 Provider allow-listing may follow once the exposed identity has proved stable across supported Roslyn and analyser versions.
 
 ### 8. Refine generated-source policy

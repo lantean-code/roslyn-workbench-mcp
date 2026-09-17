@@ -34,6 +34,7 @@ Successful staging advances the transaction revision. Discover again before sele
 | `expectedSnapshot` | Required | The complete snapshot object against which the document and range were resolved. Echo the published value unchanged. |
 | `kinds` | Required | `1` discovers Code Fixes, `2` discovers refactorings and `3` discovers both. |
 | `diagnosticIds` | Optional | Narrows Code Fix discovery to the supplied diagnostic IDs. |
+| `includeProvenance` | Optional, default `false` | Includes a response-local provider reference on each returned action and a response-level provider identity dictionary. |
 | `limit` | Optional, default `50` | Bounds the returned action leaves. Zero returns no items. |
 
 For example, this request discovers Code Fixes across one document:
@@ -66,9 +67,10 @@ The successful `data.actions` value is a bounded collection with `items`, `hasMo
 - `title` and `kind`;
 - the precise project-aware `location`, including its document, span, line and column;
 - concise `diagnostics` with IDs and messages for a Code Fix; and
-- `fixAllScopes` when the selected Code Fix supports Fix All.
+- `fixAllScopes` when the selected Code Fix supports Fix All; and
+- `providerId` only when `includeProvenance` is `true`, referencing an entry in the response-level `providers` object. Each dictionary entry contains the provider type, assembly simple name and assembly version captured from the loaded runtime component.
 
-Provider identities, CLR types, equivalence keys, replay details and internal policy decisions are deliberately omitted. Use the returned title, location, diagnostics and supported scopes to choose an action.
+Provider provenance is opt-in because it is intended for operator diagnostics and audit correlation, not routine action selection. The `providers` object deduplicates identities across the response; its keys are opaque response-local references and clients must resolve them by key rather than object order or compare them across responses. Equivalence keys, replay details, assembly paths, inferred package names and internal policy decisions are never added to discovery responses. Use the returned title, location, diagnostics and supported scopes to choose an action.
 
 ## Stage one action
 
@@ -121,6 +123,8 @@ Preparation is read-only. It revalidates the originating Code Fix, evaluates the
 - a bounded `affectedDocuments` collection.
 
 Pass the new prepared `actionId`, not the originating action reference, to `stage-code-action` with the same current snapshot. The Host recreates and normalises the Fix All operation, then requires its affected projects, paths, change kinds and content checksums to match the prepared operation exactly and still satisfy `maxChanges`. If the provider produces a different operation, staging rejects it with `MutationCandidateChanged`, consumes the invalid prepared reference and instructs the caller to resolve the target again. A matching operation proceeds through preview, history, rollback and commit exactly as a single action does.
+
+Preparation does not repeat provider provenance in its response. After staging, `transaction-preview` or `transaction-review` includes response-local `providerId` and optional `fixAllProviderId` references alongside each active Code Action revision, with the deduplicated identities in the response-level `providers` object. The Host also records structured local information events after successful Fix All preparation and successful Workspace staging; these events add diagnostic IDs, equivalence key and Fix All scope for operator correlation without placing them in the agent response. Provenance is informational and does not introduce an additional elicitation or approval step.
 
 ## Reference and snapshot rules
 

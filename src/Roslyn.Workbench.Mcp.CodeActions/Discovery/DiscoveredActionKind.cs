@@ -8,9 +8,10 @@ internal enum DiscoveredActionKind
     /// <summary>
     /// The action was produced by a refactoring provider.
     /// </summary>
-    Refactoring,
+    Refactoring = 0,
+
     /// <summary>
     /// The action was produced by a Code Fix provider.
     /// </summary>
-    CodeFix,
+    CodeFix = 1,
 }

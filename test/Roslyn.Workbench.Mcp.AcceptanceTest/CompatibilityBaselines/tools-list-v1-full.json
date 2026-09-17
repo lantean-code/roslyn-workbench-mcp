@@ -26567,6 +26567,11 @@
           ],
           "type": "object"
         },
+        "includeProvenance": {
+          "default": false,
+          "description": "Whether returned actions should reference a response-level runtime provider catalogue.",
+          "type": "boolean"
+        },
         "kinds": {
           "description": "The kinds of actions to discover.",
           "enum": [
@@ -26785,6 +26790,13 @@
                             ],
                             "type": "object"
                           },
+                          "providerId": {
+                            "description": "Response-local provider reference when includeProvenance was requested.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "title": {
                             "description": "The display title.",
                             "type": "string"
@@ -26812,6 +26824,35 @@
                     }
                   },
                   "type": "object"
+                },
+                "providers": {
+                  "additionalProperties": {
+                    "properties": {
+                      "assemblyName": {
+                        "description": "Simple name of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "assemblyVersion": {
+                        "description": "Version of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "typeName": {
+                        "description": "Fully qualified runtime type of the provider that supplied the mutation.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "typeName",
+                      "assemblyName",
+                      "assemblyVersion"
+                    ],
+                    "type": "object"
+                  },
+                  "description": "Provider identities keyed by response-local references used by the returned actions.",
+                  "type": [
+                    "object",
+                    "null"
+                  ]
                 }
               },
               "type": [
@@ -31835,6 +31876,94 @@
                     "type": "object"
                   },
                   "type": "array"
+                },
+                "provenance": {
+                  "description": "Mutation revisions contributing to the previewed transaction.",
+                  "items": {
+                    "properties": {
+                      "codeAction": {
+                        "description": "Code Action attribution when this revision was produced by a Code Action.",
+                        "properties": {
+                          "fixAllProviderId": {
+                            "description": "Response-local reference to the Fix All provider when one assembled the operation.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "kind": {
+                            "description": "Code Action family that produced the mutation.",
+                            "enum": [
+                              "CodeFix",
+                              "Refactoring",
+                              "FixAll"
+                            ],
+                            "type": "string"
+                          },
+                          "providerId": {
+                            "description": "Response-local reference to the provider that originated the Code Action.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "providerId"
+                        ],
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "operation": {
+                        "description": "Mutation operation recorded for the revision.",
+                        "type": "string"
+                      },
+                      "revision": {
+                        "description": "One-based transaction revision.",
+                        "type": "integer"
+                      },
+                      "summary": {
+                        "description": "Concise mutation summary recorded for the revision.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "revision",
+                      "operation",
+                      "summary"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "providers": {
+                  "additionalProperties": {
+                    "properties": {
+                      "assemblyName": {
+                        "description": "Simple name of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "assemblyVersion": {
+                        "description": "Version of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "typeName": {
+                        "description": "Fully qualified runtime type of the provider that supplied the mutation.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "typeName",
+                      "assemblyName",
+                      "assemblyVersion"
+                    ],
+                    "type": "object"
+                  },
+                  "description": "Provider identities keyed by response-local references used by provenance entries.",
+                  "type": [
+                    "object",
+                    "null"
+                  ]
                 },
                 "transaction": {
                   "description": "The active transaction info.",

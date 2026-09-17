@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions.Diagnostics;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
@@ -43,6 +44,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
         var services = new ServiceCollection();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var referenceStore = new Mock<ICodeActionReferenceStore>();
+        var provenanceLogger = new Mock<ICodeActionProvenanceLogger>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var registration = new CodeActionMutationRegistration<TestMutationHandler, TestRequest>(CreateMetadata());
         var target = new CodeActionMcpToolRegistrationVisitor(services);
@@ -65,6 +67,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
 
         AddAdapterDependencies(services, contextFactory.Object, protocolFactory.Object);
         services.AddSingleton(referenceStore.Object);
+        services.AddSingleton(provenanceLogger.Object);
         using var serviceProvider = BuildValidatedProvider(services);
         serviceProvider.GetRequiredService<McpServerTool>()
             .Should().BeOfType<CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>>();

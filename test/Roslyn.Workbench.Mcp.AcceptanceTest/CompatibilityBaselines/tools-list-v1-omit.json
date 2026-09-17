@@ -7985,6 +7985,11 @@
           ],
           "type": "object"
         },
+        "includeProvenance": {
+          "default": false,
+          "description": "Whether returned actions should reference a response-level runtime provider catalogue.",
+          "type": "boolean"
+        },
         "kinds": {
           "description": "The kinds of actions to discover.",
           "enum": [

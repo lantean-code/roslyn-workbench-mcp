@@ -8,10 +8,10 @@ internal enum CodeActionKind
     /// <summary>
     /// A Roslyn code fix associated with one or more diagnostics.
     /// </summary>
-    CodeFix,
+    CodeFix = 0,
 
     /// <summary>
     /// A Roslyn refactoring for a document, selection or caret.
     /// </summary>
-    Refactoring,
+    Refactoring = 1,
 }

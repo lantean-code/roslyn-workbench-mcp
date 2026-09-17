@@ -8,6 +8,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
 {
     private readonly ICodeActionReferenceStore _referenceStore;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly TimeProvider _timeProvider;
     private readonly int _maximumDiagnosticContextsPerAction;
     private readonly TimeSpan _referenceLifetime;
@@ -16,14 +17,17 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
     /// Initializes a new instance of the <see cref="CodeActionInfoFactory"/> class.
     /// </summary>
     /// <param name="referenceStore">The store that retains short-lived action recipes.</param>
+    /// <param name="providerCatalog">The catalogue containing provider provenance captured at startup.</param>
     /// <param name="timeProvider">The time source used for expiry and timestamp calculations.</param>
     /// <param name="options">The reference lifetime and diagnostic context limits.</param>
     public CodeActionInfoFactory(
         ICodeActionReferenceStore referenceStore,
+        ICodeActionProviderCatalog providerCatalog,
         TimeProvider timeProvider,
         IOptions<CodeActionExecutionOptions> options)
     {
         _referenceStore = referenceStore;
+        _providerCatalog = providerCatalog;
         _timeProvider = timeProvider;
         _maximumDiagnosticContextsPerAction = Math.Max(0, options.Value.MaximumDiagnosticContextsPerAction);
         _referenceLifetime = options.Value.ReferenceLifetime;
@@ -36,12 +40,14 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
     /// <param name="context">The current Code Action execution context.</param>
     /// <param name="document">The document in which the action was discovered.</param>
     /// <param name="location">The canonical source location of the action.</param>
+    /// <param name="includeProvenance">Whether concise runtime provider provenance should be published.</param>
     /// <returns>The published item or a categorized reason it could not be created.</returns>
     public CodeActionInfoCreationResult Create(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
-        ResolvedLocation location)
+        ResolvedLocation location,
+        bool includeProvenance)
     {
         if (location.Document is null || location.Span is null)
         {
@@ -104,6 +110,14 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             fixAllScopes = action.FixAllScopes;
         }
 
+        MutationProviderIdentity? provider = null;
+        if (includeProvenance)
+        {
+            provider = _providerCatalog.FindProviderProvenance(action.ProviderId)
+                ?? throw new InvalidOperationException(
+                    $"Code Action provider '{action.ProviderId}' has no captured provenance.");
+        }
+
         var item = new CodeActionListItem
         {
             ActionId = reference.ActionId,
@@ -112,6 +126,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             Location = actionLocation,
             Diagnostics = diagnosticContexts,
             FixAllScopes = fixAllScopes,
+            ProviderIdentity = provider,
         };
 
         return CodeActionInfoCreationResult.Success(item);

@@ -39,15 +39,30 @@ internal static class BundledComponentWorkspaceFactory
 
     public static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
     {
-        return CreateCodeActionWorkspace(composition, includeBuiltInCodeActions: false);
+        return CreateCodeActionWorkspace(
+            composition,
+            includeBuiltInCodeActions: false,
+            OperationalMode.AutonomousTrusted);
     }
 
-    private static ComponentWorkspace CreateCodeActionWorkspace(ICodeActionComposition composition, bool includeBuiltInCodeActions)
+    public static ComponentWorkspace CreateApprovalRequiredTestCodeActionWorkspace(ICodeActionComposition composition)
+    {
+        return CreateCodeActionWorkspace(
+            composition,
+            includeBuiltInCodeActions: false,
+            OperationalMode.ApprovalRequired);
+    }
+
+    private static ComponentWorkspace CreateCodeActionWorkspace(
+        ICodeActionComposition composition,
+        bool includeBuiltInCodeActions,
+        OperationalMode operationalMode = OperationalMode.AutonomousTrusted)
     {
         var options = new ComponentWorkspaceOptions
         {
             Boundary = ComponentWorkspaceBoundary.CodeActions,
             IncludeBuiltInCodeActions = includeBuiltInCodeActions,
+            OperationalMode = operationalMode,
         };
 
         return ComponentWorkspace.Create(options, composition);

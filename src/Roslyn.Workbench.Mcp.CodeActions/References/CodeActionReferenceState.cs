@@ -10,6 +10,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.References;
 /// </summary>
 internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDisposable
 {
+    private const long _codeActionMutationProvenanceFixedCharge = 1;
+    private const long _mutationProviderIdentityFixedCharge = 3;
     private const long _preparedFixAllFixedCharge = 2;
     private const long _preparedDocumentIdentityFixedCharge = 18;
 
@@ -381,7 +383,9 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
 
     private static long CalculateSize(PreparedFixAllReplayData preparedFixAll)
     {
-        var size = _preparedFixAllFixedCharge;
+        var size = _preparedFixAllFixedCharge
+            + CalculateSize(preparedFixAll.Provenance);
+
         foreach (var document in preparedFixAll.CandidatePrecondition.ExpectedIdentity.Documents)
         {
             size += _preparedDocumentIdentityFixedCharge
@@ -392,6 +396,35 @@ internal sealed class CodeActionReferenceState : ICodeActionReferenceState, IDis
         }
 
         return size;
+    }
+
+    private static long CalculateSize(CodeActionMutationProvenance provenance)
+    {
+        var size = _codeActionMutationProvenanceFixedCharge
+            + CalculateSize(provenance.Provider)
+            + provenance.DiagnosticIds.Count
+            + (provenance.EquivalenceKey?.Length ?? 0)
+            + (provenance.FixAllScope?.Length ?? 0);
+
+        foreach (var diagnosticId in provenance.DiagnosticIds)
+        {
+            size += diagnosticId.Length;
+        }
+
+        if (provenance.FixAllProvider is not null)
+        {
+            size += CalculateSize(provenance.FixAllProvider);
+        }
+
+        return size;
+    }
+
+    private static long CalculateSize(MutationProviderIdentity provider)
+    {
+        return _mutationProviderIdentityFixedCharge
+            + provider.TypeName.Length
+            + provider.AssemblyName.Length
+            + provider.AssemblyVersion.Length;
     }
 
     private static void AddToIndex<TKey>(

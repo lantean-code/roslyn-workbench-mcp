@@ -32,4 +32,11 @@ internal interface ICodeActionProviderCatalog
     /// <param name="providerId">The provider identifier.</param>
     /// <returns>The code fix provider.</returns>
     CodeFixProvider? FindCodeFixProvider(string providerId);
+
+    /// <summary>
+    /// Finds the runtime provenance captured for a provider.
+    /// </summary>
+    /// <param name="providerId">The provider identifier.</param>
+    /// <returns>The captured provider provenance, or <see langword="null"/> when the provider is unavailable.</returns>
+    MutationProviderIdentity? FindProviderProvenance(string providerId);
 }

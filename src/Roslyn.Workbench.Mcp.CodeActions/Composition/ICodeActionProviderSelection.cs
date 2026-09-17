@@ -16,4 +16,9 @@ internal interface ICodeActionProviderSelection
     /// Gets eligible Code Fix providers keyed by stable provider identifier.
     /// </summary>
     FrozenDictionary<string, CodeFixProvider> CodeFixProviders { get; }
+
+    /// <summary>
+    /// Gets concise runtime provenance keyed by stable provider identifier.
+    /// </summary>
+    FrozenDictionary<string, MutationProviderIdentity> ProviderProvenance { get; }
 }

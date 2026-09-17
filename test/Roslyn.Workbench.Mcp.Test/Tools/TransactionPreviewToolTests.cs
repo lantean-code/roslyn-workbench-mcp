@@ -1,5 +1,4 @@
 using System.Text.Json;
-
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -11,6 +10,25 @@ public sealed class TransactionPreviewToolTests
     [InlineData(true)]
     public async Task GIVEN_OptionalWorkspace_WHEN_PreviewingTransaction_THEN_ShouldRouteAndMapResult(bool includeWorkspace)
     {
+        var provider = new MutationProviderIdentity
+        {
+            TypeName = "Provider.Type",
+            AssemblyName = "Provider.Assembly",
+            AssemblyVersion = "1.0.0.0",
+        };
+        var codeAction = new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.Refactoring,
+            Provider = provider,
+        };
+        var provenance = new TransactionMutationProvenance
+        {
+            Revision = 1,
+            Operation = "stage-code-action",
+            Summary = "Summary",
+            CodeAction = codeAction,
+        };
+
         var service = new Mock<ITransactionService>();
         service
             .Setup(item => item.PreviewAsync(
@@ -31,6 +49,7 @@ public sealed class TransactionPreviewToolTests
                 {
                     Truncated = false,
                 },
+                Provenance = [provenance],
             }));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
@@ -40,6 +59,7 @@ public sealed class TransactionPreviewToolTests
             IncludeDiff = true,
             ContextLines = 2,
         };
+
         string? errorMessage = null;
         var requestBinder = new Mock<IToolRequestBinder>();
         requestBinder
@@ -67,6 +87,18 @@ public sealed class TransactionPreviewToolTests
         var data = result.StructuredContent!.Value.GetProperty("data");
         data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(2);
         data.GetProperty("diff").GetProperty("truncated").GetBoolean().Should().BeFalse();
+        data.GetProperty("provenance")[0]
+            .GetProperty("codeAction")
+            .GetProperty("providerId")
+            .GetString()
+            .Should()
+            .Be("p1");
+        data.GetProperty("providers")
+            .GetProperty("p1")
+            .GetProperty("typeName")
+            .GetString()
+            .Should()
+            .Be("Provider.Type");
         service.Verify(item => item.PreviewAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

@@ -285,6 +285,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             Operation = operationName,
             Summary = candidate.Summary,
             Preview = preview,
+            CodeActionProvenance = candidate.CodeActionProvenance,
         };
     }
 

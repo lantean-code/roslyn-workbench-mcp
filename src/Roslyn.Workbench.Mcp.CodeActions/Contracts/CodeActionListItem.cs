@@ -45,4 +45,17 @@ internal sealed record CodeActionListItem
     [Description("The supported Fix All scopes for a code fix.")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<CodeActionFixAllScope>? FixAllScopes { get; init; }
+
+    /// <summary>
+    /// The response-local reference to runtime provider provenance when explicitly requested.
+    /// </summary>
+    [Description("Response-local provider reference when includeProvenance was requested.")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ProviderId { get; init; }
+
+    /// <summary>
+    /// Gets the runtime provider identity used to build the response-level catalogue.
+    /// </summary>
+    [JsonIgnore]
+    internal MutationProviderIdentity? ProviderIdentity { get; init; }
 }

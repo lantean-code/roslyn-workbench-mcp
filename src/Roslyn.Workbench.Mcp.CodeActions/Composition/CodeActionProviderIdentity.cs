@@ -25,6 +25,30 @@ internal static class CodeActionProviderIdentity
         return GetId(provider.GetType());
     }
 
+    /// <summary>
+    /// Creates concise runtime provenance for a provider type.
+    /// </summary>
+    /// <param name="providerType">The provider runtime type to identify.</param>
+    /// <returns>The provider type and assembly identity used for diagnostics and review.</returns>
+    public static MutationProviderIdentity CreateProvenance(Type providerType)
+    {
+        var assemblyName = providerType.Assembly.GetName();
+        var simpleAssemblyName = assemblyName.Name
+            ?? throw new InvalidOperationException(
+                $"Code Action provider type '{GetId(providerType)}' has no assembly simple name.");
+
+        var assemblyVersion = assemblyName.Version?.ToString()
+            ?? throw new InvalidOperationException(
+                $"Code Action provider type '{GetId(providerType)}' has no assembly version.");
+
+        return new MutationProviderIdentity
+        {
+            TypeName = GetId(providerType),
+            AssemblyName = simpleAssemblyName,
+            AssemblyVersion = assemblyVersion,
+        };
+    }
+
     private static string GetId(Type providerType)
     {
         return providerType.FullName ?? providerType.Name;

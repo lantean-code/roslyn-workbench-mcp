@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Internal;
 using Roslyn.Workbench.Mcp.Workspace.IO;
@@ -130,6 +129,7 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
         {
             Scope = CodeActionFixAllScope.Solution,
             CandidatePrecondition = precondition,
+            Provenance = CodeActionExecutionTestFactory.CreateCodeActionProvenance(CodeActionMutationKind.FixAll),
         };
 
         var recipe = CreateRecipe() with
@@ -141,6 +141,72 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
 
         created.Should().BeFalse();
         reference.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_PreparedFixAllProvenanceCrossesCacheCapacity_WHEN_CreatingReferences_THEN_ShouldChargeProvenance()
+    {
+        var cacheOptions = new MemoryCacheOptions
+        {
+            Clock = _clock.Object,
+            SizeLimit = 200,
+        };
+
+        var compactProvenance = new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.FixAll,
+            Provider = new MutationProviderIdentity
+            {
+                TypeName = "TypeName",
+                AssemblyName = "AssemblyName",
+                AssemblyVersion = "AssemblyVersion",
+            },
+        };
+
+        var expandedProvenance = compactProvenance with
+        {
+            Provider = compactProvenance.Provider with
+            {
+                TypeName = new string('P', 200),
+            },
+            FixAllProvider = new MutationProviderIdentity
+            {
+                TypeName = "FixAllTypeName",
+                AssemblyName = "FixAllAssemblyName",
+                AssemblyVersion = "FixAllAssemblyVersion",
+            },
+            DiagnosticIds = ["DiagnosticId"],
+            EquivalenceKey = "EquivalenceKey",
+            FixAllScope = "FixAllScope",
+        };
+
+        var compactRecipe = CreateRecipe() with
+        {
+            PreparedFixAll = CreatePreparedFixAll(compactProvenance),
+        };
+
+        var expandedRecipe = CreateRecipe() with
+        {
+            PreparedFixAll = CreatePreparedFixAll(expandedProvenance),
+        };
+
+        using var compactCache = new MemoryCache(cacheOptions);
+        using var compactTarget = new CodeActionReferenceState(compactCache, _timeProvider.Object);
+        compactTarget.TryCreate(
+            compactRecipe,
+            _utcNow.AddMinutes(5),
+            out var compactReference).Should().BeTrue();
+
+        compactReference.Should().NotBeNull();
+
+        using var expandedCache = new MemoryCache(cacheOptions);
+        using var expandedTarget = new CodeActionReferenceState(expandedCache, _timeProvider.Object);
+        expandedTarget.TryCreate(
+            expandedRecipe,
+            _utcNow.AddMinutes(5),
+            out var expandedReference).Should().BeFalse();
+
+        expandedReference.Should().BeNull();
     }
 
     [Fact]
@@ -392,6 +458,16 @@ public sealed class CodeActionReferenceStoreTests : IDisposable
                 snapshotId,
                 transactionId,
                 workspaceEpoch),
+        };
+    }
+
+    private static PreparedFixAllReplayData CreatePreparedFixAll(CodeActionMutationProvenance provenance)
+    {
+        var preparedFixAll = CodeActionExecutionTestFactory.CreatePreparedFixAllReplayData();
+
+        return preparedFixAll with
+        {
+            Provenance = provenance,
         };
     }
 

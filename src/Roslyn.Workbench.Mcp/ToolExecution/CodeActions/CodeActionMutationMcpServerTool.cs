@@ -14,6 +14,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
     private readonly CodeActionToolMetadata _metadata;
     private readonly THandler _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
+    private readonly ICodeActionProvenanceLogger _provenanceLogger;
     private readonly ICodeActionReferenceStore _referenceStore;
 
     /// <summary>
@@ -23,6 +24,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
     /// <param name="handler">The Code Action mutation handler invoked for each tool request.</param>
     /// <param name="contextFactory">The factory that acquires transaction-scoped Code Action contexts.</param>
     /// <param name="referenceStore">The store containing short-lived Code Action references returned by queries.</param>
+    /// <param name="provenanceLogger">The logger that records successfully staged Code Action attribution.</param>
     /// <param name="protocolFactory">The factory that creates the published MCP tool definition.</param>
     /// <param name="requestBinder">The binder that converts tool arguments into request values.</param>
     /// <param name="options">The Host settings that control schema publication.</param>
@@ -31,6 +33,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         THandler handler,
         ICodeActionExecutionContextFactory contextFactory,
         ICodeActionReferenceStore referenceStore,
+        ICodeActionProvenanceLogger provenanceLogger,
         IMcpToolProtocolFactory protocolFactory,
         IToolRequestBinder requestBinder,
         IOptions<StartupOptions> options)
@@ -45,6 +48,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         _handler = handler;
         _contextFactory = contextFactory;
         _referenceStore = referenceStore;
+        _provenanceLogger = provenanceLogger;
     }
 
     /// <inheritdoc/>
@@ -121,6 +125,12 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                 && request is ICodeActionReferenceRequest referenceRequest)
             {
                 _referenceStore.Remove(referenceRequest.ActionId);
+            }
+
+            if (stagedResult.IsSucceeded
+                && proposalResult.Data.CodeActionProvenance is not null)
+            {
+                _provenanceLogger.LogStaged(proposalResult.Data.CodeActionProvenance);
             }
 
             using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))

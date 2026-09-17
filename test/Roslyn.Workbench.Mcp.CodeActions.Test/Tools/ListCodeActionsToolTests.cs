@@ -75,6 +75,209 @@ public sealed class ListCodeActionsToolTests
     }
 
     [Fact]
+    public async Task GIVEN_ProvenanceIsRequested_WHEN_ProjectingAction_THEN_ShouldForwardOptIn()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var providerIdentity = CodeActionExecutionTestFactory.CreateProviderIdentity();
+        var item = CreateItem("Title", CodeActionKind.Refactoring, 0, 1) with
+        {
+            ProviderIdentity = providerIdentity,
+        };
+
+        _providerCatalog.Setup(value => value.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(value => value.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(action));
+        SetupProjection(action, roslyn.Document, item, includeProvenance: true);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                includeProvenance: true),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        var projectedItem = result.Data!.Actions.Items.Should().ContainSingle().Which;
+        projectedItem.ProviderId.Should().Be("p1");
+        result.Data.Providers.Should().ContainSingle()
+            .Which.Should().Be(new KeyValuePair<string, MutationProviderIdentity>("p1", providerIdentity));
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionsShareProvider_WHEN_PublishingProvenance_THEN_ShouldReferenceOneProviderEntry()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var providerIdentity = CodeActionExecutionTestFactory.CreateProviderIdentity();
+        var firstAction = CreateAction(
+            roslyn.Solution,
+            "First",
+            DiscoveredActionKind.Refactoring,
+            new TextSpan(0, 1));
+        var secondAction = CreateAction(
+            roslyn.Solution,
+            "Second",
+            DiscoveredActionKind.Refactoring,
+            new TextSpan(1, 1));
+        var firstItem = CreateItem("First", CodeActionKind.Refactoring, 0, 1) with
+        {
+            ProviderIdentity = providerIdentity,
+        };
+        var secondItem = CreateItem("Second", CodeActionKind.Refactoring, 1, 1) with
+        {
+            ProviderIdentity = providerIdentity,
+        };
+
+        _providerCatalog.Setup(value => value.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(value => value.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(secondAction, firstAction));
+        SetupProjection(firstAction, roslyn.Document, firstItem, includeProvenance: true);
+        SetupProjection(secondAction, roslyn.Document, secondItem, includeProvenance: true);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                includeProvenance: true),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Select(static item => item.ProviderId).Should().Equal("p1", "p1");
+        result.Data.Providers.Should().ContainSingle()
+            .Which.Should().Be(new KeyValuePair<string, MutationProviderIdentity>("p1", providerIdentity));
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionsHaveDifferentProviders_WHEN_PublishingProvenance_THEN_ShouldAssignReferencesInActionOrder()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var firstProviderIdentity = CodeActionExecutionTestFactory.CreateProviderIdentity() with
+        {
+            TypeName = "B.Provider",
+        };
+        var secondProviderIdentity = CodeActionExecutionTestFactory.CreateProviderIdentity() with
+        {
+            TypeName = "A.Provider",
+        };
+        var firstAction = CreateAction(
+            roslyn.Solution,
+            "First",
+            DiscoveredActionKind.Refactoring,
+            new TextSpan(0, 1));
+        var secondAction = CreateAction(
+            roslyn.Solution,
+            "Second",
+            DiscoveredActionKind.Refactoring,
+            new TextSpan(1, 1));
+        var firstItem = CreateItem("First", CodeActionKind.Refactoring, 0, 1) with
+        {
+            ProviderIdentity = firstProviderIdentity,
+        };
+        var secondItem = CreateItem("Second", CodeActionKind.Refactoring, 1, 1) with
+        {
+            ProviderIdentity = secondProviderIdentity,
+        };
+
+        _providerCatalog.Setup(value => value.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(value => value.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(secondAction, firstAction));
+        SetupProjection(firstAction, roslyn.Document, firstItem, includeProvenance: true);
+        SetupProjection(secondAction, roslyn.Document, secondItem, includeProvenance: true);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                includeProvenance: true),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Select(static item => item.ProviderId).Should().Equal("p1", "p2");
+        result.Data.Providers!["p1"].Should().BeSameAs(firstProviderIdentity);
+        result.Data.Providers["p2"].Should().BeSameAs(secondProviderIdentity);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProvenanceIsRequestedWithoutActions_WHEN_PublishingResult_THEN_ShouldOmitProviderDictionary()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+
+        _providerCatalog.Setup(value => value.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(value => value.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery());
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                includeProvenance: true),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Items.Should().BeEmpty();
+        result.Data.Providers.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_ProvenanceProjectionOmitsProviderIdentity_WHEN_PublishingResult_THEN_ShouldThrowForInvalidInternalState()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var item = CreateItem("Title", CodeActionKind.Refactoring, 0, 1);
+
+        _providerCatalog.Setup(value => value.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(value => value.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(SuccessfulDiscovery(action));
+        SetupProjection(action, roslyn.Document, item, includeProvenance: true);
+
+        var actionUnderTest = async () => await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                includeProvenance: true),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        await actionUnderTest.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("A Code Action projected with provenance must include its provider identity.");
+    }
+
+    [Fact]
     public async Task GIVEN_ExpectedSnapshotDoesNotMatch_WHEN_Executing_THEN_ShouldRejectBeforeResolvingDocument()
     {
         _workspaceResolver
@@ -369,7 +572,8 @@ public sealed class ListCodeActionsToolTests
             second,
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
-            It.IsAny<ResolvedLocation>()), Times.Never);
+            It.IsAny<ResolvedLocation>(),
+            false), Times.Never);
     }
 
     [Fact]
@@ -471,7 +675,8 @@ public sealed class ListCodeActionsToolTests
             It.IsAny<DiscoveredCodeAction>(),
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
-            It.IsAny<ResolvedLocation>()), Times.Never);
+            It.IsAny<ResolvedLocation>(),
+            false), Times.Never);
     }
 
     [Fact]
@@ -495,7 +700,8 @@ public sealed class ListCodeActionsToolTests
                 action,
                 _context.Object,
                 roslyn.Document,
-                It.IsAny<ResolvedLocation>()))
+                It.IsAny<ResolvedLocation>(),
+                false))
             .Returns(CodeActionInfoCreationResult.ReferenceCapacityExceeded());
 
         var result = await _target.ExecuteAsync(
@@ -510,7 +716,8 @@ public sealed class ListCodeActionsToolTests
             action,
             _context.Object,
             roslyn.Document,
-            It.IsAny<ResolvedLocation>()), Times.Once);
+            It.IsAny<ResolvedLocation>(),
+            false), Times.Once);
     }
 
     [Theory]
@@ -545,7 +752,8 @@ public sealed class ListCodeActionsToolTests
                 action,
                 _context.Object,
                 roslyn.Document,
-                It.IsAny<ResolvedLocation>()))
+                It.IsAny<ResolvedLocation>(),
+                false))
             .Returns(creationResult);
 
         var result = await _target.ExecuteAsync(
@@ -582,7 +790,8 @@ public sealed class ListCodeActionsToolTests
                 second,
                 _context.Object,
                 roslyn.Document,
-                It.IsAny<ResolvedLocation>()))
+                It.IsAny<ResolvedLocation>(),
+                false))
             .Returns(CodeActionInfoCreationResult.ReferenceCapacityExceeded());
 
         var result = await _target.ExecuteAsync(
@@ -618,7 +827,8 @@ public sealed class ListCodeActionsToolTests
                 second,
                 _context.Object,
                 roslyn.Document,
-                It.IsAny<ResolvedLocation>()))
+                It.IsAny<ResolvedLocation>(),
+                false))
             .Throws(new InvalidOperationException("Projection failed."));
 
         var action = async () => await _target.ExecuteAsync(
@@ -854,7 +1064,8 @@ public sealed class ListCodeActionsToolTests
     private void SetupProjection(
         DiscoveredCodeAction action,
         Document document,
-        CodeActionListItem item)
+        CodeActionListItem item,
+        bool includeProvenance = false)
     {
         _infoFactory
             .Setup(factory => factory.Create(
@@ -863,7 +1074,8 @@ public sealed class ListCodeActionsToolTests
                 document,
                 It.Is<ResolvedLocation>(location =>
                     location.Span!.Start == action.TargetSpan.Start
-                    && location.Span.Length == action.TargetSpan.Length)))
+                    && location.Span.Length == action.TargetSpan.Length),
+                includeProvenance))
             .Returns(CodeActionInfoCreationResult.Success(item));
     }
 
@@ -872,7 +1084,8 @@ public sealed class ListCodeActionsToolTests
         DocumentSelector? document = null,
         TextSpanRange? range = null,
         IReadOnlyList<string>? diagnosticIds = null,
-        int? limit = 50)
+        int? limit = 50,
+        bool includeProvenance = false)
     {
         document ??= new DocumentSelector { Path = "Code.cs" };
 
@@ -884,6 +1097,7 @@ public sealed class ListCodeActionsToolTests
             Kinds = kinds,
             DiagnosticIds = diagnosticIds,
             Limit = limit,
+            IncludeProvenance = includeProvenance,
         };
     }
 

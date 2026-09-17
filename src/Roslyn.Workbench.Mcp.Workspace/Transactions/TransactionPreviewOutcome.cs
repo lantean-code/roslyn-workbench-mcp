@@ -16,6 +16,11 @@ internal sealed record TransactionPreviewOutcome
     public IReadOnlyList<DocumentChange> Documents { get; init; } = [];
 
     /// <summary>
+    /// Gets the active mutation revisions and their available attribution.
+    /// </summary>
+    public IReadOnlyList<TransactionMutationProvenance> Provenance { get; init; } = [];
+
+    /// <summary>
     /// Gets the detailed diff for the requested document, when requested.
     /// </summary>
     public DocumentDiff? Diff { get; init; }

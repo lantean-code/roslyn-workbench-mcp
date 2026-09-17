@@ -39,6 +39,13 @@ internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     public IReadOnlyList<string>? DiagnosticIds { get; init; }
 
     /// <summary>
+    /// Whether returned actions should reference a response-level runtime provider catalogue.
+    /// </summary>
+    [Description("Whether returned actions should reference a response-level runtime provider catalogue.")]
+    [DefaultValue(false)]
+    public bool IncludeProvenance { get; init; }
+
+    /// <summary>
     /// The maximum number of action leaves to return.
     /// </summary>
     [Description("The maximum number of action leaves to return.")]

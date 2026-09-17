@@ -14,4 +14,9 @@ internal sealed record PreparedFixAllReplayData
     /// Gets the precondition that the candidate solution must satisfy before the operation can be replayed.
     /// </summary>
     public required WorkspaceMutationCandidatePrecondition CandidatePrecondition { get; init; }
+
+    /// <summary>
+    /// Gets the provider attribution and audit metadata retained with the prepared operation.
+    /// </summary>
+    public required CodeActionMutationProvenance Provenance { get; init; }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 /// <summary>
@@ -19,4 +21,11 @@ internal sealed record TransactionMutationProvenance
     /// Gets the concise mutation summary recorded for the revision.
     /// </summary>
     public required string Summary { get; init; }
+
+    /// <summary>
+    /// Gets concise Code Action attribution when the revision originated from a Code Action.
+    /// </summary>
+    [Description("Code Action attribution when this revision was produced by a Code Action.")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CodeActionMutationProvenance? CodeAction { get; init; }
 }

@@ -59,6 +59,8 @@ internal sealed class TransactionReviewTool : ServerOwnedToolBase<TransactionRev
     private TransactionReviewData CreateData(TransactionReviewOutcome review)
     {
         var receipt = _receiptStore.CreateOrGet(review);
+        var projection = TransactionMutationProvenanceMapper.Create(review.Provenance);
+
         return new TransactionReviewData
         {
             ReceiptId = receipt.ReceiptId,
@@ -74,7 +76,8 @@ internal sealed class TransactionReviewTool : ServerOwnedToolBase<TransactionRev
             DeletedDocumentCount = review.Documents.Count(static document => document.Operation == WorkspaceFileOperation.Delete),
             Transaction = review.Transaction,
             Documents = review.Documents,
-            Provenance = review.Provenance,
+            Provenance = projection.Provenance,
+            Providers = projection.Providers,
             Validations = review.Validations,
             Diff = review.Diff,
             Continuation = ToolContinuation.CallTool(

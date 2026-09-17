@@ -1,3 +1,4 @@
+using System.Globalization;
 using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecutionResultFactory;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
@@ -91,6 +92,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             discovered,
             document,
             request.EffectiveLimit,
+            request.IncludeProvenance,
             context,
             warnings,
             cancellationToken);
@@ -258,6 +260,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         List<DiscoveredCodeAction> discovered,
         Document document,
         int limit,
+        bool includeProvenance,
         ICodeActionQueryContext context,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
@@ -270,6 +273,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 discovered,
                 document,
                 limit,
+                includeProvenance,
                 context,
                 actionItems,
                 cancellationToken);
@@ -281,7 +285,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 return result;
             }
 
-            result = CreateSuccessResult(actionItems, totalCount, warnings);
+            result = CreateSuccessResult(actionItems, totalCount, includeProvenance, warnings);
             return result;
         }
         finally
@@ -297,6 +301,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         List<DiscoveredCodeAction> discovered,
         Document document,
         int limit,
+        bool includeProvenance,
         ICodeActionQueryContext context,
         List<CodeActionListItem> actionItems,
         CancellationToken cancellationToken)
@@ -315,7 +320,15 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             var totalCount = 0;
             foreach (var action in discovered)
             {
-                var failure = ProjectAction(action, document, limit, context, syntaxTree, actionItems);
+                var failure = ProjectAction(
+                    action,
+                    document,
+                    limit,
+                    includeProvenance,
+                    context,
+                    syntaxTree,
+                    actionItems);
+
                 if (failure is not null)
                 {
                     return (totalCount, failure);
@@ -332,6 +345,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         DiscoveredCodeAction action,
         Document document,
         int limit,
+        bool includeProvenance,
         ICodeActionQueryContext context,
         SyntaxTree syntaxTree,
         List<CodeActionListItem> actionItems)
@@ -350,7 +364,13 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return null;
         }
 
-        var creationResult = _infoFactory.Create(action, context, document, resolvedLocation);
+        var creationResult = _infoFactory.Create(
+            action,
+            context,
+            document,
+            resolvedLocation,
+            includeProvenance);
+
         if (!creationResult.IsSucceeded)
         {
             return CreateProjectionFailure(creationResult.Status);
@@ -433,15 +453,65 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private static CodeActionExecutionResult<CodeActionListData> CreateSuccessResult(
         IReadOnlyList<CodeActionListItem> actionItems,
         int totalCount,
+        bool includeProvenance,
         IReadOnlyList<WarningInfo> warnings)
     {
-        var boundedActions = BoundedCollection.CreatePrebounded(actionItems, totalCount);
+        var (projectedItems, providers) = ProjectProviderDictionary(actionItems, includeProvenance);
+        var boundedActions = BoundedCollection.CreatePrebounded(projectedItems, totalCount);
         var data = new CodeActionListData
         {
             Actions = boundedActions,
+            Providers = providers,
         };
 
         return CodeActionExecutionResult.Success(data, warnings: warnings);
+    }
+
+    private static (IReadOnlyList<CodeActionListItem> Items, IReadOnlyDictionary<string, MutationProviderIdentity>? Providers)
+        ProjectProviderDictionary(
+            IReadOnlyList<CodeActionListItem> actionItems,
+            bool includeProvenance)
+    {
+        if (!includeProvenance)
+        {
+            return (actionItems, null);
+        }
+
+        var providerIdsByIdentity = new Dictionary<MutationProviderIdentity, string>();
+        var providersById = new Dictionary<string, MutationProviderIdentity>(StringComparer.Ordinal);
+        var projectedItems = new List<CodeActionListItem>(actionItems.Count);
+        foreach (var item in actionItems)
+        {
+            if (item.ProviderIdentity is not { } providerIdentity)
+            {
+                throw new InvalidOperationException(
+                    "A Code Action projected with provenance must include its provider identity.");
+            }
+
+            var providerId = GetOrAddProvider(providerIdentity, providerIdsByIdentity, providersById);
+            var projectedItem = item with { ProviderId = providerId };
+
+            projectedItems.Add(projectedItem);
+        }
+
+        return (projectedItems, providersById.Count == 0 ? null : providersById);
+    }
+
+    private static string GetOrAddProvider(
+        MutationProviderIdentity provider,
+        Dictionary<MutationProviderIdentity, string> providerIdsByIdentity,
+        Dictionary<string, MutationProviderIdentity> providersById)
+    {
+        if (providerIdsByIdentity.TryGetValue(provider, out var providerId))
+        {
+            return providerId;
+        }
+
+        var providerNumber = providersById.Count + 1;
+        providerId = $"p{providerNumber.ToString(CultureInfo.InvariantCulture)}";
+        providerIdsByIdentity.Add(provider, providerId);
+        providersById.Add(providerId, provider);
+        return providerId;
     }
 
     private static void AddProviderWarning(

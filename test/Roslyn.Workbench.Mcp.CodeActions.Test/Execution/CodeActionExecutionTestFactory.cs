@@ -66,6 +66,29 @@ internal static class CodeActionExecutionTestFactory
         {
             Scope = scope,
             CandidatePrecondition = precondition,
+            Provenance = CreateCodeActionProvenance(CodeActionMutationKind.FixAll),
+        };
+    }
+
+    public static CodeActionMutationProvenance CreateCodeActionProvenance(
+        CodeActionMutationKind kind = CodeActionMutationKind.CodeFix)
+    {
+        return new CodeActionMutationProvenance
+        {
+            Kind = kind,
+            Provider = CreateProviderIdentity(),
+            DiagnosticIds = ["DiagnosticId"],
+            EquivalenceKey = "EquivalenceKey",
+        };
+    }
+
+    public static MutationProviderIdentity CreateProviderIdentity()
+    {
+        return new MutationProviderIdentity
+        {
+            TypeName = "ProviderType",
+            AssemblyName = "ProviderAssembly",
+            AssemblyVersion = "1.2.3.4",
         };
     }
 }

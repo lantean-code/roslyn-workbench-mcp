@@ -344,6 +344,7 @@ internal sealed class TransactionService : ITransactionService
         {
             Transaction = session.Transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             Documents = documents,
+            Provenance = TransactionMutationProvenanceFactory.Create(session.Transaction),
             Diff = diff,
         };
 

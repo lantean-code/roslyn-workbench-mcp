@@ -1,9 +1,9 @@
 using System.Text;
-
 using Moq;
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
 using Roslyn.Workbench.Mcp.CodeActions.References;
 using Roslyn.Workbench.Mcp.Workspace.Results;
+using Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -115,7 +115,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     public async Task GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges()
     {
         using var fixture = InspectionSampleFixture.Create();
-        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateApprovalRequiredTestCodeActionWorkspace(_composition);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -128,6 +128,8 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         var refactoringActionId = refactorings.Data!.Actions.Items
             .Single(static action => action.Title == "Apply test refactoring")
             .ActionId;
+        refactorings.Data.Actions.Items.Should().OnlyContain(static action => action.ProviderId == null);
+        refactorings.Data.Providers.Should().BeNull();
 
         var stagedRefactoring = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
@@ -139,10 +141,17 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             session,
             fixture.GetLocation("unused"),
             BundledComponentWorkspaceFactory.CreateSnapshot(stagedRefactoring),
-            includeRefactorings: false);
-        var codeFixActionId = codeFixes.Data!.Actions.Items
-            .Single(static action => action.Title == "Apply test code fix")
-            .ActionId;
+            includeRefactorings: false,
+            includeProvenance: true);
+        var codeFix = codeFixes.Data!.Actions.Items
+            .Single(static action => action.Title == "Apply test code fix");
+        var codeFixActionId = codeFix.ActionId;
+        codeFix.ProviderId.Should().NotBeNull();
+        codeFixes.Data.Providers.Should().ContainKey(codeFix.ProviderId!);
+        var provider = codeFixes.Data.Providers![codeFix.ProviderId!];
+        provider.TypeName.Should().EndWith(nameof(TestCodeFixProvider));
+        provider.AssemblyName.Should().Be(typeof(TestCodeFixProvider).Assembly.GetName().Name);
+        provider.AssemblyVersion.Should().Be(typeof(TestCodeFixProvider).Assembly.GetName().Version!.ToString());
 
         var stagedCodeFix = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
@@ -151,11 +160,24 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         }, TestContext.Current.CancellationToken);
 
         var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
+        var review = await coordinator.GetRequiredService<ITransactionService>().ReviewAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            BundledComponentWorkspaceFactory.CreateSnapshot(stagedCodeFix),
+            document: null,
+            includeDiff: false,
+            contextLines: 3,
+            TestContext.Current.CancellationToken);
 
         stagedRefactoring.Data!.Transaction!.Revision.Should().Be(1);
         stagedCodeFix.Data!.Transaction!.Revision.Should().Be(2);
         preview.Data!.Transaction!.Revision.Should().Be(2);
         preview.Data.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
+        preview.Data.Provenance.Select(static item => item.CodeAction!.Kind)
+            .Should().Equal(CodeActionMutationKind.Refactoring, CodeActionMutationKind.CodeFix);
+        preview.Data.Provenance.Should().OnlyContain(static item => item.CodeAction!.Provider.TypeName.Length > 0);
+        review.Data!.Provenance.Should().BeEquivalentTo(preview.Data.Provenance, options => options.WithStrictOrdering());
         var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
         referenceStore.TryGet(refactoringActionId, out _).Should().BeFalse();
         referenceStore.TryGet(codeFixActionId, out _).Should().BeFalse();
@@ -245,6 +267,11 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         staged.Data!.Transaction!.Revision.Should().Be(1);
         staged.Data.Summary.Should().Be("Fix all: Apply test code fix");
         preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
+        var fixAllProvenance = preview.Data.Provenance.Should().ContainSingle().Which.CodeAction;
+        fixAllProvenance.Should().NotBeNull();
+        fixAllProvenance!.Kind.Should().Be(CodeActionMutationKind.FixAll);
+        fixAllProvenance.Provider.TypeName.Should().EndWith(nameof(TestCodeFixProvider));
+        fixAllProvenance.FixAllProvider.Should().NotBeNull();
         sourceAfterRollback.Should().Be(originalSource);
     }
 
@@ -633,7 +660,8 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         LocationSelector location,
         SnapshotPrecondition expectedSnapshot,
         bool includeRefactorings = true,
-        bool includeCodeFixes = true)
+        bool includeCodeFixes = true,
+        bool includeProvenance = false)
     {
         var kinds = (includeRefactorings, includeCodeFixes) switch
         {
@@ -643,7 +671,10 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             _ => throw new InvalidOperationException("At least one action kind must be selected."),
         };
 
-        var request = CreateListRequest(location, kinds, expectedSnapshot);
+        var request = CreateListRequest(location, kinds, expectedSnapshot) with
+        {
+            IncludeProvenance = includeProvenance,
+        };
 
         return await session.ListAsync(request, TestContext.Current.CancellationToken);
     }

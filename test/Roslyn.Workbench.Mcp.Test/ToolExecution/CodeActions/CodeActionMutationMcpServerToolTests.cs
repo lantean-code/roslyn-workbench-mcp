@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions.Diagnostics;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
@@ -10,6 +11,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
     private readonly AdhocWorkspace _roslynWorkspace;
     private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
     private readonly Mock<ICodeActionReferenceStore> _referenceStore;
+    private readonly Mock<ICodeActionProvenanceLogger> _provenanceLogger;
     private readonly Mock<IToolRequestBinder> _requestBinder;
 
     public CodeActionMutationMcpServerToolTests()
@@ -17,6 +19,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
         _roslynWorkspace = new AdhocWorkspace();
         _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         _referenceStore = new Mock<ICodeActionReferenceStore>();
+        _provenanceLogger = new Mock<ICodeActionProvenanceLogger>();
         _requestBinder = new Mock<IToolRequestBinder>();
         var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
             Guid.Parse("11111111-1111-1111-1111-111111111111"));
@@ -25,6 +28,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             Name = "Name",
             ExpectedSnapshot = expectedSnapshot,
         };
+
         string? errorMessage = null;
         _requestBinder
             .Setup(item => item.TryBind(
@@ -39,6 +43,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             Name = "Name",
             ExpectedSnapshot = expectedSnapshot,
         };
+
         _requestBinder
             .Setup(item => item.TryBind(
                 It.IsAny<IDictionary<string, JsonElement>>(),
@@ -181,10 +186,12 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             Message = "Message",
         };
 
+        var provenance = CreateCodeActionProvenance();
         var proposal = new WorkspaceMutationCandidate
         {
             CandidateSolution = MutationCandidateTestData.Solution,
             Summary = "Summary",
+            CodeActionProvenance = provenance,
         };
 
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
@@ -216,6 +223,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
                 Summary = "StagedSummary",
             },
         };
+
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch: 3,
@@ -248,6 +256,8 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             CancellationToken.None), Times.Once);
+
+        _provenanceLogger.Verify(item => item.LogStaged(provenance), Times.Once);
 
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
@@ -284,6 +294,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
                 Summary = "Summary",
             },
         };
+
         var stagingContext = WorkspaceSnapshotTestFactory.CreateContext(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             workspaceEpoch: 3,
@@ -669,11 +680,28 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             handler,
             contextFactory,
             _referenceStore.Object,
+            _provenanceLogger.Object,
             _protocolFactory.Object,
             _requestBinder.Object,
             Options.Create(new StartupOptions()));
 
         return target;
+    }
+
+    private static CodeActionMutationProvenance CreateCodeActionProvenance()
+    {
+        var provider = new MutationProviderIdentity
+        {
+            TypeName = "Provider.Type",
+            AssemblyName = "Provider.Assembly",
+            AssemblyVersion = "1.0.0.0",
+        };
+
+        return new CodeActionMutationProvenance
+        {
+            Kind = CodeActionMutationKind.Refactoring,
+            Provider = provider,
+        };
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateFailure(string outcomeName)
@@ -683,6 +711,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
             Code = outcomeName,
             Message = "Message",
         };
+
         var diagnostics = new[]
         {
             new DiagnosticInfo
@@ -691,6 +720,7 @@ public sealed class CodeActionMutationMcpServerToolTests : IDisposable
                 Message = "Message",
             },
         };
+
         var warnings = new[]
         {
             new WarningInfo

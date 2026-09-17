@@ -61,6 +61,7 @@ public sealed class SchemaGenerationTests
         properties.TryGetProperty("range", out _).Should().BeTrue();
         properties.TryGetProperty("kinds", out var kinds).Should().BeTrue();
         properties.TryGetProperty("diagnosticIds", out _).Should().BeTrue();
+        properties.TryGetProperty("includeProvenance", out _).Should().BeTrue();
         properties.TryGetProperty("limit", out _).Should().BeTrue();
         properties.TryGetProperty("workspace", out _).Should().BeTrue();
         properties.TryGetProperty("expectedSnapshot", out var expectedSnapshot).Should().BeTrue();
@@ -87,14 +88,17 @@ public sealed class SchemaGenerationTests
         var dataSchema = outputSchema.GetProperty("properties").GetProperty("data");
         var actionsSchema = dataSchema.GetProperty("properties").GetProperty("actions");
         var actionSchema = actionsSchema.GetProperty("properties").GetProperty("items").GetProperty("items");
+        var providersSchema = dataSchema.GetProperty("properties").GetProperty("providers");
         var actionText = actionSchema.GetRawText();
         var diagnosticsText = actionSchema.GetProperty("properties").GetProperty("diagnostics").GetRawText();
 
         actionsSchema.GetRawText().Should().ContainAll("items", "hasMore", "totalCount");
-        actionText.Should().ContainAll("actionId", "title", "kind", "location", "diagnostics", "fixAllScopes");
+        actionText.Should().ContainAll("actionId", "title", "kind", "location", "diagnostics", "fixAllScopes", "providerId");
+        providersSchema.GetRawText().Should().ContainAll("typeName", "assemblyName", "assemblyVersion");
         diagnosticsText.Should().ContainAll("items", "hasMore", "totalCount");
         actionText.Should().NotContainAny(
-            "providerId",
+            "assemblyName",
+            "assemblyVersion",
             "equivalenceKey",
             "actionPath",
             "executionMode",

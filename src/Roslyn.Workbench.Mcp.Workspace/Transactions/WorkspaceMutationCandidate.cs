@@ -24,4 +24,9 @@ internal sealed record WorkspaceMutationCandidate
     /// Gets the optional candidate identity and changed-document limits required for staging.
     /// </summary>
     public WorkspaceMutationCandidatePrecondition? Precondition { get; init; }
+
+    /// <summary>
+    /// Gets Code Action attribution and audit metadata when the candidate originated from a Code Action.
+    /// </summary>
+    public CodeActionMutationProvenance? CodeActionProvenance { get; init; }
 }

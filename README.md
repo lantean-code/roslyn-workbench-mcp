@@ -16,7 +16,7 @@ Roslyn Workbench is distributed as the `Lantean.Roslyn.Workbench.Mcp` .NET tool 
 For a package published to NuGet.org:
 
 ```bash
-dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --prerelease
+dotnet tool install --global Lantean.Roslyn.Workbench.Mcp
 ```
 
 See the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) for installation and MCP client configuration.

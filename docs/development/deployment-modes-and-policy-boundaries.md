@@ -161,10 +161,10 @@ Named operational-mode profiles may later provide recommended combinations:
 | --- | --- | --- | --- | --- |
 | Inspection-only | Disabled | Not applicable | Not applicable | Disabled by default; trusted query plugins when explicitly enabled |
 | Transactional | Enabled | Confirmation | Operator selected | None by default |
-| Approval-required | Enabled | Receipt approval | No new compiler errors | None by default |
-| Autonomous trusted | Enabled | None | No new compiler errors | Explicitly configured trusted plugins only |
+| Approval-required | Enabled | Receipt approval | Operator selected | None by default |
+| Autonomous trusted | Enabled | None | Operator selected | Explicitly configured trusted plugins only |
 
-These are presets, not restrictions on valid explicit combinations. For example, an operator may require compiler validation while retaining simple commit confirmation.
+Commit validation is an independent opt-in rather than an operational-mode preset. An operator may require it with any mutation-enabled mode, including while retaining simple commit confirmation; it is invalid with inspection-only because that mode has no transactions.
 
 ## Policy ownership and immutability
 

@@ -41,6 +41,53 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
+    public void GIVEN_CommitValidationConfigurationError_WHEN_Validating_THEN_ShouldFailWithCapturedError()
+    {
+        var options = new StartupOptions { CommitValidationConfigurationError = "ConfigurationError" };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("ConfigurationError");
+    }
+
+    [Fact]
+    public void GIVEN_UnsupportedCommitValidation_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions { CommitValidation = (CommitValidationPolicy)999 };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("CommitValidation must be a supported value.");
+    }
+
+    [Fact]
+    public void GIVEN_CompilerValidationInInspectionMode_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions
+        {
+            CommitValidation = CommitValidationPolicy.NoNewCompilerErrors,
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Be("Compiler commit validation requires a mutation-capable operational mode.");
+    }
+
+    [Fact]
+    public void GIVEN_CompilerValidationInMutationMode_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions
+        {
+            OperationalMode = OperationalMode.Transactional,
+            CommitValidation = CommitValidationPolicy.NoNewCompilerErrors,
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
     public void GIVEN_ApprovalRequiredMode_WHEN_Validating_THEN_ShouldSucceed()
     {
         var options = new StartupOptions { OperationalMode = OperationalMode.ApprovalRequired };

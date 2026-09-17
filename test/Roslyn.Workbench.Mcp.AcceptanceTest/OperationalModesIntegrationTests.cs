@@ -22,6 +22,7 @@ public sealed class OperationalModesIntegrationTests
         toolNames.Should().NotContain("transaction-history");
         toolNames.Should().NotContain("transaction-commit");
         toolNames.Should().NotContain("transaction-rollback");
+        toolNames.Should().NotContain("transaction-validate");
         toolNames.Should().NotContain("format-document");
         toolNames.Should().NotContain("rename-symbol");
         toolNames.Should().NotContain("stage-code-action");
@@ -38,6 +39,7 @@ public sealed class OperationalModesIntegrationTests
 
         configuration.GetProperty("operationalMode").GetString().Should().Be("inspection-only");
         configuration.GetProperty("sourceMutationEnabled").GetBoolean().Should().BeFalse();
+        configuration.GetProperty("compilerValidationRequired").GetBoolean().Should().BeFalse();
         configuration.GetProperty("externalPluginsEnabled").GetBoolean().Should().BeFalse();
         configuration.GetProperty("clientSupportsElicitation").GetBoolean().Should().BeFalse();
 
@@ -48,6 +50,46 @@ public sealed class OperationalModesIntegrationTests
 
         await invocation.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*transaction-start*");
+    }
+
+    [Theory]
+    [InlineData("transactional")]
+    [InlineData("approval-required")]
+    [InlineData("autonomous-trusted")]
+    public async Task GIVEN_MutationModeWithCompilerValidation_WHEN_ListingTools_THEN_ShouldPublishValidationPolicy(
+        string operationalMode)
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--commit-validation", "no-new-compiler-errors"],
+            operationalMode: operationalMode);
+
+        var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+        tools.Select(static tool => tool.Name).Should().Contain("transaction-validate");
+
+        var status = await target.CallToolAsync(
+            "server-status",
+            new Dictionary<string, object?> { ["detail"] = "Full" },
+            TestContext.Current.CancellationToken);
+
+        var configuration = AcceptanceProtocol.GetSuccessData(status).GetProperty("configuration");
+        configuration.GetProperty("operationalMode").GetString().Should().Be(operationalMode);
+        configuration.GetProperty("compilerValidationRequired").GetBoolean().Should().BeTrue();
+        target.ServerInstructions.Should().Contain("transaction-validate");
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionOnlyWithCompilerValidation_WHEN_StartingHost_THEN_ShouldFailInitialisation()
+    {
+        var action = async () => await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--commit-validation", "no-new-compiler-errors"],
+            operationalMode: "inspection-only");
+
+        var exception = await action.Should().ThrowAsync<InvalidOperationException>();
+
+        exception.Which.Message.Should().Contain("MCP initialization failed");
+        exception.Which.Message.Should().Contain("--commit-validation");
     }
 
     [Fact]

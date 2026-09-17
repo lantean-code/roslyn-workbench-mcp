@@ -6,6 +6,7 @@ internal enum ScenarioCommand
     List,
     Prepare,
     Measure,
+    CompilerValidation,
     Commit,
     CommitCancellation,
     Conflict,

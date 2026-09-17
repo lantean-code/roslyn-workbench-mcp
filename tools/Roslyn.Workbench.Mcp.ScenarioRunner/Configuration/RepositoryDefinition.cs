@@ -13,6 +13,8 @@ internal sealed record RepositoryDefinition
 
     public required string WorkspacePath { get; init; }
 
+    public WorkspaceMsBuildPropertiesDefinition? MsBuildProperties { get; init; }
+
     public required IReadOnlyList<CommandDefinition> Preparation { get; init; }
 
     public required IReadOnlyList<ScenarioDefinition> Scenarios { get; init; }

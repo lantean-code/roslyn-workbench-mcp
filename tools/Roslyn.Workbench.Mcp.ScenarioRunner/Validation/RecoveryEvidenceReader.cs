@@ -31,12 +31,13 @@ internal static class RecoveryEvidenceReader
         using var document = await JsonDocument.ParseAsync(
             stream,
             cancellationToken: cancellationToken);
-        var state = document.RootElement
-            .GetProperty("state")
-            .GetString();
+
+        var state = ReadState(document.RootElement.GetProperty("state"));
+
         var commitDirectory = Path.GetDirectoryName(manifestPaths[0])
             ?? throw new InvalidDataException(
                 $"Recovery manifest '{manifestPaths[0]}' has no parent directory.");
+
         var artifactCount = Directory
             .EnumerateFiles(commitDirectory, "*.bin", SearchOption.AllDirectories)
             .Count();
@@ -46,5 +47,18 @@ internal static class RecoveryEvidenceReader
             State = state,
             ArtifactCount = artifactCount,
         };
+    }
+
+    public static RecoveryEvidenceState ReadState(JsonElement state)
+    {
+        var stateValue = state.GetInt32();
+
+        if (!Enum.IsDefined((RecoveryEvidenceState)stateValue))
+        {
+            throw new InvalidDataException(
+                $"Recovery manifest contains unsupported state value '{stateValue}'.");
+        }
+
+        return (RecoveryEvidenceState)stateValue;
     }
 }

@@ -39,6 +39,7 @@ public sealed class TransactionReviewBuilderTests : IDisposable
 
         var action = async () => await _target.CreateAsync(
             session,
+            compilerValidation: null,
             diffDocument: null,
             contextLines: 3,
             TestContext.Current.CancellationToken);
@@ -62,6 +63,7 @@ public sealed class TransactionReviewBuilderTests : IDisposable
 
         var result = await _target.CreateAsync(
             session,
+            compilerValidation: null,
             diffDocument: null,
             contextLines: 3,
             TestContext.Current.CancellationToken);
@@ -76,9 +78,13 @@ public sealed class TransactionReviewBuilderTests : IDisposable
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task GIVEN_ValidatedCommitPlan_WHEN_CreatingReview_THEN_ShouldProjectExactReview(bool includeDiff)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task GIVEN_ValidatedCommitPlan_WHEN_CreatingReview_THEN_ShouldProjectExactReview(
+        bool includeDiff,
+        bool includeCompilerValidation)
     {
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with
@@ -100,6 +106,32 @@ public sealed class TransactionReviewBuilderTests : IDisposable
         var changes = new ChangeSummary();
         var documents = Array.Empty<TransactionReviewDocument>();
         var identity = CreateIdentity(session, transaction);
+        TransactionCompilerValidationOutcome? compilerValidation = null;
+        if (includeCompilerValidation)
+        {
+            compilerValidation = new TransactionCompilerValidationOutcome
+            {
+                IsComplete = true,
+                Succeeded = true,
+                Transaction = transaction.ToInfo(conflicted: true),
+                BaselineErrorCount = 1,
+                StagedErrorCount = 1,
+                IntroducedErrorCount = 0,
+                DurationMilliseconds = 5,
+                Projects =
+                [
+                    new TransactionCompilerProjectValidation
+                    {
+                        Project = "Project.csproj",
+                        IsComplete = true,
+                        BaselineErrorCount = 1,
+                        StagedErrorCount = 1,
+                        IntroducedErrorCount = 0,
+                    },
+                ],
+            };
+        }
+
         DocumentReference? diffDocument = null;
         DocumentDiff? diff = null;
         if (includeDiff)
@@ -155,6 +187,7 @@ public sealed class TransactionReviewBuilderTests : IDisposable
 
         var result = await _target.CreateAsync(
             session,
+            compilerValidation,
             diffDocument,
             contextLines: 3,
             TestContext.Current.CancellationToken);
@@ -167,7 +200,13 @@ public sealed class TransactionReviewBuilderTests : IDisposable
         result.Outcome.Provenance.Should().ContainSingle()
             .Which.Operation.Should().Be("Operation1");
 
-        result.Outcome.Validations.Should().HaveCount(2);
+        var expectedValidationCount = includeCompilerValidation ? 3 : 2;
+        result.Outcome.Validations.Should().HaveCount(expectedValidationCount);
+        if (includeCompilerValidation)
+        {
+            result.Outcome.Validations.Should().ContainSingle(
+                item => item.Name == "no-new-compiler-errors" && item.Succeeded);
+        }
 
         var expectedDiffCalls = Times.Never();
         if (includeDiff)

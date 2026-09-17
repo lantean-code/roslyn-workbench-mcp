@@ -17,6 +17,7 @@ public sealed class TransactionServiceTests : IDisposable
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
     private readonly Mock<ITransactionReviewBuilder> _reviewBuilder;
     private readonly Mock<ITransactionReviewIdentityService> _reviewIdentityService;
+    private readonly Mock<ITransactionCompilerValidationService> _compilerValidationService;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
@@ -43,6 +44,7 @@ public sealed class TransactionServiceTests : IDisposable
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
         _reviewBuilder = new Mock<ITransactionReviewBuilder>();
         _reviewIdentityService = new Mock<ITransactionReviewIdentityService>();
+        _compilerValidationService = new Mock<ITransactionCompilerValidationService>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
@@ -63,7 +65,171 @@ public sealed class TransactionServiceTests : IDisposable
             _reviewBuilder.Object,
             _reviewIdentityService.Object,
             _resolverFactory.Object,
-            _instanceStatusPublisher.Object);
+            _instanceStatusPublisher.Object,
+            _compilerValidationService.Object);
+    }
+
+    [Fact]
+    public async Task GIVEN_CompilerValidationDisabled_WHEN_ValidatingImpact_THEN_ShouldRejectBeforeAcquiringWorkspace()
+    {
+        var expected = CreateResult<TransactionCompilerValidationOutcome>();
+        SetupRejectedResult(expected, WorkspaceErrorCodes.CompilerValidationUnavailable);
+
+        var result = await _target.ValidateCompilerImpactAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            expectedSnapshot: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionAcquirer.Verify(
+            item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CurrentChangedTransaction_WHEN_ValidatingCompilerImpact_THEN_ShouldReturnSnapshotBoundOutcome()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 1, revisionCount: 1);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        var validation = CreateCompilerValidationOutcome(session, succeeded: true);
+        var expected = CreateResult<TransactionCompilerValidationOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        _compilerValidationService
+            .Setup(item => item.ValidateAsync(session, TestContext.Current.CancellationToken))
+            .ReturnsAsync(validation);
+
+        _resultFactory
+            .Setup(item => item.Succeeded(
+                validation,
+                It.IsAny<WorkspaceOperationContext>(),
+                null,
+                null))
+            .Returns(expected);
+
+        var target = CreateCompilerValidationTarget();
+        var result = await target.ValidateCompilerImpactAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            expectedSnapshot,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CurrentUnchangedTransaction_WHEN_ValidatingCompilerImpact_THEN_ShouldReturnSuccessfulEmptyOutcome()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 0, revisionCount: 0);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        TransactionCompilerValidationOutcome? capturedOutcome = null;
+        var expected = CreateResult<TransactionCompilerValidationOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        _resultFactory
+            .Setup(item => item.Succeeded(
+                It.IsAny<TransactionCompilerValidationOutcome>(),
+                It.IsAny<WorkspaceOperationContext>(),
+                null,
+                null))
+            .Callback<TransactionCompilerValidationOutcome, WorkspaceOperationContext?, IReadOnlyList<DiagnosticInfo>?, IReadOnlyList<WarningInfo>?>(
+                (outcome, _, _, _) => capturedOutcome = outcome)
+            .Returns(expected);
+
+        var target = CreateCompilerValidationTarget();
+        var result = await target.ValidateCompilerImpactAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            expectedSnapshot,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        capturedOutcome.Should().NotBeNull();
+        capturedOutcome!.IsComplete.Should().BeTrue();
+        capturedOutcome.Succeeded.Should().BeTrue();
+        capturedOutcome.Projects.Should().BeEmpty();
+        capturedOutcome.IntroducedErrorCount.Should().Be(0);
+        _compilerValidationService.Verify(
+            item => item.ValidateAsync(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, WorkspaceErrorCodes.NewCompilerErrors, null)]
+    [InlineData(false, WorkspaceErrorCodes.CompilerValidationIncomplete, RequiredAction.RollbackTransaction)]
+    public async Task GIVEN_CompilerValidationFails_WHEN_Reviewing_THEN_ShouldNotBuildReceipt(
+        bool isComplete,
+        string expectedCode,
+        RequiredAction? expectedRequiredAction)
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction(currentRevision: 1, revisionCount: 1);
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expectedSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            session.CurrentSnapshotIdentity,
+            transaction.CurrentRevision);
+
+        var validation = CreateCompilerValidationOutcome(
+            session,
+            succeeded: false,
+            isComplete);
+
+        var expected = CreateResult<TransactionReviewOutcome>();
+        SetupSelection(session);
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        _compilerValidationService
+            .Setup(item => item.ValidateAsync(session, TestContext.Current.CancellationToken))
+            .ReturnsAsync(validation);
+
+        _resultFactory
+            .Setup(item => item.Rejected<TransactionReviewOutcome>(
+                expectedCode,
+                It.IsAny<string>(),
+                expectedRequiredAction,
+                It.IsAny<WorkspaceOperationContext>(),
+                validation.IntroducedDiagnostics,
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var target = CreateCompilerValidationTarget();
+        var result = await target.ReviewAsync(
+            workspaceId: null,
+            alias: null,
+            path: null,
+            expectedSnapshot,
+            document: null,
+            includeDiff: false,
+            contextLines: 3,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _reviewBuilder.Verify(
+            item => item.CreateAsync(
+                It.IsAny<WorkspaceSessionSnapshot>(),
+                It.IsAny<TransactionCompilerValidationOutcome?>(),
+                It.IsAny<DocumentReference?>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -800,7 +966,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         _reviewBuilder
-            .Setup(item => item.CreateAsync(session, null, 3, TestContext.Current.CancellationToken))
+            .Setup(item => item.CreateAsync(session, null, null, 3, TestContext.Current.CancellationToken))
             .ReturnsAsync(TransactionReviewBuildResult.Succeeded(review));
 
         _resultFactory
@@ -856,6 +1022,7 @@ public sealed class TransactionServiceTests : IDisposable
         _reviewBuilder.Verify(
             item => item.CreateAsync(
                 It.IsAny<WorkspaceSessionSnapshot>(),
+                It.IsAny<TransactionCompilerValidationOutcome?>(),
                 It.IsAny<DocumentReference?>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
@@ -1350,6 +1517,57 @@ public sealed class TransactionServiceTests : IDisposable
     public void Dispose()
     {
         _workspace.Dispose();
+    }
+
+    private TransactionService CreateCompilerValidationTarget()
+    {
+        var workspaceOptions = new WorkspaceOptions
+        {
+            MaxTransactionRevisions = 5,
+            SourceMutationEnabled = true,
+            ReceiptAuthorisationRequired = true,
+            CompilerValidationRequired = true,
+        };
+
+        var options = Options.Create(workspaceOptions);
+        return new TransactionService(
+            options,
+            _sessionStore.Object,
+            _sessionAcquirer.Object,
+            _stateTransitions.Object,
+            _snapshotGuard.Object,
+            _resultFactory.Object,
+            _commitService.Object,
+            _diffBuilder.Object,
+            _reviewBuilder.Object,
+            _reviewIdentityService.Object,
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object,
+            _compilerValidationService.Object);
+    }
+
+    private static TransactionCompilerValidationOutcome CreateCompilerValidationOutcome(
+        WorkspaceSessionSnapshot session,
+        bool succeeded,
+        bool isComplete = true)
+    {
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("The test session must contain an active transaction.");
+
+        return new TransactionCompilerValidationOutcome
+        {
+            IsComplete = isComplete,
+            Succeeded = succeeded,
+            Transaction = transaction.ToInfo(conflicted: false),
+            BaselineErrorCount = 0,
+            StagedErrorCount = succeeded ? 0 : 1,
+            IntroducedErrorCount = succeeded ? 0 : 1,
+            DurationMilliseconds = 1,
+            IncompleteReasons = isComplete
+                ? []
+                : [TransactionCompilerValidationIncompleteReason.CompilationUnavailable],
+            Limitations = isComplete ? [] : ["Limitation"],
+        };
     }
 
     private void SetupSelection(WorkspaceSessionSnapshot session)

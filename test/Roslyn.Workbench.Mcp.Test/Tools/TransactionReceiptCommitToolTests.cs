@@ -9,6 +9,7 @@ public sealed class TransactionReceiptCommitToolTests
     private readonly Mock<ITransactionReceiptStore> _receiptStore = new();
     private readonly Mock<IMcpUserInteractionServiceFactory> _interactionServiceFactory = new();
     private readonly Mock<IUserInteractionService> _interactionService = new();
+    private readonly Mock<IToolRequestBinder> _requestBinder = new();
     private readonly TransactionReviewIdentity _identity;
     private readonly TransactionReceipt _receipt;
     private readonly TransactionReceiptCommitTool _target;
@@ -78,8 +79,7 @@ public sealed class TransactionReceiptCommitToolTests
         };
 
         string? errorMessage = null;
-        var requestBinder = new Mock<IToolRequestBinder>();
-        requestBinder
+        _requestBinder
             .Setup(item => item.TryBind(
                 It.IsAny<IDictionary<string, JsonElement>>(),
                 out request,
@@ -99,14 +99,53 @@ public sealed class TransactionReceiptCommitToolTests
 
         _interactionServiceFactory.Setup(item => item.Create(It.IsAny<McpServer>())).Returns(_interactionService.Object);
 
-        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        _target = new TransactionReceiptCommitTool(
-            Options.Create(new StartupOptions()),
-            protocolFactory.Object,
-            requestBinder.Object,
-            _transactionService.Object,
-            _receiptStore.Object,
-            _interactionServiceFactory.Object);
+        _target = CreateTarget(CommitValidationPolicy.None);
+    }
+
+    [Theory]
+    [InlineData(true, WorkspaceErrorCodes.NewCompilerErrors, null, null)]
+    [InlineData(false, WorkspaceErrorCodes.CompilerValidationIncomplete, "CallTool", "transaction-rollback")]
+    public async Task GIVEN_CompilerValidationFails_WHEN_CommittingReceipt_THEN_ShouldRejectBeforeElicitation(
+        bool isComplete,
+        string expectedCode,
+        string? expectedContinuation,
+        string? expectedTool)
+    {
+        var validation = new TransactionCompilerValidationOutcome
+        {
+            IsComplete = isComplete,
+            Succeeded = false,
+            IncompleteReasons = isComplete
+                ? []
+                : [TransactionCompilerValidationIncompleteReason.CompilationUnavailable],
+            Transaction = _receipt.Review.Transaction,
+            BaselineErrorCount = 0,
+            StagedErrorCount = 1,
+            IntroducedErrorCount = 1,
+            DurationMilliseconds = 1,
+        };
+
+        var validationResult = WorkspaceOperationResult.Succeeded(validation);
+        _transactionService
+            .Setup(item => item.ValidateCompilerImpactAsync(
+                _identity.WorkspaceId,
+                "Alias",
+                "Path",
+                It.IsAny<SnapshotPrecondition>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(validationResult);
+
+        var target = CreateTarget(CommitValidationPolicy.NoNewCompilerErrors);
+        var result = await InvokeAsync(target);
+
+        AssertFailure(result, expectedCode, expectedContinuation, expectedTool);
+        _interactionService.Verify(
+            item => item.RequestAsync(It.IsAny<UserInteractionRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _receiptStore.Verify(
+            item => item.Consume(It.IsAny<string>(), It.IsAny<TransactionReviewIdentity>()),
+            Times.Never);
     }
 
     [Fact]
@@ -265,10 +304,34 @@ public sealed class TransactionReceiptCommitToolTests
 
     private Task<CallToolResult> InvokeAsync()
     {
+        return InvokeAsync(_target);
+    }
+
+    private static Task<CallToolResult> InvokeAsync(TransactionReceiptCommitTool target)
+    {
         return ServerOwnedToolTestSupport.InvokeAsync(
-            _target,
+            target,
             "transaction-commit",
             cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private TransactionReceiptCommitTool CreateTarget(CommitValidationPolicy commitValidation)
+    {
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var policy = OperationalPolicyResolver.Resolve(
+            OperationalMode.ApprovalRequired,
+            commitValidation);
+
+        var startupOptions = new StartupOptions();
+        var configuredStartupOptions = Options.Create(startupOptions);
+        return new TransactionReceiptCommitTool(
+            configuredStartupOptions,
+            protocolFactory.Object,
+            _requestBinder.Object,
+            _transactionService.Object,
+            _receiptStore.Object,
+            _interactionServiceFactory.Object,
+            policy);
     }
 
     private bool IsExpectedApproval(UserInteractionRequest request)

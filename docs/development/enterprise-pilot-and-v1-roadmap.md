@@ -128,7 +128,7 @@ Acceptance bar:
 
 ### 6. Validate staged compiler impact
 
-Add deterministic validation comparing baseline and staged compiler diagnostics for the same loaded project and target-framework evaluation. The first required rule is to identify newly introduced compiler errors rather than requiring an already imperfect Workspace to become error-free.
+Add deterministic validation comparing baseline and staged compiler diagnostics for the same loaded project and target-framework evaluation. The first required rule is to identify newly introduced compiler errors rather than requiring an already imperfect Workspace to become error-free. The approved implementation is recorded in [Compiler-impact validation](compiler-impact-validation.md).
 
 Compiler-and-analyser validation may be offered separately because third-party analysers can be expensive and execute inside the trusted Host boundary. Test-impact and public-API summaries may later contribute review information but are not initial commit gates.
 
@@ -137,7 +137,7 @@ Acceptance bar:
 - diagnostic comparison uses a documented stable identity rather than error counts alone;
 - incomplete compilations, skipped projects, load diagnostics and multi-targeting limitations are reported without false assurance;
 - validation is snapshot- and revision-bound and is invalidated by staged or external changes; and
-- host policy can require successful no-new-compiler-error validation before commit.
+- independent Host policy can require successful no-new-compiler-error validation before commit without adding compiler work to deployments that leave the policy disabled.
 
 ## Priority 1: complete mutation policy and provenance
 

@@ -28,6 +28,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             {
                 options.OperationalMode = startupOptions.OperationalMode;
                 options.OperationalModeConfigurationError = startupOptions.OperationalModeConfigurationError;
+                options.CommitValidation = startupOptions.CommitValidation;
+                options.CommitValidationConfigurationError = startupOptions.CommitValidationConfigurationError;
                 options.ExternalPluginsEnabled = startupOptions.ExternalPluginsEnabled;
                 options.ExternalPluginsConfigurationError = startupOptions.ExternalPluginsConfigurationError;
                 options.PluginDirectories = startupOptions.PluginDirectories;
@@ -75,6 +77,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 var configured = configuredStartupOptions.Value;
                 options.SourceMutationEnabled = operationalPolicy.SourceMutationEnabled;
                 options.ReceiptAuthorisationRequired = operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval;
+                options.CompilerValidationRequired = operationalPolicy.CompilerValidationRequired;
                 options.DefaultMaxResults = configured.DefaultMaxResults;
                 options.MaxConcurrentQueries = configured.MaxConcurrentQueries;
                 options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
@@ -182,6 +185,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceMutationCandidateIdentityService, WorkspaceMutationCandidateIdentityService>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
+        if (operationalPolicy.CompilerValidationRequired)
+        {
+            services.AddSingleton<ITransactionCompilerValidationService, TransactionCompilerValidationService>();
+        }
+
         if (operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval)
         {
             services.AddSingleton<ITransactionReviewDocumentFactory, TransactionReviewDocumentFactory>();

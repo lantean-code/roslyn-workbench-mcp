@@ -22,12 +22,16 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     private readonly WorkspaceOptions _options;
     private readonly ITransactionReviewDocumentFactory? _reviewDocumentFactory;
     private readonly ITransactionReviewIdentityService? _reviewIdentityService;
+    private readonly ITransactionCompilerValidationService? _compilerValidationService;
 
     private ITransactionReviewDocumentFactory ReviewDocumentFactory => _reviewDocumentFactory
         ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
 
     private ITransactionReviewIdentityService ReviewIdentityService => _reviewIdentityService
         ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
+
+    private ITransactionCompilerValidationService CompilerValidationService => _compilerValidationService
+        ?? throw new InvalidOperationException("Compiler validation services must be composed when compiler validation is required.");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionCommitService"/> class.
@@ -44,6 +48,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// <param name="commitLockManager">The manager that acquires exclusive workspace commit locks.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
     /// <param name="options">The Workspace policy controlling receipt-authorisation enforcement.</param>
+    /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
         IWorkspaceAuthority workspaceAuthority,
@@ -56,7 +61,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         IWorkspaceCommitPlanner commitPlanner,
         IWorkspaceCommitLockManager commitLockManager,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
-        IOptions<WorkspaceOptions> options)
+        IOptions<WorkspaceOptions> options,
+        ITransactionCompilerValidationService? compilerValidationService = null)
     {
         _sessionStore = sessionStore;
         _workspaceAuthority = workspaceAuthority;
@@ -70,6 +76,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         _commitLockManager = commitLockManager;
         _instanceStatusPublisher = instanceStatusPublisher;
         _options = options.Value;
+        _compilerValidationService = compilerValidationService;
     }
 
     /// <summary>
@@ -89,6 +96,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     /// <param name="options">The Workspace policy controlling receipt-authorisation enforcement.</param>
     /// <param name="reviewDocumentFactory">The factory that recreates canonical receipt entries from the final commit plan.</param>
     /// <param name="reviewIdentityService">The service that recalculates the canonical receipt identity.</param>
+    /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
         IWorkspaceAuthority workspaceAuthority,
@@ -103,7 +111,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
         IOptions<WorkspaceOptions> options,
         ITransactionReviewDocumentFactory reviewDocumentFactory,
-        ITransactionReviewIdentityService reviewIdentityService)
+        ITransactionReviewIdentityService reviewIdentityService,
+        ITransactionCompilerValidationService? compilerValidationService = null)
         : this(
             sessionStore,
             workspaceAuthority,
@@ -116,7 +125,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitPlanner,
             commitLockManager,
             instanceStatusPublisher,
-            options)
+            options,
+            compilerValidationService)
     {
         _reviewDocumentFactory = reviewDocumentFactory;
         _reviewIdentityService = reviewIdentityService;
@@ -189,6 +199,18 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         if (receiptBindingFailure is not null)
         {
             return receiptBindingFailure;
+        }
+
+        if (_options.CompilerValidationRequired)
+        {
+            var compilerValidation = await CompilerValidationService.ValidateAsync(
+                session,
+                cancellationToken);
+
+            if (!compilerValidation.Succeeded)
+            {
+                return CreateCompilerValidationFailure(session, compilerValidation);
+            }
         }
 
         using var applicationCertification = _workspaceChangeDetector.BeginCertification(
@@ -287,6 +309,38 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             "The transaction conflicted with external workspace changes.",
             RequiredAction.RollbackTransaction,
             conflictedContext);
+    }
+
+    private WorkspaceOperationResult<TransactionCommitOutcome> CreateCompilerValidationFailure(
+        WorkspaceSessionSnapshot session,
+        TransactionCompilerValidationOutcome validation)
+    {
+        var context = WorkspaceOperationContextFactory.Create(session);
+        var warnings = validation.Limitations
+            .Select(static limitation => new WarningInfo
+            {
+                Code = WorkspaceErrorCodes.CompilerValidationIncomplete,
+                Message = limitation,
+            })
+            .ToArray();
+
+        if (!validation.IsComplete)
+        {
+            return _resultFactory.Rejected<TransactionCommitOutcome>(
+                WorkspaceErrorCodes.CompilerValidationIncomplete,
+                "Compiler validation could not evaluate every affected loaded project. No files were persisted. Roll back the transaction, reload the Workspace, and start a new transaction before retrying.",
+                validation.RecoveryAction,
+                context,
+                validation.IntroducedDiagnostics,
+                warnings);
+        }
+
+        return _resultFactory.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.NewCompilerErrors,
+            $"The transaction introduced {validation.IntroducedErrorCount} compiler error(s). No files were persisted and the transaction remains active.",
+            context: context,
+            diagnostics: validation.IntroducedDiagnostics,
+            warnings: warnings);
     }
 
     private async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitUnderLockAsync(

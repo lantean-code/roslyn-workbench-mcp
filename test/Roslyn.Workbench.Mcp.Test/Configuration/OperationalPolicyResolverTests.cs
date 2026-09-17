@@ -22,6 +22,8 @@ public sealed class OperationalPolicyResolverTests
         result.SourceMutation.Should().Be(expectedSourceMutation);
         result.SourceMutationEnabled.Should().Be(expectedSourceMutationEnabled);
         result.CommitAuthorisation.Should().Be(expectedCommitAuthorisation);
+        result.CommitValidation.Should().Be(CommitValidationPolicy.None);
+        result.CompilerValidationRequired.Should().BeFalse();
     }
 
     [Fact]
@@ -44,5 +46,18 @@ public sealed class OperationalPolicyResolverTests
         ((int)CommitAuthorisationPolicy.None).Should().Be(0);
         ((int)CommitAuthorisationPolicy.Confirmation).Should().Be(1);
         ((int)CommitAuthorisationPolicy.ReceiptApproval).Should().Be(2);
+        ((int)CommitValidationPolicy.None).Should().Be(0);
+        ((int)CommitValidationPolicy.NoNewCompilerErrors).Should().Be(1);
+    }
+
+    [Fact]
+    public void GIVEN_IndependentCompilerValidation_WHEN_Resolving_THEN_ShouldRetainModeAndRequireValidation()
+    {
+        var result = OperationalPolicyResolver.Resolve(
+            OperationalMode.Transactional,
+            CommitValidationPolicy.NoNewCompilerErrors);
+
+        result.Mode.Should().Be(OperationalMode.Transactional);
+        result.CompilerValidationRequired.Should().BeTrue();
     }
 }

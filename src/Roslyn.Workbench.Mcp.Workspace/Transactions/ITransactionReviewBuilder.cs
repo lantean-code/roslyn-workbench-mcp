@@ -9,12 +9,14 @@ internal interface ITransactionReviewBuilder
     /// Builds a review projection for one immutable transaction state.
     /// </summary>
     /// <param name="session">The immutable Workspace session being reviewed.</param>
+    /// <param name="compilerValidation">The successful compiler validation included when required.</param>
     /// <param name="diffDocument">The optional document for which a bounded diff is requested.</param>
     /// <param name="contextLines">The number of unchanged lines around each diff hunk.</param>
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
     /// <returns>A task that completes with the review construction result.</returns>
     ValueTask<TransactionReviewBuildResult> CreateAsync(
         WorkspaceSessionSnapshot session,
+        TransactionCompilerValidationOutcome? compilerValidation,
         DocumentReference? diffDocument,
         int contextLines,
         CancellationToken cancellationToken);

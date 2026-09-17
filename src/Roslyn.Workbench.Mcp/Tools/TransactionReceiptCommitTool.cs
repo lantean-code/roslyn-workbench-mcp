@@ -14,6 +14,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
 
     private readonly ITransactionReceiptStore _receiptStore;
     private readonly IMcpUserInteractionServiceFactory _interactionServiceFactory;
+    private readonly OperationalPolicy _operationalPolicy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionReceiptCommitTool"/> class.
@@ -24,13 +25,15 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     /// <param name="transactionService">The service owning Workspace commit operations.</param>
     /// <param name="receiptStore">The process-local receipt store.</param>
     /// <param name="interactionServiceFactory">The factory isolating MCP elicitation.</param>
+    /// <param name="operationalPolicy">The effective immutable operational policy.</param>
     public TransactionReceiptCommitTool(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
         IToolRequestBinder requestBinder,
         ITransactionService transactionService,
         ITransactionReceiptStore receiptStore,
-        IMcpUserInteractionServiceFactory interactionServiceFactory)
+        IMcpUserInteractionServiceFactory interactionServiceFactory,
+        OperationalPolicy operationalPolicy)
         : base(
             startupOptions,
             protocolFactory,
@@ -40,6 +43,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     {
         _receiptStore = receiptStore;
         _interactionServiceFactory = interactionServiceFactory;
+        _operationalPolicy = operationalPolicy;
     }
 
     /// <inheritdoc/>
@@ -74,6 +78,18 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
         if (!validation.HasData)
         {
             return WorkspaceToolResultMapper.Map(validation, static _ => new TransactionCommitData());
+        }
+
+        if (_operationalPolicy.CompilerValidationRequired)
+        {
+            var compilerValidationFailure = await ValidateCompilerImpactAsync(
+                request,
+                cancellationToken);
+
+            if (compilerValidationFailure is not null)
+            {
+                return compilerValidationFailure;
+            }
         }
 
         var interactionService = _interactionServiceFactory.Create(requestContext.Server);

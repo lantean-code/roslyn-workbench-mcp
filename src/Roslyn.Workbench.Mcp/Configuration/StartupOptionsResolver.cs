@@ -21,12 +21,15 @@ internal static class StartupOptionsResolver
         var defaults = new StartupOptions();
         var warnings = new List<WarningInfo>();
         var operationalMode = ResolveOperationalMode(optionMap, defaults.OperationalMode);
+        var commitValidation = ResolveCommitValidation(optionMap, defaults.CommitValidation);
         var externalPlugins = ResolveExternalPluginsEnabled(optionMap);
 
         var options = new StartupOptions
         {
             OperationalMode = operationalMode.Mode,
             OperationalModeConfigurationError = operationalMode.Error,
+            CommitValidation = commitValidation.Policy,
+            CommitValidationConfigurationError = commitValidation.Error,
             ExternalPluginsEnabled = externalPlugins.Enabled,
             ExternalPluginsConfigurationError = externalPlugins.Error,
             AllowedWorkspaceRoots = ResolveAllowedWorkspaceRoots(optionMap),
@@ -139,6 +142,52 @@ internal static class StartupOptionsResolver
         }
 
         return (true, null);
+    }
+
+    private static (CommitValidationPolicy Policy, string? Error) ResolveCommitValidation(
+        Dictionary<string, List<string?>> optionMap,
+        CommitValidationPolicy defaultValue)
+    {
+        const string key = "commit-validation";
+        const string environmentVariable = "ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION";
+
+        if (optionMap.TryGetValue(key, out var configuredValues))
+        {
+            if (configuredValues.Count != 1)
+            {
+                return (defaultValue, "--commit-validation must be provided at most once.");
+            }
+
+            return ParseCommitValidation(configuredValues[0], "--commit-validation", defaultValue);
+        }
+
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariable);
+        if (environmentValue is null)
+        {
+            return (defaultValue, null);
+        }
+
+        return ParseCommitValidation(environmentValue, environmentVariable, defaultValue);
+    }
+
+    private static (CommitValidationPolicy Policy, string? Error) ParseCommitValidation(
+        string? value,
+        string source,
+        CommitValidationPolicy defaultValue)
+    {
+        var policy = value switch
+        {
+            "none" => CommitValidationPolicy.None,
+            "no-new-compiler-errors" => CommitValidationPolicy.NoNewCompilerErrors,
+            _ => (CommitValidationPolicy?)null,
+        };
+
+        if (policy is null)
+        {
+            return (defaultValue, $"{source} must be 'none' or 'no-new-compiler-errors'.");
+        }
+
+        return (policy.Value, null);
     }
 
     private static (OperationalMode Mode, string? Error) ResolveOperationalMode(

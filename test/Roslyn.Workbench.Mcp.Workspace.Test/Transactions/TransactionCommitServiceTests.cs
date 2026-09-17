@@ -29,6 +29,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _statusPublisher = new();
     private readonly Mock<ITransactionReviewDocumentFactory> _reviewDocumentFactory = new();
     private readonly Mock<ITransactionReviewIdentityService> _reviewIdentityService = new();
+    private readonly Mock<ITransactionCompilerValidationService> _compilerValidationService = new();
     private readonly TransactionCommitService _target;
 
     public TransactionCommitServiceTests()
@@ -73,11 +74,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _target = CreateTarget(receiptAuthorisationRequired: false);
     }
 
-    private TransactionCommitService CreateTarget(bool receiptAuthorisationRequired)
+    private TransactionCommitService CreateTarget(
+        bool receiptAuthorisationRequired,
+        bool compilerValidationRequired = false)
     {
         var workspaceOptions = new WorkspaceOptions
         {
             ReceiptAuthorisationRequired = receiptAuthorisationRequired,
+            CompilerValidationRequired = compilerValidationRequired,
         };
 
         var options = Options.Create(workspaceOptions);
@@ -95,7 +99,8 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 _planner.Object,
                 _lockManager.Object,
                 _statusPublisher.Object,
-                options);
+                options,
+                _compilerValidationService.Object);
         }
 
         return new TransactionCommitService(
@@ -112,7 +117,72 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _statusPublisher.Object,
             options,
             _reviewDocumentFactory.Object,
-            _reviewIdentityService.Object);
+            _reviewIdentityService.Object,
+            _compilerValidationService.Object);
+    }
+
+    [Theory]
+    [InlineData(true, WorkspaceErrorCodes.NewCompilerErrors, null)]
+    [InlineData(false, WorkspaceErrorCodes.CompilerValidationIncomplete, RequiredAction.RollbackTransaction)]
+    public async Task GIVEN_CompilerValidationFails_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork(
+        bool isComplete,
+        string expectedCode,
+        RequiredAction? expectedRequiredAction)
+    {
+        var session = CreateSession();
+        var validation = new TransactionCompilerValidationOutcome
+        {
+            IsComplete = isComplete,
+            Succeeded = false,
+            Transaction = session.Transaction!.ToInfo(conflicted: false),
+            BaselineErrorCount = 0,
+            StagedErrorCount = 1,
+            IntroducedErrorCount = 1,
+            DurationMilliseconds = 1,
+            IncompleteReasons = isComplete
+                ? []
+                : [TransactionCompilerValidationIncompleteReason.CompilationUnavailable],
+            Limitations = ["Limitation"],
+        };
+
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+        _compilerValidationService
+            .Setup(item => item.ValidateAsync(session, TestContext.Current.CancellationToken))
+            .ReturnsAsync(validation);
+
+        _resultFactory
+            .Setup(item => item.Rejected<TransactionCommitOutcome>(
+                expectedCode,
+                It.IsAny<string>(),
+                expectedRequiredAction,
+                It.IsAny<WorkspaceOperationContext>(),
+                validation.IntroducedDiagnostics,
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var target = CreateTarget(
+            receiptAuthorisationRequired: false,
+            compilerValidationRequired: true);
+
+        var result = await target.CommitAsync(
+            CreateSelection(session),
+            expectedSnapshot: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _changeDetector.Verify(item => item.BeginCertification(It.IsAny<string>()), Times.Never);
+        _planner.Verify(
+            item => item.CreateAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _lockManager.Verify(item => item.Acquire(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

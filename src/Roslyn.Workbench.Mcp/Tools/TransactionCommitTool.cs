@@ -63,6 +63,21 @@ internal sealed class TransactionCommitTool : TransactionCommitToolBase<Transact
         RequestContext<CallToolRequestParams> requestContext,
         CancellationToken cancellationToken)
     {
+        if (_operationalPolicy.CompilerValidationRequired)
+        {
+            var validationFailure = await ValidateCompilerImpactAsync(request, cancellationToken);
+            if (validationFailure is not null)
+            {
+                var validationContent = ToolResultEnvelopeSerializer.CreateFailure(
+                    validationFailure.Error,
+                    validationFailure.RequiredAction,
+                    validationFailure.Diagnostics,
+                    validationFailure.Warnings);
+
+                return CreateStructuredResult(validationContent, isError: true);
+            }
+        }
+
         if (_operationalPolicy.CommitAuthorisation != CommitAuthorisationPolicy.Confirmation
             || _confirmationState.IsApprovedForSession)
         {

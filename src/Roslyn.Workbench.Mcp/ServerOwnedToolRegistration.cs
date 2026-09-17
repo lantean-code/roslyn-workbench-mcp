@@ -59,6 +59,10 @@ internal static class ServerOwnedToolRegistration
     /// </summary>
     public const string TransactionStartName = "transaction-start";
     /// <summary>
+    /// Defines the published name of the transaction compiler-validation tool.
+    /// </summary>
+    public const string TransactionValidateName = "transaction-validate";
+    /// <summary>
     /// Defines the published name of the workspace-close tool.
     /// </summary>
     public const string WorkspaceCloseName = "workspace-close";
@@ -94,6 +98,7 @@ internal static class ServerOwnedToolRegistration
         TransactionReviewName,
         TransactionRollbackName,
         TransactionStartName,
+        TransactionValidateName,
         WorkspaceCloseName,
         WorkspaceListName,
         WorkspaceOpenName,
@@ -112,6 +117,11 @@ internal static class ServerOwnedToolRegistration
         var operationalToolCount = policy.SourceMutationEnabled
             ? BaseToolCount
             : InspectionToolCount;
+
+        if (policy.CompilerValidationRequired)
+        {
+            operationalToolCount++;
+        }
 
         var reportingToolCount = options.AreReportingToolsEnabled ? 2 : 0;
 
@@ -149,6 +159,11 @@ internal static class ServerOwnedToolRegistration
         if (policy.SourceMutationEnabled)
         {
             services.AddSingleton<McpServerTool, TransactionStartTool>();
+            if (policy.CompilerValidationRequired)
+            {
+                services.AddSingleton<McpServerTool, TransactionCompilerValidationTool>();
+            }
+
             if (policy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval)
             {
                 services.AddSingleton<McpServerTool, TransactionReviewTool>();

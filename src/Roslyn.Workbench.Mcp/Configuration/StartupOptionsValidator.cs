@@ -50,10 +50,29 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             failures.Add(options.ExternalPluginsConfigurationError);
         }
 
+        if (options.CommitValidationConfigurationError is not null)
+        {
+            failures.Add(options.CommitValidationConfigurationError);
+        }
+
         if (!Enum.IsDefined(options.OperationalMode))
         {
             failures.Add($"{nameof(StartupOptions.OperationalMode)} must be a supported value.");
         }
+
+        var commitValidationIsDefined = Enum.IsDefined(options.CommitValidation);
+        if (!commitValidationIsDefined)
+        {
+            failures.Add($"{nameof(StartupOptions.CommitValidation)} must be a supported value.");
+        }
+
+        if (commitValidationIsDefined
+            && options.OperationalMode == OperationalMode.InspectionOnly
+            && options.CommitValidation != CommitValidationPolicy.None)
+        {
+            failures.Add("Compiler commit validation requires a mutation-capable operational mode.");
+        }
+
         if (!options.ExternalPluginsEnabled && options.PluginDirectories.Count > 0)
         {
             failures.Add("Plugin directories require the --enable-plugins switch.");

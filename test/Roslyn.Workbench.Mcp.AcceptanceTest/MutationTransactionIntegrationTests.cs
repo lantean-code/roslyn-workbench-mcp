@@ -1,7 +1,215 @@
+using System.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class MutationTransactionIntegrationTests
 {
+    private const long _compilerValidationPerformanceBudgetMilliseconds = 10_000;
+
+    [Fact]
+    public async Task GIVEN_IntroducedCompilerError_WHEN_CorrectingAndRetryingPublishedCommit_THEN_ShouldPersistOnlyCorrectedRevision()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--commit-validation", "no-new-compiler-errors"],
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+            var originalBytes = await File.ReadAllBytesAsync(
+                documentPath,
+                TestContext.Current.CancellationToken);
+
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
+
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+            var invalidMutation = await StageExternalMutationAsync(
+                target,
+                workspaceSelector,
+                workspace.CreateSnapshot(transactionRevision: 0),
+                "Class1.cs",
+                "Class1",
+                "Class1 : MissingBase");
+
+            var invalidSnapshot = AcceptanceProtocol.GetSnapshot(invalidMutation);
+            var failedValidation = await ValidateCompilerImpactAsync(
+                target,
+                workspaceSelector,
+                invalidSnapshot);
+
+            var rejectedCommit = await CommitAsync(
+                target,
+                workspaceSelector,
+                invalidSnapshot);
+
+            var bytesAfterRejection = await File.ReadAllBytesAsync(
+                documentPath,
+                TestContext.Current.CancellationToken);
+
+            var correctedMutation = await StageExternalMutationAsync(
+                target,
+                workspaceSelector,
+                invalidSnapshot,
+                "Class1.cs",
+                "Class1 : MissingBase",
+                "ValidatedClass");
+
+            var correctedSnapshot = AcceptanceProtocol.GetSnapshot(correctedMutation);
+            var successfulValidation = await ValidateCompilerImpactAsync(
+                target,
+                workspaceSelector,
+                correctedSnapshot);
+
+            var successfulCommit = await CommitAsync(
+                target,
+                workspaceSelector,
+                correctedSnapshot);
+
+            var persistedSource = await File.ReadAllTextAsync(
+                documentPath,
+                TestContext.Current.CancellationToken);
+
+            var failedValidationData = AcceptanceProtocol.GetSuccessData(failedValidation);
+            failedValidationData.GetProperty("isComplete").GetBoolean().Should().BeTrue();
+            failedValidationData.GetProperty("succeeded").GetBoolean().Should().BeFalse();
+            failedValidationData.GetProperty("introducedErrorCount").GetInt32().Should().BeGreaterThan(0);
+            rejectedCommit.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(rejectedCommit).GetProperty("code").GetString().Should().Be("NewCompilerErrors");
+            bytesAfterRejection.Should().Equal(originalBytes);
+            AcceptanceProtocol.GetSuccessData(successfulValidation)
+                .GetProperty("succeeded")
+                .GetBoolean()
+                .Should()
+                .BeTrue();
+
+            successfulCommit.IsError.Should().NotBeTrue();
+            persistedSource.Should().Contain("ValidatedClass");
+            persistedSource.Should().NotContain("MissingBase");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_DependencyBreak_WHEN_RepeatingPublishedCompilerValidation_THEN_ShouldDetectDependantWithinPerformanceBudget()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            workspaceAsset: AcceptanceWorkspaceAsset.SolutionHierarchy,
+            additionalArguments: ["--commit-validation", "no-new-compiler-errors"],
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var dependencyPath = Path.Combine(target.WorkspaceRoot, "Lib", "MessageFormatter.cs");
+            var originalBytes = await File.ReadAllBytesAsync(
+                dependencyPath,
+                TestContext.Current.CancellationToken);
+
+            var workspace = await OpenWorkspaceAsync(
+                target,
+                Path.Combine(target.WorkspaceRoot, "Sample.slnx"));
+
+            var workspaceSelector = workspace.CreateSelector();
+            await StartTransactionAsync(target, workspaceSelector);
+            var mutation = await StageExternalMutationAsync(
+                target,
+                workspaceSelector,
+                workspace.CreateSnapshot(transactionRevision: 0),
+                Path.Combine("Lib", "MessageFormatter.cs"),
+                "string Format",
+                "int Format");
+
+            var stagedSnapshot = AcceptanceProtocol.GetSnapshot(mutation);
+            var previewStopwatch = Stopwatch.StartNew();
+            var preview = await PreviewAsync(target, workspaceSelector);
+
+            previewStopwatch.Stop();
+            var coldStopwatch = Stopwatch.StartNew();
+            var coldValidation = await ValidateCompilerImpactAsync(
+                target,
+                workspaceSelector,
+                stagedSnapshot);
+
+            coldStopwatch.Stop();
+            var warmStopwatch = Stopwatch.StartNew();
+            var warmValidation = await ValidateCompilerImpactAsync(
+                target,
+                workspaceSelector,
+                stagedSnapshot);
+
+            warmStopwatch.Stop();
+            var rejectedCommit = await CommitAsync(
+                target,
+                workspaceSelector,
+                stagedSnapshot);
+
+            var persistedBytes = await File.ReadAllBytesAsync(
+                dependencyPath,
+                TestContext.Current.CancellationToken);
+
+            var coldData = AcceptanceProtocol.GetSuccessData(coldValidation);
+            var warmData = AcceptanceProtocol.GetSuccessData(warmValidation);
+            var coldDurationMilliseconds = coldData.GetProperty("durationMilliseconds").GetInt64();
+            var warmDurationMilliseconds = warmData.GetProperty("durationMilliseconds").GetInt64();
+            TestContext.Current.TestOutputHelper?.WriteLine(
+                $"Transaction preview duration: observed={previewStopwatch.ElapsedMilliseconds}ms.");
+
+            TestContext.Current.TestOutputHelper?.WriteLine(
+                $"Compiler validation cold duration: observed={coldStopwatch.ElapsedMilliseconds}ms, reported={coldDurationMilliseconds}ms.");
+
+            TestContext.Current.TestOutputHelper?.WriteLine(
+                $"Compiler validation repeated duration: observed={warmStopwatch.ElapsedMilliseconds}ms, reported={warmDurationMilliseconds}ms.");
+
+            preview.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(preview)
+                .GetProperty("documents")
+                .EnumerateArray()
+                .Should()
+                .ContainSingle();
+
+            coldData.GetProperty("succeeded").GetBoolean().Should().BeFalse();
+            coldData.GetProperty("introducedDiagnostics")
+                .EnumerateArray()
+                .Should()
+                .Contain(item => item.GetProperty("id").GetString() == "CS0738");
+
+            coldData.GetProperty("projects")
+                .EnumerateArray()
+                .Should()
+                .Contain(item => IsAppProjectWithIntroducedErrors(item));
+
+            warmData.GetProperty("introducedErrorCount").GetInt32()
+                .Should().Be(coldData.GetProperty("introducedErrorCount").GetInt32());
+
+            coldStopwatch.ElapsedMilliseconds.Should().BeLessThan(
+                _compilerValidationPerformanceBudgetMilliseconds,
+                $"cold validation reported {coldDurationMilliseconds}ms");
+
+            warmStopwatch.ElapsedMilliseconds.Should().BeLessThan(
+                _compilerValidationPerformanceBudgetMilliseconds,
+                $"repeated validation reported {warmDurationMilliseconds}ms");
+
+            coldDurationMilliseconds.Should().BeLessThan(_compilerValidationPerformanceBudgetMilliseconds);
+            warmDurationMilliseconds.Should().BeLessThan(_compilerValidationPerformanceBudgetMilliseconds);
+            rejectedCommit.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(rejectedCommit).GetProperty("code").GetString().Should().Be("NewCompilerErrors");
+            persistedBytes.Should().Equal(originalBytes);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
     [Fact]
     public async Task GIVEN_ExternalMutationPackage_WHEN_StagingAndRollingBack_THEN_ShouldChangeOnlyTheStagedSolution()
     {
@@ -331,6 +539,66 @@ public sealed class MutationTransactionIntegrationTests
                     ["documentationCommentId"] = documentationCommentId,
                 },
                 ["newName"] = newName,
+                ["expectedSnapshot"] = expectedSnapshot,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static Task<ModelContextProtocol.Protocol.CallToolResult> StageExternalMutationAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        IReadOnlyDictionary<string, object?> expectedSnapshot,
+        string relativeDocumentPath,
+        string searchText,
+        string replacementText)
+    {
+        return target.CallToolAsync(
+            "host-valid-mutation",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["expectedSnapshot"] = expectedSnapshot,
+                ["summary"] = "Stage compiler validation acceptance scenario.",
+                ["relativeDocumentPath"] = relativeDocumentPath,
+                ["searchText"] = searchText,
+                ["replacementText"] = replacementText,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static bool IsAppProjectWithIntroducedErrors(System.Text.Json.JsonElement item)
+    {
+        var project = item.GetProperty("project").GetString();
+        return project is not null
+            && project.EndsWith("App.csproj", StringComparison.Ordinal)
+            && item.GetProperty("introducedErrorCount").GetInt32() > 0;
+    }
+
+    private static Task<ModelContextProtocol.Protocol.CallToolResult> ValidateCompilerImpactAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        IReadOnlyDictionary<string, object?> expectedSnapshot)
+    {
+        return target.CallToolAsync(
+            "transaction-validate",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["expectedSnapshot"] = expectedSnapshot,
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static Task<ModelContextProtocol.Protocol.CallToolResult> CommitAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        IReadOnlyDictionary<string, object?> expectedSnapshot)
+    {
+        return target.CallToolAsync(
+            "transaction-commit",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
                 ["expectedSnapshot"] = expectedSnapshot,
             },
             TestContext.Current.CancellationToken);

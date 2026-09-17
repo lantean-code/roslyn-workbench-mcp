@@ -25,6 +25,8 @@ Folders and namespaces are aligned. Scenario-specific execution and result types
 
 `measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It also records an exact response hash, mutation `staged` state, every bounded collection's JSON path, item count, `HasMore` value, optional known total and ordered item hashes, and the count, maximum size and total size of any returned Code Action references. These observations prove deterministic ordering and prefix equivalence and expose the reference contribution to Code Action projection without retaining large response bodies. Code Action discovery intentionally issues new GUID references and expiry timestamps, so its exact raw response hash is expected to vary even when its ordered action metadata is stable. The runner writes the raw observations and run environment to `measurements.json` and a first/subsequent plus median/P95 summary to `summary.md`. Warm-ups are excluded and their count is recorded so a zero-warm-up first invocation can be interpreted as cold. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
 
+`compiler-validation` starts a fresh published Host for every warm-up and measured iteration with `no-new-compiler-errors` enabled, stages one selected mutation, then measures `transaction-preview`, the first `transaction-validate` and a repeated validation against the identical staged snapshot. It records client-observed and server-reported validation durations, Host CPU and working-set observations, changed-document and affected-project counts, validation result sizes and any reported limitations. Both validation calls must complete successfully without introduced compiler errors. The transaction is rolled back and the checkout, Host shutdown and recovery state are validated after every iteration. Results are written to `compiler-validation.json`, `compiler-validation.md` and `validation.json`; an incomplete or unsuccessful compiler result is retained in those reports before the command fails. Timings are observational and deliberately have no machine-specific pass threshold.
+
 Code Action scenarios use one focused workflow facility. A selection can match one listed action by title fragment, diagnostic ID and exact document span, capture its opaque reference under a scenario-local name, and inject that reference into `prepare-fix-all` or `stage-code-action`. Preparation can capture the resulting prepared reference for a later staging step. Reusing a capture name deliberately replaces its value, so setup can rediscover against each new current revision; a distinct name retains an older reachable-revision reference for undo or redo workflows. This facility is intentionally limited to the three published Code Action orchestration tools and is not a general JSON response-query language.
 
 `cancel` starts one selected query with a known JSON-RPC request ID, sends and awaits the protocol `notifications/cancelled` message after the configured delay, and measures both client-visible cancellation latency and the time until an exclusive transaction lease can be acquired. The explicit notification avoids mistaking cancellation of the runner's local client wait for server-side cancellation. A query that completes before the notification is a valid race; a query that remains active when the notification is sent must report cancellation, otherwise the complete cancellation report is written and the command fails. The lease check polls only the explicit `WorkspaceBusy` result, rolls the verification transaction back, and writes `cancellation.json` plus `cancellation.md`.
@@ -69,9 +71,11 @@ The checked-in `scenario-suite.json` defines exact commits and curated requests 
 
 Each repository includes a `document-code-fixes` scenario so complete-document discovery can be compared across small, medium and large solutions. Run it with zero warm-ups for cold built-in analyzer activation and with at least one warm-up for cached reuse. GuardClauses also separates `prepare-fix-all` and `stage-prepared-fix-all`, keeping discovery, preparation and staging outside one another's timed invocation.
 
+Compiler-validation measurements use `rename-symbol` for GuardClauses, `rename-ilogger-durable` for Serilog and two compile-safe internal mutations for EF Core. `rename-observable-hash-set-singletons-validation` changes the foundational EFCore project and measures a wide dependant-project fan-out, while `rename-abrahamic-context-leaf-validation` changes a terminal test project and isolates one affected project within the same large solution. Serilog is loaded with the suite's explicit `net10.0` MSBuild target-framework property so its cross-targeting outer builds are not mistaken for compilable project instances. The broader `rename-dbcontext-durable` mutation remains useful as a negative large-repository scenario: compiler validation is expected to reject that partially supported solution-wide public rename.
+
 The low/high-limit pairs deliberately submit the same semantic query with different response bounds. A low-limit invocation that costs almost as much as the high-limit invocation can reveal discovery or enrichment work performed before the published bound.
 
-The runner clones each repository into an operating-system-local, commit-specific cache beneath the temporary directory and refuses to reuse a cache at a different commit. Windows uses compact runner-owned directory names beneath `%TEMP%\rwmcp` because repository toolchains can still contain components that are not fully long-path-aware. Windows and Linux/WSL therefore cannot share incompatible SDKs, native tools or generated assets. Preparation is untimed. The cache boundary contains a generated NuGet configuration that clears package-source mappings inherited from Roslyn Workbench while preserving each target repository's own configuration. Each clone gets an isolated NuGet package cache beside, rather than inside, its Git checkout. This prevents measured repositories from sharing warmed package state while preserving the clean-checkout invariant required for reliable restoration. Package-supplied source documents are treated as external read-only Workspace inputs. EF Core uses its complete mixed-language solution so workspace loading also exercises the supported behavior of ignoring projects the Host is not designed to interact with. Its repository-owned `restore.cmd` on Windows and `restore.sh` on Linux/WSL prepare the Arcade SDK and toolchain.
+The runner clones each repository into an operating-system-local, commit-specific cache beneath the temporary directory and refuses to reuse a cache at a different commit. Windows uses compact runner-owned directory names beneath `%TEMP%\rwmcp` because repository toolchains can still contain components that are not fully long-path-aware. Windows and Linux/WSL therefore cannot share incompatible SDKs, native tools or generated assets. Preparation is untimed. The cache boundary contains a generated NuGet configuration that clears package-source mappings inherited from Roslyn Workbench while preserving each target repository's own configuration. Each clone gets an isolated NuGet package cache beside, rather than inside, its Git checkout. This prevents measured repositories from sharing warmed package state while preserving the clean-checkout invariant required for reliable restoration. Repository definitions can include `msBuildProperties.targetFramework`; the runner applies that target consistently to primary, secondary and recovery Workspace opens and records it in compiler-validation reports. Package-supplied source documents are treated as external read-only Workspace inputs. EF Core uses its complete mixed-language solution so workspace loading also exercises the supported behavior of ignoring projects the Host is not designed to interact with. Its repository-owned `restore.cmd` on Windows and `restore.sh` on Linux/WSL prepare the Arcade SDK and toolchain.
 
 ## Build and run
 
@@ -86,6 +90,26 @@ Run the complete small-repository measurement suite:
 ```powershell
 .\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
   measure --repository guardclauses --scenario all
+```
+
+Compare transaction preview with cold and repeated compiler validation across the pinned small, medium and large repositories:
+
+```powershell
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  compiler-validation --repository guardclauses --scenario rename-symbol `
+  --iterations 3 --warmups 0 --skip-prepare
+
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  compiler-validation --repository serilog --scenario rename-ilogger-durable `
+  --iterations 3 --warmups 0 --skip-prepare
+
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  compiler-validation --repository efcore --scenario rename-observable-hash-set-singletons-validation `
+  --iterations 3 --warmups 0 --skip-prepare
+
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  compiler-validation --repository efcore --scenario rename-abrahamic-context-leaf-validation `
+  --iterations 3 --warmups 0 --skip-prepare
 ```
 
 The first run clones the pinned repository and restores its dependencies automatically. Subsequent runs reuse the operating-system-local temporary cache; add `--skip-prepare` when no dependency refresh is required.
@@ -115,6 +139,26 @@ Measure every small-repository scenario with the normal warm-up and iteration de
 ```bash
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   measure --repository guardclauses --scenario all
+```
+
+Compare transaction preview with cold and repeated compiler validation across the pinned small, medium and large repositories. Fresh Hosts make separate warm-up iterations unnecessary for the cold measurement:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  compiler-validation --repository guardclauses --scenario rename-symbol \
+  --iterations 3 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  compiler-validation --repository serilog --scenario rename-ilogger-durable \
+  --iterations 3 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  compiler-validation --repository efcore --scenario rename-observable-hash-set-singletons-validation \
+  --iterations 3 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  compiler-validation --repository efcore --scenario rename-abrahamic-context-leaf-validation \
+  --iterations 3 --warmups 0 --skip-prepare
 ```
 
 Measure cold and warm document Code Fix discovery:

@@ -68,6 +68,27 @@ public sealed class ServerOwnedToolRegistrationTests
     }
 
     [Fact]
+    public void GIVEN_CompilerValidationPolicy_WHEN_RegisteringServerOwnedTools_THEN_ShouldPublishValidationTool()
+    {
+        var services = new ServiceCollection();
+        var policy = OperationalPolicyResolver.Resolve(
+            OperationalMode.Transactional,
+            CommitValidationPolicy.NoNewCompilerErrors);
+
+        ServerOwnedToolRegistration.AddMcpTools(services, new ErrorReportingOptions(), policy);
+
+        var registrations = services
+            .Where(item => item.ServiceType == typeof(McpServerTool))
+            .ToArray();
+
+        registrations.Should().HaveCount(ServerOwnedToolRegistration.BaseToolCount + 3);
+        registrations.Select(item => item.ImplementationType)
+            .Should().Contain(typeof(TransactionCompilerValidationTool));
+        ServerOwnedToolRegistration.ToolNames.Should().Contain(
+            ServerOwnedToolRegistration.TransactionValidateName);
+    }
+
+    [Fact]
     public void GIVEN_NeverConsent_WHEN_RegisteringServerOwnedTools_THEN_ShouldOmitReportingTools()
     {
         var services = new ServiceCollection();

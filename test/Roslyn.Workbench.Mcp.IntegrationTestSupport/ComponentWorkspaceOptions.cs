@@ -16,6 +16,8 @@ internal sealed record ComponentWorkspaceOptions
 
     public bool SourceMutationEnabled { get; init; } = true;
 
+    public bool CompilerValidationRequired { get; init; }
+
     public IWorkspaceCommitPlanner? CommitPlanner { get; init; }
 
     public string? StateDirectory { get; init; }

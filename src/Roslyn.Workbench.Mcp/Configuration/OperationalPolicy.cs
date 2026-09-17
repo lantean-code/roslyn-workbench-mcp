@@ -24,4 +24,14 @@ internal sealed record OperationalPolicy
     /// Gets the effective transaction commit-authorisation policy.
     /// </summary>
     public required CommitAuthorisationPolicy CommitAuthorisation { get; init; }
+
+    /// <summary>
+    /// Gets the independently configured transaction commit-validation policy.
+    /// </summary>
+    public required CommitValidationPolicy CommitValidation { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether no-new-compiler-error validation is required before commit.
+    /// </summary>
+    public bool CompilerValidationRequired => CommitValidation == CommitValidationPolicy.NoNewCompilerErrors;
 }

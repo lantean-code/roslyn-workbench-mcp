@@ -65,6 +65,11 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
             _ => throw new InvalidOperationException("The operational mode is not available for server instruction publication."),
         };
 
+        if (policy.CompilerValidationRequired)
+        {
+            workflow += " transaction-validate previews required compiler validation; review and commit revalidate.";
+        }
+
         var persistenceGuidance = policy.SourceMutationEnabled
             ? "transaction-commit writes source files but does not create a Git commit."
             : "Inspection-only policy does not make untrusted workspace build logic safe to execute.";

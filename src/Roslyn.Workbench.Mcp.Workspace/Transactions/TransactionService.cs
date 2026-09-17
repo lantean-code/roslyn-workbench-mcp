@@ -17,6 +17,7 @@ internal sealed class TransactionService : ITransactionService
     private readonly IWorkspaceDiffBuilder _diffBuilder;
     private readonly ITransactionReviewBuilder? _reviewBuilder;
     private readonly ITransactionReviewIdentityService? _reviewIdentityService;
+    private readonly ITransactionCompilerValidationService? _compilerValidationService;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
@@ -25,6 +26,9 @@ internal sealed class TransactionService : ITransactionService
 
     private ITransactionReviewIdentityService ReviewIdentityService => _reviewIdentityService
         ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
+
+    private ITransactionCompilerValidationService CompilerValidationService => _compilerValidationService
+        ?? throw new InvalidOperationException("Compiler validation services must be composed when compiler validation is required.");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransactionService"/> class.
@@ -39,6 +43,7 @@ internal sealed class TransactionService : ITransactionService
     /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
     /// <param name="resolverFactory">The factory used to create the required resolver.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionService(
         IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
@@ -49,7 +54,8 @@ internal sealed class TransactionService : ITransactionService
         ITransactionCommitService transactionCommitService,
         IWorkspaceDiffBuilder diffBuilder,
         IWorkspaceResolverFactory resolverFactory,
-        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        ITransactionCompilerValidationService? compilerValidationService = null)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -61,6 +67,7 @@ internal sealed class TransactionService : ITransactionService
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
+        _compilerValidationService = compilerValidationService;
     }
 
     /// <summary>
@@ -78,6 +85,7 @@ internal sealed class TransactionService : ITransactionService
     /// <param name="reviewIdentityService">The service that validates transaction review identity bindings.</param>
     /// <param name="resolverFactory">The factory used to create the required resolver.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionService(
         IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
@@ -90,7 +98,8 @@ internal sealed class TransactionService : ITransactionService
         ITransactionReviewBuilder reviewBuilder,
         ITransactionReviewIdentityService reviewIdentityService,
         IWorkspaceResolverFactory resolverFactory,
-        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        ITransactionCompilerValidationService? compilerValidationService = null)
         : this(
             options,
             sessionStore,
@@ -101,7 +110,8 @@ internal sealed class TransactionService : ITransactionService
             transactionCommitService,
             diffBuilder,
             resolverFactory,
-            instanceStatusPublisher)
+            instanceStatusPublisher,
+            compilerValidationService)
     {
         _reviewBuilder = reviewBuilder;
         _reviewIdentityService = reviewIdentityService;
@@ -419,6 +429,18 @@ internal sealed class TransactionService : ITransactionService
                 context: context);
         }
 
+        TransactionCompilerValidationOutcome? compilerValidation = null;
+        if (_options.CompilerValidationRequired)
+        {
+            compilerValidation = await CompilerValidationService.ValidateAsync(session, cancellationToken);
+            if (!compilerValidation.Succeeded)
+            {
+                return CreateCompilerValidationFailure<TransactionReviewOutcome>(
+                    compilerValidation,
+                    context);
+            }
+        }
+
         var diffDocumentResult = ResolveReviewDiffDocument(session, document, includeDiff, context);
         if (diffDocumentResult.Error is not null)
         {
@@ -427,6 +449,7 @@ internal sealed class TransactionService : ITransactionService
 
         var buildResult = await ReviewBuilder.CreateAsync(
             session,
+            compilerValidation,
             diffDocumentResult.Document,
             contextLines,
             cancellationToken);
@@ -441,6 +464,87 @@ internal sealed class TransactionService : ITransactionService
         }
 
         return _resultFactory.Succeeded(buildResult.Outcome, context);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<WorkspaceOperationResult<TransactionCompilerValidationOutcome>> ValidateCompilerImpactAsync(
+        Guid? workspaceId,
+        string? alias,
+        string? path,
+        SnapshotPrecondition? expectedSnapshot,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_options.CompilerValidationRequired)
+        {
+            return _resultFactory.Rejected<TransactionCompilerValidationOutcome>(
+                WorkspaceErrorCodes.CompilerValidationUnavailable,
+                "Compiler-impact validation is not enabled by Host policy.");
+        }
+
+        var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
+        {
+            DisposeFailedAcquisition(acquisition);
+            return CreateAcquisitionFailureResult<TransactionCompilerValidationOutcome>(
+                acquisition,
+                acquisition.Error);
+        }
+
+        using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
+        if (session?.Transaction is null)
+        {
+            WorkspaceOperationContext? rejectionContext = null;
+            if (session is not null)
+            {
+                rejectionContext = WorkspaceOperationContextFactory.Create(session);
+            }
+
+            return _resultFactory.Rejected<TransactionCompilerValidationOutcome>(
+                WorkspaceErrorCodes.TransactionRequired,
+                "Start and update a transaction before validating compiler impact.",
+                RequiredAction.StartTransaction,
+                rejectionContext);
+        }
+
+        var context = WorkspaceOperationContextFactory.Create(session);
+        var snapshotValidation = _snapshotGuard.Validate(session, expectedSnapshot);
+        if (!snapshotValidation.IsValid)
+        {
+            return _resultFactory.Conflict<TransactionCompilerValidationOutcome>(
+                snapshotValidation.Error,
+                context);
+        }
+
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
+        {
+            return _resultFactory.Conflict<TransactionCompilerValidationOutcome>(
+                WorkspaceErrorCodes.TransactionConflicted,
+                "Roll back the conflicted transaction before validating compiler impact.",
+                RequiredAction.RollbackTransaction,
+                context);
+        }
+
+        if (session.Transaction.CurrentRevision == 0)
+        {
+            var noChangeOutcome = new TransactionCompilerValidationOutcome
+            {
+                IsComplete = true,
+                Succeeded = true,
+                Transaction = session.Transaction.ToInfo(conflicted: false),
+                BaselineErrorCount = 0,
+                StagedErrorCount = 0,
+                IntroducedErrorCount = 0,
+                DurationMilliseconds = 0,
+            };
+
+            return _resultFactory.Succeeded(noChangeOutcome, context);
+        }
+
+        var outcome = await CompilerValidationService.ValidateAsync(session, cancellationToken);
+        return _resultFactory.Succeeded(outcome, context);
     }
 
     /// <inheritdoc/>
@@ -814,6 +918,37 @@ internal sealed class TransactionService : ITransactionService
             $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before starting a transaction on this workspace.",
             RequiredAction.CommitOrRollback,
             context);
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateCompilerValidationFailure<TOutcome>(
+        TransactionCompilerValidationOutcome validation,
+        WorkspaceOperationContext context)
+    {
+        var warnings = validation.Limitations
+            .Select(static limitation => new WarningInfo
+            {
+                Code = WorkspaceErrorCodes.CompilerValidationIncomplete,
+                Message = limitation,
+            })
+            .ToArray();
+
+        if (!validation.IsComplete)
+        {
+            return _resultFactory.Rejected<TOutcome>(
+                WorkspaceErrorCodes.CompilerValidationIncomplete,
+                "Compiler validation could not evaluate every affected loaded project. No review receipt was created. Roll back the transaction, reload the Workspace, and start a new transaction before retrying.",
+                validation.RecoveryAction,
+                context,
+                validation.IntroducedDiagnostics,
+                warnings);
+        }
+
+        return _resultFactory.Rejected<TOutcome>(
+            WorkspaceErrorCodes.NewCompilerErrors,
+            $"The transaction introduced {validation.IntroducedErrorCount} compiler error(s). No review receipt was created and the transaction remains active.",
+            context: context,
+            diagnostics: validation.IntroducedDiagnostics,
+            warnings: warnings);
     }
 
     private static WorkspaceSelector? CreateWorkspaceSelector(Guid? workspaceId, string? alias, string? path)

@@ -9,6 +9,7 @@ public sealed class StartupOptionsResolverTests
     [
         "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
         "ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE",
+        "ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION",
         "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS",
         "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
@@ -54,6 +55,8 @@ public sealed class StartupOptionsResolverTests
             result.Options.PluginDirectories.Should().BeEmpty();
             result.Options.OperationalMode.Should().Be(OperationalMode.InspectionOnly);
             result.Options.OperationalModeConfigurationError.Should().BeNull();
+            result.Options.CommitValidation.Should().Be(CommitValidationPolicy.None);
+            result.Options.CommitValidationConfigurationError.Should().BeNull();
             result.Options.ExternalPluginsEnabled.Should().BeFalse();
             result.Options.ExternalPluginsConfigurationError.Should().BeNull();
             result.Options.AllowedWorkspaceRoots.Should().BeEmpty();
@@ -71,6 +74,112 @@ public sealed class StartupOptionsResolverTests
             result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
             result.Options.ErrorReporting.ConsentMode.Should().Be(ErrorReportingConsentMode.Prompt);
             result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Theory]
+    [InlineData("none", (int)CommitValidationPolicy.None)]
+    [InlineData("no-new-compiler-errors", (int)CommitValidationPolicy.NoNewCompilerErrors)]
+    public void GIVEN_SupportedCommitValidationArgument_WHEN_Resolving_THEN_ShouldUseRequestedPolicy(
+        string configuredValue,
+        int expectedPolicyValue)
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([$"--commit-validation={configuredValue}"]);
+
+            result.Options.CommitValidation.Should().Be((CommitValidationPolicy)expectedPolicyValue);
+            result.Options.CommitValidationConfigurationError.Should().BeNull();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_CommitValidationArgument_WHEN_EnvironmentAlsoConfigured_THEN_ShouldUseArgument()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                "ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION",
+                "no-new-compiler-errors");
+
+            var result = Resolve(["--commit-validation=none"]);
+
+            result.Options.CommitValidation.Should().Be(CommitValidationPolicy.None);
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_CommitValidationEnvironmentValue_WHEN_NoArgumentConfigured_THEN_ShouldUseEnvironment()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                "ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION",
+                "no-new-compiler-errors");
+
+            var result = Resolve([]);
+
+            result.Options.CommitValidation.Should().Be(CommitValidationPolicy.NoNewCompilerErrors);
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Theory]
+    [InlineData("--commit-validation")]
+    [InlineData("--commit-validation=NoNewCompilerErrors")]
+    [InlineData("--commit-validation=unknown")]
+    public void GIVEN_InvalidCommitValidationArgument_WHEN_Resolving_THEN_ShouldRetainDisabledDefaultAndError(string argument)
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([argument]);
+
+            result.Options.CommitValidation.Should().Be(CommitValidationPolicy.None);
+            result.Options.CommitValidationConfigurationError.Should().Contain("--commit-validation");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_RepeatedCommitValidationArguments_WHEN_Resolving_THEN_ShouldRetainDisabledDefaultAndError()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve([
+                "--commit-validation=none",
+                "--commit-validation=no-new-compiler-errors",
+            ]);
+
+            result.Options.CommitValidation.Should().Be(CommitValidationPolicy.None);
+            result.Options.CommitValidationConfigurationError.Should().Be("--commit-validation must be provided at most once.");
         }
         finally
         {

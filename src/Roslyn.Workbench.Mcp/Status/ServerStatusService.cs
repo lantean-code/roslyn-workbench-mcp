@@ -134,7 +134,7 @@ internal sealed class ServerStatusService : IServerStatusService
             ExternalPluginsEnabled = _startupOptions.ExternalPluginsEnabled,
             CommitConfirmationRequired = _operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.Confirmation,
             ReceiptApprovalRequired = _operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval,
-            CompilerValidationRequired = false,
+            CompilerValidationRequired = _operationalPolicy.CompilerValidationRequired,
             ClientSupportsElicitation = clientSupportsElicitation,
             CommitConfirmationState = GetCommitConfirmationState(),
             WorkspaceAdmission = _workspaceAuthority.IsRestricted ? "Restricted" : "Unrestricted",

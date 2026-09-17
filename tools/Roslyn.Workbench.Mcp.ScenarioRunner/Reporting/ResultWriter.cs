@@ -6,6 +6,7 @@ using Roslyn.Workbench.Mcp.ScenarioRunner.Diagnostics;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Cancellation;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CommitCancellation;
+using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CompilerValidation;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Concurrency;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Conflict;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CrashRecovery;
@@ -49,6 +50,194 @@ internal static class ResultWriter
         var jsonPath = Path.Combine(outputDirectory, "profile.json");
         await using var stream = File.Create(jsonPath);
         await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
+    }
+
+    public static async Task WriteCompilerValidationAsync(
+        string outputDirectory,
+        CompilerValidationRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "compiler-validation.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                validations,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var previewTimings = result.Measurements
+            .Select(static measurement => measurement.PreviewMilliseconds)
+            .Order()
+            .ToArray();
+        var coldTimings = result.Measurements
+            .Select(static measurement => measurement.ColdValidation.ElapsedMilliseconds)
+            .Order()
+            .ToArray();
+        var repeatedTimings = result.Measurements
+            .Select(static measurement => measurement.RepeatedValidation.ElapsedMilliseconds)
+            .Order()
+            .ToArray();
+        var coldReportedTimings = result.Measurements
+            .Select(static measurement => measurement.ColdValidation.ReportedDurationMilliseconds)
+            .Order()
+            .ToArray();
+        var repeatedReportedTimings = result.Measurements
+            .Select(static measurement => measurement.RepeatedValidation.ReportedDurationMilliseconds)
+            .Order()
+            .ToArray();
+        var coldOverheads = result.Measurements
+            .Select(static measurement => measurement.ColdValidation.ElapsedMilliseconds - measurement.PreviewMilliseconds)
+            .Order()
+            .ToArray();
+        var repeatedOverheads = result.Measurements
+            .Select(static measurement => measurement.RepeatedValidation.ElapsedMilliseconds - measurement.PreviewMilliseconds)
+            .Order()
+            .ToArray();
+        var maxWorkingSet = result.Measurements.Max(
+            static measurement => Math.Max(
+                measurement.ColdValidation.WorkingSetBytes,
+                measurement.RepeatedValidation.WorkingSetBytes));
+        var limitations = result.Measurements
+            .SelectMany(static measurement => measurement.ColdValidation.Limitations
+                .Concat(measurement.RepeatedValidation.Limitations))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var succeeded = result.Measurements.All(
+            static measurement => IsSuccessfulCompilerValidation(measurement.ColdValidation)
+                && IsSuccessfulCompilerValidation(measurement.RepeatedValidation));
+        var first = result.Measurements[0];
+
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench compiler-validation summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Repository size: ").AppendLine(result.RepositorySize)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Mutation tool: ").AppendLine(result.MutationTool)
+            .Append("Workspace target framework: ")
+            .AppendLine(result.WorkspaceTargetFramework ?? "Not specified")
+            .Append("Warm-ups: ").AppendLine(result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured fresh-Host iterations: ").AppendLine(result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Changed documents: ").AppendLine(first.PreviewDocumentCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Affected projects: ").AppendLine(first.ColdValidation.AffectedProjectCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Maximum Host working set: ").AppendLine(FormatBytes(maxWorkingSet))
+            .Append("Validation outcome: ").AppendLine(succeeded ? "Succeeded" : "Failed or incomplete")
+            .AppendLine()
+            .AppendLine("Each iteration uses one staged snapshot. Preview, cold validation and repeated validation are measured against that identical snapshot; each iteration starts a fresh Host.")
+            .AppendLine()
+            .AppendLine("| Phase | Median observed (ms) | P95 observed (ms) | Median server-reported (ms) | Median overhead vs preview (ms) |")
+            .AppendLine("|---|---:|---:|---:|---:|")
+            .Append("| Transaction preview | ")
+            .Append(Percentile(previewTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(previewTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" | — | — |")
+            .Append("| Cold compiler validation | ")
+            .Append(Percentile(coldTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(coldTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(coldReportedTimings, 0.5).ToString(CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(coldOverheads, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |")
+            .Append("| Repeated compiler validation | ")
+            .Append(Percentile(repeatedTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(repeatedTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(repeatedReportedTimings, 0.5).ToString(CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(repeatedOverheads, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |")
+            .AppendLine()
+            .AppendLine("| Iteration | Outcome | Preview (ms) | Cold observed/reported (ms) | Repeated observed/reported (ms) | Cold host CPU (ms) | Repeated host CPU (ms) | Cold working-set delta | Repeated working-set delta |")
+            .AppendLine("|---:|---|---:|---:|---:|---:|---:|---:|---:|");
+
+        foreach (var measurement in result.Measurements)
+        {
+            var iterationSucceeded = IsSuccessfulCompilerValidation(measurement.ColdValidation)
+                && IsSuccessfulCompilerValidation(measurement.RepeatedValidation);
+
+            builder
+                .Append("| ").Append(measurement.Iteration.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(iterationSucceeded ? "Succeeded" : "Failed or incomplete")
+                .Append(" | ").Append(measurement.PreviewMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(measurement.ColdValidation.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append('/').Append(measurement.ColdValidation.ReportedDurationMilliseconds.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(measurement.RepeatedValidation.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append('/').Append(measurement.RepeatedValidation.ReportedDurationMilliseconds.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(measurement.ColdValidation.HostCpuMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(measurement.RepeatedValidation.HostCpuMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(FormatBytes(measurement.ColdValidation.WorkingSetDeltaBytes))
+                .Append(" | ").Append(FormatBytes(measurement.RepeatedValidation.WorkingSetDeltaBytes))
+                .AppendLine(" |");
+        }
+
+        if (limitations.Length > 0)
+        {
+            builder
+                .AppendLine()
+                .AppendLine("## Limitations")
+                .AppendLine();
+
+            foreach (var limitation in limitations)
+            {
+                builder.Append("- ").AppendLine(limitation);
+            }
+        }
+
+        var diagnosticIds = first.ColdValidation.IntroducedDiagnosticIds;
+        var projectsWithErrors = first.ColdValidation.ProjectsWithIntroducedErrors;
+        if (diagnosticIds.Count > 0 || projectsWithErrors.Count > 0)
+        {
+            builder
+                .AppendLine()
+                .AppendLine("## Introduced compiler errors")
+                .AppendLine();
+
+            if (diagnosticIds.Count > 0)
+            {
+                builder.AppendLine("Diagnostic IDs in the bounded projection:");
+                foreach (var (diagnosticId, count) in diagnosticIds)
+                {
+                    builder
+                        .Append("- ").Append(diagnosticId)
+                        .Append(": ").AppendLine(count.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            if (projectsWithErrors.Count > 0)
+            {
+                builder.AppendLine("Affected project evaluations:");
+                foreach (var (project, count) in projectsWithErrors)
+                {
+                    builder
+                        .Append("- ").Append(project)
+                        .Append(": ").AppendLine(count.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "compiler-validation.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
+    private static bool IsSuccessfulCompilerValidation(
+        CompilerValidationInvocationMeasurement measurement)
+    {
+        return measurement.IsComplete
+            && measurement.Succeeded
+            && measurement.IntroducedErrorCount == 0;
     }
 
     public static async Task WriteConcurrencyAsync(

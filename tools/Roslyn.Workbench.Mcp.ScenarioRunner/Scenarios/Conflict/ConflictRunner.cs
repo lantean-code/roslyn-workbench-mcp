@@ -6,6 +6,7 @@ using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.DurableCommit;
+using Roslyn.Workbench.Mcp.ScenarioRunner.Validation;
 
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Conflict;
 
@@ -196,11 +197,12 @@ internal sealed class ConflictRunner
             using var document = await JsonDocument.ParseAsync(
                 stream,
                 cancellationToken: cancellationToken);
+
             var root = document.RootElement;
-            if (!string.Equals(
-                root.GetProperty("state").GetString(),
-                "Applying",
-                StringComparison.Ordinal))
+            var state = RecoveryEvidenceReader.ReadState(
+                root.GetProperty("state"));
+
+            if (state != RecoveryEvidenceState.Applying)
             {
                 return null;
             }

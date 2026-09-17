@@ -126,6 +126,21 @@ internal static class WorkspaceErrorCodes
     public const string TransactionReceiptMismatch = "TransactionReceiptMismatch";
 
     /// <summary>
+    /// Indicates that compiler-impact validation is not enabled by Host policy.
+    /// </summary>
+    public const string CompilerValidationUnavailable = "CompilerValidationUnavailable";
+
+    /// <summary>
+    /// Indicates that one or more compiler evaluations were incomplete.
+    /// </summary>
+    public const string CompilerValidationIncomplete = "CompilerValidationIncomplete";
+
+    /// <summary>
+    /// Indicates that the staged transaction introduced compiler errors.
+    /// </summary>
+    public const string NewCompilerErrors = "NewCompilerErrors";
+
+    /// <summary>
     /// The supplied snapshot precondition does not match the current Workspace snapshot.
     /// </summary>
     public const string SnapshotMismatch = "SnapshotMismatch";

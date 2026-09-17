@@ -76,6 +76,22 @@ internal interface ITransactionService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Compares compiler errors in the active transaction baseline and staged snapshot.
+    /// </summary>
+    /// <param name="workspaceId">The optional workspace identifier.</param>
+    /// <param name="alias">The optional workspace alias.</param>
+    /// <param name="path">The optional workspace path.</param>
+    /// <param name="expectedSnapshot">The expected transaction snapshot.</param>
+    /// <param name="cancellationToken">The token used to cancel validation.</param>
+    /// <returns>A task that completes with the snapshot-bound compiler-impact result.</returns>
+    ValueTask<WorkspaceOperationResult<TransactionCompilerValidationOutcome>> ValidateCompilerImpactAsync(
+        Guid? workspaceId,
+        string? alias,
+        string? path,
+        SnapshotPrecondition? expectedSnapshot,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Moves the active transaction backward or forward in history.
     /// </summary>
     /// <param name="workspaceId">The optional workspace identifier.</param>

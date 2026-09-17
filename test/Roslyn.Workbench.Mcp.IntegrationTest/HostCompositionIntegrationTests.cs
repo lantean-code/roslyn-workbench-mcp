@@ -8,6 +8,7 @@ using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 using Roslyn.Workbench.Mcp.ErrorReporting.Preparation;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.State;
+using Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -46,6 +47,7 @@ public sealed class HostCompositionIntegrationTests
         builder.AddRoslynWorkbench(
         [
             "--operational-mode", "autonomous-trusted",
+            "--commit-validation", "no-new-compiler-errors",
             "--enable-plugins",
             "--default-max-results", "123",
             "--max-concurrent-queries", "7",
@@ -67,13 +69,21 @@ public sealed class HostCompositionIntegrationTests
         startupOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         startupOptions.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
         startupOptions.OperationalMode.Should().Be(OperationalMode.AutonomousTrusted);
+        startupOptions.CommitValidation.Should().Be(CommitValidationPolicy.NoNewCompilerErrors);
         startupOptions.ExternalPluginsEnabled.Should().BeTrue();
         workspaceOptions.SourceMutationEnabled.Should().BeTrue();
+        workspaceOptions.CompilerValidationRequired.Should().BeTrue();
         workspaceOptions.DefaultMaxResults.Should().Be(123);
         workspaceOptions.MaxConcurrentQueries.Should().Be(7);
         workspaceOptions.MaxTransactionRevisions.Should().Be(8);
         workspaceOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         codeActionOptions.ReferenceLifetime.Should().Be(TimeSpan.FromSeconds(9));
+        host.Services.GetRequiredService<ITransactionCompilerValidationService>()
+            .Should().BeOfType<TransactionCompilerValidationService>();
+
+        host.Services.GetServices<McpServerTool>()
+            .Select(static tool => tool.ProtocolTool.Name)
+            .Should().Contain(ServerOwnedToolRegistration.TransactionValidateName);
     }
 
     [Fact]
@@ -94,6 +104,8 @@ public sealed class HostCompositionIntegrationTests
 
         policy.Mode.Should().Be(OperationalMode.InspectionOnly);
         workspaceOptions.SourceMutationEnabled.Should().BeFalse();
+        workspaceOptions.CompilerValidationRequired.Should().BeFalse();
+        host.Services.GetService<ITransactionCompilerValidationService>().Should().BeNull();
         toolNames.Should().NotContain(
         [
             "transaction-start",
@@ -101,6 +113,7 @@ public sealed class HostCompositionIntegrationTests
             "transaction-history",
             "transaction-commit",
             "transaction-rollback",
+            "transaction-validate",
         ]);
 
         codeActionTools

@@ -36,6 +36,7 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
     /// <inheritdoc/>
     public async ValueTask<TransactionReviewBuildResult> CreateAsync(
         WorkspaceSessionSnapshot session,
+        TransactionCompilerValidationOutcome? compilerValidation,
         DocumentReference? diffDocument,
         int contextLines,
         CancellationToken cancellationToken)
@@ -87,7 +88,7 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
             Transaction = transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             Documents = documents,
             Provenance = CreateProvenance(transaction),
-            Validations = CreateValidations(),
+            Validations = CreateValidations(compilerValidation),
             Diff = diff,
         };
 
@@ -128,10 +129,11 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
             .ToArray();
     }
 
-    private static IReadOnlyList<TransactionReviewValidation> CreateValidations()
+    private static List<TransactionReviewValidation> CreateValidations(
+        TransactionCompilerValidationOutcome? compilerValidation)
     {
-        return
-        [
+        var validations = new List<TransactionReviewValidation>
+        {
             new TransactionReviewValidation
             {
                 Name = "commit-planning",
@@ -144,6 +146,18 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
                 Succeeded = true,
                 Message = "Every persistence target is physically contained by current Workspace policy.",
             },
-        ];
+        };
+
+        if (compilerValidation is not null)
+        {
+            validations.Add(new TransactionReviewValidation
+            {
+                Name = "no-new-compiler-errors",
+                Succeeded = true,
+                Message = $"No new compiler errors were introduced across {compilerValidation.Projects.Count} affected loaded project evaluation(s).",
+            });
+        }
+
+        return validations;
     }
 }

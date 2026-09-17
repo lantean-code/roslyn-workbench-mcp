@@ -57,4 +57,29 @@ public sealed class ReceiptServiceCompositionTests
             (registration is not null).Should().Be(expectedReviewServices);
         }
     }
+
+    [Theory]
+    [InlineData((int)CommitValidationPolicy.None, false)]
+    [InlineData((int)CommitValidationPolicy.NoNewCompilerErrors, true)]
+    public void GIVEN_CommitValidationPolicy_WHEN_RegisteringWorkspaceServices_THEN_ShouldConditionallyComposeCompilerValidation(
+        int validationValue,
+        bool expectedService)
+    {
+        var services = new ServiceCollection();
+        var policy = OperationalPolicyResolver.Resolve(
+            OperationalMode.AutonomousTrusted,
+            (CommitValidationPolicy)validationValue);
+
+        services.AddWorkspaceServices(policy);
+
+        var registration = services.SingleOrDefault(
+            item => item.ServiceType == typeof(ITransactionCompilerValidationService));
+
+        (registration is not null).Should().Be(expectedService);
+        if (expectedService)
+        {
+            registration!.ImplementationType.Should().Be<TransactionCompilerValidationService>();
+            registration.Lifetime.Should().Be(ServiceLifetime.Singleton);
+        }
+    }
 }

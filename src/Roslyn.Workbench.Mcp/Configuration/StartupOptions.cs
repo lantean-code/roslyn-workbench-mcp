@@ -16,6 +16,16 @@ internal sealed class StartupOptions
     public string? OperationalModeConfigurationError { get; set; }
 
     /// <summary>
+    /// Gets or sets the independently configured transaction commit-validation policy.
+    /// </summary>
+    public CommitValidationPolicy CommitValidation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the commit-validation configuration error captured during startup parsing.
+    /// </summary>
+    public string? CommitValidationConfigurationError { get; set; }
+
+    /// <summary>
     /// Gets or sets whether external plugin packages may be loaded during startup.
     /// </summary>
     public bool ExternalPluginsEnabled { get; set; }

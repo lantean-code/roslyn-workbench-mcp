@@ -9,6 +9,7 @@ using Roslyn.Workbench.Mcp.ScenarioRunner.Repositories;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Cancellation;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CommitCancellation;
+using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CompilerValidation;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Concurrency;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.Conflict;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.CrashRecovery;
@@ -68,6 +69,23 @@ internal static class ScenarioApplication
             executionDirectory = CreateExecutionDirectory(repository.Id);
             var scenarios = ResolveScenarios(repository, options.Scenario, options.Command);
             var environment = RunEnvironmentInfo.Capture(hostPath);
+
+            if (options.Command == ScenarioCommand.CompilerValidation)
+            {
+                await MeasureCompilerValidationAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
 
             if (options.Command == ScenarioCommand.Commit)
             {
@@ -170,7 +188,13 @@ internal static class ScenarioApplication
 
             try
             {
-                var openedWorkspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
+                var openedWorkspaceId = await OpenWorkspaceAsync(
+                    host,
+                    workspacePath,
+                    repositoryRoot,
+                    repository.MsBuildProperties,
+                    "performance",
+                    cancellationToken);
                 workspaceId = openedWorkspaceId;
                 var runner = new ToolInvocationRunner(host, openedWorkspaceId, repositoryRoot);
 
@@ -403,8 +427,9 @@ internal static class ScenarioApplication
             host,
             secondaryWorkspacePath,
             repositoryRoot,
-            cancellationToken,
-            alias: "concurrency-secondary");
+            repository.MsBuildProperties,
+            "concurrency-secondary",
+            cancellationToken);
 
         try
         {
@@ -445,6 +470,255 @@ internal static class ScenarioApplication
         {
             await CloseWorkspaceAsync(host, secondaryWorkspaceId);
         }
+    }
+
+    private static async Task MeasureCompilerValidationAsync(
+        ScenarioOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "Compiler validation measurement requires exactly one mutation scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+        var startedAtUtc = DateTimeOffset.UtcNow;
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Warming compiler validation {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
+
+            await RunCompilerValidationIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"warmup-{warmup}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration: 0,
+                cancellationToken);
+        }
+
+        var measurements = new List<CompilerValidationMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Measuring compiler validation {repository.Id}/{scenario.Id} ({iteration}/{options.Iterations})");
+
+            var measurement = await RunCompilerValidationIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"iteration-{iteration}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration,
+                cancellationToken);
+
+            measurements.Add(measurement);
+        }
+
+        var result = new CompilerValidationRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            MutationTool = scenario.Tool,
+            WorkspaceTargetFramework = repository.MsBuildProperties?.TargetFramework,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteCompilerValidationAsync(
+            outputDirectory,
+            result,
+            cancellationToken);
+
+        var validationFailed = measurements.Any(
+            static measurement => !IsSuccessfulCompilerValidation(measurement.ColdValidation)
+                || !IsSuccessfulCompilerValidation(measurement.RepeatedValidation));
+        if (validationFailed)
+        {
+            throw new InvalidOperationException(
+                $"Compiler validation did not complete successfully without introduced errors. Results: {outputDirectory}");
+        }
+    }
+
+    private static bool IsSuccessfulCompilerValidation(
+        CompilerValidationInvocationMeasurement measurement)
+    {
+        return measurement.IsComplete
+            && measurement.Succeeded
+            && measurement.IntroducedErrorCount == 0;
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve validation, rollback, workspace-close, Host-disposal, restoration, and state-validation failures so every cleanup step is attempted and all failures are reported together.")]
+    private static async Task<CompilerValidationMeasurement> RunCompilerValidationIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        CancellationToken cancellationToken)
+    {
+        await using var host = await ScenarioHost.StartAsync(
+            hostPath,
+            repositoryRoot,
+            stateDirectory,
+            pluginDirectory: null,
+            cancellationToken,
+            enableCompilerValidation: true);
+
+        Guid? workspaceId = null;
+        CompilerValidationRunner? runner = null;
+        CompilerValidationExecution? execution = null;
+        ExceptionDispatchInfo? runFailure = null;
+
+        try
+        {
+            var openedWorkspaceId = await OpenWorkspaceAsync(
+                host,
+                workspacePath,
+                repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
+                cancellationToken);
+
+            workspaceId = openedWorkspaceId;
+            runner = new CompilerValidationRunner(
+                host,
+                openedWorkspaceId,
+                repositoryRoot);
+
+            execution = await runner.ExecuteAsync(scenario, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            runFailure = ExceptionDispatchInfo.Capture(exception);
+        }
+        finally
+        {
+            if (runner is not null)
+            {
+                try
+                {
+                    await runner.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            if (workspaceId is Guid openedWorkspaceId)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(host, openedWorkspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            try
+            {
+                await host.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        RepositoryChangeSet? changes = null;
+        try
+        {
+            changes = await restorer.CaptureChangesAsync(CancellationToken.None);
+            await restorer.RestoreAsync(changes, CancellationToken.None);
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        var shutdown = host.GetShutdownResult();
+        var validation = await RunStateValidator.ValidateAsync(
+            repository,
+            repositoryRoot,
+            stateDirectory,
+            initialWorkspaceStateFiles,
+            shutdown,
+            CancellationToken.None);
+
+        if (!validation.Succeeded)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    $"Compiler-validation run-state validation failed: {string.Join(" ", validation.Issues)}"));
+        }
+
+        if (changes is { Files.Count: > 0 })
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    "Compiler validation changed repository files instead of leaving the mutation staged."));
+        }
+
+        runFailure?.Throw();
+
+        var completedExecution = execution
+            ?? throw new InvalidOperationException(
+                "Compiler validation did not produce execution evidence.");
+
+        return new CompilerValidationMeasurement
+        {
+            Iteration = iteration,
+            StagingMilliseconds = completedExecution.StagingMilliseconds,
+            PreviewMilliseconds = completedExecution.PreviewMilliseconds,
+            PreviewDocumentCount = completedExecution.PreviewDocumentCount,
+            ColdValidation = completedExecution.ColdValidation,
+            RepeatedValidation = completedExecution.RepeatedValidation,
+            HostShutdown = shutdown,
+            Validation = validation,
+        };
     }
 
     private static async Task MeasureDurableCommitsAsync(
@@ -661,6 +935,8 @@ internal static class ScenarioApplication
                 host,
                 workspacePath,
                 repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
                 cancellationToken);
             workspaceId = openedWorkspaceId;
 
@@ -943,6 +1219,8 @@ internal static class ScenarioApplication
                 host,
                 workspacePath,
                 repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
                 cancellationToken);
             workspaceId = openedWorkspaceId;
 
@@ -1107,7 +1385,13 @@ internal static class ScenarioApplication
 
         try
         {
-            var openedWorkspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
+            var openedWorkspaceId = await OpenWorkspaceAsync(
+                host,
+                workspacePath,
+                repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
+                cancellationToken);
             workspaceId = openedWorkspaceId;
             runner = new DurableCommitRunner(host, openedWorkspaceId, repositoryRoot);
             if (diagnosticArtifact is null)
@@ -1386,6 +1670,8 @@ internal static class ScenarioApplication
                 host,
                 workspacePath,
                 repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
                 cancellationToken);
             workspaceId = openedWorkspaceId;
             var durableRunner = new DurableCommitRunner(
@@ -1511,7 +1797,7 @@ internal static class ScenarioApplication
             Continuation = completedExecution.Continuation,
             ExternalMutation = completedExecution.ExternalMutation,
             FilesBeforeRestoration = completedChanges.Files,
-            RecoveryState = completedRecoveryEvidence.State,
+            RecoveryState = completedRecoveryEvidence.State?.ToString(),
             RecoveryArtifactCount = completedRecoveryEvidence.ArtifactCount,
             HostShutdown = shutdown,
             Validation = validation,
@@ -1645,6 +1931,8 @@ internal static class ScenarioApplication
                 interruptedHost,
                 workspacePath,
                 repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
                 cancellationToken);
 
             var durableRunner = new DurableCommitRunner(
@@ -1692,6 +1980,8 @@ internal static class ScenarioApplication
                 recoveryHost,
                 workspacePath,
                 repositoryRoot,
+                repository.MsBuildProperties,
+                "performance",
                 cancellationToken);
             recoveryWorkspaceId = openedRecoveryWorkspaceId;
 
@@ -1831,7 +2121,7 @@ internal static class ScenarioApplication
                 repositoryRoot,
                 completedInterruption.AppliedTargetPath),
             FilesBeforeRecovery = completedFilesBeforeRecovery.Files,
-            PreparedRecoveryState = completedInterruption.RecoveryEvidence.State,
+            PreparedRecoveryState = completedInterruption.RecoveryEvidence.State?.ToString(),
             PreparedRecoveryArtifactCount = completedInterruption.RecoveryEvidence.ArtifactCount,
             InterruptedHostShutdown = completedInterruption.HostShutdown,
             RecoveryHostShutdown = completedRecoveryHost.GetShutdownResult(),
@@ -1993,10 +2283,7 @@ internal static class ScenarioApplication
         }
 
         if (mode == ConflictMode.DuringApplication
-            && (!string.Equals(
-                recoveryEvidence.State,
-                "RecoveryConflict",
-                StringComparison.Ordinal)
+            && (recoveryEvidence.State != RecoveryEvidenceState.RecoveryConflict
                 || recoveryEvidence.ArtifactCount == 0))
         {
             throw new InvalidOperationException(
@@ -2169,8 +2456,9 @@ internal static class ScenarioApplication
         ScenarioHost host,
         string workspacePath,
         string repositoryRoot,
-        CancellationToken cancellationToken,
-        string alias = "performance")
+        WorkspaceMsBuildPropertiesDefinition? msBuildProperties,
+        string alias,
+        CancellationToken cancellationToken)
     {
         var arguments = new Dictionary<string, object?>
         {
@@ -2178,6 +2466,14 @@ internal static class ScenarioApplication
             ["path"] = workspacePath,
             ["workspaceRoot"] = repositoryRoot,
         };
+
+        if (msBuildProperties?.TargetFramework is string targetFramework)
+        {
+            arguments["msBuildProperties"] = new Dictionary<string, object?>
+            {
+                ["targetFramework"] = targetFramework,
+            };
+        }
 
         for (var attempt = 1; attempt <= _workspaceOpenMaximumAttempts; attempt++)
         {
@@ -2297,6 +2593,7 @@ internal static class ScenarioApplication
         if (string.Equals(scenarioId, _allScenarios, StringComparison.OrdinalIgnoreCase))
         {
             if (command is ScenarioCommand.Profile
+                or ScenarioCommand.CompilerValidation
                 or ScenarioCommand.Commit
                 or ScenarioCommand.CommitCancellation
                 or ScenarioCommand.Conflict
@@ -2487,6 +2784,7 @@ internal static class ScenarioApplication
               list
               prepare --repository <id> [--cache <path>] [--framework-root <path>]
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              compiler-validation --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--output <path>] [--framework-root <path>] [--skip-prepare]
               commit-cancellation --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]

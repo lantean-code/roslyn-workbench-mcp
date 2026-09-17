@@ -71,15 +71,23 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             var services = builder.Services;
             var startupOptions = new StartupOptions
             {
+                OperationalMode = OperationalMode.AutonomousTrusted,
+                CommitValidation = options.CompilerValidationRequired
+                    ? CommitValidationPolicy.NoNewCompilerErrors
+                    : CommitValidationPolicy.None,
                 DefaultMaxResults = options.DefaultMaxResults,
                 MaxConcurrentQueries = options.MaxConcurrentQueries,
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
                 StateDirectory = stateDirectory,
             };
 
+            var operationalPolicy = OperationalPolicyResolver.Resolve(
+                startupOptions.OperationalMode,
+                startupOptions.CommitValidation);
+
             services.AddRoslynWorkbenchOptions(
                 startupOptions,
-                OperationalPolicyResolver.Resolve(startupOptions.OperationalMode));
+                operationalPolicy);
 
             services.Configure<WorkspaceOptions>(configured =>
             {
@@ -91,7 +99,6 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 configured.IncludeBuiltInAssemblies = options.IncludeBuiltInCodeActions);
 
             services.AddSingleton(TimeProvider.System);
-            var operationalPolicy = OperationalPolicyResolver.Resolve(OperationalMode.AutonomousTrusted);
             services.AddWorkspaceServices(operationalPolicy);
             if (options.CommitPlanner is not null)
             {
@@ -262,6 +269,21 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
             alias,
             path,
             direction,
+            expectedSnapshot,
+            cancellationToken);
+    }
+
+    public ValueTask<WorkspaceOperationResult<TransactionCompilerValidationOutcome>> ValidateTransactionCompilerImpactAsync(
+        CancellationToken cancellationToken,
+        Guid? workspaceId = null,
+        string? alias = null,
+        string? path = null,
+        SnapshotPrecondition? expectedSnapshot = null)
+    {
+        return GetRequiredService<ITransactionService>().ValidateCompilerImpactAsync(
+            workspaceId,
+            alias,
+            path,
             expectedSnapshot,
             cancellationToken);
     }

@@ -16,7 +16,9 @@ internal static class HostStartupComposer
         var configuration = StartupOptionsResolver.Resolve(args, pathComparison);
         var optionsValidator = new StartupOptionsValidator();
         optionsValidator.EnsureValid(configuration.Options);
-        var policy = OperationalPolicyResolver.Resolve(configuration.Options.OperationalMode);
+        var policy = OperationalPolicyResolver.Resolve(
+            configuration.Options.OperationalMode,
+            configuration.Options.CommitValidation);
 
         var codeActions = new CodeActionCatalogSnapshot
         {

@@ -539,6 +539,9 @@
       "url": "https://github.com/serilog/serilog.git",
       "commit": "0597ddfbd4ec594d9c42edd745fe728a2198bad9",
       "workspacePath": "Serilog.sln",
+      "msBuildProperties": {
+        "targetFramework": "net10.0"
+      },
       "preparation": [
         {
           "fileName": "dotnet",
@@ -1532,6 +1535,76 @@
             },
             "minimumStatements": 3,
             "groupsLimit": 10
+          }
+        },
+        {
+          "id": "rename-observable-hash-set-singletons-validation",
+          "description": "Stages a compile-safe internal EF Core rename for compiler-validation measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.ChangeTracking.ObservableHashSetSingletons"
+            },
+            "newName": "CompilerValidationObservableHashSetSingletons",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "rename-abrahamic-context-leaf-validation",
+          "description": "Stages a compile-safe internal rename in a leaf EF Core test project for compiler-validation measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "expectedSnapshot": {
+              "workspaceId": "${workspaceId}",
+              "workspaceEpoch": "${workspaceEpoch}",
+              "transactionRevision": 0
+            },
+            "symbol": {
+              "project": {
+                "path": "test/EFCore.SqlServer.HierarchyId.Tests/EFCore.SqlServer.HierarchyId.Tests.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.SqlServer.TestModels.AbrahamicContext"
+            },
+            "newName": "CompilerValidationAbrahamicContext",
+            "renameFile": false
           }
         },
         {

@@ -62,10 +62,7 @@ internal sealed class CrashRecoveryRunner
             requiredOperation,
             cancellationToken);
 
-        if (!string.Equals(
-            recoveryEvidence.State,
-            "Applying",
-            StringComparison.Ordinal)
+        if (recoveryEvidence.State != RecoveryEvidenceState.Applying
             || recoveryEvidence.ArtifactCount == 0)
         {
             throw new InvalidOperationException(
@@ -124,10 +121,10 @@ internal sealed class CrashRecoveryRunner
                 cancellationToken: cancellationToken);
 
             var root = document.RootElement;
-            if (!string.Equals(
-                root.GetProperty("state").GetString(),
-                "Applying",
-                StringComparison.Ordinal))
+            var state = RecoveryEvidenceReader.ReadState(
+                root.GetProperty("state"));
+
+            if (state != RecoveryEvidenceState.Applying)
             {
                 return null;
             }

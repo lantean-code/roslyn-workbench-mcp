@@ -208,6 +208,11 @@ internal sealed class ScenarioOptions
             return ScenarioCommand.Measure;
         }
 
+        if (string.Equals(value, "compiler-validation", StringComparison.OrdinalIgnoreCase))
+        {
+            return ScenarioCommand.CompilerValidation;
+        }
+
         if (string.Equals(value, "commit", StringComparison.OrdinalIgnoreCase))
         {
             return ScenarioCommand.Commit;

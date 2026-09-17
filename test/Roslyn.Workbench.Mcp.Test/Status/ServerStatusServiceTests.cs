@@ -158,6 +158,7 @@ public sealed class ServerStatusServiceTests
             Mode = (OperationalMode)999,
             SourceMutation = SourceMutationPolicy.Enabled,
             CommitAuthorisation = CommitAuthorisationPolicy.None,
+            CommitValidation = CommitValidationPolicy.None,
         };
 
         var target = CreateTarget(

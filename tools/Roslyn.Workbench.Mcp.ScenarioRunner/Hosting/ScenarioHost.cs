@@ -292,14 +292,16 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string workingDirectory,
         string stateDirectory,
         string? pluginDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool enableCompilerValidation = false)
     {
         CreateStateDirectory(stateDirectory);
         var startInfo = CreateStartInfo(
             hostPath,
             workingDirectory,
             stateDirectory,
-            pluginDirectory);
+            pluginDirectory,
+            enableCompilerValidation);
 
         var process = new Process
         {
@@ -380,7 +382,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string hostPath,
         string workingDirectory,
         string stateDirectory,
-        string? pluginDirectory)
+        string? pluginDirectory,
+        bool enableCompilerValidation)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -405,6 +408,12 @@ internal sealed class ScenarioHost : IAsyncDisposable
         startInfo.ArgumentList.Add("autonomous-trusted");
         startInfo.ArgumentList.Add("--state-directory");
         startInfo.ArgumentList.Add(stateDirectory);
+        if (enableCompilerValidation)
+        {
+            startInfo.ArgumentList.Add("--commit-validation");
+            startInfo.ArgumentList.Add("no-new-compiler-errors");
+        }
+
         if (!string.IsNullOrWhiteSpace(pluginDirectory))
         {
             startInfo.ArgumentList.Add("--enable-plugins");

@@ -10,7 +10,7 @@
   "category": "Code discovery and navigation",
   "operationKind": "Query",
   "summary": "Searches declarations by name, metadata name and optional semantic filters.",
-  "availability": "Built in and published by default.",
+  "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/search-symbols.html",
   "tool": {
     "name": "search-symbols",
@@ -490,6 +490,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -646,10 +653,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Search Symbols",
@@ -661,6 +694,11 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "symbol-discovery",
       "workflowTitle": "Find and inspect a symbol safely",
       "step": 1,

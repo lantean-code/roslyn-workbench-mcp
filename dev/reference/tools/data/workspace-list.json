@@ -10,7 +10,7 @@
   "category": "Workspaces",
   "operationKind": "Query",
   "summary": "Lists the currently loaded workspaces.",
-  "availability": "Built in and published by default.",
+  "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-list.html",
   "tool": {
     "name": "workspace-list",
@@ -116,6 +116,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -272,10 +279,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Workspace List",
@@ -287,6 +320,11 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "workspace-setup",
       "workflowTitle": "Open and select a workspace",
       "step": 1,

@@ -10,7 +10,7 @@
   "category": "Server lifecycle",
   "operationKind": "Query",
   "summary": "Returns server diagnostics without requiring a loaded workspace.",
-  "availability": "Built in and published by default.",
+  "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/server-status.html",
   "tool": {
     "name": "server-status",
@@ -125,6 +125,61 @@
                     "null"
                   ],
                   "properties": {
+                    "operationalMode": {
+                      "description": "The selected operational mode.",
+                      "type": "string"
+                    },
+                    "sourceMutationEnabled": {
+                      "description": "Whether source mutation is enabled.",
+                      "type": "boolean"
+                    },
+                    "externalPluginsEnabled": {
+                      "description": "Whether loading external plugin packages was explicitly enabled at startup.",
+                      "type": "boolean"
+                    },
+                    "commitConfirmationRequired": {
+                      "description": "Whether Host confirmation is required before transaction commit.",
+                      "type": "boolean"
+                    },
+                    "receiptApprovalRequired": {
+                      "description": "Whether receipt-bound approval is required before transaction commit.",
+                      "type": "boolean"
+                    },
+                    "compilerValidationRequired": {
+                      "description": "Whether compiler validation is required before transaction commit.",
+                      "type": "boolean"
+                    },
+                    "clientSupportsElicitation": {
+                      "description": "Whether the connected client advertised MCP elicitation, when known.",
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "commitConfirmationState": {
+                      "description": "The current process-local transaction commit-confirmation state.",
+                      "type": "string"
+                    },
+                    "workspaceAdmission": {
+                      "description": "Indicates whether Workspace admission is unrestricted or restricted by Host configuration.",
+                      "type": "string"
+                    },
+                    "allowedWorkspaceRootCount": {
+                      "description": "The number of effective configured Workspace authority roots.",
+                      "type": "integer"
+                    },
+                    "externalDocumentPolicy": {
+                      "description": "The policy applied to evaluated documents outside the effective Workspace root.",
+                      "type": "string"
+                    },
+                    "generatedSourcePolicy": {
+                      "description": "The policy applied to generated-looking checked-in source.",
+                      "type": "string"
+                    },
+                    "generatedSourceExceptionCount": {
+                      "description": "The number of configured generated-source path exceptions.",
+                      "type": "integer"
+                    },
                     "defaultMaxResults": {
                       "description": "The default maximum collection result count.",
                       "type": "integer"
@@ -177,7 +232,14 @@
                         "consentState"
                       ]
                     }
-                  }
+                  },
+                  "required": [
+                    "operationalMode",
+                    "commitConfirmationState",
+                    "workspaceAdmission",
+                    "externalDocumentPolicy",
+                    "generatedSourcePolicy"
+                  ]
                 },
                 "startupWarnings": {
                   "description": "The startup configuration fallbacks, when expanded detail is requested.",
@@ -484,6 +546,13 @@
                         "description": "Durable commit identifier associated with the recovery record.",
                         "type": "string"
                       },
+                      "code": {
+                        "description": "Stable machine-readable recovery status code, when operator action is required.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
                       "solutionPath": {
                         "description": "Absolute solution or project path associated with the recovery record, or empty when malformed recovery evidence does not provide a safe path.",
                         "type": "string"
@@ -544,6 +613,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -700,10 +776,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Server Status",

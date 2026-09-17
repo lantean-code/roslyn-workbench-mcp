@@ -10,7 +10,7 @@
   "category": "Transactions",
   "operationKind": "Mutation",
   "summary": "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
-  "availability": "Built in and published by default.",
+  "availability": "Published in transactional, approval-required and autonomous-trusted operational modes.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-start.html",
   "tool": {
     "name": "transaction-start",
@@ -137,6 +137,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -293,10 +300,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Transaction Start",
@@ -308,6 +341,10 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "transaction-change",
       "workflowTitle": "Stage, review and commit one change",
       "step": 1,
@@ -323,12 +360,34 @@
       }
     },
     {
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "code-action-change",
       "workflowTitle": "Discover and stage a Code Action",
       "step": 1,
       "id": "start-code-action-transaction",
       "title": "Start a transaction for the Code Action",
       "purpose": "Create the transaction that will receive the selected Code Action changes.",
+      "expectedOutcome": "The sample workspace owns a new transaction at its initial revision.",
+      "representativeResponse": null,
+      "request": {
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "operationalModes": [
+        "approval-required"
+      ],
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 1,
+      "id": "start-receipt-approved-transaction",
+      "title": "Start the approval-required transaction",
+      "purpose": "Create the transaction whose exact persistence set will later receive one-use approval.",
       "expectedOutcome": "The sample workspace owns a new transaction at its initial revision.",
       "representativeResponse": null,
       "request": {

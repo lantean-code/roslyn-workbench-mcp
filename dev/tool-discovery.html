@@ -437,6 +437,34 @@
   
   
     <li class="md-nav__item">
+      <a href="compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="agent-setup.html" class="md-nav__link">
         
   
@@ -1001,7 +1029,8 @@
 </ul>
 <p>The tool list does not vary with workspace or transaction state and does not change during the process lifetime. A tool that cannot run in the current state returns a structured state error rather than disappearing from discovery.</p>
 <p><code>get-error-details</code> is always published for local correlated failure inspection. The two external-reporting tools are published whenever startup consent is not <code>never</code>; the Host supplies the provider and destination as application configuration. Their names remain reserved against plugin collisions when omitted under <code>never</code>. Per-report prompt outcomes do not change <code>tools/list</code> or establish runtime overrides.</p>
-<p><code>server-status</code> reports the total published tool count. With <code>detail: Full</code>, it also reports plugin load results, Code Action availability, effective configuration, startup warnings and unfinished recovery state. Internal Code Actions are reported as a component, not as a plugin.</p>
+<p>The startup operational mode also fixes the catalogue. <code>inspection-only</code> omits all five Host transaction tools, bundled plugin mutations and Code Action staging while retaining query operations such as Code Action discovery and preparation. External plugin loading is independently disabled by default and requires the valueless <code>--enable-plugins</code> switch; when enabled under inspection-only policy, external query tools are published but external mutation definitions are removed before schema preflight, handler resolution or runtime-wrapper materialisation. A plugin with no permitted tools creates no service provider. <code>transactional</code> and <code>autonomous-trusted</code> publish the supported mutation catalogue; transactional commit additionally requires client-mediated confirmation. Omitted Host names remain reserved against plugin collisions. The live <code>tools/list</code> response is authoritative, and a policy-omitted tool cannot be invoked through the dynamic plugin handler.</p>
+<p><code>server-status</code> reports the total mode-specific published tool count. With <code>detail: Full</code>, it also reports plugin load results, Code Action availability, effective operational policy, external-plugin enablement, connected-client elicitation support, startup warnings and unfinished recovery state. Its Workspace configuration projection reports <code>workspaceAdmission</code>, <code>allowedWorkspaceRootCount</code> and <code>externalDocumentPolicy</code> without disclosing configured root paths. Internal Code Actions are reported as a component, not as a plugin.</p>
 <p>The three-tool <a href="code-actions.html">Code Action workflow</a> discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.</p>
 <h2 id="schemas-and-metadata">Schemas and metadata</h2>
 <p>Every tool publishes its name, title, description, input schema and behavioural annotations. By default, output schemas are omitted to keep <code>tools/list</code> compact. Start the server with <code>--tool-output-schema-mode Full</code> when clients need the generated family-specific output schemas. The Host validates response contracts during startup in both modes; this setting changes publication only, not whether a plugin response is safe to advertise and serialise.</p>

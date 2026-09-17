@@ -437,6 +437,34 @@
   
   
     <li class="md-nav__item">
+      <a href="compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="agent-setup.html" class="md-nav__link">
         
   
@@ -679,6 +707,17 @@
     <span class="md-ellipsis">
       
         Transaction workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler-impact-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compiler-impact validation
       
     </span>
   </a>
@@ -969,6 +1008,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#compiler-impact-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compiler-impact validation
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -997,9 +1047,10 @@
 <h2 id="workspace-lifecycle">Workspace lifecycle</h2>
 <p>After the caller has established that the workspace is fully trusted, <code>workspace-open</code> loads an absolute <code>.sln</code>, <code>.slnx</code> or <code>.csproj</code> into a workspace session. Use the returned workspace ID or alias to select it in later calls. When exactly one workspace is loaded, tools that accept an optional workspace selector may omit it.</p>
 <p>Solutions may contain unsupported languages, projects without usable paths and non-SDK-style projects. The Host removes those projects from the loaded solution and returns <code>WorkspaceProjectSkipped</code> diagnostics. Loading fails when no supported SDK-style C# project remains. Unresolved analyser references are also removed and reported rather than preventing otherwise supported projects from loading.</p>
-<p>By default, the workspace root is inferred from the loaded path. A caller may supply an existing absolute <code>workspaceRoot</code> that contains the loaded path to define the repository, coordination and transaction boundary. Every retained project must remain within that root.</p>
-<p><code>workspace-open</code> may also include <code>msBuildProperties</code> with the allowlisted global properties <code>artifactsPath</code>, <code>configuration</code>, <code>platform</code>, <code>targetFramework</code> and <code>runtimeIdentifier</code>. Omit the object when the project needs no caller-specific build configuration. Values apply only to that workspace's MSBuild evaluation and are retained across reloads; they do not change process environment variables. Unknown properties and empty values are rejected rather than passed through to MSBuild.</p>
-<p>An <code>artifactsPath</code> must name an existing absolute directory because it is an MSBuild evaluation setting, not a filesystem permission. Project files must remain inside <code>workspaceRoot</code>. Source, additional and analyzer-config documents selected by the evaluated projects may reside outside it, including linked files, package-provided source and generated intermediates; those documents are transparently queryable but read-only. The Host certifies their loaded content against disk and polls their individual fingerprints for later changes without watching or trusting their containing trees. Source mutations remain strictly limited to <code>workspaceRoot</code>.</p>
+<p>By default, the workspace root is inferred from the loaded path. A caller may supply an existing absolute <code>workspaceRoot</code> that contains the loaded path to define the repository, coordination and transaction boundary. When the Host has configured allowed Workspace roots, the loaded path must be physically contained by one of them and a caller-supplied root may narrow but never widen that authority. If an inferred Git root lies above the matching allowed root, the effective Workspace root is capped at the allowed root. Every retained project must remain within the effective root.</p>
+<p><code>workspace-open</code> may also include <code>msBuildProperties</code> with the allowlisted global properties <code>artifactsPath</code>, <code>configuration</code>, <code>platform</code>, <code>targetFramework</code> and <code>runtimeIdentifier</code>. Omit the object when the project needs no caller-specific build configuration. For a multi-target solution whose outer project evaluations do not expose the compiler target, supply the intended <code>targetFramework</code> so the Workspace contains target-specific compilable projects; the server does not silently choose one framework on the client's behalf. Values apply only to that workspace's MSBuild evaluation and are retained across reloads; they do not change process environment variables. Unknown properties and empty values are rejected rather than passed through to MSBuild.</p>
+<p>An <code>artifactsPath</code> must name an existing absolute directory because it is an MSBuild evaluation setting, not a filesystem permission. Project files must remain inside <code>workspaceRoot</code>. Under the default <code>allow-read-only</code> policy, source, additional and analyzer-config documents selected by evaluated projects may reside outside it, including linked files, package-provided source and generated intermediates; those documents are transparently queryable but read-only. The Host certifies their loaded content against disk and polls their individual fingerprints for later changes without watching or trusting their containing trees. Under <code>reject-workspace</code>, any such evaluated external document rejects the complete open or reload. Source mutations remain strictly limited to <code>workspaceRoot</code> in either policy.</p>
+<p>Admission is checked before MSBuild is invoked for the requested top-level path, again for every retained project after evaluation, and on reload. MSBuild itself remains trusted execution and may consume SDKs, imports, packages and metadata references outside the source authority boundary.</p>
 <p>When the server runs under WSL and opens a workspace on a mounted Windows filesystem, <code>workspace-open</code> returns a <code>WorkspaceOnWindowsFileSystemFromWsl</code> warning. This layout is supported but can substantially reduce load and query performance. Prefer WSL-native storage or run the server directly on Windows.</p>
 <p><code>workspace-status</code> reports the selected workspace state, current transaction, reload requirement, diagnostics, other live Roslyn Workbench instances and the effective configured external error-reporting consent state. <code>workspace-list</code> provides a lightweight identity list and the current global transaction owner; it does not refresh cross-instance diagnostics.</p>
 <p>If source inputs change outside the loaded session, the workspace becomes out of date or its active transaction becomes conflicted. Do not reuse old source locations, spans or symbol results against a different immutable solution snapshot. Echo the complete published <code>snapshot</code> object unchanged as <code>expectedSnapshot</code>, including its opaque snapshot ID; an epoch and transaction revision are not sufficient identity on their own. Reload or resolve the target again as directed by the structured error.</p>
@@ -1014,19 +1065,28 @@
 </ul>
 <p>The Host does not infer coordination and does not reject <code>transaction-start</code> solely from advisory instance state.</p>
 <h2 id="transaction-workflow">Transaction workflow</h2>
-<p>Only one loaded workspace may own the server's active transaction slot.</p>
+<p>Transaction tools are available in <code>transactional</code>, <code>approval-required</code> and <code>autonomous-trusted</code> operational modes. The default <code>inspection-only</code> mode publishes neither transaction tools nor mutation tools and rejects lower-level transaction acquisition or mutation staging. Only one loaded workspace may own the server's active transaction slot when mutation is enabled.</p>
 <ol>
 <li>Check <code>workspace-status</code>, including cross-instance warnings.</li>
 <li>Call <code>transaction-start</code> for the selected workspace.</li>
 <li>Run mutation or Code Action tools. Successful operations stage a new revision; they do not write source files directly.</li>
-<li>Use <code>transaction-preview</code> and <code>transaction-history</code> to inspect, undo or redo staged revisions.</li>
-<li>Call <code>transaction-commit</code> to write the final staged source changes, or <code>transaction-rollback</code> to discard them.</li>
+<li>Use <code>transaction-history</code> to inspect, undo or redo staged revisions. In transactional or autonomous-trusted mode, use <code>transaction-preview</code> to inspect the staged change.</li>
+<li>In approval-required mode, call <code>transaction-review</code> with the current snapshot and inspect its exact file operations, digest, validations and any explicitly requested bounded document diff.</li>
+<li>Call <code>transaction-commit</code> to write the final staged source changes, or <code>transaction-rollback</code> to discard them. Approval-required commit also requires the current review's <code>receiptId</code> and asks the user to approve only that receipt.</li>
 </ol>
-<p>Keep each transaction scoped to one coherent mutation or a tightly related set of changes. Start it when ready to mutate, preview the resulting scope, then commit or roll it back promptly. Do not use an open transaction to accumulate unrelated work. Run queries outside a transaction unless they need to inspect its staged solution, and treat broad solution-wide operations such as symbol rename as their own transaction. If preview reveals an unexpectedly large or unrelated change set, roll back and reassess it before committing. This keeps recovery work proportional to the current task because durable commit temporarily processes the original and intended content of every changed source file.</p>
+<p>Transaction preview and review provenance identifies every active staged operation by revision, operation name and summary. Revisions created by <code>stage-code-action</code> additionally contain response-local references to concise Code Action provider attribution: runtime type, assembly simple name and assembly version, plus the Fix All provider when one assembled the action. The response-level <code>providers</code> object deduplicates those identities and is resolved by key rather than entry order. Undo excludes inactive revisions and redo restores their immutable provenance. Other mutation tools do not manufacture Code Action attribution, and provenance does not affect the exact persistence-set digest used by approval receipts.</p>
+<p>Actual Roslyn source-generated documents and regular source under <code>obj</code> are not addressable mutation targets. For checked-in source that appears generated from its filename or opening auto-generated header, the default <code>warn</code> policy allows staging but returns a bounded <code>GeneratedSourceMutation</code> warning. Preview recalculates that warning across the complete active transaction. Approval-required review classifies each persistence entry as <code>project-source</code> or <code>generated-looking-source</code>; this classification is included in the receipt digest. An operator can select <code>deny</code> and configure narrow Workspace-relative wildcard exceptions for intentionally maintained generated source. Exceptions never bypass containment, external-document, source-kind or intermediate-output denials. This deterministic policy does not request separate elicitation.</p>
+<p>Approval-required receipts are process-local, one-use and valid for 15 minutes while the Workspace epoch, transaction, snapshot and revision remain unchanged. A declined, cancelled or unavailable prompt leaves both transaction and receipt active. Accepted approval consumes the receipt before final validation or persistence begins; any later failure requires a new <code>transaction-review</code>. The Workspace rebuilds the commit plan and canonical SHA-256 identity before writing, so a stale or altered persistence set cannot reuse earlier approval.</p>
+<h2 id="compiler-impact-validation">Compiler-impact validation</h2>
+<p>An operator can independently enable <code>--commit-validation no-new-compiler-errors</code> for any mutation-enabled operational mode. When enabled, call <code>transaction-validate</code> with the current snapshot after staging to see whether the transaction introduced compiler errors before attempting review or commit. Review and both commit workflows enforce the same gate automatically; commit performs an authoritative final validation before its filesystem work.</p>
+<p>Validation compares the transaction-start solution with the current staged revision for changed loaded project evaluations and their loaded transitive dependants. A transaction at revision zero is a complete empty comparison and preserves the normal no-change commit result. Existing compiler errors are permitted. A moved error is not considered new, while an additional occurrence of the same error is. The result reports evaluated projects, error counts, elapsed duration, introduced diagnostics, structured incomplete reasons and limitations. It covers only the target-framework evaluations loaded by the Workspace and does not run third-party analyser validation or tests.</p>
+<p>If new errors are reported, correct or restage the transaction and validate the new snapshot. Incomplete validation cannot be recovered by restaging the same transaction because its result is bound to the captured baseline and loaded project evaluations. Follow the rollback continuation, resolve the reported load, compilation or external-input condition, reload the Workspace and start a new transaction. A failed validation writes no files, creates no review receipt and leaves the transaction active until it is rolled back.</p>
+<p>Keep each transaction scoped to one coherent mutation or a tightly related set of changes. Start it when ready to mutate, inspect the resulting scope through <code>transaction-preview</code> or <code>transaction-review</code>, then commit or roll it back promptly. Do not use an open transaction to accumulate unrelated work. Run queries outside a transaction unless they need to inspect its staged solution, and treat broad solution-wide operations such as symbol rename as their own transaction. If the preview or review reveals an unexpectedly large or unrelated change set, roll back and reassess it before committing. This keeps recovery work proportional to the current task because durable commit temporarily processes the original and intended content of every changed source file.</p>
 <p>Queries run against the effective solution: the staged working solution while a transaction is active, otherwise the loaded baseline. Mutation, lifecycle and transaction operations require exclusive workspace access and may return <code>WorkspaceBusy</code> with a retry action instead of waiting in a server-side queue.</p>
 <p>For Roslyn Code Fixes and refactorings, discover an action against the current revision and stage its opaque reference through the <a href="code-actions.html">three-tool Code Action workflow</a>. After a successful stage advances the revision, rediscover any subsequent action against that new current revision.</p>
-<p><code>transaction-commit</code> rechecks the source-file manifest and is the only public operation that writes staged source changes to disk. It does not compile the solution or modify project, props or targets files. Durable recovery records protect interrupted commits and are surfaced by <code>server-status</code>.</p>
-<p>The non-cancellable filesystem application phases of <code>transaction-commit</code> and automatic startup recovery are short coordinated boundaries. While <code>transaction-commit</code> is in progress, the user and other development tools must not edit the source paths shown in its preview, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application remain subject to change detection and revalidation, but concurrent writes to a commit-owned target cannot be safely arbitrated during its final replacement. The <code>transaction-commit</code> response marks the end of commit application. Automatic recovery runs before MCP transport starts; avoid Workspace writes and structural repository operations until MCP initialisation marks the end of that recovery attempt, then call <code>server-status</code> with full detail and resolve any unfinished <code>recovery</code> entry before those operations proceed.</p>
+<p><code>transaction-commit</code> rechecks Host authority and the source-file manifest before entering the persistence pipeline, and it is the only public operation that writes staged source changes to disk. If the Workspace path or effective root no longer physically complies with authority, commit fails without acquiring its filesystem lock or creating recovery state. Commit does not modify project, props or targets files. It compiles affected loaded evaluations only when compiler-impact validation is explicitly enabled. Durable recovery records protect interrupted commits and are surfaced by <code>server-status</code>. Startup recovery will not acquire a Workspace lock or write Workspace files for a record outside the current Host authority; the record remains visible without its absolute solution path until an operator restarts the Host with authority covering that Workspace.</p>
+<p>In <code>transactional</code> mode, the Host requests MCP elicitation immediately before commit. <code>commit-once</code> permits that invocation, <code>commit-for-session</code> permits later transaction commits for any Workspace served by the same running Host, and <code>do-not-commit</code> refuses it. The process-local session choice is never persisted and is lost on restart. Refusal, cancellation, missing elicitation capability, client-policy rejection, interaction failure or an invalid response writes no files and leaves the transaction active for inspection, rollback or a later deliberate retry. Confirmation only authorises the persistence attempt: every normal snapshot, conflict, filesystem, containment, commit-lock and recovery check still runs. <code>autonomous-trusted</code> omits this prompt but retains those deterministic checks.</p>
+<p>The non-cancellable filesystem application phases of <code>transaction-commit</code> and automatic startup recovery are short coordinated boundaries. While <code>transaction-commit</code> is in progress, the user and other development tools must not edit the source paths shown in its preview or review, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application remain subject to change detection and revalidation, but concurrent writes to a commit-owned target cannot be safely arbitrated during its final replacement. The <code>transaction-commit</code> response marks the end of commit application. Automatic recovery runs before MCP transport starts; avoid Workspace writes and structural repository operations until MCP initialisation marks the end of that recovery attempt, then call <code>server-status</code> with full detail and resolve any unfinished <code>recovery</code> entry before those operations proceed.</p>
 <p>Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reflect those changes after reload. For explicitly included, removed or excluded source paths, update the project file separately before relying on the reloaded project graph. Roslyn Workbench does not infer or persist that project-file change.</p>
 
 

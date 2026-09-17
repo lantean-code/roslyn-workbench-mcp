@@ -10,7 +10,7 @@
   "category": "Workspaces",
   "operationKind": "Mutation",
   "summary": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
-  "availability": "Built in and published by default.",
+  "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-open.html",
   "tool": {
     "name": "workspace-open",
@@ -403,6 +403,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -559,10 +566,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Workspace Open",
@@ -574,6 +607,11 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "workspace-setup",
       "workflowTitle": "Open and select a workspace",
       "step": 2,

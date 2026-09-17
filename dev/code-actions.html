@@ -437,6 +437,34 @@
   
   
     <li class="md-nav__item">
+      <a href="compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="agent-setup.html" class="md-nav__link">
         
   
@@ -1049,8 +1077,8 @@
 <li>Call <code>list-code-actions</code> against the transaction's current revision.</li>
 <li>Select one result using its title, precise location and diagnostic context where present.</li>
 <li>Pass its <code>actionId</code> and the current <code>expectedSnapshot</code> to <code>stage-code-action</code>.</li>
-<li>Inspect the result and call <code>transaction-preview</code>.</li>
-<li>Commit the final revision with <code>transaction-commit</code>, or discard it with <code>transaction-rollback</code>.</li>
+<li>Inspect the result and call <code>transaction-preview</code> in transactional or autonomous-trusted mode, or <code>transaction-review</code> in approval-required mode.</li>
+<li>Commit the final revision with <code>transaction-commit</code>, supplying the review receipt when approval-required mode requests it, or discard it with <code>transaction-rollback</code>.</li>
 </ol>
 <p>Successful staging advances the transaction revision. Discover again before selecting another action for that new revision. Do not assume that a title, location or reference from an older revision still identifies the same operation.</p>
 <h2 id="discover-actions">Discover actions</h2>
@@ -1095,6 +1123,11 @@
 <td>Narrows Code Fix discovery to the supplied diagnostic IDs.</td>
 </tr>
 <tr>
+<td><code>includeProvenance</code></td>
+<td>Optional, default <code>false</code></td>
+<td>Includes a response-local provider reference on each returned action and a response-level provider identity dictionary.</td>
+</tr>
+<tr>
 <td><code>limit</code></td>
 <td>Optional, default <code>50</code></td>
 <td>Bounds the returned action leaves. Zero returns no items.</td>
@@ -1128,9 +1161,10 @@
 <li><code>title</code> and <code>kind</code>;</li>
 <li>the precise project-aware <code>location</code>, including its document, span, line and column;</li>
 <li>concise <code>diagnostics</code> with IDs and messages for a Code Fix; and</li>
-<li><code>fixAllScopes</code> when the selected Code Fix supports Fix All.</li>
+<li><code>fixAllScopes</code> when the selected Code Fix supports Fix All; and</li>
+<li><code>providerId</code> only when <code>includeProvenance</code> is <code>true</code>, referencing an entry in the response-level <code>providers</code> object. Each dictionary entry contains the provider type, assembly simple name and assembly version captured from the loaded runtime component.</li>
 </ul>
-<p>Provider identities, CLR types, equivalence keys, replay details and internal policy decisions are deliberately omitted. Use the returned title, location, diagnostics and supported scopes to choose an action.</p>
+<p>Provider provenance is opt-in because it is intended for operator diagnostics and audit correlation, not routine action selection. The <code>providers</code> object deduplicates identities across the response; its keys are opaque response-local references and clients must resolve them by key rather than object order or compare them across responses. Equivalence keys, replay details, assembly paths, inferred package names and internal policy decisions are never added to discovery responses. Use the returned title, location, diagnostics and supported scopes to choose an action.</p>
 <h2 id="stage-one-action">Stage one action</h2>
 <p><code>stage-code-action</code> is the only Code Action mutation tool. It requires an active transaction:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
@@ -1173,6 +1207,7 @@
 <li>a bounded <code>affectedDocuments</code> collection.</li>
 </ul>
 <p>Pass the new prepared <code>actionId</code>, not the originating action reference, to <code>stage-code-action</code> with the same current snapshot. The Host recreates and normalises the Fix All operation, then requires its affected projects, paths, change kinds and content checksums to match the prepared operation exactly and still satisfy <code>maxChanges</code>. If the provider produces a different operation, staging rejects it with <code>MutationCandidateChanged</code>, consumes the invalid prepared reference and instructs the caller to resolve the target again. A matching operation proceeds through preview, history, rollback and commit exactly as a single action does.</p>
+<p>Preparation does not repeat provider provenance in its response. After staging, <code>transaction-preview</code> or <code>transaction-review</code> includes response-local <code>providerId</code> and optional <code>fixAllProviderId</code> references alongside each active Code Action revision, with the deduplicated identities in the response-level <code>providers</code> object. The Host also records structured local information events after successful Fix All preparation and successful Workspace staging; these events add diagnostic IDs, equivalence key and Fix All scope for operator correlation without placing them in the agent response. Provenance is informational and does not introduce an additional elicitation or approval step.</p>
 <h2 id="reference-and-snapshot-rules">Reference and snapshot rules</h2>
 <p><code>list-code-actions</code> validates the complete <code>expectedSnapshot</code> before resolving its document or interpreting its UTF-16 range. A range copied from a different immutable solution snapshot is therefore rejected instead of being reinterpreted against different source text, even if its epoch and transaction revision happen to match. Action references are process-local, bounded, temporary and tied to the exact Workspace snapshot from which they were created. Their lifetime defaults to five minutes and is configured with <a href="configuration.html"><code>--code-action-reference-lifetime</code></a>. Successful staging consumes a reference; merely listing or preparing does not change transaction state.</p>
 <p>If a reference is unknown, expired, evicted, already consumed, or no longer matches the selected snapshot, the Host returns a structured failure such as <code>ActionExpired</code>, <code>SnapshotMismatch</code> or <code>ActionAmbiguous</code> with <code>next: resolveTargetAgain</code>. Follow that recovery action: inspect the current Workspace state, then list and select the action again. Never edit an <code>actionId</code>, reconstruct one from response metadata, or reuse it against a different snapshot.</p>

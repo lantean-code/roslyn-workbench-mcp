@@ -437,6 +437,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../agent-setup.html" class="md-nav__link">
         
   
@@ -1448,7 +1476,7 @@
 <td><a href="transaction-commit.html"><code>transaction-commit</code></a></td>
 <td>Mutation</td>
 <td>Server</td>
-<td>Commits the current staged transaction to disk.</td>
+<td>Commits the active transaction. Transactional and autonomous-trusted modes use the standard request; approval-required mode requires a transaction-review receipt and requests one-use approval for that exact change.</td>
 </tr>
 <tr>
 <td><a href="transaction-history.html"><code>transaction-history</code></a></td>
@@ -1461,6 +1489,12 @@
 <td>Query</td>
 <td>Server</td>
 <td>Previews the current staged transaction.</td>
+</tr>
+<tr>
+<td><a href="transaction-review.html"><code>transaction-review</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Reviews the exact validated persistence set and returns the receipt required to commit it.</td>
 </tr>
 <tr>
 <td><a href="transaction-rollback.html"><code>transaction-rollback</code></a></td>

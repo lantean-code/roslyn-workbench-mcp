@@ -435,6 +435,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../agent-setup.html" class="md-nav__link">
         
   
@@ -1035,10 +1063,10 @@
 <p>This guide describes how an MCP agent should use Roslyn Workbench safely and efficiently. It supplements the instructions returned during MCP initialisation; the running server's tool catalogue, schemas, structured results and next actions remain authoritative.</p>
 <h2 id="trust-boundary">Trust boundary</h2>
 <p>Open only fully trusted C# workspaces. Loading a workspace evaluates MSBuild project logic, and later operations can load and execute project analysers with the Host process's operating-system permissions. Roslyn Workbench does not sandbox this code.</p>
-<p>When a project needs caller-specific build evaluation, <code>workspace-open</code> accepts the allowlisted <code>msBuildProperties</code> values <code>artifactsPath</code>, <code>configuration</code>, <code>platform</code>, <code>targetFramework</code> and <code>runtimeIdentifier</code>. Supply only values required by that workspace; standard SDK, NuGet and Visual Studio locations do not need to be repeated. These values control MSBuild evaluation and do not grant filesystem permissions. Roslyn-evaluated source, additional and analyzer-config documents outside <code>workspaceRoot</code> are transparently queryable read-only inputs, while source mutations remain restricted to <code>workspaceRoot</code>.</p>
+<p>When a project needs caller-specific build evaluation, <code>workspace-open</code> accepts the allowlisted <code>msBuildProperties</code> values <code>artifactsPath</code>, <code>configuration</code>, <code>platform</code>, <code>targetFramework</code> and <code>runtimeIdentifier</code>. Supply only values required by that workspace; standard SDK, NuGet and Visual Studio locations do not need to be repeated. For a multi-target solution whose outer project evaluation does not expose a compiler target, select the intended <code>targetFramework</code>; do not assume the server will choose one framework implicitly. These values control MSBuild evaluation and do not grant filesystem permissions. A requested <code>workspaceRoot</code> may narrow Host authority but can never widen it. Depending on Host policy, Roslyn-evaluated source, additional and analyzer-config documents outside <code>workspaceRoot</code> are either transparently queryable read-only inputs or cause the Workspace to be rejected; source mutations remain restricted to <code>workspaceRoot</code>.</p>
 <p>Treat the connected MCP agent as part of the local trust boundary. Local error details can contain exception messages and Workspace context. Do not copy them into an external report; use the server's explicit preparation, review and consent workflow when external reporting is appropriate.</p>
 <h2 id="discover-before-acting">Discover before acting</h2>
-<p>Use <code>tools/list</code> for the live tool inventory and schemas. Call <code>server-status</code> with full detail near the start of a session to inspect startup warnings, recovery state, component availability and the published tool count.</p>
+<p>Use <code>tools/list</code> for the live tool inventory and schemas. Call <code>server-status</code> with full detail near the start of a session to inspect the fixed operational mode, effective mutation and commit-authorisation policy, external-plugin enablement, client elicitation capability, startup warnings, recovery state, component availability and published tool count. Do not attempt an omitted mutation or transaction tool.</p>
 <p>When the live declaration is intentionally concise, use the version-matched <a href="../reference/tools/index.html">tool reference</a> for grouped human guidance or its <a href="../reference/tools/catalog.json">machine-readable catalogue</a> to retrieve one complete tool definition without loading the whole catalogue into context.</p>
 <p>Prefer queries before mutations. Resolve symbols, documents and projects from the current workspace state instead of guessing paths or source spans.</p>
 <p>Prefer standard compiler and analyzer diagnostics when assessing code quality. <code>analyze-async</code> is a focused view of the six bundled AsyncFixer diagnostics and compiler diagnostic CS4014; it runs independently of whether AsyncFixer is installed in the target solution while respecting the project's analyzer configuration. Use <code>get-diagnostics</code> when you need the wider configured diagnostic set. Roslyn Workbench does not publish its own code-metric scale, so use the repository's normal build or metrics workflow when a task requires Microsoft code metrics.</p>
@@ -1051,17 +1079,20 @@
 <li>Complete the queries needed to identify the change.</li>
 <li>Start a transaction only when ready to mutate.</li>
 <li>Apply one coherent mutation or a tightly related set of mutations.</li>
-<li>Inspect <code>transaction-preview</code> and, when useful, <code>transaction-history</code>.</li>
-<li>Call <code>transaction-commit</code> or <code>transaction-rollback</code> promptly.</li>
+<li>Follow the negotiated mode-specific review workflow: inspect <code>transaction-preview</code> in transactional or autonomous-trusted mode, or call <code>transaction-review</code> in approval-required mode and inspect its exact-change receipt. Use <code>transaction-history</code> when useful.</li>
+<li>Call <code>transaction-commit</code> or <code>transaction-rollback</code> promptly. In approval-required mode, pass the current review's <code>receiptId</code>; if approval or receipt validation fails, explain that no files were written and follow the returned continuation rather than retrying with a learned schema from another mode.</li>
 </ol>
-<p>Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.</p>
-<p>Coordinate filesystem activity with the user. While <code>transaction-commit</code> is in progress, neither the user nor another development tool should edit the source paths shown in <code>transaction-preview</code>, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.</p>
+<p>Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview or review is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.</p>
+<p>Treat <code>GeneratedSourceMutation</code> as review evidence that a checked-in file may be replaced by a later generator run. Explain the warning and inspect the affected paths before commit. In approval-required mode, <code>generated-looking-source</code> classification is bound into the receipt. If staging returns <code>GeneratedSourceMutationDenied</code>, do not attempt to bypass it or request a prompt: the operator must decide whether the repository convention warrants a narrow startup exception and restart the Host.</p>
+<p>Coordinate filesystem activity with the user. While <code>transaction-commit</code> is in progress, neither the user nor another development tool should edit the source paths shown in <code>transaction-preview</code> or <code>transaction-review</code>, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.</p>
 <p><code>transaction-commit</code> writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.</p>
+<p>In <code>transactional</code> mode, commit first requests one client-mediated choice: approve this commit, approve transaction commits for the remainder of the current Host process, or refuse. A missing prompt can mean the client did not advertise elicitation or its current policy blocked interactive MCP requests even when other client permissions are permissive. On an unavailable, declined, cancelled, failed or invalid interaction, tell the user that no files were persisted and the transaction remains active; enable interactive MCP requests only if the user wants a deliberate retry. Do not interpret a failed prompt as permission to retry autonomously. Session approval ends when the Host process restarts and does not bypass snapshot, filesystem, containment or recovery validation.</p>
 <p>Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reconcile those changes after reload. If the project explicitly includes, removes or excludes an affected source path, update the project file separately before relying on the reloaded project graph.</p>
 <p>Small, frequent Workbench transactions keep previews reviewable and bound the temporary original and intended source content processed by durable commit and recovery. Query-heavy sessions do not need an open transaction.</p>
 <h2 id="failures-and-recovery">Failures and recovery</h2>
 <p>Follow the structured next action returned by a failed tool call. Do not retry stale inputs unchanged when the server asks for a reload, a new selector, a newer revision or rollback.</p>
 <p>Use <code>get-error-details</code> only for an unexpected correlated failure. Unfinished durable recovery is reported by <code>server-status</code>; resolve it before attempting further mutations.</p>
+<p><code>WorkspacePathNotAllowed</code> means the loaded solution or project is outside Host authority. <code>WorkspaceRootNotAllowed</code> means the requested root attempted to widen that authority. <code>WorkspaceAuthorityChanged</code> means an admitted Workspace's path or effective root no longer complies with authority, for example after its directory topology changed; do not retry reload or commit until the user has restored the topology and the Workspace has been reopened. <code>WorkspaceExternalDocumentRejected</code> means the Host policy does not admit an evaluated document outside the effective root. Revise a request only to narrow its scope; configuration changes belong to the user or operator.</p>
 <p>Automatic recovery runs during Host startup before MCP transport is available. Do not coordinate a Host restart with Workspace writes, structural Git or directory-tree operations already in progress. After a start or restart, avoid those operations until MCP initialisation completes, then call <code>server-status</code> with full detail. A completed initialisation means the automatic recovery attempt has finished; an unfinished <code>recovery</code> entry means its state still requires resolution before Workspace writes, mutations or structural repository work proceed.</p>
 <h2 id="more-documentation">More documentation</h2>
 <p>This versioned site also includes detailed workspace and transaction semantics, tool discovery and result contracts, configuration, Code Action workflows and error-reporting privacy boundaries.</p>

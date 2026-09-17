@@ -10,7 +10,7 @@
   "category": "Code Actions",
   "operationKind": "Query",
   "summary": "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret.",
-  "availability": "Built in and published by default.",
+  "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/list-code-actions.html",
   "tool": {
     "name": "list-code-actions",
@@ -126,6 +126,11 @@
               "null"
             ]
           }
+        },
+        "includeProvenance": {
+          "description": "Whether returned actions should reference a response-level runtime provider catalogue.",
+          "type": "boolean",
+          "default": false
         },
         "limit": {
           "description": "The maximum number of action leaves to return.",
@@ -332,6 +337,13 @@
                                 "Solution"
                               ]
                             }
+                          },
+                          "providerId": {
+                            "description": "Response-local provider reference when includeProvenance was requested.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -353,6 +365,35 @@
                         "null"
                       ]
                     }
+                  }
+                },
+                "providers": {
+                  "description": "Provider identities keyed by response-local references used by the returned actions.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "typeName": {
+                        "description": "Fully qualified runtime type of the provider that supplied the mutation.",
+                        "type": "string"
+                      },
+                      "assemblyName": {
+                        "description": "Simple name of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "assemblyVersion": {
+                        "description": "Version of the assembly containing the provider.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "typeName",
+                      "assemblyName",
+                      "assemblyVersion"
+                    ]
                   }
                 }
               },
@@ -386,6 +427,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -542,10 +590,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "List Code Actions",
@@ -557,6 +631,11 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "inspection-only",
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "code-action-change",
       "workflowTitle": "Discover and stage a Code Action",
       "step": 2,

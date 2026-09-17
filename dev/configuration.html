@@ -16,7 +16,7 @@
         <link rel="prev" href="getting-started.html">
       
       
-        <link rel="next" href="agent-setup.html">
+        <link rel="next" href="compatibility.html">
       
       
         
@@ -420,6 +420,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="configuration.html" class="md-nav__link md-nav__link--active">
         
   
@@ -437,6 +455,64 @@
 
       </a>
       
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#operational-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operational modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -838,6 +914,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#operational-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operational modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -857,7 +952,7 @@
 
 
 <h1 id="configuration-reference">Configuration reference</h1>
-<p>Roslyn Workbench accepts command-line options and equivalent environment variables. A command-line scalar takes precedence over its environment variable; when a scalar option appears more than once, the last value wins. Invalid values fall back to the documented default and are reported as <code>StartupConfigurationFallback</code> warnings.</p>
+<p>Roslyn Workbench accepts command-line options and equivalent environment variables. A command-line scalar takes precedence over its environment variable; when a scalar option appears more than once, the last value wins unless its row says otherwise. Most invalid values fall back to the documented default and are reported as <code>StartupConfigurationFallback</code> warnings. The operational mode, external-plugin enablement, Workspace-authority roots, external-document policy and generated-source policy are fail-closed startup settings: an invalid effective value prevents the Host from starting.</p>
 <table>
 <thead>
 <tr>
@@ -869,10 +964,52 @@
 </thead>
 <tbody>
 <tr>
+<td><code>--operational-mode</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE</code></td>
+<td style="text-align: right;"><code>inspection-only</code></td>
+<td>Exact case-sensitive <code>inspection-only</code>, <code>transactional</code>, <code>approval-required</code> or <code>autonomous-trusted</code>. The command-line option may appear only once and overrides the environment value. See <a href="#operational-modes">Operational modes</a>.</td>
+</tr>
+<tr>
+<td><code>--commit-validation</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION</code></td>
+<td style="text-align: right;"><code>none</code></td>
+<td>Exact case-sensitive <code>none</code> or <code>no-new-compiler-errors</code>. The command-line option may appear only once and overrides the environment value. Invalid values fail startup. Validation is independently opt-in for any mutation-enabled mode and is invalid with <code>inspection-only</code>.</td>
+</tr>
+<tr>
+<td><code>--allowed-workspace-root</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS</code></td>
+<td style="text-align: right;">None (unrestricted)</td>
+<td>Restricts Workspace admission to an existing absolute directory. The option is repeatable and its values form a union. The environment value uses the platform path separator (<code>;</code> on Windows, <code>:</code> on Unix, WSL and macOS). If the option appears at all, its complete command-line list replaces the environment list. Duplicate roots and descendants already covered by an ancestor do not add authority.</td>
+</tr>
+<tr>
+<td><code>--external-document-policy</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY</code></td>
+<td style="text-align: right;"><code>allow-read-only</code></td>
+<td><code>allow-read-only</code> certifies and exposes evaluated source, additional and analyzer-config documents outside the effective Workspace root as read-only inputs. <code>reject-workspace</code> rejects the whole load when one is present. The last command-line occurrence wins.</td>
+</tr>
+<tr>
+<td><code>--generated-source-policy</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY</code></td>
+<td style="text-align: right;"><code>warn</code></td>
+<td>Exact case-sensitive <code>warn</code> or <code>deny</code> for checked-in source recognised by generated filename conventions or an auto-generated header. <code>warn</code> allows staging with a bounded warning; <code>deny</code> rejects staging unless a path exception applies. Deterministic intermediate, external and non-source mutation denials are unaffected.</td>
+</tr>
+<tr>
+<td><code>--generated-source-exception</code></td>
+<td><code>ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS</code></td>
+<td style="text-align: right;">None</td>
+<td>Repeatable Workspace-relative simple wildcard pattern (<code>*</code> and <code>?</code>) that exempts an intentionally maintained checked-in path from generated-looking classification. The environment list uses the platform path separator. If the command-line option appears at all, its complete list replaces the environment list. Absolute patterns and <code>.</code> or <code>..</code> path segments are invalid.</td>
+</tr>
+<tr>
+<td><code>--enable-plugins</code></td>
+<td>None</td>
+<td style="text-align: right;">Disabled</td>
+<td>Valueless explicit opt-in to loading trusted external plugin packages. It may appear only once and does not control bundled first-party tools. Supplying a value fails startup.</td>
+</tr>
+<tr>
 <td><code>--plugin-directory</code></td>
 <td><code>ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY</code></td>
 <td style="text-align: right;">None</td>
-<td>Adds plugin search roots. The option is repeatable; the environment value uses the platform path separator. Command-line and environment roots are combined and deduplicated.</td>
+<td>Adds external plugin search roots. The option is repeatable; the environment value uses the platform path separator. Command-line and environment roots are combined and deduplicated. Any configured root requires <code>--enable-plugins</code>, including roots supplied through the environment.</td>
 </tr>
 <tr>
 <td><code>--default-max-results</code></td>
@@ -985,11 +1122,18 @@
 </tbody>
 </table>
 <p>At startup, the Host verifies that the recovery directory supports exclusive file creation, durable writes and deletion. Startup fails with an actionable configuration error if the selected state directory cannot support recovery data; commit retains its own validation because filesystem permissions and availability can change while the Host is running.</p>
-<p><code>server-status</code> with <code>detail: Full</code> reports the effective agent-relevant non-sensitive configuration and all startup fallback warnings. Its error-reporting projection includes only the built-in provider name, configured consent mode and effective configured consent state: <code>Disabled</code> for <code>never</code>, <code>PromptRequired</code> for <code>prompt</code> or <code>AlwaysApproved</code> for <code>always</code>. It never exposes the application-owned DSN or public submission key. Cache settings, plugin directories and the state-directory path are not included in that public configuration projection.</p>
+<h2 id="operational-modes">Operational modes</h2>
+<p>The operational mode is fixed for the Host process lifetime and controls both the published tool catalogue and authoritative mutation enforcement. <code>inspection-only</code> publishes query and Workspace lifecycle tools but no transaction, bundled mutation or Code Action staging tools; when external plugins are explicitly enabled, only their query tools are published. <code>transactional</code> publishes <code>transaction-preview</code> and asks the connected client for confirmation before each commit unless the user approves transaction commits for the remainder of that Host process. <code>approval-required</code> replaces preview with <code>transaction-review</code>; its commit contract requires the returned short-lived receipt and requests one-use approval for that exact validated change. <code>autonomous-trusted</code> publishes the preview workflow without Host confirmation.</p>
+<p>Changing mode requires restarting the Host. Clients must use the newly negotiated server instructions and tool catalogue after reconnecting: <code>transaction-preview</code> is unavailable in approval-required mode, while <code>transaction-review</code> and its receipt-bearing commit schema are unavailable in every other mode.</p>
+<p>Compiler-impact validation is separately selected with <code>--commit-validation no-new-compiler-errors</code>; no operational mode enables it by default. When selected, <code>transaction-validate</code> is published and successful validation becomes a prerequisite for review and commit. Validation is calculated only on explicit validate, review or commit operations, covers changed loaded project evaluations and their loaded transitive dependants, and compares the transaction's captured baseline with its current revision. See <a href="workspaces-and-transactions.html#compiler-impact-validation">Workspaces and safe transactions</a> for behaviour and recovery guidance.</p>
+<p>Transactional confirmation depends on the connected client advertising and permitting MCP elicitation. This is independent of filesystem or shell permissions: a broadly permissive client configuration can still block interactive MCP requests. A decline, cancellation, unavailable prompt, client failure or invalid choice writes no files and leaves the transaction active. The user can approve only the current commit, approve transaction commits for the rest of the current Host process, or refuse. Session approval is held only in memory, applies to transaction commit across Workspaces served by that process, and is cleared by restart.</p>
+<p>Pre-1.0 installations that previously relied on the implicit mutation surface must now select <code>--operational-mode autonomous-trusted</code> explicitly, or select <code>transactional</code> when client-mediated confirmation is wanted. Switch names and values remain subject to change before 1.0.</p>
+<p><code>server-status</code> with <code>detail: Full</code> reports the operational mode, effective source-mutation and commit-authorisation primitives, whether external plugins were explicitly enabled, process-local commit-confirmation state, whether compiler validation is active, and whether the connected client advertised elicitation. It also reports all startup fallback warnings. Workspace authority is projected as <code>Unrestricted</code> or <code>Restricted</code>, the effective root count and the external-document policy; configured absolute roots are not disclosed. Generated-source configuration is reported as the effective policy and exception count without adding exception patterns to routine agent context. Its error-reporting projection includes only the built-in provider name, configured consent mode and effective configured consent state: <code>Disabled</code> for <code>never</code>, <code>PromptRequired</code> for <code>prompt</code> or <code>AlwaysApproved</code> for <code>always</code>. It never exposes the application-owned DSN or public submission key. Cache settings, plugin directories and the state-directory path are not included in that public configuration projection.</p>
+<p>Workspace authority is fixed for the lifetime of the Host. A configured root controls which solution or project may be opened and caps its effective source, transaction and recovery boundary. It does not restrict SDKs, metadata references, packages or MSBuild imports, and it is not a sandbox: only configure roots containing fully trusted build inputs.</p>
 <p>The Host includes its external error-report provider as application configuration. With consent set to <code>never</code>, the Host retains local correlated diagnostics but does not publish preparation or submission tools. <code>always</code> bypasses a consent prompt only: it never creates background traffic, and callers must still prepare, review and explicitly submit each report. See <a href="error-reporting.html">Error reporting and privacy</a> for the complete workflow and data boundary.</p>
 <p>Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the <a href="code-actions.html">Code Action workflow</a> and rediscover when directed.</p>
 <p>The default state directory is <code>%LOCALAPPDATA%\roslyn-workbench-mcp\state</code> on Windows, <code>$XDG_STATE_HOME/roslyn-workbench-mcp</code> on Linux when <code>XDG_STATE_HOME</code> is an absolute path, <code>~/.local/state/roslyn-workbench-mcp</code> on Linux otherwise, and <code>~/Library/Application Support/roslyn-workbench-mcp/state</code> on macOS. Unix state directories are created with <code>0700</code> permissions and recovery files with <code>0600</code>; Windows state inherits the current user's local-application-data access controls.</p>
-<p>The plugin set is discovered once during startup. Adding, removing or upgrading a plugin package requires a server restart.</p>
+<p>External plugin loading is disabled unless the operator supplies <code>--enable-plugins</code>. Once enabled, every configured plugin executes as trusted in-process code with the operating-system authority of the Host; the switch is not a sandbox or a plugin endorsement. The plugin set is discovered once during startup, so adding, removing or upgrading a plugin package requires a server restart.</p>
 
 
 

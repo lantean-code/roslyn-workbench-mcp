@@ -9,68 +9,138 @@
   "area": "Server",
   "category": "Transactions",
   "operationKind": "Mutation",
-  "summary": "Commits the current staged transaction to disk.",
-  "availability": "Built in and published by default.",
+  "summary": "Commits the active transaction. Transactional and autonomous-trusted modes use the standard request; approval-required mode requires a transaction-review receipt and requests one-use approval for that exact change.",
+  "availability": "Published in transactional, approval-required and autonomous-trusted operational modes.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-commit.html",
   "tool": {
     "name": "transaction-commit",
     "title": "Transaction Commit",
-    "description": "Commits the current staged transaction to disk.",
+    "description": "Commits the active transaction. Transactional and autonomous-trusted modes use the standard request; approval-required mode requires a transaction-review receipt and requests one-use approval for that exact change.",
     "inputSchema": {
       "type": "object",
-      "properties": {
-        "expectedSnapshot": {
+      "anyOf": [
+        {
           "type": "object",
           "properties": {
-            "workspaceId": {
-              "type": "string",
-              "format": "uuid"
+            "expectedSnapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
             },
-            "workspaceEpoch": {
-              "type": "integer"
-            },
-            "snapshotId": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "transactionRevision": {
+            "workspace": {
+              "description": "Provide workspaceId, alias, path, or any combination.",
               "type": [
-                "integer",
+                "object",
                 "null"
-              ]
+              ],
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Absolute workspace path.",
+                  "type": "string"
+                }
+              }
             }
           },
           "required": [
-            "workspaceId",
-            "workspaceEpoch",
-            "snapshotId",
-            "transactionRevision"
+            "expectedSnapshot"
           ],
-          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+          "title": "Transactional and autonomous-trusted request"
         },
-        "workspace": {
-          "description": "Provide workspaceId, alias, path, or any combination.",
-          "type": [
-            "object",
-            "null"
-          ],
+        {
+          "type": "object",
           "properties": {
-            "workspaceId": {
+            "receiptId": {
+              "description": "The opaque receipt identifier returned by transaction-review.",
               "type": "string",
-              "format": "uuid"
+              "minLength": 1
             },
-            "alias": {
-              "type": "string"
+            "expectedSnapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
             },
-            "path": {
-              "description": "Absolute workspace path.",
-              "type": "string"
+            "workspace": {
+              "description": "Provide workspaceId, alias, path, or any combination.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Absolute workspace path.",
+                  "type": "string"
+                }
+              }
             }
-          }
+          },
+          "required": [
+            "receiptId",
+            "expectedSnapshot"
+          ],
+          "title": "Approval-required receipt request"
         }
-      },
-      "required": [
-        "expectedSnapshot"
       ]
     },
     "outputSchema": {
@@ -173,6 +243,13 @@
                 "transactionRevision"
               ],
               "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         },
@@ -329,10 +406,36 @@
                 }
               ],
               "description": "Action the agent should take before retrying or continuing."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
             }
           }
         }
-      ]
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
     },
     "annotations": {
       "title": "Transaction Commit",
@@ -344,6 +447,10 @@
   },
   "examples": [
     {
+      "operationalModes": [
+        "transactional",
+        "autonomous-trusted"
+      ],
       "workflowId": "transaction-change",
       "workflowTitle": "Stage, review and commit one change",
       "step": 4,
@@ -364,6 +471,31 @@
         }
       },
       "request": {
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    },
+    {
+      "operationalModes": [
+        "approval-required"
+      ],
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 4,
+      "id": "commit-reviewed-receipt",
+      "title": "Approve and commit the exact receipt",
+      "purpose": "Request one-use user approval and persist only the exact change represented by the current receipt.",
+      "expectedOutcome": "The Host confirms the receipt is current, elicits approval, revalidates the exact persistence identity and writes the staged source files.",
+      "representativeResponse": null,
+      "request": {
+        "receiptId": "4d5b5f7df39e4dd6a6ed9707f927aefa",
         "expectedSnapshot": {
           "workspaceId": "11111111-1111-1111-1111-111111111111",
           "workspaceEpoch": 1,

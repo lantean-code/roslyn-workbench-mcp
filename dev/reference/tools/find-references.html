@@ -433,6 +433,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../agent-setup.html" class="md-nav__link">
         
   
@@ -973,7 +1001,7 @@
 <h1 id="find-references">Find References</h1>
 <p><code>find-references</code> · Query · CorePlugin · Code discovery and navigation</p>
 <p>Finds source references, optionally including declarations and access classification.</p>
-<p><strong>Availability:</strong> Built in and published by default.</p>
+<p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>
 <table>
@@ -1091,6 +1119,12 @@
 <td>Yes</td>
 <td>Exact immutable workspace snapshot associated with the result, when available.</td>
 </tr>
+<tr>
+<td><code>warnings</code></td>
+<td><code>array</code></td>
+<td>No</td>
+<td>Non-fatal warnings the agent should consider.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="error-response">Error response</h3>
@@ -1122,6 +1156,12 @@
 <td>No</td>
 <td>Action the agent should take before retrying or continuing.</td>
 </tr>
+<tr>
+<td><code>warnings</code></td>
+<td><code>array</code></td>
+<td>No</td>
+<td>Non-fatal warnings the agent should consider.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="bounded-collections-and-continuation">Bounded collections and continuation</h3>
@@ -1130,13 +1170,14 @@
 <li><code>$/oneOf/0/properties/data/properties/references</code></li>
 </ul>
 <h3 id="continuations-and-required-actions">Continuations and required actions</h3>
-<p>A non-success response may include a structured continuation at the following schema location. Follow its tool call or user-action instruction instead of guessing how to retry:</p>
+<p>A response may include a structured continuation at the following schema location. Follow its tool call or user-action instruction instead of guessing how to continue:</p>
 <ul>
 <li><code>$/oneOf/1/properties/continuation</code></li>
 </ul>
 <h2 id="examples">Examples</h2>
 <h3 id="find-references-using-a-stable-symbol-selector">Find references using a stable symbol selector</h3>
 <p>Workflow: <strong>Find and inspect a symbol safely</strong>, step 2.</p>
+<p>Operational modes: <code>inspection-only</code>, <code>transactional</code>, <code>autonomous-trusted</code>.</p>
 <p>Use a documentation comment identifier when the symbol identity is already known.</p>
 <p>Expected outcome: A bounded set of references is resolved for the selected symbol in the sample workspace.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
@@ -1847,167 +1888,200 @@
 <a id="__codelineno-2-379" name="__codelineno-2-379" href="#__codelineno-2-379"></a><span class="w">            </span><span class="s2">"transactionRevision"</span>
 <a id="__codelineno-2-380" name="__codelineno-2-380" href="#__codelineno-2-380"></a><span class="w">          </span><span class="p">],</span>
 <a id="__codelineno-2-381" name="__codelineno-2-381" href="#__codelineno-2-381"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Exact immutable workspace snapshot associated with the result, when available."</span>
-<a id="__codelineno-2-382" name="__codelineno-2-382" href="#__codelineno-2-382"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-2-383" name="__codelineno-2-383" href="#__codelineno-2-383"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-2-384" name="__codelineno-2-384" href="#__codelineno-2-384"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-2-385" name="__codelineno-2-385" href="#__codelineno-2-385"></a><span class="w">    </span><span class="p">{</span>
-<a id="__codelineno-2-386" name="__codelineno-2-386" href="#__codelineno-2-386"></a><span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-387" name="__codelineno-2-387" href="#__codelineno-2-387"></a><span class="w">      </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-388" name="__codelineno-2-388" href="#__codelineno-2-388"></a><span class="w">        </span><span class="s2">"ok"</span><span class="p">,</span>
-<a id="__codelineno-2-389" name="__codelineno-2-389" href="#__codelineno-2-389"></a><span class="w">        </span><span class="s2">"error"</span>
-<a id="__codelineno-2-390" name="__codelineno-2-390" href="#__codelineno-2-390"></a><span class="w">      </span><span class="p">],</span>
-<a id="__codelineno-2-391" name="__codelineno-2-391" href="#__codelineno-2-391"></a><span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-392" name="__codelineno-2-392" href="#__codelineno-2-392"></a><span class="w">        </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-393" name="__codelineno-2-393" href="#__codelineno-2-393"></a><span class="w">          </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-394" name="__codelineno-2-394" href="#__codelineno-2-394"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Whether the tool invocation succeeded."</span>
-<a id="__codelineno-2-395" name="__codelineno-2-395" href="#__codelineno-2-395"></a><span class="w">        </span><span class="p">},</span>
-<a id="__codelineno-2-396" name="__codelineno-2-396" href="#__codelineno-2-396"></a><span class="w">        </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-397" name="__codelineno-2-397" href="#__codelineno-2-397"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-398" name="__codelineno-2-398" href="#__codelineno-2-398"></a><span class="w">          </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-399" name="__codelineno-2-399" href="#__codelineno-2-399"></a><span class="w">            </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-400" name="__codelineno-2-400" href="#__codelineno-2-400"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Stable machine-readable error code."</span><span class="p">,</span>
-<a id="__codelineno-2-401" name="__codelineno-2-401" href="#__codelineno-2-401"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
-<a id="__codelineno-2-402" name="__codelineno-2-402" href="#__codelineno-2-402"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-403" name="__codelineno-2-403" href="#__codelineno-2-403"></a><span class="w">            </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-404" name="__codelineno-2-404" href="#__codelineno-2-404"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Human-readable explanation of the failure."</span><span class="p">,</span>
-<a id="__codelineno-2-405" name="__codelineno-2-405" href="#__codelineno-2-405"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
-<a id="__codelineno-2-406" name="__codelineno-2-406" href="#__codelineno-2-406"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-407" name="__codelineno-2-407" href="#__codelineno-2-407"></a><span class="w">            </span><span class="nt">"correlationId"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-408" name="__codelineno-2-408" href="#__codelineno-2-408"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Correlation identifier for matching the failure to server-side diagnostics, when available."</span><span class="p">,</span>
-<a id="__codelineno-2-409" name="__codelineno-2-409" href="#__codelineno-2-409"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-410" name="__codelineno-2-410" href="#__codelineno-2-410"></a><span class="w">                </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-411" name="__codelineno-2-411" href="#__codelineno-2-411"></a><span class="w">                </span><span class="s2">"null"</span>
-<a id="__codelineno-2-412" name="__codelineno-2-412" href="#__codelineno-2-412"></a><span class="w">              </span><span class="p">]</span>
-<a id="__codelineno-2-413" name="__codelineno-2-413" href="#__codelineno-2-413"></a><span class="w">            </span><span class="p">}</span>
-<a id="__codelineno-2-414" name="__codelineno-2-414" href="#__codelineno-2-414"></a><span class="w">          </span><span class="p">},</span>
-<a id="__codelineno-2-415" name="__codelineno-2-415" href="#__codelineno-2-415"></a><span class="w">          </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-416" name="__codelineno-2-416" href="#__codelineno-2-416"></a><span class="w">            </span><span class="s2">"code"</span><span class="p">,</span>
-<a id="__codelineno-2-417" name="__codelineno-2-417" href="#__codelineno-2-417"></a><span class="w">            </span><span class="s2">"message"</span>
-<a id="__codelineno-2-418" name="__codelineno-2-418" href="#__codelineno-2-418"></a><span class="w">          </span><span class="p">],</span>
-<a id="__codelineno-2-419" name="__codelineno-2-419" href="#__codelineno-2-419"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Structured error details when the invocation failed."</span>
-<a id="__codelineno-2-420" name="__codelineno-2-420" href="#__codelineno-2-420"></a><span class="w">        </span><span class="p">},</span>
-<a id="__codelineno-2-421" name="__codelineno-2-421" href="#__codelineno-2-421"></a><span class="w">        </span><span class="nt">"continuation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-422" name="__codelineno-2-422" href="#__codelineno-2-422"></a><span class="w">          </span><span class="nt">"oneOf"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-423" name="__codelineno-2-423" href="#__codelineno-2-423"></a><span class="w">            </span><span class="p">{</span>
-<a id="__codelineno-2-424" name="__codelineno-2-424" href="#__codelineno-2-424"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-425" name="__codelineno-2-425" href="#__codelineno-2-425"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-426" name="__codelineno-2-426" href="#__codelineno-2-426"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-427" name="__codelineno-2-427" href="#__codelineno-2-427"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
-<a id="__codelineno-2-428" name="__codelineno-2-428" href="#__codelineno-2-428"></a><span class="w">                </span><span class="s2">"tool"</span><span class="p">,</span>
-<a id="__codelineno-2-429" name="__codelineno-2-429" href="#__codelineno-2-429"></a><span class="w">                </span><span class="s2">"instruction"</span>
-<a id="__codelineno-2-430" name="__codelineno-2-430" href="#__codelineno-2-430"></a><span class="w">              </span><span class="p">],</span>
-<a id="__codelineno-2-431" name="__codelineno-2-431" href="#__codelineno-2-431"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-432" name="__codelineno-2-432" href="#__codelineno-2-432"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-433" name="__codelineno-2-433" href="#__codelineno-2-433"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CallTool"</span><span class="p">,</span>
-<a id="__codelineno-2-434" name="__codelineno-2-434" href="#__codelineno-2-434"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
-<a id="__codelineno-2-435" name="__codelineno-2-435" href="#__codelineno-2-435"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-436" name="__codelineno-2-436" href="#__codelineno-2-436"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-437" name="__codelineno-2-437" href="#__codelineno-2-437"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-438" name="__codelineno-2-438" href="#__codelineno-2-438"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
-<a id="__codelineno-2-439" name="__codelineno-2-439" href="#__codelineno-2-439"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-440" name="__codelineno-2-440" href="#__codelineno-2-440"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-441" name="__codelineno-2-441" href="#__codelineno-2-441"></a><span class="w">                </span><span class="nt">"tool"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-442" name="__codelineno-2-442" href="#__codelineno-2-442"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-443" name="__codelineno-2-443" href="#__codelineno-2-443"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tool to call before continuing the original request."</span><span class="p">,</span>
-<a id="__codelineno-2-444" name="__codelineno-2-444" href="#__codelineno-2-444"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-445" name="__codelineno-2-445" href="#__codelineno-2-445"></a><span class="w">                </span><span class="p">}</span>
-<a id="__codelineno-2-446" name="__codelineno-2-446" href="#__codelineno-2-446"></a><span class="w">              </span><span class="p">}</span>
-<a id="__codelineno-2-447" name="__codelineno-2-447" href="#__codelineno-2-447"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-448" name="__codelineno-2-448" href="#__codelineno-2-448"></a><span class="w">            </span><span class="p">{</span>
-<a id="__codelineno-2-449" name="__codelineno-2-449" href="#__codelineno-2-449"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-450" name="__codelineno-2-450" href="#__codelineno-2-450"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-451" name="__codelineno-2-451" href="#__codelineno-2-451"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-452" name="__codelineno-2-452" href="#__codelineno-2-452"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
-<a id="__codelineno-2-453" name="__codelineno-2-453" href="#__codelineno-2-453"></a><span class="w">                </span><span class="s2">"tools"</span><span class="p">,</span>
-<a id="__codelineno-2-454" name="__codelineno-2-454" href="#__codelineno-2-454"></a><span class="w">                </span><span class="s2">"instruction"</span>
-<a id="__codelineno-2-455" name="__codelineno-2-455" href="#__codelineno-2-455"></a><span class="w">              </span><span class="p">],</span>
-<a id="__codelineno-2-456" name="__codelineno-2-456" href="#__codelineno-2-456"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-457" name="__codelineno-2-457" href="#__codelineno-2-457"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-458" name="__codelineno-2-458" href="#__codelineno-2-458"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ChooseTool"</span><span class="p">,</span>
-<a id="__codelineno-2-459" name="__codelineno-2-459" href="#__codelineno-2-459"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
-<a id="__codelineno-2-460" name="__codelineno-2-460" href="#__codelineno-2-460"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-461" name="__codelineno-2-461" href="#__codelineno-2-461"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-462" name="__codelineno-2-462" href="#__codelineno-2-462"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-463" name="__codelineno-2-463" href="#__codelineno-2-463"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
-<a id="__codelineno-2-464" name="__codelineno-2-464" href="#__codelineno-2-464"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-465" name="__codelineno-2-465" href="#__codelineno-2-465"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-466" name="__codelineno-2-466" href="#__codelineno-2-466"></a><span class="w">                </span><span class="nt">"tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-467" name="__codelineno-2-467" href="#__codelineno-2-467"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"array"</span><span class="p">,</span>
-<a id="__codelineno-2-468" name="__codelineno-2-468" href="#__codelineno-2-468"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allowed tool choices from which the agent must select one."</span><span class="p">,</span>
-<a id="__codelineno-2-469" name="__codelineno-2-469" href="#__codelineno-2-469"></a><span class="w">                  </span><span class="nt">"minItems"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-2-470" name="__codelineno-2-470" href="#__codelineno-2-470"></a><span class="w">                  </span><span class="nt">"uniqueItems"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-2-471" name="__codelineno-2-471" href="#__codelineno-2-471"></a><span class="w">                  </span><span class="nt">"items"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-472" name="__codelineno-2-472" href="#__codelineno-2-472"></a><span class="w">                    </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-473" name="__codelineno-2-473" href="#__codelineno-2-473"></a><span class="w">                    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Name of a tool the agent may choose."</span><span class="p">,</span>
-<a id="__codelineno-2-474" name="__codelineno-2-474" href="#__codelineno-2-474"></a><span class="w">                    </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-475" name="__codelineno-2-475" href="#__codelineno-2-475"></a><span class="w">                  </span><span class="p">}</span>
-<a id="__codelineno-2-476" name="__codelineno-2-476" href="#__codelineno-2-476"></a><span class="w">                </span><span class="p">}</span>
-<a id="__codelineno-2-477" name="__codelineno-2-477" href="#__codelineno-2-477"></a><span class="w">              </span><span class="p">}</span>
-<a id="__codelineno-2-478" name="__codelineno-2-478" href="#__codelineno-2-478"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-479" name="__codelineno-2-479" href="#__codelineno-2-479"></a><span class="w">            </span><span class="p">{</span>
-<a id="__codelineno-2-480" name="__codelineno-2-480" href="#__codelineno-2-480"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-481" name="__codelineno-2-481" href="#__codelineno-2-481"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-482" name="__codelineno-2-482" href="#__codelineno-2-482"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-483" name="__codelineno-2-483" href="#__codelineno-2-483"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
-<a id="__codelineno-2-484" name="__codelineno-2-484" href="#__codelineno-2-484"></a><span class="w">                </span><span class="s2">"instruction"</span>
-<a id="__codelineno-2-485" name="__codelineno-2-485" href="#__codelineno-2-485"></a><span class="w">              </span><span class="p">],</span>
-<a id="__codelineno-2-486" name="__codelineno-2-486" href="#__codelineno-2-486"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-487" name="__codelineno-2-487" href="#__codelineno-2-487"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-488" name="__codelineno-2-488" href="#__codelineno-2-488"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RetryRequest"</span><span class="p">,</span>
-<a id="__codelineno-2-489" name="__codelineno-2-489" href="#__codelineno-2-489"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
-<a id="__codelineno-2-490" name="__codelineno-2-490" href="#__codelineno-2-490"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-491" name="__codelineno-2-491" href="#__codelineno-2-491"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-492" name="__codelineno-2-492" href="#__codelineno-2-492"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-493" name="__codelineno-2-493" href="#__codelineno-2-493"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
-<a id="__codelineno-2-494" name="__codelineno-2-494" href="#__codelineno-2-494"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-495" name="__codelineno-2-495" href="#__codelineno-2-495"></a><span class="w">                </span><span class="p">}</span>
-<a id="__codelineno-2-496" name="__codelineno-2-496" href="#__codelineno-2-496"></a><span class="w">              </span><span class="p">}</span>
-<a id="__codelineno-2-497" name="__codelineno-2-497" href="#__codelineno-2-497"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-498" name="__codelineno-2-498" href="#__codelineno-2-498"></a><span class="w">            </span><span class="p">{</span>
-<a id="__codelineno-2-499" name="__codelineno-2-499" href="#__codelineno-2-499"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-500" name="__codelineno-2-500" href="#__codelineno-2-500"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-501" name="__codelineno-2-501" href="#__codelineno-2-501"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-502" name="__codelineno-2-502" href="#__codelineno-2-502"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
-<a id="__codelineno-2-503" name="__codelineno-2-503" href="#__codelineno-2-503"></a><span class="w">                </span><span class="s2">"instruction"</span>
-<a id="__codelineno-2-504" name="__codelineno-2-504" href="#__codelineno-2-504"></a><span class="w">              </span><span class="p">],</span>
-<a id="__codelineno-2-505" name="__codelineno-2-505" href="#__codelineno-2-505"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-506" name="__codelineno-2-506" href="#__codelineno-2-506"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-507" name="__codelineno-2-507" href="#__codelineno-2-507"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ReviseRequest"</span><span class="p">,</span>
-<a id="__codelineno-2-508" name="__codelineno-2-508" href="#__codelineno-2-508"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
-<a id="__codelineno-2-509" name="__codelineno-2-509" href="#__codelineno-2-509"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-510" name="__codelineno-2-510" href="#__codelineno-2-510"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-511" name="__codelineno-2-511" href="#__codelineno-2-511"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-512" name="__codelineno-2-512" href="#__codelineno-2-512"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
-<a id="__codelineno-2-513" name="__codelineno-2-513" href="#__codelineno-2-513"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-514" name="__codelineno-2-514" href="#__codelineno-2-514"></a><span class="w">                </span><span class="p">}</span>
-<a id="__codelineno-2-515" name="__codelineno-2-515" href="#__codelineno-2-515"></a><span class="w">              </span><span class="p">}</span>
-<a id="__codelineno-2-516" name="__codelineno-2-516" href="#__codelineno-2-516"></a><span class="w">            </span><span class="p">},</span>
-<a id="__codelineno-2-517" name="__codelineno-2-517" href="#__codelineno-2-517"></a><span class="w">            </span><span class="p">{</span>
-<a id="__codelineno-2-518" name="__codelineno-2-518" href="#__codelineno-2-518"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-2-519" name="__codelineno-2-519" href="#__codelineno-2-519"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-2-520" name="__codelineno-2-520" href="#__codelineno-2-520"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-521" name="__codelineno-2-521" href="#__codelineno-2-521"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
-<a id="__codelineno-2-522" name="__codelineno-2-522" href="#__codelineno-2-522"></a><span class="w">                </span><span class="s2">"instruction"</span>
-<a id="__codelineno-2-523" name="__codelineno-2-523" href="#__codelineno-2-523"></a><span class="w">              </span><span class="p">],</span>
-<a id="__codelineno-2-524" name="__codelineno-2-524" href="#__codelineno-2-524"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-525" name="__codelineno-2-525" href="#__codelineno-2-525"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-526" name="__codelineno-2-526" href="#__codelineno-2-526"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ResolveExternally"</span><span class="p">,</span>
-<a id="__codelineno-2-527" name="__codelineno-2-527" href="#__codelineno-2-527"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
-<a id="__codelineno-2-528" name="__codelineno-2-528" href="#__codelineno-2-528"></a><span class="w">                </span><span class="p">},</span>
-<a id="__codelineno-2-529" name="__codelineno-2-529" href="#__codelineno-2-529"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-530" name="__codelineno-2-530" href="#__codelineno-2-530"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
-<a id="__codelineno-2-531" name="__codelineno-2-531" href="#__codelineno-2-531"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
-<a id="__codelineno-2-532" name="__codelineno-2-532" href="#__codelineno-2-532"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-2-533" name="__codelineno-2-533" href="#__codelineno-2-533"></a><span class="w">                </span><span class="p">}</span>
-<a id="__codelineno-2-534" name="__codelineno-2-534" href="#__codelineno-2-534"></a><span class="w">              </span><span class="p">}</span>
-<a id="__codelineno-2-535" name="__codelineno-2-535" href="#__codelineno-2-535"></a><span class="w">            </span><span class="p">}</span>
-<a id="__codelineno-2-536" name="__codelineno-2-536" href="#__codelineno-2-536"></a><span class="w">          </span><span class="p">],</span>
-<a id="__codelineno-2-537" name="__codelineno-2-537" href="#__codelineno-2-537"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action the agent should take before retrying or continuing."</span>
-<a id="__codelineno-2-538" name="__codelineno-2-538" href="#__codelineno-2-538"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-2-539" name="__codelineno-2-539" href="#__codelineno-2-539"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-2-540" name="__codelineno-2-540" href="#__codelineno-2-540"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-2-541" name="__codelineno-2-541" href="#__codelineno-2-541"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-2-542" name="__codelineno-2-542" href="#__codelineno-2-542"></a><span class="p">}</span>
+<a id="__codelineno-2-382" name="__codelineno-2-382" href="#__codelineno-2-382"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-2-383" name="__codelineno-2-383" href="#__codelineno-2-383"></a><span class="w">        </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-384" name="__codelineno-2-384" href="#__codelineno-2-384"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"array"</span><span class="p">,</span>
+<a id="__codelineno-2-385" name="__codelineno-2-385" href="#__codelineno-2-385"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Non-fatal warnings the agent should consider."</span><span class="p">,</span>
+<a id="__codelineno-2-386" name="__codelineno-2-386" href="#__codelineno-2-386"></a><span class="w">          </span><span class="nt">"items"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-387" name="__codelineno-2-387" href="#__codelineno-2-387"></a><span class="w">            </span><span class="nt">"$ref"</span><span class="p">:</span><span class="w"> </span><span class="s2">"#/$defs/warningInfo"</span>
+<a id="__codelineno-2-388" name="__codelineno-2-388" href="#__codelineno-2-388"></a><span class="w">          </span><span class="p">}</span>
+<a id="__codelineno-2-389" name="__codelineno-2-389" href="#__codelineno-2-389"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-2-390" name="__codelineno-2-390" href="#__codelineno-2-390"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-2-391" name="__codelineno-2-391" href="#__codelineno-2-391"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-2-392" name="__codelineno-2-392" href="#__codelineno-2-392"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-2-393" name="__codelineno-2-393" href="#__codelineno-2-393"></a><span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-394" name="__codelineno-2-394" href="#__codelineno-2-394"></a><span class="w">      </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-395" name="__codelineno-2-395" href="#__codelineno-2-395"></a><span class="w">        </span><span class="s2">"ok"</span><span class="p">,</span>
+<a id="__codelineno-2-396" name="__codelineno-2-396" href="#__codelineno-2-396"></a><span class="w">        </span><span class="s2">"error"</span>
+<a id="__codelineno-2-397" name="__codelineno-2-397" href="#__codelineno-2-397"></a><span class="w">      </span><span class="p">],</span>
+<a id="__codelineno-2-398" name="__codelineno-2-398" href="#__codelineno-2-398"></a><span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-399" name="__codelineno-2-399" href="#__codelineno-2-399"></a><span class="w">        </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-400" name="__codelineno-2-400" href="#__codelineno-2-400"></a><span class="w">          </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-401" name="__codelineno-2-401" href="#__codelineno-2-401"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Whether the tool invocation succeeded."</span>
+<a id="__codelineno-2-402" name="__codelineno-2-402" href="#__codelineno-2-402"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-2-403" name="__codelineno-2-403" href="#__codelineno-2-403"></a><span class="w">        </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-404" name="__codelineno-2-404" href="#__codelineno-2-404"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-405" name="__codelineno-2-405" href="#__codelineno-2-405"></a><span class="w">          </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-406" name="__codelineno-2-406" href="#__codelineno-2-406"></a><span class="w">            </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-407" name="__codelineno-2-407" href="#__codelineno-2-407"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Stable machine-readable error code."</span><span class="p">,</span>
+<a id="__codelineno-2-408" name="__codelineno-2-408" href="#__codelineno-2-408"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
+<a id="__codelineno-2-409" name="__codelineno-2-409" href="#__codelineno-2-409"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-410" name="__codelineno-2-410" href="#__codelineno-2-410"></a><span class="w">            </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-411" name="__codelineno-2-411" href="#__codelineno-2-411"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Human-readable explanation of the failure."</span><span class="p">,</span>
+<a id="__codelineno-2-412" name="__codelineno-2-412" href="#__codelineno-2-412"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
+<a id="__codelineno-2-413" name="__codelineno-2-413" href="#__codelineno-2-413"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-414" name="__codelineno-2-414" href="#__codelineno-2-414"></a><span class="w">            </span><span class="nt">"correlationId"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-415" name="__codelineno-2-415" href="#__codelineno-2-415"></a><span class="w">              </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Correlation identifier for matching the failure to server-side diagnostics, when available."</span><span class="p">,</span>
+<a id="__codelineno-2-416" name="__codelineno-2-416" href="#__codelineno-2-416"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-417" name="__codelineno-2-417" href="#__codelineno-2-417"></a><span class="w">                </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-418" name="__codelineno-2-418" href="#__codelineno-2-418"></a><span class="w">                </span><span class="s2">"null"</span>
+<a id="__codelineno-2-419" name="__codelineno-2-419" href="#__codelineno-2-419"></a><span class="w">              </span><span class="p">]</span>
+<a id="__codelineno-2-420" name="__codelineno-2-420" href="#__codelineno-2-420"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-2-421" name="__codelineno-2-421" href="#__codelineno-2-421"></a><span class="w">          </span><span class="p">},</span>
+<a id="__codelineno-2-422" name="__codelineno-2-422" href="#__codelineno-2-422"></a><span class="w">          </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-423" name="__codelineno-2-423" href="#__codelineno-2-423"></a><span class="w">            </span><span class="s2">"code"</span><span class="p">,</span>
+<a id="__codelineno-2-424" name="__codelineno-2-424" href="#__codelineno-2-424"></a><span class="w">            </span><span class="s2">"message"</span>
+<a id="__codelineno-2-425" name="__codelineno-2-425" href="#__codelineno-2-425"></a><span class="w">          </span><span class="p">],</span>
+<a id="__codelineno-2-426" name="__codelineno-2-426" href="#__codelineno-2-426"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Structured error details when the invocation failed."</span>
+<a id="__codelineno-2-427" name="__codelineno-2-427" href="#__codelineno-2-427"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-2-428" name="__codelineno-2-428" href="#__codelineno-2-428"></a><span class="w">        </span><span class="nt">"continuation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-429" name="__codelineno-2-429" href="#__codelineno-2-429"></a><span class="w">          </span><span class="nt">"oneOf"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-430" name="__codelineno-2-430" href="#__codelineno-2-430"></a><span class="w">            </span><span class="p">{</span>
+<a id="__codelineno-2-431" name="__codelineno-2-431" href="#__codelineno-2-431"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-432" name="__codelineno-2-432" href="#__codelineno-2-432"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-433" name="__codelineno-2-433" href="#__codelineno-2-433"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-434" name="__codelineno-2-434" href="#__codelineno-2-434"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
+<a id="__codelineno-2-435" name="__codelineno-2-435" href="#__codelineno-2-435"></a><span class="w">                </span><span class="s2">"tool"</span><span class="p">,</span>
+<a id="__codelineno-2-436" name="__codelineno-2-436" href="#__codelineno-2-436"></a><span class="w">                </span><span class="s2">"instruction"</span>
+<a id="__codelineno-2-437" name="__codelineno-2-437" href="#__codelineno-2-437"></a><span class="w">              </span><span class="p">],</span>
+<a id="__codelineno-2-438" name="__codelineno-2-438" href="#__codelineno-2-438"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-439" name="__codelineno-2-439" href="#__codelineno-2-439"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-440" name="__codelineno-2-440" href="#__codelineno-2-440"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CallTool"</span><span class="p">,</span>
+<a id="__codelineno-2-441" name="__codelineno-2-441" href="#__codelineno-2-441"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
+<a id="__codelineno-2-442" name="__codelineno-2-442" href="#__codelineno-2-442"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-443" name="__codelineno-2-443" href="#__codelineno-2-443"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-444" name="__codelineno-2-444" href="#__codelineno-2-444"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-445" name="__codelineno-2-445" href="#__codelineno-2-445"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
+<a id="__codelineno-2-446" name="__codelineno-2-446" href="#__codelineno-2-446"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-447" name="__codelineno-2-447" href="#__codelineno-2-447"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-448" name="__codelineno-2-448" href="#__codelineno-2-448"></a><span class="w">                </span><span class="nt">"tool"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-449" name="__codelineno-2-449" href="#__codelineno-2-449"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-450" name="__codelineno-2-450" href="#__codelineno-2-450"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tool to call before continuing the original request."</span><span class="p">,</span>
+<a id="__codelineno-2-451" name="__codelineno-2-451" href="#__codelineno-2-451"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-452" name="__codelineno-2-452" href="#__codelineno-2-452"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-2-453" name="__codelineno-2-453" href="#__codelineno-2-453"></a><span class="w">              </span><span class="p">}</span>
+<a id="__codelineno-2-454" name="__codelineno-2-454" href="#__codelineno-2-454"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-455" name="__codelineno-2-455" href="#__codelineno-2-455"></a><span class="w">            </span><span class="p">{</span>
+<a id="__codelineno-2-456" name="__codelineno-2-456" href="#__codelineno-2-456"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-457" name="__codelineno-2-457" href="#__codelineno-2-457"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-458" name="__codelineno-2-458" href="#__codelineno-2-458"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-459" name="__codelineno-2-459" href="#__codelineno-2-459"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
+<a id="__codelineno-2-460" name="__codelineno-2-460" href="#__codelineno-2-460"></a><span class="w">                </span><span class="s2">"tools"</span><span class="p">,</span>
+<a id="__codelineno-2-461" name="__codelineno-2-461" href="#__codelineno-2-461"></a><span class="w">                </span><span class="s2">"instruction"</span>
+<a id="__codelineno-2-462" name="__codelineno-2-462" href="#__codelineno-2-462"></a><span class="w">              </span><span class="p">],</span>
+<a id="__codelineno-2-463" name="__codelineno-2-463" href="#__codelineno-2-463"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-464" name="__codelineno-2-464" href="#__codelineno-2-464"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-465" name="__codelineno-2-465" href="#__codelineno-2-465"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ChooseTool"</span><span class="p">,</span>
+<a id="__codelineno-2-466" name="__codelineno-2-466" href="#__codelineno-2-466"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
+<a id="__codelineno-2-467" name="__codelineno-2-467" href="#__codelineno-2-467"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-468" name="__codelineno-2-468" href="#__codelineno-2-468"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-469" name="__codelineno-2-469" href="#__codelineno-2-469"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-470" name="__codelineno-2-470" href="#__codelineno-2-470"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
+<a id="__codelineno-2-471" name="__codelineno-2-471" href="#__codelineno-2-471"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-472" name="__codelineno-2-472" href="#__codelineno-2-472"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-473" name="__codelineno-2-473" href="#__codelineno-2-473"></a><span class="w">                </span><span class="nt">"tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-474" name="__codelineno-2-474" href="#__codelineno-2-474"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"array"</span><span class="p">,</span>
+<a id="__codelineno-2-475" name="__codelineno-2-475" href="#__codelineno-2-475"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Allowed tool choices from which the agent must select one."</span><span class="p">,</span>
+<a id="__codelineno-2-476" name="__codelineno-2-476" href="#__codelineno-2-476"></a><span class="w">                  </span><span class="nt">"minItems"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-2-477" name="__codelineno-2-477" href="#__codelineno-2-477"></a><span class="w">                  </span><span class="nt">"uniqueItems"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-478" name="__codelineno-2-478" href="#__codelineno-2-478"></a><span class="w">                  </span><span class="nt">"items"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-479" name="__codelineno-2-479" href="#__codelineno-2-479"></a><span class="w">                    </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-480" name="__codelineno-2-480" href="#__codelineno-2-480"></a><span class="w">                    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Name of a tool the agent may choose."</span><span class="p">,</span>
+<a id="__codelineno-2-481" name="__codelineno-2-481" href="#__codelineno-2-481"></a><span class="w">                    </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-482" name="__codelineno-2-482" href="#__codelineno-2-482"></a><span class="w">                  </span><span class="p">}</span>
+<a id="__codelineno-2-483" name="__codelineno-2-483" href="#__codelineno-2-483"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-2-484" name="__codelineno-2-484" href="#__codelineno-2-484"></a><span class="w">              </span><span class="p">}</span>
+<a id="__codelineno-2-485" name="__codelineno-2-485" href="#__codelineno-2-485"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-486" name="__codelineno-2-486" href="#__codelineno-2-486"></a><span class="w">            </span><span class="p">{</span>
+<a id="__codelineno-2-487" name="__codelineno-2-487" href="#__codelineno-2-487"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-488" name="__codelineno-2-488" href="#__codelineno-2-488"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-489" name="__codelineno-2-489" href="#__codelineno-2-489"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-490" name="__codelineno-2-490" href="#__codelineno-2-490"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
+<a id="__codelineno-2-491" name="__codelineno-2-491" href="#__codelineno-2-491"></a><span class="w">                </span><span class="s2">"instruction"</span>
+<a id="__codelineno-2-492" name="__codelineno-2-492" href="#__codelineno-2-492"></a><span class="w">              </span><span class="p">],</span>
+<a id="__codelineno-2-493" name="__codelineno-2-493" href="#__codelineno-2-493"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-494" name="__codelineno-2-494" href="#__codelineno-2-494"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-495" name="__codelineno-2-495" href="#__codelineno-2-495"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RetryRequest"</span><span class="p">,</span>
+<a id="__codelineno-2-496" name="__codelineno-2-496" href="#__codelineno-2-496"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
+<a id="__codelineno-2-497" name="__codelineno-2-497" href="#__codelineno-2-497"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-498" name="__codelineno-2-498" href="#__codelineno-2-498"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-499" name="__codelineno-2-499" href="#__codelineno-2-499"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-500" name="__codelineno-2-500" href="#__codelineno-2-500"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
+<a id="__codelineno-2-501" name="__codelineno-2-501" href="#__codelineno-2-501"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-502" name="__codelineno-2-502" href="#__codelineno-2-502"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-2-503" name="__codelineno-2-503" href="#__codelineno-2-503"></a><span class="w">              </span><span class="p">}</span>
+<a id="__codelineno-2-504" name="__codelineno-2-504" href="#__codelineno-2-504"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-505" name="__codelineno-2-505" href="#__codelineno-2-505"></a><span class="w">            </span><span class="p">{</span>
+<a id="__codelineno-2-506" name="__codelineno-2-506" href="#__codelineno-2-506"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-507" name="__codelineno-2-507" href="#__codelineno-2-507"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-508" name="__codelineno-2-508" href="#__codelineno-2-508"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-509" name="__codelineno-2-509" href="#__codelineno-2-509"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
+<a id="__codelineno-2-510" name="__codelineno-2-510" href="#__codelineno-2-510"></a><span class="w">                </span><span class="s2">"instruction"</span>
+<a id="__codelineno-2-511" name="__codelineno-2-511" href="#__codelineno-2-511"></a><span class="w">              </span><span class="p">],</span>
+<a id="__codelineno-2-512" name="__codelineno-2-512" href="#__codelineno-2-512"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-513" name="__codelineno-2-513" href="#__codelineno-2-513"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-514" name="__codelineno-2-514" href="#__codelineno-2-514"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ReviseRequest"</span><span class="p">,</span>
+<a id="__codelineno-2-515" name="__codelineno-2-515" href="#__codelineno-2-515"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
+<a id="__codelineno-2-516" name="__codelineno-2-516" href="#__codelineno-2-516"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-517" name="__codelineno-2-517" href="#__codelineno-2-517"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-518" name="__codelineno-2-518" href="#__codelineno-2-518"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-519" name="__codelineno-2-519" href="#__codelineno-2-519"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
+<a id="__codelineno-2-520" name="__codelineno-2-520" href="#__codelineno-2-520"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-521" name="__codelineno-2-521" href="#__codelineno-2-521"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-2-522" name="__codelineno-2-522" href="#__codelineno-2-522"></a><span class="w">              </span><span class="p">}</span>
+<a id="__codelineno-2-523" name="__codelineno-2-523" href="#__codelineno-2-523"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-2-524" name="__codelineno-2-524" href="#__codelineno-2-524"></a><span class="w">            </span><span class="p">{</span>
+<a id="__codelineno-2-525" name="__codelineno-2-525" href="#__codelineno-2-525"></a><span class="w">              </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-526" name="__codelineno-2-526" href="#__codelineno-2-526"></a><span class="w">              </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-527" name="__codelineno-2-527" href="#__codelineno-2-527"></a><span class="w">              </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-528" name="__codelineno-2-528" href="#__codelineno-2-528"></a><span class="w">                </span><span class="s2">"kind"</span><span class="p">,</span>
+<a id="__codelineno-2-529" name="__codelineno-2-529" href="#__codelineno-2-529"></a><span class="w">                </span><span class="s2">"instruction"</span>
+<a id="__codelineno-2-530" name="__codelineno-2-530" href="#__codelineno-2-530"></a><span class="w">              </span><span class="p">],</span>
+<a id="__codelineno-2-531" name="__codelineno-2-531" href="#__codelineno-2-531"></a><span class="w">              </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-532" name="__codelineno-2-532" href="#__codelineno-2-532"></a><span class="w">                </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-533" name="__codelineno-2-533" href="#__codelineno-2-533"></a><span class="w">                  </span><span class="nt">"const"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ResolveExternally"</span><span class="p">,</span>
+<a id="__codelineno-2-534" name="__codelineno-2-534" href="#__codelineno-2-534"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action required before the original request can continue."</span>
+<a id="__codelineno-2-535" name="__codelineno-2-535" href="#__codelineno-2-535"></a><span class="w">                </span><span class="p">},</span>
+<a id="__codelineno-2-536" name="__codelineno-2-536" href="#__codelineno-2-536"></a><span class="w">                </span><span class="nt">"instruction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-537" name="__codelineno-2-537" href="#__codelineno-2-537"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<a id="__codelineno-2-538" name="__codelineno-2-538" href="#__codelineno-2-538"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agent-facing instruction explaining how to continue."</span><span class="p">,</span>
+<a id="__codelineno-2-539" name="__codelineno-2-539" href="#__codelineno-2-539"></a><span class="w">                  </span><span class="nt">"minLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-2-540" name="__codelineno-2-540" href="#__codelineno-2-540"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-2-541" name="__codelineno-2-541" href="#__codelineno-2-541"></a><span class="w">              </span><span class="p">}</span>
+<a id="__codelineno-2-542" name="__codelineno-2-542" href="#__codelineno-2-542"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-2-543" name="__codelineno-2-543" href="#__codelineno-2-543"></a><span class="w">          </span><span class="p">],</span>
+<a id="__codelineno-2-544" name="__codelineno-2-544" href="#__codelineno-2-544"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Action the agent should take before retrying or continuing."</span>
+<a id="__codelineno-2-545" name="__codelineno-2-545" href="#__codelineno-2-545"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-2-546" name="__codelineno-2-546" href="#__codelineno-2-546"></a><span class="w">        </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-547" name="__codelineno-2-547" href="#__codelineno-2-547"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"array"</span><span class="p">,</span>
+<a id="__codelineno-2-548" name="__codelineno-2-548" href="#__codelineno-2-548"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Non-fatal warnings the agent should consider."</span><span class="p">,</span>
+<a id="__codelineno-2-549" name="__codelineno-2-549" href="#__codelineno-2-549"></a><span class="w">          </span><span class="nt">"items"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-550" name="__codelineno-2-550" href="#__codelineno-2-550"></a><span class="w">            </span><span class="nt">"$ref"</span><span class="p">:</span><span class="w"> </span><span class="s2">"#/$defs/warningInfo"</span>
+<a id="__codelineno-2-551" name="__codelineno-2-551" href="#__codelineno-2-551"></a><span class="w">          </span><span class="p">}</span>
+<a id="__codelineno-2-552" name="__codelineno-2-552" href="#__codelineno-2-552"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-2-553" name="__codelineno-2-553" href="#__codelineno-2-553"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-2-554" name="__codelineno-2-554" href="#__codelineno-2-554"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-555" name="__codelineno-2-555" href="#__codelineno-2-555"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-2-556" name="__codelineno-2-556" href="#__codelineno-2-556"></a><span class="w">  </span><span class="nt">"$defs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-557" name="__codelineno-2-557" href="#__codelineno-2-557"></a><span class="w">    </span><span class="nt">"warningInfo"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-558" name="__codelineno-2-558" href="#__codelineno-2-558"></a><span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-559" name="__codelineno-2-559" href="#__codelineno-2-559"></a><span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-560" name="__codelineno-2-560" href="#__codelineno-2-560"></a><span class="w">        </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-561" name="__codelineno-2-561" href="#__codelineno-2-561"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The stable machine-readable warning code."</span><span class="p">,</span>
+<a id="__codelineno-2-562" name="__codelineno-2-562" href="#__codelineno-2-562"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
+<a id="__codelineno-2-563" name="__codelineno-2-563" href="#__codelineno-2-563"></a><span class="w">        </span><span class="p">},</span>
+<a id="__codelineno-2-564" name="__codelineno-2-564" href="#__codelineno-2-564"></a><span class="w">        </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-565" name="__codelineno-2-565" href="#__codelineno-2-565"></a><span class="w">          </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The human-readable warning message."</span><span class="p">,</span>
+<a id="__codelineno-2-566" name="__codelineno-2-566" href="#__codelineno-2-566"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
+<a id="__codelineno-2-567" name="__codelineno-2-567" href="#__codelineno-2-567"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-2-568" name="__codelineno-2-568" href="#__codelineno-2-568"></a><span class="w">      </span><span class="p">},</span>
+<a id="__codelineno-2-569" name="__codelineno-2-569" href="#__codelineno-2-569"></a><span class="w">      </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-570" name="__codelineno-2-570" href="#__codelineno-2-570"></a><span class="w">        </span><span class="s2">"code"</span><span class="p">,</span>
+<a id="__codelineno-2-571" name="__codelineno-2-571" href="#__codelineno-2-571"></a><span class="w">        </span><span class="s2">"message"</span>
+<a id="__codelineno-2-572" name="__codelineno-2-572" href="#__codelineno-2-572"></a><span class="w">      </span><span class="p">]</span>
+<a id="__codelineno-2-573" name="__codelineno-2-573" href="#__codelineno-2-573"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-574" name="__codelineno-2-574" href="#__codelineno-2-574"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-575" name="__codelineno-2-575" href="#__codelineno-2-575"></a><span class="p">}</span>
 </code></pre></div>
 </details>
 

@@ -439,6 +439,34 @@
   
   
     <li class="md-nav__item">
+      <a href="compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="agent-setup.html" class="md-nav__link">
         
   
@@ -1017,13 +1045,17 @@
 <p>The server speaks MCP on standard input/output; it is not an interactive command prompt. Operational messages are on stderr. Check the client's server log for startup and prerequisite errors without posting private paths or credentials publicly.</p>
 <h2 id="a-workspace-will-not-open">A Workspace will not open</h2>
 <p>Confirm that the path is accessible, the repository is trusted and the required project SDKs/build tooling are installed. Inspect <code>server-status</code> and the returned diagnostics. Unsupported languages or project types may be skipped; at least one supported SDK-style C# project must remain. A build outside the server can help distinguish project restoration/evaluation problems from MCP configuration.</p>
+<p>If startup reports invalid allowed Workspace roots, ensure every value is a non-empty existing absolute directory and use the platform path separator for <code>ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS</code> (<code>;</code> on Windows, <code>:</code> on Unix, WSL and macOS). Any <code>--allowed-workspace-root</code> occurrence replaces the complete environment list. <code>--external-document-policy</code> and its environment equivalent accept only <code>allow-read-only</code> or <code>reject-workspace</code>; repeated command-line values use the last occurrence.</p>
+<p>If startup reports invalid generated-source configuration, use exact lowercase <code>warn</code> or <code>deny</code>. Generated-source exceptions must be Workspace-relative simple wildcard patterns and cannot contain <code>.</code> or <code>..</code> path segments. Use repeated <code>--generated-source-exception</code> options or separate environment patterns with the platform path separator; any command-line occurrence replaces the complete environment list.</p>
+<p><code>WorkspacePathNotAllowed</code> and <code>WorkspaceRootNotAllowed</code> are admission failures, not MSBuild failures. Open a path within an allowed root and do not request a root above it. <code>WorkspaceAuthorityChanged</code> means a previously admitted Workspace path or effective root no longer physically complies with Host authority, such as when a directory is moved or replaced by a symbolic link or reparse point; restore the intended topology, roll back any active transaction, then close and reopen the Workspace. <code>WorkspaceExternalDocumentRejected</code> identifies a trusted build that evaluated source, additional or analyzer-config input outside the effective root; move or remove that input, widen authority deliberately, or choose <code>allow-read-only</code> according to operator policy. An unfinished recovery entry that persists under restricted admission may belong to a Workspace outside current authority; restart with authority covering that Workspace before recovery can write to it.</p>
 <p>State-directory failures require a writable, supported location. Do not bypass owner-only permissions or remove unresolved recovery records to force startup. See <a href="configuration.html">Configuration</a> and <a href="workspaces-and-transactions.html">Workspaces and transactions</a>.</p>
+<p><code>RecoveryVersionUnsupported</code> means an owner record or manifest was written in a recovery format this Host cannot safely interpret. Stop the Host and start the same or a newer compatible Roslyn Workbench version. The unsupported evidence is retained unchanged; do not edit its version or delete it merely to clear status. See the <a href="compatibility.html">Compatibility policy</a>.</p>
 <h2 id="a-selector-or-code-action-became-stale">A selector or Code Action became stale</h2>
 <p>Follow the tool's continuation: check Workspace status, reload when appropriate, and resolve the location/symbol or discover the action again. Do not reuse coordinates, snapshot identities or opaque references after unrelated source changes or a server restart. Finish or roll back an active transaction before attempting a reload that requires a non-transactional Workspace.</p>
 <h2 id="an-error-report-prompt-did-not-appear">An error-report prompt did not appear</h2>
 <p>The client may not support elicitation or may block it through its approval policy. <code>ApprovalUnavailable</code> and <code>ErrorReportNotApproved</code> mean nothing was sent. Enable manual MCP approvals in the client if desired, then prepare a fresh report. There is no tool override that silently bypasses client consent. See <a href="error-reporting.html">Error reporting and privacy</a>.</p>
 <h2 id="upgrade-or-remove">Upgrade or remove</h2>
-<p>Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's compatibility notes. Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.</p>
+<p>Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's <a href="compatibility.html">compatibility notes</a>. Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.</p>
 <p>To remove the installed tool:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>uninstall<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp
 </code></pre></div>

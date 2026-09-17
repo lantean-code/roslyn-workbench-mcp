@@ -64,7 +64,8 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
                 _schemaProvider.GetValueSchema(type),
                 _schemaProvider.GetValueSchema<ToolError>(),
                 _continuationSchema,
-                _schemaProvider.GetValueSchema<SnapshotPrecondition>()));
+                _schemaProvider.GetValueSchema<SnapshotPrecondition>(),
+                _schemaProvider.GetValueSchema<WarningInfo>()));
     }
 
     /// <summary>
@@ -94,12 +95,13 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
     {
         var valueSchema = _schemaProvider.GetValueSchema(responseType);
         var snapshotSchema = _schemaProvider.GetValueSchema<SnapshotPrecondition>();
+        var warningSchema = _schemaProvider.GetValueSchema<WarningInfo>();
         var successSchema = ToolSchemaBuilder.CreateNullableSuccessSchema(
             valueSchema,
             snapshotSchema,
             snapshotRequired: true);
 
-        return CreateResponseSchema(successSchema, [valueSchema, snapshotSchema]);
+        return CreateResponseSchema(successSchema, [valueSchema, snapshotSchema], warningSchema);
     }
 
     private JsonElement CreateMutationResponseSchema()
@@ -147,21 +149,26 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
         };
 
         var snapshotSchema = _schemaProvider.GetValueSchema<SnapshotPrecondition>();
+        var warningSchema = _schemaProvider.GetValueSchema<WarningInfo>();
         var successSchema = ToolSchemaBuilder.CreateSuccessSchema(
             mutationDataSchema,
             snapshotSchema,
             snapshotRequired: true);
 
-        return CreateResponseSchema(successSchema, [snapshotSchema]);
+        return CreateResponseSchema(successSchema, [snapshotSchema], warningSchema);
     }
 
-    private JsonElement CreateResponseSchema(JsonObject successSchema, IReadOnlyList<JsonElement> componentSchemas)
+    private JsonElement CreateResponseSchema(
+        JsonObject successSchema,
+        IReadOnlyList<JsonElement> componentSchemas,
+        JsonElement warningSchema)
     {
         return ToolSchemaBuilder.CreateResponseSchema(
             successSchema,
             componentSchemas,
             _schemaProvider.GetValueSchema<ToolError>(),
-            _continuationSchema);
+            _continuationSchema,
+            warningSchema);
     }
 
     private static JsonObject CreateMutationSummarySchema()

@@ -15,6 +15,9 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     public ICompilerDiagnosticService CompilerDiagnosticService { get; }
 
     /// <inheritdoc/>
+    public IGeneratedSourceClassifier GeneratedSourceClassifier { get; }
+
+    /// <inheritdoc/>
     public IInspectionContextService InspectionContextService { get; }
 
     /// <inheritdoc/>
@@ -40,6 +43,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     /// </summary>
     /// <param name="requestResolver">The service that resolves request selectors.</param>
     /// <param name="compilerDiagnosticService">The service that collects compiler diagnostics.</param>
+    /// <param name="generatedSourceClassifier">The Host-configured generated-source classifier.</param>
     /// <param name="inspectionContextService">The service that projects source context and containing symbols.</param>
     /// <param name="projectStructureService">The service that inspects solution and project structure.</param>
     /// <param name="projectTargetFrameworkResolver">The service that resolves project target frameworks.</param>
@@ -50,6 +54,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     public ToolExecutionServices(
         IToolRequestResolver requestResolver,
         ICompilerDiagnosticService compilerDiagnosticService,
+        IGeneratedSourceClassifier generatedSourceClassifier,
         IInspectionContextService inspectionContextService,
         IProjectStructureService projectStructureService,
         IProjectTargetFrameworkResolver projectTargetFrameworkResolver,
@@ -60,6 +65,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     {
         RequestResolver = requestResolver;
         CompilerDiagnosticService = compilerDiagnosticService;
+        GeneratedSourceClassifier = generatedSourceClassifier;
         InspectionContextService = inspectionContextService;
         ProjectStructureService = projectStructureService;
         ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;

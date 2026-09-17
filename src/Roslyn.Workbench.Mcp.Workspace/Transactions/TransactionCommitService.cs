@@ -379,11 +379,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             var plan = planningResult.Plan;
             manifest = plan.Manifest;
 
-            var receiptValidationFailure = ValidateReceiptIdentity(
+            var receiptValidationFailure = await ValidateReceiptIdentityAsync(
                 session,
                 plan,
                 receiptAuthorisation,
-                context);
+                context,
+                cancellationToken);
 
             if (receiptValidationFailure is not null)
             {
@@ -652,11 +653,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             context);
     }
 
-    private WorkspaceOperationResult<TransactionCommitOutcome>? ValidateReceiptIdentity(
+    private async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>?> ValidateReceiptIdentityAsync(
         WorkspaceSessionSnapshot session,
         WorkspaceCommitPlan plan,
         TransactionReceiptAuthorisation? receiptAuthorisation,
-        WorkspaceOperationContext context)
+        WorkspaceOperationContext context,
+        CancellationToken cancellationToken)
     {
         if (!_options.ReceiptAuthorisationRequired)
         {
@@ -668,7 +670,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             throw new InvalidOperationException("Receipt binding validation must run before exact identity validation.");
         }
 
-        var documents = ReviewDocumentFactory.Create(session, plan, changes: null);
+        var documents = await ReviewDocumentFactory.CreateAsync(
+            session,
+            plan,
+            changes: null,
+            cancellationToken);
+
         var currentIdentity = ReviewIdentityService.Create(session, documents);
         if (currentIdentity == receiptAuthorisation.Identity)
         {

@@ -140,7 +140,7 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
                 result.Warnings);
         }
 
-        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, result.Snapshot);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, result.Snapshot, result.Warnings);
     }
 
     private static Tool CreateProtocolTool(

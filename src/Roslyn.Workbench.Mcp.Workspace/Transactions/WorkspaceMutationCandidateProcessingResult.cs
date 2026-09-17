@@ -18,6 +18,11 @@ internal sealed record WorkspaceMutationCandidateProcessingResult
     public WorkspaceOperationError? Error { get; }
 
     /// <summary>
+    /// Gets non-fatal policy warnings produced while processing the candidate.
+    /// </summary>
+    public IReadOnlyList<WarningInfo> Warnings { get; }
+
+    /// <summary>
     /// Gets a value indicating whether processing produced a candidate solution.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Solution))]
@@ -26,20 +31,25 @@ internal sealed record WorkspaceMutationCandidateProcessingResult
 
     private WorkspaceMutationCandidateProcessingResult(
         Solution? solution,
-        WorkspaceOperationError? error)
+        WorkspaceOperationError? error,
+        IReadOnlyList<WarningInfo> warnings)
     {
         Solution = solution;
         Error = error;
+        Warnings = warnings;
     }
 
     /// <summary>
     /// Creates a successful operation result.
     /// </summary>
     /// <param name="solution">The normalized candidate solution.</param>
+    /// <param name="warnings">The non-fatal policy warnings associated with the candidate.</param>
     /// <returns>A result that represents successful completion.</returns>
-    public static WorkspaceMutationCandidateProcessingResult Succeeded(Solution solution)
+    public static WorkspaceMutationCandidateProcessingResult Succeeded(
+        Solution solution,
+        IReadOnlyList<WarningInfo> warnings)
     {
-        return new WorkspaceMutationCandidateProcessingResult(solution, error: null);
+        return new WorkspaceMutationCandidateProcessingResult(solution, error: null, warnings);
     }
 
     /// <summary>
@@ -49,6 +59,6 @@ internal sealed record WorkspaceMutationCandidateProcessingResult
     /// <returns>A result that represents failure.</returns>
     public static WorkspaceMutationCandidateProcessingResult Failed(WorkspaceOperationError error)
     {
-        return new WorkspaceMutationCandidateProcessingResult(solution: null, error);
+        return new WorkspaceMutationCandidateProcessingResult(solution: null, error, warnings: []);
     }
 }

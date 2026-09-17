@@ -19,6 +19,7 @@ public static class QueryContextMockHelper
         var queryResultCache = new Mock<IQueryResultCache>();
         var referenceDiscoveryService = new Mock<IReferenceDiscoveryService>();
         var typeHierarchyService = new Mock<ITypeHierarchyService>();
+        var generatedSourceClassifier = new Mock<IGeneratedSourceClassifier>();
         var typeHierarchyServiceImplementation = new TypeHierarchyService();
 
         workspaceResolver
@@ -68,6 +69,10 @@ public static class QueryContextMockHelper
             .SetupGet(item => item.WorkspaceSelectorFactory)
             .Returns(workspaceSelectorFactory.Object);
 
+        toolExecutionServices
+            .SetupGet(item => item.GeneratedSourceClassifier)
+            .Returns(generatedSourceClassifier.Object);
+
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
@@ -107,6 +112,7 @@ public static class QueryContextMockHelper
             workspaceSelectorFactory,
             queryResultCache,
             referenceDiscoveryService,
-            typeHierarchyService);
+            typeHierarchyService,
+            generatedSourceClassifier);
     }
 }

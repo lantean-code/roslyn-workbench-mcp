@@ -104,6 +104,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         var mergedCandidate = candidate with
         {
             CandidateSolution = processingResult.Solution,
+            Warnings = candidate.Warnings.Concat(processingResult.Warnings).ToArray(),
         };
 
         var preconditionFailure = await ValidatePreconditionAsync(

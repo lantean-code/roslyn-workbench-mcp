@@ -165,8 +165,12 @@ public sealed class TransactionReviewBuilderTests : IDisposable
             .ReturnsAsync(changes);
 
         _documentFactory
-            .Setup(item => item.Create(session, plan, changes))
-            .Returns(documents);
+            .Setup(item => item.CreateAsync(
+                session,
+                plan,
+                changes,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(documents);
 
         _identityService
             .Setup(item => item.Create(session, documents))

@@ -88,6 +88,16 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             failures.Add($"{nameof(StartupOptions.ExternalDocumentPolicy)} must be 'allow-read-only' or 'reject-workspace'.");
         }
 
+        if (!StartupOptionsRules.IsSupportedGeneratedSourcePolicy(options.GeneratedSourcePolicy))
+        {
+            failures.Add($"{nameof(StartupOptions.GeneratedSourcePolicy)} must be 'warn' or 'deny'.");
+        }
+
+        if (!StartupOptionsRules.AreValidGeneratedSourceExceptions(options.GeneratedSourceExceptions))
+        {
+            failures.Add($"{nameof(StartupOptions.GeneratedSourceExceptions)} must contain only non-blank Workspace-relative patterns without '.' or '..' path segments.");
+        }
+
         if (!StartupOptionsRules.IsPositive(options.DefaultMaxResults))
         {
             failures.Add($"{nameof(StartupOptions.DefaultMaxResults)} must be greater than zero.");

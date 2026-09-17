@@ -12,6 +12,22 @@ public sealed class ToolResultEnvelopeSerializerTests
     }
 
     [Fact]
+    public void GIVEN_SuccessWarnings_WHEN_Serializing_THEN_ShouldPublishWarnings()
+    {
+        var warning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = ToolResultEnvelopeSerializer.CreateSuccess(new TestData(), warnings: [warning]);
+
+        var publishedWarning = result.GetProperty("warnings").EnumerateArray().Should().ContainSingle().Subject;
+        publishedWarning.GetProperty("code").GetString().Should().Be("Code");
+        publishedWarning.GetProperty("message").GetString().Should().Be("Message");
+    }
+
+    [Fact]
     [Trait("Category", "Contract")]
     public void GIVEN_UnattributedEnum_WHEN_SerializingSuccess_THEN_ShouldPublishStringValue()
     {
@@ -60,6 +76,27 @@ public sealed class ToolResultEnvelopeSerializerTests
         var data = result.GetProperty("data");
         data.GetProperty("summary").GetString().Should().Be("Summary");
         data.TryGetProperty("transaction", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_MutationWarnings_WHEN_Serializing_THEN_ShouldPublishWarnings()
+    {
+        var currentSnapshot = WorkspaceSnapshotTestFactory.CreatePrecondition(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
+        var warning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = ToolResultEnvelopeSerializer.CreateMutationSuccess(
+            data: null,
+            staged: false,
+            currentSnapshot: currentSnapshot,
+            warnings: [warning]);
+
+        result.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
     }
 
     [Fact]

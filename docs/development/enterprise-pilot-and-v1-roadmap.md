@@ -153,6 +153,8 @@ Provider allow-listing may follow once the exposed identity has proved stable ac
 
 Retain the existing rejection of `obj`, external and non-source mutations. Define how checked-in files that appear generated are classified, including generated filename conventions, auto-generated headers and repository-specific exceptions. Because these signals are heuristic and some generated source is intentionally checked in, the default may combine denial for deterministic intermediate/source-generated documents with warning or configurable policy for generated-looking source files.
 
+The approved implementation is recorded in [Generated-source policy](generated-source-policy.md). It retains deterministic hard denials, centralises bounded generated-looking classification, defaults checked-in generated-looking source to a structured warning, provides an operator-selected deny policy and Workspace-relative exceptions, and reuses transaction confirmation or receipt approval without adding elicitation.
+
 ## Priority 1: ratify guarantees and distribution assurance
 
 ### 9. Publish final security invariants and evidence mapping

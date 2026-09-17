@@ -46,6 +46,16 @@ internal sealed class StartupOptions
     public string ExternalDocumentPolicy { get; set; } = "allow-read-only";
 
     /// <summary>
+    /// Gets or sets the policy applied to generated-looking checked-in source.
+    /// </summary>
+    public string GeneratedSourcePolicy { get; set; } = "warn";
+
+    /// <summary>
+    /// Gets or sets Workspace-relative wildcard patterns exempted from generated-source classification.
+    /// </summary>
+    public IReadOnlyList<string> GeneratedSourceExceptions { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the directories searched for plugin packages during startup.
     /// </summary>
     public IReadOnlyList<string> PluginDirectories { get; set; } = [];

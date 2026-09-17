@@ -495,7 +495,7 @@ public sealed class PrepareFixAllToolTests
                 roslyn.Solution,
                 "WorkspaceRoot",
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Succeeded(roslyn.Solution));
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Succeeded(roslyn.Solution, warnings: []));
 
         _solutionChangeCounter
             .Setup(item => item.GetChangedSourceDocumentsAsync(

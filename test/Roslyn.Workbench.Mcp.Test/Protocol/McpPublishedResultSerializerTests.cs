@@ -14,6 +14,28 @@ public sealed class McpPublishedResultSerializerTests
     }
 
     [Fact]
+    public void GIVEN_SuccessfulPluginMutationWithWarning_WHEN_Serializing_THEN_ShouldPublishWarning()
+    {
+        var mutation = new MutationData
+        {
+            Snapshot = CreateSnapshot(),
+            Summary = "Summary",
+        };
+
+        var warning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = PluginExecutionResult.Success(mutation, warnings: [warning]);
+
+        var published = McpPublishedResultSerializer.SerializePluginMutation(result, CreateSnapshot());
+
+        published.GetProperty("warnings")[0].GetProperty("code").GetString().Should().Be("Code");
+    }
+
+    [Fact]
     public void GIVEN_NonErrorFailureResult_WHEN_SerializingFailure_THEN_ShouldThrowInvalidOperationException()
     {
         var result = new ToolExecutionFailureResult

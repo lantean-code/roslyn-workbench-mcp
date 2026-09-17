@@ -46,6 +46,40 @@ internal static class StartupOptionsRules
     }
 
     /// <summary>
+    /// Determines whether a generated-source policy value is supported.
+    /// </summary>
+    /// <param name="value">The configured policy value.</param>
+    /// <returns><see langword="true"/> when the value is supported; otherwise, <see langword="false"/>.</returns>
+    public static bool IsSupportedGeneratedSourcePolicy(string value)
+    {
+        return value is "warn" or "deny";
+    }
+
+    /// <summary>
+    /// Determines whether every generated-source exception is a non-rooted Workspace-relative pattern.
+    /// </summary>
+    /// <param name="values">The configured exception patterns.</param>
+    /// <returns><see langword="true"/> when every pattern is safe to match against a Workspace-relative path; otherwise, <see langword="false"/>.</returns>
+    public static bool AreValidGeneratedSourceExceptions(IReadOnlyList<string> values)
+    {
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value) || Path.IsPathRooted(value))
+            {
+                return false;
+            }
+
+            var segments = value.Replace('\\', '/').Split('/');
+            if (segments.Any(static segment => segment is "." or ".."))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Gets the maximum Code Action reference lifetime.
     /// </summary>
     public static TimeSpan MaximumCodeActionReferenceLifetime { get; } = TimeSpan.FromDays(1);

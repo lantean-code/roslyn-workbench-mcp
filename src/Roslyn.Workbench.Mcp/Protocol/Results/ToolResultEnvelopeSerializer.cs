@@ -16,11 +16,13 @@ internal static class ToolResultEnvelopeSerializer
     /// </summary>
     /// <param name="data">The successful response payload.</param>
     /// <param name="snapshot">The exact immutable workspace snapshot, when available.</param>
+    /// <param name="warnings">The warnings associated with the successful response.</param>
     /// <returns>The structured JSON payload.</returns>
     /// <typeparam name="TData">The successful response payload type.</typeparam>
     public static JsonElement CreateSuccess<TData>(
         TData? data,
-        SnapshotPrecondition? snapshot = null)
+        SnapshotPrecondition? snapshot = null,
+        IReadOnlyList<WarningInfo>? warnings = null)
     {
         return BuildPayload(writer =>
         {
@@ -38,6 +40,7 @@ internal static class ToolResultEnvelopeSerializer
             }
 
             WriteSnapshot(writer, snapshot);
+            WriteWarnings(writer, warnings);
 
             writer.WriteEndObject();
         });
@@ -60,11 +63,13 @@ internal static class ToolResultEnvelopeSerializer
     /// <param name="data">The successful mutation payload.</param>
     /// <param name="staged">Whether the mutation produced staged transaction changes.</param>
     /// <param name="currentSnapshot">The snapshot acquired before invoking the mutation handler.</param>
+    /// <param name="warnings">The warnings associated with the successful mutation.</param>
     /// <returns>The structured JSON payload.</returns>
     public static JsonElement CreateMutationSuccess(
         MutationData? data,
         bool staged,
-        SnapshotPrecondition currentSnapshot)
+        SnapshotPrecondition currentSnapshot,
+        IReadOnlyList<WarningInfo>? warnings = null)
     {
         var snapshot = staged && data is not null
             ? data.Snapshot
@@ -92,6 +97,7 @@ internal static class ToolResultEnvelopeSerializer
 
             writer.WriteEndObject();
             WriteSnapshot(writer, snapshot);
+            WriteWarnings(writer, warnings);
             writer.WriteEndObject();
         });
     }
@@ -138,11 +144,7 @@ internal static class ToolResultEnvelopeSerializer
                 JsonSerializer.Serialize(writer, diagnostics, _serializerOptions);
             }
 
-            if (warnings is { Count: > 0 })
-            {
-                writer.WritePropertyName("warnings");
-                JsonSerializer.Serialize(writer, warnings, _serializerOptions);
-            }
+            WriteWarnings(writer, warnings);
 
             writer.WriteEndObject();
         });
@@ -213,6 +215,17 @@ internal static class ToolResultEnvelopeSerializer
         }
 
         throw new InvalidOperationException($"Published response type '{typeof(TData).FullName}' must serialize as a JSON object.");
+    }
+
+    private static void WriteWarnings(Utf8JsonWriter writer, IReadOnlyList<WarningInfo>? warnings)
+    {
+        if (warnings is not { Count: > 0 })
+        {
+            return;
+        }
+
+        writer.WritePropertyName("warnings");
+        JsonSerializer.Serialize(writer, warnings, _serializerOptions);
     }
 
     private static void WriteSnapshot(

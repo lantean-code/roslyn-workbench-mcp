@@ -9,6 +9,7 @@ public sealed class TransactionReviewDocumentFactoryTests : IDisposable
     private readonly Mock<IWorkspacePathComparison> _pathComparison = new();
     private readonly Mock<IFileSystem> _fileSystem = new();
     private readonly Mock<IPath> _path = new();
+    private readonly Mock<IGeneratedSourceClassifier> _generatedSourceClassifier = new();
     private readonly TransactionReviewDocumentFactory _target;
 
     public TransactionReviewDocumentFactoryTests()
@@ -26,11 +27,21 @@ public sealed class TransactionReviewDocumentFactoryTests : IDisposable
             .Setup(item => item.GetRelativePath("/workspace", It.IsAny<string>()))
             .Returns((string _, string value) => value["/workspace/".Length..].Replace('/', '\\'));
 
-        _target = new TransactionReviewDocumentFactory(_pathComparison.Object, _fileSystem.Object);
+        _generatedSourceClassifier
+            .Setup(item => item.IsGeneratedLookingAsync(
+                It.IsAny<Document>(),
+                "/workspace",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _target = new TransactionReviewDocumentFactory(
+            _pathComparison.Object,
+            _fileSystem.Object,
+            _generatedSourceClassifier.Object);
     }
 
     [Fact]
-    public void GIVEN_ExactPlanAndChangeSummary_WHEN_ProjectingDocuments_THEN_ShouldReturnCanonicalEntries()
+    public async Task GIVEN_ExactPlanAndChangeSummary_WHEN_ProjectingDocuments_THEN_ShouldReturnCanonicalEntries()
     {
         var session = CreateSession();
         var entries = new[]
@@ -56,7 +67,11 @@ public sealed class TransactionReviewDocumentFactoryTests : IDisposable
             Deleted = [new DocumentChange { Document = null, Preview = null }],
         };
 
-        var result = _target.Create(session, plan, changes);
+        var result = await _target.CreateAsync(
+            session,
+            plan,
+            changes,
+            TestContext.Current.CancellationToken);
 
         result.Select(item => item.Path).Should().Equal("Alpha.cs", "Z.cs");
         result[0].IntendedUnixFileMode.Should().BeNull();
@@ -68,26 +83,108 @@ public sealed class TransactionReviewDocumentFactoryTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_NoChangeSummary_WHEN_ProjectingDocuments_THEN_ShouldOmitLineSummary()
+    public async Task GIVEN_NoChangeSummary_WHEN_ProjectingDocuments_THEN_ShouldOmitLineSummary()
     {
         var session = CreateSession();
         var plan = CreatePlan([CreateEntry("/workspace/Z.cs", intendedUnixFileMode: null)]);
 
-        var result = _target.Create(session, plan, changes: null);
+        var result = await _target.CreateAsync(
+            session,
+            plan,
+            changes: null,
+            TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result[0].LineSummary.Should().BeNull();
     }
 
     [Fact]
-    public void GIVEN_NoActiveTransaction_WHEN_ProjectingDocumentOwners_THEN_ShouldRejectInvalidState()
+    public async Task GIVEN_GeneratedLookingDocument_WHEN_ProjectingDocuments_THEN_ShouldSetGeneratedClassification()
+    {
+        var session = CreateSession();
+        var plan = CreatePlan([CreateEntry("/workspace/Z.cs", intendedUnixFileMode: null)]);
+        _generatedSourceClassifier
+            .Setup(item => item.IsGeneratedLookingAsync(
+                It.Is<Document>(document => document.FilePath == "/workspace/Z.cs"),
+                "/workspace",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await _target.CreateAsync(
+            session,
+            plan,
+            changes: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle();
+        result[0].Classification.Should().Be("generated-looking-source");
+    }
+
+    [Fact]
+    public async Task GIVEN_DeletedGeneratedLookingDocument_WHEN_ProjectingDocuments_THEN_ShouldClassifyBaselineDocument()
+    {
+        var session = CreateSession();
+        var transaction = session.Transaction
+            ?? throw new InvalidOperationException("The test session must contain a transaction.");
+
+        var documentIds = transaction.BaselineSolution.Projects
+            .SelectMany(static project => project.Documents)
+            .Where(static document => document.FilePath == "/workspace/Z.cs")
+            .Select(static document => document.Id)
+            .ToArray();
+
+        var candidateSolution = documentIds.Aggregate(
+            transaction.BaselineSolution,
+            static (solution, documentId) => solution.RemoveDocument(documentId));
+
+        var appendResult = transaction.Append(new WorkspaceTransactionRevision
+        {
+            SnapshotId = WorkspaceSnapshotTestFactory.CreateId(2),
+            Solution = candidateSolution,
+            Changes = new ChangeSummary(),
+            Operation = "Delete generated source",
+            Summary = "Delete generated source",
+            Preview = new MutationPreview { Summary = "Delete generated source" },
+        });
+
+        session = session with
+        {
+            CurrentSolution = candidateSolution,
+            Transaction = appendResult.Transaction,
+        };
+
+        _generatedSourceClassifier
+            .Setup(item => item.IsGeneratedLookingAsync(
+                It.Is<Document>(document => document.FilePath == "/workspace/Z.cs"),
+                "/workspace",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var plan = CreatePlan([CreateEntry("/workspace/Z.cs", intendedUnixFileMode: null)]);
+
+        var result = await _target.CreateAsync(
+            session,
+            plan,
+            changes: null,
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle();
+        result[0].Classification.Should().Be("generated-looking-source");
+    }
+
+    [Fact]
+    public async Task GIVEN_NoActiveTransaction_WHEN_ProjectingDocumentOwners_THEN_ShouldRejectInvalidState()
     {
         var session = CreateSession() with { Transaction = null };
         var plan = CreatePlan([CreateEntry("/workspace/Z.cs", intendedUnixFileMode: null)]);
 
-        var action = () => _target.Create(session, plan, changes: null);
+        var action = async () => await _target.CreateAsync(
+            session,
+            plan,
+            changes: null,
+            TestContext.Current.CancellationToken);
 
-        action.Should().Throw<InvalidOperationException>();
+        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     public void Dispose()

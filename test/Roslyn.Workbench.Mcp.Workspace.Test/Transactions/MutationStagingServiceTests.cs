@@ -51,7 +51,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 Solution candidateSolution,
                 string _,
                 CancellationToken _) => ValueTask.FromResult(
-                    WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution)));
+                    WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution, warnings: [])));
 
         _target = new MutationStagingService(
             Options.Create(new WorkspaceOptions { SourceMutationEnabled = true }),
@@ -532,6 +532,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var changes = new ChangeSummary();
         var handlerWarning = new WarningInfo { Code = "HandlerWarning", Message = "Message" };
         var proposalWarning = new WarningInfo { Code = "ProposalWarning", Message = "Message" };
+        var processorWarning = new WarningInfo { Code = "ProcessorWarning", Message = "Message" };
         var provider = new MutationProviderIdentity
         {
             TypeName = "Provider.Type",
@@ -566,8 +567,16 @@ public sealed class MutationStagingServiceTests : IDisposable
                     && context.Snapshot.SnapshotId == WorkspaceSnapshotTestFactory.CreateGuid(3)
                     && context.Snapshot.TransactionRevision == 1),
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
-                It.Is<IReadOnlyList<WarningInfo>>(items => items.SequenceEqual(new[] { handlerWarning, proposalWarning }))))
+                It.Is<IReadOnlyList<WarningInfo>>(items => items.SequenceEqual(new[] { handlerWarning, proposalWarning, processorWarning }))))
             .Returns(expected);
+
+        _candidateProcessor
+            .Setup(item => item.ProcessAsync(
+                currentSolution,
+                candidateSolution,
+                "WorkspaceRoot",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkspaceMutationCandidateProcessingResult.Succeeded(candidateSolution, [processorWarning]));
 
         var result = await _target.StageAsync(
             "OperationName",

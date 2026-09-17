@@ -20,6 +20,7 @@ internal sealed class TransactionService : ITransactionService
     private readonly ITransactionCompilerValidationService? _compilerValidationService;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+    private readonly IGeneratedSourceMutationInspector _generatedSourceMutationInspector;
 
     private ITransactionReviewBuilder ReviewBuilder => _reviewBuilder
         ?? throw new InvalidOperationException("Transaction review services must be composed when receipt authorisation is required.");
@@ -43,6 +44,7 @@ internal sealed class TransactionService : ITransactionService
     /// <param name="diffBuilder">The builder that calculates source differences between solution snapshots.</param>
     /// <param name="resolverFactory">The factory used to create the required resolver.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="generatedSourceMutationInspector">The component that identifies generated-looking checked-in source changes.</param>
     /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionService(
         IOptions<WorkspaceOptions> options,
@@ -55,6 +57,7 @@ internal sealed class TransactionService : ITransactionService
         IWorkspaceDiffBuilder diffBuilder,
         IWorkspaceResolverFactory resolverFactory,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IGeneratedSourceMutationInspector generatedSourceMutationInspector,
         ITransactionCompilerValidationService? compilerValidationService = null)
     {
         _options = options.Value;
@@ -67,6 +70,7 @@ internal sealed class TransactionService : ITransactionService
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
+        _generatedSourceMutationInspector = generatedSourceMutationInspector;
         _compilerValidationService = compilerValidationService;
     }
 
@@ -85,6 +89,7 @@ internal sealed class TransactionService : ITransactionService
     /// <param name="reviewIdentityService">The service that validates transaction review identity bindings.</param>
     /// <param name="resolverFactory">The factory used to create the required resolver.</param>
     /// <param name="instanceStatusPublisher">The publisher that keeps the workspace instance record current.</param>
+    /// <param name="generatedSourceMutationInspector">The component that identifies generated-looking checked-in source changes.</param>
     /// <param name="compilerValidationService">The optional compiler-impact validator composed by Host policy.</param>
     public TransactionService(
         IOptions<WorkspaceOptions> options,
@@ -99,6 +104,7 @@ internal sealed class TransactionService : ITransactionService
         ITransactionReviewIdentityService reviewIdentityService,
         IWorkspaceResolverFactory resolverFactory,
         IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IGeneratedSourceMutationInspector generatedSourceMutationInspector,
         ITransactionCompilerValidationService? compilerValidationService = null)
         : this(
             options,
@@ -111,6 +117,7 @@ internal sealed class TransactionService : ITransactionService
             diffBuilder,
             resolverFactory,
             instanceStatusPublisher,
+            generatedSourceMutationInspector,
             compilerValidationService)
     {
         _reviewBuilder = reviewBuilder;
@@ -348,7 +355,15 @@ internal sealed class TransactionService : ITransactionService
             Diff = diff,
         };
 
-        return _resultFactory.Succeeded(outcome, context);
+        var generatedSourcePaths = await _generatedSourceMutationInspector.FindGeneratedSourcePathsAsync(
+            session.Transaction.BaselineSolution,
+            session.Transaction.CurrentSolution,
+            session.Workspace.WorkspaceRoot,
+            cancellationToken);
+
+        var warnings = GeneratedSourceMutationWarnings.Create(generatedSourcePaths);
+        var resultWarnings = warnings.Count == 0 ? null : warnings;
+        return _resultFactory.Succeeded(outcome, context, warnings: resultWarnings);
     }
 
     /// <summary>
@@ -464,7 +479,14 @@ internal sealed class TransactionService : ITransactionService
                 context);
         }
 
-        return _resultFactory.Succeeded(buildResult.Outcome, context);
+        var generatedSourcePaths = buildResult.Outcome.Documents
+            .Where(static document => document.Classification == "generated-looking-source")
+            .Select(static document => document.Path)
+            .ToArray();
+
+        var warnings = GeneratedSourceMutationWarnings.Create(generatedSourcePaths);
+        var resultWarnings = warnings.Count == 0 ? null : warnings;
+        return _resultFactory.Succeeded(buildResult.Outcome, context, warnings: resultWarnings);
     }
 
     /// <inheritdoc/>

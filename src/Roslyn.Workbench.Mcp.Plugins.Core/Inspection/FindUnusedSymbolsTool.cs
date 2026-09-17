@@ -18,9 +18,11 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         var selectedDocuments = documents.Value.ToArray();
         if (request.ExcludeGenerated)
         {
-            selectedDocuments = documents.Value
-                .Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document))
-                .ToArray();
+            selectedDocuments = await ExcludeGeneratedDocumentsAsync(
+                selectedDocuments,
+                context.ToolExecutionServices.GeneratedSourceClassifier,
+                context.WorkspaceIdentity.WorkspaceRoot,
+                cancellationToken);
         }
 
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken);
@@ -104,6 +106,29 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         };
 
         return PluginExecutionResult.Success(data);
+    }
+
+    private static async ValueTask<Document[]> ExcludeGeneratedDocumentsAsync(
+        Document[] documents,
+        IGeneratedSourceClassifier generatedSourceClassifier,
+        string workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        var selectedDocuments = new List<Document>(documents.Length);
+        foreach (var document in documents)
+        {
+            var isGeneratedLooking = await generatedSourceClassifier.IsGeneratedLookingAsync(
+                document,
+                workspaceRoot,
+                cancellationToken);
+
+            if (!isGeneratedLooking)
+            {
+                selectedDocuments.Add(document);
+            }
+        }
+
+        return selectedDocuments.ToArray();
     }
 
     private static bool IsUnusedDiagnosticId(string diagnosticId)

@@ -72,6 +72,18 @@ internal sealed record ServerConfiguration
     public required string ExternalDocumentPolicy { get; init; }
 
     /// <summary>
+    /// The policy applied to generated-looking checked-in source.
+    /// </summary>
+    [Description("The policy applied to generated-looking checked-in source.")]
+    public required string GeneratedSourcePolicy { get; init; }
+
+    /// <summary>
+    /// The number of configured generated-source path exceptions.
+    /// </summary>
+    [Description("The number of configured generated-source path exceptions.")]
+    public int GeneratedSourceExceptionCount { get; init; }
+
+    /// <summary>
     /// The default maximum collection result count.
     /// </summary>
     [Description("The default maximum collection result count.")]

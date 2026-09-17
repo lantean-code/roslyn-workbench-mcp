@@ -99,12 +99,14 @@ public sealed class TestWorkspaceFixture : IDisposable
             "Shared/SharedClass.cs");
     }
 
-    internal ComponentWorkspace CreateWorkspace()
+    internal ComponentWorkspace CreateWorkspace(ComponentWorkspaceOptions? options = null)
     {
-        return ComponentWorkspace.Create(new ComponentWorkspaceOptions
+        var configuredOptions = (options ?? new ComponentWorkspaceOptions()) with
         {
             StateDirectory = StateRoot,
-        });
+        };
+
+        return ComponentWorkspace.Create(configuredOptions);
     }
 
     public void Dispose()

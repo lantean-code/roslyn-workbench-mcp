@@ -38,6 +38,12 @@ internal static class StartupOptionsResolver
                 "external-document-policy",
                 "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
                 defaults.ExternalDocumentPolicy),
+            GeneratedSourcePolicy = ResolveRequiredScalar(
+                optionMap,
+                "generated-source-policy",
+                "ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY",
+                defaults.GeneratedSourcePolicy),
+            GeneratedSourceExceptions = ResolveGeneratedSourceExceptions(optionMap),
             PluginDirectories = ResolvePluginDirectories(optionMap, pathComparison, warnings),
             DefaultMaxResults = ResolvePositiveInt(
                 optionMap,
@@ -244,6 +250,25 @@ internal static class StartupOptionsResolver
         if (optionMap.TryGetValue(key, out var configuredRoots))
         {
             return configuredRoots
+                .Select(static value => value ?? string.Empty)
+                .ToArray();
+        }
+
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariable);
+        return environmentValue is null
+            ? []
+            : environmentValue.Split(Path.PathSeparator, StringSplitOptions.TrimEntries);
+    }
+
+    private static string[] ResolveGeneratedSourceExceptions(
+        Dictionary<string, List<string?>> optionMap)
+    {
+        const string key = "generated-source-exception";
+        const string environmentVariable = "ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS";
+
+        if (optionMap.TryGetValue(key, out var configuredPatterns))
+        {
+            return configuredPatterns
                 .Select(static value => value ?? string.Empty)
                 .ToArray();
         }

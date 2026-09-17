@@ -1,1 +1,2 @@
 #nullable enable
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.GeneratedSourceClassifier.get -> Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier!

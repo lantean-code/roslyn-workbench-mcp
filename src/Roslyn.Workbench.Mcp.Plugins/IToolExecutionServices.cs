@@ -34,6 +34,11 @@ public interface IToolExecutionServices
     ICompilerDiagnosticService CompilerDiagnosticService { get; }
 
     /// <summary>
+    /// Gets the Host-configured classifier for generated-looking checked-in source.
+    /// </summary>
+    IGeneratedSourceClassifier GeneratedSourceClassifier { get; }
+
+    /// <summary>
     /// Gets the inspection-context service for tool execution.
     /// </summary>
     IInspectionContextService InspectionContextService { get; }

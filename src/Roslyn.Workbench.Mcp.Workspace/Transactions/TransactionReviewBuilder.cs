@@ -73,7 +73,12 @@ internal sealed class TransactionReviewBuilder : ITransactionReviewBuilder
             resolver,
             cancellationToken);
 
-        var documents = _documentFactory.Create(session, planningResult.Plan, changes);
+        var documents = await _documentFactory.CreateAsync(
+            session,
+            planningResult.Plan,
+            changes,
+            cancellationToken);
+
         var identity = _identityService.Create(session, documents);
         var diff = await CreateDiffAsync(
             transaction,

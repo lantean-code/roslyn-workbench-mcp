@@ -1,2 +1,4 @@
 #nullable enable
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReviewTransaction = 10 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier
+Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier.IsGeneratedLookingAsync(Microsoft.CodeAnalysis.Document! document, string! workspaceRoot, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

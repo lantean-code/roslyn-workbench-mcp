@@ -12,6 +12,8 @@ public sealed class StartupOptionsResolverTests
         "ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION",
         "ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS",
         "ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY",
+        "ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY",
+        "ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
         "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
         "ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SIZE_LIMIT",
@@ -61,6 +63,8 @@ public sealed class StartupOptionsResolverTests
             result.Options.ExternalPluginsConfigurationError.Should().BeNull();
             result.Options.AllowedWorkspaceRoots.Should().BeEmpty();
             result.Options.ExternalDocumentPolicy.Should().Be("allow-read-only");
+            result.Options.GeneratedSourcePolicy.Should().Be("warn");
+            result.Options.GeneratedSourceExceptions.Should().BeEmpty();
             result.Options.DefaultMaxResults.Should().Be(100);
             result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(5));
             result.Options.WorkspaceQueryCacheSizeLimit.Should().Be(10_000);
@@ -413,6 +417,56 @@ public sealed class StartupOptionsResolverTests
             ]);
 
             result.Options.ExternalDocumentPolicy.Should().Be("reject-workspace");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_GeneratedSourcePolicyAndRepeatedExceptions_WHEN_Resolving_THEN_ShouldUseCommandLineValues()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY", "warn");
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS", "environment/**");
+
+            var result = Resolve(
+            [
+                "--generated-source-policy=deny",
+                "--generated-source-exception=Generated/*.g.cs",
+                "--generated-source-exception",
+                "Legacy/*.designer.cs",
+            ]);
+
+            result.Options.GeneratedSourcePolicy.Should().Be("deny");
+            result.Options.GeneratedSourceExceptions.Should().Equal("Generated/*.g.cs", "Legacy/*.designer.cs");
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_GeneratedSourceEnvironmentValues_WHEN_Resolving_THEN_ShouldUseEnvironmentValues()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY", "deny");
+            Environment.SetEnvironmentVariable(
+                "ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS",
+                $"Generated/*.g.cs{Path.PathSeparator}Legacy/*.designer.cs");
+
+            var result = Resolve([]);
+
+            result.Options.GeneratedSourcePolicy.Should().Be("deny");
+            result.Options.GeneratedSourceExceptions.Should().Equal("Generated/*.g.cs", "Legacy/*.designer.cs");
         }
         finally
         {

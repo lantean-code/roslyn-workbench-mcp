@@ -21,6 +21,16 @@ internal sealed class WorkspaceOptions
     public bool CompilerValidationRequired { get; set; }
 
     /// <summary>
+    /// Gets or sets how generated-looking checked-in source is handled by mutation workflows.
+    /// </summary>
+    public GeneratedSourcePolicy GeneratedSourcePolicy { get; set; } = GeneratedSourcePolicy.Warn;
+
+    /// <summary>
+    /// Gets or sets Workspace-relative wildcard patterns exempted from generated-source classification.
+    /// </summary>
+    public IReadOnlyList<string> GeneratedSourceExceptions { get; set; } = [];
+
+    /// <summary>
     /// Gets the maximum number of concurrent query leases.
     /// </summary>
     public int MaxConcurrentQueries { get; set; } = 2;

@@ -61,6 +61,19 @@ public sealed class TransactionReviewIdentityServiceTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_DocumentClassificationChanges_WHEN_CreatingIdentity_THEN_ShouldChangeDigest()
+    {
+        var session = CreateSession();
+        var document = CreateDocument("Sample.cs", "OriginalHash");
+        var classifiedDocument = document with { Classification = "generated-looking-source" };
+
+        var original = _target.Create(session, [document]);
+        var classified = _target.Create(session, [classifiedDocument]);
+
+        classified.ChangeSetDigest.Should().NotBe(original.ChangeSetDigest);
+    }
+
+    [Fact]
     public void GIVEN_NullableAndFalseDocumentValues_WHEN_CreatingIdentity_THEN_ShouldCreateDigest()
     {
         var session = CreateSession();

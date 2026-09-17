@@ -145,6 +145,8 @@ internal sealed class ServerStatusService : IServerStatusService
                 ExternalDocumentPolicy.RejectWorkspace => "reject-workspace",
                 _ => throw new InvalidOperationException("The external-document policy is not supported."),
             },
+            GeneratedSourcePolicy = _startupOptions.GeneratedSourcePolicy,
+            GeneratedSourceExceptionCount = _startupOptions.GeneratedSourceExceptions.Count,
             DefaultMaxResults = _startupOptions.DefaultMaxResults,
             CodeActionReferenceLifetime = _startupOptions.CodeActionReferenceLifetime,
             MaxTransactionRevisions = _startupOptions.MaxTransactionRevisions,

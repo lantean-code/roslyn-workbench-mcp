@@ -111,6 +111,11 @@ internal static class WorkspaceErrorCodes
     public const string MutationCandidateChanged = "MutationCandidateChanged";
 
     /// <summary>
+    /// A mutation targets generated-looking checked-in source denied by Host policy.
+    /// </summary>
+    public const string GeneratedSourceMutationDenied = "GeneratedSourceMutationDenied";
+
+    /// <summary>
     /// Indicates that transaction receipt review is not enabled by Host policy.
     /// </summary>
     public const string TransactionReviewUnavailable = "TransactionReviewUnavailable";

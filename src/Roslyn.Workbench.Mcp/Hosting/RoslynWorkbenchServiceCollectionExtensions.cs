@@ -35,6 +35,8 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.PluginDirectories = startupOptions.PluginDirectories;
                 options.AllowedWorkspaceRoots = startupOptions.AllowedWorkspaceRoots;
                 options.ExternalDocumentPolicy = startupOptions.ExternalDocumentPolicy;
+                options.GeneratedSourcePolicy = startupOptions.GeneratedSourcePolicy;
+                options.GeneratedSourceExceptions = startupOptions.GeneratedSourceExceptions;
                 options.DefaultMaxResults = startupOptions.DefaultMaxResults;
                 options.CodeActionReferenceLifetime = startupOptions.CodeActionReferenceLifetime;
                 options.WorkspaceQueryCacheSizeLimit = startupOptions.WorkspaceQueryCacheSizeLimit;
@@ -78,6 +80,13 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.SourceMutationEnabled = operationalPolicy.SourceMutationEnabled;
                 options.ReceiptAuthorisationRequired = operationalPolicy.CommitAuthorisation == CommitAuthorisationPolicy.ReceiptApproval;
                 options.CompilerValidationRequired = operationalPolicy.CompilerValidationRequired;
+                options.GeneratedSourcePolicy = configured.GeneratedSourcePolicy switch
+                {
+                    "warn" => GeneratedSourcePolicy.Warn,
+                    "deny" => GeneratedSourcePolicy.Deny,
+                    _ => throw new InvalidOperationException("Validated generated-source policy is not supported."),
+                };
+                options.GeneratedSourceExceptions = configured.GeneratedSourceExceptions;
                 options.DefaultMaxResults = configured.DefaultMaxResults;
                 options.MaxConcurrentQueries = configured.MaxConcurrentQueries;
                 options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
@@ -160,6 +169,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSelectorFactory, WorkspaceSelectorFactory>();
         services.AddSingleton<IAddressableDocumentEligibility, AddressableDocumentEligibility>();
+        services.AddSingleton<IGeneratedSourceClassifier, GeneratedSourceClassifier>();
         services.AddSingleton<IReferenceDiscoveryService, ReferenceDiscoveryService>();
         services.AddSingleton<ITypeHierarchyService, TypeHierarchyService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
@@ -181,6 +191,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IRelocatedDocumentProjectContextPropagator, RelocatedDocumentProjectContextPropagator>();
         services.AddSingleton<IRemovedDocumentProjectContextPropagator, RemovedDocumentProjectContextPropagator>();
         services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
+        services.AddSingleton<IGeneratedSourceMutationInspector, GeneratedSourceMutationInspector>();
         services.AddSingleton<IWorkspaceMutationCandidateProcessor, WorkspaceMutationCandidateProcessor>();
         services.AddSingleton<IWorkspaceMutationCandidateIdentityService, WorkspaceMutationCandidateIdentityService>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();

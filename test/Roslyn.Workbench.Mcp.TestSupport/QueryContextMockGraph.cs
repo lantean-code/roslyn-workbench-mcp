@@ -59,6 +59,11 @@ public sealed record QueryContextMockGraph
     public Mock<ITypeHierarchyService> TypeHierarchyService { get; }
 
     /// <summary>
+    /// Gets the generated-source classifier mock.
+    /// </summary>
+    public Mock<IGeneratedSourceClassifier> GeneratedSourceClassifier { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="QueryContextMockGraph"/> class.
     /// </summary>
     /// <param name="queryContext">The query context mock.</param>
@@ -71,6 +76,7 @@ public sealed record QueryContextMockGraph
     /// <param name="queryResultCache">The invocation query-result cache mock.</param>
     /// <param name="referenceDiscoveryService">The reference discovery service mock.</param>
     /// <param name="typeHierarchyService">The type-hierarchy service mock.</param>
+    /// <param name="generatedSourceClassifier">The generated-source classifier mock.</param>
     public QueryContextMockGraph(
         Mock<IQueryContext> queryContext,
         Mock<IWorkspaceResolver> workspaceResolver,
@@ -81,7 +87,8 @@ public sealed record QueryContextMockGraph
         Mock<IWorkspaceSelectorFactory> workspaceSelectorFactory,
         Mock<IQueryResultCache> queryResultCache,
         Mock<IReferenceDiscoveryService> referenceDiscoveryService,
-        Mock<ITypeHierarchyService> typeHierarchyService)
+        Mock<ITypeHierarchyService> typeHierarchyService,
+        Mock<IGeneratedSourceClassifier> generatedSourceClassifier)
     {
         QueryContext = queryContext;
         WorkspaceResolver = workspaceResolver;
@@ -93,5 +100,6 @@ public sealed record QueryContextMockGraph
         QueryResultCache = queryResultCache;
         ReferenceDiscoveryService = referenceDiscoveryService;
         TypeHierarchyService = typeHierarchyService;
+        GeneratedSourceClassifier = generatedSourceClassifier;
     }
 }

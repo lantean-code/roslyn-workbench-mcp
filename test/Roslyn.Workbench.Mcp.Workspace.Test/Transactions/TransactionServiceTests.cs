@@ -21,6 +21,7 @@ public sealed class TransactionServiceTests : IDisposable
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
+    private readonly Mock<IGeneratedSourceMutationInspector> _generatedSourceMutationInspector;
     private readonly TransactionService _target;
 
     public TransactionServiceTests()
@@ -48,6 +49,15 @@ public sealed class TransactionServiceTests : IDisposable
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
+        _generatedSourceMutationInspector = new Mock<IGeneratedSourceMutationInspector>();
+        _generatedSourceMutationInspector
+            .Setup(item => item.FindGeneratedSourcePathsAsync(
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         _target = new TransactionService(
             Options.Create(new WorkspaceOptions
             {
@@ -66,6 +76,7 @@ public sealed class TransactionServiceTests : IDisposable
             _reviewIdentityService.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object,
+            _generatedSourceMutationInspector.Object,
             _compilerValidationService.Object);
     }
 
@@ -248,7 +259,8 @@ public sealed class TransactionServiceTests : IDisposable
             _commitService.Object,
             _diffBuilder.Object,
             _resolverFactory.Object,
-            _instanceStatusPublisher.Object);
+            _instanceStatusPublisher.Object,
+            _generatedSourceMutationInspector.Object);
 
         var result = await target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
 
@@ -272,7 +284,8 @@ public sealed class TransactionServiceTests : IDisposable
             _commitService.Object,
             _diffBuilder.Object,
             _resolverFactory.Object,
-            _instanceStatusPublisher.Object);
+            _instanceStatusPublisher.Object,
+            _generatedSourceMutationInspector.Object);
 
         var transaction = CreateTransaction();
         var session = CreateSession(transaction);
@@ -753,7 +766,7 @@ public sealed class TransactionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_TransactionAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryWithoutResolvingDocument()
+    public async Task GIVEN_GeneratedSourceAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryAndWarningWithoutResolvingDocument()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
@@ -787,11 +800,20 @@ public sealed class TransactionServiceTests : IDisposable
             _resolver.Object,
             TestContext.Current.CancellationToken)).ReturnsAsync(changes);
 
+        _generatedSourceMutationInspector
+            .Setup(item => item.FindGeneratedSourcePathsAsync(
+                transaction.BaselineSolution,
+                transaction.CurrentSolution,
+                session.Workspace.WorkspaceRoot,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(["Generated.g.cs"]);
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<TransactionPreviewOutcome>(outcome => outcome.Documents.Count == 3 && outcome.Diff == null),
             It.IsAny<WorkspaceOperationContext>(),
             null,
-            null)).Returns(expected);
+            It.Is<IReadOnlyList<WarningInfo>>(warnings => HasGeneratedSourceWarning(warnings))))
+            .Returns(expected);
 
         var result = await _target.PreviewAsync(
             null,
@@ -960,6 +982,16 @@ public sealed class TransactionServiceTests : IDisposable
         {
             Identity = identity,
             Transaction = transaction.ToInfo(conflicted: false),
+            Documents =
+            [
+                new TransactionReviewDocument
+                {
+                    Path = "Generated.g.cs",
+                    Operation = WorkspaceFileOperation.Replace,
+                    OriginalExists = true,
+                    Classification = "generated-looking-source",
+                },
+            ],
         };
 
         var expected = CreateResult<TransactionReviewOutcome>();
@@ -970,7 +1002,11 @@ public sealed class TransactionServiceTests : IDisposable
             .ReturnsAsync(TransactionReviewBuildResult.Succeeded(review));
 
         _resultFactory
-            .Setup(item => item.Succeeded(review, It.IsAny<WorkspaceOperationContext>(), null, null))
+            .Setup(item => item.Succeeded(
+                review,
+                It.IsAny<WorkspaceOperationContext>(),
+                null,
+                It.Is<IReadOnlyList<WarningInfo>>(warnings => HasGeneratedSourceWarning(warnings))))
             .Returns(expected);
 
         var result = await _target.ReviewAsync(
@@ -1543,6 +1579,7 @@ public sealed class TransactionServiceTests : IDisposable
             _reviewIdentityService.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object,
+            _generatedSourceMutationInspector.Object,
             _compilerValidationService.Object);
     }
 
@@ -1568,6 +1605,12 @@ public sealed class TransactionServiceTests : IDisposable
                 : [TransactionCompilerValidationIncompleteReason.CompilationUnavailable],
             Limitations = isComplete ? [] : ["Limitation"],
         };
+    }
+
+    private static bool HasGeneratedSourceWarning(IReadOnlyList<WarningInfo> warnings)
+    {
+        return warnings.Count == 1
+            && warnings[0].Code == GeneratedSourceMutationWarnings.WarningCode;
     }
 
     private void SetupSelection(WorkspaceSessionSnapshot session)

@@ -18,6 +18,10 @@ internal sealed record ComponentWorkspaceOptions
 
     public bool CompilerValidationRequired { get; init; }
 
+    public string GeneratedSourcePolicy { get; init; } = "warn";
+
+    public IReadOnlyList<string> GeneratedSourceExceptions { get; init; } = [];
+
     public OperationalMode OperationalMode { get; init; } = OperationalMode.AutonomousTrusted;
 
     public IWorkspaceCommitPlanner? CommitPlanner { get; init; }

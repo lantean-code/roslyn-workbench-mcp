@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 #pragma warning disable CA2263 // These tests verify runtime response-type dispatch through the non-generic schema-provider overload.
 public sealed class ToolSchemaFactoryTests
 {
+    private static readonly string[] _warningRequiredProperties = ["code", "message"];
+
     private readonly Mock<IMcpSdkSchemaProvider> _schemaProvider;
     private readonly ToolSchemaFactory _target;
 
@@ -14,9 +16,14 @@ public sealed class ToolSchemaFactoryTests
         _schemaProvider
             .Setup(item => item.GetValueSchema<ToolError>())
             .Returns(CreateObjectSchema("code"));
+
         _schemaProvider
             .Setup(item => item.GetValueSchema<SnapshotPrecondition>())
             .Returns(CreateObjectSchema("snapshotId"));
+
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<WarningInfo>())
+            .Returns(CreateWarningSchema());
 
         _target = new ToolSchemaFactory(_schemaProvider.Object);
     }
@@ -52,6 +59,7 @@ public sealed class ToolSchemaFactoryTests
 
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
         successVariant.GetProperty("properties").TryGetProperty("snapshot", out _).Should().BeTrue();
+        successVariant.GetProperty("properties").TryGetProperty("warnings", out _).Should().BeTrue();
         var dataSchema = successVariant.GetProperty("properties").GetProperty("data");
         dataSchema.GetRawText().Should().Contain("value");
         AllowsNull(dataSchema).Should().BeTrue();
@@ -60,7 +68,7 @@ public sealed class ToolSchemaFactoryTests
     }
 
     [Fact]
-    public void GIVEN_QueryResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishOkDataAndErrorBranches()
+    public void GIVEN_QueryResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishEnvelopeProperties()
     {
         _schemaProvider
             .Setup(item => item.GetValueSchema(typeof(TestResponse)))
@@ -78,6 +86,7 @@ public sealed class ToolSchemaFactoryTests
         failureVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "error"]);
         var continuation = failureVariant.GetProperty("properties").GetProperty("continuation");
         continuation.GetProperty("oneOf").EnumerateArray().Should().HaveCount(5);
+        AssertWarningSchemas(schema, successVariant, failureVariant);
     }
 
     [Fact]
@@ -101,7 +110,24 @@ public sealed class ToolSchemaFactoryTests
         AllowsNull(data).Should().BeFalse();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");
+        successVariant.GetProperty("properties").TryGetProperty("warnings", out _).Should().BeTrue();
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(MutationData)), Times.Never);
+    }
+
+    private static void AssertWarningSchemas(
+        JsonElement responseSchema,
+        JsonElement successVariant,
+        JsonElement failureVariant)
+    {
+        var successWarnings = successVariant.GetProperty("properties").GetProperty("warnings");
+        var failureWarnings = failureVariant.GetProperty("properties").GetProperty("warnings");
+
+        successWarnings.GetProperty("type").GetString().Should().Be("array");
+        successWarnings.GetProperty("items").GetProperty("$ref").GetString().Should().Be("#/$defs/warningInfo");
+        var warningProperties = responseSchema.GetProperty("$defs").GetProperty("warningInfo").GetProperty("properties");
+        warningProperties.TryGetProperty("code", out _).Should().BeTrue();
+        warningProperties.TryGetProperty("message", out _).Should().BeTrue();
+        failureWarnings.GetRawText().Should().Be(successWarnings.GetRawText());
     }
 
     private static bool AllowsNull(JsonElement propertySchema)
@@ -140,6 +166,20 @@ public sealed class ToolSchemaFactoryTests
         return JsonSerializer.SerializeToElement(new
         {
             type,
+        });
+    }
+
+    private static JsonElement CreateWarningSchema()
+    {
+        return JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            required = _warningRequiredProperties,
+            properties = new
+            {
+                code = new { type = "string" },
+                message = new { type = "string" },
+            },
         });
     }
 

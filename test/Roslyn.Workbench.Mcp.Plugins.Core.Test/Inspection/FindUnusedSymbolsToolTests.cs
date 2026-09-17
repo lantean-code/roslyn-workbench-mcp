@@ -2,10 +2,16 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class FindUnusedSymbolsToolTests
 {
+    private readonly FindUnusedSymbolsTool _target;
+
+    public FindUnusedSymbolsToolTests()
+    {
+        _target = new FindUnusedSymbolsTool();
+    }
+
     [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var expected = PluginExecutionResult.Rejected<UnusedSymbolsData>(new PluginExecutionError
         {
@@ -19,7 +25,7 @@ public sealed class FindUnusedSymbolsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, UnusedSymbolsData>(expected));
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -30,9 +36,14 @@ public sealed class FindUnusedSymbolsToolTests
         using var generatedDocument = RoslynTestFactory.CreateDocument("class Generated {}", "Generated.g.cs");
         using var regularDocument = RoslynTestFactory.CreateDocument("class Regular {}", "Regular.cs");
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
+        queryContextMocks.GeneratedSourceClassifier
+            .Setup(item => item.IsGeneratedLookingAsync(
+                generatedDocument.Document,
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.CompilerDiagnosticService)
@@ -50,7 +61,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             ExcludeGenerated = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -64,7 +75,6 @@ public sealed class FindUnusedSymbolsToolTests
     [Fact]
     public async Task GIVEN_DiagnosticLocationHasNoSourceTree_WHEN_CallingExecuteAsync_THEN_ShouldSkipDiagnostic()
     {
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
 
@@ -84,7 +94,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([Diagnostic.Create(new DiagnosticDescriptor("CS0219", "CS0219", "Message", "Category", Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, isEnabledByDefault: true), Location.None)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
@@ -113,7 +123,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var foreignSyntaxTree = await foreignDocument.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -138,7 +147,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([RoslynTestFactory.CreateDiagnostic("CS0219", foreignSyntaxTree!, 50, 6)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
@@ -157,7 +166,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -183,7 +191,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([RoslynTestFactory.CreateDiagnostic("CS0219", syntaxTree!, start, "Run".Length)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
@@ -199,7 +207,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -224,7 +231,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, 33, 11)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             IncludeInternal = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -243,7 +250,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -281,7 +287,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, start, "unusedField".Length)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "unusedField");
@@ -297,7 +303,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -323,7 +328,7 @@ public sealed class FindUnusedSymbolsToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, start, "unusedField".Length)]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             IncludeInternal = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -343,7 +348,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -383,7 +387,7 @@ public sealed class FindUnusedSymbolsToolTests
                 RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, firstStart, "firstField".Length),
             ]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             CandidatesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -407,7 +411,6 @@ public sealed class FindUnusedSymbolsToolTests
             }
             """);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -453,7 +456,7 @@ public sealed class FindUnusedSymbolsToolTests
                 RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, publicStart, "publicField".Length),
             ]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             IncludeInternal = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -504,7 +507,6 @@ public sealed class FindUnusedSymbolsToolTests
             },
         ]);
 
-        var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
         var firstTree = await solution.GetDocument("First.cs").GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
@@ -550,7 +552,7 @@ public sealed class FindUnusedSymbolsToolTests
                 RoslynTestFactory.CreateDiagnostic("CS0168", secondTree!, catchStart, "ex".Length),
             ]);
 
-        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        var result = await _target.ExecuteAsync(new FindUnusedSymbolsRequest
         {
             IncludeInternal = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);

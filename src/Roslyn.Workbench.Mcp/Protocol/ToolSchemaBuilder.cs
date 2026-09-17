@@ -16,6 +16,8 @@ internal static class ToolSchemaBuilder
     private const string SnapshotDescription = "Exact immutable workspace snapshot associated with the result, when available.";
     private const string ErrorDescription = "Structured error details when the invocation failed.";
     private const string ContinuationDescription = "Action the agent should take before retrying or continuing.";
+    private const string WarningsDescription = "Non-fatal warnings the agent should consider.";
+    private const string PreferredWarningDefinitionName = "warningInfo";
 
     /// <summary>
     /// Creates a success-or-failure schema for a directly published response value.
@@ -24,12 +26,14 @@ internal static class ToolSchemaBuilder
     /// <param name="errorSchema">The schema used for structured tool errors.</param>
     /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
     /// <param name="snapshotSchema">The schema used for the workspace snapshot portion of the response.</param>
+    /// <param name="warningSchema">The schema used for each structured warning.</param>
     /// <returns>The complete output schema, including reusable definitions.</returns>
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
         JsonElement continuationSchema,
-        JsonElement snapshotSchema)
+        JsonElement snapshotSchema,
+        JsonElement warningSchema)
     {
         var successSchema = CreateNullableSuccessSchema(
             valueSchema,
@@ -40,7 +44,8 @@ internal static class ToolSchemaBuilder
             successSchema,
             [valueSchema, snapshotSchema],
             errorSchema,
-            continuationSchema);
+            continuationSchema,
+            warningSchema);
     }
 
     /// <summary>
@@ -50,15 +55,21 @@ internal static class ToolSchemaBuilder
     /// <param name="componentSchemas">The reusable component schemas referenced by the response schema.</param>
     /// <param name="errorSchema">The schema used for structured tool errors.</param>
     /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
+    /// <param name="warningSchema">The schema used for each structured warning.</param>
     /// <returns>The response schema with merged reusable definitions.</returns>
     public static JsonElement CreateResponseSchema(
         JsonObject successSchema,
         IReadOnlyList<JsonElement> componentSchemas,
         JsonElement errorSchema,
-        JsonElement continuationSchema)
+        JsonElement continuationSchema,
+        JsonElement warningSchema)
     {
-        var mergedDefinitions = MergeDefinitions(componentSchemas.Concat([errorSchema, continuationSchema]));
-        var failureSchema = CreateFailureSchema(errorSchema, continuationSchema);
+        var definitionSchemas = componentSchemas.Concat([errorSchema, continuationSchema, warningSchema]);
+        var mergedDefinitions = MergeDefinitions(definitionSchemas);
+        var warningDefinitionName = GetAvailableDefinitionName(mergedDefinitions, PreferredWarningDefinitionName);
+        mergedDefinitions[warningDefinitionName] = ParseNode(warningSchema);
+        AddWarningsSchema(successSchema, warningDefinitionName);
+        var failureSchema = CreateFailureSchema(errorSchema, continuationSchema, warningDefinitionName);
         var alternatives = new JsonArray
         {
             successSchema,
@@ -69,12 +80,8 @@ internal static class ToolSchemaBuilder
         {
             ["type"] = "object",
             ["oneOf"] = alternatives,
+            ["$defs"] = mergedDefinitions,
         };
-
-        if (mergedDefinitions.Count > 0)
-        {
-            root["$defs"] = mergedDefinitions;
-        }
 
         return JsonSerializer.SerializeToElement(root);
     }
@@ -285,7 +292,10 @@ internal static class ToolSchemaBuilder
         };
     }
 
-    private static JsonObject CreateFailureSchema(JsonElement errorSchema, JsonElement continuationSchema)
+    private static JsonObject CreateFailureSchema(
+        JsonElement errorSchema,
+        JsonElement continuationSchema,
+        string warningDefinitionName)
     {
         var okSchema = new JsonObject
         {
@@ -298,6 +308,7 @@ internal static class ToolSchemaBuilder
             ["ok"] = okSchema,
             ["error"] = AddDescription(ParseNode(errorSchema), ErrorDescription),
             ["continuation"] = AddDescription(ParseNode(continuationSchema), ContinuationDescription),
+            ["warnings"] = CreateWarningsSchema(warningDefinitionName),
         };
 
         var requiredProperties = new JsonArray("ok", "error");
@@ -307,6 +318,43 @@ internal static class ToolSchemaBuilder
             ["required"] = requiredProperties,
             ["properties"] = properties,
         };
+    }
+
+    private static void AddWarningsSchema(JsonObject successSchema, string warningDefinitionName)
+    {
+        var properties = successSchema["properties"]?.AsObject()
+            ?? throw new InvalidOperationException("Successful response schema did not contain object properties.");
+
+        properties["warnings"] = CreateWarningsSchema(warningDefinitionName);
+    }
+
+    private static JsonObject CreateWarningsSchema(string warningDefinitionName)
+    {
+        var warningReference = new JsonObject
+        {
+            ["$ref"] = $"#/$defs/{warningDefinitionName}",
+        };
+
+        return new JsonObject
+        {
+            ["type"] = "array",
+            ["description"] = WarningsDescription,
+            ["items"] = warningReference,
+        };
+    }
+
+    private static string GetAvailableDefinitionName(JsonObject definitions, string preferredName)
+    {
+        var definitionName = preferredName;
+        var suffix = 2;
+
+        while (definitions.ContainsKey(definitionName))
+        {
+            definitionName = $"{preferredName}{suffix}";
+            suffix++;
+        }
+
+        return definitionName;
     }
 
     private static JsonObject MergeDefinitions(IEnumerable<JsonElement> schemas)

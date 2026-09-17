@@ -265,6 +265,135 @@ public sealed class MutationTransactionIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_GeneratedSourceAndDefaultWarnPolicy_WHEN_StagingAndPreviewing_THEN_ShouldPublishWarnings()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var (workspace, mutationResult) = await StageGeneratedSourceMutationAsync(target);
+            var previewResult = await PreviewAsync(target, workspace.CreateSelector());
+
+            mutationResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(mutationResult).GetProperty("staged").GetBoolean().Should().BeTrue();
+            AssertGeneratedSourceWarning(mutationResult);
+            previewResult.IsError.Should().NotBeTrue();
+            AssertGeneratedSourceWarning(previewResult);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedSourceAndDenyPolicy_WHEN_Staging_THEN_ShouldRejectMutation()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments: ["--generated-source-policy", "deny"],
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var (_, mutationResult) = await StageGeneratedSourceMutationAsync(target);
+
+            mutationResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(mutationResult)
+                .GetProperty("code")
+                .GetString()
+                .Should()
+                .Be("GeneratedSourceMutationDenied");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedSourceExceptionAndDenyPolicy_WHEN_Staging_THEN_ShouldPublishConfigurationAndPermitMutation()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments:
+            [
+                "--generated-source-policy",
+                "deny",
+                "--generated-source-exception",
+                "Class1.cs",
+            ],
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var statusResult = await target.CallToolAsync(
+                "server-status",
+                new Dictionary<string, object?> { ["detail"] = "Full" },
+                TestContext.Current.CancellationToken);
+
+            var (_, mutationResult) = await StageGeneratedSourceMutationAsync(target);
+            var configuration = AcceptanceProtocol.GetSuccessData(statusResult).GetProperty("configuration");
+
+            configuration.GetProperty("generatedSourcePolicy").GetString().Should().Be("deny");
+            configuration.GetProperty("generatedSourceExceptionCount").GetInt32().Should().Be(1);
+            mutationResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(mutationResult).GetProperty("staged").GetBoolean().Should().BeTrue();
+            mutationResult.StructuredContent.Should().NotBeNull();
+            mutationResult.StructuredContent.GetValueOrDefault().TryGetProperty("warnings", out _).Should().BeFalse();
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_CaseVariantGeneratedSourceException_WHEN_Staging_THEN_ShouldUseFilesystemCaseSemantics()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            additionalArguments:
+            [
+                "--generated-source-policy",
+                "deny",
+                "--generated-source-exception",
+                "class1.cs",
+            ],
+            pluginAssets: [AcceptancePluginAsset.HostMutation]);
+
+        try
+        {
+            var (_, mutationResult) = await StageGeneratedSourceMutationAsync(target);
+
+            if (OperatingSystem.IsWindows())
+            {
+                mutationResult.IsError.Should().NotBeTrue();
+                AcceptanceProtocol.GetSuccessData(mutationResult).GetProperty("staged").GetBoolean().Should().BeTrue();
+            }
+            else
+            {
+                mutationResult.IsError.Should().BeTrue();
+                AcceptanceProtocol.GetError(mutationResult)
+                    .GetProperty("code")
+                    .GetString()
+                    .Should()
+                    .Be("GeneratedSourceMutationDenied");
+            }
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_NoChangeExternalMutation_WHEN_InvokingTool_THEN_ShouldRetainRevisionZero()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
@@ -520,6 +649,52 @@ public sealed class MutationTransactionIntegrationTests
             TestContext.Current.CancellationToken);
 
         result.IsError.Should().NotBeTrue();
+    }
+
+    private static async Task<(AcceptanceWorkspaceIdentity Workspace, ModelContextProtocol.Protocol.CallToolResult MutationResult)> StageGeneratedSourceMutationAsync(
+        AcceptanceProcessFixture target)
+    {
+        var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
+        var existingSource = await File.ReadAllTextAsync(
+            documentPath,
+            TestContext.Current.CancellationToken);
+
+        await File.WriteAllTextAsync(
+            documentPath,
+            $"// <auto-generated/>{Environment.NewLine}{existingSource}",
+            TestContext.Current.CancellationToken);
+
+        var workspace = await OpenWorkspaceAsync(
+            target,
+            Path.Combine(target.WorkspaceRoot, "Sample.csproj"));
+
+        var workspaceSelector = workspace.CreateSelector();
+        await StartTransactionAsync(target, workspaceSelector);
+        var mutationResult = await StageExternalMutationAsync(
+            target,
+            workspaceSelector,
+            workspace.CreateSnapshot(transactionRevision: 0),
+            "Class1.cs",
+            "Class1",
+            "GeneratedClass");
+
+        return (workspace, mutationResult);
+    }
+
+    private static void AssertGeneratedSourceWarning(ModelContextProtocol.Protocol.CallToolResult result)
+    {
+        var structuredContent = result.StructuredContent
+            ?? throw new InvalidOperationException("The MCP result did not contain structured content.");
+
+        var warning = structuredContent
+            .GetProperty("warnings")
+            .EnumerateArray()
+            .Should()
+            .ContainSingle()
+            .Subject;
+
+        warning.GetProperty("code").GetString().Should().Be("GeneratedSourceMutation");
+        warning.GetProperty("message").GetString().Should().Contain("Class1.cs");
     }
 
     private static async Task<ModelContextProtocol.Protocol.CallToolResult> RenameAsync(

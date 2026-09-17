@@ -154,6 +154,25 @@
     },
     "name": "analyze-async",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -447,6 +466,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -604,6 +630,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -819,6 +852,25 @@
     },
     "name": "analyze-control-flow",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -1188,6 +1240,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -1345,6 +1404,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -1550,6 +1616,25 @@
     },
     "name": "analyze-data-flow",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -1977,6 +2062,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -2134,6 +2226,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -2301,6 +2400,25 @@
     },
     "name": "analyze-disposables",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -2674,6 +2792,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -2831,6 +2956,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -3125,6 +3257,25 @@
     },
     "name": "analyze-nullability",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -3418,6 +3569,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -3575,6 +3733,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -3832,6 +3997,25 @@
     },
     "name": "find-callees",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -4145,6 +4329,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -4302,6 +4493,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -4639,6 +4837,25 @@
     },
     "name": "find-callers",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -5033,6 +5250,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -5190,6 +5414,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -5387,6 +5618,25 @@
     },
     "name": "find-dependency-cycles",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -5698,6 +5948,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -5855,6 +6112,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -6187,6 +6451,25 @@
     },
     "name": "find-derived-types",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -6520,6 +6803,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -6677,6 +6967,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -6861,6 +7158,25 @@
     },
     "name": "find-duplicate-code",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -7220,6 +7536,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -7377,6 +7700,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -7702,6 +8032,25 @@
     },
     "name": "find-implementations",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -8015,6 +8364,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -8172,6 +8528,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -8408,6 +8771,25 @@
     },
     "name": "find-overloads",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -8816,6 +9198,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -8973,6 +9362,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -9298,6 +9694,25 @@
     },
     "name": "find-overrides",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -9611,6 +10026,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -9768,6 +10190,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -10099,6 +10528,25 @@
     },
     "name": "find-references",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -10472,6 +10920,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -10629,6 +11084,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -10804,6 +11266,25 @@
     },
     "name": "find-unused-symbols",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -11144,6 +11625,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -11301,6 +11789,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -11439,6 +11934,25 @@
     },
     "name": "format-document",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -11510,6 +12024,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -11667,6 +12188,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -11848,6 +12376,25 @@
     },
     "name": "get-api-surface",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -12149,6 +12696,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -12306,6 +12860,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -12631,6 +13192,25 @@
     },
     "name": "get-change-impact",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -13033,6 +13613,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -13190,6 +13777,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -13433,6 +14027,25 @@
     },
     "name": "get-code-context",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -13841,6 +14454,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -13998,6 +14618,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -14264,6 +14891,25 @@
     },
     "name": "get-control-flow-graph",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -14710,6 +15356,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -14867,6 +15520,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -15055,6 +15715,25 @@
     },
     "name": "get-dependency-graph",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -15409,6 +16088,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -15566,6 +16252,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -15759,6 +16452,25 @@
     },
     "name": "get-diagnostics",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -16043,6 +16755,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -16200,6 +16919,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -16295,6 +17021,25 @@
     },
     "name": "get-document-options",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -16444,6 +17189,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -16601,6 +17353,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -16709,6 +17468,25 @@
     },
     "name": "get-document-outline",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -17049,6 +17827,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -17206,6 +17991,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -17242,6 +18034,25 @@
     },
     "name": "get-error-details",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -17497,6 +18308,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -17653,6 +18471,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -17865,6 +18690,25 @@
     },
     "name": "get-operation-tree",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -18173,6 +19017,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -18330,6 +19181,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -18566,6 +19424,25 @@
     },
     "name": "get-partial-declarations",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -18883,6 +19760,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -19040,6 +19924,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -19154,6 +20045,25 @@
     },
     "name": "get-project-details",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -19467,6 +20377,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -19624,6 +20541,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -19716,6 +20640,25 @@
     },
     "name": "get-solution-structure",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -19967,6 +20910,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -20124,6 +21074,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -20364,6 +21321,25 @@
     },
     "name": "get-symbol-attributes",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -20737,6 +21713,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -20894,6 +21877,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -21134,6 +22124,25 @@
     },
     "name": "get-symbol-dependencies",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -21470,6 +22479,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -21627,6 +22643,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -21952,6 +22975,25 @@
     },
     "name": "get-symbol-dependents",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -22265,6 +23307,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -22422,6 +23471,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -22672,6 +23728,25 @@
     },
     "name": "get-symbol-info",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -23174,6 +24249,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -23331,6 +24413,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -23575,6 +24664,25 @@
     },
     "name": "get-symbol-members",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -23888,6 +24996,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -24045,6 +25160,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -24373,6 +25495,25 @@
     },
     "name": "get-test-impact",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -24738,6 +25879,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -24895,6 +26043,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -25162,6 +26317,25 @@
     },
     "name": "get-type-hierarchy",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -25572,6 +26746,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -25729,6 +26910,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -25965,6 +27153,25 @@
     },
     "name": "go-to-definition",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -26309,6 +27516,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -26466,6 +27680,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -26642,6 +27863,25 @@
     },
     "name": "list-code-actions",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -26892,6 +28132,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27049,6 +28296,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27085,6 +28339,25 @@
     },
     "name": "prepare-error-report",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -27176,6 +28449,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27332,6 +28612,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27448,6 +28735,25 @@
     },
     "name": "prepare-fix-all",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -27563,6 +28869,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27720,6 +29033,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -27965,6 +29285,25 @@
     },
     "name": "rename-symbol",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -28036,6 +29375,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -28193,6 +29539,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -28398,6 +29751,25 @@
     },
     "name": "resolve-symbol",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -28845,6 +30217,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -29002,6 +30381,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -29210,6 +30596,25 @@
     },
     "name": "search-symbols",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -29491,6 +30896,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -29648,6 +31060,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -29685,6 +31104,25 @@
     },
     "name": "server-status",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -29788,6 +31226,14 @@
                       "description": "Whether loading external plugin packages was explicitly enabled at startup.",
                       "type": "boolean"
                     },
+                    "generatedSourceExceptionCount": {
+                      "description": "The number of configured generated-source path exceptions.",
+                      "type": "integer"
+                    },
+                    "generatedSourcePolicy": {
+                      "description": "The policy applied to generated-looking checked-in source.",
+                      "type": "string"
+                    },
                     "maxConcurrentQueries": {
                       "description": "The configured maximum concurrent query count.",
                       "type": "integer"
@@ -29825,7 +31271,8 @@
                     "operationalMode",
                     "commitConfirmationState",
                     "workspaceAdmission",
-                    "externalDocumentPolicy"
+                    "externalDocumentPolicy",
+                    "generatedSourcePolicy"
                   ],
                   "type": [
                     "object",
@@ -30252,6 +31699,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -30408,6 +31862,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -30494,6 +31955,25 @@
     },
     "name": "stage-code-action",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -30565,6 +32045,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -30722,6 +32209,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -30757,6 +32251,25 @@
     },
     "name": "submit-error-report",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -30818,6 +32331,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -30974,6 +32494,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -31054,6 +32581,25 @@
     },
     "name": "transaction-commit",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -31147,6 +32693,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -31303,6 +32856,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -31392,6 +32952,25 @@
     },
     "name": "transaction-history",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -31481,6 +33060,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -31637,6 +33223,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -31735,6 +33328,25 @@
     },
     "name": "transaction-preview",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -32048,6 +33660,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32204,6 +33823,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32252,6 +33878,25 @@
     },
     "name": "transaction-rollback",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -32304,6 +33949,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32460,6 +34112,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32508,6 +34167,25 @@
     },
     "name": "transaction-start",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -32597,6 +34275,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32753,6 +34438,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -32801,6 +34493,25 @@
     },
     "name": "workspace-close",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -32852,6 +34563,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33008,6 +34726,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33035,6 +34760,25 @@
     },
     "name": "workspace-list",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -33124,6 +34868,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33280,6 +35031,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33374,6 +35132,25 @@
     },
     "name": "workspace-open",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -33683,6 +35460,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33839,6 +35623,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -33887,6 +35678,25 @@
     },
     "name": "workspace-reload",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -34196,6 +36006,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -34352,6 +36169,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -34409,6 +36233,25 @@
     },
     "name": "workspace-status",
     "outputSchema": {
+      "$defs": {
+        "warningInfo": {
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "properties": {
@@ -34892,6 +36735,13 @@
                 "transactionRevision"
               ],
               "type": "object"
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [
@@ -35048,6 +36898,13 @@
             "ok": {
               "const": false,
               "description": "Whether the tool invocation succeeded."
+            },
+            "warnings": {
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              },
+              "type": "array"
             }
           },
           "required": [

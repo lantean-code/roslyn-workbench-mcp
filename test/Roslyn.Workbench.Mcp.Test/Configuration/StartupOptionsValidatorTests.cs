@@ -201,6 +201,44 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
+    public void GIVEN_UnsupportedGeneratedSourcePolicy_WHEN_Validating_THEN_ShouldFail()
+    {
+        var options = new StartupOptions { GeneratedSourcePolicy = "allow" };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("GeneratedSourcePolicy");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/rooted/*.g.cs")]
+    [InlineData("generated/../source.cs")]
+    [InlineData("generated/./source.cs")]
+    public void GIVEN_InvalidGeneratedSourceException_WHEN_Validating_THEN_ShouldFail(string pattern)
+    {
+        var options = new StartupOptions { GeneratedSourceExceptions = [pattern] };
+
+        var result = _target.Validate(null, options);
+
+        result.Failures.Should().ContainSingle().Which.Should().Contain("GeneratedSourceExceptions");
+    }
+
+    [Fact]
+    public void GIVEN_SupportedGeneratedSourceConfiguration_WHEN_Validating_THEN_ShouldSucceed()
+    {
+        var options = new StartupOptions
+        {
+            GeneratedSourcePolicy = "deny",
+            GeneratedSourceExceptions = ["Generated/*.g.cs"],
+        };
+
+        var result = _target.Validate(null, options);
+
+        result.Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
     public void GIVEN_MinimumCodeActionReferenceCacheSize_WHEN_Validating_THEN_ShouldSucceed()
     {
         var options = new StartupOptions

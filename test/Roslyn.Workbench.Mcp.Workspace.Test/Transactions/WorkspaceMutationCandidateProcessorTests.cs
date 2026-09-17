@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Workspace.Configuration;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class WorkspaceMutationCandidateProcessorTests
@@ -5,6 +8,7 @@ public sealed class WorkspaceMutationCandidateProcessorTests
     private readonly Mock<IAddedDocumentProjectContextPropagator> _addedDocumentProjectContextPropagator;
     private readonly Mock<IWorkspaceMutationCandidateValidator> _candidateValidator;
     private readonly Mock<ILinkedDocumentChangeMerger> _linkedDocumentChangeMerger;
+    private readonly Mock<IGeneratedSourceMutationInspector> _generatedSourceMutationInspector;
     private readonly Mock<IRelocatedDocumentProjectContextPropagator> _relocatedDocumentProjectContextPropagator;
     private readonly Mock<IRemovedDocumentProjectContextPropagator> _removedDocumentProjectContextPropagator;
     private readonly WorkspaceMutationCandidateProcessor _target;
@@ -14,8 +18,17 @@ public sealed class WorkspaceMutationCandidateProcessorTests
         _addedDocumentProjectContextPropagator = new Mock<IAddedDocumentProjectContextPropagator>();
         _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
         _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _generatedSourceMutationInspector = new Mock<IGeneratedSourceMutationInspector>();
         _relocatedDocumentProjectContextPropagator = new Mock<IRelocatedDocumentProjectContextPropagator>();
         _removedDocumentProjectContextPropagator = new Mock<IRemovedDocumentProjectContextPropagator>();
+        _generatedSourceMutationInspector
+            .Setup(item => item.FindGeneratedSourcePathsAsync(
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         _candidateValidator
             .Setup(item => item.Validate(
                 It.IsAny<Solution>(),
@@ -49,6 +62,8 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             _addedDocumentProjectContextPropagator.Object,
             _candidateValidator.Object,
             _linkedDocumentChangeMerger.Object,
+            _generatedSourceMutationInspector.Object,
+            Options.Create(new WorkspaceOptions()),
             _relocatedDocumentProjectContextPropagator.Object,
             _removedDocumentProjectContextPropagator.Object);
     }
@@ -167,8 +182,85 @@ public sealed class WorkspaceMutationCandidateProcessorTests
 
         result.IsSucceeded.Should().BeTrue();
         result.Solution.Should().BeSameAs(mergedSolution);
+        result.Warnings.Should().BeEmpty();
         _candidateValidator.Verify(item => item.Validate(currentSolution, currentSolution, "WorkspaceRoot"), Times.Once);
         _candidateValidator.Verify(item => item.Validate(currentSolution, mergedSolution, "WorkspaceRoot"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedSourceAndWarnPolicy_WHEN_Processing_THEN_ShouldReturnBoundedWarning()
+    {
+        using var workspace = new AdhocWorkspace();
+        var solution = workspace.CurrentSolution;
+        var paths = new[] { "Generated.g.cs" };
+        _linkedDocumentChangeMerger
+            .Setup(item => item.MergeAsync(
+                solution,
+                solution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(LinkedDocumentChangeMergeResult.Succeeded(solution));
+
+        _generatedSourceMutationInspector
+            .Setup(item => item.FindGeneratedSourcePathsAsync(
+                solution,
+                solution,
+                "WorkspaceRoot",
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(paths);
+
+        var result = await _target.ProcessAsync(
+            solution,
+            solution,
+            "WorkspaceRoot",
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeTrue();
+        result.Warnings.Should().ContainSingle().Which.Code.Should().Be(GeneratedSourceMutationWarnings.WarningCode);
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedSourceAndDenyPolicy_WHEN_Processing_THEN_ShouldRejectCandidate()
+    {
+        using var workspace = new AdhocWorkspace();
+        var solution = workspace.CurrentSolution;
+        _linkedDocumentChangeMerger
+            .Setup(item => item.MergeAsync(
+                solution,
+                solution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(LinkedDocumentChangeMergeResult.Succeeded(solution));
+
+        _generatedSourceMutationInspector
+            .Setup(item => item.FindGeneratedSourcePathsAsync(
+                solution,
+                solution,
+                "WorkspaceRoot",
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(["Generated.g.cs"]);
+
+        var options = Options.Create(new WorkspaceOptions
+        {
+            GeneratedSourcePolicy = GeneratedSourcePolicy.Deny,
+        });
+
+        var target = new WorkspaceMutationCandidateProcessor(
+            _addedDocumentProjectContextPropagator.Object,
+            _candidateValidator.Object,
+            _linkedDocumentChangeMerger.Object,
+            _generatedSourceMutationInspector.Object,
+            options,
+            _relocatedDocumentProjectContextPropagator.Object,
+            _removedDocumentProjectContextPropagator.Object);
+
+        var result = await target.ProcessAsync(
+            solution,
+            solution,
+            "WorkspaceRoot",
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.Error?.Code.Should().Be(WorkspaceErrorCodes.GeneratedSourceMutationDenied);
+        result.Error?.Message.Should().Contain("Generated.g.cs");
     }
 
     [Fact]
@@ -233,16 +325,37 @@ public sealed class WorkspaceMutationCandidateProcessorTests
             filePath: documentPath);
 
         var pathComparison = new WorkspacePathComparison();
+        var fileSystem = new FileSystem();
+        var workspaceOptions = Options.Create(new WorkspaceOptions());
         var addressableDocumentEligibility = new AddressableDocumentEligibility(pathComparison);
+        var addedDocumentProjectContextPropagator = new AddedDocumentProjectContextPropagator(pathComparison);
+        var physicalPathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
+        var candidateValidator = new WorkspaceMutationCandidateValidator(
+            addressableDocumentEligibility,
+            physicalPathContainment,
+            pathComparison);
+
+        var generatedSourceClassifier = new GeneratedSourceClassifier(
+            workspaceOptions,
+            pathComparison,
+            fileSystem);
+
+        var generatedSourceMutationInspector = new GeneratedSourceMutationInspector(
+            generatedSourceClassifier,
+            pathComparison,
+            fileSystem);
+
+        var linkedDocumentChangeMerger = new LinkedDocumentChangeMerger();
+        var relocatedDocumentProjectContextPropagator = new RelocatedDocumentProjectContextPropagator(pathComparison);
+        var removedDocumentProjectContextPropagator = new RemovedDocumentProjectContextPropagator(pathComparison);
         var target = new WorkspaceMutationCandidateProcessor(
-            new AddedDocumentProjectContextPropagator(pathComparison),
-            new WorkspaceMutationCandidateValidator(
-                addressableDocumentEligibility,
-                new PhysicalPathContainment(new FileSystem(), pathComparison),
-                pathComparison),
-            new LinkedDocumentChangeMerger(),
-            new RelocatedDocumentProjectContextPropagator(pathComparison),
-            new RemovedDocumentProjectContextPropagator(pathComparison));
+            addedDocumentProjectContextPropagator,
+            candidateValidator,
+            linkedDocumentChangeMerger,
+            generatedSourceMutationInspector,
+            workspaceOptions,
+            relocatedDocumentProjectContextPropagator,
+            removedDocumentProjectContextPropagator);
 
         var result = await target.ProcessAsync(
             currentSolution,

@@ -77,6 +77,8 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 DefaultMaxResults = options.DefaultMaxResults,
                 MaxConcurrentQueries = options.MaxConcurrentQueries,
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
+                GeneratedSourcePolicy = options.GeneratedSourcePolicy,
+                GeneratedSourceExceptions = options.GeneratedSourceExceptions,
                 StateDirectory = stateDirectory,
             };
 

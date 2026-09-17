@@ -103,10 +103,34 @@ public sealed class ServerStatusServiceTests
         data.Configuration.WorkspaceAdmission.Should().Be("Unrestricted");
         data.Configuration.AllowedWorkspaceRootCount.Should().Be(0);
         data.Configuration.ExternalDocumentPolicy.Should().Be("allow-read-only");
+        data.Configuration.GeneratedSourcePolicy.Should().Be("warn");
+        data.Configuration.GeneratedSourceExceptionCount.Should().Be(0);
         data.Configuration.ErrorReporting!.Provider.Should().Be("Dispatcher");
         data.StartupWarnings.Should().ContainSingle().Which.Should().Be(startupWarning);
         data.Plugins.Should().BeEquivalentTo(pluginSnapshot.Plugins);
         data.Recovery.Should().ContainSingle().Which.Should().Be(recovery);
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedSourceConfiguration_WHEN_GettingFullStatus_THEN_ShouldPublishEffectivePolicy()
+    {
+        var options = new StartupOptions
+        {
+            GeneratedSourcePolicy = "deny",
+            GeneratedSourceExceptions = ["Generated/*.g.cs", "Legacy/*.designer.cs"],
+        };
+
+        _recoveryStore.Setup(item => item.GetStatusesAsync(CancellationToken.None)).ReturnsAsync([]);
+        var target = CreateTarget(options, new PluginCatalogSnapshot());
+
+        var result = await target.GetStatusAsync(
+            StatusDetailLevel.Full,
+            clientSupportsElicitation: null,
+            CancellationToken.None);
+
+        var configuration = result.Data!.Configuration!;
+        configuration.GeneratedSourcePolicy.Should().Be("deny");
+        configuration.GeneratedSourceExceptionCount.Should().Be(2);
     }
 
     [Theory]

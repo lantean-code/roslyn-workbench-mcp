@@ -45,7 +45,7 @@ internal static class McpPublishedResultSerializer
             return SerializePluginFailure(failure);
         }
 
-        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot, result.Warnings);
     }
 
     /// <summary>
@@ -68,7 +68,8 @@ internal static class McpPublishedResultSerializer
         return ToolResultEnvelopeSerializer.CreateMutationSuccess(
             result.Data,
             staged,
-            currentSnapshot);
+            currentSnapshot,
+            result.Warnings);
     }
 
     /// <summary>
@@ -109,7 +110,7 @@ internal static class McpPublishedResultSerializer
             return SerializeCodeActionFailure(failure);
         }
 
-        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data, snapshot, result.Warnings);
     }
 
     /// <summary>
@@ -132,7 +133,8 @@ internal static class McpPublishedResultSerializer
         return ToolResultEnvelopeSerializer.CreateMutationSuccess(
             result.Data,
             staged,
-            currentSnapshot);
+            currentSnapshot,
+            result.Warnings);
     }
 
     private static ToolExecutionFailureResult CreatePluginFailure<TResponse>(

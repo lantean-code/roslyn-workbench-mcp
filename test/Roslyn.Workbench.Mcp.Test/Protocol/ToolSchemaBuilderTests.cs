@@ -92,7 +92,8 @@ public sealed class ToolSchemaBuilderTests
             valueSchema,
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
-            CreateObjectSchema("workspaceId"));
+            CreateObjectSchema("workspaceId"),
+            CreateWarningSchema());
 
         var success = GetSuccessVariant(result);
 
@@ -105,11 +106,13 @@ public sealed class ToolSchemaBuilderTests
         successProperties.GetProperty("ok").GetProperty("description").GetString().Should().Be("Whether the tool invocation succeeded.");
         successProperties.GetProperty("data").GetProperty("description").GetString().Should().Be("Tool-specific result payload.");
         successProperties.GetProperty("snapshot").GetProperty("description").GetString().Should().Be("Exact immutable workspace snapshot associated with the result, when available.");
+        AssertWarningsSchema(result, successProperties.GetProperty("warnings"));
 
         var failure = GetFailureVariant(result);
         var failureProperties = failure.GetProperty("properties");
         failureProperties.GetProperty("error").GetProperty("description").GetString().Should().Be("Structured error details when the invocation failed.");
         failureProperties.GetProperty("continuation").GetProperty("description").GetString().Should().Be("Action the agent should take before retrying or continuing.");
+        AssertWarningsSchema(result, failureProperties.GetProperty("warnings"));
     }
 
     [Fact]
@@ -119,11 +122,12 @@ public sealed class ToolSchemaBuilderTests
             CreatePrimitiveSchema("string"),
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
-            CreateObjectSchema("workspaceId"));
+            CreateObjectSchema("workspaceId"),
+            CreateWarningSchema());
 
         var success = GetSuccessVariant(result);
 
-        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data", "snapshot");
+        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data", "snapshot", "warnings");
         var data = success.GetProperty("properties").GetProperty("data");
         AllowsNull(data).Should().BeTrue();
         data.GetProperty("type").EnumerateArray().Select(static item => item.GetString()).Should().Equal("string", "null");
@@ -131,18 +135,20 @@ public sealed class ToolSchemaBuilderTests
     }
 
     [Fact]
-    public void GIVEN_ResponseWithoutDefinitions_WHEN_CreatingResponseSchema_THEN_ShouldOmitDefinitions()
+    public void GIVEN_ResponseWithoutComponentDefinitions_WHEN_CreatingResponseSchema_THEN_ShouldPublishWarningDefinition()
     {
         var result = ToolSchemaBuilder.CreateResponseSchema(
             new JsonObject
             {
                 ["type"] = "object",
+                ["properties"] = new JsonObject(),
             },
             [],
             CreateObjectSchema("code"),
-            CreatePrimitiveSchema("string"));
+            CreatePrimitiveSchema("string"),
+            CreateWarningSchema());
 
-        result.TryGetProperty("$defs", out _).Should().BeFalse();
+        result.GetProperty("$defs").TryGetProperty("warningInfo", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -151,20 +157,66 @@ public sealed class ToolSchemaBuilderTests
         var component = CreateSchemaWithDefinitions("ComponentDefinition");
         var error = CreateSchemaWithDefinitions("ErrorDefinition");
         var continuation = CreateSchemaWithDefinitions("ContinuationDefinition");
+        var warning = CreateSchemaWithDefinitions("WarningDefinition");
 
         var result = ToolSchemaBuilder.CreateResponseSchema(
             new JsonObject
             {
                 ["type"] = "object",
+                ["properties"] = new JsonObject(),
             },
             [component, CreatePrimitiveSchema("string")],
             error,
-            continuation);
+            continuation,
+            warning);
 
         var definitions = result.GetProperty("$defs");
         definitions.TryGetProperty("ComponentDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("ErrorDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("ContinuationDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("WarningDefinition", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_ComponentDefinesWarningInfo_WHEN_CreatingResponseSchema_THEN_ShouldPreserveComponentDefinition()
+    {
+        var componentNode = JsonNode.Parse(CreateSchemaWithDefinitions("warningInfo").GetRawText())!.AsObject();
+        componentNode["properties"] = new JsonObject
+        {
+            ["providerWarning"] = new JsonObject
+            {
+                ["$ref"] = "#/$defs/warningInfo",
+            },
+        };
+
+        var component = JsonSerializer.SerializeToElement(componentNode);
+        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(
+            JsonNode.Parse(component.GetRawText()),
+            CreateObjectSchema("workspaceId"),
+            snapshotRequired: true);
+
+        var result = ToolSchemaBuilder.CreateResponseSchema(
+            successSchema,
+            [component],
+            CreateObjectSchema("code"),
+            CreatePrimitiveSchema("string"),
+            CreateWarningSchema());
+
+        var definitions = result.GetProperty("$defs");
+        definitions.GetProperty("warningInfo").GetProperty("type").GetString().Should().Be("string");
+        definitions.GetProperty("warningInfo2").GetProperty("required").EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should().Equal("code", "message");
+
+        var successWarnings = GetSuccessVariant(result).GetProperty("properties").GetProperty("warnings");
+        successWarnings.GetProperty("items").GetProperty("$ref").GetString().Should().Be("#/$defs/warningInfo2");
+
+        var providerWarning = GetSuccessVariant(result).GetProperty("properties").GetProperty("data")
+            .GetProperty("properties").GetProperty("providerWarning");
+        providerWarning.GetProperty("$ref").GetString().Should().Be("#/$defs/warningInfo");
+
+        var failureWarnings = GetFailureVariant(result).GetProperty("properties").GetProperty("warnings");
+        failureWarnings.GetProperty("items").GetProperty("$ref").GetString().Should().Be("#/$defs/warningInfo2");
     }
 
     [Fact]
@@ -270,6 +322,31 @@ public sealed class ToolSchemaBuilderTests
         var type = schema.GetProperty("type");
         return type.ValueKind == JsonValueKind.Array
             && type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal));
+    }
+
+    private static void AssertWarningsSchema(JsonElement responseSchema, JsonElement warningsSchema)
+    {
+        warningsSchema.GetProperty("type").GetString().Should().Be("array");
+        warningsSchema.GetProperty("description").GetString().Should().Be("Non-fatal warnings the agent should consider.");
+        warningsSchema.GetProperty("items").GetProperty("$ref").GetString().Should().Be("#/$defs/warningInfo");
+        var warningSchema = responseSchema.GetProperty("$defs").GetProperty("warningInfo");
+        warningSchema.GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().Equal("code", "message");
+        warningSchema.GetProperty("properties").TryGetProperty("code", out _).Should().BeTrue();
+        warningSchema.GetProperty("properties").TryGetProperty("message", out _).Should().BeTrue();
+    }
+
+    private static JsonElement CreateWarningSchema()
+    {
+        return JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("code", "message"),
+            ["properties"] = new JsonObject
+            {
+                ["code"] = new JsonObject { ["type"] = "string" },
+                ["message"] = new JsonObject { ["type"] = "string" },
+            },
+        });
     }
 
     private static JsonElement CreateObjectSchema(string propertyName)

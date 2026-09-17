@@ -435,7 +435,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         var target = CreateTarget(receiptAuthorisationRequired: true);
         SetupProtocol(session, plan);
-        _reviewDocumentFactory.Setup(item => item.Create(session, plan, null)).Returns(documents);
+        _reviewDocumentFactory
+            .Setup(item => item.CreateAsync(
+                session,
+                plan,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(documents);
         _reviewIdentityService
             .Setup(item => item.IsBoundTo(approvedIdentity, session, transaction))
             .Returns(true);

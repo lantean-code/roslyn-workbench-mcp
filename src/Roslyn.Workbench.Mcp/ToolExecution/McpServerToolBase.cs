@@ -145,7 +145,7 @@ internal abstract class McpServerToolBase<TRequest> : McpServerTool
     {
         var error = new ToolError
         {
-            Code = "InvalidRequest",
+            Code = HostToolErrorCodes.InvalidRequest,
             Message = message,
         };
 

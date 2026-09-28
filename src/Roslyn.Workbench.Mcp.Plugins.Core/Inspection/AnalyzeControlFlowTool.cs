@@ -27,7 +27,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             resolvedRegion.LastStatement);
         if (analysis is null)
         {
-            return PluginExecutionResult.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
+            return PluginExecutionResult.Rejected<ControlFlowAnalysisData>(PluginErrorCodes.InvalidRequest, "The selected region does not support control-flow analysis.");
         }
 
         var exits = new List<ControlFlowExit>();

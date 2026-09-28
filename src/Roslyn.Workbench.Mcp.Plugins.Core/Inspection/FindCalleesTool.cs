@@ -11,7 +11,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
     {
         if (request.Symbol is null == request.Location is null)
         {
-            return PluginExecutionResult.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return PluginExecutionResult.Rejected<CalleeSearchData>(PluginErrorCodes.InvalidRequest, "Specify exactly one of symbol or location.");
         }
 
         var directCallees = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
@@ -60,7 +60,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
             if (!foundSourceOperation)
             {
-                return PluginExecutionResult.Rejected<CalleeSearchData>("InvalidRequest", "The selected symbol does not have an executable source body.");
+                return PluginExecutionResult.Rejected<CalleeSearchData>(PluginErrorCodes.InvalidRequest, "The selected symbol does not have an executable source body.");
             }
         }
         else
@@ -76,13 +76,13 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             var operation = GetOperation(resolvedLocation.SemanticModel, resolvedLocation.Node, cancellationToken);
             if (operation is null)
             {
-                return PluginExecutionResult.Rejected<CalleeSearchData>("InvalidRequest", "The selected location does not resolve to executable code.");
+                return PluginExecutionResult.Rejected<CalleeSearchData>(PluginErrorCodes.InvalidRequest, "The selected location does not resolve to executable code.");
             }
 
             var enclosingSymbol = resolvedLocation.SemanticModel.GetEnclosingSymbol(resolvedLocation.Node.SpanStart, cancellationToken);
             if (enclosingSymbol is null)
             {
-                return PluginExecutionResult.Rejected<CalleeSearchData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<CalleeSearchData>(PluginErrorCodes.SymbolNotFound, "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
             }
 
             sourceSymbol = enclosingSymbol;
@@ -247,7 +247,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         if (selector is null)
         {
             var rejection = PluginExecutionResult.Rejected<CalleeSearchData>(
-                "InvalidRequest",
+                PluginErrorCodes.InvalidRequest,
                 "A location selector is required.");
 
             return ToolResolutionResult.Rejected<ResolvedCalleeLocation, CalleeSearchData>(rejection);
@@ -293,7 +293,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
     private static PluginExecutionResult<CalleeSearchData> CreateLocationNotFoundRejection()
     {
         return PluginExecutionResult.Rejected<CalleeSearchData>(
-            "LocationNotFound",
+            PluginErrorCodes.LocationNotFound,
             "The location selector did not resolve to a source document.",
             RequiredAction.ResolveTargetAgain);
     }

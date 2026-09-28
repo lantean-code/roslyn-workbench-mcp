@@ -173,7 +173,7 @@ internal sealed class TransactionCommitTool : TransactionCommitToolBase<Transact
     private static ToolResult<TransactionCommitData> CreateNotApprovedFailure()
     {
         return CreateCommitFailure(
-            "TransactionCommitNotApproved",
+            HostToolErrorCodes.TransactionCommitNotApproved,
             "No files were persisted because transaction commit was not approved. The transaction remains active. If no prompt was displayed, the client may have blocked MCP elicitation; enable interactive MCP requests before a deliberate retry.",
             requiredAction: null);
     }
@@ -181,7 +181,7 @@ internal sealed class TransactionCommitTool : TransactionCommitToolBase<Transact
     private static ToolResult<TransactionCommitData> CreateUnavailableFailure()
     {
         return CreateCommitFailure(
-            "ApprovalUnavailable",
+            HostToolErrorCodes.ApprovalUnavailable,
             "No files were persisted because the connected MCP client could not complete commit confirmation. The transaction remains active. Enable interactive MCP requests before a deliberate retry.",
             RequiredAction.Retry);
     }
@@ -189,7 +189,7 @@ internal sealed class TransactionCommitTool : TransactionCommitToolBase<Transact
     private static ToolResult<TransactionCommitData> CreateInvalidResponseFailure()
     {
         return CreateCommitFailure(
-            "InvalidApprovalResponse",
+            HostToolErrorCodes.InvalidApprovalResponse,
             "No files were persisted because the client returned an invalid commit-confirmation response. The transaction remains active.",
             RequiredAction.Retry);
     }

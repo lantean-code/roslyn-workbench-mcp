@@ -90,14 +90,14 @@ internal sealed class SubmitErrorReportTool :
         if (acquisition.Outcome == SubmissionAcquisitionOutcome.UnknownOrExpired)
         {
             return CreateFailure(
-                "PreparedReportUnavailable",
+                HostToolErrorCodes.PreparedReportUnavailable,
                 "The submission handle is unknown or its temporary prepared payload has expired.");
         }
 
         if (acquisition.Outcome == SubmissionAcquisitionOutcome.InProgress)
         {
             return CreateFailure(
-                "ErrorReportSubmissionInProgress",
+                HostToolErrorCodes.ErrorReportSubmissionInProgress,
                 "This prepared report is already being submitted.");
         }
 
@@ -117,7 +117,7 @@ internal sealed class SubmitErrorReportTool :
             {
                 _store.ReleaseForRetry(request.SubmissionHandle);
                 return CreateFailure(
-                    "ErrorReportingUnavailable",
+                    HostToolErrorCodes.ErrorReportingUnavailable,
                     "Error reporting is disabled by configuration; nothing was submitted.");
             }
 
@@ -147,7 +147,7 @@ internal sealed class SubmitErrorReportTool :
                 if (!_store.TryConfirmSubmission(request.SubmissionHandle))
                 {
                     return CreateFailure(
-                        "PreparedReportUnavailable",
+                        HostToolErrorCodes.PreparedReportUnavailable,
                         "The submission handle is unknown or its temporary prepared payload has expired.");
                 }
             }
@@ -229,7 +229,7 @@ internal sealed class SubmitErrorReportTool :
         return new ConsentResult
         {
             Failure = CreateFailure(
-                "ApprovalUnavailable",
+                HostToolErrorCodes.ApprovalUnavailable,
                 "The connected MCP client could not complete the required consent elicitation."),
         };
     }
@@ -239,7 +239,7 @@ internal sealed class SubmitErrorReportTool :
         return new ConsentResult
         {
             Failure = CreateFailure(
-                "InvalidApprovalResponse",
+                HostToolErrorCodes.InvalidApprovalResponse,
                 "The client returned an unsupported consent choice; nothing was submitted."),
         };
     }
@@ -248,7 +248,7 @@ internal sealed class SubmitErrorReportTool :
     {
         return new ConsentResult
         {
-            Failure = CreateFailure("ErrorReportNotApproved", _notApprovedMessage),
+            Failure = CreateFailure(HostToolErrorCodes.ErrorReportNotApproved, _notApprovedMessage),
             DiscardSubmission = true,
         };
     }

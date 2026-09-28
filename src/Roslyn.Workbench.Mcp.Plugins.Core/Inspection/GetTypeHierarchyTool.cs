@@ -17,7 +17,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return PluginExecutionResult.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
+            return PluginExecutionResult.Rejected<TypeHierarchyData>(PluginErrorCodes.InvalidRequest, "Get type hierarchy requires a named type symbol.");
         }
 
         var baseTypes = new List<SymbolReference>();

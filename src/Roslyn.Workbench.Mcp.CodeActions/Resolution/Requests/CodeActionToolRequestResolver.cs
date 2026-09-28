@@ -60,7 +60,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
         if (document is null)
         {
             var rejection = CodeActionExecutionResultFactory.Rejected<TResponse>(
-                "LocationNotFound",
+                WorkspaceErrorCodes.LocationNotFound,
                 "The location selector did not resolve to a source document.",
                 RequiredAction.ResolveTargetAgain);
 
@@ -111,7 +111,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
                 || range.Length > text.Length - range.Start))
         {
             var rejection = CodeActionExecutionResultFactory.Rejected<TResponse>(
-                "InvalidRange",
+                CodeActionErrorCodes.InvalidRange,
                 "Range must identify a valid UTF-16 span within the selected document.");
 
             return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);

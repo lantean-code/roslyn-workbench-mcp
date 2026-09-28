@@ -93,7 +93,9 @@ public sealed class ToolSchemaBuilderTests
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
             CreateObjectSchema("workspaceId"),
-            CreateWarningSchema());
+            CreateWarningSchema(),
+            CreateObjectSchema("id"),
+            CreateObjectSchema("state"));
 
         var success = GetSuccessVariant(result);
 
@@ -112,7 +114,14 @@ public sealed class ToolSchemaBuilderTests
         var failureProperties = failure.GetProperty("properties");
         failureProperties.GetProperty("error").GetProperty("description").GetString().Should().Be("Structured error details when the invocation failed.");
         failureProperties.GetProperty("continuation").GetProperty("description").GetString().Should().Be("Action the agent should take before retrying or continuing.");
+        failureProperties.GetProperty("diagnostics").GetProperty("description").GetString().Should().Be("Diagnostics that explain the failed invocation.");
         AssertWarningsSchema(result, failureProperties.GetProperty("warnings"));
+
+        var unhandledFailure = GetUnhandledFailureVariant(result);
+        var unhandledProperties = unhandledFailure.GetProperty("properties");
+        unhandledProperties.GetProperty("error").GetProperty("properties").GetProperty("code").GetProperty("const").GetString().Should().Be("UnhandledException");
+        unhandledProperties.GetProperty("diagnostics").GetProperty("properties").GetProperty("detailsTool").GetProperty("const").GetString().Should().Be("get-error-details");
+        unhandledProperties.GetProperty("reporting").GetProperty("description").GetString().Should().Be("Error-reporting workflow available for an unhandled failure.");
     }
 
     [Fact]
@@ -123,7 +132,9 @@ public sealed class ToolSchemaBuilderTests
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
             CreateObjectSchema("workspaceId"),
-            CreateWarningSchema());
+            CreateWarningSchema(),
+            CreateObjectSchema("id"),
+            CreateObjectSchema("state"));
 
         var success = GetSuccessVariant(result);
 
@@ -146,7 +157,9 @@ public sealed class ToolSchemaBuilderTests
             [],
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
-            CreateWarningSchema());
+            CreateWarningSchema(),
+            CreateObjectSchema("id"),
+            CreateObjectSchema("state"));
 
         result.GetProperty("$defs").TryGetProperty("warningInfo", out _).Should().BeTrue();
     }
@@ -158,6 +171,8 @@ public sealed class ToolSchemaBuilderTests
         var error = CreateSchemaWithDefinitions("ErrorDefinition");
         var continuation = CreateSchemaWithDefinitions("ContinuationDefinition");
         var warning = CreateSchemaWithDefinitions("WarningDefinition");
+        var diagnostic = CreateSchemaWithDefinitions("DiagnosticDefinition");
+        var reporting = CreateSchemaWithDefinitions("ReportingDefinition");
 
         var result = ToolSchemaBuilder.CreateResponseSchema(
             new JsonObject
@@ -168,13 +183,17 @@ public sealed class ToolSchemaBuilderTests
             [component, CreatePrimitiveSchema("string")],
             error,
             continuation,
-            warning);
+            warning,
+            diagnostic,
+            reporting);
 
         var definitions = result.GetProperty("$defs");
         definitions.TryGetProperty("ComponentDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("ErrorDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("ContinuationDefinition", out _).Should().BeTrue();
         definitions.TryGetProperty("WarningDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("DiagnosticDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("ReportingDefinition", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -200,7 +219,9 @@ public sealed class ToolSchemaBuilderTests
             [component],
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"),
-            CreateWarningSchema());
+            CreateWarningSchema(),
+            CreateObjectSchema("id"),
+            CreateObjectSchema("state"));
 
         var definitions = result.GetProperty("$defs");
         definitions.GetProperty("warningInfo").GetProperty("type").GetString().Should().Be("string");
@@ -314,7 +335,14 @@ public sealed class ToolSchemaBuilderTests
     {
         return schema.GetProperty("oneOf")
             .EnumerateArray()
-            .Single(item => !item.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+            .Single(item => item.GetProperty("properties").TryGetProperty("continuation", out _));
+    }
+
+    private static JsonElement GetUnhandledFailureVariant(JsonElement schema)
+    {
+        return schema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("properties").TryGetProperty("reporting", out _));
     }
 
     private static bool AllowsNull(JsonElement schema)

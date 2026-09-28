@@ -18,7 +18,7 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
         if (selector is null)
         {
             var missingSelectorRejection = PluginExecutionResult.Rejected<TResponse>(
-                "InvalidRequest",
+                PluginErrorCodes.InvalidRequest,
                 "A document selector is required.");
 
             return ToolResolutionResult.Rejected<Document, TResponse>(missingSelectorRejection);
@@ -44,7 +44,7 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
         if (selector is null)
         {
             var missingSelectorRejection = PluginExecutionResult.Rejected<TResponse>(
-                "InvalidRequest",
+                PluginErrorCodes.InvalidRequest,
                 "A project selector is required.");
 
             return ToolResolutionResult.Rejected<Project, TResponse>(missingSelectorRejection);
@@ -170,7 +170,7 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
         if (selector is null)
         {
             var missingSelectorRejection = PluginExecutionResult.Rejected<TResponse>(
-                "InvalidRequest",
+                PluginErrorCodes.InvalidRequest,
                 "A symbol selector is required.");
 
             return ToolResolutionResult.Rejected<ISymbol, TResponse>(missingSelectorRejection);
@@ -199,7 +199,7 @@ internal sealed class ToolRequestResolver : IToolRequestResolver
             : PluginExecutionResult.Conflict<TResponse>(
                 new PluginExecutionError
                 {
-                    Code = "SnapshotMismatch",
+                    Code = PluginErrorCodes.SnapshotMismatch,
                     Message = "The request snapshot does not match the current workspace snapshot.",
                 },
                 RequiredAction.ResolveTargetAgain);

@@ -25,6 +25,14 @@ public sealed class ToolSchemaFactoryTests
             .Setup(item => item.GetValueSchema<WarningInfo>())
             .Returns(CreateWarningSchema());
 
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<DiagnosticInfo>())
+            .Returns(CreateObjectSchema("id"));
+
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<ErrorReportingAvailability>())
+            .Returns(CreateObjectSchema("state"));
+
         _target = new ToolSchemaFactory(_schemaProvider.Object);
     }
 
@@ -77,7 +85,7 @@ public sealed class ToolSchemaFactoryTests
         var schema = _target.CreateOutputSchema(PublishedToolKind.Query, typeof(TestResponse));
         var variants = schema.GetProperty("oneOf").EnumerateArray().ToArray();
         var successVariant = variants.Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
-        var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+        var failureVariant = variants.Single(variant => variant.GetProperty("properties").TryGetProperty("continuation", out _));
 
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data", "snapshot"]);
         var dataSchema = successVariant.GetProperty("properties").GetProperty("data");

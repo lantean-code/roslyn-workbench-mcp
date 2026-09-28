@@ -5,10 +5,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Selection;
 /// </summary>
 internal sealed class WorkspaceSelectorService : IWorkspaceSelector
 {
-    private const string _workspaceSelectorRequiredCode = "WorkspaceSelectorRequired";
-    private const string _workspaceSelectorNotFoundCode = "WorkspaceSelectorNotFound";
-    private const string _workspaceSelectorMismatchCode = "WorkspaceSelectorMismatch";
-    private const string _workspaceSelectorInvalidCode = "WorkspaceSelectorInvalid";
     private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspacePathNormalizer _pathNormalizer;
 
@@ -48,14 +44,14 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         if (hostSnapshot.Workspaces.Count == 0)
         {
             error = CreateError(
-                _workspaceSelectorNotFoundCode,
+                WorkspaceErrorCodes.WorkspaceSelectorNotFound,
                 "Open a workspace before invoking this tool.",
                 RequiredAction.OpenWorkspace);
         }
         else
         {
             error = CreateError(
-                _workspaceSelectorRequiredCode,
+                WorkspaceErrorCodes.WorkspaceSelectorRequired,
                 "Select a workspace when more than one workspace is loaded.",
                 RequiredAction.ResolveTargetAgain);
         }
@@ -136,7 +132,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         if (hasMismatch)
         {
             var error = CreateError(
-                _workspaceSelectorMismatchCode,
+                WorkspaceErrorCodes.WorkspaceSelectorMismatch,
                 "The workspace selector fields must resolve to the same loaded workspace.",
                 RequiredAction.ResolveTargetAgain);
 
@@ -160,7 +156,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
     private static WorkspaceSelectionResult CreateNotFoundResult()
     {
         var error = CreateError(
-            _workspaceSelectorNotFoundCode,
+            WorkspaceErrorCodes.WorkspaceSelectorNotFound,
             "The workspace selector did not match any loaded workspace.",
             RequiredAction.ResolveTargetAgain);
 
@@ -170,7 +166,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
     private static WorkspaceSelectionResult CreateInvalidPathResult()
     {
         var error = CreateError(
-            _workspaceSelectorInvalidCode,
+            WorkspaceErrorCodes.WorkspaceSelectorInvalid,
             "The workspace selector path must be a valid absolute path.",
             RequiredAction.ResolveTargetAgain);
 

@@ -11,7 +11,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
     {
         if (request.Symbol is not null && request.Location is not null)
         {
-            return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.InvalidRequest, "Specify exactly one of symbol or location.");
         }
 
         SyntaxNode node;
@@ -29,14 +29,14 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             var sourceLocation = ownerSymbol.Locations.FirstOrDefault(static item => item.IsInSource);
             if (sourceLocation is null || context.CurrentSolution.GetDocument(sourceLocation.SourceTree) is not { } document)
             {
-                return PluginExecutionResult.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.LocationNotFound, "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
             }
 
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
             var resolvedSemanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || resolvedSemanticModel is null)
             {
-                return PluginExecutionResult.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.LocationNotFound, "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
             }
 
             semanticModel = resolvedSemanticModel;
@@ -55,20 +55,20 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             var enclosingSymbol = semanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken);
             if (enclosingSymbol is null)
             {
-                return PluginExecutionResult.Rejected<ControlFlowGraphData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.SymbolNotFound, "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
             }
 
             ownerSymbol = enclosingSymbol;
         }
         else
         {
-            return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.InvalidRequest, "Specify exactly one of symbol or location.");
         }
 
         var graph = ControlFlowGraphResolver.Resolve(node, semanticModel, cancellationToken);
         if (graph is null)
         {
-            return PluginExecutionResult.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
+            return PluginExecutionResult.Rejected<ControlFlowGraphData>(PluginErrorCodes.InvalidRequest, "The selected target does not support control-flow graph generation.");
         }
 
         var blocks = CreateBlocks(
@@ -229,7 +229,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
     private static PluginExecutionResult<ControlFlowGraphData> CreateLocationNotFoundRejection()
     {
         return PluginExecutionResult.Rejected<ControlFlowGraphData>(
-            "LocationNotFound",
+            PluginErrorCodes.LocationNotFound,
             "The location selector did not resolve to a source document.",
             RequiredAction.ResolveTargetAgain);
     }

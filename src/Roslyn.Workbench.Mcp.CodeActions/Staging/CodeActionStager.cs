@@ -140,6 +140,6 @@ internal sealed class CodeActionStager : ICodeActionStager
             return null;
         }
 
-        return Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        return Rejected<WorkspaceMutationCandidate>(CodeActionErrorCodes.CodeActionsUnavailable, "Code-action composition is unavailable.");
     }
 }

@@ -177,7 +177,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
     private static PluginExecutionResult<CodeContextData> CreateLocationNotFoundRejection()
     {
         return PluginExecutionResult.Rejected<CodeContextData>(
-            "LocationNotFound",
+            PluginErrorCodes.LocationNotFound,
             "The location selector did not resolve to a source document.",
             RequiredAction.ResolveTargetAgain);
     }

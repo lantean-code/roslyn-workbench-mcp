@@ -38,7 +38,7 @@ internal sealed record ToolExecutionFailureResult
     {
         var error = new PluginExecutionError
         {
-            Code = "UnhandledException",
+            Code = PluginErrorCodes.UnhandledException,
             Message = "Tool execution failed.",
             CorrelationId = Guid.NewGuid().ToString("n"),
         };

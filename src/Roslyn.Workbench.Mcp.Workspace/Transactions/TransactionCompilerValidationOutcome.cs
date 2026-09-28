@@ -6,10 +6,15 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 internal sealed record TransactionCompilerValidationOutcome
 {
     /// <summary>
+    /// Identifies the current stable compiler-diagnostic comparison algorithm.
+    /// </summary>
+    public const string CurrentAlgorithm = "compiler-error-identity-v1";
+
+    /// <summary>
     /// Gets the stable comparison algorithm identifier.
     /// </summary>
     [Description("Stable diagnostic identity algorithm used for baseline comparison.")]
-    public string Algorithm { get; init; } = "compiler-error-identity-v1";
+    public string Algorithm { get; init; } = CurrentAlgorithm;
 
     /// <summary>
     /// Gets whether every affected loaded project evaluation was completed.

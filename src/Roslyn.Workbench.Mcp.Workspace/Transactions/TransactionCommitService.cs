@@ -236,7 +236,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         if (lockAcquisition.IsFailed)
         {
             return _resultFactory.Faulted<TransactionCommitOutcome>(
-                "CommitLockFailed",
+                WorkspaceErrorCodes.CommitLockFailed,
                 lockAcquisition.ErrorMessage,
                 RequiredAction.Retry,
                 context);
@@ -940,10 +940,10 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 failureMessage);
         }
 
-        var errorCode = "CommitPreparationFailed";
+        var errorCode = WorkspaceErrorCodes.CommitPreparationFailed;
         if (applicationStarted)
         {
-            errorCode = "CommitFailed";
+            errorCode = WorkspaceErrorCodes.CommitFailed;
         }
 
         var errorMessage = CreateCommitFailureMessage(

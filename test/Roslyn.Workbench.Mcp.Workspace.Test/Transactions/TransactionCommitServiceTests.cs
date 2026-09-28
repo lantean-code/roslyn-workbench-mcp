@@ -121,10 +121,25 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _compilerValidationService.Object);
     }
 
-    [Theory]
-    [InlineData(true, WorkspaceErrorCodes.NewCompilerErrors, null)]
-    [InlineData(false, WorkspaceErrorCodes.CompilerValidationIncomplete, RequiredAction.RollbackTransaction)]
-    public async Task GIVEN_CompilerValidationFails_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork(
+    [Fact]
+    public async Task GIVEN_NewCompilerErrors_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork()
+    {
+        await AssertCompilerValidationFailureWhenCommitting(
+            isComplete: true,
+            WorkspaceErrorCodes.NewCompilerErrors,
+            expectedRequiredAction: null);
+    }
+
+    [Fact]
+    public async Task GIVEN_IncompleteCompilerValidation_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork()
+    {
+        await AssertCompilerValidationFailureWhenCommitting(
+            isComplete: false,
+            WorkspaceErrorCodes.CompilerValidationIncomplete,
+            RequiredAction.RollbackTransaction);
+    }
+
+    private async Task AssertCompilerValidationFailureWhenCommitting(
         bool isComplete,
         string expectedCode,
         RequiredAction? expectedRequiredAction)

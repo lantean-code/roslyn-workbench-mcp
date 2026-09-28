@@ -2,13 +2,10 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Json.Schema;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
+using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Hosting;
-using Roslyn.Workbench.Mcp.PluginLoading;
 
 namespace Roslyn.Workbench.Mcp.ToolReferenceGenerator;
 
@@ -17,17 +14,8 @@ namespace Roslyn.Workbench.Mcp.ToolReferenceGenerator;
 /// </summary>
 internal sealed class ToolReferenceGenerator
 {
-    private static readonly HashSet<string> _supportedOperationalModes =
-    [
-        "inspection-only",
-        "transactional",
-        "approval-required",
-        "autonomous-trusted",
-    ];
-
     private const string _commitMetadataKey = "RoslynWorkbenchCommitSha";
     private const string _formatVersion = "roslyn-workbench-tool-reference/v1";
-    private const string _pluginDirectoryEnvironmentVariable = "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY";
     private const string _sourceTagMetadataKey = "RoslynWorkbenchSourceTag";
 
     /// <summary>
@@ -47,9 +35,6 @@ internal sealed class ToolReferenceGenerator
         var stateDirectory = Path.Combine(Path.GetTempPath(), $"roslyn-workbench-tool-reference-{Guid.NewGuid():N}");
         Directory.CreateDirectory(stateDirectory);
 
-        var previousPluginDirectory = Environment.GetEnvironmentVariable(_pluginDirectoryEnvironmentVariable);
-        Environment.SetEnvironmentVariable(_pluginDirectoryEnvironmentVariable, null);
-
         try
         {
             var entries = await ComposeEntriesAsync(stateDirectory, examples, cancellationToken);
@@ -60,7 +45,6 @@ internal sealed class ToolReferenceGenerator
         }
         finally
         {
-            Environment.SetEnvironmentVariable(_pluginDirectoryEnvironmentVariable, previousPluginDirectory);
             Directory.Delete(stateDirectory, recursive: true);
         }
     }
@@ -70,14 +54,18 @@ internal sealed class ToolReferenceGenerator
         IReadOnlyList<ToolReferenceExample> examples,
         CancellationToken cancellationToken)
     {
-        var tools = await ComposeToolsAsync(
+        var tools = await ProductionToolCatalogueComposer.ComposeAsync(
             stateDirectory,
-            "autonomous-trusted",
+            OperationalMode.AutonomousTrusted,
+            CommitValidationPolicy.None,
+            reportingEnabled: true,
             cancellationToken);
 
-        var approvalTools = await ComposeToolsAsync(
+        var approvalTools = await ProductionToolCatalogueComposer.ComposeAsync(
             stateDirectory,
-            "approval-required",
+            OperationalMode.ApprovalRequired,
+            CommitValidationPolicy.None,
+            reportingEnabled: true,
             cancellationToken);
 
         var approvalReview = approvalTools.Single(static tool => tool.Name == ServerOwnedToolRegistration.TransactionReviewName);
@@ -100,43 +88,6 @@ internal sealed class ToolReferenceGenerator
         }
 
         return entries;
-    }
-
-    private static async Task<List<Tool>> ComposeToolsAsync(
-        string stateDirectory,
-        string operationalMode,
-        CancellationToken cancellationToken)
-    {
-        var builder = Host.CreateApplicationBuilder();
-        builder.AddRoslynWorkbench(
-        [
-            "--operational-mode",
-            operationalMode,
-            "--state-directory",
-            stateDirectory,
-            "--tool-output-schema-mode",
-            "Full",
-        ]);
-
-        await using var serviceProvider = builder.Services.BuildServiceProvider(new ServiceProviderOptions
-        {
-            ValidateOnBuild = true,
-            ValidateScopes = true,
-        });
-
-        var pluginStartup = serviceProvider.GetServices<IHostedService>()
-            .OfType<PluginCatalogStartupLifecycleService>()
-            .Single();
-
-        await pluginStartup.StartingAsync(cancellationToken);
-
-        var tools = serviceProvider.GetServices<McpServerTool>()
-            .Select(static tool => tool.ProtocolTool)
-            .ToList();
-
-        var pluginCatalog = serviceProvider.GetRequiredService<IPluginCatalogState>().Current;
-        tools.AddRange(pluginCatalog.Tools.Values.Select(static tool => tool.ProtocolTool));
-        return tools;
     }
 
     private static Tool CreateCommitReferenceTool(Tool standardCommit, Tool receiptCommit)
@@ -248,7 +199,7 @@ internal sealed class ToolReferenceGenerator
         {
             foreach (var operationalMode in example.OperationalModes)
             {
-                if (!_supportedOperationalModes.Contains(operationalMode))
+                if (!OperationalModeNames.IsSupported(operationalMode))
                 {
                     throw new InvalidOperationException($"Canonical example '{example.Id}' refers to unsupported operational mode '{operationalMode}'.");
                 }

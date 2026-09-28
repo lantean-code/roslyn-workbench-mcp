@@ -96,6 +96,7 @@ public sealed class CodeActionsArchitectureTests
             "Roslyn.Workbench.Mcp.CodeActions.AuditTest",
             "Roslyn.Workbench.Mcp.Test",
             "Roslyn.Workbench.Mcp.IntegrationTest",
+            "Roslyn.Workbench.Mcp.ToolReferenceGenerator",
             "DynamicProxyGenAssembly2",
         ]);
     }

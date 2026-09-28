@@ -99,7 +99,7 @@ internal sealed class WorkspaceMsBuildPropertiesResolver : IWorkspaceMsBuildProp
     {
         var error = new WorkspaceOperationError
         {
-            Code = "WorkspaceMsBuildPropertiesInvalid",
+            Code = WorkspaceErrorCodes.WorkspaceMsBuildPropertiesInvalid,
             Message = message,
         };
 

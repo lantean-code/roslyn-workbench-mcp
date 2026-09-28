@@ -824,7 +824,7 @@ internal sealed class TransactionService : ITransactionService
         {
             var context = WorkspaceOperationContextFactory.Create(session);
             return _resultFactory.Faulted<TransactionRollbackOutcome>(
-                "TransactionOwnershipChanged",
+                WorkspaceErrorCodes.TransactionOwnershipChanged,
                 completion.Failure.Message,
                 context: context);
         }

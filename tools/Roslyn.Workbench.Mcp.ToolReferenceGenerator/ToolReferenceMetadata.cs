@@ -23,6 +23,7 @@ internal static class ToolReferenceMetadata
         "transaction-review",
         "transaction-rollback",
         "transaction-start",
+        "transaction-validate",
     };
 
     /// <summary>
@@ -51,7 +52,7 @@ internal static class ToolReferenceMetadata
         {
             "server-status" => "Server lifecycle",
             "workspace-close" or "workspace-list" or "workspace-open" or "workspace-reload" or "workspace-status" => "Workspaces",
-            "transaction-commit" or "transaction-history" or "transaction-preview" or "transaction-review" or "transaction-rollback" or "transaction-start" => "Transactions",
+            "transaction-commit" or "transaction-history" or "transaction-preview" or "transaction-review" or "transaction-rollback" or "transaction-start" or "transaction-validate" => "Transactions",
             "get-error-details" or "prepare-error-report" or "submit-error-report" => "Error reporting",
             "list-code-actions" or "prepare-fix-all" or "stage-code-action" => "Code Actions",
             "format-document" or "rename-symbol" => "Code mutation",
@@ -79,6 +80,7 @@ internal static class ToolReferenceMetadata
             {
                 "transaction-preview" => "Published only in transactional and autonomous-trusted operational modes.",
                 "transaction-review" => "Published only in approval-required operational mode.",
+                "transaction-validate" => "Published in mutation-capable operational modes when no-new-compiler-errors validation is enabled.",
                 _ => "Published in transactional, approval-required and autonomous-trusted operational modes.",
             };
         }

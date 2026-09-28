@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "security-invariants.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "format", "entries"],
+  "properties": {
+    "$schema": { "const": "schemas/security-invariants.schema.json" },
+    "format": { "const": "roslyn-workbench-security-invariants/v1" },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "classification", "actor", "outcome", "boundary", "residualRisk", "surfaceKeys", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "type": "string", "pattern": ".*\\S.*" },
+          "classification": { "enum": ["enforced", "delegated", "limitation"] },
+          "actor": { "type": "string", "pattern": ".*\\S.*" },
+          "outcome": { "type": "string", "pattern": ".*\\S.*" },
+          "boundary": { "type": "string", "pattern": ".*\\S.*" },
+          "residualRisk": { "type": "string", "pattern": ".*\\S.*" },
+          "surfaceKeys": { "type": "array", "items": { "type": "string", "pattern": "^[^*?\\s]+$" }, "uniqueItems": true },
+          "evidence": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["level", "project", "source", "test"],
+              "properties": {
+                "level": { "enum": ["unit", "contract", "integration", "acceptance"] },
+                "project": { "type": "string", "pattern": "^[^/].*\\.csproj$" },
+                "source": { "type": "string", "pattern": "^[^/].*\\.cs$" },
+                "test": { "type": "string", "pattern": "^[^.\\s]+(?:\\.[^.\\s]+)+$" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

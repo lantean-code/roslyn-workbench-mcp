@@ -31,7 +31,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         var threshold = ParseMinimumAccessibility(request.MinimumAccessibility);
         if (threshold is null)
         {
-            return PluginExecutionResult.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
+            return PluginExecutionResult.Rejected<ApiSurfaceData>(PluginErrorCodes.InvalidRequest, "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
         var maxResults = request.EffectiveSymbolsLimit;

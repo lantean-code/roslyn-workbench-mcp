@@ -95,7 +95,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
             || !string.Equals(report.ReportId, payload.ReportId, StringComparison.Ordinal))
         {
             return ValueTask.FromResult(ErrorDispatchResult.Rejected(
-                "InvalidPreparedErrorReport",
+                HostToolErrorCodes.InvalidPreparedErrorReport,
                 "The immutable error report identifier does not match its prepared submission."));
         }
 
@@ -108,7 +108,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         if (dispatchPayload is null)
         {
             return ValueTask.FromResult(ErrorDispatchResult.Rejected(
-                "InvalidExceptionMessageHandling",
+                HostToolErrorCodes.InvalidExceptionMessageHandling,
                 "The requested exception-message handling mode is not supported."));
         }
 
@@ -118,7 +118,7 @@ internal sealed class SentryErrorReportDispatcher : IErrorReportDispatcher
         if (eventId == SentryId.Empty)
         {
             return ValueTask.FromResult(ErrorDispatchResult.Rejected(
-                "SentryCaptureRejected",
+                HostToolErrorCodes.SentryCaptureRejected,
                 "The Sentry SDK did not accept the prepared error report."));
         }
 

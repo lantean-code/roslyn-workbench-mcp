@@ -135,7 +135,7 @@ internal sealed class PreparedFixAllResolver : IPreparedFixAllResolver
 
     private static CodeActionResolution<T> Unavailable<T>(string message)
     {
-        var rejection = Rejected<T>("FixAllUnavailable", message);
+        var rejection = Rejected<T>(CodeActionErrorCodes.FixAllUnavailable, message);
         return CodeActionResolution.Rejected(
             rejection,
             CodeActionResolutionFailureKind.InvalidReference);

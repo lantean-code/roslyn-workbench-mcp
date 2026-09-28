@@ -18,18 +18,14 @@ internal static class SelectorRejectionFactory
         string targetCode,
         string targetDisplayName)
     {
-        var (code, message) = status switch
+        var message = status switch
         {
-            SelectorResolveStatus.Ambiguous => (
-                $"{targetCode}Ambiguous",
-                $"The {targetDisplayName} selector matched multiple results."),
-            SelectorResolveStatus.Invalid => (
-                $"{targetCode}SelectorInvalid",
-                $"The {targetDisplayName} selector contains an invalid path."),
-            _ => (
-                $"{targetCode}NotFound",
-                $"The {targetDisplayName} selector did not match any result."),
+            SelectorResolveStatus.Ambiguous => $"The {targetDisplayName} selector matched multiple results.",
+            SelectorResolveStatus.Invalid => $"The {targetDisplayName} selector contains an invalid path.",
+            _ => $"The {targetDisplayName} selector did not match any result.",
         };
+
+        var code = SelectorErrorCodeResolver.Resolve(targetCode, status);
 
         return PluginExecutionResult.Rejected<TResponse>(
             code,

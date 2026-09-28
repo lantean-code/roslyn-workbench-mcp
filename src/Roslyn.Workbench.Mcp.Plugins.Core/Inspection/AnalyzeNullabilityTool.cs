@@ -27,7 +27,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
 
             if (locationResolution.Value is null || context.CurrentSolution.GetDocument(locationResolution.Value.SourceTree) is not { } document)
             {
-                return PluginExecutionResult.Rejected<NullabilityAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<NullabilityAnalysisData>(PluginErrorCodes.LocationNotFound, "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
             }
 
             documents = [document];

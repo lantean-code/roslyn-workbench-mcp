@@ -11,7 +11,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedCycleGranularity(request.Granularity))
         {
-            return PluginExecutionResult.Rejected<DependencyCyclesData>("InvalidRequest", "Granularity must be Project, Namespace, or Type.");
+            return PluginExecutionResult.Rejected<DependencyCyclesData>(PluginErrorCodes.InvalidRequest, "Granularity must be Project, Namespace, or Type.");
         }
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyCyclesData>(request.Scope, context);
@@ -43,7 +43,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
                 : nameof(request.EdgesLimit);
 
             return PluginExecutionResult.Rejected<DependencyCyclesData>(
-                "AnalysisLimitExceeded",
+                PluginErrorCodes.AnalysisLimitExceeded,
                 $"Dependency-cycle analysis exceeded {exceededLimit}. Narrow the scope or increase that limit.");
         }
 

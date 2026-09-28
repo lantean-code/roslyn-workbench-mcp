@@ -33,7 +33,7 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
 
         if (string.IsNullOrWhiteSpace(request.NewName))
         {
-            return PluginExecutionResult.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
+            return PluginExecutionResult.Rejected<MutationCandidate>(PluginErrorCodes.InvalidRequest, "A newName value is required.");
         }
 
         var symbol = symbolResolution.Value;

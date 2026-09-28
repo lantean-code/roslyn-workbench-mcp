@@ -216,7 +216,7 @@ public sealed class PublishedDistributionIntegrationTests
     {
         var failureSchema = outputSchema.GetProperty("oneOf")
             .EnumerateArray()
-            .Single(static candidate => !candidate.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+            .Single(static candidate => candidate.GetProperty("properties").TryGetProperty("continuation", out _));
 
         var continuationSchema = failureSchema.GetProperty("properties").GetProperty("continuation");
         var kinds = continuationSchema.GetProperty("oneOf")

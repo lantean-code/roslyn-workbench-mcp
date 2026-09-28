@@ -39,12 +39,12 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
     {
         if (!ReferenceEquals(candidateSolution.Workspace, currentSolution.Workspace))
         {
-            return CreateInvalidResult("InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
+            return CreateInvalidResult(WorkspaceErrorCodes.InvalidMutationProposal, "Mutation proposals must belong to the current workspace.");
         }
 
         if (candidateSolution.ProjectIds.Count != currentSolution.ProjectIds.Count)
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not add or remove projects.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not add or remove projects.");
         }
 
         foreach (var currentProject in currentSolution.Projects)
@@ -70,23 +70,23 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
     {
         if (candidateProject is null)
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter project identity.");
         }
 
         if (HasDifferentIdentity(currentProject, candidateProject))
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter project identity or options.");
         }
 
         var projectChanges = candidateProject.GetChanges(currentProject);
         if (HasReferenceOrNonSourceDocumentChanges(projectChanges))
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter project references or non-source documents.");
         }
 
         if (HasDifferentOptions(currentProject, candidateProject))
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter project identity or options.");
         }
 
         var changedDocumentIds = projectChanges.GetChangedDocuments().ToArray();
@@ -163,12 +163,12 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 || document.SourceCodeKind != SourceCodeKind.Regular
                 || string.IsNullOrWhiteSpace(document.FilePath))
             {
-                return CreateInvalidResult("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
+                return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, $"Mutation proposals must use regular source documents for {operation} files.");
             }
 
             if (!_addressableDocumentEligibility.IsAddressable(document))
             {
-                return CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter intermediate build documents.");
+                return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter intermediate build documents.");
             }
 
             if (!_pathContainment.TryGetStrictlyContainedPath(
@@ -176,7 +176,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 document.FilePath,
                 out _))
             {
-                return CreateInvalidResult("UnsupportedChange", "Mutation proposals must keep mutable source files within the workspace root.");
+                return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must keep mutable source files within the workspace root.");
             }
 
             if (requireProjectDirectory)
@@ -188,7 +188,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                         document.FilePath,
                         out _))
                 {
-                    return CreateInvalidResult("UnsupportedChange", "Mutation proposals must keep created source files within the owning project directory.");
+                    return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must keep created source files within the owning project directory.");
                 }
             }
         }
@@ -206,7 +206,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         {
             return HasSameNonPathMetadata(currentDocument, candidateDocument)
                 ? WorkspaceMutationCandidateValidationResult.Valid()
-                : CreateInvalidResult("UnsupportedChange", "Mutation proposals must not alter source document metadata.");
+                : CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must not alter source document metadata.");
         }
 
         if (string.IsNullOrWhiteSpace(currentPath)
@@ -214,13 +214,13 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             || currentDocument.SourceCodeKind != SourceCodeKind.Regular
             || candidateDocument.SourceCodeKind != SourceCodeKind.Regular)
         {
-            return CreateInvalidResult("UnsupportedChange", "Mutation proposals must use regular source documents for relocated files.");
+            return CreateInvalidResult(WorkspaceErrorCodes.UnsupportedChange, "Mutation proposals must use regular source documents for relocated files.");
         }
 
         if (_pathComparison.CreateKey(currentPath) == _pathComparison.CreateKey(candidatePath))
         {
             return CreateInvalidResult(
-                "UnsupportedChange",
+                WorkspaceErrorCodes.UnsupportedChange,
                 "Case-only source file renames are not supported on a case-insensitive filesystem.");
         }
 
@@ -229,7 +229,7 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             || !string.Equals(Path.GetFileName(candidatePath), candidateDocument.Name, StringComparison.Ordinal))
         {
             return CreateInvalidResult(
-                "UnsupportedChange",
+                WorkspaceErrorCodes.UnsupportedChange,
                 "Mutation proposals may rename source files but must not move them between directories or alter their logical folders.");
         }
 

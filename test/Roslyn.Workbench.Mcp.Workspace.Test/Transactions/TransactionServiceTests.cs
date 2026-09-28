@@ -183,10 +183,25 @@ public sealed class TransactionServiceTests : IDisposable
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
-    [Theory]
-    [InlineData(true, WorkspaceErrorCodes.NewCompilerErrors, null)]
-    [InlineData(false, WorkspaceErrorCodes.CompilerValidationIncomplete, RequiredAction.RollbackTransaction)]
-    public async Task GIVEN_CompilerValidationFails_WHEN_Reviewing_THEN_ShouldNotBuildReceipt(
+    [Fact]
+    public async Task GIVEN_NewCompilerErrors_WHEN_Reviewing_THEN_ShouldNotBuildReceipt()
+    {
+        await AssertCompilerValidationFailureWhenReviewing(
+            isComplete: true,
+            WorkspaceErrorCodes.NewCompilerErrors,
+            expectedRequiredAction: null);
+    }
+
+    [Fact]
+    public async Task GIVEN_IncompleteCompilerValidation_WHEN_Reviewing_THEN_ShouldNotBuildReceipt()
+    {
+        await AssertCompilerValidationFailureWhenReviewing(
+            isComplete: false,
+            WorkspaceErrorCodes.CompilerValidationIncomplete,
+            RequiredAction.RollbackTransaction);
+    }
+
+    private async Task AssertCompilerValidationFailureWhenReviewing(
         bool isComplete,
         string expectedCode,
         RequiredAction? expectedRequiredAction)

@@ -19,6 +19,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult",
         "Roslyn.Workbench.Mcp.Workspace.References.IReferenceDiscoveryService",
         "Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult`1",
@@ -218,6 +219,7 @@ public sealed class PluginPublicApiContractTests
         [
             nameof(IToolExecutionServices.CompilerDiagnosticService),
             nameof(IToolExecutionServices.DependencyAnalysisService),
+            nameof(IToolExecutionServices.GeneratedSourceClassifier),
             nameof(IToolExecutionServices.InspectionContextService),
             nameof(IToolExecutionServices.ProjectStructureService),
             nameof(IToolExecutionServices.ProjectTargetFrameworkResolver),

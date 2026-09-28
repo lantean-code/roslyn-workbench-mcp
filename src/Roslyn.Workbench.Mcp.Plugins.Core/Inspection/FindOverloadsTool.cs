@@ -19,7 +19,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
 
         if (symbolResolution.Value is not IMethodSymbol methodSymbol)
         {
-            return PluginExecutionResult.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
+            return PluginExecutionResult.Rejected<OverloadSearchData>(PluginErrorCodes.InvalidRequest, "Find overloads requires a method or constructor symbol.");
         }
 
         var overloads = new List<IMethodSymbol>();

@@ -201,7 +201,7 @@ internal sealed class ServerStatusService : IServerStatusService
 
         return status with
         {
-            Code = "RecoveryOutsideWorkspaceAuthority",
+            Code = HostToolErrorCodes.RecoveryOutsideWorkspaceAuthority,
             SolutionPath = string.Empty,
             Message = "Restart the server with authority covering this Workspace to continue recovery.",
         };

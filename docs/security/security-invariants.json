@@ -1,0 +1,619 @@
+{
+  "$schema": "schemas/security-invariants.schema.json",
+  "format": "roslyn-workbench-security-invariants/v1",
+  "entries": [
+    {
+      "id": "startup-policy-and-tool-publication",
+      "title": "Startup policy fixes the published capability surface",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench Host",
+      "outcome": "The startup-selected operational mode resolves to immutable policy primitives, and only tools permitted by that effective policy are published.",
+      "boundary": "Enforcement begins during Host composition and applies to the built-in tools published by that process. MCP requests cannot widen the startup policy.",
+      "residualRisk": "An authorised operator can restart the Host with different settings. External plugin code runs within the separately documented plugin boundary.",
+      "surfaceKeys": [
+        "configuration:inspection-only:no-new-compiler-errors",
+        "effective-policy:approval-required:no-new-compiler-errors",
+        "effective-policy:approval-required:none",
+        "effective-policy:autonomous-trusted:no-new-compiler-errors",
+        "effective-policy:autonomous-trusted:none",
+        "effective-policy:inspection-only:none",
+        "effective-policy:transactional:no-new-compiler-errors",
+        "effective-policy:transactional:none",
+        "operational-mode:approval-required",
+        "operational-mode:autonomous-trusted",
+        "operational-mode:inspection-only",
+        "operational-mode:transactional",
+        "policy:commit-authorisation:confirmation",
+        "policy:commit-authorisation:none",
+        "policy:commit-authorisation:receipt-approval",
+        "policy:commit-validation:no-new-compiler-errors",
+        "policy:commit-validation:none",
+        "policy:source-mutation:disabled",
+        "policy:source-mutation:enabled",
+        "status-field:commitConfirmationRequired",
+        "status-field:compilerValidationRequired",
+        "status-field:operationalMode",
+        "status-field:receiptApprovalRequired",
+        "status-field:sourceMutationEnabled",
+        "status-field:toolOutputSchemaMode",
+        "tool:analyze-async",
+        "tool:analyze-control-flow",
+        "tool:analyze-data-flow",
+        "tool:analyze-disposables",
+        "tool:analyze-nullability",
+        "tool:find-callees",
+        "tool:find-callers",
+        "tool:find-dependency-cycles",
+        "tool:find-derived-types",
+        "tool:find-duplicate-code",
+        "tool:find-implementations",
+        "tool:find-overloads",
+        "tool:find-overrides",
+        "tool:find-references",
+        "tool:find-unused-symbols",
+        "tool:format-document",
+        "tool:get-api-surface",
+        "tool:get-change-impact",
+        "tool:get-code-context",
+        "tool:get-control-flow-graph",
+        "tool:get-dependency-graph",
+        "tool:get-diagnostics",
+        "tool:get-document-options",
+        "tool:get-document-outline",
+        "tool:get-error-details",
+        "tool:get-operation-tree",
+        "tool:get-partial-declarations",
+        "tool:get-project-details",
+        "tool:get-solution-structure",
+        "tool:get-symbol-attributes",
+        "tool:get-symbol-dependencies",
+        "tool:get-symbol-dependents",
+        "tool:get-symbol-info",
+        "tool:get-symbol-members",
+        "tool:get-test-impact",
+        "tool:get-type-hierarchy",
+        "tool:go-to-definition",
+        "tool:list-code-actions",
+        "tool:prepare-error-report",
+        "tool:prepare-fix-all",
+        "tool:rename-symbol",
+        "tool:resolve-symbol",
+        "tool:search-symbols",
+        "tool:server-status",
+        "tool:stage-code-action",
+        "tool:submit-error-report",
+        "tool:transaction-commit",
+        "tool:transaction-history",
+        "tool:transaction-preview",
+        "tool:transaction-review",
+        "tool:transaction-rollback",
+        "tool:transaction-start",
+        "tool:transaction-validate",
+        "tool:workspace-close",
+        "tool:workspace-list",
+        "tool:workspace-open",
+        "tool:workspace-reload",
+        "tool:workspace-status"
+      ],
+      "evidence": [
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionHostMatrix_WHEN_CollectingSecuritySurface_THEN_ShouldMatchEveryToolAvailabilityFact"
+        },
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_DefaultOperationalMode_WHEN_ComposingHost_THEN_ShouldPublishInspectionOnlySurface"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/ServerOwnedToolRegistrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ServerOwnedToolRegistrationTests.GIVEN_ReceiptApprovalPolicy_WHEN_RegisteringServerOwnedTools_THEN_ShouldPublishOnlyReceiptReviewWorkflow"
+        }
+      ]
+    },
+    {
+      "id": "workspace-authority-and-document-policy",
+      "title": "Workspace authority constrains admitted and mutable files",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench Host",
+      "outcome": "Workspace admission, external-document handling and mutation containment are evaluated against Host-owned authority rather than client assertions.",
+      "boundary": "The guarantee covers workspaces and transaction persistence performed through Roslyn Workbench.",
+      "residualRisk": "Other local processes and trusted build inputs can change files outside this Host and can require a workspace reload.",
+      "surfaceKeys": [
+        "policy:external-document:allow-read-only",
+        "policy:external-document:reject-workspace",
+        "status-field:allowedWorkspaceRootCount",
+        "status-field:externalDocumentPolicy",
+        "status-field:workspaceAdmission",
+        "error:WorkspaceAuthorityChanged",
+        "error:WorkspaceCapacityReached",
+        "error:WorkspaceChangedDuringLoad",
+        "error:WorkspaceExternalDocumentRejected",
+        "error:WorkspaceInputEvaluationFailed",
+        "error:WorkspaceLoadFailed",
+        "error:WorkspaceNotSupported",
+        "error:WorkspaceOutOfDate",
+        "error:WorkspaceProjectOutsideRoot"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_PathOutsideHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_ExternalDocumentRejectedByPolicy_WHEN_OpeningWorkspace_THEN_ShouldRejectAndDispose"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateValidatorTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateValidatorTests.GIVEN_ExistingDocumentOutsideWorkspaceRoot_WHEN_ChangingText_THEN_ShouldRejectIt"
+        }
+      ]
+    },
+    {
+      "id": "transaction-snapshot-and-receipt",
+      "title": "Mutations remain transaction-, snapshot- and approval-bound",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench transaction pipeline",
+      "outcome": "Source mutations require an active transaction, stale snapshots are rejected, and approval-required commits use a one-use receipt bound to the exact reviewed persistence set.",
+      "boundary": "The guarantee covers mutations and commits routed through the supported transaction tools and lower-level transaction service.",
+      "residualRisk": "A user or authorised client can approve an undesirable but accurately represented change; repository review remains necessary.",
+      "surfaceKeys": [
+        "continuation:call-tool",
+        "continuation:choose-tool",
+        "continuation:resolve-externally",
+        "continuation:retry-request",
+        "continuation:revise-request",
+        "error:DocumentAmbiguous",
+        "error:DocumentNotFound",
+        "error:InvalidRequest",
+        "error:LinkedDocumentConflict",
+        "error:MutationCandidateChanged",
+        "error:NoActiveTransaction",
+        "error:RevisionCapacityReached",
+        "error:SnapshotMismatch",
+        "error:SourceMutationDisabled",
+        "error:TransactionAlreadyActive",
+        "error:TransactionConflicted",
+        "error:TransactionHistoryUnavailable",
+        "error:TransactionOwnedByWorkspace",
+        "error:TransactionReceiptMismatch",
+        "error:TransactionReceiptRequired",
+        "error:TransactionReviewUnavailable",
+        "error:WorkspaceAlreadyOpen",
+        "error:WorkspaceBusy",
+        "error:WorkspaceNotOpen",
+        "receipt-digest:sha256-rwcs-v1",
+        "status-field:clientSupportsElicitation",
+        "status-field:commitConfirmationState",
+        "status-field:maxTransactionRevisions"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_ReceiptBoundToEarlierRevision_WHEN_ValidatingBeforePrompt_THEN_ShouldRequestNewReview"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflictWithoutWriting"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_FinalPersistenceIdentityDiffersFromApprovedReceipt_WHEN_Committing_THEN_ShouldRejectBeforeRecoveryPersistence"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/Transactions/TransactionReceiptStoreTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.Transactions.TransactionReceiptStoreTests.GIVEN_CurrentReceipt_WHEN_Consuming_THEN_ShouldReturnItOnce"
+        }
+      ]
+    },
+    {
+      "id": "compiler-impact-validation",
+      "title": "Optional compiler-impact validation fails closed",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench transaction pipeline",
+      "outcome": "When configured, commit is blocked by new compiler errors or incomplete compiler evaluation relative to the transaction baseline.",
+      "boundary": "The validation covers the projects and compilations affected by the staged transaction at commit time.",
+      "residualRisk": "It does not prove behavioural correctness, run all analysers or replace repository builds and tests.",
+      "surfaceKeys": [
+        "compiler-error-identity:compiler-error-identity-v1",
+        "error:CompilerValidationIncomplete",
+        "error:CompilerValidationUnavailable",
+        "error:NewCompilerErrors"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_NewCompilerErrors_WHEN_Reviewing_THEN_ShouldNotBuildReceipt"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_IncompleteCompilerValidation_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork"
+        }
+      ]
+    },
+    {
+      "id": "generated-source-policy",
+      "title": "Generated-looking source follows explicit mutation policy",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench transaction pipeline",
+      "outcome": "Generated-looking checked-in source produces a bounded warning or is denied according to startup policy and reviewed path exceptions.",
+      "boundary": "Classification applies to source paths selected for supported transaction mutations.",
+      "residualRisk": "Path and source heuristics cannot identify every generated file; maintainers remain responsible for repository-specific exceptions and review.",
+      "surfaceKeys": [
+        "error:GeneratedSourceMutationDenied",
+        "policy:generated-source:deny",
+        "policy:generated-source:warn",
+        "status-field:generatedSourceExceptionCount",
+        "status-field:generatedSourcePolicy",
+        "warning:generated-source-mutation"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_GeneratedSourceAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryAndWarningWithoutResolvingDocument"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateProcessorTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateProcessorTests.GIVEN_GeneratedSourceAndDenyPolicy_WHEN_Processing_THEN_ShouldRejectCandidate"
+        }
+      ]
+    },
+    {
+      "id": "durable-recovery",
+      "title": "Interrupted persistence retains versioned recovery evidence",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench commit and recovery services",
+      "outcome": "Commit persistence uses versioned durable evidence, reports unfinished states, and preserves unsupported versions rather than guessing how to recover them.",
+      "boundary": "The guarantee covers recovery artifacts created and read by Roslyn Workbench in its configured state directory.",
+      "residualRisk": "Operating-system or storage failure can still make evidence incomplete; status reports that condition for manual resolution.",
+      "surfaceKeys": [
+        "error:CommitRecoveryCapacityReached",
+        "recovery-format:1",
+        "recovery-operation:create",
+        "recovery-operation:delete",
+        "recovery-operation:replace",
+        "recovery-state:applying",
+        "recovery-state:committed",
+        "recovery-state:prepared",
+        "recovery-state:recovery-conflict",
+        "recovery-state:recovery-incomplete",
+        "recovery-state:restored",
+        "recovery-status:RecoveryVersionUnsupported"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Recovery.CommitRecoveryStoreTests.GIVEN_UnsupportedManifestVersion_WHEN_ReadingStatuses_THEN_ShouldReturnActionableConflict"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceCommitWriterTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceCommitWriterTests.GIVEN_CreateReplaceAndDelete_WHEN_Applying_THEN_ShouldUseDurableArtifactsWithoutCancellation"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/WorkspaceCommitRecoveryServiceTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Workspace.Test.Recovery.WorkspaceCommitRecoveryServiceTests.GIVEN_ApplyingManifest_WHEN_RestorationSucceeds_THEN_ShouldPersistRestoredBeforeCleanup"
+        }
+      ]
+    },
+    {
+      "id": "error-reporting-consent-and-redaction",
+      "title": "External error reporting is explicit, bounded and consent-controlled",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench error-reporting pipeline",
+      "outcome": "External reports use versioned bounded payloads, reviewed projection and redaction, and the configured consent policy before dispatch.",
+      "boundary": "The guarantee covers data prepared and submitted through the built-in reporting tools and configured dispatcher.",
+      "residualRisk": "An approved report intentionally leaves the local machine; the selected provider and operating environment govern it after dispatch.",
+      "surfaceKeys": [
+        "error-report-format:2",
+        "error-report-schema:2",
+        "policy:error-report-consent:always",
+        "policy:error-report-consent:never",
+        "policy:error-report-consent:prompt",
+        "status-field:errorReporting"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/ErrorReporting/ExternalErrorReportProjectorTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ErrorReporting.ExternalErrorReportProjectorTests.GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldExcludeExternalImplementationDetails"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/ErrorReporting/SubmitErrorReportToolTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ErrorReporting.SubmitErrorReportToolTests.GIVEN_PromptRequiredWithoutElicitationCapability_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch"
+        }
+      ]
+    },
+    {
+      "id": "plugin-loading-boundary",
+      "title": "External plugin loading is explicit and mode-constrained",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench Host",
+      "outcome": "External plugin discovery is disabled by default and fixed at startup. Plugin mutation tools are published only when the resolved operational policy enables source mutation.",
+      "boundary": "The Host controls discovery and publication. Once loaded, trusted plugins execute in process with Host authority.",
+      "residualRisk": "Plugins, analysers and Code Action providers are trusted code rather than sandboxed tenants and can perform effects outside MCP tool contracts.",
+      "surfaceKeys": [
+        "plugin-api:1.0",
+        "plugin-loading:default",
+        "plugin-publication:approval-required",
+        "plugin-publication:autonomous-trusted",
+        "plugin-publication:inspection-only",
+        "plugin-publication:transactional",
+        "status-field:externalPluginsEnabled"
+      ],
+      "evidence": [
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogLoaderTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogLoaderTests.GIVEN_ExternalPluginsDisabled_WHEN_Loading_THEN_ShouldNotDiscoverExternalPackages"
+        },
+        {
+          "level": "unit",
+          "project": "test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogEntryMaterializerTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogEntryMaterializerTests.GIVEN_MixedToolKinds_WHEN_MaterializingEntry_THEN_ShouldCreateOnlyPermittedRuntimeTools"
+        }
+      ]
+    },
+    {
+      "id": "bounded-host-resources",
+      "title": "Published operations expose bounded Host resource controls",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench Host",
+      "outcome": "Collection defaults, Code Action reference lifetime and concurrent query count are fixed by Host configuration and reported without exposing sensitive configuration.",
+      "boundary": "These bounds apply to the corresponding Roslyn Workbench caches, references and query scheduling.",
+      "residualRisk": "Trusted Roslyn providers and build inputs can still consume substantial resources while an allowed operation executes.",
+      "surfaceKeys": [
+        "status-field:codeActionReferenceLifetime",
+        "status-field:defaultMaxResults",
+        "status-field:maxConcurrentQueries"
+      ],
+      "evidence": [
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_CommandLineOptions_WHEN_ComposingHost_THEN_ShouldProjectDerivedOptionsIntoTheContainer"
+        }
+      ]
+    },
+    {
+      "id": "stable-agent-facing-status-codes",
+      "title": "Agent-facing failure, status and continuation contracts are baseline-locked",
+      "classification": "enforced",
+      "actor": "Roslyn Workbench Host and Workspace services",
+      "outcome": "The generated compatibility baseline records the exact failure envelope, public error codes, status graph, enum values, required-action values and continuation mappings used by authorised clients.",
+      "boundary": "The contract covers the shared structured failure envelope and error-code catalogue, the models reachable from server and workspace status, and the structured required-action and continuation values returned by supported operations.",
+      "residualRisk": "The code describes the detected condition; clients must still present and follow the accompanying recovery guidance correctly.",
+      "surfaceKeys": [
+        "contract-enum:roslyn-workbench-mcp-protocol-results-toolcontinuationkind:call-tool",
+        "contract-enum:roslyn-workbench-mcp-protocol-results-toolcontinuationkind:choose-tool",
+        "contract-enum:roslyn-workbench-mcp-protocol-results-toolcontinuationkind:resolve-externally",
+        "contract-enum:roslyn-workbench-mcp-protocol-results-toolcontinuationkind:retry-request",
+        "contract-enum:roslyn-workbench-mcp-protocol-results-toolcontinuationkind:revise-request",
+        "contract-enum:roslyn-workbench-mcp-contracts-server-tooloutputschemamode:full",
+        "contract-enum:roslyn-workbench-mcp-contracts-server-tooloutputschemamode:omit",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-diagnosticseverity:error",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-diagnosticseverity:hidden",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-diagnosticseverity:info",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-diagnosticseverity:warning",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:applying",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:committed",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:prepared",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:recovery-conflict",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:recovery-incomplete",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-recoverystate:restored",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-workspacelifecyclestate:ready",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-workspacelifecyclestate:transaction-active",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-workspacelifecyclestate:transaction-conflicted",
+        "contract-enum:roslyn-workbench-mcp-workspace-results-workspacelifecyclestate:workspace-out-of-date",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-componentstatus",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-pluginstatus",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-serverconfiguration",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-serverstatusdata",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-workspaceexternalchangedata",
+        "contract-shape:roslyn-workbench-mcp-contracts-server-workspacestatusdata",
+        "contract-shape:roslyn-workbench-mcp-errorreporting-contracts-errorreportingstatusdata",
+        "contract-shape:roslyn-workbench-mcp-protocol-results-toolcontinuation",
+        "contract-shape:roslyn-workbench-mcp-protocol-results-toolerror",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-diagnosticinfo",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-recoverystatus",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-transactioninfo",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-warninginfo",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-workspaceidentity",
+        "contract-shape:roslyn-workbench-mcp-workspace-results-workspaceinstanceinfo",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-canonicallocationselector",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-documentreference",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-documentselector",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-projectselector",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-resolvedlocation",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-snapshotprecondition",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-textspanrange",
+        "contract-shape:roslyn-workbench-mcp-workspace-selectors-textspanselector",
+        "error:ActionAmbiguous",
+        "error:ActionExpired",
+        "error:ActionReferenceCapacityExceeded",
+        "error:ActionUnavailable",
+        "error:AnalysisLimitExceeded",
+        "error:ApprovalUnavailable",
+        "error:CodeActionDocumentPathUnavailable",
+        "error:CodeActionLocationUnavailable",
+        "error:CodeActionProjectionFailed",
+        "error:CodeActionsUnavailable",
+        "error:CodeFixUnavailable",
+        "error:CommitLockFailed",
+        "error:CommitFailed",
+        "error:CommitPreparationFailed",
+        "error:DocumentSelectorInvalid",
+        "error:ErrorDetailsUnavailable",
+        "error:ErrorReportCapacityReached",
+        "error:ErrorReportNotApproved",
+        "error:ErrorReportPayloadTooLarge",
+        "error:ErrorReportSubmissionInProgress",
+        "error:ErrorReportingUnavailable",
+        "error:FixAllLimitExceeded",
+        "error:FixAllUnavailable",
+        "error:InvalidApprovalResponse",
+        "error:InvalidExceptionMessageHandling",
+        "error:InvalidMutationProposal",
+        "error:InvalidPreparedErrorReport",
+        "error:InvalidRange",
+        "error:LocationAmbiguous",
+        "error:LocationNotFound",
+        "error:LocationSelectorInvalid",
+        "error:PreparedReportUnavailable",
+        "error:ProjectAmbiguous",
+        "error:ProjectNotFound",
+        "error:ProjectSelectorInvalid",
+        "error:ProjectStructureUnavailable",
+        "error:RecoveryOutsideWorkspaceAuthority",
+        "error:RecoveryPending",
+        "error:SentryCaptureRejected",
+        "error:SymbolAmbiguous",
+        "error:SymbolNotFound",
+        "error:SymbolSelectorInvalid",
+        "error:TransactionCommitNotApproved",
+        "error:TransactionOpen",
+        "error:TransactionOwnershipChanged",
+        "error:TransactionReceiptUnavailable",
+        "error:UnhandledException",
+        "error:UnsupportedActionOperation",
+        "error:UnsupportedChange",
+        "error:WorkspaceReloadBlocked",
+        "error:WorkspaceReloadNotRequired",
+        "error:WorkspaceMsBuildPropertiesInvalid",
+        "error:WorkspacePathInvalid",
+        "error:WorkspacePathNotAllowed",
+        "error:WorkspaceRootInvalid",
+        "error:WorkspaceRootNotAllowed",
+        "error:WorkspaceSelectorInvalid",
+        "error:WorkspaceSelectorMismatch",
+        "error:WorkspaceSelectorNotFound",
+        "error:WorkspaceSelectorRequired",
+        "failure-envelope:standard",
+        "required-action:commit-or-rollback",
+        "required-action:narrow-request",
+        "required-action:open-workspace",
+        "required-action:reduce-transaction-history",
+        "required-action:reload-workspace",
+        "required-action:resolve-recovery",
+        "required-action:resolve-target-again",
+        "required-action:retry",
+        "required-action:review-transaction",
+        "required-action:rollback-transaction",
+        "required-action:start-transaction",
+        "success-envelope:all-published-tools"
+      ],
+      "evidence": [
+        {
+          "level": "contract",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_RuntimeFailureVariants_WHEN_ValidatingPublishedOutputSchema_THEN_ShouldAcceptEveryEnvelope"
+        },
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/PublishedErrorCodeSourceValidatorTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ToolReference.PublishedErrorCodeSourceValidatorTests.GIVEN_RepositoryProductionSources_WHEN_ValidatingErrorEmitters_THEN_ShouldUseOwnedConstants"
+        },
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionToolMatrix_WHEN_CollectingResponseContracts_THEN_ShouldLockEverySuccessAndRuntimeFailureShape"
+        },
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_StatusOutputSchemas_WHEN_ExportingRecursiveContracts_THEN_ShouldMatchCompleteStatusGraphs"
+        },
+        {
+          "level": "integration",
+          "project": "test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj",
+          "source": "test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs",
+          "test": "Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_SecurityRelevantContracts_WHEN_CollectingSecuritySurface_THEN_ShouldIncludeDerivedCompatibilityFacts"
+        }
+      ]
+    },
+    {
+      "id": "coordinated-workspace-ownership",
+      "title": "Workspace mutation requires coordinated local ownership",
+      "classification": "delegated",
+      "actor": "Authorised MCP client, user and other local workspace editors",
+      "outcome": "Callers wait for recovery initialisation and avoid concurrent file edits or workspace-topology changes while non-cancellable commit application or recovery is in progress. A second Host instance sharing the same workspace remains advisory or query-only.",
+      "boundary": "Roslyn Workbench detects many stale-input and external-change conditions, but it does not hold an operating-system lock over every workspace file or coordinate independent Host processes.",
+      "residualRisk": "Uncoordinated local writers can invalidate assumptions during the narrow persistence boundary and can require recovery or manual reconciliation.",
+      "surfaceKeys": [],
+      "evidence": []
+    },
+    {
+      "id": "authorised-client-responsibility",
+      "title": "The client and user remain responsible for intent and review",
+      "classification": "delegated",
+      "actor": "Authorised MCP client and user",
+      "outcome": "The client should use inspection before mutation, convey elicitation failures accurately, review previews or receipts and keep each transaction to a coherent change.",
+      "boundary": "Roslyn Workbench supplies bounded tools, structured continuations and exact review data; it cannot determine the user's true intent.",
+      "residualRisk": "A mistaken but authorised approval can persist an undesirable change that satisfies all mechanical safeguards.",
+      "surfaceKeys": [],
+      "evidence": []
+    },
+    {
+      "id": "trusted-local-execution-boundary",
+      "title": "Roslyn Workbench is not a hostile-code sandbox",
+      "classification": "limitation",
+      "actor": "Operating environment and repository owner",
+      "outcome": "Workspaces, builds, analysers, generators, Code Action providers and enabled plugins must be trusted for local execution.",
+      "boundary": "The server is local and stdio-based, but trusted extensions and build inputs execute with the Host process authority.",
+      "residualRisk": "Hostile code with the same operating-system authority can bypass application-level controls and access local data directly.",
+      "surfaceKeys": [
+        "plugin-loading:execution-boundary"
+      ],
+      "evidence": []
+    }
+  ]
+}

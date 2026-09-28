@@ -261,7 +261,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
     private static CodeActionExecutionResult<T> ActionAmbiguous<T>()
     {
         return CodeActionExecutionResultFactory.Rejected<T>(
-            "ActionAmbiguous",
+            CodeActionErrorCodes.ActionAmbiguous,
             "The requested action could not be reproduced uniquely.",
             RequiredAction.ResolveTargetAgain);
     }
@@ -269,7 +269,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
     private static CodeActionExecutionResult<T> ProviderFailed<T>()
     {
         return CodeActionExecutionResultFactory.Rejected<T>(
-            "ActionUnavailable",
+            CodeActionErrorCodes.ActionUnavailable,
             "The selected action could not be reproduced because its provider failed. Retry the same request.",
             RequiredAction.Retry);
     }

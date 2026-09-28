@@ -40,7 +40,7 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
                 || request.Range.Start > originalText.Length - request.Range.Length)
             {
                 return PluginExecutionResult.Rejected<MutationCandidate>(
-                    "InvalidRequest",
+                    PluginErrorCodes.InvalidRequest,
                     "The range must identify a span within the selected document.");
             }
 

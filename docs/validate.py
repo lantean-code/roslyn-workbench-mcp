@@ -143,8 +143,10 @@ def main() -> int:
 
     docs_directory = Path(__file__).resolve().parent
     reference_directory = docs_directory / "content" / "reference" / "tools"
+    security_reference_directory = docs_directory / "content" / "reference" / "security"
     site_directory = docs_directory / "site"
     validate_reference(reference_directory)
+    validate_security_reference(security_reference_directory)
     external_links = validate_site(site_directory, arguments.deployment_version)
     if arguments.check_external:
         validate_external_links(external_links, arguments.skip_project_links)
@@ -183,6 +185,40 @@ def validate_reference(reference_directory: Path) -> None:
     actual_details = {path.name for path in (reference_directory / "data").glob("*.json")}
     if actual_details != expected_details:
         raise ValueError("Generated detail files do not exactly match the tool catalog.")
+
+
+def validate_security_reference(reference_directory: Path) -> None:
+    publication = read_json(reference_directory / "security-reference.json")
+    if publication.get("format") != "roslyn-workbench-security-reference/v1":
+        raise ValueError("The generated security reference uses an unsupported format.")
+
+    entries = publication.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("The generated security reference is empty.")
+
+    identifiers = [entry.get("id") for entry in entries]
+    if any(not isinstance(identifier, str) or not identifier for identifier in identifiers):
+        raise ValueError("Every generated security-reference entry must have a non-empty identifier.")
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("Generated security-reference identifiers must be unique.")
+
+    surface_keys = []
+    for entry in entries:
+        classification = entry.get("classification")
+        if classification not in {"enforced", "delegated", "limitation"}:
+            raise ValueError(f"Security-reference entry '{entry['id']}' has an invalid classification.")
+        if classification == "enforced" and not entry.get("evidence"):
+            raise ValueError(f"Enforced security-reference entry '{entry['id']}' has no evidence.")
+        for item in entry.get("surface", []):
+            key = item.get("key")
+            if not isinstance(key, str) or not key or not isinstance(item.get("facts"), dict):
+                raise ValueError(f"Security-reference entry '{entry['id']}' contains an invalid surface item.")
+            surface_keys.append(key)
+
+    if not surface_keys:
+        raise ValueError("The generated security reference contains no resolved surface items.")
+    if not (reference_directory / "index.md").is_file():
+        raise ValueError("Generated security-reference Markdown is missing.")
 
 
 def validate_schema_identity(schema_file: Path) -> None:

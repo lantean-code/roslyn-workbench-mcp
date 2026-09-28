@@ -39,7 +39,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 
         if (analysis is null || !analysis.Succeeded)
         {
-            return PluginExecutionResult.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region does not support data-flow analysis.");
+            return PluginExecutionResult.Rejected<DataFlowAnalysisData>(PluginErrorCodes.InvalidRequest, "The selected region does not support data-flow analysis.");
         }
 
         var maxResults = request.EffectiveSymbolsPerCategoryLimit;

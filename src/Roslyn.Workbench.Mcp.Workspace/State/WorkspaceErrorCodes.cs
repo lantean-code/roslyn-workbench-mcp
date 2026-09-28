@@ -6,6 +6,16 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 internal static class WorkspaceErrorCodes
 {
     /// <summary>
+    /// The commit could not be completed after persistence began.
+    /// </summary>
+    public const string CommitFailed = "CommitFailed";
+
+    /// <summary>
+    /// The commit could not prepare its persistence plan.
+    /// </summary>
+    public const string CommitPreparationFailed = "CommitPreparationFailed";
+
+    /// <summary>
     /// Indicates that source mutation is disabled by Host policy.
     /// </summary>
     public const string SourceMutationDisabled = "SourceMutationDisabled";
@@ -64,6 +74,56 @@ internal static class WorkspaceErrorCodes
     /// More than one addressable document matches the selector.
     /// </summary>
     public const string DocumentAmbiguous = "DocumentAmbiguous";
+
+    /// <summary>
+    /// No project matches the selector.
+    /// </summary>
+    public const string ProjectNotFound = "ProjectNotFound";
+
+    /// <summary>
+    /// More than one project matches the selector.
+    /// </summary>
+    public const string ProjectAmbiguous = "ProjectAmbiguous";
+
+    /// <summary>
+    /// The project selector is invalid.
+    /// </summary>
+    public const string ProjectSelectorInvalid = "ProjectSelectorInvalid";
+
+    /// <summary>
+    /// No symbol matches the selector.
+    /// </summary>
+    public const string SymbolNotFound = "SymbolNotFound";
+
+    /// <summary>
+    /// More than one symbol matches the selector.
+    /// </summary>
+    public const string SymbolAmbiguous = "SymbolAmbiguous";
+
+    /// <summary>
+    /// The symbol selector is invalid.
+    /// </summary>
+    public const string SymbolSelectorInvalid = "SymbolSelectorInvalid";
+
+    /// <summary>
+    /// No source location matches the selector.
+    /// </summary>
+    public const string LocationNotFound = "LocationNotFound";
+
+    /// <summary>
+    /// More than one source location matches the selector.
+    /// </summary>
+    public const string LocationAmbiguous = "LocationAmbiguous";
+
+    /// <summary>
+    /// The source-location selector is invalid.
+    /// </summary>
+    public const string LocationSelectorInvalid = "LocationSelectorInvalid";
+
+    /// <summary>
+    /// The document selector is invalid.
+    /// </summary>
+    public const string DocumentSelectorInvalid = "DocumentSelectorInvalid";
 
     /// <summary>
     /// The operation requires an active transaction.
@@ -149,4 +209,109 @@ internal static class WorkspaceErrorCodes
     /// The supplied snapshot precondition does not match the current Workspace snapshot.
     /// </summary>
     public const string SnapshotMismatch = "SnapshotMismatch";
+
+    /// <summary>
+    /// The supplied Workspace MSBuild properties are invalid.
+    /// </summary>
+    public const string WorkspaceMsBuildPropertiesInvalid = "WorkspaceMsBuildPropertiesInvalid";
+
+    /// <summary>
+    /// The requested Workspace path is invalid.
+    /// </summary>
+    public const string WorkspacePathInvalid = "WorkspacePathInvalid";
+
+    /// <summary>
+    /// The requested Workspace path is outside Host authority.
+    /// </summary>
+    public const string WorkspacePathNotAllowed = "WorkspacePathNotAllowed";
+
+    /// <summary>
+    /// The requested Workspace root is invalid.
+    /// </summary>
+    public const string WorkspaceRootInvalid = "WorkspaceRootInvalid";
+
+    /// <summary>
+    /// The requested Workspace root would widen Host authority.
+    /// </summary>
+    public const string WorkspaceRootNotAllowed = "WorkspaceRootNotAllowed";
+
+    /// <summary>
+    /// The supplied Workspace selector is invalid.
+    /// </summary>
+    public const string WorkspaceSelectorInvalid = "WorkspaceSelectorInvalid";
+
+    /// <summary>
+    /// The supplied Workspace selector identifies conflicting Workspaces.
+    /// </summary>
+    public const string WorkspaceSelectorMismatch = "WorkspaceSelectorMismatch";
+
+    /// <summary>
+    /// The supplied Workspace selector does not identify a loaded Workspace.
+    /// </summary>
+    public const string WorkspaceSelectorNotFound = "WorkspaceSelectorNotFound";
+
+    /// <summary>
+    /// A Workspace selector is required because more than one Workspace is loaded.
+    /// </summary>
+    public const string WorkspaceSelectorRequired = "WorkspaceSelectorRequired";
+
+    /// <summary>
+    /// Recovery must be completed before another Workspace can be opened.
+    /// </summary>
+    public const string RecoveryPending = "RecoveryPending";
+
+    /// <summary>
+    /// A transaction must be completed before the Workspace can be closed.
+    /// </summary>
+    public const string TransactionOpen = "TransactionOpen";
+
+    /// <summary>
+    /// Transaction ownership changed while an operation was in progress.
+    /// </summary>
+    public const string TransactionOwnershipChanged = "TransactionOwnershipChanged";
+
+    /// <summary>
+    /// Reload is blocked by the current Workspace state.
+    /// </summary>
+    public const string WorkspaceReloadBlocked = "WorkspaceReloadBlocked";
+
+    /// <summary>
+    /// The Workspace does not currently require a reload.
+    /// </summary>
+    public const string WorkspaceReloadNotRequired = "WorkspaceReloadNotRequired";
+
+    /// <summary>
+    /// The mutation proposal is invalid for the current Workspace.
+    /// </summary>
+    public const string InvalidMutationProposal = "InvalidMutationProposal";
+
+    /// <summary>
+    /// The requested source change is not supported by the transaction pipeline.
+    /// </summary>
+    public const string UnsupportedChange = "UnsupportedChange";
+
+    /// <summary>
+    /// The commit lock could not be acquired or inspected safely.
+    /// </summary>
+    public const string CommitLockFailed = "CommitLockFailed";
+
+    /// <summary>
+    /// A loaded project is outside the effective Workspace root.
+    /// </summary>
+    public const string WorkspaceProjectOutsideRoot = "WorkspaceProjectOutsideRoot";
+
+    /// <summary>
+    /// Workspace inputs could not be evaluated safely.
+    /// </summary>
+    public const string WorkspaceInputEvaluationFailed = "WorkspaceInputEvaluationFailed";
+
+    /// <summary>
+    /// Workspace inputs changed while the Workspace was loading.
+    /// </summary>
+    public const string WorkspaceChangedDuringLoad = "WorkspaceChangedDuringLoad";
+
+    /// <summary>
+    /// The Workspace contains an evaluated document rejected by external-document policy.
+    /// </summary>
+    public const string WorkspaceExternalDocumentRejected = "WorkspaceExternalDocumentRejected";
 }

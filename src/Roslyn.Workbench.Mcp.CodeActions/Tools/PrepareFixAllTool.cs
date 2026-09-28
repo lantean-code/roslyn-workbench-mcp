@@ -100,7 +100,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         if (provider is null || fixAllProvider is null)
         {
             return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
+                CodeActionErrorCodes.FixAllUnavailable,
                 "The originating Code Fix no longer exposes Fix All.");
         }
 
@@ -124,7 +124,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
 
         if (creation.HasFailure)
         {
-            return Rejected<PrepareFixAllData>("FixAllUnavailable", creation.Failure.Message);
+            return Rejected<PrepareFixAllData>(CodeActionErrorCodes.FixAllUnavailable, creation.Failure.Message);
         }
 
         var application = await _evaluator.EvaluateAsync(
@@ -158,7 +158,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         if (changedDocuments.Count > request.EffectiveMaxChanges)
         {
             return Rejected<PrepareFixAllData>(
-                "FixAllLimitExceeded",
+                CodeActionErrorCodes.FixAllLimitExceeded,
                 $"The Fix All operation would change {changedDocuments.Count} source documents, exceeding the limit of {request.EffectiveMaxChanges}.",
                 RequiredAction.NarrowRequest);
         }
@@ -215,7 +215,7 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         if (!_referenceStore.TryCreate(preparedRecipe, expiresAt, out var preparedReference))
         {
             return Rejected<PrepareFixAllData>(
-                "ActionReferenceCapacityExceeded",
+                CodeActionErrorCodes.ActionReferenceCapacityExceeded,
                 "The prepared Fix All reference could not be stored.");
         }
 
@@ -278,21 +278,21 @@ internal sealed class PrepareFixAllTool : CodeActionQueryToolHandler<PrepareFixA
         if (reference.Recipe.PreparedFixAll is not null)
         {
             return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
+                CodeActionErrorCodes.FixAllUnavailable,
                 "The selected reference already represents a prepared Fix All operation.");
         }
 
         if (action.Kind != DiscoveredActionKind.CodeFix)
         {
             return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
+                CodeActionErrorCodes.FixAllUnavailable,
                 "The selected action is not a Code Fix.");
         }
 
         if (!action.FixAllScopes.Contains(scope))
         {
             return Rejected<PrepareFixAllData>(
-                "FixAllUnavailable",
+                CodeActionErrorCodes.FixAllUnavailable,
                 "The selected Code Fix does not support the requested Fix All scope.");
         }
 

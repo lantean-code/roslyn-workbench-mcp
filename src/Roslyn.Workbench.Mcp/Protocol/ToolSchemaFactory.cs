@@ -65,7 +65,9 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
                 _schemaProvider.GetValueSchema<ToolError>(),
                 _continuationSchema,
                 _schemaProvider.GetValueSchema<SnapshotPrecondition>(),
-                _schemaProvider.GetValueSchema<WarningInfo>()));
+                _schemaProvider.GetValueSchema<WarningInfo>(),
+                _schemaProvider.GetValueSchema<DiagnosticInfo>(),
+                _schemaProvider.GetValueSchema<ErrorReportingAvailability>()));
     }
 
     /// <summary>
@@ -168,7 +170,9 @@ internal sealed class ToolSchemaFactory : IToolSchemaFactory
             componentSchemas,
             _schemaProvider.GetValueSchema<ToolError>(),
             _continuationSchema,
-            warningSchema);
+            warningSchema,
+            _schemaProvider.GetValueSchema<DiagnosticInfo>(),
+            _schemaProvider.GetValueSchema<ErrorReportingAvailability>());
     }
 
     private static JsonObject CreateMutationSummarySchema()

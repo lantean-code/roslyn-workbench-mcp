@@ -25,7 +25,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         if (!targetFrameworks.IsSucceeded)
         {
             var rejection = PluginExecutionResult.Rejected<ProjectDetailsData>(
-                "ProjectStructureUnavailable",
+                PluginErrorCodes.ProjectStructureUnavailable,
                 targetFrameworks.ErrorMessage,
                 RequiredAction.Retry);
             return ValueTask.FromResult(rejection);
@@ -34,7 +34,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         if (!context.WorkspacePathService.TryNormalizePath(project.FilePath ?? project.Name, out var projectPath))
         {
             var rejection = PluginExecutionResult.Rejected<ProjectDetailsData>(
-                "ProjectStructureUnavailable",
+                PluginErrorCodes.ProjectStructureUnavailable,
                 "The resolved project's path could not be normalized relative to the workspace root.",
                 RequiredAction.ReloadWorkspace);
             return ValueTask.FromResult(rejection);

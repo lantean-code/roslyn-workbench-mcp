@@ -102,7 +102,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     private static CodeActionScopeResolution InvalidRequest(string message)
     {
         var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-            "InvalidRequest",
+            WorkspaceErrorCodes.InvalidRequest,
             message);
 
         return CodeActionScopeResolution.Rejected(rejection);

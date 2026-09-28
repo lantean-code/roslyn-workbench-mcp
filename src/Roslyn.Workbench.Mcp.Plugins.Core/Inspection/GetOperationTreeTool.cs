@@ -31,7 +31,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (operation is null)
         {
-            return PluginExecutionResult.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
+            return PluginExecutionResult.Rejected<OperationTreeData>(PluginErrorCodes.InvalidRequest, "The selected region does not resolve to an operation tree.");
         }
 
         OperationNode? root = null;
@@ -168,7 +168,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
     private static PluginExecutionResult<OperationTreeData> CreateLocationNotFoundRejection()
     {
         return PluginExecutionResult.Rejected<OperationTreeData>(
-            "LocationNotFound",
+            PluginErrorCodes.LocationNotFound,
             "The location selector did not resolve to a source document.",
             RequiredAction.ResolveTargetAgain);
     }

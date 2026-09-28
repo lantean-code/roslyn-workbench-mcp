@@ -17,7 +17,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return PluginExecutionResult.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
+            return PluginExecutionResult.Rejected<DerivedTypesData>(PluginErrorCodes.InvalidRequest, "Find derived types requires a named type symbol.");
         }
 
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<DerivedTypesData>(request.Scope, context);

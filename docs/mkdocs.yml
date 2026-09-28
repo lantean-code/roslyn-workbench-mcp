@@ -76,5 +76,6 @@ nav:
       - Error reporting and privacy: error-reporting.md
   - Reference:
       - Tool reference: reference/tools/index.md
+      - Security guarantees and evidence: reference/security/index.md
       - Agent guide: agent/index.md
   - Support and feedback: https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md

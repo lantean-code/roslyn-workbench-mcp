@@ -32,7 +32,7 @@ internal static class FlowAnalysisRegionResolver
         if (!TryResolveStatements(resolvedContext.SyntaxRoot, resolvedContext.SourceSpan, out var firstStatement, out var lastStatement))
         {
             var rejection = PluginExecutionResult.Rejected<TResponse>(
-                "InvalidRequest",
+                PluginErrorCodes.InvalidRequest,
                 "The selected region must exactly match a complete statement or a contiguous range of statements in one executable body.");
 
             return ToolResolutionResult.Rejected<ResolvedStatementFlowRegion, TResponse>(rejection);
@@ -91,7 +91,7 @@ internal static class FlowAnalysisRegionResolver
         }
 
         var rejection = PluginExecutionResult.Rejected<TResponse>(
-            "InvalidRequest",
+            PluginErrorCodes.InvalidRequest,
             "The selected region must exactly match an expression, a complete statement, or a contiguous range of statements in one executable body.");
 
         return ToolResolutionResult.Rejected<ResolvedFlowRegion, TResponse>(rejection);
@@ -283,7 +283,7 @@ internal static class FlowAnalysisRegionResolver
     private static PluginExecutionResult<TResponse> CreateLocationNotFoundRejection<TResponse>()
     {
         return PluginExecutionResult.Rejected<TResponse>(
-            "LocationNotFound",
+            PluginErrorCodes.LocationNotFound,
             "The location selector did not resolve to a source document.",
             RequiredAction.ResolveTargetAgain);
     }

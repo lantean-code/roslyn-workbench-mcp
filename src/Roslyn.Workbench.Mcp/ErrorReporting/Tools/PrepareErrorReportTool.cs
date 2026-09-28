@@ -89,7 +89,7 @@ internal sealed class PrepareErrorReportTool :
         if (!_capturedErrorStore.TryGet(request.CorrelationId, out var record))
         {
             return ValueTask.FromResult(CreateFailure(
-                "ErrorDetailsUnavailable",
+                HostToolErrorCodes.ErrorDetailsUnavailable,
                 "The correlation ID is unknown or its temporary diagnostic record has expired."));
         }
 
@@ -100,7 +100,7 @@ internal sealed class PrepareErrorReportTool :
         if (!availability.CanPrepare)
         {
             return ValueTask.FromResult(CreateFailure(
-                "ErrorReportingUnavailable",
+                HostToolErrorCodes.ErrorReportingUnavailable,
                 $"Error reporting is unavailable because its current state is {availability.State}."));
         }
 
@@ -110,7 +110,7 @@ internal sealed class PrepareErrorReportTool :
         if (payload.PreviewBytes.Length > _options.MaximumPayloadBytes)
         {
             return ValueTask.FromResult(CreateFailure(
-                "ErrorReportPayloadTooLarge",
+                HostToolErrorCodes.ErrorReportPayloadTooLarge,
                 "The sanitised error report exceeds the configured payload limit."));
         }
 
@@ -132,7 +132,7 @@ internal sealed class PrepareErrorReportTool :
         if (!_preparedSubmissionStore.TryAdd(submission))
         {
             return ValueTask.FromResult(CreateFailure(
-                "ErrorReportCapacityReached",
+                HostToolErrorCodes.ErrorReportCapacityReached,
                 "The temporary prepared-report capacity is full; retry after an existing report expires or is discarded."));
         }
 

@@ -161,6 +161,8 @@ The approved implementation is recorded in [Generated-source policy](generated-s
 
 After the behavioural controls above have been implemented, reviewed and validated, publish the guarantees that the Host actually maintains, their limitations and the automated coverage that demonstrates them. At minimum, cover Workspace authority, query versus mutation effects, snapshot freshness, the sole persistence boundary, exact-change validation and approval, recovery behaviour, error-report network effects, startup-policy immutability and fail-closed handling of unsupported state.
 
+The implemented security account is maintained through the authored [security invariant manifest](../security/security-invariants.json) and code-derived [security surface baseline](../security/security-surface-v1.json). Documentation generation checks exact mappings and executable evidence references, then publishes versioned human-readable and machine-readable security reference material without adding runtime or MCP context cost.
+
 Acceptance bar:
 
 - every invariant identifies its actor, protected outcome, boundary and residual risk;

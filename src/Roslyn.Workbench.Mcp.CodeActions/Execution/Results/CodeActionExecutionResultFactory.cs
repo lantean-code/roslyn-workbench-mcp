@@ -24,7 +24,7 @@ internal static class CodeActionExecutionResultFactory
 
         var error = new CodeActionExecutionError
         {
-            Code = "SnapshotMismatch",
+            Code = WorkspaceErrorCodes.SnapshotMismatch,
             Message = "The request snapshot does not match the current workspace snapshot.",
         };
 
@@ -44,18 +44,14 @@ internal static class CodeActionExecutionResultFactory
         string targetCode,
         string targetDisplayName)
     {
-        var (code, message) = status switch
+        var message = status switch
         {
-            SelectorResolveStatus.Ambiguous => (
-                $"{targetCode}Ambiguous",
-                $"The {targetDisplayName} selector matched multiple results."),
-            SelectorResolveStatus.Invalid => (
-                $"{targetCode}SelectorInvalid",
-                $"The {targetDisplayName} selector contains an invalid path."),
-            _ => (
-                $"{targetCode}NotFound",
-                $"The {targetDisplayName} selector did not match any result."),
+            SelectorResolveStatus.Ambiguous => $"The {targetDisplayName} selector matched multiple results.",
+            SelectorResolveStatus.Invalid => $"The {targetDisplayName} selector contains an invalid path.",
+            _ => $"The {targetDisplayName} selector did not match any result.",
         };
+
+        var code = SelectorErrorCodeResolver.Resolve(targetCode, status);
 
         return Rejected<T>(code, message, RequiredAction.ResolveTargetAgain);
     }
@@ -110,7 +106,7 @@ internal static class CodeActionExecutionResultFactory
     {
         var error = new CodeActionExecutionError
         {
-            Code = "FixAllUnavailable",
+            Code = CodeActionErrorCodes.FixAllUnavailable,
             Message = message,
         };
 
@@ -124,7 +120,7 @@ internal static class CodeActionExecutionResultFactory
     /// <returns>A result that represents unavailability.</returns>
     public static CodeActionExecutionResult<T> CodeActionsUnavailable<T>()
     {
-        return Rejected<T>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+        return Rejected<T>(CodeActionErrorCodes.CodeActionsUnavailable, "Code-action composition is unavailable.");
     }
 
     /// <summary>
@@ -136,7 +132,7 @@ internal static class CodeActionExecutionResultFactory
     {
         var error = new CodeActionExecutionError
         {
-            Code = "ActionExpired",
+            Code = CodeActionErrorCodes.ActionExpired,
             Message = "The requested action reference is no longer valid.",
         };
 
@@ -152,7 +148,7 @@ internal static class CodeActionExecutionResultFactory
     {
         var error = new CodeActionExecutionError
         {
-            Code = "SnapshotMismatch",
+            Code = WorkspaceErrorCodes.SnapshotMismatch,
             Message = "The action reference does not belong to the current workspace snapshot.",
         };
 

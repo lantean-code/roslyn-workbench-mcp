@@ -50,7 +50,7 @@ internal sealed partial class PluginCatalogEntryMaterializer : IPluginCatalogEnt
         bool includeMutationTools)
     {
         var permittedTools = plugin.Preparation.Tools
-            .Where(tool => includeMutationTools || tool.Tool.Kind == ToolKind.Query)
+            .Where(tool => PluginToolPublicationPolicy.ShouldPublish(tool.Tool.Kind, includeMutationTools))
             .ToArray();
 
         if (permittedTools.Length == 0)

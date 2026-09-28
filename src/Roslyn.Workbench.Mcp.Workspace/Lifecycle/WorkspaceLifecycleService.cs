@@ -114,7 +114,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         if (hasPendingRecovery)
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                "RecoveryPending",
+                WorkspaceErrorCodes.RecoveryPending,
                 "Resolve unfinished recovery work before opening this workspace.",
                 RequiredAction.ResolveRecovery);
         }
@@ -279,7 +279,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             var rejectionContext = WorkspaceOperationContextFactory.Create(session);
 
             return _resultFactory.Rejected<WorkspaceCloseOutcome>(
-                "TransactionOpen",
+                WorkspaceErrorCodes.TransactionOpen,
                 "Commit or roll back the active transaction before invoking this tool.",
                 RequiredAction.CommitOrRollback,
                 rejectionContext);
@@ -405,7 +405,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         if (currentSession.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
         {
             return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                "WorkspaceReloadBlocked",
+                WorkspaceErrorCodes.WorkspaceReloadBlocked,
                 "Commit or roll back the active transaction before reloading.",
                 RequiredAction.CommitOrRollback,
                 context);
@@ -414,7 +414,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         if (currentSession.State != WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
             return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                "WorkspaceReloadNotRequired",
+                WorkspaceErrorCodes.WorkspaceReloadNotRequired,
                 "The workspace does not require reload.",
                 context: context);
         }
@@ -616,7 +616,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         {
             var error = new WorkspaceOperationError
             {
-                Code = "WorkspacePathInvalid",
+                Code = WorkspaceErrorCodes.WorkspacePathInvalid,
                 Message = "Workspace paths must be absolute .sln, .slnx, or .csproj files.",
             };
 
@@ -630,7 +630,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             {
                 return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
                 {
-                    Code = "WorkspacePathNotAllowed",
+                    Code = WorkspaceErrorCodes.WorkspacePathNotAllowed,
                     Message = "The requested Workspace path is outside the Host's configured authority.",
                 });
             }
@@ -642,14 +642,14 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             {
                 return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
                 {
-                    Code = "WorkspaceRootNotAllowed",
+                    Code = WorkspaceErrorCodes.WorkspaceRootNotAllowed,
                     Message = "The requested Workspace root cannot widen the Host's configured authority.",
                 });
             }
 
             var error = new WorkspaceOperationError
             {
-                Code = "WorkspaceRootInvalid",
+                Code = WorkspaceErrorCodes.WorkspaceRootInvalid,
                 Message = "The workspace root must be an existing absolute directory containing the loaded path.",
             };
 
@@ -1012,7 +1012,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 context: context,
                 diagnostics: loadResult.Diagnostics),
             ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot => _resultFactory.Rejected<TOutcome>(
-                "WorkspaceProjectOutsideRoot",
+                WorkspaceErrorCodes.WorkspaceProjectOutsideRoot,
                 "Every loaded project must be contained by the workspace root.",
                 context: context,
                 diagnostics: loadResult.Diagnostics),
@@ -1025,7 +1025,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceOperationContext? context = null)
     {
         return _resultFactory.Faulted<TOutcome>(
-            "WorkspaceInputEvaluationFailed",
+            WorkspaceErrorCodes.WorkspaceInputEvaluationFailed,
             "The workspace inputs could not be evaluated safely.",
             RequiredAction.Retry,
             context,
@@ -1036,7 +1036,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceOperationContext? context = null)
     {
         return _resultFactory.Rejected<TOutcome>(
-            "WorkspaceChangedDuringLoad",
+            WorkspaceErrorCodes.WorkspaceChangedDuringLoad,
             "Workspace inputs changed while the workspace was being loaded. Retry after the files have stabilised.",
             RequiredAction.Retry,
             context);
@@ -1046,7 +1046,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceOperationContext? context = null)
     {
         return _resultFactory.Rejected<TOutcome>(
-            "WorkspaceExternalDocumentRejected",
+            WorkspaceErrorCodes.WorkspaceExternalDocumentRejected,
             "The Workspace contains an evaluated document outside its effective root.",
             context: context);
     }

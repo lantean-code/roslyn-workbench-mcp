@@ -166,7 +166,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     {
         var reason = status == TransactionReceiptResolutionStatus.Expired ? "expired" : "is missing or has already been used";
         return CreateCommitFailure(
-            "TransactionReceiptUnavailable",
+            HostToolErrorCodes.TransactionReceiptUnavailable,
             $"No files were persisted because the transaction receipt {reason}. Run transaction-review again and approve the new receipt.",
             RequiredAction.ReviewTransaction);
     }
@@ -174,7 +174,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     private static ToolResult<TransactionCommitData> CreateNotApprovedFailure()
     {
         return CreateCommitFailure(
-            "TransactionCommitNotApproved",
+            HostToolErrorCodes.TransactionCommitNotApproved,
             "No files were persisted because this exact transaction receipt was not approved. The transaction and receipt remain active for a deliberate retry.",
             requiredAction: null);
     }
@@ -182,7 +182,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     private static ToolResult<TransactionCommitData> CreateUnavailableFailure()
     {
         return CreateCommitFailure(
-            "ApprovalUnavailable",
+            HostToolErrorCodes.ApprovalUnavailable,
             "No files were persisted because the connected MCP client could not complete receipt approval. The transaction and receipt remain active. Enable interactive MCP requests before a deliberate retry.",
             RequiredAction.Retry);
     }
@@ -190,7 +190,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
     private static ToolResult<TransactionCommitData> CreateInvalidResponseFailure()
     {
         return CreateCommitFailure(
-            "InvalidApprovalResponse",
+            HostToolErrorCodes.InvalidApprovalResponse,
             "No files were persisted because the client returned an unsupported receipt-approval choice. The transaction and receipt remain active.",
             RequiredAction.Retry);
     }

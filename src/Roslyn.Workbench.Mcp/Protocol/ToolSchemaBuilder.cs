@@ -16,6 +16,8 @@ internal static class ToolSchemaBuilder
     private const string SnapshotDescription = "Exact immutable workspace snapshot associated with the result, when available.";
     private const string ErrorDescription = "Structured error details when the invocation failed.";
     private const string ContinuationDescription = "Action the agent should take before retrying or continuing.";
+    private const string DiagnosticsDescription = "Diagnostics that explain the failed invocation.";
+    private const string ReportingDescription = "Error-reporting workflow available for an unhandled failure.";
     private const string WarningsDescription = "Non-fatal warnings the agent should consider.";
     private const string PreferredWarningDefinitionName = "warningInfo";
 
@@ -27,13 +29,17 @@ internal static class ToolSchemaBuilder
     /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
     /// <param name="snapshotSchema">The schema used for the workspace snapshot portion of the response.</param>
     /// <param name="warningSchema">The schema used for each structured warning.</param>
+    /// <param name="diagnosticSchema">The schema used for each structured diagnostic.</param>
+    /// <param name="reportingSchema">The schema used for unhandled-failure reporting availability.</param>
     /// <returns>The complete output schema, including reusable definitions.</returns>
     public static JsonElement CreateDirectOutputSchema(
         JsonElement valueSchema,
         JsonElement errorSchema,
         JsonElement continuationSchema,
         JsonElement snapshotSchema,
-        JsonElement warningSchema)
+        JsonElement warningSchema,
+        JsonElement diagnosticSchema,
+        JsonElement reportingSchema)
     {
         var successSchema = CreateNullableSuccessSchema(
             valueSchema,
@@ -45,7 +51,9 @@ internal static class ToolSchemaBuilder
             [valueSchema, snapshotSchema],
             errorSchema,
             continuationSchema,
-            warningSchema);
+            warningSchema,
+            diagnosticSchema,
+            reportingSchema);
     }
 
     /// <summary>
@@ -56,24 +64,37 @@ internal static class ToolSchemaBuilder
     /// <param name="errorSchema">The schema used for structured tool errors.</param>
     /// <param name="continuationSchema">The schema used for client continuation instructions.</param>
     /// <param name="warningSchema">The schema used for each structured warning.</param>
+    /// <param name="diagnosticSchema">The schema used for each structured diagnostic.</param>
+    /// <param name="reportingSchema">The schema used for unhandled-failure reporting availability.</param>
     /// <returns>The response schema with merged reusable definitions.</returns>
     public static JsonElement CreateResponseSchema(
         JsonObject successSchema,
         IReadOnlyList<JsonElement> componentSchemas,
         JsonElement errorSchema,
         JsonElement continuationSchema,
-        JsonElement warningSchema)
+        JsonElement warningSchema,
+        JsonElement diagnosticSchema,
+        JsonElement reportingSchema)
     {
-        var definitionSchemas = componentSchemas.Concat([errorSchema, continuationSchema, warningSchema]);
+        var definitionSchemas = componentSchemas.Concat(
+            [errorSchema, continuationSchema, warningSchema, diagnosticSchema, reportingSchema]);
+
         var mergedDefinitions = MergeDefinitions(definitionSchemas);
         var warningDefinitionName = GetAvailableDefinitionName(mergedDefinitions, PreferredWarningDefinitionName);
         mergedDefinitions[warningDefinitionName] = ParseNode(warningSchema);
         AddWarningsSchema(successSchema, warningDefinitionName);
-        var failureSchema = CreateFailureSchema(errorSchema, continuationSchema, warningDefinitionName);
+        var handledFailureSchema = CreateHandledFailureSchema(
+            errorSchema,
+            continuationSchema,
+            warningDefinitionName,
+            diagnosticSchema);
+
+        var unhandledFailureSchema = CreateUnhandledFailureSchema(reportingSchema);
         var alternatives = new JsonArray
         {
             successSchema,
-            failureSchema,
+            handledFailureSchema,
+            unhandledFailureSchema,
         };
 
         var root = new JsonObject
@@ -292,10 +313,11 @@ internal static class ToolSchemaBuilder
         };
     }
 
-    private static JsonObject CreateFailureSchema(
+    private static JsonObject CreateHandledFailureSchema(
         JsonElement errorSchema,
         JsonElement continuationSchema,
-        string warningDefinitionName)
+        string warningDefinitionName,
+        JsonElement diagnosticSchema)
     {
         var okSchema = new JsonObject
         {
@@ -308,6 +330,7 @@ internal static class ToolSchemaBuilder
             ["ok"] = okSchema,
             ["error"] = AddDescription(ParseNode(errorSchema), ErrorDescription),
             ["continuation"] = AddDescription(ParseNode(continuationSchema), ContinuationDescription),
+            ["diagnostics"] = CreateArraySchema(diagnosticSchema, DiagnosticsDescription),
             ["warnings"] = CreateWarningsSchema(warningDefinitionName),
         };
 
@@ -317,6 +340,45 @@ internal static class ToolSchemaBuilder
             ["type"] = "object",
             ["required"] = requiredProperties,
             ["properties"] = properties,
+        };
+    }
+
+    private static JsonObject CreateUnhandledFailureSchema(JsonElement reportingSchema)
+    {
+        var errorSchema = new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("code", "message", "correlationId"),
+            ["properties"] = new JsonObject
+            {
+                ["code"] = new JsonObject { ["const"] = HostToolErrorCodes.UnhandledException },
+                ["message"] = new JsonObject { ["const"] = "Tool execution failed." },
+                ["correlationId"] = new JsonObject { ["type"] = "string", ["format"] = "uuid" },
+            },
+        };
+
+        var diagnosticsSchema = new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("detailsAvailable", "detailsTool"),
+            ["properties"] = new JsonObject
+            {
+                ["detailsAvailable"] = new JsonObject { ["const"] = true },
+                ["detailsTool"] = new JsonObject { ["const"] = ServerOwnedToolRegistration.GetErrorDetailsName },
+            },
+        };
+
+        return new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("ok", "error", "diagnostics"),
+            ["properties"] = new JsonObject
+            {
+                ["ok"] = new JsonObject { ["const"] = false, ["description"] = OkDescription },
+                ["error"] = AddDescription(errorSchema, ErrorDescription),
+                ["diagnostics"] = AddDescription(diagnosticsSchema, DiagnosticsDescription),
+                ["reporting"] = AddDescription(ParseNode(reportingSchema), ReportingDescription),
+            },
         };
     }
 

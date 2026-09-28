@@ -2,16 +2,55 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
+using Json.Schema;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.ErrorReporting.Availability;
 using Roslyn.Workbench.Mcp.ErrorReporting.Contracts;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Workspace.Selectors;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaFactoryIntegrationTests
 {
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_RuntimeFailureVariants_WHEN_ValidatingPublishedOutputSchema_THEN_ShouldAcceptEveryEnvelope()
+    {
+        var target = CreateTarget();
+        var outputSchema = target.CreateDirectOutputSchema(typeof(ServerStatusData));
+        var schema = JsonSchema.Build(outputSchema);
+        var error = new ToolError
+        {
+            Code = HostToolErrorCodes.InvalidRequest,
+            Message = "Message",
+        };
+
+        var diagnostic = new DiagnosticInfo
+        {
+            Id = "Id",
+            Severity = DiagnosticSeverity.Error,
+            Message = "Message",
+        };
+
+        var handledFailure = ToolResultEnvelopeSerializer.CreateFailure(
+            error,
+            RequiredAction.Retry,
+            [diagnostic]);
+
+        var reporting = new ErrorReportingAvailability
+        {
+            State = ErrorReportingState.Available,
+            CanPrepare = true,
+            PrepareTool = ServerOwnedToolRegistration.PrepareErrorReportName,
+        };
+
+        var unhandledFailure = ToolResultEnvelopeSerializer.CreateUnhandledException(Guid.NewGuid(), reporting);
+
+        schema.Evaluate(handledFailure).IsValid.Should().BeTrue();
+        schema.Evaluate(unhandledFailure).IsValid.Should().BeTrue();
+    }
+
     [Fact]
     [Trait("Category", "Integration")]
     public void GIVEN_FixedContractLimits_WHEN_ExportingInputSchemas_THEN_ShouldPublishDeclaredDefaults()
@@ -621,6 +660,19 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_StatusOutputSchemas_WHEN_ExportingRecursiveContracts_THEN_ShouldMatchCompleteStatusGraphs()
+    {
+        var target = CreateTarget();
+
+        var serverStatusSchema = target.CreateDirectOutputSchema(typeof(ServerStatusData));
+        var workspaceStatusSchema = target.CreateDirectOutputSchema(typeof(WorkspaceStatusData));
+
+        AssertContractGraph(serverStatusSchema, typeof(ServerStatusData));
+        AssertContractGraph(workspaceStatusSchema, typeof(WorkspaceStatusData));
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_PublishedContracts_WHEN_AuditingNonNullableStrings_THEN_ShouldNotUseAccidentalEmptyDefaults()
     {
         var nullabilityContext = new NullabilityInfoContext();
@@ -730,6 +782,104 @@ public sealed class ToolSchemaFactoryIntegrationTests
             TryResolveLocalReference(schema, reference).Should().BeTrue(
                 $"local reference '{reference}' should resolve from the published input-schema root");
         }
+    }
+
+    private static void AssertContractGraph(JsonElement rootSchema, Type contractType)
+    {
+        var dataSchema = GetSuccessDataSchema(rootSchema);
+        AssertContractGraph(rootSchema, dataSchema, contractType, contractType.Name);
+    }
+
+    private static void AssertContractGraph(
+        JsonElement rootSchema,
+        JsonElement schema,
+        Type contractType,
+        string path)
+    {
+        contractType = Nullable.GetUnderlyingType(contractType) ?? contractType;
+        if (contractType.IsArray)
+        {
+            var elementType = contractType.GetElementType()
+                ?? throw new InvalidOperationException($"Array contract '{contractType}' did not expose an element type.");
+
+            var arraySchema = ResolveContractSchema(rootSchema, schema);
+            AssertContractGraph(rootSchema, arraySchema.GetProperty("items"), elementType, path + "[]");
+            return;
+        }
+
+        if (contractType.IsGenericType && contractType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
+        {
+            var arraySchema = ResolveContractSchema(rootSchema, schema);
+            var elementType = contractType.GetGenericArguments()[0];
+            AssertContractGraph(rootSchema, arraySchema.GetProperty("items"), elementType, path + "[]");
+            return;
+        }
+
+        if (contractType.Namespace?.StartsWith("Roslyn.Workbench.Mcp", StringComparison.Ordinal) != true
+            || contractType.IsEnum)
+        {
+            return;
+        }
+
+        var objectSchema = ResolveContractSchema(rootSchema, schema);
+        var schemaProperties = objectSchema.GetProperty("properties");
+        var expectedProperties = contractType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .OrderBy(static property => property.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        schemaProperties.EnumerateObject()
+            .Select(static property => property.Name)
+            .Order(StringComparer.Ordinal)
+            .Should()
+            .Equal(expectedProperties
+                .Select(static property => JsonNamingPolicy.CamelCase.ConvertName(property.Name))
+                .Order(StringComparer.Ordinal),
+                $"{path} should publish its complete recursive contract graph");
+
+        foreach (var property in expectedProperties)
+        {
+            var propertyName = JsonNamingPolicy.CamelCase.ConvertName(property.Name);
+            AssertContractGraph(
+                rootSchema,
+                schemaProperties.GetProperty(propertyName),
+                property.PropertyType,
+                $"{path}.{propertyName}");
+        }
+    }
+
+    private static JsonElement ResolveContractSchema(JsonElement rootSchema, JsonElement schema)
+    {
+        if (schema.TryGetProperty("$ref", out var referenceProperty))
+        {
+            var reference = referenceProperty.GetString()
+                ?? throw new InvalidOperationException("A contract schema reference was null.");
+
+            return ResolveLocalReference(rootSchema, reference);
+        }
+
+        if (!schema.TryGetProperty("anyOf", out var alternatives))
+        {
+            return schema;
+        }
+
+        return alternatives.EnumerateArray()
+            .First(static alternative => !alternative.TryGetProperty("type", out var type)
+                || type.GetString() != "null");
+    }
+
+    private static JsonElement ResolveLocalReference(JsonElement root, string reference)
+    {
+        var current = root;
+        foreach (var encodedToken in reference[2..].Split('/'))
+        {
+            var token = Uri.UnescapeDataString(encodedToken)
+                .Replace("~1", "/", StringComparison.Ordinal)
+                .Replace("~0", "~", StringComparison.Ordinal);
+
+            current = current.GetProperty(token);
+        }
+
+        return current;
     }
 
     private static void AssertPortableCrossMemberGuidance(ToolSchemaFactory target, Type contractType)

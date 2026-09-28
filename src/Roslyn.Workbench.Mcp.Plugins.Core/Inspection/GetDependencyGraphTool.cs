@@ -11,7 +11,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))
         {
-            return PluginExecutionResult.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
+            return PluginExecutionResult.Rejected<DependencyGraphData>(PluginErrorCodes.InvalidRequest, "Granularity must be Project, Namespace, Type, or Symbol.");
         }
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyGraphData>(request.Scope, context);

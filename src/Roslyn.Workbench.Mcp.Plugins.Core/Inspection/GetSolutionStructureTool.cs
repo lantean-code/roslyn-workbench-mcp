@@ -24,7 +24,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         if (!hierarchy.IsSucceeded)
         {
             return PluginExecutionResult.Rejected<SolutionStructureData>(
-                "ProjectStructureUnavailable",
+                PluginErrorCodes.ProjectStructureUnavailable,
                 hierarchy.ErrorMessage,
                 RequiredAction.Retry);
         }
@@ -52,7 +52,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 if (!context.WorkspacePathService.TryNormalizePath(project.FilePath ?? project.Name, out var projectPath))
                 {
                     return PluginExecutionResult.Rejected<SolutionStructureData>(
-                        "ProjectStructureUnavailable",
+                        PluginErrorCodes.ProjectStructureUnavailable,
                         "A loaded project's path could not be normalized relative to the workspace root.",
                         RequiredAction.ReloadWorkspace);
                 }
@@ -98,7 +98,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 if (!targetFrameworks.IsSucceeded)
                 {
                     return PluginExecutionResult.Rejected<SolutionStructureData>(
-                        "ProjectStructureUnavailable",
+                        PluginErrorCodes.ProjectStructureUnavailable,
                         targetFrameworks.ErrorMessage,
                         RequiredAction.Retry);
                 }

@@ -165,7 +165,7 @@ internal static class ToolResultEnvelopeSerializer
             writer.WriteStartObject();
             writer.WriteBoolean("ok", false);
             writer.WriteStartObject("error");
-            writer.WriteString("code", "UnhandledException");
+            writer.WriteString("code", HostToolErrorCodes.UnhandledException);
             writer.WriteString("message", "Tool execution failed.");
             writer.WriteString("correlationId", correlationId);
             writer.WriteEndObject();

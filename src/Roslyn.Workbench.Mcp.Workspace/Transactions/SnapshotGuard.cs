@@ -5,8 +5,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 /// </summary>
 internal sealed class SnapshotGuard : ISnapshotGuard
 {
-    private const string _transactionSnapshotMismatchCode = "SnapshotMismatch";
-
     /// <summary>
     /// Verifies that a request snapshot still identifies the current transaction revision.
     /// </summary>
@@ -28,7 +26,7 @@ internal sealed class SnapshotGuard : ISnapshotGuard
         {
             var error = new WorkspaceOperationError
             {
-                Code = _transactionSnapshotMismatchCode,
+                Code = WorkspaceErrorCodes.SnapshotMismatch,
                 Message = "The request snapshot does not match the current transaction snapshot.",
                 RequiredAction = RequiredAction.ResolveTargetAgain,
             };

@@ -46,7 +46,7 @@ internal sealed class GetErrorDetailsTool :
         if (!_store.TryGet(request.CorrelationId, out var record))
         {
             return ValueTask.FromResult(CreateFailure(
-                "ErrorDetailsUnavailable",
+                HostToolErrorCodes.ErrorDetailsUnavailable,
                 "The correlation ID is unknown or its temporary diagnostic record has expired."));
         }
 

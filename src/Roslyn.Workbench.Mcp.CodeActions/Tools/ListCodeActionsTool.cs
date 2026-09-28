@@ -355,7 +355,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         if (resolvedLocation is null)
         {
             return CreateProjectionFault(
-                "CodeActionLocationUnavailable",
+                CodeActionErrorCodes.CodeActionLocationUnavailable,
                 "A discovered Code Action location could not be projected into the workspace response.");
         }
 
@@ -436,16 +436,16 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         return status switch
         {
             CodeActionInfoCreationStatus.LocationUnavailable => CreateProjectionFault(
-                "CodeActionLocationUnavailable",
+                CodeActionErrorCodes.CodeActionLocationUnavailable,
                 "A discovered Code Action location was incomplete and could not be published."),
             CodeActionInfoCreationStatus.DocumentPathUnavailable => CreateProjectionFault(
-                "CodeActionDocumentPathUnavailable",
+                CodeActionErrorCodes.CodeActionDocumentPathUnavailable,
                 "A discovered Code Action document path could not be normalised for replay."),
             CodeActionInfoCreationStatus.ReferenceCapacityExceeded => Rejected<CodeActionListData>(
-                "ActionReferenceCapacityExceeded",
+                CodeActionErrorCodes.ActionReferenceCapacityExceeded,
                 "The Code Action reference cache has reached its configured capacity. Retry after existing references expire, request fewer actions, or increase --code-action-reference-cache-size-limit."),
             _ => CreateProjectionFault(
-                "CodeActionProjectionFailed",
+                CodeActionErrorCodes.CodeActionProjectionFailed,
                 "A discovered Code Action could not be published because projection returned an unexpected result."),
         };
     }

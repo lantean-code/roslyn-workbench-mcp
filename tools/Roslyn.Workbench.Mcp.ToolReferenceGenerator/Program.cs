@@ -15,8 +15,14 @@ internal static class Program
         try
         {
             var options = ToolReferenceGeneratorOptions.Parse(args);
+            if (options.SecurityReference is not null)
+            {
+                await SecurityReferenceGenerator.GenerateAsync(options.SecurityReference, CancellationToken.None);
+            }
+
             var generator = new ToolReferenceGenerator();
             await generator.GenerateAsync(options, CancellationToken.None);
+
             return 0;
         }
         catch (Exception exception)

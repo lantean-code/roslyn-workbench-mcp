@@ -803,12 +803,310 @@
               ],
               "description": "Action the agent should take before retrying or continuing."
             },
+            "diagnostics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "The diagnostic identifier.",
+                    "type": "string"
+                  },
+                  "severity": {
+                    "description": "The diagnostic severity.",
+                    "type": "string",
+                    "enum": [
+                      "Hidden",
+                      "Info",
+                      "Warning",
+                      "Error"
+                    ]
+                  },
+                  "message": {
+                    "description": "The diagnostic message.",
+                    "type": "string"
+                  },
+                  "location": {
+                    "description": "The optional source location of the diagnostic.",
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "document": {
+                        "description": "The resolved document.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "documentId": {
+                            "description": "The document identifier.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The normalized document path.",
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "description": "The owning project identifier.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "documentId",
+                          "path",
+                          "projectId"
+                        ]
+                      },
+                      "span": {
+                        "description": "The resolved text span.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "start": {
+                            "description": "Zero-based UTF-16 offset.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "length": {
+                            "description": "UTF-16 code-unit length.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          }
+                        }
+                      },
+                      "line": {
+                        "description": "The one-based line number.",
+                        "type": "integer"
+                      },
+                      "column": {
+                        "description": "The one-based column number.",
+                        "type": "integer"
+                      },
+                      "snapshot": {
+                        "description": "The exact immutable workspace snapshot associated with this location.",
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "workspaceEpoch": {
+                            "type": "integer"
+                          },
+                          "snapshotId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "transactionRevision": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "workspaceId",
+                          "workspaceEpoch",
+                          "snapshotId",
+                          "transactionRevision"
+                        ]
+                      },
+                      "selector": {
+                        "description": "The canonical selector that can resolve this source location again.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "span": {
+                            "type": "object",
+                            "properties": {
+                              "document": {
+                                "description": "Provide exactly one of path or documentId.",
+                                "type": "object",
+                                "properties": {
+                                  "project": {
+                                    "description": "Disambiguates documents with matching paths or IDs.",
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "projectId": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "path": {
+                                        "description": "Workspace-relative path.",
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "targetFramework": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "path": {
+                                    "description": "Workspace-relative path.",
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "documentId": {
+                                    "description": "Workspace-local document ID.",
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              },
+                              "range": {
+                                "description": "Zero-based UTF-16 range.",
+                                "type": "object",
+                                "properties": {
+                                  "start": {
+                                    "description": "Zero-based UTF-16 offset.",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  },
+                                  "length": {
+                                    "description": "UTF-16 code-unit length.",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "document",
+                              "range"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "span"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "snapshot"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "message"
+                ]
+              },
+              "description": "Diagnostics that explain the failed invocation."
+            },
             "warnings": {
               "type": "array",
               "description": "Non-fatal warnings the agent should consider.",
               "items": {
                 "$ref": "#/$defs/warningInfo"
               }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error",
+            "diagnostics"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "required": [
+                "code",
+                "message",
+                "correlationId"
+              ],
+              "properties": {
+                "code": {
+                  "const": "UnhandledException"
+                },
+                "message": {
+                  "const": "Tool execution failed."
+                },
+                "correlationId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "description": "Structured error details when the invocation failed."
+            },
+            "diagnostics": {
+              "type": "object",
+              "required": [
+                "detailsAvailable",
+                "detailsTool"
+              ],
+              "properties": {
+                "detailsAvailable": {
+                  "const": true
+                },
+                "detailsTool": {
+                  "const": "get-error-details"
+                }
+              },
+              "description": "Diagnostics that explain the failed invocation."
+            },
+            "reporting": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "Available",
+                    "AlwaysApproved",
+                    "DisabledByConfiguration",
+                    "ApprovalUnavailable"
+                  ]
+                },
+                "canPrepare": {
+                  "type": "boolean"
+                },
+                "prepareTool": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "state"
+              ],
+              "description": "Error-reporting workflow available for an unhandled failure."
             }
           }
         }

@@ -13,11 +13,13 @@ It provides persistent multi-workspace sessions, semantic queries for symbols an
 
 Roslyn Workbench is distributed as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. The 0.1.0 beta is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp). Other engineering prereleases may use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages); consult the notes for the selected release.
 
-For a package published to NuGet.org:
+Run an exact package version without a permanent installation:
 
 ```bash
-dotnet tool install --global Lantean.Roslyn.Workbench.Mcp
+dnx Lantean.Roslyn.Workbench.Mcp@VERSION --yes -- --version
 ```
+
+Alternatively, install the same package as a global tool with `dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --version VERSION`.
 
 See the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) for installation and MCP client configuration.
 

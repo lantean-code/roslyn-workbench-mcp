@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace Roslyn.Workbench.Mcp.Test.Architecture;
@@ -40,6 +41,7 @@ public sealed class HostArchitectureTests
         var expectedProperties = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["PackAsTool"] = "true",
+            ["PackageType"] = "DotnetTool;McpServer",
             ["ToolCommandName"] = "roslyn-workbench-mcp",
             ["PackageId"] = "Lantean.Roslyn.Workbench.Mcp",
             ["AssemblyTitle"] = "Roslyn Workbench MCP",
@@ -60,6 +62,30 @@ public sealed class HostArchitectureTests
         {
             ReadProperty(document, expectedProperty.Key).Should().Be(expectedProperty.Value);
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_HostMcpPackageManifest_WHEN_InspectingDistributionMetadata_THEN_ShouldDescribeSafeNuGetExecution()
+    {
+        var manifestPath = Path.Combine(
+            GetRepositoryRoot(),
+            "src",
+            "Roslyn.Workbench.Mcp",
+            ".mcp",
+            "server.json");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        var root = manifest.RootElement;
+        var package = root.GetProperty("packages").EnumerateArray().Single();
+
+        root.GetProperty("name").GetString().Should().Be("io.github.lantean-code/roslyn-workbench-mcp");
+        root.GetProperty("version").GetString().Should().Be("{{PACKAGE_VERSION}}");
+        package.GetProperty("registryType").GetString().Should().Be("nuget");
+        package.GetProperty("registryBaseUrl").GetString().Should().Be("https://api.nuget.org/v3/index.json");
+        package.GetProperty("identifier").GetString().Should().Be("Lantean.Roslyn.Workbench.Mcp");
+        package.GetProperty("version").GetString().Should().Be("{{PACKAGE_VERSION}}");
+        package.GetProperty("transport").GetProperty("type").GetString().Should().Be("stdio");
+        package.GetProperty("packageArguments").GetArrayLength().Should().Be(0);
     }
 
     [Fact]

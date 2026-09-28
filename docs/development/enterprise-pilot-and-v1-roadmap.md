@@ -172,9 +172,9 @@ Acceptance bar:
 
 ### 10. Complete supply-chain evidence
 
-Build on the existing release checksums, pinned automation and OIDC publication by producing an SPDX or CycloneDX SBOM and build provenance for the exact released packages. Document dependency inventory, vulnerability review, build identity and the relationship between commit, CI run, package hash and SBOM.
+Build on the existing release checksums, pinned automation and OIDC publication by producing an SPDX SBOM and GitHub build provenance for the exact released NuGet tool and symbol packages. The Host dependency graph is restored from a committed lock file, scanned for known vulnerabilities and related to the commit, CI run, package hashes and validated SBOM through a compact evidence index.
 
-Resolve signing and trust expectations separately for NuGet packages, tags, MSI, MSIX, Debian and RPM artefacts. Do not present unsigned installer formats as equivalent to authenticated package publication.
+The NuGet package is the sole Host distribution artefact and supports both `dnx` acquisition and global .NET tool installation. Publication identity remains destination-specific: NuGet.org uses OIDC trusted publishing, GitHub Packages uses its scoped workflow token, and GitHub attestations cover the exact package hashes. These controls are not described as independent NuGet package signing.
 
 ## Priority 2: make operations observable
 

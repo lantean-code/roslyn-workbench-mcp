@@ -1,6 +1,6 @@
 # Release evidence utilities
 
-These are repository-maintenance tools, not part of the installed MCP server. Validate them by inspecting generated evidence and exercising their commands; they do not have a separate unit-test project.
+These are repository-maintenance tools, not part of the installed MCP server. Most are validated by inspecting generated evidence and exercising their commands. The security-sensitive supply-chain evidence assembler has a Python standard-library test suite; run it with `python -m unittest tools/release/test_supply_chain_evidence.py`.
 
 ## Coverage
 

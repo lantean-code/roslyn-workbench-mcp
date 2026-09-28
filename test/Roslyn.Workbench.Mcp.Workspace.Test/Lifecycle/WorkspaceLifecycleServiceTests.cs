@@ -286,14 +286,15 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_RootWideningHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading()
     {
-        const string normalizedPath = "/allowed/Project.csproj";
+        var normalizedPath = Path.GetFullPath(Path.Combine("allowed", "Project.csproj"));
+        var requestedRoot = Path.GetPathRoot(normalizedPath)!;
         var expected = CreateResult<WorkspaceOpenOutcome>();
         _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns(normalizedPath);
-        _workspaceRootResolver.Setup(item => item.Resolve(normalizedPath, "/")).Returns((string?)null);
-        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed("/")).Returns(false);
+        _workspaceRootResolver.Setup(item => item.Resolve(normalizedPath, requestedRoot)).Returns((string?)null);
+        _workspaceAuthority.Setup(item => item.IsWorkspaceRootAllowed(requestedRoot)).Returns(false);
         SetupRejectedResult(expected, "WorkspaceRootNotAllowed");
 
-        var result = await _target.OpenAsync("Path", null, "/", null, TestContext.Current.CancellationToken);
+        var result = await _target.OpenAsync("Path", null, requestedRoot, null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
         _workspaceLoadWorkflow.Verify(

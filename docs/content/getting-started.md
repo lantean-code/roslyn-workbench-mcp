@@ -10,17 +10,35 @@
 
 Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are available on a best-effort basis until hosted validation is in place. Windows ARM64 and Linux ARM64 are not currently supported release targets.
 
-## Install the .NET tool
+## Run with dnx
 
-Install Roslyn Workbench from NuGet.org as a global .NET tool:
+`dnx` acquires and runs the selected .NET tool package without a permanent global installation. Pin an exact release in MCP client configuration so package acquisition and upgrades remain deliberate:
 
 ```bash
-dotnet tool install --global Lantean.Roslyn.Workbench.Mcp
+dnx Lantean.Roslyn.Workbench.Mcp@VERSION --yes -- --version
 ```
 
-Verify the installed command:
+The `--yes` option permits non-interactive acquisition. Arguments after `--` belong to Roslyn Workbench rather than `dnx`. A typical client configuration is:
+
+```json
+{
+  "command": "dnx",
+  "args": [
+    "Lantean.Roslyn.Workbench.Mcp@VERSION",
+    "--yes",
+    "--",
+    "--operational-mode", "inspection-only",
+    "--state-directory", "/absolute/path/to/roslyn-workbench-state"
+  ]
+}
+```
+
+## Install the global .NET tool
+
+For a persistent command, install the same package globally and verify it:
 
 ```bash
+dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --version VERSION
 roslyn-workbench-mcp --version
 ```
 
@@ -38,7 +56,7 @@ The published executable is placed beneath `artifacts/publish/Roslyn.Workbench.M
 
 ## Connect a client
 
-Configure the MCP client to launch the installed `roslyn-workbench-mcp` command. Client configuration formats differ, but the equivalent process configuration is:
+When using the global tool, configure the MCP client to launch the installed `roslyn-workbench-mcp` command. Client configuration formats differ, but the equivalent process configuration is:
 
 ```json
 {

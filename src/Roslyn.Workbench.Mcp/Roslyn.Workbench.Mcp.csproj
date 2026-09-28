@@ -6,6 +6,7 @@
     <AssemblyTitle>Roslyn Workbench MCP</AssemblyTitle>
     <Product>Roslyn Workbench MCP</Product>
     <PackAsTool>true</PackAsTool>
+    <PackageType>DotnetTool;McpServer</PackageType>
     <ToolCommandName>roslyn-workbench-mcp</ToolCommandName>
     <PackageId>Lantean.Roslyn.Workbench.Mcp</PackageId>
     <Title>Roslyn Workbench MCP</Title>
@@ -27,11 +28,13 @@
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <BeforePack>$(BeforePack);PreparePackageReadme</BeforePack>
+    <BeforePack>$(BeforePack);PreparePackageReadme;PrepareMcpServerManifest</BeforePack>
     <!-- The Host is an executable .NET tool; its supported compatibility surfaces are MCP contracts and command-line behaviour, not its CLR API. -->
     <EnablePackageValidation>false</EnablePackageValidation>
     <PackageReadmeSource>$(MSBuildProjectDirectory)\..\..\README.md</PackageReadmeSource>
     <PackageReadmeOutput>$(BaseIntermediateOutputPath)PackageREADME.md</PackageReadmeOutput>
+    <PackageMcpServerManifestSource>$(MSBuildProjectDirectory)\.mcp\server.json</PackageMcpServerManifestSource>
+    <PackageMcpServerManifestOutput>$(BaseIntermediateOutputPath)McpServer\server.json</PackageMcpServerManifestOutput>
     <PackageWordmarkSource>assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkSource>
     <PackageWordmarkUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkUrl>
     <PackageRoslynLogoSource>assets/third-party/roslyn.svg</PackageRoslynLogoSource>
@@ -82,6 +85,10 @@
           Pack="true"
           PackagePath="README.md"
           Visible="false" />
+    <None Include="$(PackageMcpServerManifestOutput)"
+          Pack="true"
+          PackagePath=".mcp\server.json"
+          Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -112,6 +119,16 @@
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PackageReadmeOutput)'))" />
     <WriteLinesToFile File="$(PackageReadmeOutput)"
                       Lines="$(_PackageReadmeContents)"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="PrepareMcpServerManifest">
+    <PropertyGroup>
+      <_PackageMcpServerManifestContents>$([System.IO.File]::ReadAllText('$(PackageMcpServerManifestSource)').Replace('{{PACKAGE_VERSION}}', '$(RoslynWorkbenchVersion)'))</_PackageMcpServerManifestContents>
+    </PropertyGroup>
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PackageMcpServerManifestOutput)'))" />
+    <WriteLinesToFile File="$(PackageMcpServerManifestOutput)"
+                      Lines="$(_PackageMcpServerManifestContents)"
                       Overwrite="true" />
   </Target>
 

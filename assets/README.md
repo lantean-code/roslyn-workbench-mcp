@@ -23,11 +23,11 @@ The deterministic derivatives under [`icons`](icons/) use the locked icon artwor
 
 | Asset | Intended use |
 | --- | --- |
-| Exact-size PNGs from 16×16 through 96×96 | Windows, installer, shortcut and high-DPI surfaces where a PNG is required |
+| Exact-size PNGs from 16×16 through 96×96 | Windows executable, shortcut and high-DPI surfaces where a PNG is required |
 | `roslyn-workbench-mcp-128.png` | Embedded NuGet `PackageIcon` and a universally supported MCP icon |
-| `roslyn-workbench-mcp-256.png` | Higher-resolution MCP, documentation and installer surfaces |
-| `roslyn-workbench-mcp-512.png` | High-resolution source for future packaging formats that require a large PNG |
-| `roslyn-workbench-mcp.ico` | Windows executable, shortcut and MSI `ARPPRODUCTICON` use |
+| `roslyn-workbench-mcp-256.png` | Higher-resolution MCP and documentation surfaces |
+| `roslyn-workbench-mcp-512.png` | High-resolution raster source |
+| `roslyn-workbench-mcp.ico` | Windows executable and shortcut use |
 
 The Windows ICO contains 16×16, 20×20, 24×24, 30×30, 32×32, 36×36, 40×40, 48×48, 60×60, 64×64, 72×72, 80×80, 96×96, 128×128 and 256×256 frames. Use the 128×128 PNG for NuGet rather than the ICO or SVG. MCP metadata should prefer the SVG with `sizes: ["any"]` when the consumer supports it and provide the 128×128 or 256×256 PNG as the safe, universally supported alternative.
 

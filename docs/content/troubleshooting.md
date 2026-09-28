@@ -2,7 +2,7 @@
 
 ## The client cannot start the server
 
-Run `roslyn-workbench-mcp --version` from the same user account that starts the MCP client. If the command is not found, check the global .NET tool installation and whether the client's environment includes its executable directory. Restart the client after changing its environment, or configure the absolute executable path.
+For a `dnx` configuration, run the complete pinned command from the same user account that starts the MCP client, including `--yes`, the exact `PackageId@VERSION`, and `-- --version`. Confirm that the .NET 10 SDK is available and that the configured package source is accessible. For a global-tool configuration, run `roslyn-workbench-mcp --version`; if the command is not found, check the installation and whether the client's environment includes the global-tool executable directory. Restart the client after changing its environment, or configure the absolute executable path.
 
 The server speaks MCP on standard input/output; it is not an interactive command prompt. Operational messages are on stderr. Check the client's server log for startup and prerequisite errors without posting private paths or credentials publicly.
 
@@ -32,7 +32,7 @@ The client may not support elicitation or may block it through its approval poli
 
 Before upgrading, finish or discard active transactions, stop the MCP server and review the target release's [compatibility notes](compatibility.md). Update the .NET tool through the same authenticated package source where required, then restart the client and rediscover the tool catalogue. Process-local Workspaces and references do not survive restart.
 
-To remove the installed tool:
+`dnx` does not create a permanent global tool installation. Remove its MCP client configuration to stop using it. To remove a globally installed tool:
 
 ```bash
 dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp

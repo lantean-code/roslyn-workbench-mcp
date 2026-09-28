@@ -42,7 +42,7 @@ internal static class ToolCatalogueCanonicalizer
         };
 
         var json = canonicalTools.ToJsonString(options);
-        return json.Replace("\n", "\r\n", StringComparison.Ordinal) + "\r\n";
+        return json.ReplaceLineEndings("\r\n") + "\r\n";
     }
 
     private static JsonNode? Canonicalize(JsonNode? node)

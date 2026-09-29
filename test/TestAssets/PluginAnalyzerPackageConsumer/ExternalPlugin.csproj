@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" Version="$(McpPackageVersion)" />
-    <PackageReference Include="Roslyn.Workbench.Mcp.Plugins" Version="$(PluginPackageVersion)" />
+    <PackageReference Include="Lantean.Roslyn.Workbench.Mcp.Plugins" Version="$(PluginPackageVersion)" />
   </ItemGroup>
 </Project>

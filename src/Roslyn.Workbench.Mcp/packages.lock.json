@@ -458,6 +458,13 @@
         "resolved": "10.3.0",
         "contentHash": "5ebMaoADkzjfW7GnZYKaUebV8XmUn++C/4sKk1PTzCiddEgbSKBq3pW4EWEi70rYJAK0gA1yDWrYFeHq18FvHQ=="
       },
+      "Lantean.Roslyn.Workbench.Mcp.Plugins": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.9.0, )",
+          "System.Composition": "[10.0.11, )"
+        }
+      },
       "roslyn.workbench.mcp.abstractions": {
         "type": "Project",
         "dependencies": {
@@ -475,19 +482,11 @@
           "Roslyn.Workbench.Mcp.Workspace": "[0.0.0-dev, )"
         }
       },
-      "roslyn.workbench.mcp.plugins": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.9.0, )",
-          "Microsoft.Extensions.DependencyInjection": "[10.0.11, )",
-          "System.Composition": "[10.0.11, )"
-        }
-      },
       "roslyn.workbench.mcp.plugins.core": {
         "type": "Project",
         "dependencies": {
+          "Lantean.Roslyn.Workbench.Mcp.Plugins": "[0.0.0-dev, )",
           "Roslyn.Workbench.Mcp.Abstractions": "[0.0.0-dev, )",
-          "Roslyn.Workbench.Mcp.Plugins": "[0.0.0-dev, )",
           "Roslyn.Workbench.Mcp.Workspace": "[0.0.0-dev, )"
         }
       },

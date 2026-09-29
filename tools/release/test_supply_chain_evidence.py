@@ -35,7 +35,15 @@ class SupplyChainEvidenceTests(unittest.TestCase):
             validation = self.read_json(evidence_root / "sbom-validation.json")
             checksums = (fixture["release_root"] / "checksums.sha256").read_text(encoding="utf-8")
 
-            self.assertEqual(2, len(evidence["subjects"]))
+            self.assertEqual(2, evidence["schemaVersion"])
+            self.assertEqual(
+                [
+                    "Lantean.Roslyn.Workbench.Mcp",
+                    "Lantean.Roslyn.Workbench.Mcp.Plugins",
+                ],
+                evidence["packageIds"],
+            )
+            self.assertEqual(4, len(evidence["subjects"]))
             self.assertEqual("moderate", vulnerabilities["highestSeverity"])
             self.assertEqual(1, vulnerabilities["projectCount"])
             self.assertEqual(1, vulnerabilities["packageCount"])
@@ -62,7 +70,17 @@ class SupplyChainEvidenceTests(unittest.TestCase):
             fixture = self.create_fixture(Path(directory))
             (fixture["release_root"] / "package" / "extra.nupkg").write_bytes(b"extra")
 
-            with self.assertRaisesRegex(ValueError, "Expected only"):
+            with self.assertRaisesRegex(ValueError, "Expected exactly"):
+                self.assemble(fixture)
+
+    def test_assemble_evidence_rejects_incomplete_release_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = self.create_fixture(Path(directory))
+            manifest = self.read_json(fixture["release_root"] / "release-manifest.json")
+            manifest["packages"].pop()
+            self.write_json(fixture["release_root"] / "release-manifest.json", manifest)
+
+            with self.assertRaisesRegex(ValueError, "exact release product set"):
                 self.assemble(fixture)
 
     def test_assemble_evidence_rejects_sbom_hash_mismatch(self) -> None:
@@ -187,14 +205,36 @@ class SupplyChainEvidenceTests(unittest.TestCase):
         symbols_root = release_root / "symbols"
         package_root.mkdir(parents=True)
         symbols_root.mkdir(parents=True)
-        package = package_root / f"Lantean.Roslyn.Workbench.Mcp.{self.version}.nupkg"
-        symbols = symbols_root / f"Lantean.Roslyn.Workbench.Mcp.{self.version}.snupkg"
-        package.write_bytes(b"package")
-        symbols.write_bytes(b"symbols")
+        package_ids = [
+            "Lantean.Roslyn.Workbench.Mcp",
+            "Lantean.Roslyn.Workbench.Mcp.Plugins",
+        ]
+        packages = [
+            package_root / f"{package_id}.{self.version}.nupkg"
+            for package_id in package_ids
+        ]
+        symbols = [
+            symbols_root / f"{package_id}.{self.version}.snupkg"
+            for package_id in package_ids
+        ]
+        for index, package in enumerate(packages):
+            package.write_bytes(f"package-{index}".encode())
+        for index, symbols_package in enumerate(symbols):
+            symbols_package.write_bytes(f"symbols-{index}".encode())
         self.write_json(
             release_root / "release-manifest.json",
             {
-                "packageId": "Lantean.Roslyn.Workbench.Mcp",
+                "schemaVersion": 2,
+                "packages": [
+                    {
+                        "id": "Lantean.Roslyn.Workbench.Mcp",
+                        "kind": "dotnet-tool",
+                    },
+                    {
+                        "id": "Lantean.Roslyn.Workbench.Mcp.Plugins",
+                        "kind": "library",
+                    },
+                ],
                 "version": self.version,
                 "commit": self.commit,
             },
@@ -206,8 +246,18 @@ class SupplyChainEvidenceTests(unittest.TestCase):
             {
                 "spdxVersion": "SPDX-2.2",
                 "files": [
-                    self.sbom_file(package, f"drop/{package.name}", corrupt_sbom_hash),
-                    self.sbom_file(symbols, f"drop/{symbols.name}", False),
+                    *[
+                        self.sbom_file(
+                            package,
+                            f"drop/{package.name}",
+                            corrupt_sbom_hash and index == 0,
+                        )
+                        for index, package in enumerate(packages)
+                    ],
+                    *[
+                        self.sbom_file(symbols_package, f"drop/{symbols_package.name}", False)
+                        for symbols_package in symbols
+                    ],
                 ],
             },
         )
@@ -219,9 +269,9 @@ class SupplyChainEvidenceTests(unittest.TestCase):
                 "ValidationErrors": {"Count": 0, "Errors": []},
                 "Summary": {
                     "ValidationTelemetery": {
-                        "FilesSuccessfulCount": 2,
-                        "TotalFilesInManifest": 2,
-                        "FilesValidatedCount": 2,
+                        "FilesSuccessfulCount": 4,
+                        "TotalFilesInManifest": 4,
+                        "FilesValidatedCount": 4,
                         "FilesFailedCount": 0,
                         "TotalPackagesInManifest": 10,
                     },

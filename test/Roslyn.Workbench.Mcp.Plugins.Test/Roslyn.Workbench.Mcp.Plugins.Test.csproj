@@ -11,14 +11,12 @@
     <PackageReference Include="coverlet.MTP" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
-    <PackageReference Include="Moq" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

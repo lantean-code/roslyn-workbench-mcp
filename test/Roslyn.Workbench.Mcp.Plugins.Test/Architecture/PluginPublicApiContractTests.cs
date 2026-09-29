@@ -149,6 +149,20 @@ public sealed class PluginPublicApiContractTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_PluginsAssembly_WHEN_InspectingProductDependencies_THEN_ShouldReferenceOnlyAbstractions()
+    {
+        var productDependencies = typeof(IRoslynPlugin).Assembly
+            .GetReferencedAssemblies()
+            .Select(static assembly => assembly.Name)
+            .OfType<string>()
+            .Where(static name => name.StartsWith("Roslyn.Workbench.Mcp", StringComparison.Ordinal))
+            .ToArray();
+
+        productDependencies.Should().Equal("Roslyn.Workbench.Mcp.Abstractions");
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_QueryHandlerContract_WHEN_InspectingResponseConstraint_THEN_ShouldRequireQueryResponseMarker()
     {
         var responseParameter = typeof(IQueryToolHandler<,>).GetGenericArguments()[1];
@@ -205,7 +219,13 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionContext.WorkspaceResolver),
         ]);
 
-        typeof(IWorkspaceMutationStager).IsAssignableFrom(typeof(IMutationContext)).Should().BeFalse();
+        typeof(IMutationContext)
+            .GetInterfaces()
+            .Should()
+            .NotContain(static contract => string.Equals(
+                contract.FullName,
+                "Roslyn.Workbench.Mcp.Workspace.Transactions.IWorkspaceMutationStager",
+                StringComparison.Ordinal));
     }
 
     [Fact]

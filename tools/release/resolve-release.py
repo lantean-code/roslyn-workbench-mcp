@@ -12,6 +12,16 @@ from pathlib import Path
 
 _COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 _SUPPORTED_DESTINATIONS = {"default", "github-packages", "nuget-org"}
+_RELEASE_PACKAGES = [
+    {
+        "id": "Lantean.Roslyn.Workbench.Mcp",
+        "kind": "dotnet-tool",
+    },
+    {
+        "id": "Lantean.Roslyn.Workbench.Mcp.Plugins",
+        "kind": "library",
+    },
+]
 
 
 def main() -> int:
@@ -171,8 +181,8 @@ def write_manifest(
     destination: str,
 ) -> None:
     manifest = {
-        "schemaVersion": 1,
-        "packageId": "Lantean.Roslyn.Workbench.Mcp",
+        "schemaVersion": 2,
+        "packages": _RELEASE_PACKAGES,
         "version": version,
         "fullSemVer": full_semver,
         "commit": commit,

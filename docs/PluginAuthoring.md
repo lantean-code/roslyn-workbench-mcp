@@ -7,7 +7,7 @@ Roslyn Workbench plugins are trusted in-process .NET assemblies discovered once 
 Add the public authoring package to the plugin project:
 
 ```bash
-dotnet add package Roslyn.Workbench.Mcp.Plugins
+dotnet add package Lantean.Roslyn.Workbench.Mcp.Plugins
 ```
 
 The package supplies the plugin API and includes the matching `Roslyn.Workbench.Mcp.Abstractions` assembly. Plugin projects need only this package and should not add repository project references or a direct Workspace reference.

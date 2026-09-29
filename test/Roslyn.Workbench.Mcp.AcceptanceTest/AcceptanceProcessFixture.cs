@@ -77,7 +77,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler = null,
         string? operationalMode = "autonomous-trusted",
         bool enablePlugins = true,
-        string? publishedHostPath = null)
+        string? publishedHostPath = null,
+        Func<string, CancellationToken, Task>? pluginPreparation = null)
     {
         var executablePath = publishedHostPath is null
             ? PublishedHostExecutable.ResolveFromEnvironment()
@@ -96,7 +97,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         }
 
         arguments.AddRange(additionalArguments ?? []);
-        if (pluginAssets is { Count: > 0 })
+        if (pluginAssets is { Count: > 0 } || pluginPreparation is not null)
         {
             if (enablePlugins)
             {
@@ -116,6 +117,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             stateDirectoryPreparation,
             retainInitializationFailure: true,
             elicitationHandler: elicitationHandler,
+            pluginPreparation: pluginPreparation,
             cancellationToken: cancellationToken);
     }
 
@@ -133,6 +135,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             stateDirectoryPreparation: AcceptanceStateDirectoryPreparation.Private,
             retainInitializationFailure: false,
             elicitationHandler: null,
+            pluginPreparation: null,
             cancellationToken: cancellationToken);
     }
 
@@ -364,6 +367,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         AcceptanceStateDirectoryPreparation stateDirectoryPreparation,
         bool retainInitializationFailure,
         Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicitationHandler,
+        Func<string, CancellationToken, Task>? pluginPreparation,
         CancellationToken cancellationToken)
     {
         var scenarioRoot = Path.Combine(
@@ -409,6 +413,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             {
                 target.InstallPluginAsset(pluginAsset);
             }
+        }
+
+        if (pluginPreparation is not null)
+        {
+            await pluginPreparation(target.PluginRoot, cancellationToken);
         }
 
         await target.ConnectAsync(cancellationToken);

@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Plugins.Registration;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;

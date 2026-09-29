@@ -12,7 +12,10 @@ from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 
-_PACKAGE_ID = "Lantean.Roslyn.Workbench.Mcp"
+_PACKAGE_IDS = (
+    "Lantean.Roslyn.Workbench.Mcp",
+    "Lantean.Roslyn.Workbench.Mcp.Plugins",
+)
 _RETIRED_EXTENSIONS = {".deb", ".msi", ".msix", ".rpm"}
 _SEVERITIES = {0: "low", 1: "moderate", 2: "high", 3: "critical"}
 _SOURCE_PATH_PATTERN = re.compile(r"(?:(?<![A-Za-z])[A-Za-z]:[\\/]|/(?:home|mnt|private|tmp|Users)/)")
@@ -72,10 +75,17 @@ def assemble_evidence(
     run_url: str,
 ) -> None:
     release_root = release_root.resolve()
-    expected_package = f"{_PACKAGE_ID}.{version}.nupkg"
-    expected_symbols = f"{_PACKAGE_ID}.{version}.snupkg"
-    package_path = require_single_file(release_root / "package", "*.nupkg", expected_package)
-    symbols_path = require_single_file(release_root / "symbols", "*.snupkg", expected_symbols)
+    package_paths = require_release_subjects(
+        release_root / "package",
+        version,
+        ".nupkg",
+    )
+    symbol_paths = require_release_subjects(
+        release_root / "symbols",
+        version,
+        ".snupkg",
+    )
+    subject_paths = [*package_paths, *symbol_paths]
     reject_retired_packages(release_root)
     validate_release_manifest(release_root / "release-manifest.json", version, commit)
 
@@ -86,11 +96,11 @@ def assemble_evidence(
     copy_json_document(sbom_path, copied_sbom)
     sanitise_sbom_validation(sbom_validation_path, copied_validation)
 
-    package_hashes = {
-        relative_path(package_path, release_root): sha256(package_path),
-        relative_path(symbols_path, release_root): sha256(symbols_path),
+    subject_hashes = {
+        relative_path(path, release_root): sha256(path)
+        for path in subject_paths
     }
-    validate_sbom(copied_sbom, package_hashes)
+    validate_sbom(copied_sbom, subject_hashes)
 
     vulnerability_report, blocking_findings = sanitise_vulnerabilities(
         dependency_root,
@@ -104,8 +114,8 @@ def assemble_evidence(
         raise ValueError(f"Release dependency scan found high or critical vulnerabilities: {joined_findings}.")
 
     evidence = {
-        "schemaVersion": 1,
-        "packageId": _PACKAGE_ID,
+        "schemaVersion": 2,
+        "packageIds": list(_PACKAGE_IDS),
         "version": version,
         "commit": commit,
         "repository": repository,
@@ -116,7 +126,7 @@ def assemble_evidence(
         },
         "subjects": [
             {"path": path, "sha256": digest}
-            for path, digest in sorted(package_hashes.items())
+            for path, digest in sorted(subject_hashes.items())
         ],
         "sbom": {
             "format": "SPDX",
@@ -137,16 +147,22 @@ def assemble_evidence(
     evidence_output = supply_chain_root / "release-evidence.json"
     write_json(evidence_output, evidence)
     reject_source_paths(copied_sbom, copied_validation, evidence_output, vulnerability_output)
-    write_subject_checksums(supply_chain_root / "subjects.sha256", package_path, symbols_path)
+    write_subject_checksums(supply_chain_root / "subjects.sha256", subject_paths)
     write_release_checksums(release_root)
 
 
-def require_single_file(directory: Path, pattern: str, expected_name: str) -> Path:
-    matches = sorted(directory.glob(pattern))
-    if len(matches) != 1 or matches[0].name != expected_name:
-        found = ", ".join(path.name for path in matches) or "none"
-        raise ValueError(f"Expected only '{expected_name}' in '{directory.name}', found: {found}.")
-    return matches[0]
+def require_release_subjects(directory: Path, version: str, extension: str) -> list[Path]:
+    expected_names = {
+        f"{package_id}.{version}{extension}"
+        for package_id in _PACKAGE_IDS
+    }
+    matches = sorted(directory.glob(f"*{extension}"))
+    actual_names = {path.name for path in matches}
+    if actual_names != expected_names:
+        expected = ", ".join(sorted(expected_names))
+        found = ", ".join(sorted(actual_names)) or "none"
+        raise ValueError(f"Expected exactly [{expected}] in '{directory.name}', found: {found}.")
+    return matches
 
 
 def reject_retired_packages(release_root: Path) -> None:
@@ -161,8 +177,19 @@ def reject_retired_packages(release_root: Path) -> None:
 
 def validate_release_manifest(path: Path, version: str, commit: str) -> None:
     manifest = read_json_object(path)
-    if manifest.get("packageId") != _PACKAGE_ID:
-        raise ValueError("Release manifest packageId does not identify the Host package.")
+    packages = manifest.get("packages")
+    expected_packages = [
+        {
+            "id": "Lantean.Roslyn.Workbench.Mcp",
+            "kind": "dotnet-tool",
+        },
+        {
+            "id": "Lantean.Roslyn.Workbench.Mcp.Plugins",
+            "kind": "library",
+        },
+    ]
+    if manifest.get("schemaVersion") != 2 or packages != expected_packages:
+        raise ValueError("Release manifest packages do not identify the exact release product set.")
     if manifest.get("version") != version:
         raise ValueError("Release manifest version does not match the release version.")
     if manifest.get("commit") != commit:
@@ -187,9 +214,9 @@ def sanitise_sbom_validation(source: Path, destination: Path) -> None:
     if not isinstance(telemetry, dict):
         raise ValueError("SBOM validation result is missing file telemetry.")
     expected_counts = {
-        "FilesSuccessfulCount": 2,
-        "TotalFilesInManifest": 2,
-        "FilesValidatedCount": 2,
+        "FilesSuccessfulCount": 4,
+        "TotalFilesInManifest": 4,
+        "FilesValidatedCount": 4,
         "FilesFailedCount": 0,
     }
     for name, expected_value in expected_counts.items():
@@ -532,10 +559,10 @@ def reject_source_paths(*paths: Path) -> None:
             raise ValueError(f"Generated evidence '{path.name}' contains a source-machine path.")
 
 
-def write_subject_checksums(path: Path, package_path: Path, symbols_path: Path) -> None:
+def write_subject_checksums(path: Path, subject_paths: list[Path]) -> None:
     lines = [
-        f"{sha256(package_path)}  {package_path.name}",
-        f"{sha256(symbols_path)}  {symbols_path.name}",
+        f"{sha256(subject_path)}  {subject_path.name}"
+        for subject_path in sorted(subject_paths)
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 

@@ -16,10 +16,10 @@
 - Maintainer architecture, testing and release guidance: `./docs/maintainers`
 - Projects:
   - `Roslyn.Workbench.Mcp.Abstractions` — minimal public Workspace selectors, result models, resolver contracts, and project/query service contracts shared with third-party plugins.
-  - `Roslyn.Workbench.Mcp` — executable host, bootstrap, and server-owned core MCP lifecycle tools.
+  - `Roslyn.Workbench.Mcp` — executable host, bootstrap, server-owned core MCP lifecycle tools, plugin loading, runtime validation, materialisation and Workspace-facing plugin adapters.
   - `Roslyn.Workbench.Mcp.Workspace` — workspace loading, neutral execution leases, transaction coordination, and commit/reload infrastructure.
   - `Roslyn.Workbench.Mcp.CodeActions` — internal Code Action contracts, catalogue, workflows, and Workspace adapters.
-  - `Roslyn.Workbench.Mcp.Plugins` — public third-party plugin contracts, registration, and Workspace adapters.
+  - `Roslyn.Workbench.Mcp.Plugins` — public third-party plugin contracts, fluent registration builders, and their minimal captured configuration state.
   - `Roslyn.Workbench.Mcp.Plugins.Core` — bundled inspection contracts and first-party plugins.
   - `*.Test` and `*.TestSupport` projects under `./test` — unit and integration tests plus shared test helpers.
 - Config/conventions: `.editorconfig`, `nuget.config`, `global.json`, and the `AGENTS.md` files in this repository.

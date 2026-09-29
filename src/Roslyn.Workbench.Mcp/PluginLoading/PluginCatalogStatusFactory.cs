@@ -151,7 +151,10 @@ internal static class PluginCatalogStatusFactory
     /// <param name="severity">The severity assigned to the resulting diagnostic.</param>
     /// <param name="message">The message that describes the reported condition.</param>
     /// <returns>The plugin diagnostic.</returns>
-    public static DiagnosticInfo CreateDiagnostic(string id, DiagnosticSeverity severity, string message)
+    public static DiagnosticInfo CreateDiagnostic(
+        string id,
+        Workspace.Results.DiagnosticSeverity severity,
+        string message)
     {
         return new DiagnosticInfo
         {

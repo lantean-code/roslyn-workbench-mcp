@@ -1,0 +1,77 @@
+namespace Roslyn.Workbench.Mcp.Test.PluginRuntime.Context;
+
+public sealed class InspectionContextServiceTests
+{
+    [Fact]
+    public async Task GIVEN_NullDocument_WHEN_ReadingContext_THEN_ShouldReturnNull()
+    {
+        var target = new InspectionContextService();
+
+        var result = await target.ReadContextAsync(null, new TextSpan(0, 0), TestContext.Current.CancellationToken);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentAndSpan_WHEN_ReadingContext_THEN_ShouldReturnTrimmedLine()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
+            namespace Sample;
+
+            public sealed class GreetingFormatter
+            {
+                public string Format(string value)
+                {
+                        return value.Trim();
+                }
+            }
+            """);
+
+        var target = new InspectionContextService();
+        var document = workspace.Solution.Projects.Single().Documents.Single();
+
+        var selector = workspace.GetLocationSelector("return value.Trim();");
+        var span = new TextSpan(selector.Span!.Range.Start, 1);
+
+        var result = await target.ReadContextAsync(document, span, TestContext.Current.CancellationToken);
+
+        result.Should().Be("return value.Trim();");
+    }
+
+    [Fact]
+    public async Task GIVEN_PositionWithoutResolvableSymbol_WHEN_TryingToCreateContainingSymbol_THEN_ShouldReturnNull()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp(string.Empty);
+        var target = new InspectionContextService();
+        var document = workspace.Solution.Projects.Single().Documents.Single();
+
+        var result = await target.TryCreateContainingSymbolAsync(document, 0, TestContext.Current.CancellationToken);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_SymbolAtPosition_WHEN_TryingToCreateContainingSymbol_THEN_ShouldReturnResolvedSymbol()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
+            namespace Sample;
+
+            public sealed class GreetingFormatter
+            {
+                public string Format(string value)
+                {
+                    return value.Trim();
+                }
+            }
+            """);
+
+        var target = new InspectionContextService();
+        var document = workspace.Solution.Projects.Single().Documents.Single();
+        var selector = workspace.GetLocationSelector("Trim");
+
+        var result = await target.TryCreateContainingSymbolAsync(document, selector.Span!.Range.Start, TestContext.Current.CancellationToken);
+
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("Trim");
+    }
+}

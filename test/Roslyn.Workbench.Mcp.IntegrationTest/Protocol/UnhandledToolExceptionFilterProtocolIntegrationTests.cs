@@ -13,7 +13,6 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 
 using Roslyn.Workbench.Mcp.ErrorReporting.Capture;
-using Roslyn.Workbench.Mcp.Plugins.Registration;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 using Roslyn.Workbench.Mcp.Tools;

@@ -25,11 +25,31 @@ internal static class SelectorRejectionFactory
             _ => $"The {targetDisplayName} selector did not match any result.",
         };
 
-        var code = SelectorErrorCodeResolver.Resolve(targetCode, status);
+        var code = ResolveErrorCode(targetCode, status);
 
         return PluginExecutionResult.Rejected<TResponse>(
             code,
             message,
             RequiredAction.ResolveTargetAgain);
+    }
+
+    private static string ResolveErrorCode(string targetCode, SelectorResolveStatus status)
+    {
+        return (targetCode, status) switch
+        {
+            ("Document", SelectorResolveStatus.Ambiguous) => PluginErrorCodes.DocumentAmbiguous,
+            ("Document", SelectorResolveStatus.Invalid) => PluginErrorCodes.DocumentSelectorInvalid,
+            ("Document", _) => PluginErrorCodes.DocumentNotFound,
+            ("Project", SelectorResolveStatus.Ambiguous) => PluginErrorCodes.ProjectAmbiguous,
+            ("Project", SelectorResolveStatus.Invalid) => PluginErrorCodes.ProjectSelectorInvalid,
+            ("Project", _) => PluginErrorCodes.ProjectNotFound,
+            ("Symbol", SelectorResolveStatus.Ambiguous) => PluginErrorCodes.SymbolAmbiguous,
+            ("Symbol", SelectorResolveStatus.Invalid) => PluginErrorCodes.SymbolSelectorInvalid,
+            ("Symbol", _) => PluginErrorCodes.SymbolNotFound,
+            ("Location", SelectorResolveStatus.Ambiguous) => PluginErrorCodes.LocationAmbiguous,
+            ("Location", SelectorResolveStatus.Invalid) => PluginErrorCodes.LocationSelectorInvalid,
+            ("Location", _) => PluginErrorCodes.LocationNotFound,
+            _ => throw new InvalidOperationException($"Selector target '{targetCode}' is not supported."),
+        };
     }
 }

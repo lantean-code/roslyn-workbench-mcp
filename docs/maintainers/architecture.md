@@ -8,17 +8,17 @@ Roslyn Workbench is a local stdio MCP server. The Host binds protocol requests; 
 | --- | --- |
 | Abstractions | Minimal shared selectors, snapshot preconditions, results, validation and resolver/service contracts. It does not depend on implementation projects. |
 | Workspace | Loading, addressable documents, selectors, snapshots, query services, caches, change detection, transaction history, durable commit and recovery. It does not depend on MCP, Plugins or CodeActions. |
-| Plugins | Typed extension contracts, startup registration, execution adaptation, analysis and query-cache access. It does not depend on MCP or CodeActions. |
+| Plugins | Public third-party authoring contracts, fluent configuration builders and the minimal internal configuration state those builders require. It depends on Abstractions but not Workspace, CodeActions, the Host or the MCP SDK. |
 | Plugins.Core | Bundled inspection and ordinary mutation tools using the plugin path. |
 | CodeActions | Internal catalogue, Roslyn provider composition, diagnostics, discovery, replay references, Fix All and candidate production. It does not participate in plugin discovery. |
 | Plugins.Analyzers | Compile-time authoring rules; separate from the runtime dependency graph. |
-| Host | Composition, startup, MCP schemas and binding, server-owned tools, four transport adapters, plugin loading and consented error reporting. |
+| Host | Composition, startup, MCP schemas and binding, server-owned tools, four transport adapters, plugin loading, runtime plugin validation and materialisation, Workspace-facing plugin execution adapters, and consented error reporting. |
 
-The current project files and architecture tests enforce the dependency graph. Runtime projects target .NET 10; the authoring analyser targets `netstandard2.0`. The .NET SDK is pinned in `global.json`. The Host is distributed as a .NET tool; plugin authoring uses the separate contracts and analyser package rather than the Host's implementation assemblies.
+The current project files and architecture tests enforce the dependency graph. Runtime projects target .NET 10; the authoring analyser targets `netstandard2.0`. The .NET SDK is pinned in `global.json`. The Host is distributed as a .NET tool. Plugin authoring uses `Lantean.Roslyn.Workbench.Mcp.Plugins`, which carries the Plugins and Abstractions assemblies plus the analyser without acquiring Workspace or Host implementation assemblies.
 
 ## Composition and tool execution
 
-The Host validates configuration, registers services, checks MSBuild and recovery prerequisites, loads the bundled and configured plugins, then publishes a fixed tool catalogue. Adding a plugin requires a restart. Plugin discovery validates metadata and collisions before handler materialisation. Server-owned and Code Action names remain reserved. Trusted plugins execute in-process; load contexts are dependency isolation, not a security sandbox.
+The Host validates configuration, registers services, checks MSBuild and recovery prerequisites, loads the bundled and configured plugins, then publishes a fixed tool catalogue. Adding a plugin requires a restart. Plugin discovery validates metadata and collisions before handler materialisation. Runtime plugin preparation, validation, service-provider lifetime, execution contexts, leases, cache integration, Workspace result mapping and transaction staging are Host-owned. Server-owned and Code Action names remain reserved. Trusted plugins execute in-process; load contexts are dependency isolation, not a security sandbox.
 
 Four closed generic transport adapters keep plugin query, plugin mutation, Code Action query and Code Action mutation paths distinct. Typed registration visitors preserve request and response types. Reflection needed for discovery is concentrated at startup. The Host alone owns MCP request binding, validation and result envelopes. Query handlers cannot stage mutations; mutation handlers return candidates, and the Host uses the acquired mutation lease to stage accepted results.
 

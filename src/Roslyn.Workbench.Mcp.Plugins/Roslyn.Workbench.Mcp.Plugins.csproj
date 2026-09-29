@@ -1,23 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Authors>lantean-code</Authors>
+    <PackageId>Lantean.Roslyn.Workbench.Mcp.Plugins</PackageId>
+    <Title>Roslyn Workbench MCP Plugin Authoring</Title>
+    <Authors>Lantean Code</Authors>
+    <Company>Lantean Code</Company>
+    <Copyright>Copyright © 2026 Lantean Code</Copyright>
     <Description>Trusted in-process plugin contracts and authoring diagnostics for Roslyn Workbench MCP.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/lantean-code/roslyn-workbench-mcp</PackageProjectUrl>
+    <PackageProjectUrl>https://lantean-code.github.io/roslyn-workbench-mcp/plugin-authoring.html</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>mcp;roslyn;plugins;analyzers</PackageTags>
+    <PackageIcon>roslyn-workbench-mcp-128.png</PackageIcon>
+    <PackageTags>model-context-protocol;mcp;roslyn;csharp;dotnet;plugins;analyzers</PackageTags>
+    <PackageReleaseNotes>https://github.com/lantean-code/roslyn-workbench-mcp/releases/tag/$(RoslynWorkbenchSourceTag)</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\docs\PluginAuthoring.md"
           Pack="true"
           PackagePath="README.md" />
+    <None Include="..\..\LICENSE"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\assets\icons\roslyn-workbench-mcp-128.png"
+          Pack="true"
+          PackagePath="\"
+          Visible="false" />
     <Compile Include="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Shared\PluginToolNamePolicy.cs"
              Link="Validation\PluginToolNamePolicy.cs" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="System.Composition" />
   </ItemGroup>
 
@@ -39,15 +54,15 @@
     <ProjectReference
       Include="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj"
       PrivateAssets="all" />
-    <ProjectReference
-      Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj"
-      PrivateAssets="all" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetsForTfmSpecificContentInPackage>
       $(TargetsForTfmSpecificContentInPackage);IncludePluginAnalyzersInPackage;IncludePluginAbstractionsInPackage
     </TargetsForTfmSpecificContentInPackage>
+    <TargetsForTfmSpecificDebugSymbolsInPackage>
+      $(TargetsForTfmSpecificDebugSymbolsInPackage);IncludePluginAbstractionsSymbolsInPackage
+    </TargetsForTfmSpecificDebugSymbolsInPackage>
   </PropertyGroup>
 
   <Target Name="IncludePluginAnalyzersInPackage">
@@ -80,6 +95,22 @@
       <TfmSpecificPackageFile Include="@(_PluginAbstractionsAssembly)">
         <PackagePath>lib/$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IncludePluginAbstractionsSymbolsInPackage">
+    <MSBuild
+      Projects="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj"
+      Targets="DebugSymbolsProjectOutputGroup">
+      <Output
+        TaskParameter="TargetOutputs"
+        ItemName="_PluginAbstractionsSymbols" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificDebugSymbolsFile Include="@(_PluginAbstractionsSymbols)">
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+      </TfmSpecificDebugSymbolsFile>
     </ItemGroup>
   </Target>
 

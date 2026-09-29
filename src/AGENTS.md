@@ -20,16 +20,16 @@
 
 ## Project boundaries
 
-- `Roslyn.Workbench.Mcp` owns executable bootstrap, server startup, dependency composition, MCP schemas and envelopes, transport adapters, and server-owned lifecycle tools.
+- `Roslyn.Workbench.Mcp` owns executable bootstrap, server startup, dependency composition, MCP schemas and envelopes, transport adapters, server-owned lifecycle tools, plugin loading, runtime plugin validation and materialisation, execution contexts, leases, Workspace mapping and mutation staging.
 - `Roslyn.Workbench.Mcp.Abstractions` owns the minimal public Workspace selectors, result models, resolver contracts, and project/query service contracts required by third-party plugin signatures. It must not depend on implementation projects or packages beyond the minimal Roslyn Workspaces API required by those signatures.
 - `Roslyn.Workbench.Mcp.Workspace` owns selector resolution implementations, neutral execution leases, transaction state, external-change handling, reload behaviour, and commit coordination.
 - `Roslyn.Workbench.Mcp.CodeActions` owns internal Code Action contracts, catalogue metadata, execution contexts, and workflows. It may depend on Workspace but not Plugins.
-- `Roslyn.Workbench.Mcp.Plugins` owns the public third-party plugin API, plugin metadata, typed registrations, execution services, and Workspace context adaptation. Its public signatures may depend on Abstractions but must not expose Workspace implementation types; its internal adapters may depend on Workspace, but not CodeActions or the MCP SDK.
+- `Roslyn.Workbench.Mcp.Plugins` owns the public third-party plugin API, fluent configuration builders and only the internal state required to capture those public registrations. It may depend on Abstractions, but it must not depend on Workspace, CodeActions, the executable Host or the MCP SDK.
 - Keep the `Roslyn.Workbench.Mcp.Plugins` root namespace focused on the core third-party author experience: plugin entry points, handler and context contracts, execution results, and registration/configuration entry points. Place supplementary public APIs in responsibility-based subnamespaces. Place internal or server-used implementation types in responsibility-based subnamespaces unless a documented author-facing reason requires the root.
 - `Roslyn.Workbench.Mcp.Plugins.Core` owns bundled inspection contracts and first-party plugin implementations.
 - Internal Code Action tools must not be registered or executed through the plugin system.
 - Plugins must not directly own or mutate host-only concerns such as the `MSBuildWorkspace`, transaction coordinator, file writer, or commit journal.
-- Do not collapse host-owned lifecycle code into plugin projects, and do not move plugin tool logic into the executable host for convenience.
+- Keep plugin runtime preparation and Workspace adaptation in the executable Host, while keeping plugin-authored query and mutation tool logic in plugin projects.
 - Reflection-based plugin discovery and generic materialisation are permitted only during Host startup. Plugin request execution must use prebuilt strongly typed adapters; do not use `MethodInfo.Invoke`, `Delegate.DynamicInvoke`, runtime generic construction, `Activator`, or runtime handler-interface inspection in a tool execution path.
 
 ## Coding standards

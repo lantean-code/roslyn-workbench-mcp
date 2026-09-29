@@ -1,6 +1,6 @@
 # Supply-chain evidence
 
-Roslyn Workbench is distributed as one NuGet package, `Lantean.Roslyn.Workbench.Mcp`. `dnx` and global .NET tool installation acquire the same `.nupkg`; MSI, MSIX, Debian and RPM packages are not produced or supported. Pin an exact package version in managed client configuration so acquisition and upgrades remain deliberate.
+Roslyn Workbench has two NuGet products: the `Lantean.Roslyn.Workbench.Mcp` .NET tool and the `Lantean.Roslyn.Workbench.Mcp.Plugins` plugin-authoring library. `dnx` and global .NET tool installation acquire the same Host `.nupkg`; the authoring package is referenced only by plugin projects. MSI, MSIX, Debian and RPM packages are not produced or supported. Pin exact package versions so acquisition and upgrades remain deliberate.
 
 ## Release evidence
 
@@ -20,6 +20,6 @@ The shipped Host graph owns committed `packages.lock.json` files for the Host an
 
 ## Trust boundaries
 
-NuGet.org publication uses OIDC trusted publishing for the `Lantean` organisation. GitHub Packages publication uses the release job's scoped token. When publication is requested, GitHub artifact attestations bind build provenance and the validated SBOM to the exact package hashes. These mechanisms establish workflow and publication provenance; they are not an independent NuGet package-signing certificate and do not replace verification of the selected feed, version and repository.
+NuGet.org publication uses separate exact-package OIDC trusted-publishing policies for both package IDs in the `Lantean` organisation. GitHub Packages publication uses the release job's scoped token. When publication is requested, GitHub artifact attestations bind build provenance and the validated SBOM to all four exact release subjects: both `.nupkg` files and both `.snupkg` files. These mechanisms establish workflow and publication provenance; they are not an independent NuGet package-signing certificate and do not replace verification of the selected feed, version and repository.
 
 Download the evidence files from the matching GitHub Release and check `checksums.sha256` before relying on them. GitHub's CLI can verify an available attestation against this repository, for example `gh attestation verify <package-path> --repo lantean-code/roslyn-workbench-mcp`.

@@ -1,6 +1,6 @@
 # Plugin authoring diagnostics
 
-The `Roslyn.Workbench.Mcp.Plugins` package includes build-time diagnostics for trusted, in-process plugin authors. These diagnostics provide early guidance; Host runtime validation and containment remain authoritative when a diagnostic is suppressed or a plugin is built without the analyser.
+The `Lantean.Roslyn.Workbench.Mcp.Plugins` package includes build-time diagnostics for trusted, in-process plugin authors. These diagnostics provide early guidance; Host runtime validation and containment remain authoritative when a diagnostic is suppressed or a plugin is built without the analyser.
 
 <a id="RWMCP001"></a>
 

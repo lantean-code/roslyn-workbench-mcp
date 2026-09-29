@@ -11,8 +11,6 @@ global using Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Projections;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
-global using Roslyn.Workbench.Mcp.Plugins.Preparation;
-global using Roslyn.Workbench.Mcp.Plugins.Registration;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.TestSupport;

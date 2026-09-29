@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -9,7 +11,7 @@ namespace Roslyn.Workbench.Mcp.Test;
 public sealed class PluginAnalyzerPackageIntegrationTests
 {
     private const string _packageVersion = "0.0.0-analyzer-test";
-    private const string _mcpPackageVersion = "1.4.1";
+    private const string _packageId = "Lantean.Roslyn.Workbench.Mcp.Plugins";
     private const string _nuGetSource = "https://api.nuget.org/v3/index.json";
 
     [Fact]
@@ -36,9 +38,12 @@ public sealed class PluginAnalyzerPackageIntegrationTests
 
             var packagePath = Path.Combine(
                 feedDirectory,
-                $"Roslyn.Workbench.Mcp.Plugins.{_packageVersion}.nupkg");
+                $"{_packageId}.{_packageVersion}.nupkg");
 
             ValidatePackageLayout(packagePath);
+            ValidateSymbolPackage(Path.Combine(
+                feedDirectory,
+                $"{_packageId}.{_packageVersion}.snupkg"));
 
             var projectPath = CreateConsumerProject(consumerDirectory);
             var nuGetConfigurationPath = CreateNuGetConfiguration(
@@ -102,6 +107,12 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         archive.Entries.Should().ContainSingle(
             static entry => string.Equals(
                 entry.FullName,
+                "lib/net10.0/Roslyn.Workbench.Mcp.Plugins.dll",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
                 "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.dll",
                 StringComparison.Ordinal));
 
@@ -114,7 +125,24 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         archive.Entries.Should().ContainSingle(
             static entry => string.Equals(
                 entry.FullName,
+                "LICENSE",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
+                "roslyn-workbench-mcp-128.png",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
                 "README.md",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().NotContain(
+            static entry => entry.FullName.EndsWith(
+                ".pdb",
                 StringComparison.Ordinal));
 
         var readme = ReadTextEntry(archive, "README.md");
@@ -140,11 +168,70 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         using var nuspecStream = nuspecEntry.Open();
         var nuspec = XDocument.Load(nuspecStream);
         var dependencyIds = ReadDependencyIds(nuspec);
+        ReadMetadataValue(nuspec, "id").Should().Be(_packageId);
+        ReadMetadataValue(nuspec, "version").Should().Be(_packageVersion);
+        ReadMetadataValue(nuspec, "license").Should().Be("MIT");
+        ReadMetadataValue(nuspec, "icon").Should().Be("roslyn-workbench-mcp-128.png");
 
         dependencyIds.Should().NotContain("Roslyn.Workbench.Mcp.Abstractions");
         dependencyIds.Should().NotContain("Roslyn.Workbench.Mcp.Workspace");
+        dependencyIds.Should().NotContain("Roslyn.Workbench.Mcp");
+        dependencyIds.Should().NotContain("ModelContextProtocol");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.Analyzers");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.CSharp");
+
+        ValidateAssemblyReferences(
+            archive,
+            "lib/net10.0/Roslyn.Workbench.Mcp.Plugins.dll");
+        ValidateAssemblyReferences(
+            archive,
+            "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.dll");
+    }
+
+    private static void ValidateSymbolPackage(string symbolPackagePath)
+    {
+        File.Exists(symbolPackagePath).Should().BeTrue();
+        using var archive = ZipFile.OpenRead(symbolPackagePath);
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
+                "lib/net10.0/Roslyn.Workbench.Mcp.Plugins.pdb",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
+                "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.pdb",
+                StringComparison.Ordinal));
+    }
+
+    private static void ValidateAssemblyReferences(ZipArchive archive, string assemblyPath)
+    {
+        var entry = archive.Entries.Single(item => string.Equals(
+            item.FullName,
+            assemblyPath,
+            StringComparison.Ordinal));
+
+        using var entryStream = entry.Open();
+        using var assemblyStream = new MemoryStream();
+        entryStream.CopyTo(assemblyStream);
+        assemblyStream.Position = 0;
+
+        using var peReader = new PEReader(assemblyStream);
+        var metadata = peReader.GetMetadataReader();
+        var references = metadata.AssemblyReferences
+            .Select(handle => metadata.GetString(metadata.GetAssemblyReference(handle).Name))
+            .ToArray();
+
+        references.Should().NotContain(
+        [
+            "Roslyn.Workbench.Mcp",
+            "Roslyn.Workbench.Mcp.CodeActions",
+            "Roslyn.Workbench.Mcp.Plugins.Core",
+            "Roslyn.Workbench.Mcp.Workspace",
+            "ModelContextProtocol",
+        ]);
     }
 
     private static string ReadTextEntry(ZipArchive archive, string path)
@@ -177,6 +264,13 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         }
 
         return dependencyIds;
+    }
+
+    private static string? ReadMetadataValue(XDocument nuspec, string name)
+    {
+        return nuspec.Descendants()
+            .Single(element => string.Equals(element.Name.LocalName, name, StringComparison.Ordinal))
+            .Value;
     }
 
     private static string CreateConsumerProject(string consumerDirectory)
@@ -214,7 +308,6 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "--packages",
             Path.Combine(consumerDirectory, "packages"),
             "-p:NuGetAudit=false",
-            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 
@@ -266,7 +359,6 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "build",
             projectPath,
             "--no-restore",
-            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 
@@ -295,16 +387,6 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         cacheOutput.Should().Contain("RWMCP020");
         cacheOutput.Should().Contain("RWMCP021");
 
-        CopyConsumerSource(assetDirectory, "ProtocolExceptionPlugin.cs", consumerDirectory);
-
-        var (protocolExceptionExitCode, protocolExceptionOutput) = await RunDotNetAsync(
-            consumerDirectory,
-            invalidBuildArguments,
-            TestContext.Current.CancellationToken);
-
-        protocolExceptionExitCode.Should().NotBe(0);
-        protocolExceptionOutput.Should().Contain("RWMCP023");
-
         CopyConsumerSource(assetDirectory, "ValidPlugin.cs", consumerDirectory);
 
         var validBuildArguments = new List<string>
@@ -312,7 +394,6 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "build",
             projectPath,
             "--no-restore",
-            $"-p:McpPackageVersion={_mcpPackageVersion}",
             $"-p:PluginPackageVersion={_packageVersion}",
         };
 

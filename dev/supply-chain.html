@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/supply-chain.html">
       
       
-        <link rel="prev" href="compatibility.html">
+        <link rel="prev" href="plugin-authoring.html">
       
       
         <link rel="next" href="agent-setup.html">
@@ -447,6 +447,34 @@
     
   
     Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="plugin-authoring.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin authoring
   
 
     
@@ -1052,7 +1080,7 @@
 
 
 <h1 id="supply-chain-evidence">Supply-chain evidence</h1>
-<p>Roslyn Workbench is distributed as one NuGet package, <code>Lantean.Roslyn.Workbench.Mcp</code>. <code>dnx</code> and global .NET tool installation acquire the same <code>.nupkg</code>; MSI, MSIX, Debian and RPM packages are not produced or supported. Pin an exact package version in managed client configuration so acquisition and upgrades remain deliberate.</p>
+<p>Roslyn Workbench has two NuGet products: the <code>Lantean.Roslyn.Workbench.Mcp</code> .NET tool and the <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> plugin-authoring library. <code>dnx</code> and global .NET tool installation acquire the same Host <code>.nupkg</code>; the authoring package is referenced only by plugin projects. MSI, MSIX, Debian and RPM packages are not produced or supported. Pin exact package versions so acquisition and upgrades remain deliberate.</p>
 <h2 id="release-evidence">Release evidence</h2>
 <p>Every validated release candidate contains the tool package, its symbol package, a release manifest, coverage summaries and SHA-256 checksums. The release workflow also produces a <code>supply-chain</code> directory containing:</p>
 <ul>
@@ -1066,7 +1094,7 @@
 <h2 id="dependency-lock">Dependency lock</h2>
 <p>The shipped Host graph owns committed <code>packages.lock.json</code> files for the Host and each referenced source project. Release restoration starts at the Host in locked mode, so an undeclared dependency-graph change stops the release instead of silently selecting a new package. Maintainers update the graph deliberately with <code>dotnet restore src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj --use-lock-file --force-evaluate</code>, review every resulting lock change and run the normal validation before committing it.</p>
 <h2 id="trust-boundaries">Trust boundaries</h2>
-<p>NuGet.org publication uses OIDC trusted publishing for the <code>Lantean</code> organisation. GitHub Packages publication uses the release job's scoped token. When publication is requested, GitHub artifact attestations bind build provenance and the validated SBOM to the exact package hashes. These mechanisms establish workflow and publication provenance; they are not an independent NuGet package-signing certificate and do not replace verification of the selected feed, version and repository.</p>
+<p>NuGet.org publication uses separate exact-package OIDC trusted-publishing policies for both package IDs in the <code>Lantean</code> organisation. GitHub Packages publication uses the release job's scoped token. When publication is requested, GitHub artifact attestations bind build provenance and the validated SBOM to all four exact release subjects: both <code>.nupkg</code> files and both <code>.snupkg</code> files. These mechanisms establish workflow and publication provenance; they are not an independent NuGet package-signing certificate and do not replace verification of the selected feed, version and repository.</p>
 <p>Download the evidence files from the matching GitHub Release and check <code>checksums.sha256</code> before relying on them. GitHub's CLI can verify an available attestation against this repository, for example <code>gh attestation verify &lt;package-path&gt; --repo lantean-code/roslyn-workbench-mcp</code>.</p>
 
 

@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html">
+        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugin-authoring.html">
       
       
-        <link rel="prev" href="release-notes.html">
+        <link rel="prev" href="compatibility.html">
       
       
-        <link rel="next" href="configuration.html">
+        <link rel="next" href="supply-chain.html">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Connect a client - Roslyn Workbench MCP</title>
+        <title>Plugin authoring - Roslyn Workbench MCP</title>
       
     
     
@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started-with-roslyn-workbench" class="md-skip">
+        <a href="#plugin-authoring" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Connect a client
+              Plugin authoring
             
           </span>
         </div>
@@ -380,37 +380,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Connect a client
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="getting-started.html" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="getting-started.html" class="md-nav__link">
         
   
   
@@ -426,114 +399,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#platform-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Platform support
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run-with-dnx" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run with dnx
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-the-global-net-tool" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install the global .NET tool
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build from source
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#connect-a-client" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connect a client
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#trust-the-workspace-before-opening-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trust the workspace before opening it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#first-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        First workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -599,10 +464,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="plugin-authoring.html" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="plugin-authoring.html" class="md-nav__link md-nav__link--active">
         
   
   
@@ -618,6 +492,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1075,102 +950,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#platform-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Platform support
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run-with-dnx" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run with dnx
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-the-global-net-tool" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install the global .NET tool
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Build from source
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#connect-a-client" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connect a client
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#trust-the-workspace-before-opening-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trust the workspace before opening it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#first-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        First workflow
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1189,80 +968,14 @@
   
 
 
-<h1 id="getting-started-with-roslyn-workbench">Getting started with Roslyn Workbench</h1>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>A supported .NET 10 SDK.</li>
-<li>An MCP client that can start a local stdio server.</li>
-<li>The .NET SDKs and build tooling required by the solutions or projects you intend to load.</li>
-</ul>
-<h2 id="platform-support">Platform support</h2>
-<p>Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are available on a best-effort basis until hosted validation is in place. Windows ARM64 and Linux ARM64 are not currently supported release targets.</p>
-<h2 id="run-with-dnx">Run with dnx</h2>
-<p><code>dnx</code> acquires and runs the selected .NET tool package without a permanent global installation. Pin an exact release in MCP client configuration so package acquisition and upgrades remain deliberate:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dnx<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp@VERSION<span class="w"> </span>--yes<span class="w"> </span>--<span class="w"> </span>--version
+<h1 id="plugin-authoring">Plugin authoring</h1>
+<p>Roslyn Workbench 1.0 publishes <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> as the supported compile-time package for trusted, in-process third-party plugins. A plugin project references this package only; it must not reference or deploy the Host, Workspace, CodeActions or bundled Core projects.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dotnet<span class="w"> </span>add<span class="w"> </span>package<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp.Plugins<span class="w"> </span>--version<span class="w"> </span>VERSION
 </code></pre></div>
-<p>The <code>--yes</code> option permits non-interactive acquisition. Arguments after <code>--</code> belong to Roslyn Workbench rather than <code>dnx</code>. A typical client configuration is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dnx"</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="s2">"Lantean.Roslyn.Workbench.Mcp@VERSION"</span><span class="p">,</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="s2">"--yes"</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="s2">"--"</span><span class="p">,</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="install-the-global-net-tool">Install the global .NET tool</h2>
-<p>For a persistent command, install the same package globally and verify it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp<span class="w"> </span>--version<span class="w"> </span>VERSION
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>roslyn-workbench-mcp<span class="w"> </span>--version
-</code></pre></div>
-<h2 id="build-from-source">Build from source</h2>
-<p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dotnet<span class="w"> </span>publish<span class="w"> </span>src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--configuration<span class="w"> </span>Release<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--output<span class="w"> </span>artifacts/publish/Roslyn.Workbench.Mcp/release
-</code></pre></div>
-<p>The published executable is placed beneath <code>artifacts/publish/Roslyn.Workbench.Mcp/release</code>.</p>
-<h2 id="connect-a-client">Connect a client</h2>
-<p>When using the global tool, configure the MCP client to launch the installed <code>roslyn-workbench-mcp</code> command. Client configuration formats differ, but the equivalent process configuration is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"roslyn-workbench-mcp"</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">}</span>
-</code></pre></div>
-<p><code>inspection-only</code> is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select <code>transactional</code> when the client supports MCP elicitation and commit confirmation should cover one commit or the Host session. Select <code>approval-required</code> when every approval must be bound to the exact change returned by <code>transaction-review</code>, or deliberately select <code>autonomous-trusted</code> to use the preview workflow without Host confirmation. See <a href="configuration.html#operational-modes">Configuration</a> before enabling mutation.</p>
-<p>External plugin loading is independently disabled by default. To load trusted third-party packages, add the valueless <code>--enable-plugins</code> switch and one or more <code>--plugin-directory</code> values. Inspection-only then publishes plugin query tools but continues to omit their mutation tools. Plugins execute in-process with the Host user's permissions, so enable only reviewed packages.</p>
-<p>To restrict Workspace admission to specific source trees, configure one or more allowed roots. This example also rejects a Workspace when its evaluated documents extend outside its effective root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"roslyn-workbench-mcp"</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/engineering-source"</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/team-source"</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="s2">"--external-document-policy"</span><span class="p">,</span><span class="w"> </span><span class="s2">"reject-workspace"</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
-</code></pre></div>
-<p>Use <code>allow-read-only</code> instead of <code>reject-workspace</code> when trusted builds legitimately evaluate linked or generated documents outside the source boundary. Command-line roots replace, rather than extend, any <code>ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS</code> environment value.</p>
-<p>The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.</p>
-<p>For a source build, use the absolute path to the published <code>Roslyn.Workbench.Mcp</code> executable instead of the installed command.</p>
-<h2 id="trust-the-workspace-before-opening-it">Trust the workspace before opening it</h2>
-<p>Open only a fully trusted workspace. <code>workspace-open</code> evaluates MSBuild project logic, including repository-controlled projects and imports, before an agent can inspect every input. Later diagnostic and Code Action operations can load and execute project analyzers with the Host's operating system permissions. Allowed Workspace roots reduce accidental agent scope; they do not sandbox this code or constrain build-tool inputs. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox before opening it.</p>
-<h2 id="first-workflow">First workflow</h2>
-<ol>
-<li>Call <code>server-status</code> with <code>detail</code> set to <code>Full</code> and review component status, startup fallbacks, recovery state and the published tool count.</li>
-<li>After establishing that the workspace and its build inputs are fully trusted, call <code>workspace-open</code> with the absolute path to a <code>.sln</code>, <code>.slnx</code> or <code>.csproj</code>. If the project requires caller-specific MSBuild configuration, include the optional allowlisted <code>msBuildProperties</code>; use <code>artifactsPath</code> only when the build itself requires a non-default artifacts location. Standard SDK, NuGet and Visual Studio locations are discovered through normal MSBuild evaluation. Evaluated documents outside the workspace root are queryable but read-only. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.</li>
-<li>Use query tools against the loaded workspace.</li>
-<li>If the configured operational mode supports mutation, read <a href="workspaces-and-transactions.html">Workspaces and transactions</a> and check <code>workspace-status</code> before starting a transaction.</li>
-</ol>
-<p>The server starts without a loaded workspace. It can keep multiple workspaces open, but only one loaded workspace may own the active transaction slot.</p>
+<p>The package supplies the Plugins and Abstractions assemblies plus the C# authoring analyser. Query and mutation handlers compile against those contracts, while the installed Host supplies the matching runtime assembly identities and owns plugin loading, validation, execution leases, Workspace access and transaction staging. Do not copy the Plugins or Abstractions assemblies into the deployed plugin directory.</p>
+<p>Plugins remain a manual installation for 1.0. Start the Host with <code>--enable-plugins</code> and one or more explicit <code>--plugin-directory</code> values only after reviewing and trusting the plugin code and its dependencies. The Host does not treat an in-process plugin as a hostile tenant.</p>
+<p>The plugin API version is independent of the NuGet package version. A plugin declares an exact <code>PluginApiVersions</code> value, and the Host rejects unsupported API versions before publishing any of that plugin's tools.</p>
+<p>See the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoring.md">complete authoring guide</a> for entry-point, handler, result, transaction and deployment requirements, and <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md">plugin authoring diagnostics</a> for analyser rules and remediation.</p>
 
 
 

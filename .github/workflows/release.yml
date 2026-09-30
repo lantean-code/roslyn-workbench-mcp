@@ -3,6 +3,14 @@ name: Build and publish release
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Release operation to perform
+        required: true
+        default: release
+        type: choice
+        options:
+          - release
+          - verify-plugin-trusted-publishing
       publish:
         description: Publish the validated package and docs, and prepare a draft GitHub Release
         required: true
@@ -26,7 +34,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify-plugin-trusted-publishing:
+    if: inputs.operation == 'verify-plugin-trusted-publishing'
+    name: Verify Plugins NuGet.org trusted publishing
+    runs-on: ubuntu-latest
+    environment: nuget-org-plugins
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Obtain temporary Plugins NuGet.org API key
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Confirm temporary API key was issued
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: test -n "$NUGET_API_KEY"
+
   prepare:
+    if: inputs.operation == 'release'
     name: Build and validate release
     runs-on: ubuntu-latest
     timeout-minutes: 60

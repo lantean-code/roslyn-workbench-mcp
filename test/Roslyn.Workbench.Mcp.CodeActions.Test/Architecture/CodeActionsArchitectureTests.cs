@@ -15,51 +15,6 @@ public sealed class CodeActionsArchitectureTests
     }
 
     [Fact]
-    public void GIVEN_ProductionProjects_WHEN_InspectingProjectReferences_THEN_ShouldMatchApprovedDependencyGraph()
-    {
-        var expectedReferences = new Dictionary<string, string[]>
-        {
-            ["Roslyn.Workbench.Mcp.Abstractions"] = [],
-            ["Roslyn.Workbench.Mcp.Plugins.Analyzers"] = [],
-            ["Roslyn.Workbench.Mcp.Workspace"] = ["Roslyn.Workbench.Mcp.Abstractions"],
-            ["Roslyn.Workbench.Mcp.CodeActions"] =
-            [
-                "Roslyn.Workbench.Mcp.Abstractions",
-                "Roslyn.Workbench.Mcp.Workspace",
-            ],
-            ["Roslyn.Workbench.Mcp.Plugins"] =
-            [
-                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
-                "Roslyn.Workbench.Mcp.Abstractions",
-                "Roslyn.Workbench.Mcp.Workspace",
-            ],
-            ["Roslyn.Workbench.Mcp.Plugins.Core"] =
-            [
-                "Roslyn.Workbench.Mcp.Abstractions",
-                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
-                "Roslyn.Workbench.Mcp.Plugins",
-                "Roslyn.Workbench.Mcp.Workspace",
-            ],
-            ["Roslyn.Workbench.Mcp"] =
-            [
-                "Roslyn.Workbench.Mcp.Abstractions",
-                "Roslyn.Workbench.Mcp.CodeActions",
-                "Roslyn.Workbench.Mcp.Plugins",
-                "Roslyn.Workbench.Mcp.Plugins.Core",
-                "Roslyn.Workbench.Mcp.Workspace",
-            ],
-        };
-
-        foreach (var project in expectedReferences)
-        {
-            var document = LoadProductionProject(project.Key);
-            var actualReferences = ReadProjectNames(document, "ProjectReference");
-
-            actualReferences.Should().BeEquivalentTo(project.Value);
-        }
-    }
-
-    [Fact]
     public void GIVEN_CodeActionsProject_WHEN_InspectingReferences_THEN_ShouldContainNoPluginHostOrMcpDependencies()
     {
         var document = LoadProductionProject("Roslyn.Workbench.Mcp.CodeActions");

@@ -109,6 +109,52 @@ public sealed class HostArchitectureTests
     }
 
     [Fact]
+    public void GIVEN_ProductionProjects_WHEN_InspectingProjectReferences_THEN_ShouldMatchApprovedDependencyGraph()
+    {
+        var expectedReferences = new Dictionary<string, string[]>
+        {
+            ["Roslyn.Workbench.Mcp.Abstractions"] = [],
+            ["Roslyn.Workbench.Mcp.Plugins.Analyzers"] = [],
+            ["Roslyn.Workbench.Mcp.Workspace"] = ["Roslyn.Workbench.Mcp.Abstractions"],
+            ["Roslyn.Workbench.Mcp.CodeActions"] =
+            [
+                "Roslyn.Workbench.Mcp.Abstractions",
+                "Roslyn.Workbench.Mcp.Workspace",
+            ],
+            ["Roslyn.Workbench.Mcp.Plugins"] =
+            [
+                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
+                "Roslyn.Workbench.Mcp.Abstractions",
+            ],
+            ["Roslyn.Workbench.Mcp.Plugins.Core"] =
+            [
+                "Roslyn.Workbench.Mcp.Abstractions",
+                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
+                "Roslyn.Workbench.Mcp.Plugins",
+                "Roslyn.Workbench.Mcp.Workspace",
+            ],
+            ["Roslyn.Workbench.Mcp"] =
+            [
+                "Roslyn.Workbench.Mcp.Abstractions",
+                "Roslyn.Workbench.Mcp.CodeActions",
+                "Roslyn.Workbench.Mcp.Plugins",
+                "Roslyn.Workbench.Mcp.Plugins.Core",
+                "Roslyn.Workbench.Mcp.Workspace",
+            ],
+        };
+
+        foreach (var project in expectedReferences)
+        {
+            var document = LoadProductionProject(project.Key);
+            var actualReferences = ReadProjectNames(document, "ProjectReference");
+
+            actualReferences.Should().BeEquivalentTo(
+                project.Value,
+                $"the approved dependency graph for {project.Key} must remain explicit");
+        }
+    }
+
+    [Fact]
     public void GIVEN_HostProject_WHEN_InspectingFriendAssemblies_THEN_ShouldContainOnlyDirectConsumers()
     {
         var document = LoadProductionProject("Roslyn.Workbench.Mcp");
@@ -146,6 +192,13 @@ public sealed class HostArchitectureTests
             .Descendants(itemName)
             .Select(static element => element.Attribute("Include")?.Value)
             .OfType<string>()
+            .ToArray();
+    }
+
+    private static string[] ReadProjectNames(XDocument document, string itemName)
+    {
+        return ReadItemIncludes(document, itemName)
+            .Select(static include => Path.GetFileNameWithoutExtension(include.Replace('\\', '/')))
             .ToArray();
     }
 

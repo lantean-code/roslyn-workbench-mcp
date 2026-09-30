@@ -11,10 +11,20 @@ The strategy keeps fast behavioural tests close to the assembly that owns the be
 The production dependency direction is:
 
 ```text
-Host -> CodeActions -> Workspace -> Abstractions
-Host -> Plugins.Core -> Plugins -> Workspace -> Abstractions
-Host -> Plugins -> Workspace -> Abstractions
+Host -> Abstractions
+Host -> CodeActions
+Host -> Plugins
+Host -> Plugins.Core
 Host -> Workspace
+CodeActions -> Abstractions
+CodeActions -> Workspace
+Plugins -> Abstractions
+Plugins -> Plugins.Analyzers
+Plugins.Core -> Abstractions
+Plugins.Core -> Plugins
+Plugins.Core -> Plugins.Analyzers
+Plugins.Core -> Workspace
+Workspace -> Abstractions
 ```
 
 The test architecture must protect these additional rules:

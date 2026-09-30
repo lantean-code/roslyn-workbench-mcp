@@ -53,6 +53,18 @@
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.
   - Docs-only or markdown-only edits do not require restore/build/test unless explicitly requested.
 
+## Local cross-platform development validation
+
+When the primary development environment is Windows, including Windows Sandbox:
+
+- Develop, validate, review and commit normally in the Windows working copy. Do not repeat every work item under WSL unless the user explicitly requests it.
+- Describe validation according to the platform on which it ran. Do not describe Windows-only results as cross-platform validation.
+- At a feature-complete checkpoint, perform a WSL smoke test when Linux confidence is relevant to the completed changes. Select the restore, build, test, acceptance, packaging or scenario combinations according to the risks introduced by that feature.
+- Run the smoke test from a disposable clone on WSL's native Linux filesystem rather than from the Windows working copy mounted under `/mnt`. Use the Windows repository as the clone's local origin and check out the exact committed revision being validated.
+- Do not synchronise uncommitted changes into the WSL clone. Do not use the validation clone for development, staging, committing or pushing.
+- Give additional Linux attention to changes involving paths, filename casing, permissions, line endings, process launching, shell scripts, packaging, published executables or acceptance fixtures.
+- Record the validated commit, commands and results. Treat native Windows and Linux CI as the authoritative cross-platform release evidence.
+
 ## Coding and test standards
 
 - Source code rules and generation constraints live in `./src/AGENTS.md` and are authoritative for code style, architecture boundaries, and documentation.

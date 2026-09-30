@@ -248,12 +248,43 @@ jobs:
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
           path: artifacts/release
+      - name: Isolate release candidate package source
+        shell: pwsh
+        run: |
+          $configurationPath = Join-Path $env:RUNNER_TEMP 'release-candidate-nuget.config'
+          $packageCache = Join-Path $env:RUNNER_TEMP 'release-nuget-packages'
+          $packageSource = [System.Security.SecurityElement]::Escape(
+            (Resolve-Path artifacts/release/package).Path)
+
+          $configuration = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="ReleaseCandidate" value="$packageSource" />
+            </packageSources>
+          </configuration>
+          "@
+
+          $configuration | Set-Content `
+            -Path $configurationPath `
+            -Encoding utf8
+
+          $environmentVariables = @(
+            "ROSLYN_WORKBENCH_MCP_RELEASE_NUGET_CONFIG=$configurationPath"
+            "NUGET_PACKAGES=$packageCache"
+          )
+
+          $environmentVariables | Out-File `
+            -FilePath $env:GITHUB_ENV `
+            -Encoding utf8 `
+            -Append
       - name: Verify dnx acquisition and execution
         shell: pwsh
         run: |
           $packageReference = "Lantean.Roslyn.Workbench.Mcp@${{ needs.prepare.outputs.version }}"
           $actualVersion = dnx $packageReference `
-            --source artifacts/release/package `
+            --configfile $env:ROSLYN_WORKBENCH_MCP_RELEASE_NUGET_CONFIG `
             --yes `
             -- `
             --version
@@ -265,10 +296,21 @@ jobs:
         shell: pwsh
         run: |
           $toolPath = Join-Path $env:RUNNER_TEMP 'release-tool'
-          dotnet tool install Lantean.Roslyn.Workbench.Mcp --tool-path $toolPath --source artifacts/release/package --version "${{ needs.prepare.outputs.version }}"
-          $executableName = if ($IsWindows) { 'roslyn-workbench-mcp.exe' } else { 'roslyn-workbench-mcp' }
+          dotnet tool install Lantean.Roslyn.Workbench.Mcp `
+            --tool-path $toolPath `
+            --configfile $env:ROSLYN_WORKBENCH_MCP_RELEASE_NUGET_CONFIG `
+            --version "${{ needs.prepare.outputs.version }}"
+
+          $executableName = 'roslyn-workbench-mcp'
+          if ($IsWindows) {
+            $executableName += '.exe'
+          }
+
           $executablePath = Join-Path $toolPath $executableName
-          "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=$executablePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=$executablePath" | Out-File `
+            -FilePath $env:GITHUB_ENV `
+            -Encoding utf8 `
+            -Append
       - name: Restore
         run: dotnet restore test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj
       - name: Build acceptance harness

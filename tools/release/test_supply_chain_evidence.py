@@ -58,12 +58,17 @@ class SupplyChainEvidenceTests(unittest.TestCase):
             self.assertNotIn("subjects.sha256", checksums)
 
     def test_assemble_evidence_rejects_retired_package_format(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            fixture = self.create_fixture(Path(directory))
-            (fixture["release_root"] / "legacy.msi").write_bytes(b"installer")
+        retired_extensions = (".deb", ".msi", ".msix", ".rpm")
 
-            with self.assertRaisesRegex(ValueError, "Retired package formats"):
-                self.assemble(fixture)
+        for extension in retired_extensions:
+            with self.subTest(extension=extension):
+                with tempfile.TemporaryDirectory() as directory:
+                    fixture = self.create_fixture(Path(directory))
+                    retired_package = fixture["release_root"] / f"legacy{extension}"
+                    retired_package.write_bytes(b"installer")
+
+                    with self.assertRaisesRegex(ValueError, "Retired package formats"):
+                        self.assemble(fixture)
 
     def test_assemble_evidence_rejects_missing_or_extra_package(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

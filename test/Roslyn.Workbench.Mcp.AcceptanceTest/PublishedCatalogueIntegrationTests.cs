@@ -19,7 +19,8 @@ public sealed class PublishedCatalogueIntegrationTests
             var actual = ToolCatalogueCanonicalizer.Create(tools);
             CaptureCompatibilityBaselineWhenRequested(baselineFileName, actual);
             var baselinePath = Path.Combine(AppContext.BaseDirectory, "CompatibilityBaselines", baselineFileName);
-            var expected = await File.ReadAllTextAsync(baselinePath, TestContext.Current.CancellationToken);
+            var expectedBaseline = await File.ReadAllTextAsync(baselinePath, TestContext.Current.CancellationToken);
+            var expected = expectedBaseline.ReplaceLineEndings("\r\n");
 
             actual.Should().Be(expected);
         }

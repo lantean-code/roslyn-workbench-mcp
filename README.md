@@ -1,5 +1,7 @@
 # Roslyn Workbench MCP
 
+<!-- mcp-name: io.github.lantean-code/roslyn-workbench-mcp -->
+
 ![Roslyn Workbench MCP wordmark](assets/roslyn-workbench-mcp-wordmark.svg)
 
 Roslyn Workbench is a local stdio MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.

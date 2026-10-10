@@ -11,6 +11,7 @@ public sealed class HostPackageMetadataIntegrationTests
 {
     private const string _packageId = "Lantean.Roslyn.Workbench.Mcp";
     private const string _packageVersion = "1.2.3-beta.4";
+    private const string _serverName = "io.github.lantean-code/roslyn-workbench-mcp";
 
     [Fact]
     public async Task GIVEN_PackedHost_WHEN_InspectingPackageMetadata_THEN_ShouldSupportDotnetToolAndMcpServerAcquisition()
@@ -99,6 +100,7 @@ public sealed class HostPackageMetadataIntegrationTests
             .Where(static element => element.Name.LocalName == "packageType")
             .Select(static element => element.Attribute("name")?.Value)
             .ToArray();
+
         var nuspecPackageId = nuspec.Descendants().Single(static element => element.Name.LocalName == "id").Value;
         var nuspecVersion = nuspec.Descendants().Single(static element => element.Name.LocalName == "version").Value;
 
@@ -106,6 +108,24 @@ public sealed class HostPackageMetadataIntegrationTests
         nuspecPackageId.Should().Be(_packageId);
         nuspecVersion.Should().Be(_packageVersion);
 
+        var readmePath = nuspec.Descendants().Single(static element => element.Name.LocalName == "readme").Value;
+
+        ValidateOwnershipMarker(archive, readmePath);
+        ValidateRegistryMetadata(archive);
+    }
+
+    private static void ValidateOwnershipMarker(ZipArchive archive, string readmePath)
+    {
+        var readmeEntry = archive.Entries.Single(entry => entry.FullName == readmePath);
+        using var readmeStream = readmeEntry.Open();
+        using var readmeReader = new StreamReader(readmeStream);
+        var readme = readmeReader.ReadToEnd();
+
+        readme.Should().Contain($"<!-- mcp-name: {_serverName} -->");
+    }
+
+    private static void ValidateRegistryMetadata(ZipArchive archive)
+    {
         var manifestEntry = archive.Entries.Single(static entry => entry.FullName == ".mcp/server.json");
         using var manifestStream = manifestEntry.Open();
         using var manifestReader = new StreamReader(manifestStream);
@@ -117,11 +137,28 @@ public sealed class HostPackageMetadataIntegrationTests
         var root = manifest.RootElement;
         var package = root.GetProperty("packages").EnumerateArray().Single();
 
+        root.GetProperty("name").GetString().Should().Be(_serverName);
         root.GetProperty("version").GetString().Should().Be(_packageVersion);
+        root.GetProperty("$schema").GetString().Should().Be("https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
+        root.GetProperty("websiteUrl").GetString().Should().Be($"https://lantean-code.github.io/roslyn-workbench-mcp/{_packageVersion}/");
+        package.GetProperty("registryType").GetString().Should().Be("nuget");
+        package.GetProperty("registryBaseUrl").GetString().Should().Be("https://api.nuget.org/v3/index.json");
         package.GetProperty("identifier").GetString().Should().Be(_packageId);
         package.GetProperty("version").GetString().Should().Be(_packageVersion);
+        package.GetProperty("runtimeHint").GetString().Should().Be("dnx");
         package.GetProperty("transport").GetProperty("type").GetString().Should().Be("stdio");
         package.GetProperty("packageArguments").GetArrayLength().Should().Be(0);
+
+        ValidateRegistryIcon(root);
+    }
+
+    private static void ValidateRegistryIcon(JsonElement root)
+    {
+        var icon = root.GetProperty("icons").EnumerateArray().Single();
+
+        icon.GetProperty("src").GetString().Should().Be($"https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/{_packageVersion}/assets/icons/roslyn-workbench-mcp-128.png");
+        icon.GetProperty("mimeType").GetString().Should().Be("image/png");
+        icon.GetProperty("sizes").EnumerateArray().Select(static size => size.GetString()).Should().Equal("128x128");
     }
 
     private static void RemoveReleaseEnvironment(ProcessStartInfo startInfo)

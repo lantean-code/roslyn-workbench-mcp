@@ -4,12 +4,21 @@
   "title": "Roslyn Workbench MCP",
   "description": "A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.",
   "version": "{{PACKAGE_VERSION}}",
+  "websiteUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/{{PACKAGE_VERSION}}/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/{{PACKAGE_VERSION}}/assets/icons/roslyn-workbench-mcp-128.png",
+      "mimeType": "image/png",
+      "sizes": ["128x128"]
+    }
+  ],
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "Lantean.Roslyn.Workbench.Mcp",
       "version": "{{PACKAGE_VERSION}}",
+      "runtimeHint": "dnx",
       "transport": {
         "type": "stdio"
       },

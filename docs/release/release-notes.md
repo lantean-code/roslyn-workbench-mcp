@@ -1,6 +1,8 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-Roslyn Workbench MCP 1.0 is the first stable release of the local stdio server for Roslyn-powered C# inspection and transactional refactoring. It includes the Host .NET tool and a separate plugin-authoring package, with a [1.x compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) for the published surfaces.
+This patch release corrects the Host package metadata needed for official MCP Registry submission. It adds the packaged README ownership marker, an explicit `dnx` runtime hint and version-matched documentation and icon links. It does not change runtime behaviour or the public contracts introduced in 1.0.0. Registry submission remains a separate publication step.
+
+The release includes the Host .NET tool and a separate plugin-authoring package, with a [1.x compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) for the published surfaces.
 
 ## What is included
 

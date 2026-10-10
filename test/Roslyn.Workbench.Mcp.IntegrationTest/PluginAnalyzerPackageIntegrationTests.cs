@@ -41,7 +41,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                 $"{_packageId}.{_packageVersion}.nupkg");
 
             ValidatePackageLayout(packagePath);
-            ValidateSymbolPackage(Path.Combine(
+            ValidateSymbolPackage(packagePath, Path.Combine(
                 feedDirectory,
                 $"{_packageId}.{_packageVersion}.snupkg"));
 
@@ -140,10 +140,10 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                 "README.md",
                 StringComparison.Ordinal));
 
-        archive.Entries.Should().NotContain(
-            static entry => entry.FullName.EndsWith(
-                ".pdb",
-                StringComparison.Ordinal));
+        archive.Entries
+            .Where(static entry => entry.FullName.EndsWith(".pdb", StringComparison.Ordinal))
+            .Select(static entry => entry.FullName)
+            .Should().Equal("analyzers/dotnet/cs/Roslyn.Workbench.Mcp.Plugins.Analyzers.pdb");
 
         var readme = ReadTextEntry(archive, "README.md");
         readme.Should().Contain("# Third-Party Plugin Authoring");
@@ -188,7 +188,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.dll");
     }
 
-    private static void ValidateSymbolPackage(string symbolPackagePath)
+    private static void ValidateSymbolPackage(string packagePath, string symbolPackagePath)
     {
         File.Exists(symbolPackagePath).Should().BeTrue();
         using var archive = ZipFile.OpenRead(symbolPackagePath);
@@ -204,6 +204,40 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                 entry.FullName,
                 "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.pdb",
                 StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
+                "analyzers/dotnet/cs/Roslyn.Workbench.Mcp.Plugins.Analyzers.pdb",
+                StringComparison.Ordinal));
+
+        var symbolEntry = archive.GetEntry("analyzers/dotnet/cs/Roslyn.Workbench.Mcp.Plugins.Analyzers.pdb");
+        symbolEntry.Should().NotBeNull();
+
+        using var symbolStream = symbolEntry!.Open();
+        using var symbolBuffer = new MemoryStream();
+        symbolStream.CopyTo(symbolBuffer);
+        symbolBuffer.Position = 0;
+
+        using var symbolProvider = MetadataReaderProvider.FromPortablePdbStream(symbolBuffer);
+        var symbolMetadata = symbolProvider.GetMetadataReader();
+        symbolMetadata.Documents.Count.Should().BeGreaterThan(0);
+        var symbolId = symbolMetadata.DebugMetadataHeader?.Id;
+        symbolId.Should().NotBeNull();
+        var symbolGuid = new Guid(symbolId.GetValueOrDefault().AsSpan()[..16]);
+
+        using var package = ZipFile.OpenRead(packagePath);
+        var assemblyEntry = package.GetEntry("analyzers/dotnet/cs/Roslyn.Workbench.Mcp.Plugins.Analyzers.dll");
+        assemblyEntry.Should().NotBeNull();
+
+        using var assemblyStream = assemblyEntry!.Open();
+        using var assemblyBuffer = new MemoryStream();
+        assemblyStream.CopyTo(assemblyBuffer);
+        assemblyBuffer.Position = 0;
+
+        using var peReader = new PEReader(assemblyBuffer);
+        var codeViewEntry = peReader.ReadDebugDirectory().Single(static entry => entry.Type == DebugDirectoryEntryType.CodeView);
+        peReader.ReadCodeViewDebugDirectoryData(codeViewEntry).Guid.Should().Be(symbolGuid);
     }
 
     private static void ValidateAssemblyReferences(ZipArchive archive, string assemblyPath)

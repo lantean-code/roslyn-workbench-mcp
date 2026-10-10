@@ -36,6 +36,8 @@ jobs:
           cache-dependency-path: docs/docs-requirements.txt
       - name: Install documentation dependencies
         run: python -m pip install --requirement docs/docs-requirements.txt
+      - name: Test Pages publication
+        run: python -m unittest discover -s docs -p test_publish_pages.py
       - name: Configure deployment identity
         run: |
           git config user.name "lantean-code"
@@ -50,6 +52,7 @@ jobs:
           git archive refs/remotes/origin/gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
       - name: Upload Pages deployment
         if: steps.sync.outputs.deploy == 'true'
+        id: pages-artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           include-hidden-files: true
@@ -57,10 +60,15 @@ jobs:
           path: ${{ runner.temp }}/pages-site
       - name: Configure Pages
         if: steps.sync.outputs.deploy == 'true'
+        id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Deploy Pages
         if: steps.sync.outputs.deploy == 'true'
         id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
-        with:
-          artifact_name: github-pages-sync-${{ github.run_attempt }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python docs/publish-pages.py
+          --artifact-id "${{ steps.pages-artifact.outputs.artifact_id }}"
+          --site "${{ runner.temp }}/pages-site"
+          --url "${{ steps.pages.outputs.base_url }}"

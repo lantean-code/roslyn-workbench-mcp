@@ -6,6 +6,8 @@ The Host tool and plugin-authoring package are separate distribution products re
 
 The authoring product has the exact package identity `Lantean.Roslyn.Workbench.Mcp.Plugins`. It contains the Plugins and Abstractions assemblies, portable symbols and the plugin-authoring analyser. A plugin project references this package only; it does not acquire the executable Host, Workspace implementation, CodeActions implementation, bundled Core plugins or MCP protocol implementation as package or deployed plugin dependencies.
 
+The analyser's portable PDB is packed beside its DLL under `analyzers/dotnet/cs` and at the same path in the symbol package. Plugins and Abstractions library PDBs remain in the symbol package only. Package integration coverage verifies the analyser PDB's portable metadata and matching DLL debug identity, as well as activation in a clean package-only consumer.
+
 Plugins owns the public authoring contracts, registration builders and the minimal captured configuration required to describe a plugin. The Host owns discovery, loading, runtime preparation and validation, context implementations, execution leases, cache integration, Workspace mapping and mutation staging. Abstractions remains the shared public contract assembly used by Plugins and supplied by the Host at runtime.
 
 ## Release and validation boundary

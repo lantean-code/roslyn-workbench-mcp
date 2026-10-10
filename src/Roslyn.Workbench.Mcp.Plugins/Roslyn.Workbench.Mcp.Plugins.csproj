@@ -75,8 +75,20 @@
         ItemName="_PluginAnalyzerAssembly" />
     </MSBuild>
 
+    <MSBuild
+      Projects="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
+      Targets="DebugSymbolsProjectOutputGroup"
+      RemoveProperties="TargetFramework">
+      <Output
+        TaskParameter="TargetOutputs"
+        ItemName="_PluginAnalyzerSymbols" />
+    </MSBuild>
+
     <ItemGroup>
       <TfmSpecificPackageFile Include="@(_PluginAnalyzerAssembly)">
+        <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
+      <TfmSpecificPackageFile Include="@(_PluginAnalyzerSymbols)">
         <PackagePath>analyzers/dotnet/cs</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>

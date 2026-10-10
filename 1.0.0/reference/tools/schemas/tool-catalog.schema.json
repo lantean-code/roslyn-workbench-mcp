@@ -1,0 +1,96 @@
+{
+  "$id": "tool-catalog.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "productVersion",
+    "sourceTag",
+    "commit",
+    "tools"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "const": "roslyn-workbench-tool-reference/v1"
+    },
+    "productVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceTag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "title",
+          "area",
+          "category",
+          "operationKind",
+          "summary",
+          "availability",
+          "detailUrl",
+          "documentationUrl"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "area": {
+            "enum": [
+              "Server",
+              "CorePlugin",
+              "CodeAction"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationKind": {
+            "enum": [
+              "Query",
+              "Mutation"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detailUrl": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Relative URL of the complete machine-readable tool definition."
+          },
+          "documentationUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Absolute URL of the human-readable tool documentation."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

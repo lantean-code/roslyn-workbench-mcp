@@ -487,6 +487,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#update-or-remove-the-global-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update or remove the global tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#build-from-source" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1126,6 +1137,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#update-or-remove-the-global-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update or remove the global tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#build-from-source" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1219,36 +1241,43 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp<span class="w"> </span>--version<span class="w"> </span>VERSION
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>roslyn-workbench-mcp<span class="w"> </span>--version
 </code></pre></div>
+<h2 id="update-or-remove-the-global-tool">Update or remove the global tool</h2>
+<p>Finish or roll back active transactions, stop the Host and update to an exact version:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>update<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp<span class="w"> </span>--version<span class="w"> </span>VERSION
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>roslyn-workbench-mcp<span class="w"> </span>--version
+</code></pre></div>
+<p>For <code>dnx</code>, change the exact <code>@VERSION</code> in the client's configuration and restart the Host. Review the selected release notes before upgrading, and retain unresolved recovery evidence; see <a href="compatibility.html#durable-recovery-state">Compatibility</a>.</p>
+<p>To remove a global installation, remove the client's server entry, stop the Host and run <code>dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp</code>. Follow <a href="troubleshooting.html">Troubleshooting and removal</a> before deleting any state directory.</p>
 <h2 id="build-from-source">Build from source</h2>
 <p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dotnet<span class="w"> </span>publish<span class="w"> </span>src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--configuration<span class="w"> </span>Release<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--output<span class="w"> </span>artifacts/publish/Roslyn.Workbench.Mcp/release
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>dotnet<span class="w"> </span>publish<span class="w"> </span>src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--configuration<span class="w"> </span>Release<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--output<span class="w"> </span>artifacts/publish/Roslyn.Workbench.Mcp/release
 </code></pre></div>
 <p>The published executable is placed beneath <code>artifacts/publish/Roslyn.Workbench.Mcp/release</code>.</p>
 <h2 id="connect-a-client">Connect a client</h2>
 <p>When using the global tool, configure the MCP client to launch the installed <code>roslyn-workbench-mcp</code> command. Client configuration formats differ, but the equivalent process configuration is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"roslyn-workbench-mcp"</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">}</span>
-</code></pre></div>
-<p><code>inspection-only</code> is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select <code>transactional</code> when the client supports MCP elicitation and commit confirmation should cover one commit or the Host session. Select <code>approval-required</code> when every approval must be bound to the exact change returned by <code>transaction-review</code>, or deliberately select <code>autonomous-trusted</code> to use the preview workflow without Host confirmation. See <a href="configuration.html#operational-modes">Configuration</a> before enabling mutation.</p>
-<p>External plugin loading is independently disabled by default. To load trusted third-party packages, add the valueless <code>--enable-plugins</code> switch and one or more <code>--plugin-directory</code> values. Inspection-only then publishes plugin query tools but continues to omit their mutation tools. Plugins execute in-process with the Host user's permissions, so enable only reviewed packages.</p>
-<p>To restrict Workspace admission to specific source trees, configure one or more allowed roots. This example also rejects a Workspace when its evaluated documents extend outside its effective root:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"roslyn-workbench-mcp"</span><span class="p">,</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/engineering-source"</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/team-source"</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="s2">"--external-document-policy"</span><span class="p">,</span><span class="w"> </span><span class="s2">"reject-workspace"</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>inspection-only</code> is also the default when the option is omitted. It publishes semantic query and Workspace lifecycle tools without publishing or authorising source mutation. Select <code>transactional</code> when the client supports MCP elicitation and commit confirmation should cover one commit or the Host session. Select <code>approval-required</code> when every approval must be bound to the exact change returned by <code>transaction-review</code>, or deliberately select <code>autonomous-trusted</code> to use the preview workflow without Host confirmation. See <a href="configuration.html#operational-modes">Configuration</a> before enabling mutation.</p>
+<p>External plugin loading is independently disabled by default. To load trusted third-party packages, add the valueless <code>--enable-plugins</code> switch and one or more <code>--plugin-directory</code> values. Inspection-only then publishes plugin query tools but continues to omit their mutation tools. Plugins execute in-process with the Host user's permissions, so enable only reviewed packages.</p>
+<p>To restrict Workspace admission to specific source trees, configure one or more allowed roots. This example also rejects a Workspace when its evaluated documents extend outside its effective root:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"roslyn-workbench-mcp"</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="s2">"--operational-mode"</span><span class="p">,</span><span class="w"> </span><span class="s2">"inspection-only"</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="s2">"--state-directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/roslyn-workbench-state"</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/engineering-source"</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="s2">"--allowed-workspace-root"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/absolute/path/to/team-source"</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="s2">"--external-document-policy"</span><span class="p">,</span><span class="w"> </span><span class="s2">"reject-workspace"</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">}</span>
 </code></pre></div>
 <p>Use <code>allow-read-only</code> instead of <code>reject-workspace</code> when trusted builds legitimately evaluate linked or generated documents outside the source boundary. Command-line roots replace, rather than extend, any <code>ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS</code> environment value.</p>
 <p>The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.</p>

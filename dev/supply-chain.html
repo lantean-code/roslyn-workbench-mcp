@@ -1082,7 +1082,7 @@
 <h1 id="supply-chain-evidence">Supply-chain evidence</h1>
 <p>Roslyn Workbench has two NuGet products: the <code>Lantean.Roslyn.Workbench.Mcp</code> .NET tool and the <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> plugin-authoring library. <code>dnx</code> and global .NET tool installation acquire the same Host <code>.nupkg</code>; the authoring package is referenced only by plugin projects. MSI, MSIX, Debian and RPM packages are not produced or supported. Pin exact package versions so acquisition and upgrades remain deliberate.</p>
 <h2 id="release-evidence">Release evidence</h2>
-<p>Every validated release candidate contains the tool package, its symbol package, a release manifest, coverage summaries and SHA-256 checksums. The release workflow also produces a <code>supply-chain</code> directory containing:</p>
+<p>Every validated release candidate contains both NuGet packages, a symbol package for each, a release manifest, coverage summaries and SHA-256 checksums. The release workflow also produces a <code>supply-chain</code> directory containing:</p>
 <ul>
 <li>an SPDX 2.2 SBOM generated for the exact <code>.nupkg</code> and <code>.snupkg</code> bytes;</li>
 <li>the SBOM validator result;</li>

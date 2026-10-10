@@ -1124,7 +1124,7 @@
 
 
 <h1 id="compatibility-policy">Compatibility policy</h1>
-<p>Roslyn Workbench versions use semantic versioning for the Host and its released packages. The guarantees below take effect at <code>1.0.0</code> and apply throughout the supported 1.x line. Prerelease builds may still change these candidate contracts before 1.0; release notes identify any such change.</p>
+<p>Roslyn Workbench versions use semantic versioning for the Host and its released packages. The guarantees below take effect at <code>1.0.0</code> and apply throughout the supported 1.x line. Prerelease builds do not carry the stable compatibility guarantee; review their release notes before upgrading.</p>
 <p>Four versioned surfaces are independent. A Host package version is not an MCP protocol revision, a tool contract version, a recovery format version or a plugin API version. MCP protocol negotiation determines whether the client and Host can communicate; the policies below determine whether a caller, durable recovery record or plugin can continue to work across Host releases.</p>
 <h2 id="mcp-tools">MCP tools</h2>
 <p>The built-in tool catalogue follows an additive 1.x policy. Existing tool names remain available. Existing required input properties, their types and nullability, enum values and meanings, and output field types and meanings do not change incompatibly. A 1.x release may add a tool, add an optional input property, add an output field, clarify prose or extend an explicitly extensible value set where an older client can safely ignore the new value.</p>

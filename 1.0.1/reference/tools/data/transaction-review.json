@@ -1,0 +1,1122 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "1.0.1",
+  "sourceTag": "1.0.1",
+  "commit": "b2b132afacb169d16deead9fc88253213a942b25",
+  "name": "transaction-review",
+  "title": "Transaction Review",
+  "area": "Server",
+  "category": "Transactions",
+  "operationKind": "Query",
+  "summary": "Reviews the exact validated persistence set and returns the receipt required to commit it.",
+  "availability": "Published only in approval-required operational mode.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.0.1/reference/tools/transaction-review.html",
+  "tool": {
+    "name": "transaction-review",
+    "title": "Transaction Review",
+    "description": "Reviews the exact validated persistence set and returns the receipt required to commit it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "description": "Document whose detailed diff should be returned; provide it when includeDiff is true.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "project": {
+              "description": "Disambiguates documents with matching paths or IDs.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "targetFramework": {
+                  "type": "string"
+                }
+              }
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        },
+        "includeDiff": {
+          "description": "Whether to include a detailed diff.",
+          "type": "boolean"
+        },
+        "contextLines": {
+          "description": "Number of unchanged context lines around each diff hunk when includeDiff is true.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 3
+        },
+        "expectedSnapshot": {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspaceEpoch": {
+              "type": "integer"
+            },
+            "snapshotId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "transactionRevision": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspaceId",
+            "workspaceEpoch",
+            "snapshotId",
+            "transactionRevision"
+          ],
+          "description": "Echo the snapshot returned with the data or transaction state used to construct this request."
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "expectedSnapshot"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "receiptId": {
+                  "description": "Opaque identifier required by transaction-commit in approval-required mode.",
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "description": "UTC instant after which this receipt cannot be approved.",
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "algorithm": {
+                  "description": "Versioned canonicalisation algorithm used for the change-set digest.",
+                  "type": "string"
+                },
+                "changeSetDigest": {
+                  "description": "Lowercase SHA-256 digest of the exact validated persistence set.",
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "description": "Workspace identifier bound to this receipt.",
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "description": "Workspace load epoch bound to this receipt.",
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "description": "Solution snapshot identifier bound to this receipt.",
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "description": "Transaction revision bound to this receipt.",
+                  "type": "integer"
+                },
+                "addedDocumentCount": {
+                  "description": "Number of files created by the reviewed change.",
+                  "type": "integer"
+                },
+                "modifiedDocumentCount": {
+                  "description": "Number of files replaced by the reviewed change.",
+                  "type": "integer"
+                },
+                "deletedDocumentCount": {
+                  "description": "Number of files deleted by the reviewed change.",
+                  "type": "integer"
+                },
+                "transaction": {
+                  "description": "The active transaction info.",
+                  "type": "object",
+                  "properties": {
+                    "revision": {
+                      "description": "Current staged transaction revision.",
+                      "type": "integer"
+                    },
+                    "revisionCount": {
+                      "description": "Number of revisions retained in transaction history.",
+                      "type": "integer"
+                    },
+                    "maxRevisions": {
+                      "description": "Maximum number of revisions the transaction can retain.",
+                      "type": "integer"
+                    },
+                    "remainingRevisions": {
+                      "description": "Number of additional revisions that can be staged.",
+                      "type": "integer"
+                    },
+                    "canMutate": {
+                      "description": "Whether mutation tools may stage another change.",
+                      "type": "boolean"
+                    },
+                    "canUndo": {
+                      "description": "Whether transaction history can move to the preceding revision.",
+                      "type": "boolean"
+                    },
+                    "canRedo": {
+                      "description": "Whether transaction history can move to the following revision.",
+                      "type": "boolean"
+                    },
+                    "canCommit": {
+                      "description": "Whether the staged transaction can be committed to disk.",
+                      "type": "boolean"
+                    },
+                    "canRollback": {
+                      "description": "Whether the complete staged transaction can be discarded.",
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "documents": {
+                  "description": "Validated file operations in canonical path order.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "Create",
+                          "Replace",
+                          "Delete"
+                        ]
+                      },
+                      "originalExists": {
+                        "type": "boolean"
+                      },
+                      "originalHash": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "intendedHash": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "intendedUnixFileMode": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "projects": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "path": {
+                              "type": "string"
+                            },
+                            "targetFramework": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "path"
+                          ]
+                        }
+                      },
+                      "classification": {
+                        "type": "string"
+                      },
+                      "contained": {
+                        "type": "boolean"
+                      },
+                      "lineSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "addedLines": {
+                            "description": "The number of added lines.",
+                            "type": "integer"
+                          },
+                          "removedLines": {
+                            "description": "The number of removed lines.",
+                            "type": "integer"
+                          },
+                          "changedLines": {
+                            "description": "The number of changed lines.",
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "operation",
+                      "originalExists"
+                    ]
+                  }
+                },
+                "provenance": {
+                  "description": "Mutation revisions contributing to the reviewed transaction.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "revision": {
+                        "description": "One-based transaction revision.",
+                        "type": "integer"
+                      },
+                      "operation": {
+                        "description": "Mutation operation recorded for the revision.",
+                        "type": "string"
+                      },
+                      "summary": {
+                        "description": "Concise mutation summary recorded for the revision.",
+                        "type": "string"
+                      },
+                      "codeAction": {
+                        "description": "Code Action attribution when this revision was produced by a Code Action.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "description": "Code Action family that produced the mutation.",
+                            "type": "string",
+                            "enum": [
+                              "CodeFix",
+                              "Refactoring",
+                              "FixAll"
+                            ]
+                          },
+                          "providerId": {
+                            "description": "Response-local reference to the provider that originated the Code Action.",
+                            "type": "string"
+                          },
+                          "fixAllProviderId": {
+                            "description": "Response-local reference to the Fix All provider when one assembled the operation.",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "providerId"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "revision",
+                      "operation",
+                      "summary"
+                    ]
+                  }
+                },
+                "providers": {
+                  "description": "Provider identities keyed by response-local references used by provenance entries.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "typeName": {
+                        "description": "Fully qualified runtime type of the provider that supplied the mutation.",
+                        "type": "string"
+                      },
+                      "assemblyName": {
+                        "description": "Simple name of the assembly containing the provider.",
+                        "type": "string"
+                      },
+                      "assemblyVersion": {
+                        "description": "Version of the assembly containing the provider.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "typeName",
+                      "assemblyName",
+                      "assemblyVersion"
+                    ]
+                  }
+                },
+                "validations": {
+                  "description": "Validations completed while producing this receipt.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "succeeded": {
+                        "type": "boolean"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "succeeded",
+                      "message"
+                    ]
+                  }
+                },
+                "diff": {
+                  "description": "Optional detailed diff for the explicitly selected document.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "document": {
+                      "description": "Document for which the detailed diff was produced.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "documentId": {
+                          "description": "The document identifier.",
+                          "type": "string"
+                        },
+                        "path": {
+                          "description": "The normalized document path.",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "description": "The owning project identifier.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "documentId",
+                        "path",
+                        "projectId"
+                      ]
+                    },
+                    "hunks": {
+                      "description": "Changed regions in unified-diff form.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "originalStartLine": {
+                            "description": "One-based starting line in the original document.",
+                            "type": "integer"
+                          },
+                          "originalLineCount": {
+                            "description": "Number of original-document lines covered by the hunk.",
+                            "type": "integer"
+                          },
+                          "updatedStartLine": {
+                            "description": "One-based starting line in the updated document.",
+                            "type": "integer"
+                          },
+                          "updatedLineCount": {
+                            "description": "Number of updated-document lines covered by the hunk.",
+                            "type": "integer"
+                          },
+                          "lines": {
+                            "description": "Unified-diff content lines prefixed with space, +, or -.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "truncated": {
+                      "description": "Whether one or more diff hunks were omitted from the response.",
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "continuation": {
+                  "description": "Structured next step for committing this exact reviewed transaction state.",
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "description": "Action required before the request can continue.",
+                      "type": "string",
+                      "enum": [
+                        "CallTool",
+                        "ChooseTool",
+                        "RetryRequest",
+                        "ReviseRequest",
+                        "ResolveExternally"
+                      ]
+                    },
+                    "tool": {
+                      "description": "Tool to call when kind is CallTool.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tools": {
+                      "description": "Allowed tool choices when kind is ChooseTool.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "instruction": {
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": [
+                "receiptId",
+                "expiresAt",
+                "algorithm",
+                "changeSetDigest",
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision",
+                "addedDocumentCount",
+                "modifiedDocumentCount",
+                "deletedDocumentCount",
+                "transaction",
+                "continuation"
+              ],
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            },
+            "diagnostics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "The diagnostic identifier.",
+                    "type": "string"
+                  },
+                  "severity": {
+                    "description": "The diagnostic severity.",
+                    "type": "string",
+                    "enum": [
+                      "Hidden",
+                      "Info",
+                      "Warning",
+                      "Error"
+                    ]
+                  },
+                  "message": {
+                    "description": "The diagnostic message.",
+                    "type": "string"
+                  },
+                  "location": {
+                    "description": "The optional source location of the diagnostic.",
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "document": {
+                        "description": "The resolved document.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "documentId": {
+                            "description": "The document identifier.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "The normalized document path.",
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "description": "The owning project identifier.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "documentId",
+                          "path",
+                          "projectId"
+                        ]
+                      },
+                      "span": {
+                        "description": "The resolved text span.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "start": {
+                            "description": "Zero-based UTF-16 offset.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "length": {
+                            "description": "UTF-16 code-unit length.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          }
+                        }
+                      },
+                      "line": {
+                        "description": "The one-based line number.",
+                        "type": "integer"
+                      },
+                      "column": {
+                        "description": "The one-based column number.",
+                        "type": "integer"
+                      },
+                      "snapshot": {
+                        "description": "The exact immutable workspace snapshot associated with this location.",
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "workspaceEpoch": {
+                            "type": "integer"
+                          },
+                          "snapshotId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "transactionRevision": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "workspaceId",
+                          "workspaceEpoch",
+                          "snapshotId",
+                          "transactionRevision"
+                        ]
+                      },
+                      "selector": {
+                        "description": "The canonical selector that can resolve this source location again.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "span": {
+                            "type": "object",
+                            "properties": {
+                              "document": {
+                                "description": "Provide exactly one of path or documentId.",
+                                "type": "object",
+                                "properties": {
+                                  "project": {
+                                    "description": "Disambiguates documents with matching paths or IDs.",
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "projectId": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "path": {
+                                        "description": "Workspace-relative path.",
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "targetFramework": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "path": {
+                                    "description": "Workspace-relative path.",
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "documentId": {
+                                    "description": "Workspace-local document ID.",
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              },
+                              "range": {
+                                "description": "Zero-based UTF-16 range.",
+                                "type": "object",
+                                "properties": {
+                                  "start": {
+                                    "description": "Zero-based UTF-16 offset.",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  },
+                                  "length": {
+                                    "description": "UTF-16 code-unit length.",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "document",
+                              "range"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "span"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "snapshot"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "message"
+                ]
+              },
+              "description": "Diagnostics that explain the failed invocation."
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Non-fatal warnings the agent should consider.",
+              "items": {
+                "$ref": "#/$defs/warningInfo"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error",
+            "diagnostics"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "required": [
+                "code",
+                "message",
+                "correlationId"
+              ],
+              "properties": {
+                "code": {
+                  "const": "UnhandledException"
+                },
+                "message": {
+                  "const": "Tool execution failed."
+                },
+                "correlationId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "description": "Structured error details when the invocation failed."
+            },
+            "diagnostics": {
+              "type": "object",
+              "required": [
+                "detailsAvailable",
+                "detailsTool"
+              ],
+              "properties": {
+                "detailsAvailable": {
+                  "const": true
+                },
+                "detailsTool": {
+                  "const": "get-error-details"
+                }
+              },
+              "description": "Diagnostics that explain the failed invocation."
+            },
+            "reporting": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "Available",
+                    "AlwaysApproved",
+                    "DisabledByConfiguration",
+                    "ApprovalUnavailable"
+                  ]
+                },
+                "canPrepare": {
+                  "type": "boolean"
+                },
+                "prepareTool": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "state"
+              ],
+              "description": "Error-reporting workflow available for an unhandled failure."
+            }
+          }
+        }
+      ],
+      "$defs": {
+        "warningInfo": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": "The stable machine-readable warning code.",
+              "type": "string"
+            },
+            "message": {
+              "description": "The human-readable warning message.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "title": "Transaction Review",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": [
+    {
+      "operationalModes": [
+        "approval-required"
+      ],
+      "workflowId": "receipt-approved-change",
+      "workflowTitle": "Review an exact change for one-use approval",
+      "step": 3,
+      "id": "review-exact-transaction",
+      "title": "Create the exact-change receipt",
+      "purpose": "Review the validated file operations and obtain the receipt required by approval-required commit.",
+      "expectedOutcome": "A canonical digest, bounded review projection and short-lived receipt identifier are returned without writing files.",
+      "representativeResponse": null,
+      "request": {
+        "expectedSnapshot": {
+          "workspaceId": "11111111-1111-1111-1111-111111111111",
+          "workspaceEpoch": 1,
+          "snapshotId": "22222222-2222-2222-2222-222222222222",
+          "transactionRevision": 1
+        },
+        "workspace": {
+          "alias": "sample"
+        }
+      }
+    }
+  ]
+}

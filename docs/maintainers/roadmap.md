@@ -2,10 +2,10 @@
 
 The .NET tool is the portable distribution route. There is no promised release cadence or formal observation period. Issues, Discussions, private security reports and consented diagnostic reports inform priorities. Release notes describe the capabilities available in each published version.
 
-## Distribution capabilities to prepare
+## Distribution direction
 
-- Prepare the separate [`Lantean.Roslyn.Workbench.Mcp.Plugins` package distribution workflow](plugin-distribution.md), including the authoring analyser and documentation. Validate the package through a clean external sample without repository project references, including query and mutation execution in the packaged Host. Workspace implementation must not become an authoring dependency.
-- Establish a curated plugin repository with clear ownership, source/licence requirements, provenance, compatibility metadata, declared filesystem/process/network behaviour, vulnerability reporting and removal/update rules. Listing must not imply a security endorsement.
+- Release the separate [`Lantean.Roslyn.Workbench.Mcp.Plugins` authoring package](plugin-distribution.md) alongside the Host, preserving its clean-consumer validation and the exclusion of Workspace implementation from authoring dependencies.
+- Keep plugin installation manual. A curated plugin repository is outside the 1.0 product boundary; revisit it only when demand justifies a design for ownership, provenance, compatibility, reporting and removal. Listing must not imply a security endorsement.
 - Prepare official MCP Registry publication under `io.github.lantean-code/roslyn-workbench-mcp`. Generate metadata from the exact NuGet package version using the then-current stable Registry schema, stdio transport and `dnx` runtime hint. Include the package ownership marker and approved icons. Registration must reuse the released package, not rebuild it. Package publication does not itself authorise Registry submission.
 - Consider a small number of reputable client catalogues with maintainable ownership and update processes; avoid broad automated submissions.
 

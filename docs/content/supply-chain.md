@@ -4,7 +4,7 @@ Roslyn Workbench has two NuGet products: the `Lantean.Roslyn.Workbench.Mcp` .NET
 
 ## Release evidence
 
-Every validated release candidate contains the tool package, its symbol package, a release manifest, coverage summaries and SHA-256 checksums. The release workflow also produces a `supply-chain` directory containing:
+Every validated release candidate contains both NuGet packages, a symbol package for each, a release manifest, coverage summaries and SHA-256 checksums. The release workflow also produces a `supply-chain` directory containing:
 
 - an SPDX 2.2 SBOM generated for the exact `.nupkg` and `.snupkg` bytes;
 - the SBOM validator result;

@@ -42,6 +42,19 @@ dotnet tool install --global Lantean.Roslyn.Workbench.Mcp --version VERSION
 roslyn-workbench-mcp --version
 ```
 
+## Update or remove the global tool
+
+Finish or roll back active transactions, stop the Host and update to an exact version:
+
+```bash
+dotnet tool update --global Lantean.Roslyn.Workbench.Mcp --version VERSION
+roslyn-workbench-mcp --version
+```
+
+For `dnx`, change the exact `@VERSION` in the client's configuration and restart the Host. Review the selected release notes before upgrading, and retain unresolved recovery evidence; see [Compatibility](compatibility.md#durable-recovery-state).
+
+To remove a global installation, remove the client's server entry, stop the Host and run `dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp`. Follow [Troubleshooting and removal](troubleshooting.md) before deleting any state directory.
+
 ## Build from source
 
 From the repository root:

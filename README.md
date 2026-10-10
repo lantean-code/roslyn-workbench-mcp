@@ -2,16 +2,13 @@
 
 ![Roslyn Workbench MCP wordmark](assets/roslyn-workbench-mcp-wordmark.svg)
 
-> [!WARNING]
-> Roslyn Workbench is in beta. Tool contracts, configuration and persisted state may change between releases. Review the release notes before upgrading.
-
 Roslyn Workbench is a local stdio MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.
 
 It provides persistent multi-workspace sessions, semantic queries for symbols and code structure, bounded agent-facing results, and source changes staged through transactions with preview, history, rollback, conflict detection and crash recovery. Code Actions use the same transaction boundary. Nothing writes source files until an explicit `transaction-commit` call.
 
 ## Install
 
-Roslyn Workbench is distributed as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. The 0.1.0 beta is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp). Other engineering prereleases may use [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages); consult the notes for the selected release.
+Roslyn Workbench is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp) as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Pin the exact release version you intend to run. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/latest/compatibility.html) defines the stable 1.x guarantees for tools, errors and continuations, recovery formats and plugin APIs.
 
 Run an exact package version without a permanent installation:
 
@@ -35,11 +32,11 @@ Configure any MCP client capable of launching a local stdio process to run:
 }
 ```
 
-`inspection-only` is the safe default and exposes no source-mutation or transaction tools. Select `transactional` for client-mediated commit confirmation, or deliberately select `autonomous-trusted` for transactions without Host confirmation. See the configuration guide for client elicitation requirements.
+`inspection-only` is the safe default and exposes no source-mutation or transaction tools. Select `transactional` for client-mediated commit confirmation, `approval-required` for confirmation bound to an exact transaction-review receipt, or deliberately select `autonomous-trusted` for transactions without Host confirmation. See the configuration guide for client elicitation requirements.
 
 ## Supported environments
 
-Beta support covers Windows x64, Linux x64 and WSL2 x64. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; optional capabilities such as elicitation depend on the client and its policy.
+Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; operations requiring elicitation depend on the client advertising and permitting it.
 
 ## Improve agent tool selection
 
@@ -69,9 +66,11 @@ A typical safe workflow when `transactional` or `autonomous-trusted` mode is con
 
 The live MCP `tools/list` response is authoritative for the tools and schemas exposed by a running instance. The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) provides the richer versioned tool reference and agent guide.
 
-## Beta limitations
+## Plugins and contributions
 
-The existing plugin runtime remains available to source consumers, but the Plugins NuGet package, supported plugin-authoring documentation and curated plugin repository will not be published until v1 preparation. External pull requests are also not accepted before v1; Issues, Discussions, private security reports and other feedback remain welcome.
+Plugin authors reference the separate `Lantean.Roslyn.Workbench.Mcp.Plugins` package. See the [plugin-authoring guide](https://lantean-code.github.io/roslyn-workbench-mcp/latest/plugin-authoring.html) for the supported API and deployment layout. Users install trusted plugins manually; there is no curated plugin repository.
+
+External pull requests are accepted. Discuss the scope first and sign every contributed commit with a cryptographic signature that GitHub can verify. See the [contribution policy](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CONTRIBUTING.md) for the process.
 
 ## Support and project links
 
@@ -81,7 +80,6 @@ The existing plugin runtime remains available to source consumers, but the Plugi
 - [Code of Conduct](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CODE_OF_CONDUCT.md)
 - [Documentation](https://lantean-code.github.io/roslyn-workbench-mcp/)
 - [Releases](https://github.com/lantean-code/roslyn-workbench-mcp/releases)
-- [GitHub Packages](https://github.com/lantean-code/roslyn-workbench-mcp/packages)
 - [NuGet package](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp)
 
 ## Thanks

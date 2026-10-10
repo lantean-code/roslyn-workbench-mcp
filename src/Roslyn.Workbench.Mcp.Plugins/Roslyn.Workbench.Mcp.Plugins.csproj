@@ -8,7 +8,7 @@
     <Copyright>Copyright © 2026 Lantean Code</Copyright>
     <Description>Trusted in-process plugin contracts and authoring diagnostics for Roslyn Workbench MCP.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://lantean-code.github.io/roslyn-workbench-mcp/plugin-authoring.html</PackageProjectUrl>
+    <PackageProjectUrl>https://lantean-code.github.io/roslyn-workbench-mcp/latest/plugin-authoring.html</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>roslyn-workbench-mcp-128.png</PackageIcon>
     <PackageTags>model-context-protocol;mcp;roslyn;csharp;dotnet;plugins;analyzers</PackageTags>

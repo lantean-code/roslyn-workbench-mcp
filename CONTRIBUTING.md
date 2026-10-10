@@ -4,9 +4,9 @@ Thank you for helping improve Roslyn Workbench MCP. Issues, Discussions, securit
 
 ## External pull requests
 
-Check [README](README.md) for current contribution availability before starting a pull request. Discuss the proposed change through an Issue or Discussion first so that its scope and direction can be agreed. When external contributions are closed, unsolicited pull requests are closed with a link to the current policy rather than entering review.
+External pull requests are accepted. Discuss the proposed change through an Issue or Discussion first so that its scope and direction can be agreed. Every contributed commit must carry a cryptographic signature that GitHub can verify. A separate Developer Certificate of Origin sign-off or contributor licence agreement is not required.
 
-Contribution availability does not prevent anyone from using the repository under the MIT licence, building the source, maintaining a fork, or proposing a change through an Issue or Discussion. Rights already granted for a published MIT-licensed version cannot be withdrawn. Any contributor agreement or sign-off requirements will be stated before accepting contributions.
+The MIT licence permits using the repository, building the source and maintaining a fork. Rights already granted for a published MIT-licensed version cannot be withdrawn.
 
 ## Choose the right route
 

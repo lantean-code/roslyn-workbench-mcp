@@ -37,10 +37,10 @@
     <PackageMcpServerManifestOutput>$(BaseIntermediateOutputPath)McpServer\server.json</PackageMcpServerManifestOutput>
     <PackageWordmarkSource>assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkSource>
     <PackageWordmarkUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/roslyn-workbench-mcp-wordmark.svg</PackageWordmarkUrl>
-    <PackageRoslynLogoSource>assets/third-party/roslyn.svg</PackageRoslynLogoSource>
-    <PackageRoslynLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/roslyn.svg</PackageRoslynLogoUrl>
-    <PackageSentryLogoSource>assets/third-party/sentry.svg</PackageSentryLogoSource>
-    <PackageSentryLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/sentry.svg</PackageSentryLogoUrl>
+    <PackageRoslynLogoSource>assets/third-party/roslyn-readme.svg</PackageRoslynLogoSource>
+    <PackageRoslynLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/roslyn-readme.svg</PackageRoslynLogoUrl>
+    <PackageSentryLogoSource>assets/third-party/sentry-readme.svg</PackageSentryLogoSource>
+    <PackageSentryLogoUrl>https://raw.githubusercontent.com/lantean-code/roslyn-workbench-mcp/$(RoslynWorkbenchSourceTag)/assets/third-party/sentry-readme.svg</PackageSentryLogoUrl>
   </PropertyGroup>
 
   <ItemGroup>

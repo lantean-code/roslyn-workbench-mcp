@@ -1,6 +1,6 @@
 # Compatibility policy
 
-Roslyn Workbench versions use semantic versioning for the Host and its released packages. The guarantees below take effect at `1.0.0` and apply throughout the supported 1.x line. Prerelease builds may still change these candidate contracts before 1.0; release notes identify any such change.
+Roslyn Workbench versions use semantic versioning for the Host and its released packages. The guarantees below take effect at `1.0.0` and apply throughout the supported 1.x line. Prerelease builds do not carry the stable compatibility guarantee; review their release notes before upgrading.
 
 Four versioned surfaces are independent. A Host package version is not an MCP protocol revision, a tool contract version, a recovery format version or a plugin API version. MCP protocol negotiation determines whether the client and Host can communicate; the policies below determine whether a caller, durable recovery record or plugin can continue to work across Host releases.
 

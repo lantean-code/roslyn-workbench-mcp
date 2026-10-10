@@ -1,6 +1,10 @@
 # Release evidence utilities
 
-These are repository-maintenance tools, not part of the installed MCP server. Most are validated by inspecting generated evidence and exercising their commands. The security-sensitive supply-chain evidence assembler has a Python standard-library test suite; run it with `python -m unittest tools/release/test_supply_chain_evidence.py`.
+These are repository-maintenance tools, not part of the installed MCP server. Most are validated by inspecting generated evidence and exercising their commands. The security-sensitive supply-chain evidence assembler and Registry evidence utility have Python standard-library test suites; run them with `python -m unittest discover -s tools/release -p 'test_*.py'`.
+
+## MCP Registry evidence
+
+`registry-entry.py prepare --version <package-version> --output artifacts/registry` downloads the exact public Host NuGet package and preserves its embedded `server.json` unchanged. It checks the fixed server/package identity, stdio transport, `dnx` runtime, versioned documentation/icon and public NuGet ownership marker. It rejects conflicting Registry entries and distinguishes a genuine 404 from service or authentication failures. `registry-entry.py verify --version <package-version> --output artifacts/registry` verifies the active anonymous exact-version entry and retains the public response. Neither command authenticates or publishes; the manually dispatched `mcp-registry.yml` workflow owns OIDC and the separately approved publication step. See [the release procedure](../../docs/maintainers/releasing.md#official-mcp-registry-submission).
 
 ## Coverage
 

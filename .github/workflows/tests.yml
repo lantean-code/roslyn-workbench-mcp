@@ -44,6 +44,8 @@ jobs:
           global-json-file: global.json
       - name: Test release evidence utility
         run: python -m unittest tools/release/test_supply_chain_evidence.py
+      - name: Test Registry evidence utility
+        run: python -m unittest tools/release/test_registry_entry.py
       - name: Restore
         run: dotnet restore
       - name: Build

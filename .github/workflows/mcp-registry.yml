@@ -1,0 +1,74 @@
+name: Validate and publish MCP Registry entry
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact publicly available Host NuGet version (without a tag prefix)
+        required: true
+        type: string
+      publish:
+        description: Publish the validated manifest to the official MCP Registry
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-registry-publication
+  cancel-in-progress: false
+
+jobs:
+  registry:
+    if: github.repository == 'lantean-code/roslyn-workbench-mcp' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PACKAGE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check out workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test Registry evidence utility
+        run: python -m unittest tools/release/test_registry_entry.py
+      - name: Prepare exact public package manifest
+        id: prepare
+        run: >-
+          python tools/release/registry-entry.py prepare
+          --version "$PACKAGE_VERSION" --output artifacts/registry
+          --github-output "$GITHUB_OUTPUT"
+      - name: Install pinned official publisher
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/mcp-publisher.tar.gz"
+          echo 'a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  mcp-publisher.tar.gz' | \
+            (cd "$RUNNER_TEMP" && sha256sum --check --strict)
+          tar -xzf "$RUNNER_TEMP/mcp-publisher.tar.gz" -C "$RUNNER_TEMP" mcp-publisher
+      - name: Validate manifest against the official Registry
+        run: '"$RUNNER_TEMP/mcp-publisher" validate artifacts/registry/server.json'
+      - name: Authenticate using repository OIDC
+        if: inputs.publish && steps.prepare.outputs.already-published != 'true'
+        run: '"$RUNNER_TEMP/mcp-publisher" login github-oidc'
+      - name: Publish exact packaged manifest
+        if: inputs.publish && steps.prepare.outputs.already-published != 'true'
+        run: '"$RUNNER_TEMP/mcp-publisher" publish artifacts/registry/server.json'
+      - name: Verify anonymous exact-version Registry entry
+        if: inputs.publish || steps.prepare.outputs.already-published == 'true'
+        run: >-
+          python tools/release/registry-entry.py verify
+          --version "$PACKAGE_VERSION" --output artifacts/registry
+      - name: Retain public verification evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mcp-registry-evidence
+          path: artifacts/registry
+          if-no-files-found: ignore
+          retention-days: 30

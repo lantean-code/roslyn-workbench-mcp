@@ -79,7 +79,7 @@ Platform limitations, client-dependent elicitation, trusted executable inputs an
 
 Use [Issues](https://github.com/lantean-code/roslyn-workbench-mcp/issues) for reproducible defects, [Q&A](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a) for help and [Ideas](https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas) for proposals. Follow the [security policy](https://github.com/lantean-code/roslyn-workbench-mcp/security/policy) for private vulnerability reports. Include redacted reproduction details rather than private source or credentials.
 
-External pull requests are accepted. Agree the scope first and sign every contributed commit with a cryptographic signature that GitHub can verify. No separate DCO sign-off or contributor licence agreement is required; see [Contributing](https://github.com/lantean-code/roslyn-workbench-mcp/blob/{{VERSION}}/CONTRIBUTING.md).
+External pull requests are accepted. Agree the scope first and sign every contributed commit with a cryptographic signature that GitHub can verify. No separate DCO sign-off or contributor licence agreement is required; see [Contributing](https://github.com/lantean-code/roslyn-workbench-mcp/blob/{{SOURCE_REF}}/CONTRIBUTING.md).
 
 ## Uninstall and release evidence
 

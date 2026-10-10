@@ -18,6 +18,7 @@ def main() -> None:
     notes = (repo / "docs/release/release-notes.md").read_text(encoding="utf-8")
     notes = notes.replace("{{VERSION}}", args.version or "VERSION")
     notes = notes.replace("{{DOCS_VERSION}}", args.version or "dev")
+    notes = notes.replace("{{SOURCE_REF}}", args.version or "develop")
     if "{{" in notes or "}}" in notes:
         raise ValueError("Release notes contain an unresolved template value.")
     if not args.version:

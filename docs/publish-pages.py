@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy one Pages artifact with a unique identity and verify its public content."""
+"""Deploy one Pages artifact using its generated-site commit and verify its public content."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import time
 import urllib.error
@@ -79,7 +80,10 @@ def poll_status(status_url: str, token: str) -> str:
 
 
 def deploy(artifact_id: int, environment: dict[str, str]) -> None:
-    build_version = "-".join(environment[name] for name in ("GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"))
+    build_version = environment.get("PAGES_BUILD_VERSION", "")
+    if re.fullmatch(r"[0-9a-f]{40}", build_version) is None:
+        raise ValueError("PAGES_BUILD_VERSION must be the full generated-site commit SHA.")
+
     oidc_response = request_bytes(
         environment["ACTIONS_ID_TOKEN_REQUEST_URL"],
         environment["ACTIONS_ID_TOKEN_REQUEST_TOKEN"],

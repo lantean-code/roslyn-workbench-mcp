@@ -23,6 +23,7 @@ class PublishPagesTests(unittest.TestCase):
             "GITHUB_SHA": "commit",
             "GITHUB_RUN_ID": "123",
             "GITHUB_RUN_ATTEMPT": "1",
+            "PAGES_BUILD_VERSION": "a" * 40,
             "GITHUB_REPOSITORY": "owner/repository",
             "GITHUB_API_URL": "https://api.github.com",
             "GH_TOKEN": "Token",
@@ -30,11 +31,12 @@ class PublishPagesTests(unittest.TestCase):
             "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "RequestToken",
         }
 
-    def test_deployments_use_distinct_identity_for_each_run_and_retry(self) -> None:
+    def test_generated_site_commits_have_distinct_identities_for_the_same_source(self) -> None:
         identities = []
-        for run, attempt in (("123", "1"), ("124", "1"), ("124", "2")):
+        site_commits = ["a" * 40, "b" * 40, "c" * 40]
+        for site_commit in site_commits:
             environment = self.environment()
-            environment.update(GITHUB_RUN_ID=run, GITHUB_RUN_ATTEMPT=attempt)
+            environment["PAGES_BUILD_VERSION"] = site_commit
             with patch.object(publisher, "request_bytes", side_effect=[
                 b'{"value":"OidcToken"}', b'{"id":"deployment"}', b'{"status":"succeed"}',
             ]) as request, patch("builtins.print") as output:
@@ -45,7 +47,30 @@ class PublishPagesTests(unittest.TestCase):
                 self.assertEqual("OidcToken", payload["oidc_token"])
                 output.assert_any_call("::add-mask::OidcToken", flush=True)
                 self.assertEqual("https://api.github.com/repos/owner/repository/pages/deployments/deployment", request.call_args.args[0])
-        self.assertEqual(["commit-123-1", "commit-124-1", "commit-124-2"], identities)
+        self.assertEqual(site_commits, identities)
+
+    def test_same_generated_commit_retains_identity_across_runs_and_retries(self) -> None:
+        for run, attempt in (("123", "1"), ("124", "1"), ("124", "2")):
+            environment = self.environment()
+            environment.update(GITHUB_RUN_ID=run, GITHUB_RUN_ATTEMPT=attempt)
+            with patch.object(publisher, "request_bytes", side_effect=[
+                b'{"value":"OidcToken"}', b'{"id":"deployment"}', b'{"status":"succeed"}',
+            ]) as request, patch("builtins.print"):
+                publisher.deploy(42, environment)
+                self.assertEqual(environment["PAGES_BUILD_VERSION"], request.call_args_list[1].args[2]["pages_build_version"])
+
+    def test_missing_or_invalid_generated_commit_stops_before_authentication(self) -> None:
+        for build_version in (None, "", "commit-123-1", "a" * 39, "a" * 41, "g" * 40, "a" * 40 + "\n"):
+            environment = self.environment()
+            if build_version is None:
+                del environment["PAGES_BUILD_VERSION"]
+            else:
+                environment["PAGES_BUILD_VERSION"] = build_version
+
+            with self.subTest(build_version=build_version), patch.object(publisher, "request_bytes") as request:
+                with self.assertRaisesRegex(ValueError, "full generated-site commit SHA"):
+                    publisher.deploy(42, environment)
+                request.assert_not_called()
 
     def test_pending_status_and_missing_id_use_build_version(self) -> None:
         with patch.object(publisher, "request_bytes", side_effect=[
@@ -53,7 +78,7 @@ class PublishPagesTests(unittest.TestCase):
         ]) as request, patch.object(publisher.time, "sleep") as sleep, patch("builtins.print"):
             publisher.deploy(42, self.environment())
             sleep.assert_called_once_with(10)
-            self.assertTrue(request.call_args.args[0].endswith("/commit-123-1"))
+            self.assertTrue(request.call_args.args[0].endswith("/" + self.environment()["PAGES_BUILD_VERSION"]))
 
     def test_failed_deployment_stops(self) -> None:
         for status in ("deployment_failed", "deployment_content_failed", "deployment_cancelled", "deployment_lost"):
@@ -189,12 +214,12 @@ class PublishPagesTests(unittest.TestCase):
                 publisher.deploy(42, self.environment())
             self.assertTrue(request.call_args.args[0].endswith("/deployment/cancel"))
 
-    def test_interrupted_creation_cancels_by_its_unique_build_identity(self) -> None:
+    def test_interrupted_creation_cancels_by_its_generated_site_commit(self) -> None:
         responses = [b'{"value":"OidcToken"}', KeyboardInterrupt(), b'{}']
         with patch.object(publisher, "request_bytes", side_effect=responses) as request:
             with self.assertRaises(KeyboardInterrupt):
                 publisher.deploy(42, self.environment())
-            self.assertTrue(request.call_args.args[0].endswith("/commit-123-1/cancel"))
+            self.assertTrue(request.call_args.args[0].endswith("/" + self.environment()["PAGES_BUILD_VERSION"] + "/cancel"))
 
     def create_site(self, root: Path) -> None:
         (root / "versions.json").write_text('[{"version":"1.0.0","aliases":["latest"]},{"version":"old","aliases":[]}]', encoding="utf-8")

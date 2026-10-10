@@ -106,9 +106,12 @@ jobs:
         run: git push origin gh-pages
       - name: Prepare Pages deployment
         if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+        id: pages-site
         run: |
+          site_commit=$(git rev-parse 'gh-pages^{commit}')
+          echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
           mkdir -p "${{ runner.temp }}/pages-site"
-          git archive gh-pages | tar -x -C "${{ runner.temp }}/pages-site"
+          git archive "$site_commit" | tar -x -C "${{ runner.temp }}/pages-site"
       - name: Upload Pages deployment
         if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
         id: pages-artifact
@@ -127,6 +130,7 @@ jobs:
         id: deployment
         env:
           GH_TOKEN: ${{ github.token }}
+          PAGES_BUILD_VERSION: ${{ steps.pages-site.outputs.commit }}
         run: >-
           python docs/publish-pages.py
           --artifact-id "${{ steps.pages-artifact.outputs.artifact_id }}"

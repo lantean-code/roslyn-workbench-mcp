@@ -2,6 +2,20 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class PublishedCatalogueIntegrationTests
 {
+    private static readonly string[] _mutationToolNames =
+    [
+        "format-document",
+        "rename-symbol",
+        "stage-code-action",
+        "transaction-commit",
+        "transaction-history",
+        "transaction-preview",
+        "transaction-review",
+        "transaction-rollback",
+        "transaction-start",
+        "transaction-validate",
+    ];
+
     [Theory]
     [InlineData("Full", "tools-list-v1-full.json")]
     [InlineData("Omit", "tools-list-v1-omit.json")]
@@ -9,26 +23,39 @@ public sealed class PublishedCatalogueIntegrationTests
         string outputSchemaMode,
         string baselineFileName)
     {
-        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
-            TestContext.Current.CancellationToken,
-            additionalArguments: ["--tool-output-schema-mode", outputSchemaMode]);
+        var catalogues = await ListCompatibilityCataloguesAsync(outputSchemaMode);
+        var catalogueMap = catalogues.ToDictionary(
+            static catalogue => catalogue.Name,
+            static catalogue => catalogue.Tools,
+            StringComparer.Ordinal);
 
-        try
+        var actual = ToolCatalogueCanonicalizer.Create(catalogueMap);
+        AssertExactAvailability(catalogues);
+        if (CaptureCompatibilityBaselineWhenRequested(baselineFileName, actual))
         {
-            var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
-            var actual = ToolCatalogueCanonicalizer.Create(tools);
-            CaptureCompatibilityBaselineWhenRequested(baselineFileName, actual);
-            var baselinePath = Path.Combine(AppContext.BaseDirectory, "CompatibilityBaselines", baselineFileName);
-            var expectedBaseline = await File.ReadAllTextAsync(baselinePath, TestContext.Current.CancellationToken);
-            var expected = expectedBaseline.ReplaceLineEndings("\r\n");
+            return;
+        }
 
-            actual.Should().Be(expected);
-        }
-        catch
+        var baselinePath = Path.Combine(AppContext.BaseDirectory, "CompatibilityBaselines", baselineFileName);
+        var expectedBaseline = await File.ReadAllTextAsync(baselinePath, TestContext.Current.CancellationToken);
+        var expected = expectedBaseline.ReplaceLineEndings("\r\n");
+
+        actual.Should().Be(expected);
+    }
+
+    [Fact]
+    public void GIVEN_UnclassifiedProtocolField_WHEN_CanonicalisingTool_THEN_ShouldRejectContract()
+    {
+        var protocolTool = new System.Text.Json.Nodes.JsonObject
         {
-            target.RetainRootOnFailure();
-            throw;
-        }
+            ["name"] = "tool-name",
+            ["futureField"] = true,
+        };
+
+        var action = () => ToolCatalogueCanonicalizer.CreateContract(protocolTool, "tool-name");
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*tool-name*futureField*");
     }
 
     [Fact]
@@ -174,6 +201,105 @@ public sealed class PublishedCatalogueIntegrationTests
             .ToArray();
     }
 
+    private static async Task<IReadOnlyList<CompatibilityCatalogue>> ListCompatibilityCataloguesAsync(
+        string outputSchemaMode)
+    {
+        var configurations = new[]
+        {
+            new CompatibilityConfiguration("inspection-only", "inspection-only", false),
+            new CompatibilityConfiguration("transactional", "transactional", false),
+            new CompatibilityConfiguration("approval-required", "approval-required", false),
+            new CompatibilityConfiguration("autonomous-trusted", "autonomous-trusted", false),
+            new CompatibilityConfiguration("compiler-validation", "autonomous-trusted", true),
+        };
+
+        var catalogues = new List<CompatibilityCatalogue>();
+        foreach (var configuration in configurations)
+        {
+            var additionalArguments = CreateCatalogueArguments(outputSchemaMode, configuration.CompilerValidation);
+            await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+                TestContext.Current.CancellationToken,
+                additionalArguments: additionalArguments,
+                operationalMode: configuration.OperationalMode);
+
+            try
+            {
+                var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+                catalogues.Add(new CompatibilityCatalogue(configuration.Name, tools));
+            }
+            catch
+            {
+                target.RetainRootOnFailure();
+                throw;
+            }
+        }
+
+        return catalogues;
+    }
+
+    private static List<string> CreateCatalogueArguments(string outputSchemaMode, bool compilerValidation)
+    {
+        var arguments = new List<string>
+        {
+            "--tool-output-schema-mode",
+            outputSchemaMode,
+        };
+
+        if (compilerValidation)
+        {
+            arguments.Add("--commit-validation");
+            arguments.Add("no-new-compiler-errors");
+        }
+
+        return arguments;
+    }
+
+    private static void AssertExactAvailability(
+        IReadOnlyList<CompatibilityCatalogue> catalogues)
+    {
+        var unionNames = catalogues
+            .SelectMany(static catalogue => catalogue.Tools)
+            .Select(static tool => tool.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        AssertCatalogueEquals(
+            catalogues,
+            "inspection-only",
+            unionNames.Except(_mutationToolNames, StringComparer.Ordinal));
+
+        AssertCatalogueEquals(
+            catalogues,
+            "transactional",
+            unionNames.Except(["transaction-review", "transaction-validate"], StringComparer.Ordinal));
+
+        AssertCatalogueEquals(
+            catalogues,
+            "approval-required",
+            unionNames.Except(["transaction-preview", "transaction-validate"], StringComparer.Ordinal));
+
+        AssertCatalogueEquals(
+            catalogues,
+            "autonomous-trusted",
+            unionNames.Except(["transaction-review", "transaction-validate"], StringComparer.Ordinal));
+
+        AssertCatalogueEquals(
+            catalogues,
+            "compiler-validation",
+            unionNames.Except(["transaction-review"], StringComparer.Ordinal));
+    }
+
+    private static void AssertCatalogueEquals(
+        IReadOnlyList<CompatibilityCatalogue> catalogues,
+        string catalogueName,
+        IEnumerable<string> expectedNames)
+    {
+        var catalogue = catalogues.Single(item => item.Name == catalogueName);
+        var actualNames = catalogue.Tools.Select(static tool => tool.Name).Order(StringComparer.Ordinal);
+        var orderedExpectedNames = expectedNames.Order(StringComparer.Ordinal);
+
+        actualNames.Should().Equal(orderedExpectedNames);
+    }
+
     private static void AssertRepresentativeMetadata(IList<ModelContextProtocol.Client.McpClientTool> tools)
     {
         foreach (var toolName in new[] { "workspace-list", "search-symbols", "rename-symbol", "list-code-actions", "host-valid-query" })
@@ -186,15 +312,22 @@ public sealed class PublishedCatalogueIntegrationTests
         }
     }
 
-    private static void CaptureCompatibilityBaselineWhenRequested(string baselineFileName, string contents)
+    private static bool CaptureCompatibilityBaselineWhenRequested(string baselineFileName, string contents)
     {
         var captureDirectory = Environment.GetEnvironmentVariable("ROSLYN_WORKBENCH_CAPTURE_TOOL_BASELINES");
         if (string.IsNullOrWhiteSpace(captureDirectory))
         {
-            return;
+            return false;
         }
 
         Directory.CreateDirectory(captureDirectory);
         File.WriteAllText(Path.Combine(captureDirectory, baselineFileName), contents);
+        return true;
     }
+
+    private sealed record CompatibilityConfiguration(string Name, string OperationalMode, bool CompilerValidation);
+
+    private sealed record CompatibilityCatalogue(
+        string Name,
+        IList<ModelContextProtocol.Client.McpClientTool> Tools);
 }

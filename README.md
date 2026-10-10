@@ -35,7 +35,7 @@ Configure any MCP client capable of launching a local stdio process to run:
 }
 ```
 
-`inspection-only` is the safe default and exposes no source-mutation or transaction tools. Select `transactional` for client-mediated commit confirmation, or deliberately select `autonomous-trusted` for transactions without Host confirmation. See the configuration guide for client elicitation requirements and the pre-1.0 migration note.
+`inspection-only` is the safe default and exposes no source-mutation or transaction tools. Select `transactional` for client-mediated commit confirmation, or deliberately select `autonomous-trusted` for transactions without Host confirmation. See the configuration guide for client elicitation requirements.
 
 ## Supported environments
 

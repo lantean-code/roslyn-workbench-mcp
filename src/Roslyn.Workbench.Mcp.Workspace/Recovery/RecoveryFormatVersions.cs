@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 internal static class RecoveryFormatVersions
 {
     /// <summary>
-    /// The recovery format introduced before the 1.0 compatibility baseline.
+    /// The stable recovery format introduced for the 1.x compatibility baseline.
     /// </summary>
     public const int V1 = 1;
 

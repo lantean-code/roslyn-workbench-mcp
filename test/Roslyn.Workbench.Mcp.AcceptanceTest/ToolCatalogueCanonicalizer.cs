@@ -7,33 +7,25 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 internal static class ToolCatalogueCanonicalizer
 {
-    private static readonly string[] _contractFields =
-    [
-        "name",
-        "description",
-        "annotations",
-        "inputSchema",
-        "outputSchema",
-    ];
-
-    public static string Create(IList<McpClientTool> tools)
+    private static readonly HashSet<string> _contractFields = new(StringComparer.Ordinal)
     {
-        var canonicalTools = new JsonArray();
-        foreach (var tool in tools.OrderBy(static item => item.Name, StringComparer.Ordinal))
+        "_meta",
+        "annotations",
+        "description",
+        "execution",
+        "icons",
+        "inputSchema",
+        "name",
+        "outputSchema",
+        "title",
+    };
+
+    public static string Create(IReadOnlyDictionary<string, IList<McpClientTool>> catalogues)
+    {
+        var canonicalCatalogues = new JsonObject();
+        foreach (var (name, tools) in catalogues.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {
-            var protocolTool = JsonSerializer.SerializeToNode(tool.ProtocolTool) as JsonObject
-                ?? throw new InvalidOperationException($"Tool '{tool.Name}' could not be serialised.");
-
-            var contract = new JsonObject();
-            foreach (var field in _contractFields)
-            {
-                if (protocolTool.TryGetPropertyValue(field, out var value))
-                {
-                    contract.Add(field, value?.DeepClone());
-                }
-            }
-
-            canonicalTools.Add(Canonicalize(contract));
+            canonicalCatalogues.Add(name, CreateCatalogue(tools));
         }
 
         var options = new JsonSerializerOptions
@@ -41,8 +33,47 @@ internal static class ToolCatalogueCanonicalizer
             WriteIndented = true,
         };
 
-        var json = canonicalTools.ToJsonString(options);
+        var json = canonicalCatalogues.ToJsonString(options);
         return json.ReplaceLineEndings("\r\n") + "\r\n";
+    }
+
+    internal static JsonNode? CreateContract(JsonObject protocolTool, string toolName)
+    {
+        var contract = new JsonObject();
+        foreach (var (field, value) in protocolTool)
+        {
+            if (value is null)
+            {
+                continue;
+            }
+
+            if (!_contractFields.Contains(field))
+            {
+                throw new InvalidOperationException(
+                    $"Tool '{toolName}' has unclassified non-null protocol field '{field}'.");
+            }
+
+            contract.Add(field, value.DeepClone());
+        }
+
+        return Canonicalize(contract);
+    }
+
+    private static JsonNode? CreateContract(McpClientTool tool)
+    {
+        var protocolTool = JsonSerializer.SerializeToNode(tool.ProtocolTool) as JsonObject
+            ?? throw new InvalidOperationException($"Tool '{tool.Name}' could not be serialised.");
+
+        return CreateContract(protocolTool, tool.Name);
+    }
+
+    private static JsonArray CreateCatalogue(IList<McpClientTool> tools)
+    {
+        return new JsonArray(
+            tools
+                .OrderBy(static tool => tool.Name, StringComparer.Ordinal)
+                .Select(CreateContract)
+                .ToArray());
     }
 
     private static JsonNode? Canonicalize(JsonNode? node)

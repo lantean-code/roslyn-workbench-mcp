@@ -59,6 +59,7 @@ Roslyn.Workbench.Mcp.Plugins.IToolExecutionContext.WorkspaceResolver.get -> Rosl
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.CompilerDiagnosticService.get -> Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService!
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.DependencyAnalysisService.get -> Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService!
+Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.GeneratedSourceClassifier.get -> Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier!
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.InspectionContextService.get -> Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService!
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.ProjectStructureService.get -> Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService!
 Roslyn.Workbench.Mcp.Plugins.IToolExecutionServices.ProjectTargetFrameworkResolver.get -> Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver!

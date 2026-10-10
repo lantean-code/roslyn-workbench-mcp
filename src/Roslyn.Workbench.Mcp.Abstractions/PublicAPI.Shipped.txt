@@ -152,6 +152,8 @@ Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.IsDefinition.init 
 Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Location.get -> Microsoft.CodeAnalysis.Location!
 Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.Location.init -> void
 Roslyn.Workbench.Mcp.Workspace.References.ReferenceOccurrence.ReferenceOccurrence() -> void
+Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier
+Roslyn.Workbench.Mcp.Workspace.Resolution.IGeneratedSourceClassifier.IsGeneratedLookingAsync(Microsoft.CodeAnalysis.Document! document, string! workspaceRoot, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver
 Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.CreateDocumentReference(Microsoft.CodeAnalysis.Document! document) -> Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference?
 Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver.CreateResolvedLocation(Microsoft.CodeAnalysis.Location! location) -> Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation?
@@ -250,6 +252,7 @@ Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.NarrowRequest = 9 -> Rosly
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.OpenWorkspace = 0 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReduceTransactionHistory = 6 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReloadWorkspace = 3 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
+Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ReviewTransaction = 10 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ResolveRecovery = 8 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.ResolveTargetAgain = 4 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction
 Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction.Retry = 7 -> Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction

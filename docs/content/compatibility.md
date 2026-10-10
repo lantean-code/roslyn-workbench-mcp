@@ -10,7 +10,7 @@ The built-in tool catalogue follows an additive 1.x policy. Existing tool names 
 
 Clients should ignore unknown output fields, continue to honour JSON Schema requirements and rediscover `tools/list` whenever the Host restarts or is upgraded. They must not infer compatibility from property order. Tool descriptions and human-readable error messages may improve without constituting a contract change.
 
-The repository records canonical `tools/list` baselines for both supported output-schema publication modes. Tools are ordered by name and JSON object properties are ordered recursively before comparison; array order is retained because arrays can carry contract meaning. The baseline covers each built-in tool's name, description, annotations, input schema and published output schema. Externally installed plugin tools are deliberately excluded because their contracts belong to their publishers.
+The repository records canonical `tools/list` baselines for both supported output-schema publication modes. Each baseline preserves the exact built-in catalogue published by inspection-only, transactional, approval-required, autonomous-trusted and compiler-validation configurations, including intentional mode-specific contracts such as receipt-based `transaction-commit`. Tools are ordered by name and JSON object properties are ordered recursively before comparison; array order is retained because arrays can carry contract meaning. The baselines cover each built-in tool's name, title, description, annotations, input schema and, when enabled, output schema. Externally installed plugin tools are deliberately excluded because their contracts belong to their publishers.
 
 ## Structured errors and continuations
 

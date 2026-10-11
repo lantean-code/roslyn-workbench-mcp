@@ -1,6 +1,14 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-This patch release corrects the Host package metadata needed for official MCP Registry submission. It adds the packaged README ownership marker, an explicit `dnx` runtime hint and version-matched documentation and icon links. It does not change runtime behaviour or the public contracts introduced in 1.0.0. Registry submission remains a separate publication step.
+This patch release improves the documentation and package READMEs, making it easier to discover Roslyn Workbench's Code Actions, semantic inspection and transactional workflows. It does not change runtime behaviour or public contracts. Registry submission remains a separate publication step.
+
+## Changes in this release
+
+- Clearer explanations of how agents can use Roslyn-powered C# fixes and refactorings, with updated package descriptions and READMEs.
+- A step-by-step plugin-authoring tutorial, with separate guides for contracts, mutation tools, deployment and analyser diagnostics.
+- Focused guides for Workspace loading, transactions, compiler-impact validation and recovery, plus clearer configuration and troubleshooting pages.
+- More readable security guidance, with expandable evidence lists and a separate public-surface appendix. The machine-readable security reference is unchanged.
+- A borderless, theme-aware wordmark and more prominent documentation sidebar headings.
 
 The release includes the Host .NET tool and a separate plugin-authoring package, with a [1.x compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) for the published surfaces.
 

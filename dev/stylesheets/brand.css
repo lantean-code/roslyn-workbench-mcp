@@ -54,6 +54,14 @@
   background-color: #1a1d3d;
 }
 
+.md-typeset img[src$="roslyn-workbench-mcp-wordmark.svg"] {
+  color-scheme: light;
+}
+
+[data-md-color-scheme="slate"] .md-typeset img[src$="roslyn-workbench-mcp-wordmark.svg"] {
+  color-scheme: dark;
+}
+
 .rw-docs-version {
   font-weight: 600;
   padding: 0.45rem 0.8rem;

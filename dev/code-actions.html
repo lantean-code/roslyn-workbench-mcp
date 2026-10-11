@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Roslyn-powered code inspection and safe transactional refactoring through MCP.">
+        <meta name="description" content="Bring Visual Studio-style C# code fixes and refactorings to your AI coding agent with Roslyn Code Actions, semantic analysis and reviewable local transactions.">
       
       
       
@@ -754,6 +754,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#visual-studio-style-c-fixes-and-refactorings-for-your-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visual Studio-style C# fixes and refactorings for your agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#three-tools-many-code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three tools, many Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#safe-staging-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1060,6 +1082,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#visual-studio-style-c-fixes-and-refactorings-for-your-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visual Studio-style C# fixes and refactorings for your agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#three-tools-many-code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three tools, many Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#safe-staging-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1146,6 +1190,11 @@
 
 
 <h1 id="code-action-workflows">Code Action workflows</h1>
+<h2 id="visual-studio-style-c-fixes-and-refactorings-for-your-agent">Visual Studio-style C# fixes and refactorings for your agent</h2>
+<p>Roslyn Workbench gives an MCP agent access to Code Actions from the .NET Compiler Platform that powers Visual Studio's C# tooling. Instead of asking the agent to recreate a refactoring with text edits, discover an applicable Roslyn action and stage the changes it produces into a reviewable transaction.</p>
+<p>The current pinned composition contains 251 built-in Code Fix and refactoring providers. Host policy excludes 14 providers, leaving 237 eligible providers for discovery. This is a provider inventory, not a promise of 237 distinct actions or complete Visual Studio feature parity: a provider can offer several choices, and individual actions remain subject to applicability and source-only operation validation. Actions requiring interactive options, external UI, package installation or unsupported project-system changes are not available through this workflow.</p>
+<p>Examples include extracting methods, introducing parameters, inlining temporary variables, encapsulating fields, converting loops to LINQ and applying compiler or analyzer fixes. Supported Fix All scopes let an agent prepare a broader correction before staging it. Every staged action follows the same preview or receipt-based review, rollback and commit boundary as other source mutations.</p>
+<h2 id="three-tools-many-code-actions">Three tools, many Code Actions</h2>
 <p>Roslyn Workbench exposes Roslyn Code Fixes and refactorings through three Host-owned MCP tools:</p>
 <ul>
 <li><code>list-code-actions</code> discovers applicable actions and returns temporary opaque references;</li>

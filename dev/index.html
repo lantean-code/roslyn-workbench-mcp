@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Roslyn-powered code inspection and safe transactional refactoring through MCP.">
+        <meta name="description" content="Bring Visual Studio-style C# code fixes and refactorings to your AI coding agent with Roslyn Code Actions, semantic analysis and reviewable local transactions.">
       
       
       
@@ -331,6 +331,50 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#your-visual-studio-c-workflow-now-available-to-your-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your Visual Studio C# workflow, now available to your agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#put-roslyn-code-actions-to-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Put Roslyn Code Actions to work
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understand-the-change-then-make-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understand the change, then make it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-execution-deliberate-source-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local execution, deliberate source changes
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#use-the-server" class="md-nav__link">
@@ -1012,6 +1056,50 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#your-visual-studio-c-workflow-now-available-to-your-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your Visual Studio C# workflow, now available to your agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#put-roslyn-code-actions-to-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Put Roslyn Code Actions to work
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understand-the-change-then-make-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understand the change, then make it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-execution-deliberate-source-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local execution, deliberate source changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#use-the-server" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1055,7 +1143,23 @@
 
 <h1 class="rw-visually-hidden" id="roslyn-workbench-mcp">Roslyn Workbench MCP</h1>
 <p><img alt="Roslyn Workbench MCP wordmark" src="assets/generated/roslyn-workbench-mcp-wordmark.svg" /></p>
-<p>Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# workspaces and stage source changes through explicit transactions.</p>
+<h2 id="your-visual-studio-c-workflow-now-available-to-your-agent">Your Visual Studio C# workflow, now available to your agent</h2>
+<p>The C# fixes and refactorings you use in Visual Studio 2026—now available to your AI coding agent.</p>
+<p>Roslyn Workbench MCP brings Roslyn Code Actions, semantic navigation and compiler-aware C# analysis to your agent through a local MCP server. Discover the fixes and refactorings that apply to your code, stage the compiler-generated changes, and review the diff before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.</p>
+<h2 id="put-roslyn-code-actions-to-work">Put Roslyn Code Actions to work</h2>
+<p>Over 230 eligible built-in Roslyn Code Fix and refactoring providers give your agent more than another way to edit text. Use <a href="code-actions.html">Code Actions</a> to extract methods, introduce parameters, encapsulate fields, convert loops to LINQ and apply fixes for compiler and analyzer diagnostics. Supported Fix All operations can prepare changes across a document, project or solution.</p>
+<p>An agent can discover applicable actions, select the right fix or refactoring, stage it into a transaction, and present the resulting changes for review. Provider count is not an individual-action count: available choices depend on the code, diagnostics and project configuration. Actions requiring interactive option dialogs, package installation or unsupported project-system changes are excluded; this is not complete Visual Studio feature parity.</p>
+<h2 id="understand-the-change-then-make-it">Understand the change, then make it</h2>
+<ul>
+<li>Find definitions, references, implementations, callers and callees using compiler semantics.</li>
+<li>Explore type hierarchies, dependencies and public APIs across persistent multi-workspace sessions.</li>
+<li>Inspect diagnostics, async usage, nullability and control flow; investigate change and test impact before editing.</li>
+<li>Stage Code Actions and symbol renames through <a href="workspaces-and-transactions.html">reviewable transactions</a>, with rollback, conflict detection and crash recovery.</li>
+</ul>
+<p>The 1.0.1 reference catalogue contains 57 MCP tool definitions. The running server exposes only those permitted by its operational mode and configuration, plus enabled plugin tools. The three Code Action tools unlock many applicable fixes and refactorings without publishing a separate MCP tool for every provider.</p>
+<h2 id="local-execution-deliberate-source-changes">Local execution, deliberate source changes</h2>
+<p>Workspace analysis and refactoring run on your machine over stdio. <a href="configuration.html">Inspection-only is the default</a>; enable a mutation mode when you want your agent to stage changes. Nothing writes source files until an explicit transaction commit. Builds, tests and Git commits stay in your normal development workflow.</p>
+<p><a href="getting-started.html">Connect your coding agent</a>, then add <a href="agent-setup.html">agent guidance</a> so it knows when to choose Roslyn's semantic tools and Code Actions.</p>
 <h2 id="use-the-server">Use the server</h2>
 <ol>
 <li><a href="getting-started.html">Get started and connect an MCP client</a>.</li>
@@ -1063,7 +1167,7 @@
 <li>Let the client discover the live <a href="tool-discovery.html">tool surface and result contracts</a>.</li>
 <li>Follow the <a href="workspaces-and-transactions.html">workspace and transaction safety model</a> before making changes.</li>
 <li>Review the boundary for <a href="error-reporting.html">local diagnostics and user-approved external error reporting</a>.</li>
-<li>Use the final <a href="code-actions.html">Code Action discovery, Fix All and staging workflow</a>.</li>
+<li>Use the <a href="code-actions.html">Code Action discovery, Fix All and staging workflow</a>.</li>
 </ol>
 <p>Agents that need more detail than the MCP initialisation instructions provide should use the version-specific <a href="agent/index.html">agent guide</a>.</p>
 <p>Questions, ideas, defects, documentation problems and private reports each have a defined route in the repository <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md">support and feedback guide</a>.</p>

@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
-<title id="title">Roslyn Workbench MCP wordmark locked v17</title>
-<desc id="desc">Wordmark with improved dark-background contrast and emerald MCP text.</desc>
+<title id="title">Roslyn Workbench MCP wordmark</title>
+<desc id="desc">Theme-aware wordmark with navy text on light backgrounds, soft white text on dark backgrounds and emerald MCP text.</desc>
+<style>
+  .wordmark-name { fill: #1A1D3D; }
+  @media (prefers-color-scheme: dark) {
+    .wordmark-name { fill: #F5F7FA; }
+  }
+</style>
 
 <defs>
 <radialGradient id="fieldGlow" cx="256" cy="235" r="155" gradientUnits="userSpaceOnUse">
@@ -70,9 +76,9 @@
   <path d="M342 368 L380 396 L342 424"/>
 </g>
 </g>
-<g font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="700" paint-order="stroke fill markers">
-  <text x="330" y="106" font-size="82" fill="#1A1D3D" stroke="#F5F7FA" stroke-width="3" stroke-linejoin="round">Roslyn</text>
-  <text x="330" y="196" font-size="82" fill="#1A1D3D" stroke="#F5F7FA" stroke-width="3" stroke-linejoin="round">Workbench</text>
+<g font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="700">
+  <text class="wordmark-name" x="330" y="106" font-size="82" fill="#1A1D3D">Roslyn</text>
+  <text class="wordmark-name" x="330" y="196" font-size="82" fill="#1A1D3D">Workbench</text>
   <text x="330" y="282" font-size="76" fill="#10B981">MCP</text>
 </g>
 </svg>

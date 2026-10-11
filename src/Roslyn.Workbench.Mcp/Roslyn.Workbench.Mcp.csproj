@@ -10,13 +10,13 @@
     <ToolCommandName>roslyn-workbench-mcp</ToolCommandName>
     <PackageId>Lantean.Roslyn.Workbench.Mcp</PackageId>
     <Title>Roslyn Workbench MCP</Title>
-    <Description>A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.</Description>
+    <Description>Bring Visual Studio-style C# fixes and refactorings to your AI coding agent. Roslyn Code Actions, semantic navigation and reviewable transactions—all running locally.</Description>
     <Authors>Lantean Code</Authors>
     <Company>Lantean Code</Company>
     <Copyright>Copyright © 2026 Lantean Code</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://lantean-code.github.io/roslyn-workbench-mcp/</PackageProjectUrl>
-    <PackageTags>model-context-protocol;mcp;mcp-server;roslyn;csharp;dotnet;code-analysis;refactoring;developer-tools</PackageTags>
+    <PackageTags>model-context-protocol;mcp;mcp-server;roslyn;csharp;dotnet;code-analysis;code-actions;code-fixes;refactoring;ai-coding;developer-tools</PackageTags>
     <PackageIcon>roslyn-workbench-mcp-128.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>https://github.com/lantean-code/roslyn-workbench-mcp/releases/tag/$(RoslynWorkbenchSourceTag)</PackageReleaseNotes>

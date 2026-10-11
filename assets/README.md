@@ -8,7 +8,9 @@ Roslyn Workbench MCP is precise, compiler-aware, dependable and developer-focuse
 
 The primary icon combines a spanner, Roslyn-style semantic graph, code braces and angle brackets. Use the locked artwork without redrawing, stretching, rotating or rearranging its elements. The icon background is always solid **Dark Indigo**.
 
-In the wordmark, **Roslyn Workbench** uses Dark Indigo text with a thin Soft White outline for visibility on dark backgrounds; **MCP** is Emerald with no outline.
+In the wordmark, **Roslyn Workbench** uses Dark Indigo (`#1A1D3D`) text on light themes and Soft White (`#F5F7FA`) text on dark themes, with no outline in either theme. **MCP** remains Emerald, and the icon artwork is unchanged. The single SVG uses `prefers-color-scheme` to follow the embedding page's `color-scheme` where supported, or the browser's preferred theme; consumers without theme-aware SVG rendering receive the navy fallback. The documentation site explicitly sets the image's colour scheme from its selected light or dark palette so its theme toggle takes precedence over the operating-system preference.
+
+GitHub propagates its selected colour scheme to the image. NuGet.org currently leaves the image's `color-scheme` as `normal`, so the SVG follows the browser's preferred theme there rather than a separately selected NuGet theme. A standalone SVG cannot detect an embedding page's background colour; reliable independent theme selection requires that page to propagate its colour scheme or choose a theme-specific image.
 
 The locked source artwork is:
 

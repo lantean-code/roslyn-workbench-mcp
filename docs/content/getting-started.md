@@ -1,5 +1,9 @@
 # Getting started with Roslyn Workbench
 
+Connect your AI coding agent to Roslyn's C# fixes, refactorings and semantic navigation. Once connected, ask it to discover applicable Code Actions, extract a method, encapsulate a field or investigate a diagnostic using the compiler platform behind Visual Studio's C# tooling.
+
+Start with inspection-only to explore a trusted solution without enabling source changes. When you are ready to apply fixes or refactorings, choose a [mutation mode](configuration.md) and use the [Code Action workflow](code-actions.md) to stage and review changes before committing them. See the Code Action guide for supported operations and exclusions; not every Visual Studio action is available.
+
 ## Prerequisites
 
 - A supported .NET 10 SDK.

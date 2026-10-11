@@ -1,5 +1,15 @@
 # Code Action workflows
 
+## Visual Studio-style C# fixes and refactorings for your agent
+
+Roslyn Workbench gives an MCP agent access to Code Actions from the .NET Compiler Platform that powers Visual Studio's C# tooling. Instead of asking the agent to recreate a refactoring with text edits, discover an applicable Roslyn action and stage the changes it produces into a reviewable transaction.
+
+The current pinned composition contains 251 built-in Code Fix and refactoring providers. Host policy excludes 14 providers, leaving 237 eligible providers for discovery. This is a provider inventory, not a promise of 237 distinct actions or complete Visual Studio feature parity: a provider can offer several choices, and individual actions remain subject to applicability and source-only operation validation. Actions requiring interactive options, external UI, package installation or unsupported project-system changes are not available through this workflow.
+
+Examples include extracting methods, introducing parameters, inlining temporary variables, encapsulating fields, converting loops to LINQ and applying compiler or analyzer fixes. Supported Fix All scopes let an agent prepare a broader correction before staging it. Every staged action follows the same preview or receipt-based review, rollback and commit boundary as other source mutations.
+
+## Three tools, many Code Actions
+
 Roslyn Workbench exposes Roslyn Code Fixes and refactorings through three Host-owned MCP tools:
 
 - `list-code-actions` discovers applicable actions and returns temporary opaque references;

@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.lantean-code/roslyn-workbench-mcp",
   "title": "Roslyn Workbench MCP",
-  "description": "A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.",
+  "description": "Bring Visual Studio-style C# fixes and refactorings to your AI agent with local Roslyn Code Actions.",
   "version": "{{PACKAGE_VERSION}}",
   "websiteUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/{{PACKAGE_VERSION}}/",
   "icons": [

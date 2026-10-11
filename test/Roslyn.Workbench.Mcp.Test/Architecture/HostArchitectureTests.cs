@@ -47,7 +47,7 @@ public sealed class HostArchitectureTests
             ["AssemblyTitle"] = "Roslyn Workbench MCP",
             ["Product"] = "Roslyn Workbench MCP",
             ["Title"] = "Roslyn Workbench MCP",
-            ["Description"] = "A local MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.",
+            ["Description"] = "Bring Visual Studio-style C# fixes and refactorings to your AI coding agent. Roslyn Code Actions, semantic navigation and reviewable transactions—all running locally.",
             ["Authors"] = "Lantean Code",
             ["Company"] = "Lantean Code",
             ["Copyright"] = "Copyright © 2026 Lantean Code",

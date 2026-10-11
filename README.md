@@ -4,9 +4,40 @@
 
 ![Roslyn Workbench MCP wordmark](assets/roslyn-workbench-mcp-wordmark.svg)
 
-Roslyn Workbench is a local stdio MCP server for Roslyn-powered C# code analysis and safe, transactional refactoring.
+## Your Visual Studio C# workflow, now available to your agent
 
-It provides persistent multi-workspace sessions, semantic queries for symbols and code structure, bounded agent-facing results, and source changes staged through transactions with preview, history, rollback, conflict detection and crash recovery. Code Actions use the same transaction boundary. Nothing writes source files until an explicit `transaction-commit` call.
+The C# fixes and refactorings you use in Visual Studio 2026—now available to your AI coding agent.
+
+Roslyn Workbench MCP gives your agent access to Roslyn Code Actions and compiler-aware C# analysis through a local MCP server. Your agent can discover applicable fixes and refactorings, apply the compiler-generated changes, and show you the result before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.
+
+## Put Roslyn Code Actions to work
+
+Over 230 eligible built-in Roslyn Code Fix and refactoring providers sit behind one discovery and staging workflow. Ask your agent to:
+
+- Extract a method, introduce a parameter, inline a temporary variable or encapsulate a field.
+- Convert a loop to LINQ or modernise code with an applicable Roslyn refactoring.
+- Discover fixes for compiler and analyzer diagnostics in the current document.
+- Prepare supported Fix All operations across a document, project or solution.
+- Stage the selected changes, inspect the transaction diff, then commit or roll back.
+
+These are Roslyn-generated changes, selected for your actual code and project configuration—not instructions for an agent to imitate a refactoring with text replacements. See the [Code Action guide](https://lantean-code.github.io/roslyn-workbench-mcp/latest/code-actions.html) for discovery, Fix All and staging.
+
+The provider count is not a count of individual actions: a provider can offer multiple choices, and applicability depends on the code, diagnostics and project configuration. Actions requiring interactive option dialogs, package installation or unsupported project-system changes are excluded; this is not complete Visual Studio feature parity.
+
+## Understand the code before changing it
+
+- Navigate to definitions, find references and implementations, and trace callers and callees using compiler semantics.
+- Explore type hierarchies, project dependencies and the public API surface across persistent multi-workspace sessions.
+- Inspect diagnostics, async usage, nullability and control flow, and investigate change and test impact.
+- Keep agent responses bounded instead of loading an entire solution into the conversation.
+
+The 1.0.1 reference catalogue contains 57 MCP tool definitions covering navigation, analysis, Code Actions and workspace management. The live tool set depends on operational mode, configuration and enabled plugins; the three Code Action tools expose many applicable fixes and refactorings without adding one MCP tool per provider.
+
+## Compiler-powered changes, reviewable transactions
+
+Source changes are staged through transactions with preview, history, rollback, conflict detection and crash recovery. Code Actions and symbol renames use the same transaction boundary: nothing writes source files until an explicit transaction commit. In approval-required mode, review is bound to an exact-change receipt.
+
+The server runs locally over stdio, with workspace analysis and refactoring performed on your machine. Inspection-only is the default; you choose when to enable source changes. Builds, tests and Git commits remain part of your normal development workflow.
 
 ## Install
 

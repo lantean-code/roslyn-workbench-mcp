@@ -18,7 +18,7 @@ Create these posts before announcing the public repository:
 
 ### Announcements: Welcome to Roslyn Workbench MCP
 
-Roslyn Workbench MCP is a local stdio server for Roslyn-powered C# inspection and safe, transactional refactoring. See README and the selected release's notes for installation, compatibility, supported features and contribution availability. Use Q&A for setup and usage, Ideas for exploratory proposals, structured Issues for reproducible defects and documentation problems, and private vulnerability reporting for security concerns.
+Bring the C# fixes and refactorings you use in Visual Studio to your AI coding agent. Roslyn Workbench MCP exposes Roslyn Code Actions, semantic navigation and compiler-aware analysis through a local stdio server, with source changes staged in reviewable transactions. Start with the README and Code Action guide for practical examples, supported operations and setup. Use Q&A for setup and usage, Ideas for exploratory proposals, structured Issues for reproducible defects and documentation problems, and private vulnerability reporting for security concerns.
 
 ### Q&A: How to ask an answerable support question
 

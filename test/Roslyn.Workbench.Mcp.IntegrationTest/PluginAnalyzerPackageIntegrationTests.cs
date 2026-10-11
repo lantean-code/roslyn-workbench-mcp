@@ -146,9 +146,9 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             .Should().Equal("analyzers/dotnet/cs/Roslyn.Workbench.Mcp.Plugins.Analyzers.pdb");
 
         var readme = ReadTextEntry(archive, "README.md");
-        readme.Should().Contain("# Third-Party Plugin Authoring");
+        readme.Should().Contain("# Roslyn Workbench plugin authoring");
         readme.Should().Contain(
-            "https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md");
+            "https://lantean-code.github.io/roslyn-workbench-mcp/latest/plugins/diagnostics.html");
 
         archive.Entries.Should().NotContain(
             static entry => entry.FullName.StartsWith(

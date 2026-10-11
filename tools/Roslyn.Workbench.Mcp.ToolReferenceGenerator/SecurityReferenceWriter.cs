@@ -35,6 +35,11 @@ internal static class SecurityReferenceWriter
             Path.Combine(outputDirectory, "index.md"),
             CreateMarkdown(manifest, surfaceByKey, sourceRevision),
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+        File.WriteAllText(
+            Path.Combine(outputDirectory, "surface.md"),
+            CreateSurfaceAppendix(surfaceByKey.Values),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 
     private static JsonObject CreatePublication(
@@ -113,7 +118,9 @@ internal static class SecurityReferenceWriter
         AppendSection(content, "Enforced invariants", "enforced", manifest, surfaceByKey, sourceRevision);
         AppendSection(content, "Delegated responsibilities", "delegated", manifest, surfaceByKey, sourceRevision);
         AppendSection(content, "Limitations", "limitation", manifest, surfaceByKey, sourceRevision);
-        AppendSurfaceAppendix(content, surfaceByKey.Values);
+        content.AppendLine("## Public-surface appendix");
+        content.AppendLine();
+        content.AppendLine("Inspect the [complete code-derived surface](surface.md) or the [machine-readable guarantees and evidence](security-reference.json) when you need detailed verification.");
         return content.ToString();
     }
 
@@ -144,7 +151,8 @@ internal static class SecurityReferenceWriter
 
             if (entry.SurfaceKeys.Count > 0)
             {
-                content.AppendLine("**Covered surface:**");
+                content.AppendLine("<details markdown=\"1\">");
+                content.AppendLine("<summary>Covered surface</summary>");
                 content.AppendLine();
                 foreach (var key in entry.SurfaceKeys.Order(StringComparer.Ordinal))
                 {
@@ -152,11 +160,14 @@ internal static class SecurityReferenceWriter
                 }
 
                 content.AppendLine();
+                content.AppendLine("</details>");
+                content.AppendLine();
             }
 
             if (entry.Evidence.Count > 0)
             {
-                content.AppendLine("**Automated evidence:**");
+                content.AppendLine("<details markdown=\"1\">");
+                content.AppendLine("<summary>Automated evidence</summary>");
                 content.AppendLine();
                 foreach (var evidence in entry.Evidence
                     .OrderBy(static evidence => evidence.Level, StringComparer.Ordinal)
@@ -169,15 +180,20 @@ internal static class SecurityReferenceWriter
                 }
 
                 content.AppendLine();
+                content.AppendLine("</details>");
+                content.AppendLine();
             }
         }
     }
 
-    private static void AppendSurfaceAppendix(StringBuilder content, IEnumerable<SecuritySurfaceItem> surface)
+    private static string CreateSurfaceAppendix(IEnumerable<SecuritySurfaceItem> surface)
     {
-        content.AppendLine("## Public-surface appendix");
+        var content = new StringBuilder();
+        content.AppendLine("# Security public-surface appendix");
         content.AppendLine();
         content.AppendLine("The following keys and facts are derived from compiled contracts and production Host composition. Complete tool schemas remain in the tool reference.");
+        content.AppendLine();
+        content.AppendLine("Return to [Security guarantees and evidence](index.md) for enforced invariants, responsibilities and limitations.");
         content.AppendLine();
         content.AppendLine("| Surface key | Derived facts |");
         content.AppendLine("| --- | --- |");
@@ -186,6 +202,8 @@ internal static class SecurityReferenceWriter
             var facts = item.Facts.ToJsonString().Replace("|", "\\|", StringComparison.Ordinal);
             content.Append("| `").Append(item.Key).Append("` | `").Append(facts).AppendLine("` |");
         }
+
+        return content.ToString();
     }
 
     private static void PrepareOutputDirectory(string outputDirectory)

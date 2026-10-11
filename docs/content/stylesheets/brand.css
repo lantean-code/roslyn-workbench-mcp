@@ -30,6 +30,14 @@
   color: var(--rw-heading-fg-color);
 }
 
+.md-sidebar--primary .md-nav__item--section > .md-nav__link,
+.md-sidebar--secondary .md-nav__title {
+  color: var(--rw-heading-fg-color);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding-top: 0.5rem;
+}
+
 .md-typeset a {
   text-decoration-color: var(--rw-link-decoration-color);
   text-decoration-line: underline;

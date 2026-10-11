@@ -41,6 +41,29 @@ public sealed class SecurityReferenceGeneratorIntegrationTests
             TestContext.Current.CancellationToken);
 
         markdown.Should().Contain($"/blob/{_sourceRevision}/");
+        markdown.Should().Contain("<details markdown=\"1\">");
+        markdown.Should().Contain("<summary>Covered surface</summary>");
+        markdown.Should().Contain("<summary>Automated evidence</summary>");
+        markdown.Should().Contain("[complete code-derived surface](surface.md)");
+        markdown.Should().NotContain("| Surface key | Derived facts |");
+
+        var appendix = await File.ReadAllTextAsync(
+            Path.Combine(outputDirectory, "surface.md"),
+            TestContext.Current.CancellationToken);
+
+        appendix.Should().StartWith("# Security public-surface appendix");
+        appendix.Should().Contain("| Surface key | Derived facts |");
+
+        foreach (var entry in publication.RootElement.GetProperty("entries").EnumerateArray())
+        {
+            markdown.Should().Contain(entry.GetProperty("outcome").GetString());
+            markdown.Should().Contain(entry.GetProperty("residualRisk").GetString());
+
+            foreach (var surfaceItem in entry.GetProperty("surface").EnumerateArray())
+            {
+                appendix.Should().Contain(surfaceItem.GetProperty("key").GetString());
+            }
+        }
     }
 
     [Fact]

@@ -10,8 +10,6 @@ The built-in tool catalogue follows an additive 1.x policy. Existing tool names 
 
 Clients should ignore unknown output fields, continue to honour JSON Schema requirements and rediscover `tools/list` whenever the Host restarts or is upgraded. They must not infer compatibility from property order. Tool descriptions and human-readable error messages may improve without constituting a contract change.
 
-The repository records canonical `tools/list` baselines for both supported output-schema publication modes. Each baseline preserves the exact built-in catalogue published by inspection-only, transactional, approval-required, autonomous-trusted and compiler-validation configurations, including intentional mode-specific contracts such as receipt-based `transaction-commit`. Tools are ordered by name and JSON object properties are ordered recursively before comparison; array order is retained because arrays can carry contract meaning. The baselines cover each built-in tool's name, title, description, annotations, input schema and, when enabled, output schema. Externally installed plugin tools are deliberately excluded because their contracts belong to their publishers.
-
 ## Structured errors and continuations
 
 Stable machine-readable error codes retain their meaning during 1.x. Human-readable messages may be clarified, localised or expanded, so clients should branch on the code rather than exact prose. A client receiving an unknown code should surface it and its message safely, avoid guessing a recovery action and allow the operator to inspect status.
@@ -21,8 +19,6 @@ Stable machine-readable error codes retain their meaning during 1.x. Human-reada
 ## Durable recovery state
 
 Recovery owner records and manifests use a format version independently from the Host version. Format version 1 is the first supported 1.x recovery format. Every supported later 1.x Host must read and recover supported version 1 evidence. Persisted recovery-state and file-operation enum members have explicit numeric values; existing values must never be renumbered or reused, and any compatible addition must use a new explicit value. Optional JSON properties that older readers can safely ignore may be added without incrementing the format; any change that alters interpretation or required recovery semantics requires a new format version and an explicit reader.
-
-`Current` identifies the format written by a Host; a separate supported-format set identifies every format it can read. The Host probes the common version field first and dispatches supported evidence through immutable, version-specific persisted models and explicit mappings into the version-neutral runtime recovery model. Writing follows the reverse mapping into the current persisted model. Advancing `Current` therefore requires adding both mappings for the new format while retaining every earlier 1.x reader and keeping the V1 recovery fixtures green; a contract test fails when the current version and emitted version diverge.
 
 An unknown or unsupported format is never interpreted as the current format. The Host reports `RecoveryVersionUnsupported`, retains the evidence without rewriting, restoring, completing or deleting it, and advises the operator to start the same or a newer compatible Roslyn Workbench version. A newer Host can therefore recover supported old evidence without requiring the interrupted transaction to be rolled back and recreated. Downgrading is safe only when the older Host supports every format present in the state directory; otherwise, restart the newer compatible Host to complete recovery.
 
@@ -34,8 +30,9 @@ The public plugin contract is versioned separately through `PluginApiVersions.V1
 
 Compatible additions may be made where an existing compiled plugin remains loadable and its established behaviour remains valid. Deprecation does not remove a V1 member before Host 2.0. A plugin declares the exact API family it targets with `PluginApiVersions.V1`; its own package version remains the plugin publisher's compatibility contract and need not match the Host package version.
 
-The repository maintains shipped public-API analyser baselines for both assemblies and focused plugin contract tests. Once the first stable plugin package is published, release validation also compares later packages with that 1.0 package by using .NET package/API compatibility tooling. Passing that binary check complements, but does not replace, behavioural contract tests and review of semantic changes.
-
 ## Release changes
 
 Every release note should identify additions or intentional compatibility changes separately for MCP tools, errors and continuations, recovery formats and the plugin API. A necessary breaking change is reserved for the next major Host or plugin API version unless preserving the old behaviour would cause unsafe recovery or operation; an exceptional safety break must fail explicitly and be called out with migration guidance.
+
+
+The [maintainer compatibility guide](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/docs/maintainers/compatibility.md) records how catalogue baselines, recovery mappings and package API checks enforce these guarantees.

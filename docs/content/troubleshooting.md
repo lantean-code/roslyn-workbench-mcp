@@ -2,7 +2,9 @@
 
 ## The client cannot start the server
 
-For a `dnx` configuration, run the complete pinned command from the same user account that starts the MCP client, including `--yes`, the exact `PackageId@VERSION`, and `-- --version`. Confirm that the .NET 10 SDK is available and that the configured package source is accessible. For a global-tool configuration, run `roslyn-workbench-mcp --version`; if the command is not found, check the installation and whether the client's environment includes the global-tool executable directory. Restart the client after changing its environment, or configure the absolute executable path.
+For a `dnx` configuration, run the complete pinned command from the same user account that starts the MCP client, including `--yes`, the exact `PackageId@VERSION`, and `-- --version`. Confirm that the .NET 10 SDK is available and that the configured package source is accessible.
+
+For a global-tool configuration, run `roslyn-workbench-mcp --version`; if the command is not found, check the installation and whether the client's environment includes the global-tool executable directory. Restart the client after changing its environment, or configure the absolute executable path.
 
 The server speaks MCP on standard input/output; it is not an interactive command prompt. Operational messages are on stderr. Check the client's server log for startup and prerequisite errors without posting private paths or credentials publicly.
 
@@ -10,11 +12,25 @@ The server speaks MCP on standard input/output; it is not an interactive command
 
 Confirm that the path is accessible, the repository is trusted and the required project SDKs/build tooling are installed. Inspect `server-status` and the returned diagnostics. Unsupported languages or project types may be skipped; at least one supported SDK-style C# project must remain. A build outside the server can help distinguish project restoration/evaluation problems from MCP configuration.
 
+### Invalid allowed roots or external-document policy
+
 If startup reports invalid allowed Workspace roots, ensure every value is a non-empty existing absolute directory and use the platform path separator for `ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS` (`;` on Windows, `:` on Unix, WSL and macOS). Any `--allowed-workspace-root` occurrence replaces the complete environment list. `--external-document-policy` and its environment equivalent accept only `allow-read-only` or `reject-workspace`; repeated command-line values use the last occurrence.
+
+### Invalid generated-source configuration
 
 If startup reports invalid generated-source configuration, use exact lowercase `warn` or `deny`. Generated-source exceptions must be Workspace-relative simple wildcard patterns and cannot contain `.` or `..` path segments. Use repeated `--generated-source-exception` options or separate environment patterns with the platform path separator; any command-line occurrence replaces the complete environment list.
 
-`WorkspacePathNotAllowed` and `WorkspaceRootNotAllowed` are admission failures, not MSBuild failures. Open a path within an allowed root and do not request a root above it. `WorkspaceAuthorityChanged` means a previously admitted Workspace path or effective root no longer physically complies with Host authority, such as when a directory is moved or replaced by a symbolic link or reparse point; restore the intended topology, roll back any active transaction, then close and reopen the Workspace. `WorkspaceExternalDocumentRejected` identifies a trusted build that evaluated source, additional or analyzer-config input outside the effective root; move or remove that input, widen authority deliberately, or choose `allow-read-only` according to operator policy. An unfinished recovery entry that persists under restricted admission may belong to a Workspace outside current authority; restart with authority covering that Workspace before recovery can write to it.
+### Workspace authority errors
+
+`WorkspacePathNotAllowed` and `WorkspaceRootNotAllowed` are admission failures, not MSBuild failures. Open a path within an allowed root and do not request a root above it.
+
+`WorkspaceAuthorityChanged` means a previously admitted Workspace path or effective root no longer physically complies with Host authority, such as when a directory is moved or replaced by a symbolic link or reparse point; restore the intended topology, roll back any active transaction, then close and reopen the Workspace.
+
+`WorkspaceExternalDocumentRejected` identifies a trusted build that evaluated source, additional or analyzer-config input outside the effective root; move or remove that input, widen authority deliberately, or choose `allow-read-only` according to operator policy.
+
+An unfinished recovery entry that persists under restricted admission may belong to a Workspace outside current authority; restart with authority covering that Workspace before recovery can write to it.
+
+### State-directory or recovery failure
 
 State-directory failures require a writable, supported location. Do not bypass owner-only permissions or remove unresolved recovery records to force startup. See [Configuration](configuration.md) and [Workspaces and transactions](workspaces-and-transactions.md).
 
@@ -23,6 +39,10 @@ State-directory failures require a writable, supported location. Do not bypass o
 ## A selector or Code Action became stale
 
 Follow the tool's continuation: check Workspace status, reload when appropriate, and resolve the location/symbol or discover the action again. Do not reuse coordinates, snapshot identities or opaque references after unrelated source changes or a server restart. Finish or roll back an active transaction before attempting a reload that requires a non-transactional Workspace.
+
+## A transaction prompt did not appear
+
+Filesystem or shell permission does not imply MCP elicitation permission. Transactional and approval-required commits require a client that advertises and permits elicitation. A decline, cancellation or unavailable prompt writes no files and leaves the transaction active. Explain that outcome and follow the returned continuation; enable interactive MCP requests only for a user-approved retry. See [Transaction confirmation](workspaces-and-transactions.md#transactional-confirmation).
 
 ## An error-report prompt did not appear
 

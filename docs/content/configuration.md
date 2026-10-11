@@ -1,17 +1,88 @@
 # Configuration reference
 
+Choose an operational mode first. Most users can leave resource and reporting limits at their defaults.
+
+## Operational modes
+
+| Mode | Source changes | Review tool | Confirmation |
+| --- | --- | --- | --- |
+| `inspection-only` (default) | Not available | None | None |
+| `transactional` | Staged transactions | `transaction-preview` | One commit or the current Host session |
+| `approval-required` | Staged transactions | `transaction-review` | One-use approval for an exact-change receipt |
+| `autonomous-trusted` | Staged transactions | `transaction-preview` | No Host prompt |
+
+The mode controls both the published catalogue and authoritative mutation enforcement; hiding a tool is not the only control. When plugins are enabled in inspection-only mode, only their query tools are published.
+
+### Startup examples
+
+```text
+roslyn-workbench-mcp --operational-mode inspection-only
+roslyn-workbench-mcp --operational-mode transactional
+roslyn-workbench-mcp --operational-mode approval-required
+roslyn-workbench-mcp --operational-mode autonomous-trusted
+```
+
+Changing mode requires restarting the Host. Clients must use the newly negotiated server instructions and tool catalogue after reconnecting: `transaction-preview` is unavailable in approval-required mode, while `transaction-review` and its receipt-bearing commit schema are unavailable in every other mode.
+
+### Client confirmation
+
+Transactional confirmation depends on the connected client advertising and permitting MCP elicitation. This is independent of filesystem or shell permissions: a broadly permissive client configuration can still block interactive MCP requests.
+
+A decline, cancellation, unavailable prompt, client failure or invalid choice writes no files and leaves the transaction active. The user can approve only the current commit, approve transaction commits for the rest of the current Host process, or refuse.
+
+Session approval is held only in memory, applies to transaction commit across Workspaces served by that process, and is cleared by restart.
+
+### Optional compiler validation
+
+Compiler-impact validation is separately selected with `--commit-validation no-new-compiler-errors`; no operational mode enables it by default. When selected, `transaction-validate` is published and successful validation becomes a prerequisite for review and commit. Validation is calculated only on explicit validate, review or commit operations, covers changed loaded project evaluations and their loaded transitive dependants, and compares the transaction's captured baseline with its current revision. See [Compiler-impact validation](compiler-validation.md) for behaviour and recovery guidance.
+
+## Option precedence and invalid values
+
 Roslyn Workbench accepts command-line options and equivalent environment variables. A command-line scalar takes precedence over its environment variable; when a scalar option appears more than once, the last value wins unless its row says otherwise. Most invalid values fall back to the documented default and are reported as `StartupConfigurationFallback` warnings. The operational mode, external-plugin enablement, Workspace-authority roots, external-document policy and generated-source policy are fail-closed startup settings: an invalid effective value prevents the Host from starting.
+
+## Operational policy options
 
 | Command-line option | Environment variable | Default | Meaning |
 | --- | --- | --: | --- |
 | `--operational-mode` | `ROSLYN_WORKBENCH_MCP_OPERATIONAL_MODE` | `inspection-only` | Exact case-sensitive `inspection-only`, `transactional`, `approval-required` or `autonomous-trusted`. The command-line option may appear only once and overrides the environment value. See [Operational modes](#operational-modes). |
 | `--commit-validation` | `ROSLYN_WORKBENCH_MCP_COMMIT_VALIDATION` | `none` | Exact case-sensitive `none` or `no-new-compiler-errors`. The command-line option may appear only once and overrides the environment value. Invalid values fail startup. Validation is independently opt-in for any mutation-enabled mode and is invalid with `inspection-only`. |
+| `--tool-output-schema-mode` | `ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE` | `Omit` | `Omit` keeps `tools/list` compact; `Full` publishes generated family-specific output schemas. |
+
+## Workspace boundaries
+
+| Command-line option | Environment variable | Default | Meaning |
+| --- | --- | --: | --- |
 | `--allowed-workspace-root` | `ROSLYN_WORKBENCH_MCP_ALLOWED_WORKSPACE_ROOTS` | None (unrestricted) | Restricts Workspace admission to an existing absolute directory. The option is repeatable and its values form a union. The environment value uses the platform path separator (`;` on Windows, `:` on Unix, WSL and macOS). If the option appears at all, its complete command-line list replaces the environment list. Duplicate roots and descendants already covered by an ancestor do not add authority. |
 | `--external-document-policy` | `ROSLYN_WORKBENCH_MCP_EXTERNAL_DOCUMENT_POLICY` | `allow-read-only` | `allow-read-only` certifies and exposes evaluated source, additional and analyzer-config documents outside the effective Workspace root as read-only inputs. `reject-workspace` rejects the whole load when one is present. The last command-line occurrence wins. |
 | `--generated-source-policy` | `ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_POLICY` | `warn` | Exact case-sensitive `warn` or `deny` for checked-in source recognised by generated filename conventions or an auto-generated header. `warn` allows staging with a bounded warning; `deny` rejects staging unless a path exception applies. Deterministic intermediate, external and non-source mutation denials are unaffected. |
 | `--generated-source-exception` | `ROSLYN_WORKBENCH_MCP_GENERATED_SOURCE_EXCEPTIONS` | None | Repeatable Workspace-relative simple wildcard pattern (`*` and `?`) that exempts an intentionally maintained checked-in path from generated-looking classification. The environment list uses the platform path separator. If the command-line option appears at all, its complete list replaces the environment list. Absolute patterns and `.` or `..` path segments are invalid. |
+
+Workspace authority is fixed for the lifetime of the Host. A configured root controls which solution or project may be opened and caps its effective source, transaction and recovery boundary. It does not restrict SDKs, metadata references, packages or MSBuild imports, and it is not a sandbox: only configure roots containing fully trusted build inputs.
+
+For example, restrict admission to one trusted tree and reject evaluated external documents:
+
+```text
+roslyn-workbench-mcp --allowed-workspace-root /absolute/path/to/source --external-document-policy reject-workspace
+```
+
+Use a Windows absolute path on Windows. Repeat `--allowed-workspace-root` for multiple roots; any command-line roots replace the environment list. Choose `allow-read-only` when trusted builds legitimately use linked or generated documents outside the source boundary. See [Workspace loading](workspaces.md#workspace-roots-and-external-documents).
+
+## External plugins
+
+| Command-line option | Environment variable | Default | Meaning |
+| --- | --- | --: | --- |
 | `--enable-plugins` | None | Disabled | Valueless explicit opt-in to loading trusted external plugin packages. It may appear only once and does not control bundled first-party tools. Supplying a value fails startup. |
 | `--plugin-directory` | `ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY` | None | Adds external plugin search roots. The option is repeatable; the environment value uses the platform path separator. Command-line and environment roots are combined and deduplicated. Any configured root requires `--enable-plugins`, including roots supplied through the environment. |
+
+External plugin loading is disabled unless the operator supplies `--enable-plugins`. Once enabled, every configured plugin executes as trusted in-process code with the operating-system authority of the Host; the switch is not a sandbox or a plugin endorsement. The plugin set is discovered once during startup, so adding, removing or upgrading a plugin package requires a server restart.
+
+
+See [Packaging and deployment](plugins/deployment.md) before enabling external plugins.
+
+## Cache and resource limits
+
+| Command-line option | Environment variable | Default | Meaning |
+| --- | --- | --: | --- |
 | `--default-max-results` | `ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS` | `100` | Positive Host compatibility baseline for third-party tools that have not established a curated request default. |
 | `--code-action-reference-lifetime` | `ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME` | `00:05:00` | Positive invariant-culture `TimeSpan` controlling discovered Code Action reference lifetime, up to `1.00:00:00` (24 hours). |
 | `--workspace-query-cache-size-limit` | `ROSLYN_WORKBENCH_MCP_WORKSPACE_QUERY_CACHE_SIZE_LIMIT` | `10000` | Workspace query-result capacity in Host-calculated retained-result units; supported range `5000`–`100000`. |
@@ -21,8 +92,27 @@ Roslyn Workbench accepts command-line options and equivalent environment variabl
 | `--plugin-query-cache-sliding-expiration` | `ROSLYN_WORKBENCH_MCP_PLUGIN_QUERY_CACHE_SLIDING_EXPIRATION` | `01:00:00` | Positive invariant-culture `TimeSpan` for idle plugin query-result expiry, up to 24 hours. |
 | `--max-transaction-revisions` | `ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS` | `20` | Positive maximum number of retained staged transaction revisions. |
 | `--max-concurrent-queries` | `ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES` | `2` | Positive maximum number of concurrent query leases. |
-| `--tool-output-schema-mode` | `ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE` | `Omit` | `Omit` keeps `tools/list` compact; `Full` publishes generated family-specific output schemas. |
+
+Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the [Code Action workflow](code-actions.md) and rediscover when directed.
+
+## State storage and recovery
+
+| Command-line option | Environment variable | Default | Meaning |
+| --- | --- | --: | --- |
 | `--state-directory` | `ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY` | Per-user application state directory | Absolute or relative writable location for Host state and durable commit-recovery records. The directory must not be a symbolic link or reparse point; on Unix it must use owner-only `0700` permissions. |
+
+The default state directory is `%LOCALAPPDATA%\roslyn-workbench-mcp\state` on Windows, `$XDG_STATE_HOME/roslyn-workbench-mcp` on Linux when `XDG_STATE_HOME` is an absolute path, `~/.local/state/roslyn-workbench-mcp` on Linux otherwise, and `~/Library/Application Support/roslyn-workbench-mcp/state` on macOS.
+
+Unix state directories are created with `0700` permissions and recovery files with `0600`; Windows state inherits the current user's local-application-data access controls.
+
+At startup, the Host verifies that the recovery directory supports exclusive file creation, durable writes and deletion. Startup fails with an actionable configuration error if the selected state directory cannot support recovery data; commit retains its own validation because filesystem permissions and availability can change while the Host is running.
+
+Keep unresolved recovery evidence when upgrading or uninstalling. See [Commit coordination and recovery](transaction-recovery.md).
+
+## Error reporting
+
+| Command-line option | Environment variable | Default | Meaning |
+| --- | --- | --: | --- |
 | `--error-reporting-consent` | None | `prompt` | Exact case-sensitive `never`, `prompt` or `always`. `never` and `always` must be supplied explicitly on the command line; the similarly named environment variable is ignored and reported as a fallback warning. Invalid input fails closed to `never`. |
 | `--error-record-capacity` | `ROSLYN_WORKBENCH_MCP_ERROR_RECORD_CAPACITY` | `100` | Temporary correlated local error records; supported range `10`–`1000`. |
 | `--error-record-lifetime` | `ROSLYN_WORKBENCH_MCP_ERROR_RECORD_LIFETIME` | `01:00:00` | Absolute local error-record lifetime, up to 24 hours. |
@@ -31,26 +121,12 @@ Roslyn Workbench accepts command-line options and equivalent environment variabl
 | `--error-submission-lifetime` | `ROSLYN_WORKBENCH_MCP_ERROR_SUBMISSION_LIFETIME` | `00:30:00` | Absolute prepared-submission lifetime, up to four hours. |
 | `--error-report-max-bytes` | `ROSLYN_WORKBENCH_MCP_ERROR_REPORT_MAX_BYTES` | `65536` | Maximum canonical external payload size; supported range `8192`–`262144` bytes. |
 
-At startup, the Host verifies that the recovery directory supports exclusive file creation, durable writes and deletion. Startup fails with an actionable configuration error if the selected state directory cannot support recovery data; commit retains its own validation because filesystem permissions and availability can change while the Host is running.
-
-## Operational modes
-
-The operational mode is fixed for the Host process lifetime and controls both the published tool catalogue and authoritative mutation enforcement. `inspection-only` publishes query and Workspace lifecycle tools but no transaction, bundled mutation or Code Action staging tools; when external plugins are explicitly enabled, only their query tools are published. `transactional` publishes `transaction-preview` and asks the connected client for confirmation before each commit unless the user approves transaction commits for the remainder of that Host process. `approval-required` replaces preview with `transaction-review`; its commit contract requires the returned short-lived receipt and requests one-use approval for that exact validated change. `autonomous-trusted` publishes the preview workflow without Host confirmation.
-
-Changing mode requires restarting the Host. Clients must use the newly negotiated server instructions and tool catalogue after reconnecting: `transaction-preview` is unavailable in approval-required mode, while `transaction-review` and its receipt-bearing commit schema are unavailable in every other mode.
-
-Compiler-impact validation is separately selected with `--commit-validation no-new-compiler-errors`; no operational mode enables it by default. When selected, `transaction-validate` is published and successful validation becomes a prerequisite for review and commit. Validation is calculated only on explicit validate, review or commit operations, covers changed loaded project evaluations and their loaded transitive dependants, and compares the transaction's captured baseline with its current revision. See [Workspaces and safe transactions](workspaces-and-transactions.md#compiler-impact-validation) for behaviour and recovery guidance.
-
-Transactional confirmation depends on the connected client advertising and permitting MCP elicitation. This is independent of filesystem or shell permissions: a broadly permissive client configuration can still block interactive MCP requests. A decline, cancellation, unavailable prompt, client failure or invalid choice writes no files and leaves the transaction active. The user can approve only the current commit, approve transaction commits for the rest of the current Host process, or refuse. Session approval is held only in memory, applies to transaction commit across Workspaces served by that process, and is cleared by restart.
-
-`server-status` with `detail: Full` reports the operational mode, effective source-mutation and commit-authorisation primitives, whether external plugins were explicitly enabled, process-local commit-confirmation state, whether compiler validation is active, and whether the connected client advertised elicitation. It also reports all startup fallback warnings. Workspace authority is projected as `Unrestricted` or `Restricted`, the effective root count and the external-document policy; configured absolute roots are not disclosed. Generated-source configuration is reported as the effective policy and exception count without adding exception patterns to routine agent context. Its error-reporting projection includes only the built-in provider name, configured consent mode and effective configured consent state: `Disabled` for `never`, `PromptRequired` for `prompt` or `AlwaysApproved` for `always`. It never exposes the application-owned DSN or public submission key. Cache settings, plugin directories and the state-directory path are not included in that public configuration projection.
-
-Workspace authority is fixed for the lifetime of the Host. A configured root controls which solution or project may be opened and caps its effective source, transaction and recovery boundary. It does not restrict SDKs, metadata references, packages or MSBuild imports, and it is not a sandbox: only configure roots containing fully trusted build inputs.
-
 The Host includes its external error-report provider as application configuration. With consent set to `never`, the Host retains local correlated diagnostics but does not publish preparation or submission tools. `always` bypasses a consent prompt only: it never creates background traffic, and callers must still prepare, review and explicitly submit each report. See [Error reporting and privacy](error-reporting.md) for the complete workflow and data boundary.
 
-Code Action references are temporary, process-local and snapshot-bound. Increasing their lifetime does not make them portable across server restarts or Workspace revisions; follow the [Code Action workflow](code-actions.md) and rediscover when directed.
+## Inspect effective configuration
 
-The default state directory is `%LOCALAPPDATA%\roslyn-workbench-mcp\state` on Windows, `$XDG_STATE_HOME/roslyn-workbench-mcp` on Linux when `XDG_STATE_HOME` is an absolute path, `~/.local/state/roslyn-workbench-mcp` on Linux otherwise, and `~/Library/Application Support/roslyn-workbench-mcp/state` on macOS. Unix state directories are created with `0700` permissions and recovery files with `0600`; Windows state inherits the current user's local-application-data access controls.
+`server-status` with `detail: Full` reports the operational mode, effective source-mutation and commit-authorisation primitives, whether external plugins were explicitly enabled, process-local commit-confirmation state, whether compiler validation is active, and whether the connected client advertised elicitation. It also reports all startup fallback warnings.
 
-External plugin loading is disabled unless the operator supplies `--enable-plugins`. Once enabled, every configured plugin executes as trusted in-process code with the operating-system authority of the Host; the switch is not a sandbox or a plugin endorsement. The plugin set is discovered once during startup, so adding, removing or upgrading a plugin package requires a server restart.
+Workspace authority is projected as `Unrestricted` or `Restricted`, the effective root count and the external-document policy; configured absolute roots are not disclosed. Generated-source configuration is reported as the effective policy and exception count without adding exception patterns to routine agent context.
+
+Its error-reporting projection includes only the built-in provider name, configured consent mode and effective configured consent state: `Disabled` for `never`, `PromptRequired` for `prompt` or `AlwaysApproved` for `always`. It never exposes the application-owned DSN or public submission key. Cache settings, plugin directories and the state-directory path are not included in that public configuration projection.

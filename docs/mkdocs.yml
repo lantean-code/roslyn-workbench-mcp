@@ -65,19 +65,30 @@ nav:
   - Release notes: release-notes.md
   - Getting started:
       - Connect a client: getting-started.md
-      - Configuration: configuration.md
-      - Compatibility policy: compatibility.md
-      - Plugin authoring: plugin-authoring.md
-      - Supply-chain evidence: supply-chain.md
       - Agent setup: agent-setup.md
       - Troubleshooting and removal: troubleshooting.md
+      - Build from source: building-from-source.md
   - Using Roslyn Workbench:
       - Tool discovery and results: tool-discovery.md
+      - Loading workspaces: workspaces.md
       - Workspaces and transactions: workspaces-and-transactions.md
+      - Compiler-impact validation: compiler-validation.md
+      - Commit coordination and recovery: transaction-recovery.md
       - Code Actions: code-actions.md
       - Error reporting and privacy: error-reporting.md
+  - Configuration and policies:
+      - Startup configuration: configuration.md
+      - Compatibility policy: compatibility.md
+      - Supply-chain evidence: supply-chain.md
+  - Plugin authors:
+      - Your first plugin: plugin-authoring.md
+      - Mutation plugins: plugins/mutations.md
+      - Contracts and services: plugins/contracts.md
+      - Packaging and deployment: plugins/deployment.md
+      - Authoring diagnostics: plugins/diagnostics.md
   - Reference:
       - Tool reference: reference/tools/index.md
       - Security guarantees and evidence: reference/security/index.md
+      - Security surface appendix: reference/security/surface.md
       - Agent guide: agent/index.md
   - Support and feedback: https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md

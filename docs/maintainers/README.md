@@ -10,6 +10,9 @@ These documents describe lasting engineering decisions and maintenance procedure
 - [Releasing](releasing.md): versioning, evidence, publication and repository activation.
 - [Distribution identities](distribution.md): product naming, package IDs and distribution target status.
 - [Documentation cleanup](documentation-cleanup.md): synchronising published versions with repository tags.
+- [Compatibility maintenance](compatibility.md): catalogue baselines, recovery mappings and package API checks.
+- [Tool catalogue](tool-catalogue.md): publication internals and curated resource defaults.
+- [Error-report providers](error-reporting.md): preparation, immutable dispatch and transport implementation.
 - [Roadmap](roadmap.md): intentionally deferred capabilities and conditions for revisiting them.
 
 User-facing instructions and the generated tool reference belong in the [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/). MCP `tools/list` remains authoritative for the running server.

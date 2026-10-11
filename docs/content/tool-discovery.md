@@ -2,21 +2,17 @@
 
 ## Live tool inventory
 
-Use MCP `tools/list` to discover the exact tools published by the running process. The surface is assembled once at startup from:
-
-- server-owned status, workspace and transaction tools;
-- bundled Roslyn inspection and mutation tools;
-- the Host-owned `list-code-actions`, `prepare-fix-all` and `stage-code-action` tools; and
-- `get-error-details`, plus the conditionally published `prepare-error-report` and `submit-error-report` tools; and
-- enabled third-party plugins.
+Use MCP `tools/list` for the exact names, schemas and annotations published by the running Host. The startup operational mode, error-reporting policy and explicitly enabled plugins determine what is available.
 
 The tool list does not vary with workspace or transaction state and does not change during the process lifetime. A tool that cannot run in the current state returns a structured state error rather than disappearing from discovery.
 
-`get-error-details` is always published for local correlated failure inspection. The two external-reporting tools are published whenever startup consent is not `never`; the Host supplies the provider and destination as application configuration. Their names remain reserved against plugin collisions when omitted under `never`. Per-report prompt outcomes do not change `tools/list` or establish runtime overrides.
+Inspection-only omits transaction and source-mutation tools but retains Code Action discovery and preparation. Transactional and autonomous-trusted use preview; approval-required uses review receipts. An omitted tool cannot be invoked by guessing its name. See [Operational modes](configuration.md#operational-modes).
 
-The startup operational mode also fixes the catalogue. `inspection-only` omits all five Host transaction tools, bundled plugin mutations and Code Action staging while retaining query operations such as Code Action discovery and preparation. External plugin loading is independently disabled by default and requires the valueless `--enable-plugins` switch; when enabled under inspection-only policy, external query tools are published but external mutation definitions are removed before schema preflight, handler resolution or runtime-wrapper materialisation. A plugin with no permitted tools creates no service provider. `transactional` and `autonomous-trusted` publish the supported mutation catalogue; transactional commit additionally requires client-mediated confirmation. Omitted Host names remain reserved against plugin collisions. The live `tools/list` response is authoritative, and a policy-omitted tool cannot be invoked through the dynamic plugin handler.
+`get-error-details` remains available for local failures. External-report preparation and submission are unavailable when startup consent is `never`. Prompt outcomes do not change the catalogue.
 
-`server-status` reports the total mode-specific published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective operational policy, external-plugin enablement, connected-client elicitation support, startup warnings and unfinished recovery state. Its Workspace configuration projection reports `workspaceAdmission`, `allowedWorkspaceRootCount` and `externalDocumentPolicy` without disclosing configured root paths. Internal Code Actions are reported as a component, not as a plugin.
+`server-status` reports the total mode-specific published tool count. With `detail: Full`, it also reports plugin load results, Code Action availability, effective operational policy, external-plugin enablement, connected-client elicitation support, startup warnings and unfinished recovery state.
+
+Its Workspace configuration projection reports `workspaceAdmission`, `allowedWorkspaceRootCount` and `externalDocumentPolicy` without disclosing configured root paths. Internal Code Actions are reported as a component, not as a plugin.
 
 The three-tool [Code Action workflow](code-actions.md) discovers ordinary Roslyn Code Fixes and refactorings through concise opaque references. Code Action providers do not publish separate provider-specific MCP tools.
 
@@ -45,7 +41,20 @@ Successful calls use a common structured envelope. Workspace-bound plugin and Co
 }
 ```
 
-Handled failures return `ok: false`, a structured `error`, and an optional `continuation`; they do not publish a replacement snapshot. Its `kind` distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language `instruction`. Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when reporting is disabled or approval is unavailable. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
+### Failures and next actions
+
+Handled failures return `ok: false`, a structured `error`, and an optional `continuation`; they do not publish a replacement snapshot. Its `kind` distinguishes a required exact tool call, a required choice between tools, a retry, a request revision, or external resolution; every variant includes a natural-language `instruction`.
+
+Unexpected correlated failures also identify whether local details are available and project the current external-reporting state, so an agent does not attempt preparation when reporting is disabled or approval is unavailable. Agents should follow the returned continuation instead of guessing how to repair stale selectors, transaction conflicts or unavailable workspace state.
+
+Read a failed result in this order:
+
+1. `ok: false` means the operation did not succeed; do not treat it as a successful mutation.
+2. Inspect `error.code` and its message.
+3. Follow the returned `continuation` when present; its kind and target identify the next action.
+4. If there is no continuation, explain the failure rather than inventing a recovery action.
+
+For example, a `WorkspaceBusy` failure with a retry continuation means another exclusive Workspace operation is active. Retry as directed; do not replace the expected snapshot or assume the failed operation completed.
 
 ## Bounded collections
 
@@ -53,15 +62,6 @@ Collection-returning tools expose named result limits and return deterministic b
 
 When `hasMore` is true, an agent may request a larger collection if the extra context is useful or narrow the workspace scope, selector or filter. A larger request recomputes the deterministic result from the beginning; there are no generic cursors or continuation tokens.
 
-Bundled collection defaults are curated by result shape and expected cost:
+Defaults differ by operation and result shape. Read each tool's schema or [tool reference](reference/tools/index.md) for its limit, depth and context-window defaults rather than applying a single global value.
 
-- 16 results: base types;
-- 25 results: dependency cycles and duplicate-code groups;
-- 32 results: partial declarations and control-flow regions;
-- 50 results: async, disposable, nullability and unused-symbol findings, overloads, attributes, project references and analyzers;
-- 64 results: implemented interfaces and control-flow blocks;
-- 100 results: symbol searches, API symbols, metrics, callers, callees, references, implementations, overrides, derived types, hierarchy-derived types, dependencies, dependents, members, change-impact locations, tests, projects and metadata references;
-- 200 results: diagnostics, project documents, solution folders and dependency graph nodes; and
-- 400 results: dependency graph edges.
-
-Other bounded numeric inputs also publish their effective defaults: hierarchy, derived-type and callee depth is 3; operation-tree depth is 8; duplicate-code matching requires at least 3 statements; code-context windows are 10 lines on each side; transaction diff context is 3 lines; Code Action discovery returns at most 50 leaves; Fix All preparation allows at most 50 changed source documents and returns at most 20 affected document identities unless the caller supplies other values.
+The Host's internal publication and resource-default details are recorded in the [maintainer catalogue guide](https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/docs/maintainers/tool-catalogue.md).

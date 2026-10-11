@@ -9,11 +9,19 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/building-from-source.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/code-actions.html</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/compatibility.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/compiler-validation.html</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
@@ -45,6 +53,10 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/transaction-recovery.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
@@ -53,11 +65,35 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/workspaces.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/index.html</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/contracts.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/deployment.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/diagnostics.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/mutations.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/index.html</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/surface.html</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>

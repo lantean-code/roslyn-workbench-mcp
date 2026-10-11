@@ -1,0 +1,2845 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bring Visual Studio-style C# code fixes and refactorings to your AI coding agent with Roslyn Code Actions, semantic analysis and reviewable local transactions.">
+      
+      
+      
+        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/diagnostics.html">
+      
+      
+        <link rel="prev" href="deployment.html">
+      
+      
+        <link rel="next" href="../reference/tools/index.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/generated/roslyn-workbench-mcp-icon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Authoring diagnostics - Roslyn Workbench MCP</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/brand.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <meta name="roslyn-workbench-version" content="dev">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plugin-authoring-diagnostics" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    <div class="rw-docs-version rw-dev-warning" data-rw-documentation-version="dev">Development documentation may describe behaviour that has not been released.</div>
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Roslyn Workbench MCP
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Authoring diagnostics
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    Roslyn Workbench MCP
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connect a client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-setup.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting and removal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../building-from-source.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build from source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Roslyn Workbench
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Roslyn Workbench
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tool-discovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool discovery and results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workspaces.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading workspaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workspaces-and-transactions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces and transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compiler-validation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler-impact validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transaction-recovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commit coordination and recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-actions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../error-reporting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error reporting and privacy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration and policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration and policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Startup configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../supply-chain.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supply-chain evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin authors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugin authors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin-authoring.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="mutations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mutation plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="contracts.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="deployment.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging and deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring diagnostics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="diagnostics.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP001
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP001">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-mutate-the-roslyn-workspace-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not mutate the Roslyn Workspace directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP002
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP002">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-the-invocation-solution-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the invocation solution snapshot
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP003
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP003">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-configuration-must-complete-synchronously" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin configuration must complete synchronously
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP004
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP004">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-retain-startup-configuration-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not retain startup configuration objects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP005
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP005">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implement-exactly-one-handler-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implement exactly one handler contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP006
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP006">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-handlers-must-not-own-a-disposable-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin handlers must not own a disposable lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP007
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP007">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-handlers-must-not-declare-mef-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin handlers must not declare MEF imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP008
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP008">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#external-transport-contract-types-must-be-public" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External transport contract types must be public
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP009
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP009">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handler-instance-state-requires-thread-safety-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler instance state requires thread-safety review
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP010
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP010">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avoid-mutable-static-handler-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avoid mutable static handler state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP011
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP011">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handler-field-may-own-a-disposable-resource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler field may own a disposable resource
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp012" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP012
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP012">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-tools-cannot-declare-destructive-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query tools cannot declare destructive behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp013" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP013
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP013">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#observe-the-invocation-cancellation-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observe the invocation cancellation token
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP014
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP014">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bound-agent-facing-query-collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bound agent-facing query collections
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP015
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP015">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-entry-point-marker-and-contract-must-agree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin entry-point marker and contract must agree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp016" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP016
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP016">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-plugin-assembly-cannot-declare-multiple-marked-entry-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A plugin assembly cannot declare multiple marked entry points
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp017" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP017
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP017">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#declare-the-supported-plugin-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Declare the supported plugin API version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp018" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP018
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP018">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-identity-metadata-must-not-be-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin identity metadata must not be blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp019" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP019
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP019">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-metadata-must-decorate-a-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool metadata must decorate a handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP020
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP020">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-a-dedicated-immutable-query-cache-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use a dedicated immutable query-cache key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp021" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP021
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP021">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cached-value-may-be-unsafe-to-retain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cached value may be unsafe to retain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp022" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP022
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP022">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-a-protocol-compatible-mcp-tool-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use a protocol-compatible MCP tool name
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp023" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP023
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP023">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-throw-mcp-protocol-exceptions-from-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not throw MCP protocol exceptions from plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/tools/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/security/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security guarantees and evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/security/surface.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security surface appendix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP001
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP001">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-mutate-the-roslyn-workspace-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not mutate the Roslyn Workspace directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP002
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP002">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-the-invocation-solution-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the invocation solution snapshot
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP003
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP003">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-configuration-must-complete-synchronously" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin configuration must complete synchronously
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP004
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP004">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-retain-startup-configuration-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not retain startup configuration objects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP005
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP005">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implement-exactly-one-handler-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implement exactly one handler contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP006
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP006">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-handlers-must-not-own-a-disposable-lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin handlers must not own a disposable lifetime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP007
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP007">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-handlers-must-not-declare-mef-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin handlers must not declare MEF imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP008
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP008">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#external-transport-contract-types-must-be-public" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External transport contract types must be public
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP009
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP009">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handler-instance-state-requires-thread-safety-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler instance state requires thread-safety review
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP010
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP010">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avoid-mutable-static-handler-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avoid mutable static handler state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP011
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP011">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handler-field-may-own-a-disposable-resource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler field may own a disposable resource
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp012" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP012
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP012">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-tools-cannot-declare-destructive-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query tools cannot declare destructive behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp013" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP013
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP013">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#observe-the-invocation-cancellation-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observe the invocation cancellation token
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP014
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP014">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bound-agent-facing-query-collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bound agent-facing query collections
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP015
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP015">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-entry-point-marker-and-contract-must-agree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin entry-point marker and contract must agree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp016" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP016
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP016">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-plugin-assembly-cannot-declare-multiple-marked-entry-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A plugin assembly cannot declare multiple marked entry points
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp017" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP017
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP017">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#declare-the-supported-plugin-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Declare the supported plugin API version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp018" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP018
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP018">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-identity-metadata-must-not-be-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin identity metadata must not be blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp019" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP019
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP019">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-metadata-must-decorate-a-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool metadata must decorate a handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP020
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP020">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-a-dedicated-immutable-query-cache-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use a dedicated immutable query-cache key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp021" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP021
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP021">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cached-value-may-be-unsafe-to-retain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cached value may be unsafe to retain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp022" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP022
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP022">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#use-a-protocol-compatible-mcp-tool-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use a protocol-compatible MCP tool name
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rwmcp023" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RWMCP023
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RWMCP023">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#do-not-throw-mcp-protocol-exceptions-from-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not throw MCP protocol exceptions from plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="plugin-authoring-diagnostics">Plugin authoring diagnostics</h1>
+<p>The <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> package includes build-time diagnostics for trusted, in-process plugin authors. These diagnostics provide early guidance; Host runtime validation and containment remain authoritative when a diagnostic is suppressed or a plugin is built without the analyser.</p>
+<p><a id="RWMCP001"></a></p>
+<h2 id="rwmcp001">RWMCP001</h2>
+<h3 id="do-not-mutate-the-roslyn-workspace-directly">Do not mutate the Roslyn Workspace directly</h3>
+<p>Do not call <code>Microsoft.CodeAnalysis.Workspace.TryApplyChanges</code>. Query tools are read-only, and mutation tools must return a <code>MutationCandidate</code> so the Host can validate and stage the proposed solution through the active transaction.</p>
+<p>The Host detects an unexpected change to the underlying Roslyn Workspace after plugin execution, rejects the result and requires the affected workspace to be reloaded or its transaction to be rolled back.</p>
+<p><a id="RWMCP002"></a></p>
+<h2 id="rwmcp002">RWMCP002</h2>
+<h3 id="use-the-invocation-solution-snapshot">Use the invocation solution snapshot</h3>
+<p>Do not read <code>Microsoft.CodeAnalysis.Workspace.CurrentSolution</code>. Use the <code>CurrentSolution</code> supplied by the invocation context so the query or mutation observes the selected workspace snapshot and transaction revision.</p>
+<p>Access to <code>Solution.Workspace</code> remains permitted because some legitimate Roslyn query APIs require the associated Workspace.</p>
+<p><a id="RWMCP003"></a></p>
+<h2 id="rwmcp003">RWMCP003</h2>
+<h3 id="plugin-configuration-must-complete-synchronously">Plugin configuration must complete synchronously</h3>
+<p>Implement <code>IRoslynPlugin.Configure</code> synchronously. An <code>async void</code> implementation returns before awaited registration completes and moves failures outside Host startup validation.</p>
+<p>Complete asynchronous preparation before plugin configuration or redesign it as invocation-scoped work.</p>
+<p><a id="RWMCP004"></a></p>
+<h2 id="rwmcp004">RWMCP004</h2>
+<h3 id="do-not-retain-startup-configuration-objects">Do not retain startup configuration objects</h3>
+<p>Do not assign <code>IPluginConfiguration</code> or a tool configuration builder to a field or property, and do not capture those objects in a delegate that can escape configuration.</p>
+<p>Local variables and synchronous helper calls are supported. Keep registration visibly scoped to <code>IRoslynPlugin.Configure</code>.</p>
+<p><a id="RWMCP005"></a></p>
+<h2 id="rwmcp005">RWMCP005</h2>
+<h3 id="implement-exactly-one-handler-contract">Implement exactly one handler contract</h3>
+<p>A concrete handler must implement exactly one closed <code>IQueryToolHandler&lt;TRequest, TResponse&gt;</code> or <code>IMutationToolHandler&lt;TRequest&gt;</code> contract. Do not implement a marker interface directly, implement multiple contracts from one family or combine query and mutation contracts.</p>
+<p>Split distinct tools into separate handler types so registration and transport metadata remain unambiguous.</p>
+<p><a id="RWMCP006"></a></p>
+<h2 id="rwmcp006">RWMCP006</h2>
+<h3 id="plugin-handlers-must-not-own-a-disposable-lifetime">Plugin handlers must not own a disposable lifetime</h3>
+<p>Handler instances are retained for the lifetime of the plugin catalogue. They must not implement <code>IDisposable</code> or <code>IAsyncDisposable</code>.</p>
+<p>Acquire and dispose invocation-scoped resources during <code>ExecuteAsync</code>, or use supported services supplied by the invocation context.</p>
+<p><a id="RWMCP007"></a></p>
+<h2 id="rwmcp007">RWMCP007</h2>
+<h3 id="plugin-handlers-must-not-declare-mef-imports">Plugin handlers must not declare MEF imports</h3>
+<p>Do not use <code>Import</code>, <code>ImportMany</code> or <code>ImportingConstructor</code> on a handler or its source-visible base types. Typed plugin registration owns handler construction; Host MEF services are not a plugin-authoring extension point.</p>
+<p>Use the services exposed through the query or mutation context.</p>
+<p><a id="RWMCP008"></a></p>
+<h2 id="rwmcp008">RWMCP008</h2>
+<h3 id="external-transport-contract-types-must-be-public">External transport contract types must be public</h3>
+<p>Requests, responses and their containing, element and generic argument types must be effectively public. The Host serialises these types across the MCP boundary and external consumers must be able to describe their contracts.</p>
+<p>This rule applies to external plugin assemblies. Bundled Host tools may use internal transport contracts because their activation and serialisation boundary is controlled by the Host.</p>
+<p><a id="RWMCP009"></a></p>
+<h2 id="rwmcp009">RWMCP009</h2>
+<h3 id="handler-instance-state-requires-thread-safety-review">Handler instance state requires thread-safety review</h3>
+<p>An instance field, writable instance property or instance event introduces state on a handler that may serve concurrent invocations. Readonly fields whose values come directly from constructor-injected plugin singleton services are supported; those services remain responsible for thread safety. Readonly state created or otherwise owned by the handler still requires review.</p>
+<p>Remove the state when possible. If it is intentional, ensure that access is thread-safe and suppress the warning with a specific justification.</p>
+<p><a id="RWMCP010"></a></p>
+<h2 id="rwmcp010">RWMCP010</h2>
+<h3 id="avoid-mutable-static-handler-state">Avoid mutable static handler state</h3>
+<p>Non-constant, non-readonly static fields are shared across every handler invocation and workspace. Remove the mutable static state or protect it with an appropriate concurrency and lifetime design.</p>
+<p><a id="RWMCP011"></a></p>
+<h2 id="rwmcp011">RWMCP011</h2>
+<h3 id="handler-field-may-own-a-disposable-resource">Handler field may own a disposable resource</h3>
+<p>A handler field has a type that implements <code>IDisposable</code> or <code>IAsyncDisposable</code> and may own the resource. Readonly fields sourced directly from constructor-injected plugin services are provider-owned and excluded; readonly resources created or otherwise owned by the handler still produce this warning.</p>
+<p>Prefer invocation-scoped ownership. Suppress the warning only when the field is demonstrably non-owning and safe for concurrent use.</p>
+<p><a id="RWMCP012"></a></p>
+<h2 id="rwmcp012">RWMCP012</h2>
+<h3 id="query-tools-cannot-declare-destructive-behaviour">Query tools cannot declare destructive behaviour</h3>
+<p>A query handler cannot set <code>RoslynToolAttribute.Destructive</code> to <code>true</code>. Query tools must be read-only; source changes belong in a mutation handler and must be returned as a <code>MutationCandidate</code>.</p>
+<p><a id="RWMCP013"></a></p>
+<h2 id="rwmcp013">RWMCP013</h2>
+<h3 id="observe-the-invocation-cancellation-token">Observe the invocation cancellation token</h3>
+<p>A handler <code>ExecuteAsync</code> implementation does not meaningfully read or forward its cancellation token. Assigning the token to a discard does not count as observation.</p>
+<p>Forward the token to cancellable Roslyn, I/O and asynchronous APIs, or call <code>ThrowIfCancellationRequested</code> at appropriate boundaries. A genuinely fast synchronous implementation may suppress this informational diagnostic with a specific justification.</p>
+<p><a id="RWMCP014"></a></p>
+<h2 id="rwmcp014">RWMCP014</h2>
+<h3 id="bound-agent-facing-query-collections">Bound agent-facing query collections</h3>
+<p>A query publishes a raw array, list, set, dictionary, enumerable or asynchronous collection either as its response or through a public response property.</p>
+<p>Expose a nullable integer limit with a positive declared default and apply <code>[Range(0, int.MaxValue)]</code> so negative values are rejected during request binding. An explicitly requested zero means that no items should be returned and must not be the declared default. Resolve omitted values with <code>ResultLimit.GetEffectiveValue</code>, apply the effective limit before constructing the response, and return a dedicated response DTO implementing <code>IQueryResponse</code> with a <code>BoundedCollection&lt;TItem&gt;</code> property created through <code>BoundedCollection.CreatePrebounded&lt;TItem&gt;</code> from <code>Roslyn.Workbench.Mcp.Workspace.Results</code>. <code>BoundedCollection&lt;TItem&gt;</code> is not itself a top-level response. Include <code>TotalCount</code> only when the complete count is already available cheaply.</p>
+<p>This diagnostic validates the published contract shape. It cannot prove that collection discovery stopped at the limit or that the chosen limit and ordering are appropriate.</p>
+<p><a id="RWMCP015"></a></p>
+<h2 id="rwmcp015">RWMCP015</h2>
+<h3 id="plugin-entry-point-marker-and-contract-must-agree">Plugin entry-point marker and contract must agree</h3>
+<p>A type decorated with <code>RoslynPluginAttribute</code> must be a concrete, non-generic <code>IRoslynPlugin</code> implementation. Conversely, every concrete <code>IRoslynPlugin</code> implementation must declare the attribute.</p>
+<p>Abstract plugin base classes may omit the attribute because they are not composable entry points.</p>
+<p><a id="RWMCP016"></a></p>
+<h2 id="rwmcp016">RWMCP016</h2>
+<h3 id="a-plugin-assembly-cannot-declare-multiple-marked-entry-points">A plugin assembly cannot declare multiple marked entry points</h3>
+<p>An assembly must expose exactly one marked plugin entry point when it is a plugin package. Split independent plugins into separate assemblies and packages.</p>
+<p>Assemblies that merely reference the Plugins package do not need to declare an entry point.</p>
+<p><a id="RWMCP017"></a></p>
+<h2 id="rwmcp017">RWMCP017</h2>
+<h3 id="declare-the-supported-plugin-api-version">Declare the supported plugin API version</h3>
+<p>The API version supplied to <code>RoslynPluginAttribute</code> must equal the <code>PluginApiVersions.V1</code> constant from the referenced Plugins package.</p>
+<p>Runtime loading remains authoritative because the installed Host determines which API version it supports.</p>
+<p><a id="RWMCP018"></a></p>
+<h2 id="rwmcp018">RWMCP018</h2>
+<h3 id="plugin-identity-metadata-must-not-be-blank">Plugin identity metadata must not be blank</h3>
+<p>The plugin ID and display name supplied to <code>RoslynPluginAttribute</code> must contain non-whitespace text. Choose a stable, globally distinctive ID and a meaningful user-facing display name.</p>
+<p><a id="RWMCP019"></a></p>
+<h2 id="rwmcp019">RWMCP019</h2>
+<h3 id="tool-metadata-must-decorate-a-handler">Tool metadata must decorate a handler</h3>
+<p><code>RoslynToolAttribute</code> may only decorate a type that implements a closed <code>IQueryToolHandler&lt;TRequest, TResponse&gt;</code> or <code>IMutationToolHandler&lt;TRequest&gt;</code> contract.</p>
+<p>Attribute-free handlers remain supported because fluent configuration can supply their complete metadata.</p>
+<p><a id="RWMCP020"></a></p>
+<h2 id="rwmcp020">RWMCP020</h2>
+<h3 id="use-a-dedicated-immutable-query-cache-key">Use a dedicated immutable query-cache key</h3>
+<p>Every <code>IQueryResultCache</code> call must use a named, sealed, immutable reference type with stable value equality, normally a sealed record class implementing <code>IQueryResultCacheKey</code>. Put strings and other scalar semantic inputs inside that dedicated key rather than using them directly. Arrays, mutable collections, Roslyn snapshot objects, writable members and unsafe nested member shapes are rejected.</p>
+<p>The analyser cannot determine whether every semantic input is present. Include every input that can change the computed value within the registered tool.</p>
+<p><a id="RWMCP021"></a></p>
+<h2 id="rwmcp021">RWMCP021</h2>
+<h3 id="cached-value-may-be-unsafe-to-retain">Cached value may be unsafe to retain</h3>
+<p>An <code>IQueryResultCache</code> value is clearly mutable, disposable, recursively contains an unsafe retained shape, or is a plugin result envelope whose transient failure state could become sticky. Cache only values that callers treat as immutable and that do not own resources.</p>
+<p>This warning is intentionally suppressible when static analysis cannot see a valid immutability or ownership invariant. Give every suppression a specific justification. The Host still refuses an actual <code>IDisposable</code> or <code>IAsyncDisposable</code> value at runtime.</p>
+<p><a id="RWMCP022"></a></p>
+<h2 id="rwmcp022">RWMCP022</h2>
+<h3 id="use-a-protocol-compatible-mcp-tool-name">Use a protocol-compatible MCP tool name</h3>
+<p>MCP tool names must contain between 1 and 128 ASCII letters, digits, underscores, hyphens, or periods. The analyser checks constant names supplied through <code>RoslynToolAttribute</code> and <code>WithName</code>. The Host applies the same rule to the final merged metadata at startup, so dynamically configured names cannot bypass it. Choose a valid name rather than sanitising one because changing a name can silently alter the tool's public identity.</p>
+<p><a id="RWMCP023"></a></p>
+<h2 id="rwmcp023">RWMCP023</h2>
+<h3 id="do-not-throw-mcp-protocol-exceptions-from-plugins">Do not throw MCP protocol exceptions from plugins</h3>
+<p>Do not throw or rethrow <code>ModelContextProtocol.McpProtocolException</code> from plugin code. Protocol errors are owned by the Host transport boundary; a protocol exception from plugin code is treated as an unexpected failure, captured for correlated error reporting and returned through a sanitised error envelope. Return an appropriate <code>PluginExecutionResult</code> failure so the Host can project the failure through the supported tool-result contract.</p>
+<p>The analyser activates only when the plugin project independently references the MCP SDK. Runtime exception handling remains authoritative because static analysis cannot identify a protocol exception hidden behind a broader static exception type or thrown by a dependency.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.top", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

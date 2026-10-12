@@ -21,7 +21,7 @@ An agent can discover applicable actions, select the right fix or refactoring, s
 - Inspect diagnostics, async usage, nullability and control flow; investigate change and test impact before editing.
 - Stage Code Actions and symbol renames through [reviewable transactions](workspaces-and-transactions.md), with rollback, conflict detection and crash recovery.
 
-The 1.0.1 reference catalogue contains 57 MCP tool definitions. The running server exposes only those permitted by its operational mode and configuration, plus enabled plugin tools. The three Code Action tools unlock many applicable fixes and refactorings without publishing a separate MCP tool for every provider.
+The built-in reference catalogue contains 57 MCP tool definitions. The running server exposes only those permitted by its operational mode and configuration, plus enabled plugin tools. The three Code Action tools unlock many applicable fixes and refactorings without publishing a separate MCP tool for every provider.
 
 ## Local execution, deliberate source changes
 

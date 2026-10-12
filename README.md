@@ -31,7 +31,7 @@ The provider count is not a count of individual actions: a provider can offer mu
 - Inspect diagnostics, async usage, nullability and control flow, and investigate change and test impact.
 - Keep agent responses bounded instead of loading an entire solution into the conversation.
 
-The 1.0.1 reference catalogue contains 57 MCP tool definitions covering navigation, analysis, Code Actions and workspace management. The live tool set depends on operational mode, configuration and enabled plugins; the three Code Action tools expose many applicable fixes and refactorings without adding one MCP tool per provider.
+The built-in reference catalogue contains 57 MCP tool definitions covering navigation, analysis, Code Actions and workspace management. The live tool set depends on operational mode, configuration and enabled plugins; the three Code Action tools expose many applicable fixes and refactorings without adding one MCP tool per provider.
 
 ## Compiler-powered changes, reviewable transactions
 

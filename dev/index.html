@@ -1526,7 +1526,7 @@
 <li>Inspect diagnostics, async usage, nullability and control flow; investigate change and test impact before editing.</li>
 <li>Stage Code Actions and symbol renames through <a href="workspaces-and-transactions.html">reviewable transactions</a>, with rollback, conflict detection and crash recovery.</li>
 </ul>
-<p>The 1.0.1 reference catalogue contains 57 MCP tool definitions. The running server exposes only those permitted by its operational mode and configuration, plus enabled plugin tools. The three Code Action tools unlock many applicable fixes and refactorings without publishing a separate MCP tool for every provider.</p>
+<p>The built-in reference catalogue contains 57 MCP tool definitions. The running server exposes only those permitted by its operational mode and configuration, plus enabled plugin tools. The three Code Action tools unlock many applicable fixes and refactorings without publishing a separate MCP tool for every provider.</p>
 <h2 id="local-execution-deliberate-source-changes">Local execution, deliberate source changes</h2>
 <p>Workspace analysis and refactoring run on your machine over stdio. <a href="configuration.html">Inspection-only is the default</a>; enable a mutation mode when you want your agent to stage changes. Nothing writes source files until an explicit transaction commit. Builds, tests and Git commits stay in your normal development workflow.</p>
 <p><a href="getting-started.html">Connect your coding agent</a>, then add <a href="agent-setup.html">agent guidance</a> so it knows when to choose Roslyn's semantic tools and Code Actions.</p>

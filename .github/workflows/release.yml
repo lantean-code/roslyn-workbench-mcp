@@ -137,7 +137,9 @@ jobs:
           --root-directory .
           --no-build --no-restore
           --filter "Category!=Integration&Category!=Audit"
-          --coverlet --coverlet-output-format json --coverlet-output-format cobertura
+          --coverlet
+          --coverlet-include "[Roslyn.Workbench.Mcp*]*" --coverlet-exclude "[*.Test*]*"
+          --coverlet-output-format json --coverlet-output-format cobertura
           --report-trx
           --results-directory TestResults/release-fast
           --minimum-expected-tests 1732

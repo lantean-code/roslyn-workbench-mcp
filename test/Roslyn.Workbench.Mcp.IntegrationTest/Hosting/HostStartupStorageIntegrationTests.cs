@@ -59,7 +59,7 @@ public sealed class HostStartupStorageIntegrationTests
 
             process.ExitCode.Should().Be(1);
             output.Should().BeEmpty();
-            error.Should().Contain("Cannot write durable recovery storage")
+            error.Should().Contain("Cannot initialise durable recovery storage")
                 .And.Contain(statePath)
                 .And.Contain("--state-directory")
                 .And.NotContain("Hosting failed to start")

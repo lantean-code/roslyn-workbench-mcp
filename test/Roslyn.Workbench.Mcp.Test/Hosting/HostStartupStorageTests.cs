@@ -36,9 +36,37 @@ public sealed class HostStartupStorageTests
         var succeeded = HostStartupStorage.TryInitialize(stateDirectory.Object, logger.Object, output);
 
         succeeded.Should().BeFalse();
-        output.ToString().Should().Contain("Cannot write durable recovery storage at 'RecoveryDirectory'")
+        output.ToString().Should().Contain("Cannot initialise durable recovery storage at 'RecoveryDirectory'")
+            .And.Contain(failure.Message)
             .And.Contain("--state-directory")
             .And.NotContain(failure.GetType().Name);
+        logger.Verify(item => item.IsEnabled(LogLevel.Debug), Times.Once);
+        logger.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("StateDirectory")]
+    [InlineData("RecoveryDirectory")]
+    public void GIVEN_UnsafeUnixPermissions_WHEN_Initialising_THEN_ShouldPreservePermissionRemedyWithoutStackTrace(string directoryPath)
+    {
+        var message = $"The Workspace state directory '{directoryPath}' must use Unix permissions '700'.";
+        var failure = new UnauthorizedAccessException(message);
+        var stateDirectory = new Mock<IWorkspaceStateDirectory>();
+        stateDirectory.Setup(directory => directory.Initialize()).Throws(failure);
+        stateDirectory.SetupGet(directory => directory.RecoveryDirectory).Returns("RecoveryDirectory");
+        var logger = new Mock<ILogger>();
+        using var output = new StringWriter();
+
+        var succeeded = HostStartupStorage.TryInitialize(stateDirectory.Object, logger.Object, output);
+
+        succeeded.Should().BeFalse();
+        var diagnostic = output.ToString();
+        diagnostic.Should().Contain(message)
+            .And.Contain("--state-directory")
+            .And.Contain("Logging__LogLevel__Default=Debug")
+            .And.NotContain("UnauthorizedAccessException")
+            .And.NotContain("   at ");
+        diagnostic.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should().ContainSingle();
         logger.Verify(item => item.IsEnabled(LogLevel.Debug), Times.Once);
         logger.VerifyNoOtherCalls();
     }

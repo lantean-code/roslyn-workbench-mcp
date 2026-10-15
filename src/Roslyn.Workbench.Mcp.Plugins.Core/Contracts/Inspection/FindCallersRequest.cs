@@ -16,11 +16,13 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether context snippets should be included.
     /// </summary>
+    [Description("Include the trimmed source line for each returned call site when available; defaults to false.")]
     public bool IncludeContext { get; init; }
 
     /// <summary>
@@ -28,6 +30,7 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCallersMaxResults)]
+    [Description("Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.")]
     public int? CallersLimit { get; init; } = _defaultCallersMaxResults;
 
     /// <summary>
@@ -35,6 +38,7 @@ internal sealed record FindCallersRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultCallSitesPerCallerMaxResults)]
+    [Description("Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.")]
     public int? CallSitesPerCallerLimit { get; init; } = _defaultCallSitesPerCallerMaxResults;
 
     /// <summary>

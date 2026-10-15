@@ -15,6 +15,7 @@ internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -22,6 +23,7 @@ internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultLocationsMaxResults)]
+    [Description("Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.")]
     public int? LocationsLimit { get; init; } = _defaultLocationsMaxResults;
 
     /// <summary>

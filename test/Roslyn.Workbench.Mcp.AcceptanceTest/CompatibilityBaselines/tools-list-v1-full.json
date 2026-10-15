@@ -4217,6 +4217,7 @@
           },
           "findingsLimit": {
             "default": 50,
+            "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -4322,6 +4323,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -6320,6 +6322,7 @@
         "properties": {
           "callSitesPerCallerLimit": {
             "default": 100,
+            "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -6329,6 +6332,7 @@
           },
           "callersLimit": {
             "default": 100,
+            "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -6369,9 +6373,11 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
             "type": "boolean"
           },
           "scope": {
+            "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -8537,6 +8543,7 @@
         "properties": {
           "derivedTypesLimit": {
             "default": 100,
+            "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -8584,6 +8591,7 @@
             "type": "integer"
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -10755,6 +10763,7 @@
           },
           "implementationsLimit": {
             "default": 100,
+            "description": "Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -10763,6 +10772,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -13015,6 +13025,7 @@
           },
           "overridesLimit": {
             "default": 100,
+            "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -13023,6 +13034,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -14141,13 +14153,16 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
             "type": "boolean"
           },
           "includeDefinitions": {
+            "description": "Include source declarations alongside references within the same result limit; defaults to true.",
             "type": "boolean"
           },
           "referencesLimit": {
             "default": 100,
+            "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -14156,6 +14171,7 @@
             ]
           },
           "scope": {
+            "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -18008,6 +18024,7 @@
           },
           "locationsLimit": {
             "default": 100,
+            "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -18016,6 +18033,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -31945,6 +31963,7 @@
         "properties": {
           "dependentsLimit": {
             "default": 100,
+            "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -31985,6 +32004,7 @@
             ]
           },
           "scope": {
+            "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -35390,6 +35410,7 @@
             ]
           },
           "includeReasons": {
+            "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
             "type": "boolean"
           },
           "symbol": {
@@ -35536,6 +35557,7 @@
             "type": "object"
           },
           "testScope": {
+            "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -35627,6 +35649,7 @@
           },
           "testsLimit": {
             "default": 100,
+            "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -42998,6 +43021,7 @@
             ]
           },
           "metadataName": {
+            "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
             "type": "string"
           },
           "namespace": {
@@ -58069,6 +58093,7 @@
           },
           "findingsLimit": {
             "default": 50,
+            "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -58174,6 +58199,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -60172,6 +60198,7 @@
         "properties": {
           "callSitesPerCallerLimit": {
             "default": 100,
+            "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -60181,6 +60208,7 @@
           },
           "callersLimit": {
             "default": 100,
+            "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -60221,9 +60249,11 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
             "type": "boolean"
           },
           "scope": {
+            "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -62389,6 +62419,7 @@
         "properties": {
           "derivedTypesLimit": {
             "default": 100,
+            "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -62436,6 +62467,7 @@
             "type": "integer"
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -64607,6 +64639,7 @@
           },
           "implementationsLimit": {
             "default": 100,
+            "description": "Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -64615,6 +64648,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -66867,6 +66901,7 @@
           },
           "overridesLimit": {
             "default": 100,
+            "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -66875,6 +66910,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -67993,13 +68029,16 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
             "type": "boolean"
           },
           "includeDefinitions": {
+            "description": "Include source declarations alongside references within the same result limit; defaults to true.",
             "type": "boolean"
           },
           "referencesLimit": {
             "default": 100,
+            "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -68008,6 +68047,7 @@
             ]
           },
           "scope": {
+            "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -71860,6 +71900,7 @@
           },
           "locationsLimit": {
             "default": 100,
+            "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -71868,6 +71909,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -85797,6 +85839,7 @@
         "properties": {
           "dependentsLimit": {
             "default": 100,
+            "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -85837,6 +85880,7 @@
             ]
           },
           "scope": {
+            "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -89242,6 +89286,7 @@
             ]
           },
           "includeReasons": {
+            "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
             "type": "boolean"
           },
           "symbol": {
@@ -89388,6 +89433,7 @@
             "type": "object"
           },
           "testScope": {
+            "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -89479,6 +89525,7 @@
           },
           "testsLimit": {
             "default": 100,
+            "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -96850,6 +96897,7 @@
             ]
           },
           "metadataName": {
+            "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
             "type": "string"
           },
           "namespace": {
@@ -111733,6 +111781,7 @@
           },
           "findingsLimit": {
             "default": 50,
+            "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -111838,6 +111887,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -113836,6 +113886,7 @@
         "properties": {
           "callSitesPerCallerLimit": {
             "default": 100,
+            "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -113845,6 +113896,7 @@
           },
           "callersLimit": {
             "default": 100,
+            "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -113885,9 +113937,11 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
             "type": "boolean"
           },
           "scope": {
+            "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -116053,6 +116107,7 @@
         "properties": {
           "derivedTypesLimit": {
             "default": 100,
+            "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -116100,6 +116155,7 @@
             "type": "integer"
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -118271,6 +118327,7 @@
           },
           "implementationsLimit": {
             "default": 100,
+            "description": "Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -118279,6 +118336,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -120531,6 +120589,7 @@
           },
           "overridesLimit": {
             "default": 100,
+            "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -120539,6 +120598,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -121657,13 +121717,16 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
             "type": "boolean"
           },
           "includeDefinitions": {
+            "description": "Include source declarations alongside references within the same result limit; defaults to true.",
             "type": "boolean"
           },
           "referencesLimit": {
             "default": 100,
+            "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -121672,6 +121735,7 @@
             ]
           },
           "scope": {
+            "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -125524,6 +125588,7 @@
           },
           "locationsLimit": {
             "default": 100,
+            "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -125532,6 +125597,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -139461,6 +139527,7 @@
         "properties": {
           "dependentsLimit": {
             "default": 100,
+            "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -139501,6 +139568,7 @@
             ]
           },
           "scope": {
+            "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -142906,6 +142974,7 @@
             ]
           },
           "includeReasons": {
+            "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
             "type": "boolean"
           },
           "symbol": {
@@ -143052,6 +143121,7 @@
             "type": "object"
           },
           "testScope": {
+            "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -143143,6 +143213,7 @@
           },
           "testsLimit": {
             "default": 100,
+            "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -150514,6 +150585,7 @@
             ]
           },
           "metadataName": {
+            "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
             "type": "string"
           },
           "namespace": {
@@ -166415,6 +166487,7 @@
           },
           "findingsLimit": {
             "default": 50,
+            "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -166520,6 +166593,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -168518,6 +168592,7 @@
         "properties": {
           "callSitesPerCallerLimit": {
             "default": 100,
+            "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -168527,6 +168602,7 @@
           },
           "callersLimit": {
             "default": 100,
+            "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -168567,9 +168643,11 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
             "type": "boolean"
           },
           "scope": {
+            "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -170735,6 +170813,7 @@
         "properties": {
           "derivedTypesLimit": {
             "default": 100,
+            "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -170782,6 +170861,7 @@
             "type": "integer"
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -172953,6 +173033,7 @@
           },
           "implementationsLimit": {
             "default": 100,
+            "description": "Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -172961,6 +173042,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -175213,6 +175295,7 @@
           },
           "overridesLimit": {
             "default": 100,
+            "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -175221,6 +175304,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -176339,13 +176423,16 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
             "type": "boolean"
           },
           "includeDefinitions": {
+            "description": "Include source declarations alongside references within the same result limit; defaults to true.",
             "type": "boolean"
           },
           "referencesLimit": {
             "default": 100,
+            "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -176354,6 +176441,7 @@
             ]
           },
           "scope": {
+            "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -179508,6 +179596,7 @@
           },
           "locationsLimit": {
             "default": 100,
+            "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -179516,6 +179605,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -193445,6 +193535,7 @@
         "properties": {
           "dependentsLimit": {
             "default": 100,
+            "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -193485,6 +193576,7 @@
             ]
           },
           "scope": {
+            "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -196890,6 +196982,7 @@
             ]
           },
           "includeReasons": {
+            "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
             "type": "boolean"
           },
           "symbol": {
@@ -197036,6 +197129,7 @@
             "type": "object"
           },
           "testScope": {
+            "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -197127,6 +197221,7 @@
           },
           "testsLimit": {
             "default": 100,
+            "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -203693,6 +203788,7 @@
             ]
           },
           "metadataName": {
+            "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
             "type": "string"
           },
           "namespace": {
@@ -214491,6 +214587,7 @@
           },
           "findingsLimit": {
             "default": 50,
+            "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -214596,6 +214693,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -216594,6 +216692,7 @@
         "properties": {
           "callSitesPerCallerLimit": {
             "default": 100,
+            "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -216603,6 +216702,7 @@
           },
           "callersLimit": {
             "default": 100,
+            "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -216643,9 +216743,11 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
             "type": "boolean"
           },
           "scope": {
+            "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -218811,6 +218913,7 @@
         "properties": {
           "derivedTypesLimit": {
             "default": 100,
+            "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -218858,6 +218961,7 @@
             "type": "integer"
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -221029,6 +221133,7 @@
           },
           "implementationsLimit": {
             "default": 100,
+            "description": "Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -221037,6 +221142,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -223289,6 +223395,7 @@
           },
           "overridesLimit": {
             "default": 100,
+            "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -223297,6 +223404,7 @@
             ]
           },
           "scope": {
+            "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -224415,13 +224523,16 @@
             ]
           },
           "includeContext": {
+            "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
             "type": "boolean"
           },
           "includeDefinitions": {
+            "description": "Include source declarations alongside references within the same result limit; defaults to true.",
             "type": "boolean"
           },
           "referencesLimit": {
             "default": 100,
+            "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -224430,6 +224541,7 @@
             ]
           },
           "scope": {
+            "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -228282,6 +228394,7 @@
           },
           "locationsLimit": {
             "default": 100,
+            "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -228290,6 +228403,7 @@
             ]
           },
           "scope": {
+            "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -242219,6 +242333,7 @@
         "properties": {
           "dependentsLimit": {
             "default": 100,
+            "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -242259,6 +242374,7 @@
             ]
           },
           "scope": {
+            "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -245664,6 +245780,7 @@
             ]
           },
           "includeReasons": {
+            "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
             "type": "boolean"
           },
           "symbol": {
@@ -245810,6 +245927,7 @@
             "type": "object"
           },
           "testScope": {
+            "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
             "properties": {
               "document": {
                 "description": "Used only when kind is Document.",
@@ -245901,6 +246019,7 @@
           },
           "testsLimit": {
             "default": 100,
+            "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
             "maximum": 2147483647,
             "minimum": 0,
             "type": [
@@ -253272,6 +253391,7 @@
             ]
           },
           "metadataName": {
+            "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
             "type": "string"
           },
           "namespace": {

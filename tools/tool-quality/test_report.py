@@ -107,14 +107,17 @@ class OfflineLintTests(unittest.TestCase):
 
 
 class GenerateReportsTests(unittest.TestCase):
-    def run_generation(self, directory, capture, lint):
+    def run_generation(self, directory, capture, lint, **profiles):
         host = directory / "Host.dll"
         host.write_bytes(b"built-host")
         with patch.object(report.anyio, "run", side_effect=capture), patch.object(report, "lint_catalogue", side_effect=lint), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            return report.generate_reports(host, directory / "reports")
+            return report.generate_reports(host, directory / "reports", **profiles)
 
     def write_lint(self, directory, status=0):
-        result = lint_report(catalogue("" if status else "Returns the available source documents."))
+        value = json.loads((directory / "catalogue.json").read_text(encoding="utf-8"))
+        if status:
+            value["tools"][0]["description"] = ""
+        result = lint_report(value)
         report.write_json(directory / "lint.json", result.model_dump(mode="json"))
         (directory / "lint.md").write_text(report.format_lint_report_markdown(result), encoding="utf-8")
         return status, result
@@ -123,6 +126,8 @@ class GenerateReportsTests(unittest.TestCase):
         def capture(function, host, mode, schema, log):
             value = catalogue()
             value["tools"][0]["description"] = f"Returns the {mode} {schema} catalogue."
+            if schema == "Full":
+                value["tools"][0]["outputSchema"] = {"type": "object"}
             return value
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -135,10 +140,38 @@ class GenerateReportsTests(unittest.TestCase):
                     profile = f"{mode}-{schema.lower()}"
                     captured = json.loads((output / profile / "catalogue.json").read_text(encoding="utf-8"))
                     self.assertIn(f"{mode} {schema}", captured["tools"][0]["description"])
-                    self.assertIn(f"| {profile} | 1 | 0 | 1 | 1 |", summary)
+                    self.assertIn(f"[{profile}]({profile}/summary.md)", summary)
+                    profile_summary = (output / profile / "summary.md").read_text(encoding="utf-8")
+                    notes = int(schema == "Omit")
+                    self.assertIn(f"| {profile} | 1 | 0 | 1 | {notes} |", profile_summary)
+                    self.assertIn(f"# MCP tool definition lint: {mode} / {schema}", profile_summary)
+                    self.assertEqual(schema == "Omit", "no-output-schema" in profile_summary)
+            self.assertNotIn("| Profile |", summary)
             metadata = json.loads((output / "run.json").read_text(encoding="utf-8"))
             self.assertEqual(64, len(metadata["hostSha256"]))
             self.assertEqual("0.1.0", metadata["tdqsVersion"])
+
+    def test_single_full_profile_summary_excludes_omit_findings_and_other_profiles(self):
+        def capture(function, host, mode, schema, log):
+            value = catalogue()
+            value["tools"][0]["outputSchema"] = {"type": "object"}
+            return value
+
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            status = self.run_generation(
+                directory, capture, self.write_lint,
+                modes=("inspection-only",), schema_modes=("Full",),
+            )
+            self.assertEqual(0, status)
+            output = directory / "reports"
+            self.assertEqual(1, len(list(output.glob("*/catalogue.json"))))
+            summary = (output / "summary.md").read_text(encoding="utf-8")
+            self.assertEqual(summary, (output / "inspection-only-full" / "summary.md").read_text(encoding="utf-8"))
+            self.assertIn("Output schema mode: `Full`", summary)
+            self.assertNotIn("no-output-schema", summary)
+            self.assertNotIn("transactional", summary)
+            self.assertNotIn("Omit", summary)
 
     def test_lint_errors_fail_after_the_other_profiles_are_reported(self):
         def lint(directory):
@@ -149,7 +182,25 @@ class GenerateReportsTests(unittest.TestCase):
             self.assertEqual(1, self.run_generation(directory, lambda *args: catalogue(), lint))
             output = directory / "reports"
             self.assertEqual(8, len(list(output.glob("*/lint.json"))))
-            self.assertIn("| transactional-omit | 1 | 1 |", (output / "summary.md").read_text(encoding="utf-8"))
+            self.assertIn("| transactional-omit | 1 | 1 |", (output / "transactional-omit" / "summary.md").read_text(encoding="utf-8"))
+
+    def test_single_profile_capture_failure_still_produces_its_ci_summary(self):
+        def capture(*args):
+            raise TimeoutError("Host initialisation timed out")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            status = self.run_generation(
+                directory, capture, self.write_lint,
+                modes=("inspection-only",), schema_modes=("Full",),
+            )
+            self.assertEqual(2, status)
+            output = directory / "reports"
+            summary = (output / "summary.md").read_text(encoding="utf-8")
+            self.assertEqual(summary, (output / "inspection-only-full" / "summary.md").read_text(encoding="utf-8"))
+            self.assertIn("inspection-only / Full", summary)
+            self.assertIn("Capture/lint failed", summary)
+            self.assertNotIn("no-output-schema", summary)
 
     def test_capture_failure_retains_diagnostics_clears_stale_reports_and_continues(self):
         def capture(function, host, mode, schema, log):
@@ -161,7 +212,7 @@ class GenerateReportsTests(unittest.TestCase):
             directory = Path(temporary)
             failed = directory / "reports" / "inspection-only-omit"
             failed.mkdir(parents=True)
-            for name in ("catalogue.json", "lint.json", "lint.md"):
+            for name in ("catalogue.json", "lint.json", "lint.md", "summary.md"):
                 (failed / name).write_text("stale", encoding="utf-8")
             self.assertEqual(2, self.run_generation(directory, capture, self.write_lint))
             self.assertEqual("Host could not start\n", (failed / "failure.txt").read_text(encoding="utf-8"))
@@ -169,7 +220,11 @@ class GenerateReportsTests(unittest.TestCase):
             self.assertFalse((failed / "lint.json").exists())
             self.assertFalse((failed / "lint.md").exists())
             self.assertEqual(7, len(list((directory / "reports").glob("*/lint.json"))))
-            self.assertIn("Capture/lint failed", (directory / "reports" / "summary.md").read_text(encoding="utf-8"))
+            summary = (failed / "summary.md").read_text(encoding="utf-8")
+            self.assertIn("Capture/lint failed", summary)
+            self.assertNotIn("stale", summary)
+            self.assertIn("no-output-schema", summary)
+            self.assertNotIn("Host could not start", summary)
 
 
 if __name__ == "__main__":

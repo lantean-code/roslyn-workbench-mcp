@@ -1,9 +1,11 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees. Registry submission remains a separate publication step.
+This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics, clarifies MCP parameter guidance and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees. Registry submission remains a separate publication step.
 
 ## Changes in this release
 
+- Added agent-facing parameter descriptions for inspection tools, explaining search scopes, optional context and reasons, and default, null and zero result limits. Tool names, input/output shapes, defaults and execution behaviour are unchanged.
+- Added offline tool-definition linting with separate CI summaries and artefacts for every operational mode and output-schema setting. Errors fail the check; warnings remain advisory, and no model-based scoring is used.
 - Added `--help` and `-h` to print usage and supported options, then exit successfully before starting the MCP Host or initialising recovery storage. Help remains available when the state directory is unwritable or other startup options are invalid. ([#30](https://github.com/lantean-code/roslyn-workbench-mcp/issues/30))
 - Unwritable recovery storage now produces a concise diagnostic on standard error, identifies the recovery directory and recommends configuring `--state-directory`. Startup exits with a non-zero status without duplicate stack traces or output on the MCP standard-output channel. Set `Logging__LogLevel__Default=Debug` for exception details. Recovery remains mandatory. ([#31](https://github.com/lantean-code/roslyn-workbench-mcp/issues/31))
 - Updated .NET 10 maintenance dependencies and pinned the development SDK to 10.0.402. Updated Sentry and the file-system abstraction dependency; refreshed the committed Host dependency locks.

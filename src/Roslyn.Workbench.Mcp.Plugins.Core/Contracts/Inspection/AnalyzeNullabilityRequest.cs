@@ -10,6 +10,7 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -22,6 +23,7 @@ internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultFindingsMaxResults)]
+    [Description("Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.")]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
 
     /// <summary>

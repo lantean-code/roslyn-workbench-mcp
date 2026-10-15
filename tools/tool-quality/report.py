@@ -97,13 +97,33 @@ def summarise_profile(profile: str, report: LintReport) -> str:
     )
 
 
+def profile_summary(mode: str, schema_mode: str, tdqs_version: str, body: str) -> str:
+    schema_guidance = (
+        "Output schemas are intentionally omitted; `no-output-schema` notes are expected for this profile."
+        if schema_mode == "Omit"
+        else "Output schemas are published for this profile."
+    )
+    return "\n".join([
+        f"# MCP tool definition lint: {mode} / {schema_mode}", "",
+        f"Operational mode: `{mode}`. Output schema mode: `{schema_mode}`.",
+        schema_guidance, "",
+        f"TDQS {tdqs_version}; offline lint only. Errors fail this check; warnings are advisory.",
+        "Reporting tools are included (`prompt` consent); external plugins are disabled. No tools are invoked.",
+        "", body, "",
+    ])
+
+
 def describe_error(error: BaseException) -> str:
     if isinstance(error, BaseExceptionGroup):
         return "; ".join(describe_error(inner) for inner in error.exceptions)
     return str(error) or type(error).__name__
 
 
-def generate_reports(host: Path, output: Path) -> int:
+def generate_reports(
+    host: Path, output: Path,
+    modes: tuple[str, ...] = OPERATIONAL_MODES,
+    schema_modes: tuple[str, ...] = OUTPUT_SCHEMA_MODES,
+) -> int:
     output.mkdir(parents=True, exist_ok=True)
     metadata = {
         "hostSha256": hashlib.sha256(host.read_bytes()).hexdigest(),
@@ -113,42 +133,48 @@ def generate_reports(host: Path, output: Path) -> int:
         "externalPluginsEnabled": False,
     }
     write_json(output / "run.json", metadata)
-    rows = []
-    details = []
+    summaries = []
     exit_code = 0
-    for mode in OPERATIONAL_MODES:
-        for schema_mode in OUTPUT_SCHEMA_MODES:
+    for mode in modes:
+        for schema_mode in schema_modes:
             profile = f"{mode}-{schema_mode.lower()}"
             directory = output / profile
             directory.mkdir(exist_ok=True)
             # Do not publish a previous run's report if this capture fails.
-            for name in ("catalogue.json", "lint.json", "lint.md", "failure.txt", "host.log"):
+            for name in ("catalogue.json", "lint.json", "lint.md", "summary.md", "failure.txt", "host.log"):
                 (directory / name).unlink(missing_ok=True)
             try:
                 catalogue = anyio.run(capture_catalogue, host, mode, schema_mode, directory / "host.log")
                 write_json(directory / "catalogue.json", catalogue)
                 status, report = lint_catalogue(directory)
                 exit_code = max(exit_code, status)
-                rows.append(summarise_profile(profile, report))
+                row = summarise_profile(profile, report)
                 markdown = (directory / "lint.md").read_text(encoding="utf-8")
-                details.append(f"<details>\n<summary>{profile}</summary>\n\n{markdown}\n</details>\n")
-                print(rows[-1], flush=True)
+                body = "\n".join([
+                    "| Profile | Tools | Errors | Warnings | Notes |",
+                    "| --- | ---: | ---: | ---: | ---: |", row, "",
+                    f"<details>\n<summary>Findings and context signals</summary>\n\n{markdown}\n</details>",
+                ])
+                print(row, flush=True)
             except Exception as error:
                 message = describe_error(error)
                 (directory / "failure.txt").write_text(message + "\n", encoding="utf-8")
-                rows.append(f"| {profile} | Capture/lint failed; see failure.txt and host.log | — | — | — |")
+                body = "Capture/lint failed. See `failure.txt` and `host.log` in this profile's artefact."
                 print(f"{profile}: {message}", file=sys.stderr, flush=True)
                 exit_code = 2
+            summary = profile_summary(mode, schema_mode, metadata["tdqsVersion"], body)
+            (directory / "summary.md").write_text(summary, encoding="utf-8")
+            summaries.append((profile, summary))
 
-    summary = "\n".join([
-        "# MCP tool definition lint", "",
-        f"TDQS {metadata['tdqsVersion']}; offline lint only. Errors fail this check; warnings are advisory.",
-        "Reporting tools are included (`prompt` consent); external plugins are disabled. No tools are invoked.",
-        "Each profile uses its own live catalogue. Download the tool-quality artefact for captured JSON and Host logs.",
-        "", "| Operational mode / output schemas | Tools | Errors | Warnings | Notes |",
-        "| --- | ---: | ---: | ---: | ---: |", *rows, "", *details,
-    ])
-    (output / "summary.md").write_text(summary + "\n", encoding="utf-8")
+    if len(summaries) == 1:
+        summary = summaries[0][1]
+    else:
+        summary = "\n".join([
+            "# MCP tool definition lint profiles", "",
+            "Each profile has its own summary, findings, captured catalogue and Host log.", "",
+            *(f"- [{profile}]({profile}/summary.md)" for profile, _ in summaries), "",
+        ])
+    (output / "summary.md").write_text(summary, encoding="utf-8")
     return exit_code
 
 
@@ -156,11 +182,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", type=Path, required=True, help="Built Roslyn.Workbench.Mcp.dll")
     parser.add_argument("--output", type=Path, default=Path("artifacts/tool-quality"))
+    parser.add_argument("--operational-mode", choices=OPERATIONAL_MODES, help="Only report this operational mode")
+    parser.add_argument("--tool-output-schema-mode", choices=OUTPUT_SCHEMA_MODES, help="Only report this output-schema mode")
     args = parser.parse_args()
     host = args.host.resolve()
     if not host.is_file():
         parser.error(f"Host assembly does not exist: {host}. Build the Host first.")
-    return generate_reports(host, args.output.resolve())
+    modes = (args.operational_mode,) if args.operational_mode else OPERATIONAL_MODES
+    schema_modes = (args.tool_output_schema_mode,) if args.tool_output_schema_mode else OUTPUT_SCHEMA_MODES
+    return generate_reports(host, args.output.resolve(), modes, schema_modes)
 
 
 if __name__ == "__main__":

@@ -493,6 +493,36 @@ public sealed class ToolSchemaFactoryIntegrationTests
             string.Join(Environment.NewLine, oversizedSchemas));
     }
 
+    [Theory]
+    [InlineData(typeof(AnalyzeNullabilityRequest))]
+    [InlineData(typeof(FindCallersRequest))]
+    [InlineData(typeof(FindDerivedTypesRequest))]
+    [InlineData(typeof(FindImplementationsRequest))]
+    [InlineData(typeof(FindOverridesRequest))]
+    [InlineData(typeof(FindReferencesRequest))]
+    [InlineData(typeof(GetChangeImpactRequest))]
+    [InlineData(typeof(GetSymbolDependentsRequest))]
+    [InlineData(typeof(GetTestImpactRequest))]
+    [InlineData(typeof(SearchSymbolsRequest))]
+    [Trait("Category", "Contract")]
+    public void GIVEN_InspectionRequest_WHEN_ExportingInputSchema_THEN_ShouldDescribeEveryTopLevelParameter(Type requestType)
+    {
+        ArgumentNullException.ThrowIfNull(requestType);
+
+        var target = CreateTarget();
+
+        var schema = target.CreateInputSchemaForType(requestType);
+
+        foreach (var property in schema.GetProperty("properties").EnumerateObject())
+        {
+            property.Value.TryGetProperty("description", out var description)
+                .Should().BeTrue("{0}.{1} should publish parameter guidance", requestType.Name, property.Name);
+
+            description.GetString().Should().NotBeNullOrWhiteSpace(
+                "{0}.{1} should publish useful parameter guidance", requestType.Name, property.Name);
+        }
+    }
+
     [Fact]
     [Trait("Category", "Contract")]
     public void GIVEN_BuiltInSnapshotPreconditions_WHEN_ExportingInputSchemas_THEN_ShouldPublishCentralDescription()

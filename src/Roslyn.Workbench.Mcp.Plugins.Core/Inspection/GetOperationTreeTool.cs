@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns a bounded IOperation tree with metadata and exact source pointers.
 /// </summary>
-[RoslynTool("get-operation-tree", "Get Operation Tree", "Returns a bounded IOperation tree with metadata and exact source pointers.")]
+[RoslynTool("get-operation-tree", "Get Operation Tree", "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.")]
 internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRequest, OperationTreeData>
 {
     /// <inheritdoc/>

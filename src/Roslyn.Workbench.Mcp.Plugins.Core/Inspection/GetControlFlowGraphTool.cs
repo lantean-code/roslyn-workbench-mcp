@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns a bounded control-flow graph with operation metadata and exact source pointers.
 /// </summary>
-[RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Returns a bounded control-flow graph with operation metadata and exact source pointers.")]
+[RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit.")]
 internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowGraphRequest, ControlFlowGraphData>
 {
     /// <inheritdoc/>

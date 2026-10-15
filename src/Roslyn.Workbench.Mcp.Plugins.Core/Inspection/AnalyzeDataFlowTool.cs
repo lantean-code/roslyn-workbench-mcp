@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Analyzes data flow for an exact expression, complete statement, or contiguous statement range.
 /// </summary>
-[RoslynTool("analyze-data-flow", "Analyze Data Flow", "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.")]
+[RoslynTool("analyze-data-flow", "Analyze Data Flow", "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.")]
 internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequest, DataFlowAnalysisData>
 {
     /// <inheritdoc/>

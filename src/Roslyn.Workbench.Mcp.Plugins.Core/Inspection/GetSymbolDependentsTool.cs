@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns symbols that directly depend on a resolved symbol.
 /// </summary>
-[RoslynTool("get-symbol-dependents", "Get Symbol Dependents", "Returns symbols that directly depend on a resolved symbol.")]
+[RoslynTool("get-symbol-dependents", "Get Symbol Dependents", "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.")]
 internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDependentsRequest, SymbolDependentsData>
 {
     /// <inheritdoc/>

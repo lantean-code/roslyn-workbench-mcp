@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Analyzes control flow for an exact complete statement or contiguous statement range.
 /// </summary>
-[RoslynTool("analyze-control-flow", "Analyze Control Flow", "Analyzes control flow for an exact complete statement or contiguous statement range.")]
+[RoslynTool("analyze-control-flow", "Analyze Control Flow", "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.")]
 internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFlowRequest, ControlFlowAnalysisData>
 {
     /// <inheritdoc/>

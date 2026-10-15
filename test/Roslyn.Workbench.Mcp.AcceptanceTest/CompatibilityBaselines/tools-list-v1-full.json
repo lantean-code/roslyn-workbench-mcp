@@ -957,7 +957,7 @@
         "readOnlyHint": true,
         "title": "Analyze Control Flow"
       },
-      "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+      "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
       "inputSchema": {
         "properties": {
           "exitsLimit": {
@@ -2030,7 +2030,7 @@
         "readOnlyHint": true,
         "title": "Analyze Data Flow"
       },
-      "description": "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.",
+      "description": "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -17987,7 +17987,7 @@
         "readOnlyHint": true,
         "title": "Get Change Impact"
       },
-      "description": "Returns a bounded impact summary and supporting source locations for a symbol change.",
+      "description": "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -20345,7 +20345,7 @@
         "readOnlyHint": true,
         "title": "Get Control Flow Graph"
       },
-      "description": "Returns a bounded control-flow graph with operation metadata and exact source pointers. Input: Provide exactly one of symbol or location.",
+      "description": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit. Input: Provide exactly one of symbol or location.",
       "inputSchema": {
         "description": "Provide exactly one of symbol or location.",
         "properties": {
@@ -21546,7 +21546,7 @@
         "readOnlyHint": true,
         "title": "Get Dependency Graph"
       },
-      "description": "Returns a bounded dependency graph for the selected scope and granularity.",
+      "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "inputSchema": {
         "properties": {
           "edgesLimit": {
@@ -25992,7 +25992,7 @@
         "readOnlyHint": true,
         "title": "Get Operation Tree"
       },
-      "description": "Returns a bounded IOperation tree with metadata and exact source pointers.",
+      "description": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -30893,7 +30893,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependencies"
       },
-      "description": "Returns the direct symbols used by a resolved symbol.",
+      "description": "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "dependenciesLimit": {
@@ -31958,7 +31958,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependents"
       },
-      "description": "Returns symbols that directly depend on a resolved symbol.",
+      "description": "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "dependentsLimit": {
@@ -54833,7 +54833,7 @@
         "readOnlyHint": true,
         "title": "Analyze Control Flow"
       },
-      "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+      "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
       "inputSchema": {
         "properties": {
           "exitsLimit": {
@@ -55906,7 +55906,7 @@
         "readOnlyHint": true,
         "title": "Analyze Data Flow"
       },
-      "description": "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.",
+      "description": "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -71863,7 +71863,7 @@
         "readOnlyHint": true,
         "title": "Get Change Impact"
       },
-      "description": "Returns a bounded impact summary and supporting source locations for a symbol change.",
+      "description": "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -74221,7 +74221,7 @@
         "readOnlyHint": true,
         "title": "Get Control Flow Graph"
       },
-      "description": "Returns a bounded control-flow graph with operation metadata and exact source pointers. Input: Provide exactly one of symbol or location.",
+      "description": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit. Input: Provide exactly one of symbol or location.",
       "inputSchema": {
         "description": "Provide exactly one of symbol or location.",
         "properties": {
@@ -75422,7 +75422,7 @@
         "readOnlyHint": true,
         "title": "Get Dependency Graph"
       },
-      "description": "Returns a bounded dependency graph for the selected scope and granularity.",
+      "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "inputSchema": {
         "properties": {
           "edgesLimit": {
@@ -79868,7 +79868,7 @@
         "readOnlyHint": true,
         "title": "Get Operation Tree"
       },
-      "description": "Returns a bounded IOperation tree with metadata and exact source pointers.",
+      "description": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -84769,7 +84769,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependencies"
       },
-      "description": "Returns the direct symbols used by a resolved symbol.",
+      "description": "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "dependenciesLimit": {
@@ -85834,7 +85834,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependents"
       },
-      "description": "Returns symbols that directly depend on a resolved symbol.",
+      "description": "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "dependentsLimit": {
@@ -108521,7 +108521,7 @@
         "readOnlyHint": true,
         "title": "Analyze Control Flow"
       },
-      "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+      "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
       "inputSchema": {
         "properties": {
           "exitsLimit": {
@@ -109594,7 +109594,7 @@
         "readOnlyHint": true,
         "title": "Analyze Data Flow"
       },
-      "description": "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.",
+      "description": "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -125551,7 +125551,7 @@
         "readOnlyHint": true,
         "title": "Get Change Impact"
       },
-      "description": "Returns a bounded impact summary and supporting source locations for a symbol change.",
+      "description": "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -127909,7 +127909,7 @@
         "readOnlyHint": true,
         "title": "Get Control Flow Graph"
       },
-      "description": "Returns a bounded control-flow graph with operation metadata and exact source pointers. Input: Provide exactly one of symbol or location.",
+      "description": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit. Input: Provide exactly one of symbol or location.",
       "inputSchema": {
         "description": "Provide exactly one of symbol or location.",
         "properties": {
@@ -129110,7 +129110,7 @@
         "readOnlyHint": true,
         "title": "Get Dependency Graph"
       },
-      "description": "Returns a bounded dependency graph for the selected scope and granularity.",
+      "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "inputSchema": {
         "properties": {
           "edgesLimit": {
@@ -133556,7 +133556,7 @@
         "readOnlyHint": true,
         "title": "Get Operation Tree"
       },
-      "description": "Returns a bounded IOperation tree with metadata and exact source pointers.",
+      "description": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -138457,7 +138457,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependencies"
       },
-      "description": "Returns the direct symbols used by a resolved symbol.",
+      "description": "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "dependenciesLimit": {
@@ -139522,7 +139522,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependents"
       },
-      "description": "Returns symbols that directly depend on a resolved symbol.",
+      "description": "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "dependentsLimit": {
@@ -163227,7 +163227,7 @@
         "readOnlyHint": true,
         "title": "Analyze Control Flow"
       },
-      "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+      "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
       "inputSchema": {
         "properties": {
           "exitsLimit": {
@@ -164300,7 +164300,7 @@
         "readOnlyHint": true,
         "title": "Analyze Data Flow"
       },
-      "description": "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.",
+      "description": "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -179559,7 +179559,7 @@
         "readOnlyHint": true,
         "title": "Get Change Impact"
       },
-      "description": "Returns a bounded impact summary and supporting source locations for a symbol change.",
+      "description": "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -181917,7 +181917,7 @@
         "readOnlyHint": true,
         "title": "Get Control Flow Graph"
       },
-      "description": "Returns a bounded control-flow graph with operation metadata and exact source pointers. Input: Provide exactly one of symbol or location.",
+      "description": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit. Input: Provide exactly one of symbol or location.",
       "inputSchema": {
         "description": "Provide exactly one of symbol or location.",
         "properties": {
@@ -183118,7 +183118,7 @@
         "readOnlyHint": true,
         "title": "Get Dependency Graph"
       },
-      "description": "Returns a bounded dependency graph for the selected scope and granularity.",
+      "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "inputSchema": {
         "properties": {
           "edgesLimit": {
@@ -187564,7 +187564,7 @@
         "readOnlyHint": true,
         "title": "Get Operation Tree"
       },
-      "description": "Returns a bounded IOperation tree with metadata and exact source pointers.",
+      "description": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -192465,7 +192465,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependencies"
       },
-      "description": "Returns the direct symbols used by a resolved symbol.",
+      "description": "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "dependenciesLimit": {
@@ -193530,7 +193530,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependents"
       },
-      "description": "Returns symbols that directly depend on a resolved symbol.",
+      "description": "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "dependentsLimit": {
@@ -211327,7 +211327,7 @@
         "readOnlyHint": true,
         "title": "Analyze Control Flow"
       },
-      "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+      "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
       "inputSchema": {
         "properties": {
           "exitsLimit": {
@@ -212400,7 +212400,7 @@
         "readOnlyHint": true,
         "title": "Analyze Data Flow"
       },
-      "description": "Analyzes data flow for an exact expression, complete statement, or contiguous statement range.",
+      "description": "Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -228357,7 +228357,7 @@
         "readOnlyHint": true,
         "title": "Get Change Impact"
       },
-      "description": "Returns a bounded impact summary and supporting source locations for a symbol change.",
+      "description": "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -230715,7 +230715,7 @@
         "readOnlyHint": true,
         "title": "Get Control Flow Graph"
       },
-      "description": "Returns a bounded control-flow graph with operation metadata and exact source pointers. Input: Provide exactly one of symbol or location.",
+      "description": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit. Input: Provide exactly one of symbol or location.",
       "inputSchema": {
         "description": "Provide exactly one of symbol or location.",
         "properties": {
@@ -231916,7 +231916,7 @@
         "readOnlyHint": true,
         "title": "Get Dependency Graph"
       },
-      "description": "Returns a bounded dependency graph for the selected scope and granularity.",
+      "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "inputSchema": {
         "properties": {
           "edgesLimit": {
@@ -236362,7 +236362,7 @@
         "readOnlyHint": true,
         "title": "Get Operation Tree"
       },
-      "description": "Returns a bounded IOperation tree with metadata and exact source pointers.",
+      "description": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -241263,7 +241263,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependencies"
       },
-      "description": "Returns the direct symbols used by a resolved symbol.",
+      "description": "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "dependenciesLimit": {
@@ -242328,7 +242328,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Dependents"
       },
-      "description": "Returns symbols that directly depend on a resolved symbol.",
+      "description": "Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "dependentsLimit": {

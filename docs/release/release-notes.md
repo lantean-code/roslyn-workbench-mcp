@@ -1,14 +1,15 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-This patch release improves the documentation and package READMEs, making it easier to discover Roslyn Workbench's Code Actions, semantic inspection and transactional workflows. It does not change runtime behaviour or public contracts. Registry submission remains a separate publication step.
+This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees. Registry submission remains a separate publication step.
 
 ## Changes in this release
 
-- Clearer explanations of how agents can use Roslyn-powered C# fixes and refactorings, with updated package descriptions and READMEs.
-- A step-by-step plugin-authoring tutorial, with separate guides for contracts, mutation tools, deployment and analyser diagnostics.
-- Focused guides for Workspace loading, transactions, compiler-impact validation and recovery, plus clearer configuration and troubleshooting pages.
-- More readable security guidance, with expandable evidence lists and a separate public-surface appendix. The machine-readable security reference is unchanged.
-- A borderless, theme-aware wordmark and more prominent documentation sidebar headings.
+- Added `--help` and `-h` to print usage and supported options, then exit successfully before starting the MCP Host or initialising recovery storage. Help remains available when the state directory is unwritable or other startup options are invalid. ([#30](https://github.com/lantean-code/roslyn-workbench-mcp/issues/30))
+- Unwritable recovery storage now produces a concise diagnostic on standard error, identifies the recovery directory and recommends configuring `--state-directory`. Startup exits with a non-zero status without duplicate stack traces or output on the MCP standard-output channel. Set `Logging__LogLevel__Default=Debug` for exception details. Recovery remains mandatory. ([#31](https://github.com/lantean-code/roslyn-workbench-mcp/issues/31))
+- Updated .NET 10 maintenance dependencies and pinned the development SDK to 10.0.402. Updated Sentry and the file-system abstraction dependency; refreshed the committed Host dependency locks.
+- Updated the test-only `System.Security.Cryptography.Pkcs` dependency to 10.0.13 to address the identified security advisory. This dependency is not part of the shipped Host dependency graph.
+- Updated diagnostic tools, including TraceEvent 4.0.0, and refreshed test dependencies, Moq logging assertions and pinned GitHub Actions. Explicit production-assembly coverage filters keep coverage reporting consistent with the updated collector.
+- Added Glama ownership metadata and kept the coordinated MSBuild package updates under manual control. Deferred major dependency upgrades remain outside this release.
 
 The release includes the Host .NET tool and a separate plugin-authoring package, with a [1.x compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) for the published surfaces.
 

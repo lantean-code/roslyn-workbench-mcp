@@ -1661,6 +1661,8 @@
 
 <h1 id="configuration-reference">Configuration reference</h1>
 <p>Choose an operational mode first. Most users can leave resource and reporting limits at their defaults.</p>
+<p>Run <code>roslyn-workbench-mcp --help</code> (or <code>-h</code>) to list supported options without starting the server or accessing recovery storage. <code>--version</code> prints the product version and exits.</p>
+<p>If durable recovery storage cannot be created or written, startup prints a concise diagnostic to stderr and exits unsuccessfully. Choose a writable local location with <code>--state-directory</code>; recovery is never silently disabled. Set <code>Logging__LogLevel__Default=Debug</code> to include the underlying exception details. Storage is checked before hosted services start and revalidated during lifecycle initialisation.</p>
 <h2 id="operational-modes">Operational modes</h2>
 <table>
 <thead>

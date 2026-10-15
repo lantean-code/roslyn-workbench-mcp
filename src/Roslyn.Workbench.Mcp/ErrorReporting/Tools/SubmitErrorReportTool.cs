@@ -45,10 +45,10 @@ internal sealed class SubmitErrorReportTool :
             requestBinder,
             ServerOwnedToolRegistration.SubmitErrorReportName,
             "Submit Error Report",
-            "After applying the configured consent policy, submits one previously prepared immutable external error report to its reviewed destination.",
+            "Submits a reviewed unexpected-failure report through the configured provider. First use prepare-error-report and review its destination, payloadJson and payloadDigest, then supply its unexpired submissionHandle. Use get-error-details for local investigation instead. Prompt consent (default) requests client approval and offers exception-message removal; Always consent skips the prompt. Declined or unavailable approval sends nothing; declining also discards the handle. Success means provider acceptance: Sentry queues an external event, while the Logging provider writes locally. It does not confirm remote delivery or offer retraction. Reusing a retained successful handle returns its receipt without dispatching again; an expired handle requires a new prepared report.",
             readOnly: false,
             destructive: true,
-            resultSummary: "Returns the dispatcher, immutable report reference and reviewed payload digest.",
+            resultSummary: "Returns the dispatcher, provider report reference and dispatched payload digest.",
             idempotent: true,
             openWorld: true)
     {

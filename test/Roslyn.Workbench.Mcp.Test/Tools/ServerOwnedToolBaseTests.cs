@@ -18,7 +18,7 @@ public sealed class ServerOwnedToolBaseTests
             .Setup(item => item.CreateServerOwnedTool<WorkspaceListRequest, WorkspaceListData>(
                 "workspace-list",
                 "Workspace List",
-                "Lists the currently loaded workspaces.",
+                "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
                 true,
                 false,
                 null,

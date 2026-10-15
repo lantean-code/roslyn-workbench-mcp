@@ -43969,7 +43969,7 @@
         "readOnlyHint": true,
         "title": "Server Status"
       },
-      "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+      "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -50514,7 +50514,7 @@
         "readOnlyHint": true,
         "title": "Workspace List"
       },
-      "description": "Lists the currently loaded workspaces.",
+      "description": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
       "inputSchema": {
         "additionalProperties": false,
         "type": "object"
@@ -51118,7 +51118,7 @@
         "readOnlyHint": false,
         "title": "Workspace Open"
       },
-      "description": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+      "description": "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
       "inputSchema": {
         "properties": {
           "alias": {
@@ -52009,7 +52009,7 @@
         "readOnlyHint": false,
         "title": "Workspace Reload"
       },
-      "description": "Reloads the selected workspace when it is out of date.",
+      "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -52854,7 +52854,7 @@
         "readOnlyHint": true,
         "title": "Workspace Status"
       },
-      "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+      "description": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -97845,7 +97845,7 @@
         "readOnlyHint": true,
         "title": "Server Status"
       },
-      "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+      "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -104202,7 +104202,7 @@
         "readOnlyHint": true,
         "title": "Workspace List"
       },
-      "description": "Lists the currently loaded workspaces.",
+      "description": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
       "inputSchema": {
         "additionalProperties": false,
         "type": "object"
@@ -104806,7 +104806,7 @@
         "readOnlyHint": false,
         "title": "Workspace Open"
       },
-      "description": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+      "description": "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
       "inputSchema": {
         "properties": {
           "alias": {
@@ -105697,7 +105697,7 @@
         "readOnlyHint": false,
         "title": "Workspace Reload"
       },
-      "description": "Reloads the selected workspace when it is out of date.",
+      "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -106542,7 +106542,7 @@
         "readOnlyHint": true,
         "title": "Workspace Status"
       },
-      "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+      "description": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -151533,7 +151533,7 @@
         "readOnlyHint": true,
         "title": "Server Status"
       },
-      "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+      "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -158908,7 +158908,7 @@
         "readOnlyHint": true,
         "title": "Workspace List"
       },
-      "description": "Lists the currently loaded workspaces.",
+      "description": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
       "inputSchema": {
         "additionalProperties": false,
         "type": "object"
@@ -159512,7 +159512,7 @@
         "readOnlyHint": false,
         "title": "Workspace Open"
       },
-      "description": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+      "description": "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
       "inputSchema": {
         "properties": {
           "alias": {
@@ -160403,7 +160403,7 @@
         "readOnlyHint": false,
         "title": "Workspace Reload"
       },
-      "description": "Reloads the selected workspace when it is out of date.",
+      "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -161248,7 +161248,7 @@
         "readOnlyHint": true,
         "title": "Workspace Status"
       },
-      "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+      "description": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -204736,7 +204736,7 @@
         "readOnlyHint": true,
         "title": "Server Status"
       },
-      "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+      "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -207008,7 +207008,7 @@
         "readOnlyHint": true,
         "title": "Workspace List"
       },
-      "description": "Lists the currently loaded workspaces.",
+      "description": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
       "inputSchema": {
         "additionalProperties": false,
         "type": "object"
@@ -207612,7 +207612,7 @@
         "readOnlyHint": false,
         "title": "Workspace Open"
       },
-      "description": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+      "description": "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
       "inputSchema": {
         "properties": {
           "alias": {
@@ -208503,7 +208503,7 @@
         "readOnlyHint": false,
         "title": "Workspace Reload"
       },
-      "description": "Reloads the selected workspace when it is out of date.",
+      "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -209348,7 +209348,7 @@
         "readOnlyHint": true,
         "title": "Workspace Status"
       },
-      "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+      "description": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -254339,7 +254339,7 @@
         "readOnlyHint": true,
         "title": "Server Status"
       },
-      "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+      "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
       "inputSchema": {
         "properties": {
           "detail": {
@@ -260696,7 +260696,7 @@
         "readOnlyHint": true,
         "title": "Workspace List"
       },
-      "description": "Lists the currently loaded workspaces.",
+      "description": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
       "inputSchema": {
         "additionalProperties": false,
         "type": "object"
@@ -261300,7 +261300,7 @@
         "readOnlyHint": false,
         "title": "Workspace Open"
       },
-      "description": "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+      "description": "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host\u0027s permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
       "inputSchema": {
         "properties": {
           "alias": {
@@ -262191,7 +262191,7 @@
         "readOnlyHint": false,
         "title": "Workspace Reload"
       },
-      "description": "Reloads the selected workspace when it is out of date.",
+      "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -263036,7 +263036,7 @@
         "readOnlyHint": true,
         "title": "Workspace Status"
       },
-      "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+      "description": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
       "inputSchema": {
         "properties": {
           "detail": {

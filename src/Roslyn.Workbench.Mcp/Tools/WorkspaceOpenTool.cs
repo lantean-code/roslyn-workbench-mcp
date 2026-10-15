@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 namespace Roslyn.Workbench.Mcp.Tools;
 
 /// <summary>
-/// Loads a solution or project as an additional writable workspace.
+/// Loads a solution or project as an additional workspace under the Host operational policy.
 /// </summary>
 internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenRequest, WorkspaceOpenData>
 {
@@ -27,7 +27,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceOpenName,
             title: "Workspace Open",
-            description: "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+            description: "Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
             readOnly: false,
             destructive: false)
     {

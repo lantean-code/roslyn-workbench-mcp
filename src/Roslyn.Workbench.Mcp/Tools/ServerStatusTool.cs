@@ -27,7 +27,7 @@ internal sealed class ServerStatusTool : ServerOwnedToolBase<ServerStatusRequest
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.ServerStatusName,
             title: "Server Status",
-            description: "Returns server diagnostics without requiring a loaded workspace.",
+            description: "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state.",
             readOnly: true,
             destructive: false,
             resultSummary: "server diagnostics, effective configuration, plugin status, and unfinished recovery state.")

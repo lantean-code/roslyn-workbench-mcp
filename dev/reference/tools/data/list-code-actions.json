@@ -9,13 +9,13 @@
   "area": "CodeAction",
   "category": "Code Actions",
   "operationKind": "Query",
-  "summary": "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret.",
+  "summary": "Discovers applicable Roslyn Code Fixes and refactorings for a document, selection or caret. Use this to choose an actionId for stage-code-action in mutation-enabled modes, or a Code Fix with advertised fixAllScopes for prepare-fix-all. Echo the current expectedSnapshot. Omitted range selects the whole document; a zero-length range selects a caret, using zero-based UTF-16 positions. Returns up to 50 action leaves by default; check actions.hasMore. Action IDs are temporary, process-local and tied to the exact workspace snapshot: rediscover after changes or expiry. Listing stores references but does not stage changes or write source files.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/list-code-actions.html",
   "tool": {
     "name": "list-code-actions",
     "title": "List Code Actions",
-    "description": "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret.",
+    "description": "Discovers applicable Roslyn Code Fixes and refactorings for a document, selection or caret. Use this to choose an actionId for stage-code-action in mutation-enabled modes, or a Code Fix with advertised fixAllScopes for prepare-fix-all. Echo the current expectedSnapshot. Omitted range selects the whole document; a zero-length range selects a caret, using zero-based UTF-16 positions. Returns up to 50 action leaves by default; check actions.hasMore. Action IDs are temporary, process-local and tied to the exact workspace snapshot: rediscover after changes or expiry. Listing stores references but does not stage changes or write source files.",
     "inputSchema": {
       "type": "object",
       "properties": {

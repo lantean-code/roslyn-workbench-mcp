@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Searches declarations by name, metadata name and optional semantic filters.",
+  "summary": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/search-symbols.html",
   "tool": {
     "name": "search-symbols",
     "title": "Search Symbols",
-    "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+    "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
     "inputSchema": {
       "description": "Provide query, metadataName, or both.",
       "type": "object",
@@ -46,26 +46,8 @@
               "default": "Solution"
             },
             "project": {
-              "description": "Used only when kind is Project.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Used only when kind is Project."
             },
             "document": {
               "description": "Used only when kind is Document.",
@@ -75,26 +57,8 @@
               ],
               "properties": {
                 "project": {
-                  "description": "Disambiguates documents with matching paths or IDs.",
-                  "type": [
-                    "object",
-                    "null"
-                  ],
-                  "properties": {
-                    "projectId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "targetFramework": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/project",
+                  "description": "Disambiguates documents with matching paths or IDs."
                 },
                 "path": {
                   "description": "Workspace-relative path.",
@@ -113,26 +77,8 @@
                 "null"
               ],
               "items": {
-                "description": "Provide projectId, name, path, targetFramework, or any combination.",
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "projectId": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "description": "Workspace-relative path.",
-                    "type": "string"
-                  },
-                  "targetFramework": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/project",
+                "description": "Provide projectId, name, path, targetFramework, or any combination."
               }
             }
           }
@@ -196,6 +142,29 @@
             },
             "path": {
               "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
               "type": "string"
             }
           }

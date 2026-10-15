@@ -1454,7 +1454,7 @@
 
 <h1 id="transaction-preview">Transaction Preview</h1>
 <p><code>transaction-preview</code> · Query · Server · Transactions</p>
-<p>Previews the current staged transaction.</p>
+<p>Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.</p>
 <p><strong>Availability:</strong> Published only in transactional and autonomous-trusted operational modes.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

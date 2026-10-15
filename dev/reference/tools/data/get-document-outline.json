@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Returns a bounded semantic outline for one document.",
+  "summary": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-outline.html",
   "tool": {
     "name": "get-document-outline",
     "title": "Get Document Outline",
-    "description": "Returns a bounded semantic outline for one document.",
+    "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
     "inputSchema": {
       "type": "object",
       "properties": {

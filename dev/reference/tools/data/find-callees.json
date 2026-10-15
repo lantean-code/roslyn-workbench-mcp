@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Returns symbols directly invoked by a method or selected executable body.",
+  "summary": "Finds distinct method and constructor targets invoked by a source executable symbol or selected executable region. Use this for outgoing calls; use find-callers for incoming call sites. Reads the loaded workspace without executing code. Direct calls are the default; includeIndirect traverses reachable source bodies up to maxDepth (default 3, direct calls at depth 1). Nested lambda and local-function bodies are skipped during each body scan. Returns source and a bounded callees collection, not call sites or runtime dispatch targets. calleesLimit defaults to 100; check callees.hasMore for result truncation within the requested depth.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callees.html",
   "tool": {
     "name": "find-callees",
     "title": "Find Callees",
-    "description": "Returns symbols directly invoked by a method or selected executable body. Input: Provide exactly one of symbol or location.",
+    "description": "Finds distinct method and constructor targets invoked by a source executable symbol or selected executable region. Use this for outgoing calls; use find-callers for incoming call sites. Reads the loaded workspace without executing code. Direct calls are the default; includeIndirect traverses reachable source bodies up to maxDepth (default 3, direct calls at depth 1). Nested lambda and local-function bodies are skipped during each body scan. Returns source and a bounded callees collection, not call sites or runtime dispatch targets. calleesLimit defaults to 100; check callees.hasMore for result truncation within the requested depth. Input: Provide exactly one of symbol or location.",
     "inputSchema": {
       "description": "Provide exactly one of symbol or location.",
       "type": "object",
@@ -25,138 +25,12 @@
           "type": "object",
           "properties": {
             "project": {
-              "description": "Disambiguates symbols with matching identities.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates symbols with matching identities."
             },
             "location": {
-              "description": "Provide exactly one of span or selection.",
-              "type": "object",
-              "properties": {
-                "span": {
-                  "type": "object",
-                  "properties": {
-                    "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "type": [
-                            "object",
-                            "null"
-                          ],
-                          "properties": {
-                            "projectId": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "path": {
-                              "description": "Workspace-relative path.",
-                              "type": "string"
-                            },
-                            "targetFramework": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "range": {
-                      "description": "Zero-based UTF-16 range.",
-                      "type": "object",
-                      "properties": {
-                        "start": {
-                          "description": "Zero-based UTF-16 offset.",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2147483647
-                        },
-                        "length": {
-                          "description": "UTF-16 code-unit length.",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2147483647
-                        }
-                      }
-                    }
-                  },
-                  "required": [
-                    "document",
-                    "range"
-                  ]
-                },
-                "selection": {
-                  "type": "object",
-                  "properties": {
-                    "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "selectedText": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "contextBefore": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "contextAfter": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "document",
-                    "selectedText"
-                  ]
-                }
-              }
+              "$ref": "#/$defs/location",
+              "description": "Provide exactly one of span or selection."
             },
             "documentationCommentId": {
               "type": "string"
@@ -164,16 +38,8 @@
           }
         },
         "location": {
-          "description": "Source location or executable region whose contained callees should be found.",
-          "type": "object",
-          "properties": {
-            "span": {
-              "$ref": "#/properties/symbol/properties/location/properties/span"
-            },
-            "selection": {
-              "$ref": "#/properties/symbol/properties/location/properties/selection"
-            }
-          }
+          "$ref": "#/$defs/location",
+          "description": "Source location or executable region whose contained callees should be found."
         },
         "includeIndirect": {
           "description": "Whether reachable source callees should be traversed transitively.",
@@ -245,6 +111,111 @@
             "path": {
               "description": "Absolute workspace path.",
               "type": "string"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates documents with matching paths or IDs."
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "span": {
+              "type": "object",
+              "properties": {
+                "document": {
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
+                },
+                "range": {
+                  "description": "Zero-based UTF-16 range.",
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "description": "Zero-based UTF-16 offset.",
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "length": {
+                      "description": "UTF-16 code-unit length.",
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    }
+                  }
+                }
+              },
+              "required": [
+                "document",
+                "range"
+              ]
+            },
+            "selection": {
+              "type": "object",
+              "properties": {
+                "document": {
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
+                },
+                "selectedText": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "contextBefore": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "contextAfter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "document",
+                "selectedText"
+              ]
             }
           }
         }

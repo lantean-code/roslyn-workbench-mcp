@@ -9,13 +9,13 @@
   "area": "CodeAction",
   "category": "Code Actions",
   "operationKind": "Query",
-  "summary": "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.",
+  "summary": "Evaluates one supported Document, Project or Solution Fix All operation for a Code Fix from list-code-actions, without staging or writing source files. Supply the originating actionId, an advertised fixAllScopes value and the matching expectedSnapshot; refactorings and already-prepared Fix All references are not accepted. Rejects operations exceeding maxChanges source documents, default 50. The affectedDocuments preview is limited separately to 20 identities by default; check its hasMore and totalCount. Returns a new temporary actionId for stage-code-action in mutation-enabled modes: use this prepared ID, not the originating ID, with the same snapshot. Staging revalidates the exact prepared change set.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/prepare-fix-all.html",
   "tool": {
     "name": "prepare-fix-all",
     "title": "Prepare Fix All",
-    "description": "Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.",
+    "description": "Evaluates one supported Document, Project or Solution Fix All operation for a Code Fix from list-code-actions, without staging or writing source files. Supply the originating actionId, an advertised fixAllScopes value and the matching expectedSnapshot; refactorings and already-prepared Fix All references are not accepted. Rejects operations exceeding maxChanges source documents, default 50. The affectedDocuments preview is limited separately to 20 identities by default; check its hasMore and totalCount. Returns a new temporary actionId for stage-code-action in mutation-enabled modes: use this prepared ID, not the originating ID, with the same snapshot. Staging revalidates the exact prepared change set.",
     "inputSchema": {
       "type": "object",
       "properties": {

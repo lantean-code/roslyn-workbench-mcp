@@ -1426,7 +1426,7 @@
 
 <h1 id="transaction-rollback">Transaction Rollback</h1>
 <p><code>transaction-rollback</code> · Mutation · Server · Transactions</p>
-<p>Rolls back the current staged transaction.</p>
+<p>Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.</p>
 <p><strong>Availability:</strong> Published in transactional, approval-required and autonomous-trusted operational modes.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

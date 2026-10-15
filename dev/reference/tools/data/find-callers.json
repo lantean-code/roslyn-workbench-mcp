@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Returns bounded direct source call sites and containing symbols.",
+  "summary": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller's callSites.hasMore before treating the results as complete.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callers.html",
   "tool": {
     "name": "find-callers",
     "title": "Find Callers",
-    "description": "Returns bounded direct source call sites and containing symbols.",
+    "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller's callSites.hasMore before treating the results as complete.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -24,26 +24,8 @@
           "type": "object",
           "properties": {
             "project": {
-              "description": "Disambiguates symbols with matching identities.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates symbols with matching identities."
             },
             "location": {
               "description": "Provide exactly one of span or selection.",
@@ -53,40 +35,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "type": [
-                            "object",
-                            "null"
-                          ],
-                          "properties": {
-                            "projectId": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "path": {
-                              "description": "Workspace-relative path.",
-                              "type": "string"
-                            },
-                            "targetFramework": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "range": {
                       "description": "Zero-based UTF-16 range.",
@@ -116,22 +66,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "selectedText": {
                       "type": "string",
@@ -180,26 +116,8 @@
               "default": "Solution"
             },
             "project": {
-              "description": "Used only when kind is Project.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Used only when kind is Project."
             },
             "document": {
               "description": "Used only when kind is Document.",
@@ -209,8 +127,8 @@
               ],
               "properties": {
                 "project": {
-                  "description": "Disambiguates documents with matching paths or IDs.",
-                  "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
+                  "$ref": "#/$defs/project",
+                  "description": "Disambiguates documents with matching paths or IDs."
                 },
                 "path": {
                   "description": "Workspace-relative path.",
@@ -229,26 +147,8 @@
                 "null"
               ],
               "items": {
-                "description": "Provide projectId, name, path, targetFramework, or any combination.",
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "projectId": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "description": "Workspace-relative path.",
-                    "type": "string"
-                  },
-                  "targetFramework": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/project",
+                "description": "Provide projectId, name, path, targetFramework, or any combination."
               }
             }
           }
@@ -332,7 +232,47 @@
       },
       "required": [
         "symbol"
-      ]
+      ],
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates documents with matching paths or IDs."
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "outputSchema": {
       "type": "object",

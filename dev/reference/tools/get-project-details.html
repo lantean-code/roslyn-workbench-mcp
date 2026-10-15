@@ -1437,7 +1437,7 @@
 
 <h1 id="get-project-details">Get Project Details</h1>
 <p><code>get-project-details</code> · Query · CorePlugin · Code discovery and navigation</p>
-<p>Returns project metadata, options and selected document details.</p>
+<p>Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

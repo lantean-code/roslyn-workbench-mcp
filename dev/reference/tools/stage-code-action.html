@@ -1454,7 +1454,7 @@
 
 <h1 id="stage-code-action">Stage Code Action</h1>
 <p><code>stage-code-action</code> · Mutation · CodeAction · Code Actions</p>
-<p>Revalidates and stages one selected Code Fix, refactoring or prepared Fix All action into the active transaction.</p>
+<p>Revalidates and stages one selected Code Fix, refactoring or prepared Fix All operation in the active transaction without writing source files. Start the transaction before discovery or preparation, then supply the actionId from list-code-actions or the new prepared ID from prepare-fix-all with its matching expectedSnapshot. Prepared Fix All staging must match the exact prepared change set and document limit. Successful staging consumes the reference; use the returned snapshot and rediscover before selecting another action. Inspect transaction-preview, or transaction-review in approval-required mode, then transaction-commit to write files or transaction-rollback to discard staged work.</p>
 <p><strong>Availability:</strong> Published in transactional, approval-required and autonomous-trusted operational modes.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

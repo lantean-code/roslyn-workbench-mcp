@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code mutation",
   "operationKind": "Mutation",
-  "summary": "Stages a symbol rename across the effective solution.",
+  "summary": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
   "availability": "Published in transactional, approval-required and autonomous-trusted operational modes.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/rename-symbol.html",
   "tool": {
     "name": "rename-symbol",
     "title": "Rename Symbol",
-    "description": "Stages a symbol rename across the effective solution.",
+    "description": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -24,26 +24,8 @@
           "type": "object",
           "properties": {
             "project": {
-              "description": "Disambiguates symbols with matching identities.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates symbols with matching identities."
             },
             "location": {
               "description": "Provide exactly one of span or selection.",
@@ -53,40 +35,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "type": [
-                            "object",
-                            "null"
-                          ],
-                          "properties": {
-                            "projectId": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "path": {
-                              "description": "Workspace-relative path.",
-                              "type": "string"
-                            },
-                            "targetFramework": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "range": {
                       "description": "Zero-based UTF-16 range.",
@@ -116,22 +66,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "selectedText": {
                       "type": "string",
@@ -236,7 +172,47 @@
         "symbol",
         "newName",
         "expectedSnapshot"
-      ]
+      ],
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates documents with matching paths or IDs."
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "outputSchema": {
       "type": "object",

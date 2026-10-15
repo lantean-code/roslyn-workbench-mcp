@@ -1426,7 +1426,7 @@
 
 <h1 id="get-document-outline">Get Document Outline</h1>
 <p><code>get-document-outline</code> · Query · CorePlugin · Code discovery and navigation</p>
-<p>Returns a bounded semantic outline for one document.</p>
+<p>Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

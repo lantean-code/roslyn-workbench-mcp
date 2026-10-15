@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Returns base, interface, and optional derived type relationships for a resolved type.",
+  "summary": "Inspects the inheritance neighbourhood of a resolved named type, returning type, baseTypes, interfaces and derivedTypes. Use this for a combined hierarchy view; use find-derived-types when you need a scoped descendant search. Derived types are included by default and searched across the loaded solution; includeDerived=false omits that collection. maxDepth defaults to 3 for base and derived types, with direct relationships at depth 1; it does not limit the transitive interface list. Independent result limits default to 16 base types, 64 interfaces and 100 derived types. Check each collection.hasMore for result truncation; base and derived counts describe only the requested depth. Read-only; no code is executed.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-type-hierarchy.html",
   "tool": {
     "name": "get-type-hierarchy",
     "title": "Get Type Hierarchy",
-    "description": "Returns base, interface, and optional derived type relationships for a resolved type.",
+    "description": "Inspects the inheritance neighbourhood of a resolved named type, returning type, baseTypes, interfaces and derivedTypes. Use this for a combined hierarchy view; use find-derived-types when you need a scoped descendant search. Derived types are included by default and searched across the loaded solution; includeDerived=false omits that collection. maxDepth defaults to 3 for base and derived types, with direct relationships at depth 1; it does not limit the transitive interface list. Independent result limits default to 16 base types, 64 interfaces and 100 derived types. Check each collection.hasMore for result truncation; base and derived counts describe only the requested depth. Read-only; no code is executed.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -24,26 +24,8 @@
           "type": "object",
           "properties": {
             "project": {
-              "description": "Disambiguates symbols with matching identities.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates symbols with matching identities."
             },
             "location": {
               "description": "Provide exactly one of span or selection.",
@@ -53,40 +35,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "type": [
-                            "object",
-                            "null"
-                          ],
-                          "properties": {
-                            "projectId": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "path": {
-                              "description": "Workspace-relative path.",
-                              "type": "string"
-                            },
-                            "targetFramework": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "range": {
                       "description": "Zero-based UTF-16 range.",
@@ -116,22 +66,8 @@
                   "type": "object",
                   "properties": {
                     "document": {
-                      "description": "Provide exactly one of path or documentId.",
-                      "type": "object",
-                      "properties": {
-                        "project": {
-                          "description": "Disambiguates documents with matching paths or IDs.",
-                          "$ref": "#/properties/symbol/properties/location/properties/span/properties/document/properties/project"
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "documentId": {
-                          "description": "Workspace-local document ID.",
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/$defs/document",
+                      "description": "Provide exactly one of path or documentId."
                     },
                     "selectedText": {
                       "type": "string",
@@ -258,7 +194,47 @@
       },
       "required": [
         "symbol"
-      ]
+      ],
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates documents with matching paths or IDs."
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "outputSchema": {
       "type": "object",

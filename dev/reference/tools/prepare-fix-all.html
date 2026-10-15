@@ -1437,7 +1437,7 @@
 
 <h1 id="prepare-fix-all">Prepare Fix All</h1>
 <p><code>prepare-fix-all</code> · Query · CodeAction · Code Actions</p>
-<p>Revalidates a Code Fix and reports the bounded impact of one explicit Fix All scope without staging changes.</p>
+<p>Evaluates one supported Document, Project or Solution Fix All operation for a Code Fix from list-code-actions, without staging or writing source files. Supply the originating actionId, an advertised fixAllScopes value and the matching expectedSnapshot; refactorings and already-prepared Fix All references are not accepted. Rejects operations exceeding maxChanges source documents, default 50. The affectedDocuments preview is limited separately to 20 identities by default; check its hasMore and totalCount. Returns a new temporary actionId for stage-code-action in mutation-enabled modes: use this prepared ID, not the originating ID, with the same snapshot. Staging revalidates the exact prepared change set.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

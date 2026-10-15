@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code analysis",
   "operationKind": "Query",
-  "summary": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+  "summary": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-control-flow.html",
   "tool": {
     "name": "analyze-control-flow",
     "title": "Analyze Control Flow",
-    "description": "Analyzes control flow for an exact complete statement or contiguous statement range.",
+    "description": "Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -27,40 +27,8 @@
               "type": "object",
               "properties": {
                 "document": {
-                  "description": "Provide exactly one of path or documentId.",
-                  "type": "object",
-                  "properties": {
-                    "project": {
-                      "description": "Disambiguates documents with matching paths or IDs.",
-                      "type": [
-                        "object",
-                        "null"
-                      ],
-                      "properties": {
-                        "projectId": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "path": {
-                          "description": "Workspace-relative path.",
-                          "type": "string"
-                        },
-                        "targetFramework": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "documentId": {
-                      "description": "Workspace-local document ID.",
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
                 },
                 "range": {
                   "description": "Zero-based UTF-16 range.",
@@ -90,22 +58,8 @@
               "type": "object",
               "properties": {
                 "document": {
-                  "description": "Provide exactly one of path or documentId.",
-                  "type": "object",
-                  "properties": {
-                    "project": {
-                      "description": "Disambiguates documents with matching paths or IDs.",
-                      "$ref": "#/properties/location/properties/span/properties/document/properties/project"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "documentId": {
-                      "description": "Workspace-local document ID.",
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
                 },
                 "selectedText": {
                   "type": "string",
@@ -206,7 +160,44 @@
       },
       "required": [
         "location"
-      ]
+      ],
+      "$defs": {
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "Disambiguates documents with matching paths or IDs.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "targetFramework": {
+                  "type": "string"
+                }
+              }
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "outputSchema": {
       "type": "object",

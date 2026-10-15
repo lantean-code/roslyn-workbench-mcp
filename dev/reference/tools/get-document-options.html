@@ -1426,7 +1426,7 @@
 
 <h1 id="get-document-options">Get Document Options</h1>
 <p><code>get-document-options</code> · Query · CorePlugin · Code analysis</p>
-<p>Returns language and optional detailed parse and analyzer-config options for a document.</p>
+<p>Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

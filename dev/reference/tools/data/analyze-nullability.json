@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code analysis",
   "operationKind": "Query",
-  "summary": "Returns nullable-flow diagnostics for a selected scope or location.",
+  "summary": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-nullability.html",
   "tool": {
     "name": "analyze-nullability",
     "title": "Analyze Nullability",
-    "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+    "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -37,26 +37,8 @@
               "default": "Solution"
             },
             "project": {
-              "description": "Used only when kind is Project.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Used only when kind is Project."
             },
             "document": {
               "description": "Used only when kind is Document.",
@@ -66,26 +48,8 @@
               ],
               "properties": {
                 "project": {
-                  "description": "Disambiguates documents with matching paths or IDs.",
-                  "type": [
-                    "object",
-                    "null"
-                  ],
-                  "properties": {
-                    "projectId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "targetFramework": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/project",
+                  "description": "Disambiguates documents with matching paths or IDs."
                 },
                 "path": {
                   "description": "Workspace-relative path.",
@@ -104,26 +68,8 @@
                 "null"
               ],
               "items": {
-                "description": "Provide projectId, name, path, targetFramework, or any combination.",
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "projectId": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "description": "Workspace-relative path.",
-                    "type": "string"
-                  },
-                  "targetFramework": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/project",
+                "description": "Provide projectId, name, path, targetFramework, or any combination."
               }
             }
           }
@@ -139,22 +85,8 @@
               "type": "object",
               "properties": {
                 "document": {
-                  "description": "Provide exactly one of path or documentId.",
-                  "type": "object",
-                  "properties": {
-                    "project": {
-                      "description": "Disambiguates documents with matching paths or IDs.",
-                      "$ref": "#/properties/scope/properties/document/properties/project"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "documentId": {
-                      "description": "Workspace-local document ID.",
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
                 },
                 "range": {
                   "description": "Zero-based UTF-16 range.",
@@ -184,22 +116,8 @@
               "type": "object",
               "properties": {
                 "document": {
-                  "description": "Provide exactly one of path or documentId.",
-                  "type": "object",
-                  "properties": {
-                    "project": {
-                      "description": "Disambiguates documents with matching paths or IDs.",
-                      "$ref": "#/properties/scope/properties/document/properties/project"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "documentId": {
-                      "description": "Workspace-local document ID.",
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/document",
+                  "description": "Provide exactly one of path or documentId."
                 },
                 "selectedText": {
                   "type": "string",
@@ -283,6 +201,46 @@
             },
             "path": {
               "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
+              "type": "string"
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "$ref": "#/$defs/project",
+              "description": "Disambiguates documents with matching paths or IDs."
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "documentId": {
+              "description": "Workspace-local document ID.",
               "type": "string"
             }
           }

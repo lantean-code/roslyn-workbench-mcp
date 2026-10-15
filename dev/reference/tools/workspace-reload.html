@@ -1426,7 +1426,7 @@
 
 <h1 id="workspace-reload">Workspace Reload</h1>
 <p><code>workspace-reload</code> · Mutation · Server · Workspaces</p>
-<p>Reloads the selected workspace when it is out of date.</p>
+<p>Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

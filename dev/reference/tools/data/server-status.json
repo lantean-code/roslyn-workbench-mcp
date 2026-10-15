@@ -9,13 +9,13 @@
   "area": "Server",
   "category": "Server lifecycle",
   "operationKind": "Query",
-  "summary": "Returns server diagnostics without requiring a loaded workspace.",
+  "summary": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/server-status.html",
   "tool": {
     "name": "server-status",
     "title": "Server Status",
-    "description": "Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
+    "description": "Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
     "inputSchema": {
       "type": "object",
       "properties": {

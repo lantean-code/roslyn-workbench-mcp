@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code analysis",
   "operationKind": "Query",
-  "summary": "Returns language and optional detailed parse and analyzer-config options for a document.",
+  "summary": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-options.html",
   "tool": {
     "name": "get-document-options",
     "title": "Get Document Options",
-    "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+    "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
     "inputSchema": {
       "type": "object",
       "properties": {

@@ -1426,7 +1426,7 @@
 
 <h1 id="workspace-close">Workspace Close</h1>
 <p><code>workspace-close</code> · Mutation · Server · Workspaces</p>
-<p>Closes the selected workspace.</p>
+<p>Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code discovery and navigation",
   "operationKind": "Query",
-  "summary": "Returns project metadata, options and selected document details.",
+  "summary": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-project-details.html",
   "tool": {
     "name": "get-project-details",
     "title": "Get Project Details",
-    "description": "Returns project metadata, options and selected document details.",
+    "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
     "inputSchema": {
       "type": "object",
       "properties": {

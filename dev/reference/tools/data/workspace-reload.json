@@ -9,13 +9,13 @@
   "area": "Server",
   "category": "Workspaces",
   "operationKind": "Mutation",
-  "summary": "Reloads the selected workspace when it is out of date.",
+  "summary": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-reload.html",
   "tool": {
     "name": "workspace-reload",
     "title": "Workspace Reload",
-    "description": "Reloads the selected workspace when it is out of date.",
+    "description": "Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.",
     "inputSchema": {
       "type": "object",
       "properties": {

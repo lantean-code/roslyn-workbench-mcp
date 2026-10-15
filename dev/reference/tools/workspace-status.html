@@ -1426,7 +1426,7 @@
 
 <h1 id="workspace-status">Workspace Status</h1>
 <p><code>workspace-status</code> · Query · Server · Workspaces</p>
-<p>Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.</p>
+<p>Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

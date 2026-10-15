@@ -9,13 +9,13 @@
   "area": "CorePlugin",
   "category": "Code analysis",
   "operationKind": "Query",
-  "summary": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+  "summary": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-async.html",
   "tool": {
     "name": "analyze-async",
     "title": "Analyze Async",
-    "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+    "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -37,26 +37,8 @@
               "default": "Solution"
             },
             "project": {
-              "description": "Used only when kind is Project.",
-              "type": [
-                "object",
-                "null"
-              ],
-              "properties": {
-                "projectId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "path": {
-                  "description": "Workspace-relative path.",
-                  "type": "string"
-                },
-                "targetFramework": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/$defs/project",
+              "description": "Used only when kind is Project."
             },
             "document": {
               "description": "Used only when kind is Document.",
@@ -66,26 +48,8 @@
               ],
               "properties": {
                 "project": {
-                  "description": "Disambiguates documents with matching paths or IDs.",
-                  "type": [
-                    "object",
-                    "null"
-                  ],
-                  "properties": {
-                    "projectId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "path": {
-                      "description": "Workspace-relative path.",
-                      "type": "string"
-                    },
-                    "targetFramework": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/$defs/project",
+                  "description": "Disambiguates documents with matching paths or IDs."
                 },
                 "path": {
                   "description": "Workspace-relative path.",
@@ -104,26 +68,8 @@
                 "null"
               ],
               "items": {
-                "description": "Provide projectId, name, path, targetFramework, or any combination.",
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "projectId": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "description": "Workspace-relative path.",
-                    "type": "string"
-                  },
-                  "targetFramework": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/project",
+                "description": "Provide projectId, name, path, targetFramework, or any combination."
               }
             }
           }
@@ -154,6 +100,29 @@
             },
             "path": {
               "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "project": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "projectId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Workspace-relative path.",
+              "type": "string"
+            },
+            "targetFramework": {
               "type": "string"
             }
           }

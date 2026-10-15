@@ -1,6 +1,4 @@
 using System.Text.Json;
-
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -60,7 +58,7 @@ public sealed class ServerOwnedToolBaseTests
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionCommitRequest, TransactionCommitData>(
             "transaction-commit",
             "Transaction Commit",
-            "Commits the current staged transaction to disk.",
+            "Writes the active transaction changes to source files. Inspect transaction-preview first; use transaction-rollback to discard changes instead. Supply the current expectedSnapshot. Transactional mode requests client-mediated confirmation unless already approved for this Host session; autonomous-trusted mode does not prompt. A completed write ends the transaction; check committed and the returned transaction state, because an empty revision returns NoChange and leaves the transaction active. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
             false,
             true,
             null,

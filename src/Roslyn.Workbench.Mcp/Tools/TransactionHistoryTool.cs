@@ -27,7 +27,7 @@ internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHi
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionHistoryName,
             title: "Transaction History",
-            description: "Moves backward or forward through staged transaction history.",
+            description: "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
             readOnly: false,
             destructive: true)
     {

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns project metadata, options and selected document details.
 /// </summary>
-[RoslynTool("get-project-details", "Get Project Details", "Returns project metadata, options and selected document details.")]
+[RoslynTool("get-project-details", "Get Project Details", "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.")]
 internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetailsRequest, ProjectDetailsData>
 {
     /// <inheritdoc/>

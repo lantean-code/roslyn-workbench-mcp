@@ -27,7 +27,7 @@ internal sealed class WorkspaceCloseTool : ServerOwnedToolBase<WorkspaceCloseReq
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceCloseName,
             title: "Workspace Close",
-            description: "Closes the selected workspace.",
+            description: "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
             readOnly: false,
             destructive: false)
     {

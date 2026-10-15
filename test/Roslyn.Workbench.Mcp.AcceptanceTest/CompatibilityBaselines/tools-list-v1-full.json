@@ -24276,7 +24276,7 @@
         "readOnlyHint": true,
         "title": "Get Document Outline"
       },
-      "description": "Returns a bounded semantic outline for one document.",
+      "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -27001,7 +27001,7 @@
         "readOnlyHint": true,
         "title": "Get Partial Declarations"
       },
-      "description": "Returns the declarations for a partial type or method.",
+      "description": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -28043,7 +28043,7 @@
         "readOnlyHint": true,
         "title": "Get Project Details"
       },
-      "description": "Returns project metadata, options and selected document details.",
+      "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
       "inputSchema": {
         "properties": {
           "analyzersLimit": {
@@ -33087,7 +33087,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Info"
       },
-      "description": "Returns detailed metadata for a resolved symbol.",
+      "description": "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -41849,7 +41849,7 @@
         "readOnlyHint": true,
         "title": "Resolve Symbol"
       },
-      "description": "Resolves the symbol at a location or selection and returns its canonical selector.",
+      "description": "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -42990,7 +42990,7 @@
         "readOnlyHint": true,
         "title": "Search Symbols"
       },
-      "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+      "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
       "inputSchema": {
         "description": "Provide query, metadataName, or both.",
         "properties": {
@@ -46300,7 +46300,7 @@
         "readOnlyHint": false,
         "title": "Transaction Commit"
       },
-      "description": "Requests one-use approval for a transaction-review receipt, then commits only that exact change.",
+      "description": "Requests one-use client approval and writes only the exact source-file change represented by a transaction-review receipt. Use transaction-review first, inspect its change set, then supply its receiptId and returned snapshot. The receipt must be unexpired and match the current workspace and transaction revision. Declined or unavailable approval writes no files. Accepted approval consumes the receipt before final validation and persistence; obtain a new review receipt if that commit fails. A completed write ends the transaction. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -46967,7 +46967,7 @@
         "readOnlyHint": false,
         "title": "Transaction History"
       },
-      "description": "Moves backward or forward through staged transaction history.",
+      "description": "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
       "inputSchema": {
         "properties": {
           "direction": {
@@ -48714,7 +48714,7 @@
         "readOnlyHint": false,
         "title": "Transaction Rollback"
       },
-      "description": "Rolls back the current staged transaction.",
+      "description": "Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -49927,7 +49927,7 @@
         "readOnlyHint": false,
         "title": "Workspace Close"
       },
-      "description": "Closes the selected workspace.",
+      "description": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -78152,7 +78152,7 @@
         "readOnlyHint": true,
         "title": "Get Document Outline"
       },
-      "description": "Returns a bounded semantic outline for one document.",
+      "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -80877,7 +80877,7 @@
         "readOnlyHint": true,
         "title": "Get Partial Declarations"
       },
-      "description": "Returns the declarations for a partial type or method.",
+      "description": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -81919,7 +81919,7 @@
         "readOnlyHint": true,
         "title": "Get Project Details"
       },
-      "description": "Returns project metadata, options and selected document details.",
+      "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
       "inputSchema": {
         "properties": {
           "analyzersLimit": {
@@ -86963,7 +86963,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Info"
       },
-      "description": "Returns detailed metadata for a resolved symbol.",
+      "description": "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -95725,7 +95725,7 @@
         "readOnlyHint": true,
         "title": "Resolve Symbol"
       },
-      "description": "Resolves the symbol at a location or selection and returns its canonical selector.",
+      "description": "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -96866,7 +96866,7 @@
         "readOnlyHint": true,
         "title": "Search Symbols"
       },
-      "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+      "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
       "inputSchema": {
         "description": "Provide query, metadataName, or both.",
         "properties": {
@@ -100176,7 +100176,7 @@
         "readOnlyHint": false,
         "title": "Transaction Commit"
       },
-      "description": "Commits the current staged transaction to disk.",
+      "description": "Writes the active transaction changes to source files. Inspect transaction-preview first; use transaction-rollback to discard changes instead. Supply the current expectedSnapshot. Transactional mode requests client-mediated confirmation unless already approved for this Host session; autonomous-trusted mode does not prompt. A completed write ends the transaction; check committed and the returned transaction state, because an empty revision returns NoChange and leaves the transaction active. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -100837,7 +100837,7 @@
         "readOnlyHint": false,
         "title": "Transaction History"
       },
-      "description": "Moves backward or forward through staged transaction history.",
+      "description": "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
       "inputSchema": {
         "properties": {
           "direction": {
@@ -102402,7 +102402,7 @@
         "readOnlyHint": false,
         "title": "Transaction Rollback"
       },
-      "description": "Rolls back the current staged transaction.",
+      "description": "Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -103615,7 +103615,7 @@
         "readOnlyHint": false,
         "title": "Workspace Close"
       },
-      "description": "Closes the selected workspace.",
+      "description": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -131840,7 +131840,7 @@
         "readOnlyHint": true,
         "title": "Get Document Outline"
       },
-      "description": "Returns a bounded semantic outline for one document.",
+      "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -134565,7 +134565,7 @@
         "readOnlyHint": true,
         "title": "Get Partial Declarations"
       },
-      "description": "Returns the declarations for a partial type or method.",
+      "description": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -135607,7 +135607,7 @@
         "readOnlyHint": true,
         "title": "Get Project Details"
       },
-      "description": "Returns project metadata, options and selected document details.",
+      "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
       "inputSchema": {
         "properties": {
           "analyzersLimit": {
@@ -140651,7 +140651,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Info"
       },
-      "description": "Returns detailed metadata for a resolved symbol.",
+      "description": "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -149413,7 +149413,7 @@
         "readOnlyHint": true,
         "title": "Resolve Symbol"
       },
-      "description": "Resolves the symbol at a location or selection and returns its canonical selector.",
+      "description": "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -150554,7 +150554,7 @@
         "readOnlyHint": true,
         "title": "Search Symbols"
       },
-      "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+      "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
       "inputSchema": {
         "description": "Provide query, metadataName, or both.",
         "properties": {
@@ -153864,7 +153864,7 @@
         "readOnlyHint": false,
         "title": "Transaction Commit"
       },
-      "description": "Commits the current staged transaction to disk.",
+      "description": "Writes the active transaction changes to source files. Inspect transaction-preview first; use transaction-rollback to discard changes instead. Supply the current expectedSnapshot. Transactional mode requests client-mediated confirmation unless already approved for this Host session; autonomous-trusted mode does not prompt. A completed write ends the transaction; check committed and the returned transaction state, because an empty revision returns NoChange and leaves the transaction active. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -154525,7 +154525,7 @@
         "readOnlyHint": false,
         "title": "Transaction History"
       },
-      "description": "Moves backward or forward through staged transaction history.",
+      "description": "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
       "inputSchema": {
         "properties": {
           "direction": {
@@ -156090,7 +156090,7 @@
         "readOnlyHint": false,
         "title": "Transaction Rollback"
       },
-      "description": "Rolls back the current staged transaction.",
+      "description": "Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -158321,7 +158321,7 @@
         "readOnlyHint": false,
         "title": "Workspace Close"
       },
-      "description": "Closes the selected workspace.",
+      "description": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -185848,7 +185848,7 @@
         "readOnlyHint": true,
         "title": "Get Document Outline"
       },
-      "description": "Returns a bounded semantic outline for one document.",
+      "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -188573,7 +188573,7 @@
         "readOnlyHint": true,
         "title": "Get Partial Declarations"
       },
-      "description": "Returns the declarations for a partial type or method.",
+      "description": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -189615,7 +189615,7 @@
         "readOnlyHint": true,
         "title": "Get Project Details"
       },
-      "description": "Returns project metadata, options and selected document details.",
+      "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
       "inputSchema": {
         "properties": {
           "analyzersLimit": {
@@ -194659,7 +194659,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Info"
       },
-      "description": "Returns detailed metadata for a resolved symbol.",
+      "description": "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -202616,7 +202616,7 @@
         "readOnlyHint": true,
         "title": "Resolve Symbol"
       },
-      "description": "Resolves the symbol at a location or selection and returns its canonical selector.",
+      "description": "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -203757,7 +203757,7 @@
         "readOnlyHint": true,
         "title": "Search Symbols"
       },
-      "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+      "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
       "inputSchema": {
         "description": "Provide query, metadataName, or both.",
         "properties": {
@@ -206421,7 +206421,7 @@
         "readOnlyHint": false,
         "title": "Workspace Close"
       },
-      "description": "Closes the selected workspace.",
+      "description": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -234646,7 +234646,7 @@
         "readOnlyHint": true,
         "title": "Get Document Outline"
       },
-      "description": "Returns a bounded semantic outline for one document.",
+      "description": "Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -237371,7 +237371,7 @@
         "readOnlyHint": true,
         "title": "Get Partial Declarations"
       },
-      "description": "Returns the declarations for a partial type or method.",
+      "description": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -238413,7 +238413,7 @@
         "readOnlyHint": true,
         "title": "Get Project Details"
       },
-      "description": "Returns project metadata, options and selected document details.",
+      "description": "Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.",
       "inputSchema": {
         "properties": {
           "analyzersLimit": {
@@ -243457,7 +243457,7 @@
         "readOnlyHint": true,
         "title": "Get Symbol Info"
       },
-      "description": "Returns detailed metadata for a resolved symbol.",
+      "description": "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -252219,7 +252219,7 @@
         "readOnlyHint": true,
         "title": "Resolve Symbol"
       },
-      "description": "Resolves the symbol at a location or selection and returns its canonical selector.",
+      "description": "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.",
       "inputSchema": {
         "properties": {
           "declarationsLimit": {
@@ -253360,7 +253360,7 @@
         "readOnlyHint": true,
         "title": "Search Symbols"
       },
-      "description": "Searches declarations by name, metadata name and optional semantic filters. Input: Provide query, metadataName, or both.",
+      "description": "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete. Input: Provide query, metadataName, or both.",
       "inputSchema": {
         "description": "Provide query, metadataName, or both.",
         "properties": {
@@ -256670,7 +256670,7 @@
         "readOnlyHint": false,
         "title": "Transaction Commit"
       },
-      "description": "Commits the current staged transaction to disk.",
+      "description": "Writes the active transaction changes to source files. Inspect transaction-preview first; use transaction-rollback to discard changes instead. Supply the current expectedSnapshot. Transactional mode requests client-mediated confirmation unless already approved for this Host session; autonomous-trusted mode does not prompt. A completed write ends the transaction; check committed and the returned transaction state, because an empty revision returns NoChange and leaves the transaction active. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -257331,7 +257331,7 @@
         "readOnlyHint": false,
         "title": "Transaction History"
       },
-      "description": "Moves backward or forward through staged transaction history.",
+      "description": "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
       "inputSchema": {
         "properties": {
           "direction": {
@@ -258896,7 +258896,7 @@
         "readOnlyHint": false,
         "title": "Transaction Rollback"
       },
-      "description": "Rolls back the current staged transaction.",
+      "description": "Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -260109,7 +260109,7 @@
         "readOnlyHint": false,
         "title": "Workspace Close"
       },
-      "description": "Closes the selected workspace.",
+      "description": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
       "inputSchema": {
         "properties": {
           "workspace": {

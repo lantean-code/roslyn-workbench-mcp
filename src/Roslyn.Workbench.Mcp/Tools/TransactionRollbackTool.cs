@@ -27,7 +27,7 @@ internal sealed class TransactionRollbackTool : ServerOwnedToolBase<TransactionR
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionRollbackName,
             title: "Transaction Rollback",
-            description: "Rolls back the current staged transaction.",
+            description: "Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.",
             readOnly: false,
             destructive: true)
     {

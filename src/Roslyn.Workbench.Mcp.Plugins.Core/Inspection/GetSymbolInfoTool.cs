@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns detailed metadata for a resolved symbol.
 /// </summary>
-[RoslynTool("get-symbol-info", "Get Symbol Info", "Returns detailed metadata for a resolved symbol.")]
+[RoslynTool("get-symbol-info", "Get Symbol Info", "Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.")]
 internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest, SymbolInfoData>
 {
     /// <inheritdoc/>

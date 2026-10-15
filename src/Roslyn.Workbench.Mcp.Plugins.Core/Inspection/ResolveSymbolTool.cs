@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Resolves the symbol at a location or selection and returns its canonical selector.
 /// </summary>
-[RoslynTool("resolve-symbol", "Resolve Symbol", "Resolves the symbol at a location or selection and returns its canonical selector.")]
+[RoslynTool("resolve-symbol", "Resolve Symbol", "Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.")]
 internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest, ResolveSymbolData>
 {
     /// <inheritdoc/>

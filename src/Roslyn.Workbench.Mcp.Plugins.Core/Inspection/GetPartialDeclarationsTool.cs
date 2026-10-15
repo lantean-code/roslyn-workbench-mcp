@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns the declarations for a partial type or method.
 /// </summary>
-[RoslynTool("get-partial-declarations", "Get Partial Declarations", "Returns the declarations for a partial type or method.")]
+[RoslynTool("get-partial-declarations", "Get Partial Declarations", "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.")]
 internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDeclarationsRequest, PartialDeclarationsData>
 {
     /// <inheritdoc/>

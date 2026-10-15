@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Searches declarations by name, metadata name, and optional semantic filters.
 /// </summary>
-[RoslynTool(_toolName, "Search Symbols", "Searches declarations by name, metadata name and optional semantic filters.")]
+[RoslynTool(_toolName, "Search Symbols", "Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete.")]
 internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest, SymbolSearchData>
 {
     private const string _toolName = "search-symbols";

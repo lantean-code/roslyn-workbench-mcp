@@ -6317,7 +6317,7 @@
         "readOnlyHint": true,
         "title": "Find Callers"
       },
-      "description": "Returns bounded direct source call sites and containing symbols.",
+      "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller\u0027s callSites.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "callSitesPerCallerLimit": {
@@ -8538,7 +8538,7 @@
         "readOnlyHint": true,
         "title": "Find Derived Types"
       },
-      "description": "Finds derived types for a resolved base type.",
+      "description": "Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.",
       "inputSchema": {
         "properties": {
           "derivedTypesLimit": {
@@ -10726,7 +10726,7 @@
         "readOnlyHint": true,
         "title": "Find Implementations"
       },
-      "description": "Finds implementations of an interface or abstract member.",
+      "description": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -14117,7 +14117,7 @@
         "readOnlyHint": true,
         "title": "Find References"
       },
-      "description": "Finds source references, optionally including declarations and access classification.",
+      "description": "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -17016,7 +17016,7 @@
         "readOnlyHint": true,
         "title": "Get API Surface"
       },
-      "description": "Returns exported API symbols for a selected scope.",
+      "description": "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "includeObsolete": {
@@ -60193,7 +60193,7 @@
         "readOnlyHint": true,
         "title": "Find Callers"
       },
-      "description": "Returns bounded direct source call sites and containing symbols.",
+      "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller\u0027s callSites.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "callSitesPerCallerLimit": {
@@ -62414,7 +62414,7 @@
         "readOnlyHint": true,
         "title": "Find Derived Types"
       },
-      "description": "Finds derived types for a resolved base type.",
+      "description": "Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.",
       "inputSchema": {
         "properties": {
           "derivedTypesLimit": {
@@ -64602,7 +64602,7 @@
         "readOnlyHint": true,
         "title": "Find Implementations"
       },
-      "description": "Finds implementations of an interface or abstract member.",
+      "description": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -67993,7 +67993,7 @@
         "readOnlyHint": true,
         "title": "Find References"
       },
-      "description": "Finds source references, optionally including declarations and access classification.",
+      "description": "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -70892,7 +70892,7 @@
         "readOnlyHint": true,
         "title": "Get API Surface"
       },
-      "description": "Returns exported API symbols for a selected scope.",
+      "description": "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "includeObsolete": {
@@ -113881,7 +113881,7 @@
         "readOnlyHint": true,
         "title": "Find Callers"
       },
-      "description": "Returns bounded direct source call sites and containing symbols.",
+      "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller\u0027s callSites.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "callSitesPerCallerLimit": {
@@ -116102,7 +116102,7 @@
         "readOnlyHint": true,
         "title": "Find Derived Types"
       },
-      "description": "Finds derived types for a resolved base type.",
+      "description": "Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.",
       "inputSchema": {
         "properties": {
           "derivedTypesLimit": {
@@ -118290,7 +118290,7 @@
         "readOnlyHint": true,
         "title": "Find Implementations"
       },
-      "description": "Finds implementations of an interface or abstract member.",
+      "description": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -121681,7 +121681,7 @@
         "readOnlyHint": true,
         "title": "Find References"
       },
-      "description": "Finds source references, optionally including declarations and access classification.",
+      "description": "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -124580,7 +124580,7 @@
         "readOnlyHint": true,
         "title": "Get API Surface"
       },
-      "description": "Returns exported API symbols for a selected scope.",
+      "description": "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "includeObsolete": {
@@ -168587,7 +168587,7 @@
         "readOnlyHint": true,
         "title": "Find Callers"
       },
-      "description": "Returns bounded direct source call sites and containing symbols.",
+      "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller\u0027s callSites.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "callSitesPerCallerLimit": {
@@ -170808,7 +170808,7 @@
         "readOnlyHint": true,
         "title": "Find Derived Types"
       },
-      "description": "Finds derived types for a resolved base type.",
+      "description": "Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.",
       "inputSchema": {
         "properties": {
           "derivedTypesLimit": {
@@ -172996,7 +172996,7 @@
         "readOnlyHint": true,
         "title": "Find Implementations"
       },
-      "description": "Finds implementations of an interface or abstract member.",
+      "description": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -176387,7 +176387,7 @@
         "readOnlyHint": true,
         "title": "Find References"
       },
-      "description": "Finds source references, optionally including declarations and access classification.",
+      "description": "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -178588,7 +178588,7 @@
         "readOnlyHint": true,
         "title": "Get API Surface"
       },
-      "description": "Returns exported API symbols for a selected scope.",
+      "description": "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "includeObsolete": {
@@ -216687,7 +216687,7 @@
         "readOnlyHint": true,
         "title": "Find Callers"
       },
-      "description": "Returns bounded direct source call sites and containing symbols.",
+      "description": "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller\u0027s callSites.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "callSitesPerCallerLimit": {
@@ -218908,7 +218908,7 @@
         "readOnlyHint": true,
         "title": "Find Derived Types"
       },
-      "description": "Finds derived types for a resolved base type.",
+      "description": "Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.",
       "inputSchema": {
         "properties": {
           "derivedTypesLimit": {
@@ -221096,7 +221096,7 @@
         "readOnlyHint": true,
         "title": "Find Implementations"
       },
-      "description": "Finds implementations of an interface or abstract member.",
+      "description": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -224487,7 +224487,7 @@
         "readOnlyHint": true,
         "title": "Find References"
       },
-      "description": "Finds source references, optionally including declarations and access classification.",
+      "description": "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -227386,7 +227386,7 @@
         "readOnlyHint": true,
         "title": "Get API Surface"
       },
-      "description": "Returns exported API symbols for a selected scope.",
+      "description": "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.",
       "inputSchema": {
         "properties": {
           "includeObsolete": {

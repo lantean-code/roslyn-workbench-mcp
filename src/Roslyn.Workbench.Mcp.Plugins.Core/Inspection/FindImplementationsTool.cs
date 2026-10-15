@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Finds implementations of an interface or abstract member.
 /// </summary>
-[RoslynTool("find-implementations", "Find Implementations", "Finds implementations of an interface or abstract member.")]
+[RoslynTool("find-implementations", "Find Implementations", "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.")]
 internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementationsRequest, ImplementationSearchData>
 {
     /// <inheritdoc/>

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns exported API symbols for a selected scope.
 /// </summary>
-[RoslynTool("get-api-surface", "Get API Surface", "Returns exported API symbols for a selected scope.")]
+[RoslynTool("get-api-surface", "Get API Surface", "Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.")]
 internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest, ApiSurfaceData>
 {
     private sealed class AccessibilityThreshold

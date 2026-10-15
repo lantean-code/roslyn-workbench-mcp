@@ -118,6 +118,7 @@ jobs:
             minimum: 5
           - area: host
             project: test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj
+            restore: Roslyn.Workbench.Mcp.slnx
             minimum: 41
     steps:
       - name: Check out source
@@ -127,7 +128,8 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore
-        run: dotnet restore "${{ matrix.project }}"
+        # Host security-reference checks load evidence projects outside the integration project graph.
+        run: dotnet restore "${{ matrix.restore || matrix.project }}"
       - name: Build
         run: dotnet build "${{ matrix.project }}" --no-restore
       - name: Test

@@ -20,6 +20,7 @@
       "type": "object",
       "properties": {
         "scope": {
+          "description": "Selects documents or projects to analyse when location is omitted; omitted searches the loaded solution. Ignored when location is supplied.",
           "type": [
             "object",
             "null"
@@ -225,6 +226,7 @@
           }
         },
         "findingsLimit": {
+          "description": "Caps returned nullable-flow diagnostics. Omitted or null uses 50; zero returns no findings.",
           "type": [
             "integer",
             "null"

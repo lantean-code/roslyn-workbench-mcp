@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -260,6 +261,7 @@
           "default": 3
         },
         "derivedTypesLimit": {
+          "description": "Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.",
           "type": [
             "integer",
             "null"

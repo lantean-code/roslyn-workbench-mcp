@@ -25,6 +25,7 @@
           "type": "string"
         },
         "metadataName": {
+          "description": "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.",
           "type": "string"
         },
         "scope": {

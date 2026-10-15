@@ -1812,7 +1812,7 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_CommandLineOptions_WHEN_ComposingHost_THEN_ShouldProjectDerivedOptionsIntoTheContainer</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_CommandLineOptions_WHEN_ComposingHost_THEN_ShouldProjectDerivedOptionsIntoTheContainer</code></a></li>
 </ul>
 </details>
 <h3 id="optional-compiler-impact-validation-fails-closed">Optional compiler-impact validation fails closed</h3>
@@ -1832,8 +1832,8 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_IncompleteCompilerValidation_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_NewCompilerErrors_WHEN_Reviewing_THEN_ShouldNotBuildReceipt</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_IncompleteCompilerValidation_WHEN_Committing_THEN_ShouldRejectBeforePersistenceWork</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_NewCompilerErrors_WHEN_Reviewing_THEN_ShouldNotBuildReceipt</code></a></li>
 </ul>
 </details>
 <h3 id="interrupted-persistence-retains-versioned-recovery-evidence">Interrupted persistence retains versioned recovery evidence</h3>
@@ -1861,9 +1861,9 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Recovery.CommitRecoveryStoreTests.GIVEN_UnsupportedManifestVersion_WHEN_ReadingStatuses_THEN_ShouldReturnActionableConflict</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/WorkspaceCommitRecoveryServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Recovery.WorkspaceCommitRecoveryServiceTests.GIVEN_ApplyingManifest_WHEN_RestorationSucceeds_THEN_ShouldPersistRestoredBeforeCleanup</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceCommitWriterTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceCommitWriterTests.GIVEN_CreateReplaceAndDelete_WHEN_Applying_THEN_ShouldUseDurableArtifactsWithoutCancellation</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Recovery.CommitRecoveryStoreTests.GIVEN_UnsupportedManifestVersion_WHEN_ReadingStatuses_THEN_ShouldReturnActionableConflict</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/WorkspaceCommitRecoveryServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Recovery.WorkspaceCommitRecoveryServiceTests.GIVEN_ApplyingManifest_WHEN_RestorationSucceeds_THEN_ShouldPersistRestoredBeforeCleanup</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceCommitWriterTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceCommitWriterTests.GIVEN_CreateReplaceAndDelete_WHEN_Applying_THEN_ShouldUseDurableArtifactsWithoutCancellation</code></a></li>
 </ul>
 </details>
 <h3 id="external-error-reporting-is-explicit-bounded-and-consent-controlled">External error reporting is explicit, bounded and consent-controlled</h3>
@@ -1885,8 +1885,8 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/ExternalErrorReportProjectorTests.cs"><code>Roslyn.Workbench.Mcp.Test.ErrorReporting.ExternalErrorReportProjectorTests.GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldExcludeExternalImplementationDetails</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/SubmitErrorReportToolTests.cs"><code>Roslyn.Workbench.Mcp.Test.ErrorReporting.SubmitErrorReportToolTests.GIVEN_PromptRequiredWithoutElicitationCapability_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/ExternalErrorReportProjectorTests.cs"><code>Roslyn.Workbench.Mcp.Test.ErrorReporting.ExternalErrorReportProjectorTests.GIVEN_ExternalPluginFailureWithSensitiveLocalData_WHEN_Projecting_THEN_ShouldExcludeExternalImplementationDetails</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/SubmitErrorReportToolTests.cs"><code>Roslyn.Workbench.Mcp.Test.ErrorReporting.SubmitErrorReportToolTests.GIVEN_PromptRequiredWithoutElicitationCapability_WHEN_Submitting_THEN_ShouldFailClosedWithoutDispatch</code></a></li>
 </ul>
 </details>
 <h3 id="generated-looking-source-follows-explicit-mutation-policy">Generated-looking source follows explicit mutation policy</h3>
@@ -1908,8 +1908,8 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_GeneratedSourceAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryAndWarningWithoutResolvingDocument</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateProcessorTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateProcessorTests.GIVEN_GeneratedSourceAndDenyPolicy_WHEN_Processing_THEN_ShouldRejectCandidate</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_GeneratedSourceAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryAndWarningWithoutResolvingDocument</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateProcessorTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateProcessorTests.GIVEN_GeneratedSourceAndDenyPolicy_WHEN_Processing_THEN_ShouldRejectCandidate</code></a></li>
 </ul>
 </details>
 <h3 id="external-plugin-loading-is-explicit-and-mode-constrained">External plugin loading is explicit and mode-constrained</h3>
@@ -1932,8 +1932,8 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogEntryMaterializerTests.cs"><code>Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogEntryMaterializerTests.GIVEN_MixedToolKinds_WHEN_MaterializingEntry_THEN_ShouldCreateOnlyPermittedRuntimeTools</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogLoaderTests.cs"><code>Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogLoaderTests.GIVEN_ExternalPluginsDisabled_WHEN_Loading_THEN_ShouldNotDiscoverExternalPackages</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogEntryMaterializerTests.cs"><code>Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogEntryMaterializerTests.GIVEN_MixedToolKinds_WHEN_MaterializingEntry_THEN_ShouldCreateOnlyPermittedRuntimeTools</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogLoaderTests.cs"><code>Roslyn.Workbench.Mcp.Test.PluginLoading.PluginCatalogLoaderTests.GIVEN_ExternalPluginsDisabled_WHEN_Loading_THEN_ShouldNotDiscoverExternalPackages</code></a></li>
 </ul>
 </details>
 <h3 id="agent-facing-failure-status-and-continuation-contracts-are-baseline-locked">Agent-facing failure, status and continuation contracts are baseline-locked</h3>
@@ -2066,11 +2066,11 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>contract: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_RuntimeFailureVariants_WHEN_ValidatingPublishedOutputSchema_THEN_ShouldAcceptEveryEnvelope</code></a></li>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_StatusOutputSchemas_WHEN_ExportingRecursiveContracts_THEN_ShouldMatchCompleteStatusGraphs</code></a></li>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/PublishedErrorCodeSourceValidatorTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.PublishedErrorCodeSourceValidatorTests.GIVEN_RepositoryProductionSources_WHEN_ValidatingErrorEmitters_THEN_ShouldUseOwnedConstants</code></a></li>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionToolMatrix_WHEN_CollectingResponseContracts_THEN_ShouldLockEverySuccessAndRuntimeFailureShape</code></a></li>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_SecurityRelevantContracts_WHEN_CollectingSecuritySurface_THEN_ShouldIncludeDerivedCompatibilityFacts</code></a></li>
+<li>contract: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_RuntimeFailureVariants_WHEN_ValidatingPublishedOutputSchema_THEN_ShouldAcceptEveryEnvelope</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.Protocol.ToolSchemaFactoryIntegrationTests.GIVEN_StatusOutputSchemas_WHEN_ExportingRecursiveContracts_THEN_ShouldMatchCompleteStatusGraphs</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/PublishedErrorCodeSourceValidatorTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.PublishedErrorCodeSourceValidatorTests.GIVEN_RepositoryProductionSources_WHEN_ValidatingErrorEmitters_THEN_ShouldUseOwnedConstants</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionToolMatrix_WHEN_CollectingResponseContracts_THEN_ShouldLockEverySuccessAndRuntimeFailureShape</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_SecurityRelevantContracts_WHEN_CollectingSecuritySurface_THEN_ShouldIncludeDerivedCompatibilityFacts</code></a></li>
 </ul>
 </details>
 <h3 id="startup-policy-fixes-the-published-capability-surface">Startup policy fixes the published capability surface</h3>
@@ -2169,9 +2169,9 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_DefaultOperationalMode_WHEN_ComposingHost_THEN_ShouldPublishInspectionOnlySurface</code></a></li>
-<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionHostMatrix_WHEN_CollectingSecuritySurface_THEN_ShouldMatchEveryToolAvailabilityFact</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/ServerOwnedToolRegistrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ServerOwnedToolRegistrationTests.GIVEN_ReceiptApprovalPolicy_WHEN_RegisteringServerOwnedTools_THEN_ShouldPublishOnlyReceiptReviewWorkflow</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.HostCompositionIntegrationTests.GIVEN_DefaultOperationalMode_WHEN_ComposingHost_THEN_ShouldPublishInspectionOnlySurface</code></a></li>
+<li>integration: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ToolReference.SecurityReferenceGeneratorIntegrationTests.GIVEN_ProductionHostMatrix_WHEN_CollectingSecuritySurface_THEN_ShouldMatchEveryToolAvailabilityFact</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/ServerOwnedToolRegistrationTests.cs"><code>Roslyn.Workbench.Mcp.Test.ServerOwnedToolRegistrationTests.GIVEN_ReceiptApprovalPolicy_WHEN_RegisteringServerOwnedTools_THEN_ShouldPublishOnlyReceiptReviewWorkflow</code></a></li>
 </ul>
 </details>
 <h3 id="mutations-remain-transaction-snapshot-and-approval-bound">Mutations remain transaction-, snapshot- and approval-bound</h3>
@@ -2215,11 +2215,11 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Test/Transactions/TransactionReceiptStoreTests.cs"><code>Roslyn.Workbench.Mcp.Test.Transactions.TransactionReceiptStoreTests.GIVEN_CurrentReceipt_WHEN_Consuming_THEN_ShouldReturnItOnce</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_FinalPersistenceIdentityDiffersFromApprovedReceipt_WHEN_Committing_THEN_ShouldRejectBeforeRecoveryPersistence</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflictWithoutWriting</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_ReceiptBoundToEarlierRevision_WHEN_ValidatingBeforePrompt_THEN_ShouldRequestNewReview</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Test/Transactions/TransactionReceiptStoreTests.cs"><code>Roslyn.Workbench.Mcp.Test.Transactions.TransactionReceiptStoreTests.GIVEN_CurrentReceipt_WHEN_Consuming_THEN_ShouldReturnItOnce</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_FinalPersistenceIdentityDiffersFromApprovedReceipt_WHEN_Committing_THEN_ShouldRejectBeforeRecoveryPersistence</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionCommitServiceTests.GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflictWithoutWriting</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.TransactionServiceTests.GIVEN_ReceiptBoundToEarlierRevision_WHEN_ValidatingBeforePrompt_THEN_ShouldRequestNewReview</code></a></li>
 </ul>
 </details>
 <h3 id="workspace-authority-constrains-admitted-and-mutable-files">Workspace authority constrains admitted and mutable files</h3>
@@ -2249,9 +2249,9 @@
 <details>
 <summary>Automated evidence</summary>
 <ul>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_ExternalDocumentRejectedByPolicy_WHEN_OpeningWorkspace_THEN_ShouldRejectAndDispose</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_PathOutsideHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading</code></a></li>
-<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/a04bcb473d90286e9ef652744a1b7f743db96bc8/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateValidatorTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateValidatorTests.GIVEN_ExistingDocumentOutsideWorkspaceRoot_WHEN_ChangingText_THEN_ShouldRejectIt</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_ExternalDocumentRejectedByPolicy_WHEN_OpeningWorkspace_THEN_ShouldRejectAndDispose</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle.WorkspaceLifecycleServiceTests.GIVEN_PathOutsideHostAuthority_WHEN_OpeningWorkspace_THEN_ShouldRejectBeforeLoading</code></a></li>
+<li>unit: <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/ab7ecf96d422f240dab7fbc71129a39e1b004a64/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateValidatorTests.cs"><code>Roslyn.Workbench.Mcp.Workspace.Test.Transactions.WorkspaceMutationCandidateValidatorTests.GIVEN_ExistingDocumentOutsideWorkspaceRoot_WHEN_ChangingText_THEN_ShouldRejectIt</code></a></li>
 </ul>
 </details>
 <h2 id="delegated-responsibilities">Delegated responsibilities</h2>

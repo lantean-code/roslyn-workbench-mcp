@@ -163,6 +163,7 @@
           }
         },
         "testScope": {
+          "description": "Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,9 +254,11 @@
           }
         },
         "includeReasons": {
+          "description": "Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.",
           "type": "boolean"
         },
         "testsLimit": {
+          "description": "Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.",
           "type": [
             "integer",
             "null"

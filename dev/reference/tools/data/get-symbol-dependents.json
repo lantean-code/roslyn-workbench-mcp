@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,6 +254,7 @@
           }
         },
         "dependentsLimit": {
+          "description": "Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.",
           "type": [
             "integer",
             "null"

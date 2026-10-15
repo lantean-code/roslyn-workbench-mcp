@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Limits references and declarations to the selected documents or projects; omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,12 +254,15 @@
           }
         },
         "includeDefinitions": {
+          "description": "Include source declarations alongside references within the same result limit; defaults to true.",
           "type": "boolean"
         },
         "includeContext": {
+          "description": "Include the trimmed source line for each returned reference when available; declaration entries have no context. Defaults to false.",
           "type": "boolean"
         },
         "referencesLimit": {
+          "description": "Caps returned occurrences, including declarations when requested. Omitted or null uses 100; zero returns no occurrences.",
           "type": [
             "integer",
             "null"

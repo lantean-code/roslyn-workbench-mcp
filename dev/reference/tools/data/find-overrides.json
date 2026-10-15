@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,6 +254,7 @@
           }
         },
         "overridesLimit": {
+          "description": "Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.",
           "type": [
             "integer",
             "null"

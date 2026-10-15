@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Limits caller discovery to the selected documents or projects; omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,9 +254,11 @@
           }
         },
         "includeContext": {
+          "description": "Include the trimmed source line for each returned call site when available; defaults to false.",
           "type": "boolean"
         },
         "callersLimit": {
+          "description": "Caps returned callers independently of the call-site limit. Omitted or null uses 100; zero returns no callers.",
           "type": [
             "integer",
             "null"
@@ -265,6 +268,7 @@
           "default": 100
         },
         "callSitesPerCallerLimit": {
+          "description": "Caps call sites independently for each returned caller. Omitted or null uses 100; zero retains callers without call sites.",
           "type": [
             "integer",
             "null"

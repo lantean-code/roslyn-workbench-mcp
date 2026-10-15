@@ -163,6 +163,7 @@
           }
         },
         "scope": {
+          "description": "Selects documents for references and callers, and projects for override and implementation counts. A document scope uses its containing project for those counts; omitted searches the loaded solution.",
           "type": [
             "object",
             "null"
@@ -253,6 +254,7 @@
           }
         },
         "locationsLimit": {
+          "description": "Caps returned reference locations without limiting impact counts. Omitted or null uses 100; zero returns counts without locations.",
           "type": [
             "integer",
             "null"

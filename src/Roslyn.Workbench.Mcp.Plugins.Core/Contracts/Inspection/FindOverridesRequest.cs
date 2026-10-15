@@ -15,6 +15,7 @@ internal sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -22,6 +23,7 @@ internal sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultOverridesMaxResults)]
+    [Description("Caps returned distinct overriding members. Omitted or null uses 100; zero returns no overrides.")]
     public int? OverridesLimit { get; init; } = _defaultOverridesMaxResults;
 
     /// <summary>

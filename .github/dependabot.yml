@@ -17,6 +17,10 @@ updates:
     ignore:
       # Roslyn runtime and analyser baselines are coordinated manually because they intentionally differ.
       - dependency-name: "Microsoft.CodeAnalysis.*"
+      # MSBuild references are upgraded together after reviewing supported SDK compatibility.
+      - dependency-name: Microsoft.Build
+      - dependency-name: Microsoft.Build.Framework
+      - dependency-name: Microsoft.NET.StringTools
       # The MCP SDK 2.x migration is deferred to the corresponding product major release.
       - dependency-name: ModelContextProtocol
         update-types:

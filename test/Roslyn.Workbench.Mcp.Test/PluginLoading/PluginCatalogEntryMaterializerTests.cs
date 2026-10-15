@@ -62,7 +62,7 @@ public sealed class PluginCatalogEntryMaterializerTests
                 LogLevel.Warning,
                 new EventId(2),
                 It.Is<It.IsAnyType>((value, _) =>
-                    value.ToString() == $"Plugin authoring warning InputSchemaSize for plugin plugin, tool tool: Request '{requestTypeName}' publishes a {expectedSize}-byte input schema. Keep agent-facing input schemas at or below 5,000 bytes so property guidance remains portable across MCP clients."
+                    value != null && value.ToString() == $"Plugin authoring warning InputSchemaSize for plugin plugin, tool tool: Request '{requestTypeName}' publishes a {expectedSize}-byte input schema. Keep agent-facing input schemas at or below 5,000 bytes so property guidance remains portable across MCP clients."
                     && HasLogProperty(value, "RuleId", "InputSchemaSize")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
@@ -91,7 +91,7 @@ public sealed class PluginCatalogEntryMaterializerTests
                 LogLevel.Warning,
                 new EventId(1),
                 It.Is<It.IsAnyType>((value, _) =>
-                    value.ToString() == "Plugin authoring warning RWMCP014 for plugin plugin, tool tool: Response 'RawQueryResponse' publishes unbounded top-level collections: Items. Prefer BoundedCollection<TItem> for agent-facing top-level collections."
+                    value != null && value.ToString() == "Plugin authoring warning RWMCP014 for plugin plugin, tool tool: Response 'RawQueryResponse' publishes unbounded top-level collections: Items. Prefer BoundedCollection<TItem> for agent-facing top-level collections."
                     && HasLogProperty(value, "RuleId", "RWMCP014")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),

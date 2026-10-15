@@ -24,15 +24,15 @@
       },
       "System.Composition": {
         "type": "Direct",
-        "requested": "[10.0.11, )",
-        "resolved": "10.0.11",
-        "contentHash": "hGUJdkomA2imB1I55/zf2vxt1EksFpGCqUdb5emVURi/JuhBi9kbBn8HixXxAUuZn/4jixb928+a/yeImmRSiA==",
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "KkDvzJttw5MdrLcGG0xjWQcRUauMgBy+BYM9hyzSFK7dGRnaNSd9UFWB06hL8dTZ6Col1NzqP8aHCx9FjvbmLw==",
         "dependencies": {
-          "System.Composition.AttributedModel": "10.0.11",
-          "System.Composition.Convention": "10.0.11",
-          "System.Composition.Hosting": "10.0.11",
-          "System.Composition.Runtime": "10.0.11",
-          "System.Composition.TypedParts": "10.0.11"
+          "System.Composition.AttributedModel": "10.0.13",
+          "System.Composition.Convention": "10.0.13",
+          "System.Composition.Hosting": "10.0.13",
+          "System.Composition.Runtime": "10.0.13",
+          "System.Composition.TypedParts": "10.0.13"
         }
       },
       "Humanizer.Core": {
@@ -64,38 +64,38 @@
       },
       "System.Composition.AttributedModel": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "pexJp2ogcmngQ0GUg0KNtGRzfDgQ/5ZPNapEJ/EMc4rl2Y528cKPigXGdjajbVtvKfER1Tx/5DY3WRiWUgIH5w=="
+        "resolved": "10.0.13",
+        "contentHash": "DIearfoN1CG+CZFqAk3a6Nsq+PrtjpCzOArL3+6qW7kYjNuYIyHgU56rJAX7p2paOTA6wUzxjkcRcT/jPhFLaw=="
       },
       "System.Composition.Convention": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "+RujAxDD1L9gbPZvdtA5ajYSDgKK1gMXDA75033wL3wGoxwx0fOHfXy+5k9ai6pttRMxXfpUjd+FHtsEiexsBg==",
+        "resolved": "10.0.13",
+        "contentHash": "ywSHs2HHGJlYCKJ2l9jkv8HITr2PX6bixruDpL8VtO0On/O+cy5k2gN0ugXMz+7psgNBhM7B3vBGpcBl8+SG4Q==",
         "dependencies": {
-          "System.Composition.AttributedModel": "10.0.11"
+          "System.Composition.AttributedModel": "10.0.13"
         }
       },
       "System.Composition.Hosting": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "naPy86Excbn32uhiAYWMfplmuaY4604eooPbgCINAe23SAbiVBgLx8VHcySlWy1slMcfDU6mbWEzw4kgVEc2gw==",
+        "resolved": "10.0.13",
+        "contentHash": "qtcQaU/3muM0JqLUL6QUPCpoA+HZIOh06zvuGirT4yLdVDskKO0nO3rk3tZ5pR5nK5SIPMrm5a1aLNvPmWG6dw==",
         "dependencies": {
-          "System.Composition.Runtime": "10.0.11"
+          "System.Composition.Runtime": "10.0.13"
         }
       },
       "System.Composition.Runtime": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "Iw3mmCOGqUSdZZayH8OlM0yBi+C0v6JoRbHZLrXCJGv8NoKw1QgD3qYfvtH3umE+rO8vzczheELZ6MYLAn6JgA=="
+        "resolved": "10.0.13",
+        "contentHash": "xsStwJQECRMx/D2oZaPXk33uA+tRxnAIErw+XOcofdPuX/bnsU2Kxr3aQK5Z9ZKALMbnc3aJLQGLUVXU2xiv+w=="
       },
       "System.Composition.TypedParts": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "CctpS0AnYhip8TUgO43xnkpq1wFnV7V/UU7OH3kBaNB8MlfZFSUiYhcf/cQysaECozelv+3rCln+/c2AUnIqJQ==",
+        "resolved": "10.0.13",
+        "contentHash": "gnoRJ/sPdGzTMA6dh8bqr7lC5YuZjj1qsFxsNh7Qk6SOqOuX5m+twhoN4psrMhAt9+8YGPKD3RQ7GGjABizUqQ==",
         "dependencies": {
-          "System.Composition.AttributedModel": "10.0.11",
-          "System.Composition.Hosting": "10.0.11",
-          "System.Composition.Runtime": "10.0.11"
+          "System.Composition.AttributedModel": "10.0.13",
+          "System.Composition.Hosting": "10.0.13",
+          "System.Composition.Runtime": "10.0.13"
         }
       },
       "roslyn.workbench.mcp.abstractions": {

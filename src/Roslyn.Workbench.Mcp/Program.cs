@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Hosting;
-
 namespace Roslyn.Workbench.Mcp;
 
 /// <summary>
@@ -7,11 +5,12 @@ namespace Roslyn.Workbench.Mcp;
 /// </summary>
 internal static class Program
 {
-    private static async Task Main(string[] args)
+    private static async Task<int> Main(string[] args)
     {
-        if (HostCommandLine.TryWriteVersion(args, Console.Out))
+        if (HostCommandLine.TryWriteHelp(args, Console.Out)
+            || HostCommandLine.TryWriteVersion(args, Console.Out))
         {
-            return;
+            return 0;
         }
 
         Console.SetOut(Console.Error);
@@ -20,6 +19,14 @@ internal static class Program
         builder.AddRoslynWorkbench(args);
 
         using var host = builder.Build();
+        var stateDirectory = host.Services.GetRequiredService<IWorkspaceStateDirectory>();
+        var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(HostStartupStorage));
+        if (!HostStartupStorage.TryInitialize(stateDirectory, logger, Console.Error))
+        {
+            return 1;
+        }
+
         await host.RunAsync();
+        return 0;
     }
 }

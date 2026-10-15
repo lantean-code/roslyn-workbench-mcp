@@ -53,7 +53,7 @@ public sealed class LoggingErrorReportDispatcherTests
         logger.Verify(item => item.Log(
             LogLevel.Error,
             It.Is<EventId>(eventId => eventId.Id == 1),
-            It.Is<It.IsAnyType>((state, _) => ContainsReport(state.ToString(), report)),
+            It.Is<It.IsAnyType>((state, _) => state != null && ContainsReport(state.ToString(), report)),
             null,
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         logger.Verify(item => item.IsEnabled(LogLevel.Error), Times.Once);
@@ -144,7 +144,7 @@ public sealed class LoggingErrorReportDispatcherTests
         logger.Verify(item => item.Log(
             LogLevel.Error,
             It.Is<EventId>(eventId => eventId.Id == 1),
-            It.Is<It.IsAnyType>((state, _) => IsRedactedReport(state.ToString())),
+            It.Is<It.IsAnyType>((state, _) => state != null && IsRedactedReport(state.ToString())),
             null,
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         original.Report.Exceptions[0].Message.Should().Be("Message");

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 using ModelContextProtocol;
@@ -297,7 +296,7 @@ public sealed class UnhandledToolExceptionFilterTests : IDisposable
             item => item.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((value, _) => value.ToString() ==
+                It.Is<It.IsAnyType>((value, _) => value != null && value.ToString() ==
                     $"Unhandled exception while executing MCP tool tool-name. Correlation ID: {correlationId}"),
                 exception,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),

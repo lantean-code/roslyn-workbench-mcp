@@ -137,7 +137,9 @@ jobs:
           --root-directory .
           --no-build --no-restore
           --filter "Category!=Integration&Category!=Audit"
-          --coverlet --coverlet-output-format json --coverlet-output-format cobertura
+          --coverlet
+          --coverlet-include "[Roslyn.Workbench.Mcp*]*" --coverlet-exclude "[*.Test*]*"
+          --coverlet-output-format json --coverlet-output-format cobertura
           --report-trx
           --results-directory TestResults/release-fast
           --minimum-expected-tests 1732
@@ -231,7 +233,7 @@ jobs:
             python tools/release/render-release-notes.py --version "${{ steps.release.outputs.version }}" --output artifacts/release/RELEASE_NOTES.md
           fi
       - name: Upload release candidate
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: roslyn-workbench-mcp-${{ steps.release.outputs.version }}
           path: artifacts/release
@@ -239,7 +241,7 @@ jobs:
           retention-days: 14
       - name: Upload release test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-test-results-${{ steps.release.outputs.version || github.run_id }}
           path: TestResults
@@ -274,7 +276,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Download release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
           path: artifacts/release
@@ -374,7 +376,7 @@ jobs:
           --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-acceptance-${{ matrix.os }}
           path: TestResults
@@ -382,7 +384,7 @@ jobs:
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Upload failed acceptance diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-acceptance-diagnostics-${{ matrix.os }}
           path: |
@@ -411,7 +413,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Download validated release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}
           path: artifacts/release
@@ -468,17 +470,17 @@ jobs:
           --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: Attest package provenance
         if: needs.prepare.outputs.publish == 'true'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.0.0
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: artifacts/release/supply-chain/subjects.sha256
       - name: Attest package SBOM
         if: needs.prepare.outputs.publish == 'true'
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.0.0
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: artifacts/release/supply-chain/subjects.sha256
           sbom-path: artifacts/release/supply-chain/roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}.spdx.json
       - name: Upload verified release candidate
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-verified
           path: artifacts/release
@@ -585,7 +587,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Download verified release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-verified
           path: artifacts/release
@@ -647,7 +649,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Download verified release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-verified
           path: artifacts/release
@@ -706,7 +708,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Download verified release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: roslyn-workbench-mcp-${{ needs.prepare.outputs.version }}-verified
           path: artifacts/release

@@ -15,6 +15,7 @@ internal sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Limits the source references used to discover dependents to the selected documents or projects; omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -22,6 +23,7 @@ internal sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDependentsMaxResults)]
+    [Description("Caps returned distinct dependent symbols. Omitted or null uses 100; zero returns no dependents.")]
     public int? DependentsLimit { get; init; } = _defaultDependentsMaxResults;
 
     /// <summary>

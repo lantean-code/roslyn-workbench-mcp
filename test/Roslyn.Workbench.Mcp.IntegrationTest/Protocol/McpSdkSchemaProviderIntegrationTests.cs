@@ -3,9 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
+using Json.Schema;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Workspace.Validation;
 
@@ -164,8 +163,32 @@ public sealed class McpSdkSchemaProviderIntegrationTests
         var result = _target.GetInputSchema<FindReferencesRequest>();
         var json = result.GetRawText();
 
-        json.Should().Contain("\"$ref\":\"#/properties/");
+        json.Should().Contain("\"$ref\":\"#/$defs/");
         json.Should().NotContain("#/properties/request/");
+        result.GetProperty("$defs").TryGetProperty("project", out _).Should().BeTrue();
+        result.GetProperty("$defs").TryGetProperty("document", out _).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("{\"symbol\":{\"documentationCommentId\":\"T:Sample\"}}", true)]
+    [InlineData("{\"symbol\":{\"project\":null},\"scope\":null}", true)]
+    [InlineData("{\"symbol\":{\"project\":{\"name\":\"Sample\"}},\"scope\":{\"document\":null}}", true)]
+    [InlineData("{\"symbol\":{\"location\":{\"selection\":{\"document\":{\"path\":\"Sample.cs\"},\"selectedText\":\"Sample\"}}}}", true)]
+    [InlineData("{}", false)]
+    [InlineData("{\"symbol\":{\"project\":{\"name\":42}}}", false)]
+    [InlineData("{\"symbol\":{\"location\":{\"selection\":{\"document\":null,\"selectedText\":\"Sample\"}}}}", false)]
+    [InlineData("{\"symbol\":{\"location\":{\"selection\":{\"document\":{},\"selectedText\":\"\"}}}}", false)]
+    [InlineData("{\"symbol\":{},\"referencesLimit\":-1}", false)]
+    [Trait("Category", "Contract")]
+    public void GIVEN_CompactedRequest_WHEN_ValidatingPayload_THEN_ShouldResolveDefinitionsAndPreserveConstraints(string json, bool valid)
+    {
+        var published = _target.GetInputSchema<FindReferencesRequest>();
+        var schema = JsonSchema.Build(published);
+        var payload = JsonSerializer.Deserialize<JsonElement>(json);
+
+        var result = schema.Evaluate(payload);
+
+        result.IsValid.Should().Be(valid);
     }
 
     [Fact]

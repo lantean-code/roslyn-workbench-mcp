@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns overload signatures for a resolved method or constructor.
 /// </summary>
-[RoslynTool("find-overloads", "Find Overloads", "Returns overload signatures for a resolved method or constructor.")]
+[RoslynTool("find-overloads", "Find Overloads", "Lists callable signatures for a resolved method or constructor so you can compare parameter and return types. Requires a callable symbol; use search-symbols to discover one first. Methods are matched by name and method kind within the same containing type; instance constructors include only explicitly declared constructors. The selected callable can appear in the results. This does not resolve a call against arguments or collect inherited overloads. Returns symbol and a bounded overloads collection ordered by parameter count then signature. overloadsLimit defaults to 50; check overloads.hasMore for truncation. Reads symbols without invoking code.")]
 internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest, OverloadSearchData>
 {
     /// <inheritdoc/>

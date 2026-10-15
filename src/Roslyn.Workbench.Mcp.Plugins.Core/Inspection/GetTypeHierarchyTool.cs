@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns base, interface, and optional derived type relationships for a resolved type.
 /// </summary>
-[RoslynTool("get-type-hierarchy", "Get Type Hierarchy", "Returns base, interface, and optional derived type relationships for a resolved type.")]
+[RoslynTool("get-type-hierarchy", "Get Type Hierarchy", "Inspects the inheritance neighbourhood of a resolved named type, returning type, baseTypes, interfaces and derivedTypes. Use this for a combined hierarchy view; use find-derived-types when you need a scoped descendant search. Derived types are included by default and searched across the loaded solution; includeDerived=false omits that collection. maxDepth defaults to 3 for base and derived types, with direct relationships at depth 1; it does not limit the transitive interface list. Independent result limits default to 16 base types, 64 interfaces and 100 derived types. Check each collection.hasMore for result truncation; base and derived counts describe only the requested depth. Read-only; no code is executed.")]
 internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRequest, TypeHierarchyData>
 {
     /// <inheritdoc/>

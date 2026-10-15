@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 [RoslynTool(
     name: "get-symbol-members",
     title: "Get Symbol Members",
-    description: "Lists declared members and optional inherited or interface members for a resolved symbol.")]
+    description: "Lists members of a resolved named type to inspect its declaration surface. Use get-api-surface for an accessibility-filtered API inventory or get-symbol-info for details about one member. Defaults to explicitly declared members of the selected type, including non-public members. includeInherited adds base-type members except private, implicit and constructor/destructor members. includeExplicitInterface adds declarations from all implemented or inherited interfaces, not just explicit implementations on the selected type. Both options default to false. Returns symbol and a distinct, bounded members collection; membersLimit defaults to 100. Check members.hasMore for truncation. Reads the loaded workspace without modifying source.")]
 internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRequest, SymbolMembersData>
 {
     /// <inheritdoc/>

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns symbols directly invoked by a method or selected executable body.
 /// </summary>
-[RoslynTool("find-callees", "Find Callees", "Returns symbols directly invoked by a method or selected executable body.")]
+[RoslynTool("find-callees", "Find Callees", "Finds distinct method and constructor targets invoked by a source executable symbol or selected executable region. Use this for outgoing calls; use find-callers for incoming call sites. Reads the loaded workspace without executing code. Direct calls are the default; includeIndirect traverses reachable source bodies up to maxDepth (default 3, direct calls at depth 1). Nested lambda and local-function bodies are skipped during each body scan. Returns source and a bounded callees collection, not call sites or runtime dispatch targets. calleesLimit defaults to 100; check callees.hasMore for result truncation within the requested depth.")]
 internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, CalleeSearchData>
 {
     /// <inheritdoc/>

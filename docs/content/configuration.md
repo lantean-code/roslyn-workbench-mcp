@@ -4,6 +4,8 @@ Choose an operational mode first. Most users can leave resource and reporting li
 
 Run `roslyn-workbench-mcp --help` (or `-h`) to list supported options without starting the server or accessing recovery storage. `--version` prints the product version and exits.
 
+If durable recovery storage cannot be created or written, startup prints a concise diagnostic to stderr and exits unsuccessfully. Choose a writable local location with `--state-directory`; recovery is never silently disabled. Set `Logging__LogLevel__Default=Debug` to include the underlying exception details. Storage is checked before hosted services start and revalidated during lifecycle initialisation.
+
 ## Operational modes
 
 | Mode | Source changes | Review tool | Confirmation |

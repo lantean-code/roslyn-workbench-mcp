@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns bounded solution folders, projects, target frameworks, and direct project relationships.
 /// </summary>
-[RoslynTool(_toolName, "Get Solution Structure", "Returns bounded solution folders, projects, target frameworks and direct project relationships.")]
+[RoslynTool(_toolName, "Get Solution Structure", "Maps the loaded solution into solution folders and projects with workspace-relative paths, target frameworks and direct project references. Use this first to discover project and document selectors; use get-dependency-graph for a dependency graph or get-code-context to read a selected source region. Documents are omitted unless includeDocuments=true. Independent limits default to 200 folders, 100 projects, 50 references per project and 200 documents per project. Returns solutionPath and bounded folders and projects collections; check their hasMore flags and those on each projectReferences or documents collection for truncation. This read-only query can report ProjectStructureUnavailable if hierarchy or target-framework information cannot be obtained.")]
 internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
 {
     private const string _toolName = "get-solution-structure";

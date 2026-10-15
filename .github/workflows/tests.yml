@@ -76,7 +76,7 @@ jobs:
           --output artifacts/coverage --configuration Debug --commit "${{ github.sha }}"
           --baseline "${{ runner.temp }}/coverage-baseline.json"
       - name: Upload coverage baseline
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-baseline
           path: artifacts/coverage
@@ -84,7 +84,7 @@ jobs:
           retention-days: 90
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results-fast
           path: TestResults/fast
@@ -137,7 +137,7 @@ jobs:
           --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results-integration-${{ matrix.area }}
           path: TestResults/${{ matrix.area }}
@@ -203,7 +203,7 @@ jobs:
           --hangdump --hangdump-timeout 5m --hangdump-type None
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results-acceptance-${{ matrix.os }}
           path: TestResults
@@ -211,7 +211,7 @@ jobs:
           retention-days: ${{ job.status == 'failure' && 30 || 14 }}
       - name: Upload failed acceptance diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: acceptance-diagnostics-${{ matrix.os }}
           path: |

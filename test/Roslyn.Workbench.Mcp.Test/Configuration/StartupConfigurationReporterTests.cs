@@ -30,7 +30,7 @@ public sealed class StartupConfigurationReporterTests
             item => item.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((value, _) => value.ToString() == "Startup configuration warning Code: Message"),
+                It.Is<It.IsAnyType>((value, _) => value != null && value.ToString() == "Startup configuration warning Code: Message"),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

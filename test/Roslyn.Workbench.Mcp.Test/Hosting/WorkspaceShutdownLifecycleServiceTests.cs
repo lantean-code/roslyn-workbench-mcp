@@ -52,7 +52,7 @@ public sealed class WorkspaceShutdownLifecycleServiceTests
             item => item.Log(
                 LogLevel.Error,
                 It.Is<EventId>(eventId => eventId.Id == 1),
-                It.Is<It.IsAnyType>((value, _) => value.ToString() == "Workspace resource cleanup failed during Host shutdown."),
+                It.Is<It.IsAnyType>((value, _) => value != null && value.ToString() == "Workspace resource cleanup failed during Host shutdown."),
                 exception,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

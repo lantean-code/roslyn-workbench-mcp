@@ -59,7 +59,7 @@ public sealed class CodeActionProvenanceLoggerTests
             LogLevel.Information,
             It.Is<EventId>(value => value.Id == eventId),
             It.Is<It.IsAnyType>((state, _) =>
-                state.ToString()!.Contains(expectedMessage, StringComparison.Ordinal)
+                state != null && state.ToString()!.Contains(expectedMessage, StringComparison.Ordinal)
                 && state.ToString()!.Contains(expectedDiagnosticIds, StringComparison.Ordinal)),
             null,
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);

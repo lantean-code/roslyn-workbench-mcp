@@ -6,7 +6,7 @@
     <PackageVersion Include="AsyncFixer" Version="2.1.0" />
     <PackageVersion Include="DiffPlex" Version="1.9.0" />
     <PackageVersion Include="Microsoft.Build" Version="18.9.6" />
-    <PackageVersion Include="Microsoft.Build.Framework" Version="18.9.6" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="18.11.0" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.11.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />

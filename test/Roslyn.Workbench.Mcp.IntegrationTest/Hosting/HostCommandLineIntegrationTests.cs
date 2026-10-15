@@ -6,6 +6,57 @@ namespace Roslyn.Workbench.Mcp.Test.Hosting;
 [Trait("Category", "Integration")]
 public sealed class HostCommandLineIntegrationTests
 {
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    public async Task GIVEN_HelpWithInvalidStartupConfiguration_WHEN_RunningHost_THEN_ShouldExitWithoutInitialisingStorage(string argument)
+    {
+        var statePath = Path.GetTempFileName();
+        try
+        {
+            var runtimeConfiguration = Path.ChangeExtension(typeof(HostCommandLineIntegrationTests).Assembly.Location, ".runtimeconfig.json");
+            var startInfo = new ProcessStartInfo("dotnet")
+            {
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            };
+
+            startInfo.ArgumentList.Add("exec");
+            startInfo.ArgumentList.Add("--runtimeconfig");
+            startInfo.ArgumentList.Add(runtimeConfiguration);
+            startInfo.ArgumentList.Add(typeof(HostCommandLine).Assembly.Location);
+            startInfo.ArgumentList.Add(argument);
+            startInfo.ArgumentList.Add("--state-directory");
+            startInfo.ArgumentList.Add(statePath);
+            startInfo.ArgumentList.Add("--operational-mode");
+            startInfo.ArgumentList.Add("invalid");
+
+            using var process = new Process
+            {
+                StartInfo = startInfo,
+            };
+
+            process.Start().Should().BeTrue();
+            var standardOutput = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
+            var standardError = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var output = await standardOutput;
+            var error = await standardError;
+            var stateContents = await File.ReadAllTextAsync(statePath, TestContext.Current.CancellationToken);
+
+            process.ExitCode.Should().Be(0);
+            output.Should().Contain("Usage: roslyn-workbench-mcp [options]");
+            error.Should().BeEmpty();
+            stateContents.Should().BeEmpty();
+        }
+        finally
+        {
+            File.Delete(statePath);
+        }
+    }
+
     [Fact]
     public async Task GIVEN_VersionArgument_WHEN_RunningHostProcess_THEN_ShouldWriteOnlyExactInformationalVersion()
     {

@@ -2,6 +2,8 @@
 
 Choose an operational mode first. Most users can leave resource and reporting limits at their defaults.
 
+Run `roslyn-workbench-mcp --help` (or `-h`) to list supported options without starting the server or accessing recovery storage. `--version` prints the product version and exits.
+
 ## Operational modes
 
 | Mode | Source changes | Review tool | Confirmation |

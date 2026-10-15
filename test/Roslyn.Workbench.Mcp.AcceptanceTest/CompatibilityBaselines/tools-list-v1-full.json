@@ -16318,7 +16318,7 @@
         "readOnlyHint": false,
         "title": "Format Document"
       },
-      "description": "Stages Roslyn formatting for one document or one selected range.",
+      "description": "Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -41044,7 +41044,7 @@
         "readOnlyHint": false,
         "title": "Rename Symbol"
       },
-      "description": "Stages a symbol rename across the effective solution.",
+      "description": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -47633,7 +47633,7 @@
         "readOnlyHint": true,
         "title": "Transaction Review"
       },
-      "description": "Reviews the exact validated persistence set and returns the receipt required to commit it.",
+      "description": "Reviews the exact validated source-file persistence set for a staged transaction in approval-required mode. Requires at least one staged revision and the current expectedSnapshot. Returns file changes, validation results, provenance, a change-set digest, receiptId and expiresAt. The receipt is process-local, lasts up to 15 minutes, and is bound to the reviewed snapshot and transaction revision; obtain a new review after changing the transaction or expiry. includeDiff defaults to false; set it to true with document for one detailed diff, using contextLines (default 3). Inspect the complete change set, then call transaction-commit with receiptId and the returned snapshot for one-use client approval. Review itself does not approve or write source files.",
       "inputSchema": {
         "properties": {
           "contextLines": {
@@ -49302,7 +49302,7 @@
         "readOnlyHint": false,
         "title": "Transaction Start"
       },
-      "description": "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+      "description": "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -70194,7 +70194,7 @@
         "readOnlyHint": false,
         "title": "Format Document"
       },
-      "description": "Stages Roslyn formatting for one document or one selected range.",
+      "description": "Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -94920,7 +94920,7 @@
         "readOnlyHint": false,
         "title": "Rename Symbol"
       },
-      "description": "Stages a symbol rename across the effective solution.",
+      "description": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -101503,7 +101503,7 @@
         "readOnlyHint": true,
         "title": "Transaction Preview"
       },
-      "description": "Previews the current staged transaction.",
+      "description": "Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.",
       "inputSchema": {
         "properties": {
           "contextLines": {
@@ -102990,7 +102990,7 @@
         "readOnlyHint": false,
         "title": "Transaction Start"
       },
-      "description": "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+      "description": "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -123882,7 +123882,7 @@
         "readOnlyHint": false,
         "title": "Format Document"
       },
-      "description": "Stages Roslyn formatting for one document or one selected range.",
+      "description": "Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -148608,7 +148608,7 @@
         "readOnlyHint": false,
         "title": "Rename Symbol"
       },
-      "description": "Stages a symbol rename across the effective solution.",
+      "description": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -155191,7 +155191,7 @@
         "readOnlyHint": true,
         "title": "Transaction Preview"
       },
-      "description": "Previews the current staged transaction.",
+      "description": "Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.",
       "inputSchema": {
         "properties": {
           "contextLines": {
@@ -156678,7 +156678,7 @@
         "readOnlyHint": false,
         "title": "Transaction Start"
       },
-      "description": "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+      "description": "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
       "inputSchema": {
         "properties": {
           "workspace": {
@@ -157303,7 +157303,7 @@
         "readOnlyHint": true,
         "title": "Transaction Compiler Validation"
       },
-      "description": "Compares compiler errors in the staged transaction with its captured baseline across affected loaded project evaluations.",
+      "description": "Compares compiler errors in the active staged transaction with its captured baseline when the Host requires no-new-compiler-errors commit validation. Requires the current expectedSnapshot. Checks changed projects and their transitive dependants across loaded project evaluations; it does not run a full build or test suite. Returns completeness, success, baseline/staged/introduced error counts, project results, introduced diagnostics and limitations. Existing baseline errors can remain when no new errors are introduced; success requires a complete comparison. An empty transaction succeeds without compilation. Inspect isComplete and limitations before relying on counts; follow the returned continuation to correct, restart or commit the transaction. This query does not persist source changes, and commit authoritatively revalidates the unchanged snapshot.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -226688,7 +226688,7 @@
         "readOnlyHint": false,
         "title": "Format Document"
       },
-      "description": "Stages Roslyn formatting for one document or one selected range.",
+      "description": "Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -251414,7 +251414,7 @@
         "readOnlyHint": false,
         "title": "Rename Symbol"
       },
-      "description": "Stages a symbol rename across the effective solution.",
+      "description": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -257997,7 +257997,7 @@
         "readOnlyHint": true,
         "title": "Transaction Preview"
       },
-      "description": "Previews the current staged transaction.",
+      "description": "Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.",
       "inputSchema": {
         "properties": {
           "contextLines": {
@@ -259484,7 +259484,7 @@
         "readOnlyHint": false,
         "title": "Transaction Start"
       },
-      "description": "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+      "description": "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
       "inputSchema": {
         "properties": {
           "workspace": {

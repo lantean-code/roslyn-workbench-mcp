@@ -27,7 +27,7 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionStartName,
             title: "Transaction Start",
-            description: "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+            description: "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
             readOnly: false,
             destructive: false)
     {

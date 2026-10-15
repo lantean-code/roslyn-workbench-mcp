@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 /// <summary>
 /// Stages Roslyn formatting for one document or one selected range.
 /// </summary>
-[RoslynTool("format-document", "Format Document", "Stages Roslyn formatting for one document or one selected range.", Destructive = true)]
+[RoslynTool("format-document", "Format Document", "Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.", Destructive = true)]
 internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentRequest>
 {
     /// <inheritdoc/>

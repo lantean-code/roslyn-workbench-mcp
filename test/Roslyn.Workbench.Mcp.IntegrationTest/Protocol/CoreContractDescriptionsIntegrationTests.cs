@@ -41,7 +41,8 @@ public sealed class CoreContractDescriptionsIntegrationTests
         GetDescription(controlFlowGraphSchema, "location").Should().Be("Source location whose enclosing executable body should be graphed.");
         searchSymbolsSchema.GetProperty("description").GetString().Should().Be("Provide query, metadataName, or both.");
         GetDescription(searchSymbolsSchema, "query").Should().Be("Source-name query.");
-        searchSymbolsSchema.GetProperty("properties").GetProperty("metadataName").TryGetProperty("description", out _).Should().BeFalse();
+        GetDescription(searchSymbolsSchema, "metadataName").Should().Be(
+            "Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.");
     }
 
     [Fact]

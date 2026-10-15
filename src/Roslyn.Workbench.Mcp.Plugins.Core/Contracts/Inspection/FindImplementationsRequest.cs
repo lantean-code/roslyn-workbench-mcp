@@ -15,6 +15,7 @@ internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -22,6 +23,7 @@ internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultImplementationsMaxResults)]
+    [Description("Caps returned distinct implementation symbols. Omitted or null uses 100; zero returns no implementations.")]
     public int? ImplementationsLimit { get; init; } = _defaultImplementationsMaxResults;
 
     /// <summary>

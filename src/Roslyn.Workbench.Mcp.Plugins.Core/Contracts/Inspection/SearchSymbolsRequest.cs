@@ -21,6 +21,7 @@ internal sealed record SearchSymbolsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the metadata-name query.
     /// </summary>
+    [Description("Filters declaration metadata names by a case-insensitive substring; also supplies the search pattern when query is omitted.")]
     public string? MetadataName { get; init; }
 
     /// <summary>

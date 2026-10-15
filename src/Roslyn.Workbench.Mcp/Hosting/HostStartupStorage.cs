@@ -22,7 +22,7 @@ internal static partial class HostStartupStorage
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
             or InvalidOperationException { InnerException: IOException or UnauthorizedAccessException })
         {
-            errorOutput.WriteLine($"Cannot write durable recovery storage at '{stateDirectory.RecoveryDirectory}'. Configure --state-directory with a writable local directory that permits durable file creation and deletion. Enable Logging__LogLevel__Default=Debug for exception details.");
+            errorOutput.WriteLine($"Cannot initialise durable recovery storage at '{stateDirectory.RecoveryDirectory}'. {exception.Message} Configure --state-directory with a writable local directory that permits durable file creation and deletion. Enable Logging__LogLevel__Default=Debug for exception details.");
             LogInitializationFailure(logger, exception);
             return false;
         }

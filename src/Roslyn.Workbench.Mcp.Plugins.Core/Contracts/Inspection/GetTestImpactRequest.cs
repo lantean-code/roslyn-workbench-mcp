@@ -15,11 +15,13 @@ internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional scope to search for tests.
     /// </summary>
+    [Description("Limits candidate test discovery to the selected documents or projects; omitted searches the loaded solution.")]
     public ScopeSelector? TestScope { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether explanatory reasons should be included.
     /// </summary>
+    [Description("Include explanations of why each returned test may be affected; defaults to false and does not change which tests match.")]
     public bool IncludeReasons { get; init; }
 
     /// <summary>
@@ -27,6 +29,7 @@ internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultTestsMaxResults)]
+    [Description("Caps returned likely impacted tests. Omitted or null uses 100; zero returns no tests.")]
     public int? TestsLimit { get; init; } = _defaultTestsMaxResults;
 
     /// <summary>

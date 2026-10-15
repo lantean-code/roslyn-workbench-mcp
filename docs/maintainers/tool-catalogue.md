@@ -24,7 +24,9 @@ Captures use fresh temporary state directories, default SDK environment inherita
 
 The reporting utility runs the pinned TDQS CLI with `--fail-on error`. Lint errors fail the check; warnings, including unconfirmed shadowing candidates, remain advisory. Capture failures, invalid input and CLI failures also fail the check. All remaining profiles are still attempted so one failure does not hide their results. No model, model key or hosted scoring service is used.
 
-The GitHub job summary includes counts and expandable findings for each profile. The `tool-quality` artefact retains each captured `catalogue.json`, `lint.json`, `lint.md`, Host stderr log and any failure diagnostic, plus a combined `summary.md` and run metadata containing the Host assembly hash, TDQS package version and CI source revision. Reports identify the rubric version. Dependencies, including transitive dependencies, are pinned in `tools/tool-quality/requirements.txt`; update and validate those pins together.
+The workflow builds the Host and tests the reporting utility once, then shares the built Host with eight independent profile jobs. Each job has its own GitHub summary with that profile's operational mode, output-schema setting, counts and expandable findings. `Omit` summaries explicitly explain the expected `no-output-schema` notes; these notes do not appear in the `Full` summaries. Profile jobs continue independently when another profile fails.
+
+Each `tool-quality-<operational-mode>-<Omit-or-Full>` artefact retains the captured `catalogue.json`, `lint.json`, `lint.md`, profile `summary.md`, Host stderr log and any failure diagnostic, plus run metadata containing the Host assembly hash, TDQS package version and CI source revision. Reports identify the rubric version. Dependencies, including transitive dependencies, are pinned in `tools/tool-quality/requirements.txt`; update and validate those pins together.
 
 To run locally with Python 3.12 or newer, create an isolated Python environment, install `tools/tool-quality/requirements.txt`, build the Host with the pinned .NET SDK, then run:
 
@@ -35,7 +37,7 @@ python -m unittest discover -s tools/tool-quality -p test_report.py
 python tools/tool-quality/report.py --host src/Roslyn.Workbench.Mcp/bin/Debug/net10.0/Roslyn.Workbench.Mcp.dll --output artifacts/tool-quality
 ```
 
-The local report remains under `artifacts/tool-quality`; exit code 0 means every profile passed the error threshold, 1 means lint errors were found, and 2 means at least one profile could not be captured or linted. The utility bounds capture and CLI execution times and retains diagnostics for failed profiles.
+The local report remains under `artifacts/tool-quality`, with a separate `summary.md` inside each profile directory and a root index linking to those summaries. Select one profile with `--operational-mode inspection-only --tool-output-schema-mode Full`; the root summary then contains only that profile, matching CI. Exit code 0 means every selected profile passed the error threshold, 1 means lint errors were found, and 2 means at least one profile could not be captured or linted. The utility bounds capture and CLI execution times and retains diagnostics for failed profiles.
 
 ## Curated result defaults
 

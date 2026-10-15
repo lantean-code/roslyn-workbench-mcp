@@ -16,6 +16,7 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional search scope.
     /// </summary>
+    [Description("Selects projects to search; a document scope searches its containing project. Omitted searches the loaded solution.")]
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
@@ -31,6 +32,7 @@ internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     /// </summary>
     [Range(0, int.MaxValue)]
     [DefaultValue(_defaultDerivedTypesMaxResults)]
+    [Description("Caps returned derived types within maxDepth. Omitted or null uses 100; zero returns no derived types.")]
     public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
 
     /// <summary>

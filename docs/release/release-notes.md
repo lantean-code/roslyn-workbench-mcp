@@ -1,6 +1,6 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics, clarifies MCP parameter guidance and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees. Registry submission remains a separate publication step.
+This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics, clarifies MCP parameter guidance and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees.
 
 ## Changes in this release
 

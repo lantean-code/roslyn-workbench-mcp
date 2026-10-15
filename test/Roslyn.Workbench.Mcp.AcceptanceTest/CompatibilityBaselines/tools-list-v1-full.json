@@ -8,7 +8,7 @@
         "readOnlyHint": true,
         "title": "Analyze Async"
       },
-      "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+      "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -3151,7 +3151,7 @@
         "readOnlyHint": true,
         "title": "Analyze Disposables"
       },
-      "description": "Returns advisory findings for undisposed local disposable values.",
+      "description": "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -4180,7 +4180,7 @@
         "readOnlyHint": true,
         "title": "Analyze Nullability"
       },
-      "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+      "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -15314,7 +15314,7 @@
         "readOnlyHint": true,
         "title": "Find Unused Symbols"
       },
-      "description": "Returns candidate unused locals and members from compiler diagnostics.",
+      "description": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
       "inputSchema": {
         "properties": {
           "candidatesLimit": {
@@ -22577,7 +22577,7 @@
         "readOnlyHint": true,
         "title": "Get Diagnostics"
       },
-      "description": "Returns compiler and analyzer diagnostics for a selected scope.",
+      "description": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "diagnosticsLimit": {
@@ -23543,7 +23543,7 @@
         "readOnlyHint": true,
         "title": "Get Document Options"
       },
-      "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+      "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -53884,7 +53884,7 @@
         "readOnlyHint": true,
         "title": "Analyze Async"
       },
-      "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+      "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -57027,7 +57027,7 @@
         "readOnlyHint": true,
         "title": "Analyze Disposables"
       },
-      "description": "Returns advisory findings for undisposed local disposable values.",
+      "description": "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -58056,7 +58056,7 @@
         "readOnlyHint": true,
         "title": "Analyze Nullability"
       },
-      "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+      "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -69190,7 +69190,7 @@
         "readOnlyHint": true,
         "title": "Find Unused Symbols"
       },
-      "description": "Returns candidate unused locals and members from compiler diagnostics.",
+      "description": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
       "inputSchema": {
         "properties": {
           "candidatesLimit": {
@@ -76453,7 +76453,7 @@
         "readOnlyHint": true,
         "title": "Get Diagnostics"
       },
-      "description": "Returns compiler and analyzer diagnostics for a selected scope.",
+      "description": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "diagnosticsLimit": {
@@ -77419,7 +77419,7 @@
         "readOnlyHint": true,
         "title": "Get Document Options"
       },
-      "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+      "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -107572,7 +107572,7 @@
         "readOnlyHint": true,
         "title": "Analyze Async"
       },
-      "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+      "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -110715,7 +110715,7 @@
         "readOnlyHint": true,
         "title": "Analyze Disposables"
       },
-      "description": "Returns advisory findings for undisposed local disposable values.",
+      "description": "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -111744,7 +111744,7 @@
         "readOnlyHint": true,
         "title": "Analyze Nullability"
       },
-      "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+      "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -122878,7 +122878,7 @@
         "readOnlyHint": true,
         "title": "Find Unused Symbols"
       },
-      "description": "Returns candidate unused locals and members from compiler diagnostics.",
+      "description": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
       "inputSchema": {
         "properties": {
           "candidatesLimit": {
@@ -130141,7 +130141,7 @@
         "readOnlyHint": true,
         "title": "Get Diagnostics"
       },
-      "description": "Returns compiler and analyzer diagnostics for a selected scope.",
+      "description": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "diagnosticsLimit": {
@@ -131107,7 +131107,7 @@
         "readOnlyHint": true,
         "title": "Get Document Options"
       },
-      "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+      "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -162278,7 +162278,7 @@
         "readOnlyHint": true,
         "title": "Analyze Async"
       },
-      "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+      "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -165421,7 +165421,7 @@
         "readOnlyHint": true,
         "title": "Analyze Disposables"
       },
-      "description": "Returns advisory findings for undisposed local disposable values.",
+      "description": "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -166450,7 +166450,7 @@
         "readOnlyHint": true,
         "title": "Analyze Nullability"
       },
-      "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+      "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -177584,7 +177584,7 @@
         "readOnlyHint": true,
         "title": "Find Unused Symbols"
       },
-      "description": "Returns candidate unused locals and members from compiler diagnostics.",
+      "description": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
       "inputSchema": {
         "properties": {
           "candidatesLimit": {
@@ -184149,7 +184149,7 @@
         "readOnlyHint": true,
         "title": "Get Diagnostics"
       },
-      "description": "Returns compiler and analyzer diagnostics for a selected scope.",
+      "description": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "diagnosticsLimit": {
@@ -185115,7 +185115,7 @@
         "readOnlyHint": true,
         "title": "Get Document Options"
       },
-      "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+      "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
       "inputSchema": {
         "properties": {
           "document": {
@@ -210378,7 +210378,7 @@
         "readOnlyHint": true,
         "title": "Analyze Async"
       },
-      "description": "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.",
+      "description": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -213521,7 +213521,7 @@
         "readOnlyHint": true,
         "title": "Analyze Disposables"
       },
-      "description": "Returns advisory findings for undisposed local disposable values.",
+      "description": "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "findingsLimit": {
@@ -214550,7 +214550,7 @@
         "readOnlyHint": true,
         "title": "Analyze Nullability"
       },
-      "description": "Returns nullable-flow diagnostics for a selected scope or location.",
+      "description": "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.",
       "inputSchema": {
         "properties": {
           "expectedSnapshot": {
@@ -225684,7 +225684,7 @@
         "readOnlyHint": true,
         "title": "Find Unused Symbols"
       },
-      "description": "Returns candidate unused locals and members from compiler diagnostics.",
+      "description": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
       "inputSchema": {
         "properties": {
           "candidatesLimit": {
@@ -232947,7 +232947,7 @@
         "readOnlyHint": true,
         "title": "Get Diagnostics"
       },
-      "description": "Returns compiler and analyzer diagnostics for a selected scope.",
+      "description": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
       "inputSchema": {
         "properties": {
           "diagnosticsLimit": {
@@ -233913,7 +233913,7 @@
         "readOnlyHint": true,
         "title": "Get Document Options"
       },
-      "description": "Returns language and optional detailed parse and analyzer-config options for a document.",
+      "description": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
       "inputSchema": {
         "properties": {
           "document": {

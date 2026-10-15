@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns nullable-flow diagnostics for a selected scope or location.
 /// </summary>
-[RoslynTool("analyze-nullability", "Analyze Nullability", "Returns nullable-flow diagnostics for a selected scope or location.")]
+[RoslynTool("analyze-nullability", "Analyze Nullability", "Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.")]
 internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabilityRequest, NullabilityAnalysisData>
 {
     /// <inheritdoc/>

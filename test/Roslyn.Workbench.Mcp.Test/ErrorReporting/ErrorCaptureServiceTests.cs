@@ -1,7 +1,4 @@
 using System.Text.Json;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.CodeActions;
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.IO;
@@ -33,6 +30,29 @@ public sealed class ErrorCaptureServiceTests : IDisposable
         _workspaceSelector
             .Setup(item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSelectionResult.Failure(selectionError));
+    }
+
+    [Fact]
+    public void GIVEN_ResourceReadFailure_WHEN_Capturing_THEN_ShouldClassifyHostOperationWithoutSelectingWorkspace()
+    {
+        var target = CreateTarget(new ErrorReportingOptions());
+        var correlationId = Guid.NewGuid();
+        var exception = CreateThrownException();
+
+        var result = target.CaptureResourceRead(correlationId, TimeSpan.FromMilliseconds(25), true, exception);
+
+        result.CorrelationId.Should().Be(correlationId);
+        result.ToolName.Should().Be("resources/read");
+        result.ExecutionFamily.Should().Be("Resource");
+        result.PluginClassification.Should().Be("Host");
+        result.Workspace.Should().BeNull();
+        result.CancellationRequested.Should().BeTrue();
+        result.DurationMilliseconds.Should().Be(25);
+        result.Exceptions.Should().ContainSingle();
+        result.Exceptions[0].Message.Should().Be("Failure message.");
+        result.ExpiresAt.Should().Be(_now.AddHours(1));
+        _workspaceSessionStore.Verify(item => item.ReadSnapshot(), Times.Never);
+        _workspaceSelector.Verify(item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()), Times.Never);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ using Roslyn.Workbench.Mcp.Workspace;
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 /// <summary>
-/// Builds size-bounded diagnostic records from unhandled tool exceptions without retaining tool arguments or source content.
+/// Builds size-bounded diagnostic records from unhandled tool and resource-read exceptions without retaining request arguments or source content.
 /// </summary>
 internal sealed class ErrorCaptureService : IErrorCaptureService
 {
@@ -96,9 +96,33 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
         CapturedWorkspaceContext? workspaceContext,
         Exception exception)
     {
-        var failureTime = _timeProvider.GetUtcNow();
         var workspace = workspaceContext ?? CaptureWorkspace(arguments);
         var (executionFamily, pluginClassification) = ClassifyTool(toolName);
+
+        return CaptureFailure(correlationId, toolName, duration, cancellationRequested, workspace, executionFamily, pluginClassification, exception);
+    }
+
+    /// <inheritdoc/>
+    public CapturedErrorRecord CaptureResourceRead(
+        Guid correlationId,
+        TimeSpan duration,
+        bool cancellationRequested,
+        Exception exception)
+    {
+        return CaptureFailure(correlationId, "resources/read", duration, cancellationRequested, null, "Resource", "Host", exception);
+    }
+
+    private CapturedErrorRecord CaptureFailure(
+        Guid correlationId,
+        string operationName,
+        TimeSpan duration,
+        bool cancellationRequested,
+        CapturedWorkspaceContext? workspace,
+        string executionFamily,
+        string pluginClassification,
+        Exception exception)
+    {
+        var failureTime = _timeProvider.GetUtcNow();
         var exceptions = CaptureExceptionChain(exception);
 
         var record = new CapturedErrorRecord
@@ -106,7 +130,7 @@ internal sealed class ErrorCaptureService : IErrorCaptureService
             CorrelationId = correlationId,
             FailureTime = failureTime,
             ExpiresAt = failureTime + _options.CapturedErrorLifetime,
-            ToolName = Truncate(toolName, _maximumNameLength),
+            ToolName = Truncate(operationName, _maximumNameLength),
             ExecutionFamily = executionFamily,
             PluginClassification = pluginClassification,
             DurationMilliseconds = Math.Max(0, (long)duration.TotalMilliseconds),

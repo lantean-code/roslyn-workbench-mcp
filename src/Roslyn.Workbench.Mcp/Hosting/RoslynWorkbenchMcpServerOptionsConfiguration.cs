@@ -58,28 +58,27 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
 
         var workflow = policy.Mode switch
         {
-            OperationalMode.InspectionOnly => "Use semantic inspection tools; source mutation and transaction tools are disabled by Host policy.",
-            OperationalMode.Transactional => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit for Host confirmation or transaction-rollback promptly.",
-            OperationalMode.ApprovalRequired => "Start transactions only when ready; keep each to one coherent change or tightly related set, call transaction-review for an exact-change receipt, then pass that receipt to transaction-commit for one-use approval or call transaction-rollback promptly. transaction-preview is not available in this mode.",
-            OperationalMode.AutonomousTrusted => "Start transactions only when ready; keep each to one coherent change or tightly related set, inspect transaction-preview, then call transaction-commit or transaction-rollback promptly.",
+            OperationalMode.InspectionOnly => "Inspection only; mutations disabled.",
+            OperationalMode.Transactional => "One coherent transaction; preview then commit for Host confirmation or roll back promptly.",
+            OperationalMode.ApprovalRequired => "One coherent transaction; transaction-review receiptId for commit approval; no transaction-preview.",
+            OperationalMode.AutonomousTrusted => "One coherent transaction; preview then commit or roll back promptly.",
             _ => throw new InvalidOperationException("The operational mode is not available for server instruction publication."),
         };
 
         if (policy.CompilerValidationRequired)
         {
-            workflow += " transaction-validate previews required compiler validation; review and commit revalidate.";
+            workflow += " transaction-validate previews compiler checks; review/commit revalidate.";
         }
 
         var persistenceGuidance = policy.SourceMutationEnabled
-            ? "transaction-commit writes source files but does not create a Git commit."
-            : "Inspection-only policy does not make untrusted workspace build logic safe to execute.";
+            ? "Commit writes files, not a Git commit."
+            : "Inspection mode does not sandbox build logic.";
 
         return $$"""
         Open only fully trusted C# workspaces; build logic and analysers run unsandboxed with Host permissions.
-
         Prefer queries before mutations. {{workflow}}
-
         {{persistenceGuidance}}
+        Skill: skill://roslyn-workbench/SKILL.md
         Docs: {{agentGuideUrl}}
         """;
     }

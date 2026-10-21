@@ -24454,7 +24454,7 @@
         "readOnlyHint": true,
         "title": "Get Error Details"
       },
-      "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+      "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
       "inputSchema": {
         "properties": {
           "correlationId": {
@@ -24512,7 +24512,7 @@
                         "type": "string"
                       },
                       "durationMilliseconds": {
-                        "description": "Tool execution duration in milliseconds before failure.",
+                        "description": "Operation duration in milliseconds before failure.",
                         "type": "integer"
                       },
                       "exceptions": {
@@ -24601,7 +24601,7 @@
                         "type": "array"
                       },
                       "executionFamily": {
-                        "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                        "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                         "type": "string"
                       },
                       "expiresAt": {
@@ -24610,7 +24610,7 @@
                         "type": "string"
                       },
                       "failureTime": {
-                        "description": "Time at which the tool invocation failed.",
+                        "description": "Time at which the MCP operation failed.",
                         "format": "date-time",
                         "type": "string"
                       },
@@ -24635,7 +24635,7 @@
                         "type": "string"
                       },
                       "toolName": {
-                        "description": "MCP tool that failed.",
+                        "description": "Published tool name, or resources/read for a resource-read failure.",
                         "type": "string"
                       },
                       "workspace": {
@@ -77210,7 +77210,7 @@
         "readOnlyHint": true,
         "title": "Get Error Details"
       },
-      "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+      "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
       "inputSchema": {
         "properties": {
           "correlationId": {
@@ -77268,7 +77268,7 @@
                         "type": "string"
                       },
                       "durationMilliseconds": {
-                        "description": "Tool execution duration in milliseconds before failure.",
+                        "description": "Operation duration in milliseconds before failure.",
                         "type": "integer"
                       },
                       "exceptions": {
@@ -77357,7 +77357,7 @@
                         "type": "array"
                       },
                       "executionFamily": {
-                        "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                        "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                         "type": "string"
                       },
                       "expiresAt": {
@@ -77366,7 +77366,7 @@
                         "type": "string"
                       },
                       "failureTime": {
-                        "description": "Time at which the tool invocation failed.",
+                        "description": "Time at which the MCP operation failed.",
                         "format": "date-time",
                         "type": "string"
                       },
@@ -77391,7 +77391,7 @@
                         "type": "string"
                       },
                       "toolName": {
-                        "description": "MCP tool that failed.",
+                        "description": "Published tool name, or resources/read for a resource-read failure.",
                         "type": "string"
                       },
                       "workspace": {
@@ -129778,7 +129778,7 @@
         "readOnlyHint": true,
         "title": "Get Error Details"
       },
-      "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+      "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
       "inputSchema": {
         "properties": {
           "correlationId": {
@@ -129836,7 +129836,7 @@
                         "type": "string"
                       },
                       "durationMilliseconds": {
-                        "description": "Tool execution duration in milliseconds before failure.",
+                        "description": "Operation duration in milliseconds before failure.",
                         "type": "integer"
                       },
                       "exceptions": {
@@ -129925,7 +129925,7 @@
                         "type": "array"
                       },
                       "executionFamily": {
-                        "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                        "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                         "type": "string"
                       },
                       "expiresAt": {
@@ -129934,7 +129934,7 @@
                         "type": "string"
                       },
                       "failureTime": {
-                        "description": "Time at which the tool invocation failed.",
+                        "description": "Time at which the MCP operation failed.",
                         "format": "date-time",
                         "type": "string"
                       },
@@ -129959,7 +129959,7 @@
                         "type": "string"
                       },
                       "toolName": {
-                        "description": "MCP tool that failed.",
+                        "description": "Published tool name, or resources/read for a resource-read failure.",
                         "type": "string"
                       },
                       "workspace": {
@@ -182666,7 +182666,7 @@
         "readOnlyHint": true,
         "title": "Get Error Details"
       },
-      "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+      "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
       "inputSchema": {
         "properties": {
           "correlationId": {
@@ -182724,7 +182724,7 @@
                         "type": "string"
                       },
                       "durationMilliseconds": {
-                        "description": "Tool execution duration in milliseconds before failure.",
+                        "description": "Operation duration in milliseconds before failure.",
                         "type": "integer"
                       },
                       "exceptions": {
@@ -182813,7 +182813,7 @@
                         "type": "array"
                       },
                       "executionFamily": {
-                        "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                        "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                         "type": "string"
                       },
                       "expiresAt": {
@@ -182822,7 +182822,7 @@
                         "type": "string"
                       },
                       "failureTime": {
-                        "description": "Time at which the tool invocation failed.",
+                        "description": "Time at which the MCP operation failed.",
                         "format": "date-time",
                         "type": "string"
                       },
@@ -182847,7 +182847,7 @@
                         "type": "string"
                       },
                       "toolName": {
-                        "description": "MCP tool that failed.",
+                        "description": "Published tool name, or resources/read for a resource-read failure.",
                         "type": "string"
                       },
                       "workspace": {
@@ -230368,7 +230368,7 @@
         "readOnlyHint": true,
         "title": "Get Error Details"
       },
-      "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+      "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
       "inputSchema": {
         "properties": {
           "correlationId": {
@@ -230426,7 +230426,7 @@
                         "type": "string"
                       },
                       "durationMilliseconds": {
-                        "description": "Tool execution duration in milliseconds before failure.",
+                        "description": "Operation duration in milliseconds before failure.",
                         "type": "integer"
                       },
                       "exceptions": {
@@ -230515,7 +230515,7 @@
                         "type": "array"
                       },
                       "executionFamily": {
-                        "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                        "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                         "type": "string"
                       },
                       "expiresAt": {
@@ -230524,7 +230524,7 @@
                         "type": "string"
                       },
                       "failureTime": {
-                        "description": "Time at which the tool invocation failed.",
+                        "description": "Time at which the MCP operation failed.",
                         "format": "date-time",
                         "type": "string"
                       },
@@ -230549,7 +230549,7 @@
                         "type": "string"
                       },
                       "toolName": {
-                        "description": "MCP tool that failed.",
+                        "description": "Published tool name, or resources/read for a resource-read failure.",
                         "type": "string"
                       },
                       "workspace": {

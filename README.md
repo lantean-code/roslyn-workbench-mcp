@@ -71,6 +71,12 @@ Configure any MCP client capable of launching a local stdio process to run:
 
 Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are best effort until hosted validation exists. Windows ARM64 and Linux ARM64 are not currently supported release targets. The server can be used by any MCP client that supports local stdio servers; operations requiring elicitation depend on the client advertising and permitting it.
 
+## Roslyn Workbench skill
+
+The optional skill guides agents through workspace selection, semantic inspection, Code Actions, transactions and recovery. Clients with MCP resource support can read `skill://roslyn-workbench/SKILL.md` from the installed server, with 11 task-specific references loaded only when needed.
+
+For separate installation, [download the development skill bundle](https://lantean-code.github.io/roslyn-workbench-mcp/dev/assets/generated/roslyn-workbench-skill.zip) and follow the [installation guidance](https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/). Select documentation matching your installed server to obtain a release-specific bundle once available. Extract the complete `roslyn-workbench` directory, including its references, client metadata and logo, into your client's supported skill location. Discovery and activation depend on the client; the skill does not change permissions or Host policy.
+
 ## Improve agent tool selection
 
 Connecting Roslyn Workbench makes its tools available, but an MCP client may not select them automatically when ordinary file and text-search tools can also attempt the task. Short repository instructions can tell an agent when compiler-aware tooling is the better choice without forcing it into every C# workflow.

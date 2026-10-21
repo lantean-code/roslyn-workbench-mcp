@@ -99,6 +99,7 @@ __pycache__/
 /site/
 /docs/site/
 /docs/content/assets/generated/
+/docs/content/agent/skill/
 /docs/content/reference/tools/
 /docs/content/reference/security/
 /docs/content/release-notes.md

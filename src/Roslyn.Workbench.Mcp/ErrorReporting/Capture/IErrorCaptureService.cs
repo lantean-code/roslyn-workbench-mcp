@@ -3,10 +3,24 @@ using System.Text.Json;
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 /// <summary>
-/// Captures bounded diagnostic records from failed tool invocations.
+/// Captures bounded diagnostic records from failed tool invocations and resource reads.
 /// </summary>
 internal interface IErrorCaptureService
 {
+    /// <summary>
+    /// Captures a bounded resource-read failure without retaining the requested URI or unrelated workspace state.
+    /// </summary>
+    /// <param name="correlationId">The identifier returned to the client for this failure.</param>
+    /// <param name="duration">The elapsed resource-read duration.</param>
+    /// <param name="cancellationRequested">Whether cancellation was requested when the failure was captured.</param>
+    /// <param name="exception">The unexpected resource-read exception.</param>
+    /// <returns>The bounded process-local diagnostic record.</returns>
+    CapturedErrorRecord CaptureResourceRead(
+        Guid correlationId,
+        TimeSpan duration,
+        bool cancellationRequested,
+        Exception exception);
+
     /// <summary>
     /// Captures a bounded diagnostic record for a failed tool invocation.
     /// </summary>

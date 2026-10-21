@@ -66,6 +66,7 @@ nav:
   - Getting started:
       - Connect a client: getting-started.md
       - Agent setup: agent-setup.md
+      - Agent skill and download: agent/index.md
       - Troubleshooting and removal: troubleshooting.md
       - Build from source: building-from-source.md
   - Using Roslyn Workbench:
@@ -90,5 +91,4 @@ nav:
       - Tool reference: reference/tools/index.md
       - Security guarantees and evidence: reference/security/index.md
       - Security surface appendix: reference/security/surface.md
-      - Agent guide: agent/index.md
   - Support and feedback: https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md

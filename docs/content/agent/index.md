@@ -1,65 +1,39 @@
 # Agent guide
 
-This guide describes how an MCP agent should use Roslyn Workbench safely and efficiently. It supplements the instructions returned during MCP initialisation; the running server's tool catalogue, schemas, structured results and next actions remain authoritative.
+The Roslyn Workbench skill provides guidance for semantic inspection, Code Actions, transactions and recovery. The running server's tool catalogue, schemas, structured results and next actions remain authoritative.
 
-## Trust boundary
+## Read the skill
 
-Open only fully trusted C# workspaces. Loading a workspace evaluates MSBuild project logic, and later operations can load and execute project analysers with the Host process's operating-system permissions. Roslyn Workbench does not sandbox this code.
+Start with the [skill entry point](skill/SKILL.md), then load only the reference needed for the task. These pages and the download below use the same canonical skill files; the Markdown is also embedded in the Host.
 
-When a project needs caller-specific build evaluation, `workspace-open` accepts the allowlisted `msBuildProperties` values `artifactsPath`, `configuration`, `platform`, `targetFramework` and `runtimeIdentifier`. Supply only values required by that workspace; standard SDK, NuGet and Visual Studio locations do not need to be repeated. For a multi-target solution whose outer project evaluation does not expose a compiler target, select the intended `targetFramework`; do not assume the server will choose one framework implicitly. These values control MSBuild evaluation and do not grant filesystem permissions. A requested `workspaceRoot` may narrow Host authority but can never widen it. Depending on Host policy, Roslyn-evaluated source, additional and analyzer-config documents outside `workspaceRoot` are either transparently queryable read-only inputs or cause the Workspace to be rejected; source mutations remain restricted to `workspaceRoot`.
+| Task | Reference |
+| --- | --- |
+| Load, select, check freshness or reload a workspace | [Workspaces](skill/references/workspaces.md) |
+| Reuse targets, snapshots and bounded results | [Selectors](skill/references/selectors.md) |
+| Find symbols, references and calls | [Navigation](skill/references/navigation.md) |
+| Inspect projects, configuration and symbol relationships | [Structure](skill/references/structure.md) |
+| Investigate compiler and analyser findings | [Diagnostics](skill/references/diagnostics.md) |
+| Analyse data and control flow | [Flow analysis](skill/references/flow-analysis.md) |
+| Assess dependencies, change impact and cleanup candidates | [Impact analysis](skill/references/impact-analysis.md) |
+| Stage, review, validate and persist changes | [Transactions](skill/references/transactions.md) |
+| Discover and stage fixes, refactorings and Fix All | [Code Actions](skill/references/code-actions.md) |
+| Rename symbols or format source | [Rename and format](skill/references/rename-format.md) |
+| Recover failures or prepare an error report | [Recovery](skill/references/recovery.md) |
 
-Treat the connected MCP agent as part of the local trust boundary. Local error details can contain exception messages and Workspace context. Do not copy them into an external report; use the server's explicit preparation, review and consent workflow when external reporting is appropriate.
+## Download and install separately
 
-## Discover before acting
+[Download the complete Roslyn Workbench skill](../assets/generated/roslyn-workbench-skill.zip).
 
-Use `tools/list` for the live tool inventory and schemas. Call `server-status` with full detail near the start of a session to inspect the fixed operational mode, effective mutation and commit-authorisation policy, external-plugin enablement, client elicitation capability, startup warnings, recovery state, component availability and published tool count. Do not attempt an omitted mutation or transaction tool.
+Select the documentation version matching the installed server before downloading. Development documentation supplies the current development skill; older server releases retain their own versioned guidance. Releases from before skill delivery was introduced do not contain a downloadable bundle.
 
-When the live declaration is intentionally concise, use the version-matched [tool reference](../reference/tools/index.md) for grouped human guidance or its [machine-readable catalogue](../reference/tools/catalog.json) to retrieve one complete tool definition without loading the whole catalogue into context.
+Extract the archive and place the entire `roslyn-workbench` directory in the skill directory supported by your agent, retaining `SKILL.md` and its `references`, `agents` and `assets` subdirectories. The bundle includes client metadata and the Roslyn Workbench logo; clients decide which metadata they support. Consult your client's skill installation guidance for its supported user-level or repository-level location. Installation does not grant permissions or change Host policy. Restart or refresh the client's skill discovery if it requires that.
 
-Prefer queries before mutations. Resolve symbols, documents and projects from the current workspace state instead of guessing paths or source spans.
+The bundle works without the repository checkout or an internet connection after download. Keep its files together; copying only `SKILL.md` loses the supporting workflow guidance. Update the bundle when updating the server.
 
-Prefer standard compiler and analyzer diagnostics when assessing code quality. `analyze-async` is a focused view of the six bundled AsyncFixer diagnostics and compiler diagnostic CS4014; it runs independently of whether AsyncFixer is installed in the target solution while respecting the project's analyzer configuration. Use `get-diagnostics` when you need the wider configured diagnostic set. Roslyn Workbench does not publish its own code-metric scale, so use the repository's normal build or metrics workflow when a task requires Microsoft code metrics.
+## Read through MCP resources
 
-## Workspace state
+Clients that support MCP resources can list and read `skill://roslyn-workbench/SKILL.md` from the connected Host and request its 11 referenced workflow files individually. Relative links resolve under the same `skill://roslyn-workbench/` URI. Client metadata and the logo are included in the separate download; MCP resources publish the Markdown guidance. The files are embedded in the installed Host and available offline in every operational mode without opening a workspace. Initial server instructions include the entry URI and this versioned web fallback.
 
-The complete `snapshot` object and structured next actions are authoritative. For a later mutation or snapshot-sensitive query, pass the published object back unchanged as `expectedSnapshot`, including its workspace ID, workspace epoch, opaque snapshot ID and nullable transaction revision. Resolved locations carry the same complete identity in their nested `snapshot`; do not reconstruct it from individual fields. When a result says the workspace or selector is stale, reload or resolve the target again. Do not reuse source spans, symbol locations, opaque Code Action references or other snapshot-bound values against a different snapshot.
+This is standard MCP resource delivery. Client support determines whether an agent can discover and load resources; publishing a skill file does not install or activate a native client skill. Native MCP Skills extension discovery is not advertised by this server. Separate installation is useful when the client supports local skills but does not expose resources to its agent.
 
-Multiple workspaces may be open, but only one may own the active transaction slot. Cross-process status is advisory; follow reported coordination guidance and allow the commit pipeline to enforce its durable boundary.
-
-## Mutation workflow
-
-Use this sequence for mutations:
-
-1. Complete the queries needed to identify the change.
-2. Start a transaction only when ready to mutate.
-3. Apply one coherent mutation or a tightly related set of mutations.
-4. Follow the negotiated mode-specific review workflow: inspect `transaction-preview` in transactional or autonomous-trusted mode, or call `transaction-review` in approval-required mode and inspect its exact-change receipt. Use `transaction-history` when useful.
-5. Call `transaction-commit` or `transaction-rollback` promptly. In approval-required mode, pass the current review's `receiptId`; if approval or receipt validation fails, explain that no files were written and follow the returned continuation rather than retrying with a learned schema from another mode.
-
-Do not accumulate unrelated work in an open transaction. Run queries outside a transaction unless they must observe staged state. Treat broad solution-wide operations, such as a symbol rename, as standalone transactions. If a preview or review is unexpectedly large or contains unrelated changes, roll it back and reassess the operation.
-
-Treat `GeneratedSourceMutation` as review evidence that a checked-in file may be replaced by a later generator run. Explain the warning and inspect the affected paths before commit. In approval-required mode, `generated-looking-source` classification is bound into the receipt. If staging returns `GeneratedSourceMutationDenied`, do not attempt to bypass it or request a prompt: the operator must decide whether the repository convention warrants a narrow startup exception and restart the Host.
-
-Coordinate filesystem activity with the user. While `transaction-commit` is in progress, neither the user nor another development tool should edit the source paths shown in `transaction-preview` or `transaction-review`, switch branches, check out or reset paths, move directory trees, or replace directories with links. Edits completed before commit application are revalidated, but an edit to a commit-owned target during its final replacement cannot be safely arbitrated. If simultaneous work is possible, tell the user before starting the commit and wait until the tool call completes before indicating that work on those paths or structural Git work can resume.
-
-`transaction-commit` writes the staged source changes to disk; it does not compile the solution, edit project files or create a Git commit. Validate and commit through the repository's normal development workflow after the Workbench transaction succeeds.
-
-In `transactional` mode, commit first requests one client-mediated choice: approve this commit, approve transaction commits for the remainder of the current Host process, or refuse. A missing prompt can mean the client did not advertise elicitation or its current policy blocked interactive MCP requests even when other client permissions are permissive. On an unavailable, declined, cancelled, failed or invalid interaction, tell the user that no files were persisted and the transaction remains active; enable interactive MCP requests only if the user wants a deliberate retry. Do not interpret a failed prompt as permission to retry autonomously. Session approval ends when the Host process restarts and does not bypass snapshot, filesystem, containment or recovery validation.
-
-Source-file creation, deletion and same-directory rename do not update project membership. Default SDK compile globs normally reconcile those changes after reload. If the project explicitly includes, removes or excludes an affected source path, update the project file separately before relying on the reloaded project graph.
-
-Small, frequent Workbench transactions keep previews reviewable and bound the temporary original and intended source content processed by durable commit and recovery. Query-heavy sessions do not need an open transaction.
-
-## Failures and recovery
-
-Follow the structured next action returned by a failed tool call. Do not retry stale inputs unchanged when the server asks for a reload, a new selector, a newer revision or rollback.
-
-Use `get-error-details` only for an unexpected correlated failure. Unfinished durable recovery is reported by `server-status`; resolve it before attempting further mutations.
-
-`WorkspacePathNotAllowed` means the loaded solution or project is outside Host authority. `WorkspaceRootNotAllowed` means the requested root attempted to widen that authority. `WorkspaceAuthorityChanged` means an admitted Workspace's path or effective root no longer complies with authority, for example after its directory topology changed; do not retry reload or commit until the user has restored the topology and the Workspace has been reopened. `WorkspaceExternalDocumentRejected` means the Host policy does not admit an evaluated document outside the effective root. Revise a request only to narrow its scope; configuration changes belong to the user or operator.
-
-Automatic recovery runs during Host startup before MCP transport is available. Do not coordinate a Host restart with Workspace writes, structural Git or directory-tree operations already in progress. After a start or restart, avoid those operations until MCP initialisation completes, then call `server-status` with full detail. A completed initialisation means the automatic recovery attempt has finished; an unfinished `recovery` entry means its state still requires resolution before Workspace writes, mutations or structural repository work proceed.
-
-## More documentation
-
-This versioned site also includes detailed workspace and transaction semantics, tool discovery and result contracts, configuration, Code Action workflows and error-reporting privacy boundaries.
+See [agent setup](../agent-setup.md) for repository instructions, the [tool reference](../reference/tools/index.md) for individual tool contracts, and [configuration](../configuration.md) for operational policies.

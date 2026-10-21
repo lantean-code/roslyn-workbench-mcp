@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace Roslyn.Workbench.Mcp.ErrorReporting.Capture;
 
 /// <summary>
-/// Retains the diagnostic details of a failed tool invocation until the user reviews or submits them.
+/// Retains the diagnostic details of a failed MCP operation until the user reviews or submits them.
 /// </summary>
 internal sealed record CapturedErrorRecord
 {
@@ -14,9 +14,9 @@ internal sealed record CapturedErrorRecord
     public required Guid CorrelationId { get; init; }
 
     /// <summary>
-    /// Time at which the tool invocation failed.
+    /// Time at which the MCP operation failed.
     /// </summary>
-    [Description("Time at which the tool invocation failed.")]
+    [Description("Time at which the MCP operation failed.")]
     public required DateTimeOffset FailureTime { get; init; }
 
     /// <summary>
@@ -26,15 +26,15 @@ internal sealed record CapturedErrorRecord
     public required DateTimeOffset ExpiresAt { get; init; }
 
     /// <summary>
-    /// MCP tool that failed.
+    /// Published tool name, or resources/read for a resource-read failure, retained under the existing wire field name.
     /// </summary>
-    [Description("MCP tool that failed.")]
+    [Description("Published tool name, or resources/read for a resource-read failure.")]
     public required string ToolName { get; init; }
 
     /// <summary>
-    /// Execution path used by the failed tool, such as server, plugin, or Code Action.
+    /// Execution path used by the failed operation, such as server, plugin, Code Action or Resource.
     /// </summary>
-    [Description("Execution path used by the failed tool, such as server, plugin, or Code Action.")]
+    [Description("Execution path used by the failed operation, such as server, plugin, Code Action or Resource.")]
     public required string ExecutionFamily { get; init; }
 
     /// <summary>
@@ -44,9 +44,9 @@ internal sealed record CapturedErrorRecord
     public required string PluginClassification { get; init; }
 
     /// <summary>
-    /// Tool execution duration in milliseconds before failure.
+    /// Operation duration in milliseconds before failure.
     /// </summary>
-    [Description("Tool execution duration in milliseconds before failure.")]
+    [Description("Operation duration in milliseconds before failure.")]
     public required long DurationMilliseconds { get; init; }
 
     /// <summary>

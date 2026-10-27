@@ -1,6 +1,4 @@
 using System.Text.Json;
-
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -20,7 +18,7 @@ public sealed class ServerOwnedToolBaseTests
             .Setup(item => item.CreateServerOwnedTool<WorkspaceListRequest, WorkspaceListData>(
                 "workspace-list",
                 "Workspace List",
-                "Lists the currently loaded workspaces.",
+                "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
                 true,
                 false,
                 null,
@@ -60,7 +58,7 @@ public sealed class ServerOwnedToolBaseTests
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionCommitRequest, TransactionCommitData>(
             "transaction-commit",
             "Transaction Commit",
-            "Commits the current staged transaction to disk.",
+            "Writes the active transaction changes to source files. Inspect transaction-preview first; use transaction-rollback to discard changes instead. Supply the current expectedSnapshot. Transactional mode requests client-mediated confirmation unless already approved for this Host session; autonomous-trusted mode does not prompt. A completed write ends the transaction; check committed and the returned transaction state, because an empty revision returns NoChange and leaves the transaction active. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.",
             false,
             true,
             null,

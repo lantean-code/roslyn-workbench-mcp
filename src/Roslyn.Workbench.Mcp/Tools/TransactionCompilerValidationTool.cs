@@ -27,7 +27,7 @@ internal sealed class TransactionCompilerValidationTool : ServerOwnedToolBase<Tr
             requestBinder,
             ServerOwnedToolRegistration.TransactionValidateName,
             "Transaction Compiler Validation",
-            "Compares compiler errors in the staged transaction with its captured baseline across affected loaded project evaluations.",
+            "Compares compiler errors in the active staged transaction with its captured baseline when the Host requires no-new-compiler-errors commit validation. Requires the current expectedSnapshot. Checks changed projects and their transitive dependants across loaded project evaluations; it does not run a full build or test suite. Returns completeness, success, baseline/staged/introduced error counts, project results, introduced diagnostics and limitations. Existing baseline errors can remain when no new errors are introduced; success requires a complete comparison. An empty transaction succeeds without compilation. Inspect isComplete and limitations before relying on counts; follow the returned continuation to correct, restart or commit the transaction. This query does not persist source changes, and commit authoritatively revalidates the unchanged snapshot.",
             readOnly: true,
             destructive: false)
     {

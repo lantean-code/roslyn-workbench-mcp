@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns advisory findings for undisposed local disposable values.
 /// </summary>
-[RoslynTool("analyze-disposables", "Analyze Disposables", "Returns advisory findings for undisposed local disposable values.")]
+[RoslynTool("analyze-disposables", "Analyze Disposables", "Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.")]
 internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposablesRequest, DisposableAnalysisData>
 {
     /// <inheritdoc/>

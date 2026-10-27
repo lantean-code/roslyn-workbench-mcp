@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns declared and inherited attributes for a resolved symbol.
 /// </summary>
-[RoslynTool("get-symbol-attributes", "Get Symbol Attributes", "Returns declared and inherited attributes for a resolved symbol.")]
+[RoslynTool("get-symbol-attributes", "Get Symbol Attributes", "Inspects attributes attached to a resolved symbol, returning their types, inherited flags and rendered constructor and named arguments. Use this for attribute metadata; use get-symbol-info for general symbol details. Defaults to directly declared attributes. includeInherited follows base types or overridden methods, properties and events, honours Inherited and AllowMultiple settings, and does not traverse interface declarations. Returns symbol and a bounded attributes collection; attributesLimit defaults to 50. Check attributes.hasMore for truncation. Reads Roslyn metadata without instantiating attributes or executing their constructors.")]
 internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttributesRequest, SymbolAttributesData>
 {
     /// <inheritdoc/>

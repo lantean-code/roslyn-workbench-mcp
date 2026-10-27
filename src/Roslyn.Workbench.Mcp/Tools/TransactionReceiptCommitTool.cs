@@ -39,7 +39,7 @@ internal sealed class TransactionReceiptCommitTool : TransactionCommitToolBase<T
             protocolFactory,
             requestBinder,
             transactionService,
-            "Requests one-use approval for a transaction-review receipt, then commits only that exact change.")
+            "Requests one-use client approval and writes only the exact source-file change represented by a transaction-review receipt. Use transaction-review first, inspect its change set, then supply its receiptId and returned snapshot. The receipt must be unexpired and match the current workspace and transaction revision. Declined or unavailable approval writes no files. Accepted approval consumes the receipt before final validation and persistence; obtain a new review receipt if that commit fails. A completed write ends the transaction. Keep commit-owned paths free of concurrent edits during file application. This does not create a Git commit.")
     {
         _receiptStore = receiptStore;
         _interactionServiceFactory = interactionServiceFactory;

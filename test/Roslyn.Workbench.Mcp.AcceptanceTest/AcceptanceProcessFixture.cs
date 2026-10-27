@@ -67,6 +67,27 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         }
     }
 
+    public ServerCapabilities ServerCapabilities
+    {
+        get
+        {
+            return GetClient().ServerCapabilities;
+        }
+    }
+
+    public async Task<IList<McpClientResource>> ListResourcesAsync(CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().ListResourcesAsync(cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        var resourceUri = new Uri(uri);
+        return await GetClient().ReadResourceAsync(resourceUri, cancellationToken: timeoutSource.Token);
+    }
+
     public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(
         CancellationToken cancellationToken,
         AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,

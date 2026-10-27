@@ -44,6 +44,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 
         services
             .AddMcpServer()
+            .WithResources([typeof(RoslynWorkbenchSkillResources)])
             .WithRequestFilters(static requestFilters =>
             {
                 requestFilters.AddCallToolFilter(static next => async (context, cancellationToken) =>
@@ -52,6 +53,14 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
                         ?? throw new InvalidOperationException("The MCP call-tool filter requires a configured service provider.");
 
                     var filter = requestServices.GetRequiredService<UnhandledToolExceptionFilter>();
+                    return await filter.InvokeAsync(next, context, cancellationToken);
+                });
+                requestFilters.AddReadResourceFilter(static next => async (context, cancellationToken) =>
+                {
+                    var requestServices = context.Services
+                        ?? throw new InvalidOperationException("The MCP read-resource filter requires a configured service provider.");
+
+                    var filter = requestServices.GetRequiredService<UnhandledResourceExceptionFilter>();
                     return await filter.InvokeAsync(next, context, cancellationToken);
                 });
             })

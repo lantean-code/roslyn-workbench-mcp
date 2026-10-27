@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Reports compiler and bundled analyzer findings for unsafe or inefficient asynchronous code.
 /// </summary>
-[RoslynTool("analyze-async", "Analyze Async", "Returns bundled AsyncFixer diagnostics and compiler diagnostic CS4014 for a selected scope.")]
+[RoslynTool("analyze-async", "Analyze Async", "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.")]
 internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, AsyncAnalysisData>
 {
     private readonly IAsyncAnalyzerDiagnosticService _asyncAnalyzerDiagnosticService;

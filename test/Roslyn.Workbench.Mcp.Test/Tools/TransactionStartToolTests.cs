@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
 
@@ -61,7 +60,7 @@ public sealed class TransactionStartToolTests
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionStartRequest, TransactionStartData>(
             "transaction-start",
             "Transaction Start",
-            "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+            "Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.",
             false,
             false,
             null,

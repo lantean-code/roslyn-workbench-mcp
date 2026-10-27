@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from skill import publish_skill
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -21,6 +23,7 @@ def main() -> int:
 
     docs_directory = Path(__file__).resolve().parent
     repository_root = docs_directory.parent
+    publish_skill(repository_root, docs_directory / "content")
     source_revision = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=repository_root,

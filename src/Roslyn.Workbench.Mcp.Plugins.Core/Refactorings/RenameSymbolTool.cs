@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 /// <summary>
 /// Stages a symbol rename across the effective solution.
 /// </summary>
-[RoslynTool("rename-symbol", "Rename Symbol", "Stages a symbol rename across the effective solution.", Destructive = true)]
+[RoslynTool("rename-symbol", "Rename Symbol", "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.", Destructive = true)]
 internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest>
 {
     /// <inheritdoc/>

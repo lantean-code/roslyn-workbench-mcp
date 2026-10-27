@@ -169,8 +169,8 @@ public sealed class OperationalModesIntegrationTests
             await previewInvocation.Should().ThrowAsync<InvalidOperationException>()
                 .WithMessage("*transaction-preview*");
 
-            target.ServerInstructions.Should().Contain("call transaction-review for an exact-change receipt");
-            target.ServerInstructions.Should().Contain("transaction-preview is not available");
+            target.ServerInstructions.Should().Contain("transaction-review receiptId for commit approval");
+            target.ServerInstructions.Should().Contain("no transaction-preview");
 
             var documentPath = Path.Combine(target.WorkspaceRoot, "Class1.cs");
             var workspace = await OpenWorkspaceAsync(target, Path.Combine(target.WorkspaceRoot, "Sample.csproj"), "sample");

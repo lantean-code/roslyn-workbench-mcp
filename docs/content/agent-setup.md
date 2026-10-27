@@ -4,6 +4,10 @@ Connecting Roslyn Workbench to an MCP client makes its tools available, but it d
 
 This guidance is optional. Roslyn Workbench remains compatible with any MCP client that can launch a local stdio server, and the running server's tool descriptions, schemas and structured next actions remain authoritative.
 
+## Optional workflow skill
+
+The [Roslyn Workbench skill](agent/index.md) routes agents to 11 task-specific references for workspaces, inspection, Code Actions, transactions and recovery. [Download the complete bundle](assets/generated/roslyn-workbench-skill.zip), including client metadata and the application logo, for separate installation, or read the Markdown guidance through the connected server's MCP resources when supported. Choose documentation matching the server version; client support determines discovery and activation. The skill complements the short repository instruction below.
+
 ## Recommended instruction
 
 The following text can be added to the repository guidance already used by your agent:

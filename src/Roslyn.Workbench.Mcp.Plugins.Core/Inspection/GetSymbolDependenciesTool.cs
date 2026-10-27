@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns the direct symbols used by a resolved symbol.
 /// </summary>
-[RoslynTool("get-symbol-dependencies", "Get Symbol Dependencies", "Returns the direct symbols used by a resolved symbol.")]
+[RoslynTool("get-symbol-dependencies", "Get Symbol Dependencies", "Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.")]
 internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDependenciesRequest, SymbolDependenciesData>
 {
     /// <inheritdoc/>

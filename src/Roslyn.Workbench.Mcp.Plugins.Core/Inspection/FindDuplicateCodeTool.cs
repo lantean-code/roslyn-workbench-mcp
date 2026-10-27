@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.
 /// </summary>
-[RoslynTool("find-duplicate-code", "Find Duplicate Code", "Returns bounded duplicate executable-block pointers that normalize to the same statement sequence.")]
+[RoslynTool("find-duplicate-code", "Find Duplicate Code", "Finds groups of whole executable blocks with identical statement text after whitespace normalisation. Use this to locate duplication candidates for manual inspection; identifiers and literal values remain significant, so this is not semantic clone detection. Scans block-bodied methods, constructors, local functions and accessors in the selected scope, or the loaded solution when scope is omitted; expression bodies and arbitrary statement subsequences are not candidates. minimumStatements defaults to 3 top-level statements per block. Returns groups with statementCount and bounded occurrences containing symbol and location pointers, without source excerpts or edits. Limits default to 25 groups and 100 occurrences per group; check groups.hasMore and each occurrences.hasMore independently.")]
 internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCodeRequest, DuplicateCodeData>
 {
     /// <inheritdoc/>

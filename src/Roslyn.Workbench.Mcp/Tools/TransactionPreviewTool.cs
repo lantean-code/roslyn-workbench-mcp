@@ -27,7 +27,7 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.TransactionPreviewName,
             title: "Transaction Preview",
-            description: "Previews the current staged transaction.",
+            description: "Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.",
             readOnly: true,
             destructive: false)
     {

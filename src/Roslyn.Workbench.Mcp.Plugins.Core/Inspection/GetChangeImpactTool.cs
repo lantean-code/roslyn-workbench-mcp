@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns a bounded impact summary and supporting source locations for a symbol change.
 /// </summary>
-[RoslynTool("get-change-impact", "Get Change Impact", "Returns a bounded impact summary and supporting source locations for a symbol change.")]
+[RoslynTool("get-change-impact", "Get Change Impact", "Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.")]
 internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequest, ChangeImpactData>
 {
     /// <inheritdoc/>

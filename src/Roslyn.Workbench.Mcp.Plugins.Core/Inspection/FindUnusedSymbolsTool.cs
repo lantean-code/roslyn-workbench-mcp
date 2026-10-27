@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns candidate unused locals and members from compiler diagnostics.
 /// </summary>
-[RoslynTool("find-unused-symbols", "Find Unused Symbols", "Returns candidate unused locals and members from compiler diagnostics.")]
+[RoslynTool("find-unused-symbols", "Find Unused Symbols", "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.")]
 internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbolsRequest, UnusedSymbolsData>
 {
     /// <inheritdoc/>

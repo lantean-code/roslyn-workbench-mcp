@@ -30,7 +30,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             requestBinder: requestBinder,
             name: ServerOwnedToolRegistration.WorkspaceStatusName,
             title: "Workspace Status",
-            description: "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+            description: "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
             readOnly: true,
             destructive: false)
     {

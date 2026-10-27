@@ -1,6 +1,14 @@
 # Error reporting and privacy
 
-Roslyn Workbench retains a bounded, process-local diagnostic record when an MCP tool fails unexpectedly. The ordinary tool response remains generic and correlated, while `get-error-details` lets the connected trusted agent inspect that one temporary record. Local details are marked `LocalDiagnostic` and `safeForExternalSubmission: false`; they can contain exception messages, stack information, tool identity and Workspace context and must not be copied directly to an external service.
+Roslyn Workbench retains a bounded, process-local diagnostic record when an MCP tool or resource read fails unexpectedly. The ordinary response remains generic and correlated, while `get-error-details` lets the connected trusted agent inspect that one temporary record. Local details are marked `LocalDiagnostic` and `safeForExternalSubmission: false`; they can contain exception messages, stack information, operation identity and Workspace context and must not be copied directly to an external service.
+
+Resource-read failures return a JSON-RPC internal error with the correlation ID in its message and diagnostic data. They use the same preparation, review and explicit submission workflow below. Their diagnostic record identifies the operation as `resources/read` in the existing `toolName` field and `Resource` in `executionFamily`; it does not retain the requested URI or attach an unrelated open Workspace. Exception messages remain bounded but unfiltered. Normal request cancellation and unknown-resource routing errors are not captured as unexpected failures.
+
+## Fatal process failures
+
+An otherwise unhandled exception reaching `Main` writes a diagnostic ID and the full exception details to stderr, then exits with code 1. This fallback works before logging or dependency injection is available and preserves disposal of a built Host. Fatal diagnostics are local and may contain private paths, identifiers or other exception content; review stderr before sharing it. The diagnostic ID identifies that stderr entry, not a retained `get-error-details` record, and no report is submitted automatically.
+
+Successful help/version requests and normal Host shutdown still return code 0. A managed `Main` handler cannot report hard process termination such as an OS kill, `FailFast` or a stack overflow.
 
 ## Prepare, review and submit
 

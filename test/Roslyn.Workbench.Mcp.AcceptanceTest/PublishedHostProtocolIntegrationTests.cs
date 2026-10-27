@@ -19,11 +19,10 @@ public sealed class PublishedHostProtocolIntegrationTests
             serverInstructions.Should().Contain("fully trusted C# workspaces");
             serverInstructions.Should().Contain("analysers run unsandboxed with Host permissions");
             serverInstructions.Should().Contain("Prefer queries before mutations");
-            serverInstructions.Should().Contain("Start transactions only when ready");
-            serverInstructions.Should().Contain("keep each to one coherent change or tightly related set");
-            serverInstructions.Should().Contain("inspect transaction-preview");
-            serverInstructions.Should().Contain("transaction-commit or transaction-rollback promptly");
-            serverInstructions.Should().Contain("does not create a Git commit");
+            serverInstructions.Should().Contain("One coherent transaction");
+            serverInstructions.Should().Contain("preview then commit or roll back promptly");
+            serverInstructions.Should().Contain("not a Git commit");
+            serverInstructions.Should().Contain("skill://roslyn-workbench/SKILL.md");
             serverInstructions.Should().Contain(
                 $"https://lantean-code.github.io/roslyn-workbench-mcp/{expectedVersion}/agent/");
             serverInstructions.Length.Should().BeLessThanOrEqualTo(512);

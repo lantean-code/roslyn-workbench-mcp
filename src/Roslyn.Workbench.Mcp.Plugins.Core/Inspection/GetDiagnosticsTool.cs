@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns compiler and analyzer diagnostics for a selected scope.
 /// </summary>
-[RoslynTool("get-diagnostics", "Get Diagnostics", "Returns compiler and analyzer diagnostics for a selected scope.")]
+[RoslynTool("get-diagnostics", "Get Diagnostics", "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.")]
 internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsRequest, DiagnosticsData>
 {
     /// <inheritdoc/>

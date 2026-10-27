@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Finds overrides of a virtual or abstract member.
 /// </summary>
-[RoslynTool("find-overrides", "Find Overrides", "Finds overrides of a virtual or abstract member.")]
+[RoslynTool("find-overrides", "Find Overrides", "Finds distinct overriding methods, properties or events for a resolved member. Use this to follow virtual or abstract member overrides; use find-implementations for interface implementations or find-derived-types for type inheritance. Searches the selected projects, or the loaded solution when scope is omitted; a document scope searches its containing project. Returns the selected symbol and a bounded overrides collection of symbol references. overridesLimit defaults to 100; check overrides.hasMore before treating the list as complete. This is a read-only symbol search and does not execute the member.")]
 internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest, OverrideSearchData>
 {
     /// <inheritdoc/>

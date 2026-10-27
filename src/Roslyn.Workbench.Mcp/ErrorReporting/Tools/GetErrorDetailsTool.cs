@@ -29,7 +29,7 @@ internal sealed class GetErrorDetailsTool :
             requestBinder,
             ServerOwnedToolRegistration.GetErrorDetailsName,
             "Get Error Details",
-            "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+            "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
             readOnly: true,
             destructive: false)
     {

@@ -55,10 +55,10 @@ public sealed class RoslynWorkbenchMcpServerOptionsConfigurationTests
     }
 
     [Theory]
-    [InlineData((int)OperationalMode.InspectionOnly, "source mutation and transaction tools are disabled", "does not make untrusted workspace build logic safe")]
-    [InlineData((int)OperationalMode.Transactional, "for Host confirmation", "does not create a Git commit")]
-    [InlineData((int)OperationalMode.ApprovalRequired, "call transaction-review for an exact-change receipt", "does not create a Git commit")]
-    [InlineData((int)OperationalMode.AutonomousTrusted, "call transaction-commit or transaction-rollback", "does not create a Git commit")]
+    [InlineData((int)OperationalMode.InspectionOnly, "Inspection only; mutations disabled", "does not sandbox build logic")]
+    [InlineData((int)OperationalMode.Transactional, "for Host confirmation", "not a Git commit")]
+    [InlineData((int)OperationalMode.ApprovalRequired, "transaction-review receiptId for commit approval", "not a Git commit")]
+    [InlineData((int)OperationalMode.AutonomousTrusted, "preview then commit or roll back promptly", "not a Git commit")]
     public void GIVEN_SupportedOperationalMode_WHEN_Configuring_THEN_ShouldPublishModeSpecificInstructions(
         int modeValue,
         string expectedWorkflow,
@@ -74,6 +74,26 @@ public sealed class RoslynWorkbenchMcpServerOptionsConfigurationTests
 
         options.ServerInstructions.Should().Contain(expectedWorkflow);
         options.ServerInstructions.Should().Contain(expectedEnding);
+        options.ServerInstructions.Should().Contain("skill://roslyn-workbench/SKILL.md");
+        options.ServerInstructions!.Length.Should().BeLessThanOrEqualTo(512);
+    }
+
+    [Theory]
+    [InlineData((int)OperationalMode.Transactional)]
+    [InlineData((int)OperationalMode.ApprovalRequired)]
+    [InlineData((int)OperationalMode.AutonomousTrusted)]
+    public void GIVEN_RequiredCompilerValidation_WHEN_Configuring_THEN_ShouldPublishValidationWithinInstructionBudget(int modeValue)
+    {
+        var pluginRequestHandler = new Mock<IPluginMcpRequestHandler>();
+        var options = new McpServerOptions();
+        var policy = OperationalPolicyResolver.Resolve((OperationalMode)modeValue, CommitValidationPolicy.NoNewCompilerErrors);
+        var target = new RoslynWorkbenchMcpServerOptionsConfiguration(pluginRequestHandler.Object, policy);
+
+        target.Configure(options);
+
+        options.ServerInstructions.Should().Contain("transaction-validate");
+        options.ServerInstructions.Should().Contain("review/commit revalidate");
+        options.ServerInstructions!.Length.Should().BeLessThanOrEqualTo(512);
     }
 
     private static RequestContext<TParams> CreateContext<TParams>(TParams parameters)

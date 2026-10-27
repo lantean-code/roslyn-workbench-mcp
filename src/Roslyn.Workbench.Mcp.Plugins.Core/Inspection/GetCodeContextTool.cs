@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns a bounded code window with the enclosing semantic context for a selected location.
 /// </summary>
-[RoslynTool("get-code-context", "Get Code Context", "Returns a bounded code window with the enclosing semantic context for a selected location.")]
+[RoslynTool("get-code-context", "Get Code Context", "Reads source around a location, returning the resolved location, text, enclosingSymbols and diagnostics. Use this to inspect a search result or diagnostic in context; use get-symbol-info for symbol details or get-diagnostics for broader diagnostic analysis. Includes all lines touched by the selection plus 10 lines before and after by default; beforeLines and afterLines each accept 0 to 100 and are clipped at document boundaries. Enclosing symbols and compiler diagnostics are opt-in via includeEnclosingSymbols and includeDiagnostics, both false by default. Diagnostics cover the selected span, not the expanded text window or project analysers. Limits default to 16 enclosing symbols and 50 diagnostics; check each collection.hasMore. Reads the loaded workspace without modifying source.")]
 internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextRequest, CodeContextData>
 {
     /// <inheritdoc/>

@@ -3,7 +3,6 @@ using Roslyn.Workbench.Mcp.ErrorReporting.Retention;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
-using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
@@ -295,6 +294,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IRequestObjectGraphValidator, RequestObjectGraphValidator>();
         services.AddSingleton<IToolRequestBinder, ToolRequestBinder>();
         services.AddSingleton<UnhandledToolExceptionFilter>();
+        services.AddSingleton<UnhandledResourceExceptionFilter>();
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
         AddPluginCatalogServices(services);

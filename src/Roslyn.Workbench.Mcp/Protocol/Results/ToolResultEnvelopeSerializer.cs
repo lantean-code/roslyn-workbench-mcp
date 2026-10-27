@@ -5,7 +5,7 @@ using System.Text.Json.Serialization.Metadata;
 namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
 /// <summary>
-/// Serializes structured MCP tool result envelopes using the published response contracts.
+/// Serializes structured MCP tool result envelopes and correlated request diagnostics using the published response contracts.
 /// </summary>
 internal static class ToolResultEnvelopeSerializer
 {
@@ -151,14 +151,16 @@ internal static class ToolResultEnvelopeSerializer
     }
 
     /// <summary>
-    /// Creates a failed envelope for an unhandled tool exception.
+    /// Creates a correlated diagnostic envelope for an unhandled request exception.
     /// </summary>
     /// <param name="correlationId">The server-side diagnostic correlation identifier.</param>
     /// <param name="reporting">The availability of error reporting for this failure.</param>
+    /// <param name="message">The generic failure message exposed to the client.</param>
     /// <returns>The structured JSON payload.</returns>
     public static JsonElement CreateUnhandledException(
         Guid correlationId,
-        ErrorReportingAvailability? reporting = null)
+        ErrorReportingAvailability? reporting = null,
+        string message = "Tool execution failed.")
     {
         return BuildPayload(writer =>
         {
@@ -166,7 +168,7 @@ internal static class ToolResultEnvelopeSerializer
             writer.WriteBoolean("ok", false);
             writer.WriteStartObject("error");
             writer.WriteString("code", HostToolErrorCodes.UnhandledException);
-            writer.WriteString("message", "Tool execution failed.");
+            writer.WriteString("message", message);
             writer.WriteString("correlationId", correlationId);
             writer.WriteEndObject();
 

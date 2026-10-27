@@ -30,7 +30,7 @@ internal sealed class TransactionReviewTool : ServerOwnedToolBase<TransactionRev
             requestBinder,
             ServerOwnedToolRegistration.TransactionReviewName,
             "Transaction Review",
-            "Reviews the exact validated persistence set and returns the receipt required to commit it.",
+            "Reviews the exact validated source-file persistence set for a staged transaction in approval-required mode. Requires at least one staged revision and the current expectedSnapshot. Returns file changes, validation results, provenance, a change-set digest, receiptId and expiresAt. The receipt is process-local, lasts up to 15 minutes, and is bound to the reviewed snapshot and transaction revision; obtain a new review after changing the transaction or expiry. includeDiff defaults to false; set it to true with document for one detailed diff, using contextLines (default 3). Inspect the complete change set, then call transaction-commit with receiptId and the returned snapshot for one-use client approval. Review itself does not approve or write source files.",
             readOnly: true,
             destructive: false)
     {

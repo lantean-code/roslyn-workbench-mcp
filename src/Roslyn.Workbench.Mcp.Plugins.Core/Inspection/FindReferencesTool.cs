@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Finds source references with optional declaration and access classification.
 /// </summary>
-[RoslynTool(_toolName, "Find References", "Finds source references, optionally including declarations and access classification.")]
+[RoslynTool(_toolName, "Find References", "Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.")]
 internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesRequest, ReferenceSearchData>
 {
     private const string _toolName = "find-references";

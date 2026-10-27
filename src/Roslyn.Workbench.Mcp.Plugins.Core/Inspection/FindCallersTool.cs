@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Returns bounded direct source call sites and containing symbols.
 /// </summary>
-[RoslynTool("find-callers", "Find Callers", "Returns bounded direct source call sites and containing symbols.")]
+[RoslynTool("find-callers", "Find Callers", "Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller's callSites.hasMore before treating the results as complete.")]
 internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, CallerSearchData>
 {
     /// <inheritdoc/>

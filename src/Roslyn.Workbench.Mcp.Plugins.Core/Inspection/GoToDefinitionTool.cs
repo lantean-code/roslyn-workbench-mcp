@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 /// <summary>
 /// Finds source or metadata definitions for a resolved symbol.
 /// </summary>
-[RoslynTool("go-to-definition", "Go To Definition", "Finds source or metadata definitions for a resolved symbol.")]
+[RoslynTool("go-to-definition", "Go To Definition", "Locates declaration sites for a resolved symbol, preferring its source definition in the loaded solution. Use this to navigate to a declaration; use find-references for usages or find-implementations for concrete implementations. Returns symbol and a bounded definitions collection, which can contain multiple source locations for partial declarations. If no source location exists, returns a metadata definition record rather than decompiled source. definitionsLimit defaults to 32; check definitions.hasMore for truncation. Reads the workspace without modifying files.")]
 internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionRequest, DefinitionData>
 {
     /// <inheritdoc/>

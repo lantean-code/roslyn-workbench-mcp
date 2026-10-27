@@ -83,19 +83,16 @@ public sealed class HostToolCompositionIntegrationTests
             "Prefer queries before mutations");
 
         serverInstructions.Should().Contain(
-            "Start transactions only when ready");
+            "One coherent transaction");
 
         serverInstructions.Should().Contain(
-            "keep each to one coherent change or tightly related set");
+            "preview then commit or roll back promptly");
 
         serverInstructions.Should().Contain(
-            "inspect transaction-preview");
+            "Skill: skill://roslyn-workbench/SKILL.md");
 
         serverInstructions.Should().Contain(
-            "transaction-commit or transaction-rollback promptly");
-
-        serverInstructions.Should().Contain(
-            "does not create a Git commit");
+            "Commit writes files, not a Git commit.");
 
         var documentationVersion = sourceTag == "0.0.0-dev" ? "dev" : sourceTag;
         serverInstructions.Should().Contain(

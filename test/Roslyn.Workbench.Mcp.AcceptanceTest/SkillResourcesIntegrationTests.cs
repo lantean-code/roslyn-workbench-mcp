@@ -60,7 +60,7 @@ public sealed class SkillResourcesIntegrationTests
                 var relativePath = new Uri(resource.Uri).AbsolutePath.TrimStart('/');
                 var canonicalPath = Path.Combine(AppContext.BaseDirectory, "TestAssets", "Skill", relativePath);
                 var canonicalContent = await File.ReadAllTextAsync(canonicalPath, TestContext.Current.CancellationToken);
-                content.Text.Should().Be(canonicalContent);
+                content.Text.ReplaceLineEndings("\n").Should().Be(canonicalContent.ReplaceLineEndings("\n"));
 
                 foreach (Match link in Regex.Matches(content.Text, @"\[[^\]]*\]\(([^)]+)\)", RegexOptions.None, TimeSpan.FromSeconds(1)))
                 {

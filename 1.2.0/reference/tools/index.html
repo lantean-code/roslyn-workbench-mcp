@@ -1,0 +1,2067 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bring Visual Studio-style C# code fixes and refactorings to your AI coding agent with Roslyn Code Actions, semantic analysis and reviewable local transactions.">
+      
+      
+      
+        <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/index.html">
+      
+      
+        <link rel="prev" href="../../plugins/diagnostics.html">
+      
+      
+        <link rel="next" href="../security/index.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/generated/roslyn-workbench-mcp-icon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Tool reference - Roslyn Workbench MCP</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/brand.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <meta name="roslyn-workbench-version" content="1.2.0">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tool-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    <div class="rw-docs-version" data-rw-documentation-version="1.2.0">Documentation version: <code>1.2.0</code></div>
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Roslyn Workbench MCP
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tool reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+      
+  <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
+
+    </a>
+    Roslyn Workbench MCP
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lantean-code/roslyn-workbench-mcp
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connect a client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agent-setup.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skill and download
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting and removal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-from-source.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build from source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Roslyn Workbench
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Roslyn Workbench
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tool-discovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool discovery and results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workspaces.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading workspaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workspaces-and-transactions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspaces and transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler-validation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler-impact validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transaction-recovery.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commit coordination and recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code-actions.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../error-reporting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error reporting and privacy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration and policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration and policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Startup configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../supply-chain.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supply-chain evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin authors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugin authors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugin-authoring.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/mutations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mutation plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/contracts.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/deployment.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging and deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/diagnostics.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="index.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-discovery-and-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code discovery and navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code mutation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security guarantees and evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/surface.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security surface appendix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support and feedback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#code-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-discovery-and-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code discovery and navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code mutation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tool-reference">Tool reference</h1>
+<p>This reference is generated from the production Host composition for <code>1.2.0</code>. The <a href="catalog.json">catalog</a> is the compact machine-readable index; each tool page links to its complete MCP definition.</p>
+<h2 id="code-actions">Code Actions</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="list-code-actions.html"><code>list-code-actions</code></a></td>
+<td>Query</td>
+<td>CodeAction</td>
+<td>Discovers applicable Roslyn Code Fixes and refactorings for a document, selection or caret. Use this to choose an actionId for stage-code-action in mutation-enabled modes, or a Code Fix with advertised fixAllScopes for prepare-fix-all. Echo the current expectedSnapshot. Omitted range selects the whole document; a zero-length range selects a caret, using zero-based UTF-16 positions. Returns up to 50 action leaves by default; check actions.hasMore. Action IDs are temporary, process-local and tied to the exact workspace snapshot: rediscover after changes or expiry. Listing stores references but does not stage changes or write source files.</td>
+</tr>
+<tr>
+<td><a href="prepare-fix-all.html"><code>prepare-fix-all</code></a></td>
+<td>Query</td>
+<td>CodeAction</td>
+<td>Evaluates one supported Document, Project or Solution Fix All operation for a Code Fix from list-code-actions, without staging or writing source files. Supply the originating actionId, an advertised fixAllScopes value and the matching expectedSnapshot; refactorings and already-prepared Fix All references are not accepted. Rejects operations exceeding maxChanges source documents, default 50. The affectedDocuments preview is limited separately to 20 identities by default; check its hasMore and totalCount. Returns a new temporary actionId for stage-code-action in mutation-enabled modes: use this prepared ID, not the originating ID, with the same snapshot. Staging revalidates the exact prepared change set.</td>
+</tr>
+<tr>
+<td><a href="stage-code-action.html"><code>stage-code-action</code></a></td>
+<td>Mutation</td>
+<td>CodeAction</td>
+<td>Revalidates and stages one selected Code Fix, refactoring or prepared Fix All operation in the active transaction without writing source files. Start the transaction before discovery or preparation, then supply the actionId from list-code-actions or the new prepared ID from prepare-fix-all with its matching expectedSnapshot. Prepared Fix All staging must match the exact prepared change set and document limit. Successful staging consumes the reference; use the returned snapshot and rediscover before selecting another action. Inspect transaction-preview, or transaction-review in approval-required mode, then transaction-commit to write files or transaction-rollback to discard staged work.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-analysis">Code analysis</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="analyze-async.html"><code>analyze-async</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.</td>
+</tr>
+<tr>
+<td><a href="analyze-control-flow.html"><code>analyze-control-flow</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Analyses entry and exit reachability, exit points and return statements for an exact complete statement or contiguous sibling statements in one executable body. Use this to understand a selected region; use get-control-flow-graph for the enclosing executable graph, or analyze-data-flow for variable-flow information. The selection must match statement spans exactly; a caret or partial statement is rejected. Echo the current expectedSnapshot. Exit points and return statements are limited independently to 100 each by default; check exits.hasMore and returns.hasMore.</td>
+</tr>
+<tr>
+<td><a href="analyze-data-flow.html"><code>analyze-data-flow</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns Roslyn variable sets for declarations, reads, writes, captures and data flowing into or out of an exact expression, complete statement or contiguous sibling statements in one executable body. Use this when planning to extract or move selected code; use get-operation-tree for semantic operation structure, or analyze-control-flow for region reachability and exits. Echo the current expectedSnapshot and select exact syntax spans. Each variable category is limited independently to 50 symbols by default; check its hasMore before treating the category as complete.</td>
+</tr>
+<tr>
+<td><a href="analyze-disposables.html"><code>analyze-disposables</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Heuristically flags local declarations of IDisposable or IAsyncDisposable values that lack a recognised disposal pattern. Use this for advisory resource-handling review; verify ownership transfers and control flow before acting. Using declarations are skipped, and supported direct or finally-block Dispose/DisposeAsync calls are recognised. Analysis is limited to local declarations and recognised patterns; use get-diagnostics for configured compiler and analyser rules. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore.</td>
+</tr>
+<tr>
+<td><a href="analyze-nullability.html"><code>analyze-nullability</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Reports compiler diagnostics whose IDs begin with CS86 for focused nullable analysis. Use get-diagnostics for other compiler or project analyser findings, and get-document-options to inspect project-level nullable context. A supplied location overrides scope and keeps diagnostics intersecting its resolved span; echo its expectedSnapshot. Without a location, searches the selected scope or the loaded solution by default. Findings depend on compiler settings and are limited to 50 by default; check findings.hasMore.</td>
+</tr>
+<tr>
+<td><a href="find-dependency-cycles.html"><code>find-dependency-cycles</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds mutually dependent groups in a static dependency graph for the selected scope, or the loaded solution when scope is omitted. Use this to investigate circular coupling; use get-dependency-graph to inspect individual dependency edges. granularity defaults to Type; Namespace groups source dependencies and Project uses direct project references. A document scope uses its containing project for Project granularity. Returns a bounded cycles collection of strongly connected node groups, not ordered traversal paths. cyclesLimit defaults to 25; check cycles.hasMore for additional groups. Analysis budgets default to 25000 nodes and 100000 edges; exceeding either rejects the query with AnalysisLimitExceeded rather than returning a partial cycle analysis. Narrow the scope or raise the relevant budget to retry. Read-only; no tests or application code are run.</td>
+</tr>
+<tr>
+<td><a href="find-duplicate-code.html"><code>find-duplicate-code</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds groups of whole executable blocks with identical statement text after whitespace normalisation. Use this to locate duplication candidates for manual inspection; identifiers and literal values remain significant, so this is not semantic clone detection. Scans block-bodied methods, constructors, local functions and accessors in the selected scope, or the loaded solution when scope is omitted; expression bodies and arbitrary statement subsequences are not candidates. minimumStatements defaults to 3 top-level statements per block. Returns groups with statementCount and bounded occurrences containing symbol and location pointers, without source excerpts or edits. Limits default to 25 groups and 100 occurrences per group; check groups.hasMore and each occurrences.hasMore independently.</td>
+</tr>
+<tr>
+<td><a href="find-unused-symbols.html"><code>find-unused-symbols</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.</td>
+</tr>
+<tr>
+<td><a href="get-change-impact.html"><code>get-change-impact</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Summarises source references, method callers, overrides, implementing types for interfaces and a public-surface indicator for a resolved symbol. Use this as static relationship evidence when planning a symbol change; use get-symbol-dependents for the referencing symbols themselves, or get-dependency-graph for a scoped graph. Counts reflect the selected scope, or the loaded solution when scope is omitted. Supporting source-reference locations are limited to 100 by default, independently of the counts; check locations.hasMore before treating the returned locations as complete.</td>
+</tr>
+<tr>
+<td><a href="get-control-flow-graph.html"><code>get-control-flow-graph</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit.</td>
+</tr>
+<tr>
+<td><a href="get-dependency-graph.html"><code>get-dependency-graph</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.</td>
+</tr>
+<tr>
+<td><a href="get-diagnostics.html"><code>get-diagnostics</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.</td>
+</tr>
+<tr>
+<td><a href="get-document-options.html"><code>get-document-options</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.</td>
+</tr>
+<tr>
+<td><a href="get-operation-tree.html"><code>get-operation-tree</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-dependencies.html"><code>get-symbol-dependencies</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Lists distinct direct dependencies found in a resolved symbol signature and supported executable operations, including referenced types and members. Use this for outgoing relationships; use get-symbol-dependents to find source symbols that reference the selected symbol, or get-dependency-graph for relationships across a scope. Dependencies may include metadata symbols. Containing assembly names are included by default. Returns up to 100 dependencies by default; check dependencies.hasMore before treating the inventory as complete.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-dependents.html"><code>get-symbol-dependents</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds distinct enclosing symbols at source references to a resolved symbol. Use this to identify incoming dependencies; use get-symbol-dependencies for outgoing dependencies, find-references for individual source occurrences, or get-change-impact for relationship counts. Searches the selected documents or projects, or the loaded solution when scope is omitted. Returns up to 100 dependent symbol references by default; check dependents.hasMore before treating the results as complete.</td>
+</tr>
+<tr>
+<td><a href="get-test-impact.html"><code>get-test-impact</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Suggests tests to inspect after changing a resolved symbol, using static direct references to the target or its owning type. This heuristic can include tests that use another member of that type and misses indirect helper-call dependencies; it is not a coverage report or a guarantee of the tests affected. Candidate methods are selected by type names ending in Test, Tests, Spec or Specs, or method names starting GIVEN_ or containing _THEN_Should; test attributes alone do not select candidates. testScope limits candidate documents or projects and defaults to the loaded solution. Returns symbol and a bounded tests collection with test symbols and locations; includeReasons defaults to false. testsLimit defaults to 100; check tests.hasMore for truncation. Does not execute tests.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-discovery-and-navigation">Code discovery and navigation</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="find-callees.html"><code>find-callees</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds distinct method and constructor targets invoked by a source executable symbol or selected executable region. Use this for outgoing calls; use find-callers for incoming call sites. Reads the loaded workspace without executing code. Direct calls are the default; includeIndirect traverses reachable source bodies up to maxDepth (default 3, direct calls at depth 1). Nested lambda and local-function bodies are skipped during each body scan. Returns source and a bounded callees collection, not call sites or runtime dispatch targets. calleesLimit defaults to 100; check callees.hasMore for result truncation within the requested depth.</td>
+</tr>
+<tr>
+<td><a href="find-callers.html"><code>find-callers</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds callers of a resolved symbol and groups source call sites by calling symbol. Use this to trace incoming calls; use find-references for general source usages or find-callees for calls made by a selected member. Searches the selected scope, or the loaded solution when scope is omitted. Defaults to 100 callers and 100 call sites per caller, limited independently. Check callers.hasMore and each caller's callSites.hasMore before treating the results as complete.</td>
+</tr>
+<tr>
+<td><a href="find-derived-types.html"><code>find-derived-types</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds source types derived from a resolved named type, with their inheritance distance. Use this to explore descendants; use get-type-hierarchy for base types as well, or find-implementations for interface member implementations. For an interface, includes derived interfaces and implementing types. Searches projects selected by scope, or the loaded solution when scope is omitted. Defaults to three inheritance levels and 100 returned types. Check derivedTypes.hasMore for truncation within maxDepth; deeper types are excluded.</td>
+</tr>
+<tr>
+<td><a href="find-implementations.html"><code>find-implementations</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.</td>
+</tr>
+<tr>
+<td><a href="find-overloads.html"><code>find-overloads</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Lists callable signatures for a resolved method or constructor so you can compare parameter and return types. Requires a callable symbol; use search-symbols to discover one first. Methods are matched by name and method kind within the same containing type; instance constructors include only explicitly declared constructors. The selected callable can appear in the results. This does not resolve a call against arguments or collect inherited overloads. Returns symbol and a bounded overloads collection ordered by parameter count then signature. overloadsLimit defaults to 50; check overloads.hasMore for truncation. Reads symbols without invoking code.</td>
+</tr>
+<tr>
+<td><a href="find-overrides.html"><code>find-overrides</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds distinct overriding methods, properties or events for a resolved member. Use this to follow virtual or abstract member overrides; use find-implementations for interface implementations or find-derived-types for type inheritance. Searches the selected projects, or the loaded solution when scope is omitted; a document scope searches its containing project. Returns the selected symbol and a bounded overrides collection of symbol references. overridesLimit defaults to 100; check overrides.hasMore before treating the list as complete. This is a read-only symbol search and does not execute the member.</td>
+</tr>
+<tr>
+<td><a href="find-references.html"><code>find-references</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds source usages of a resolved symbol, with locations, containing symbols and access classification where available. Use this to locate usages or inspect writes; use find-callers when you need incoming calls grouped by calling symbol. Searches the selected scope, or the loaded solution when scope is omitted. Declarations are included by default and share the default 100-occurrence limit with references. Check references.hasMore before treating the results as complete.</td>
+</tr>
+<tr>
+<td><a href="get-api-surface.html"><code>get-api-surface</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Lists API declarations from source in the selected scope, with symbol references, accessibility and obsolete status. Use this to inventory accessible types and members; use search-symbols to locate declarations by name, or get-symbol-info to inspect one symbol. Omitted scope searches the loaded solution. Defaults to Public accessibility, includes obsolete symbols and returns up to 100 symbols. Check symbols.hasMore before treating the inventory as complete.</td>
+</tr>
+<tr>
+<td><a href="get-code-context.html"><code>get-code-context</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Reads source around a location, returning the resolved location, text, enclosingSymbols and diagnostics. Use this to inspect a search result or diagnostic in context; use get-symbol-info for symbol details or get-diagnostics for broader diagnostic analysis. Includes all lines touched by the selection plus 10 lines before and after by default; beforeLines and afterLines each accept 0 to 100 and are clipped at document boundaries. Enclosing symbols and compiler diagnostics are opt-in via includeEnclosingSymbols and includeDiagnostics, both false by default. Diagnostics cover the selected span, not the expanded text window or project analysers. Limits default to 16 enclosing symbols and 50 diagnostics; check each collection.hasMore. Reads the loaded workspace without modifying source.</td>
+</tr>
+<tr>
+<td><a href="get-document-outline.html"><code>get-document-outline</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns a semantic declaration tree for one document, with names, kinds, locations and nested children. Use this to navigate the structure of a known file; use search-symbols to discover declarations across documents, or get-symbol-info for detailed symbol metadata. Members are included by default. Defaults to 200 projected nodes below the document root and 16 hierarchy levels. Check truncated for content omitted by the node or depth limit; root may be null when syntax or semantic information is unavailable.</td>
+</tr>
+<tr>
+<td><a href="get-partial-declarations.html"><code>get-partial-declarations</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.</td>
+</tr>
+<tr>
+<td><a href="get-project-details.html"><code>get-project-details</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Inspects one selected project, returning target frameworks, compilation and parse options, project references, metadata references and analyzers. Use get-solution-structure to discover projects, then use this to inspect project configuration and dependencies. Document references are opt-in through includeDocuments and do not include file contents; use get-document-outline to inspect declarations in one document. Collections are bounded independently, including a default 200-document limit when requested. Check each returned collection for hasMore before treating it as complete.</td>
+</tr>
+<tr>
+<td><a href="get-solution-structure.html"><code>get-solution-structure</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Maps the loaded solution into solution folders and projects with workspace-relative paths, target frameworks and direct project references. Use this first to discover project and document selectors; use get-dependency-graph for a dependency graph or get-code-context to read a selected source region. Documents are omitted unless includeDocuments=true. Independent limits default to 200 folders, 100 projects, 50 references per project and 200 documents per project. Returns solutionPath and bounded folders and projects collections; check their hasMore flags and those on each projectReferences or documents collection for truncation. This read-only query can report ProjectStructureUnavailable if hierarchy or target-framework information cannot be obtained.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-attributes.html"><code>get-symbol-attributes</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Inspects attributes attached to a resolved symbol, returning their types, inherited flags and rendered constructor and named arguments. Use this for attribute metadata; use get-symbol-info for general symbol details. Defaults to directly declared attributes. includeInherited follows base types or overridden methods, properties and events, honours Inherited and AllowMultiple settings, and does not traverse interface declarations. Returns symbol and a bounded attributes collection; attributesLimit defaults to 50. Check attributes.hasMore for truncation. Reads Roslyn metadata without instantiating attributes or executing their constructors.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-info.html"><code>get-symbol-info</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Inspects one resolved symbol, returning accessibility, modifiers, associated type and source declaration locations, plus method parameters and return type when applicable. Use this after search-symbols or resolve-symbol to understand a chosen declaration; use find-references for its usages or get-symbol-members to enumerate type members. XML documentation is opt-in through includeDocumentation. Defaults to 32 declarations and 64 method parameters, bounded independently; check declarations.hasMore and parameters.hasMore when present. Metadata-only symbols may have no source declarations.</td>
+</tr>
+<tr>
+<td><a href="get-symbol-members.html"><code>get-symbol-members</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Lists members of a resolved named type to inspect its declaration surface. Use get-api-surface for an accessibility-filtered API inventory or get-symbol-info for details about one member. Defaults to explicitly declared members of the selected type, including non-public members. includeInherited adds base-type members except private, implicit and constructor/destructor members. includeExplicitInterface adds declarations from all implemented or inherited interfaces, not just explicit implementations on the selected type. Both options default to false. Returns symbol and a distinct, bounded members collection; membersLimit defaults to 100. Check members.hasMore for truncation. Reads the loaded workspace without modifying source.</td>
+</tr>
+<tr>
+<td><a href="get-type-hierarchy.html"><code>get-type-hierarchy</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Inspects the inheritance neighbourhood of a resolved named type, returning type, baseTypes, interfaces and derivedTypes. Use this for a combined hierarchy view; use find-derived-types when you need a scoped descendant search. Derived types are included by default and searched across the loaded solution; includeDerived=false omits that collection. maxDepth defaults to 3 for base and derived types, with direct relationships at depth 1; it does not limit the transitive interface list. Independent result limits default to 16 base types, 64 interfaces and 100 derived types. Check each collection.hasMore for result truncation; base and derived counts describe only the requested depth. Read-only; no code is executed.</td>
+</tr>
+<tr>
+<td><a href="go-to-definition.html"><code>go-to-definition</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Locates declaration sites for a resolved symbol, preferring its source definition in the loaded solution. Use this to navigate to a declaration; use find-references for usages or find-implementations for concrete implementations. Returns symbol and a bounded definitions collection, which can contain multiple source locations for partial declarations. If no source location exists, returns a metadata definition record rather than decompiled source. definitionsLimit defaults to 32; check definitions.hasMore for truncation. Reads the workspace without modifying files.</td>
+</tr>
+<tr>
+<td><a href="resolve-symbol.html"><code>resolve-symbol</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Resolves the symbol at a source location or selection, returning a symbol reference, a reusable selector when available and bounded source declarations. Use this to turn a known location into a target for symbol inspection; use search-symbols when only a name is known, or get-symbol-info for detailed metadata. Echo the location snapshot in expectedSnapshot to reject stale locations. Returns up to 32 source declarations by default; check declarations.hasMore. Metadata-only symbols may have no source declarations.</td>
+</tr>
+<tr>
+<td><a href="search-symbols.html"><code>search-symbols</code></a></td>
+<td>Query</td>
+<td>CorePlugin</td>
+<td>Finds source type and member declarations using a Roslyn name pattern and optional semantic filters. Use this to discover symbols by name; use resolve-symbol for a known source location, then get-symbol-info to inspect a chosen symbol. Searches the selected document or projects, or the loaded solution when scope is omitted. Filters narrow the candidate set. Returns symbol references, capped at 100 by default; check symbols.hasMore before treating the results as complete.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="code-mutation">Code mutation</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="format-document.html"><code>format-document</code></a></td>
+<td>Mutation</td>
+<td>CorePlugin</td>
+<td>Stages Roslyn formatting for one document in the active transaction, using its workspace formatting options. Use this for formatting; use rename-symbol or code actions for semantic transformations. Requires document and the current expectedSnapshot. Omit range to format the whole document, or provide a zero-based start and length within the document to select the region passed to the formatter. Already formatted text produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, before transaction-commit; transaction-rollback discards the staged work. This tool does not write source files directly or create a Git commit.</td>
+</tr>
+<tr>
+<td><a href="rename-symbol.html"><code>rename-symbol</code></a></td>
+<td>Mutation</td>
+<td>CorePlugin</td>
+<td>Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="error-reporting">Error reporting</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="get-error-details.html"><code>get-error-details</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.</td>
+</tr>
+<tr>
+<td><a href="prepare-error-report.html"><code>prepare-error-report</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Creates the complete external payload without network activity. Exception messages may contain Workspace data. Present the returned destination, payload JSON string and digest to the user before calling submit-error-report when approval is required; the user can choose to remove exception messages during submission.</td>
+</tr>
+<tr>
+<td><a href="submit-error-report.html"><code>submit-error-report</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Submits a reviewed unexpected-failure report through the configured provider. First use prepare-error-report and review its destination, payloadJson and payloadDigest, then supply its unexpired submissionHandle. Use get-error-details for local investigation instead. Prompt consent (default) requests client approval and offers exception-message removal; Always consent skips the prompt. Declined or unavailable approval sends nothing; declining also discards the handle. Success means provider acceptance: Sentry queues an external event, while the Logging provider writes locally. It does not confirm remote delivery or offer retraction. Reusing a retained successful handle returns its receipt without dispatching again; an expired handle requires a new prepared report.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="server-lifecycle">Server lifecycle</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="server-status.html"><code>server-status</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Reports Host health without requiring a loaded workspace. Use this to diagnose startup, component availability, tool publication or effective operational policy; use workspace-status for one workspace and get-diagnostics for source findings. detail defaults to Minimal, returning server/Roslyn versions, MSBuild and Code Action component status and toolCount. Full additionally returns effective non-sensitive configuration, startup warnings, plugin status and unfinished recovery records; Standard currently has the same projection as Minimal. This read-only query does not load a workspace, run source diagnostics or repair recovery state.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="transactions">Transactions</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="transaction-commit.html"><code>transaction-commit</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Commits the active transaction. Transactional and autonomous-trusted modes use the standard request; approval-required mode requires a transaction-review receipt and requests one-use approval for that exact change.</td>
+</tr>
+<tr>
+<td><a href="transaction-history.html"><code>transaction-history</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.</td>
+</tr>
+<tr>
+<td><a href="transaction-preview.html"><code>transaction-preview</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Inspects the active transaction against its captured baseline before committing, returning transaction state, changed documents and mutation provenance. Available in mutation modes that do not require a review receipt; approval-required mode exposes transaction-review instead. includeDiff defaults to false; set it to true and supply document for a detailed diff of that document, with contextLines defaulting to 3 unchanged lines per hunk. The document selector controls the detailed diff, not the overall changed-document summary. This read-only preview does not authorise or persist changes. Inspect it, then use transaction-commit to write the staged changes or transaction-rollback to discard them.</td>
+</tr>
+<tr>
+<td><a href="transaction-review.html"><code>transaction-review</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Reviews the exact validated source-file persistence set for a staged transaction in approval-required mode. Requires at least one staged revision and the current expectedSnapshot. Returns file changes, validation results, provenance, a change-set digest, receiptId and expiresAt. The receipt is process-local, lasts up to 15 minutes, and is bound to the reviewed snapshot and transaction revision; obtain a new review after changing the transaction or expiry. includeDiff defaults to false; set it to true with document for one detailed diff, using contextLines (default 3). Inspect the complete change set, then call transaction-commit with receiptId and the returned snapshot for one-use client approval. Review itself does not approve or write source files.</td>
+</tr>
+<tr>
+<td><a href="transaction-rollback.html"><code>transaction-rollback</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Discards the active transaction and all its staged revisions, restoring its in-memory baseline without changing files on disk. Use this to abandon staged work or clear a conflicted transaction; use transaction-history to undo or redo individual staged revisions. Rollback ends the transaction, so its staged history cannot be restored with redo. It cannot undo an earlier commit. If the returned state is WorkspaceOutOfDate after a conflicted rollback, call workspace-reload before continuing.</td>
+</tr>
+<tr>
+<td><a href="transaction-start.html"><code>transaction-start</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Starts an isolated staged transaction from the loaded workspace snapshot, returning transaction identity and revision zero. Use this before rename-symbol, format-document or mutating code actions, then pass the returned snapshot as expectedSnapshot to mutation requests. Only one workspace may own an active transaction in this Host; commit or roll back existing work before starting another. Reload an out-of-date workspace first. Check workspace-status and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated. Starting a transaction does not write source files. Keep each transaction focused, inspect its preview or review, and finish promptly with transaction-commit or transaction-rollback.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="workspaces">Workspaces</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Operation</th>
+<th>Area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="workspace-close.html"><code>workspace-close</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.</td>
+</tr>
+<tr>
+<td><a href="workspace-list.html"><code>workspace-list</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.</td>
+</tr>
+<tr>
+<td><a href="workspace-open.html"><code>workspace-open</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Loads an additional workspace for inspection and, when enabled by Host policy, staged mutation. Open only a fully trusted workspace: loading evaluates MSBuild project logic, evaluated source inputs including external linked or package-provided documents become queryable, and later diagnostic or Code Action operations can load and execute project analysers with the Host's permissions. Documents outside workspaceRoot remain read-only. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.</td>
+</tr>
+<tr>
+<td><a href="workspace-reload.html"><code>workspace-reload</code></a></td>
+<td>Mutation</td>
+<td>Server</td>
+<td>Recreates an out-of-date loaded workspace from its current on-disk solution or project inputs. Use this after workspace-status reports reloadRequired or a query reports WorkspaceOutOfDate; use workspace-open for a workspace not yet loaded. An active transaction blocks reload: finish it first, rolling back if conflicted. A workspace that is not out of date is rejected with WorkspaceReloadNotRequired. Preserves workspaceId and alias, but replaces the loaded solution with a new workspace epoch and snapshot; resolve document, symbol and action references again before reuse. Returns workspace identity, project/document counts and load diagnostics. Reload evaluates trusted MSBuild project logic with Host permissions; it does not apply staged source changes.</td>
+</tr>
+<tr>
+<td><a href="workspace-status.html"><code>workspace-status</code></a></td>
+<td>Query</td>
+<td>Server</td>
+<td>Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.top", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

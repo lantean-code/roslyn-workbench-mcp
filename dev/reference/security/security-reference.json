@@ -11452,7 +11452,7 @@
                               "format": "uuid"
                             },
                             "failureTime": {
-                              "description": "Time at which the tool invocation failed.",
+                              "description": "Time at which the MCP operation failed.",
                               "type": "string",
                               "format": "date-time"
                             },
@@ -11462,11 +11462,11 @@
                               "format": "date-time"
                             },
                             "toolName": {
-                              "description": "MCP tool that failed.",
+                              "description": "Published tool name, or resources/read for a resource-read failure.",
                               "type": "string"
                             },
                             "executionFamily": {
-                              "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                              "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                               "type": "string"
                             },
                             "pluginClassification": {
@@ -11474,7 +11474,7 @@
                               "type": "string"
                             },
                             "durationMilliseconds": {
-                              "description": "Tool execution duration in milliseconds before failure.",
+                              "description": "Operation duration in milliseconds before failure.",
                               "type": "integer"
                             },
                             "cancellationRequested": {

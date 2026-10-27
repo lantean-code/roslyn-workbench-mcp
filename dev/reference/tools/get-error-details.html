@@ -433,6 +433,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skill and download
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../troubleshooting.html" class="md-nav__link">
         
   
@@ -1222,34 +1250,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../agent/index.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1426,7 +1426,7 @@
 
 <h1 id="get-error-details">Get Error Details</h1>
 <p><code>get-error-details</code> · Query · Server · Error reporting</p>
-<p>Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.</p>
+<p>Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>
@@ -1662,7 +1662,7 @@
 <a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">                  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uuid"</span>
 <a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">                </span><span class="nt">"failureTime"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Time at which the tool invocation failed."</span><span class="p">,</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Time at which the MCP operation failed."</span><span class="p">,</span>
 <a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
 <a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">                  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"date-time"</span>
 <a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">                </span><span class="p">},</span>
@@ -1672,11 +1672,11 @@
 <a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">                  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"date-time"</span>
 <a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">                </span><span class="nt">"toolName"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MCP tool that failed."</span><span class="p">,</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Published tool name, or resources/read for a resource-read failure."</span><span class="p">,</span>
 <a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
 <a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">                </span><span class="nt">"executionFamily"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Execution path used by the failed tool, such as server, plugin, or Code Action."</span><span class="p">,</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Execution path used by the failed operation, such as server, plugin, Code Action or Resource."</span><span class="p">,</span>
 <a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
 <a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">                </span><span class="nt">"pluginClassification"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1684,7 +1684,7 @@
 <a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"string"</span>
 <a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">                </span><span class="nt">"durationMilliseconds"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tool execution duration in milliseconds before failure."</span><span class="p">,</span>
+<a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="w">                  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Operation duration in milliseconds before failure."</span><span class="p">,</span>
 <a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a><span class="w">                  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"integer"</span>
 <a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a><span class="w">                </span><span class="p">},</span>
 <a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a><span class="w">                </span><span class="nt">"cancellationRequested"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>

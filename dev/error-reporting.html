@@ -437,6 +437,34 @@
   
   
     <li class="md-nav__item">
+      <a href="agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skill and download
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="troubleshooting.html" class="md-nav__link">
         
   
@@ -780,6 +808,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fatal-process-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fatal process failures
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#prepare-review-and-submit" class="md-nav__link">
@@ -1358,34 +1397,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="agent/index.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1445,6 +1456,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fatal-process-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fatal process failures
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#prepare-review-and-submit" class="md-nav__link">
@@ -1550,7 +1572,11 @@
 
 
 <h1 id="error-reporting-and-privacy">Error reporting and privacy</h1>
-<p>Roslyn Workbench retains a bounded, process-local diagnostic record when an MCP tool fails unexpectedly. The ordinary tool response remains generic and correlated, while <code>get-error-details</code> lets the connected trusted agent inspect that one temporary record. Local details are marked <code>LocalDiagnostic</code> and <code>safeForExternalSubmission: false</code>; they can contain exception messages, stack information, tool identity and Workspace context and must not be copied directly to an external service.</p>
+<p>Roslyn Workbench retains a bounded, process-local diagnostic record when an MCP tool or resource read fails unexpectedly. The ordinary response remains generic and correlated, while <code>get-error-details</code> lets the connected trusted agent inspect that one temporary record. Local details are marked <code>LocalDiagnostic</code> and <code>safeForExternalSubmission: false</code>; they can contain exception messages, stack information, operation identity and Workspace context and must not be copied directly to an external service.</p>
+<p>Resource-read failures return a JSON-RPC internal error with the correlation ID in its message and diagnostic data. They use the same preparation, review and explicit submission workflow below. Their diagnostic record identifies the operation as <code>resources/read</code> in the existing <code>toolName</code> field and <code>Resource</code> in <code>executionFamily</code>; it does not retain the requested URI or attach an unrelated open Workspace. Exception messages remain bounded but unfiltered. Normal request cancellation and unknown-resource routing errors are not captured as unexpected failures.</p>
+<h2 id="fatal-process-failures">Fatal process failures</h2>
+<p>An otherwise unhandled exception reaching <code>Main</code> writes a diagnostic ID and the full exception details to stderr, then exits with code 1. This fallback works before logging or dependency injection is available and preserves disposal of a built Host. Fatal diagnostics are local and may contain private paths, identifiers or other exception content; review stderr before sharing it. The diagnostic ID identifies that stderr entry, not a retained <code>get-error-details</code> record, and no report is submitted automatically.</p>
+<p>Successful help/version requests and normal Host shutdown still return code 0. A managed <code>Main</code> handler cannot report hard process termination such as an OS kill, <code>FailFast</code> or a stack overflow.</p>
 <h2 id="prepare-review-and-submit">Prepare, review and submit</h2>
 <p>External reporting is a separate, explicit workflow:</p>
 <ol>

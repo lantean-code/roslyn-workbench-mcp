@@ -9,13 +9,13 @@
   "area": "Server",
   "category": "Error reporting",
   "operationKind": "Query",
-  "summary": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+  "summary": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
   "availability": "Built in and published in every operational mode.",
   "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-error-details.html",
   "tool": {
     "name": "get-error-details",
     "title": "Get Error Details",
-    "description": "Returns temporary local diagnostic details for an unexpected tool failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
+    "description": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -67,7 +67,7 @@
                       "format": "uuid"
                     },
                     "failureTime": {
-                      "description": "Time at which the tool invocation failed.",
+                      "description": "Time at which the MCP operation failed.",
                       "type": "string",
                       "format": "date-time"
                     },
@@ -77,11 +77,11 @@
                       "format": "date-time"
                     },
                     "toolName": {
-                      "description": "MCP tool that failed.",
+                      "description": "Published tool name, or resources/read for a resource-read failure.",
                       "type": "string"
                     },
                     "executionFamily": {
-                      "description": "Execution path used by the failed tool, such as server, plugin, or Code Action.",
+                      "description": "Execution path used by the failed operation, such as server, plugin, Code Action or Resource.",
                       "type": "string"
                     },
                     "pluginClassification": {
@@ -89,7 +89,7 @@
                       "type": "string"
                     },
                     "durationMilliseconds": {
-                      "description": "Tool execution duration in milliseconds before failure.",
+                      "description": "Operation duration in milliseconds before failure.",
                       "type": "integer"
                     },
                     "cancellationRequested": {

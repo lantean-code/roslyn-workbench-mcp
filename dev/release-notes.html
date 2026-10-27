@@ -622,6 +622,34 @@
   
   
     <li class="md-nav__item">
+      <a href="agent/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skill and download
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="troubleshooting.html" class="md-nav__link">
         
   
@@ -1411,34 +1439,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="agent/index.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1661,17 +1661,14 @@
 <p>Unpublished release-notes preview. The version below is a placeholder, not an installable release.</p>
 </blockquote>
 <h1 id="roslyn-workbench-mcp-version">Roslyn Workbench MCP — VERSION</h1>
-<p>This minor release adds command-line help that works before the MCP Host starts, improves recovery-storage startup diagnostics, clarifies MCP parameter guidance and updates the .NET 10 dependencies and development tooling. Existing MCP tools, plugin APIs and recovery formats retain their 1.x compatibility guarantees.</p>
+<p>This minor release adds a downloadable agent skill served through MCP resources, improves tool descriptions and reduces repeated input-schema content. Resource-read failures now receive correlated diagnostics, and unexpected fatal Host failures report details on standard error and exit with a non-zero status. Existing tool semantics, plugin APIs and recovery formats retain their 1.x compatibility guarantees.</p>
 <h2 id="changes-in-this-release">Changes in this release</h2>
 <ul>
-<li>Added agent-facing parameter descriptions for inspection tools, explaining search scopes, optional context and reasons, and default, null and zero result limits. Tool names, input/output shapes, defaults and execution behaviour are unchanged.</li>
-<li>Added offline tool-definition linting with separate CI summaries and artefacts for every operational mode and output-schema setting. Errors fail the check; warnings remain advisory, and no model-based scoring is used.</li>
-<li>Added <code>--help</code> and <code>-h</code> to print usage and supported options, then exit successfully before starting the MCP Host or initialising recovery storage. Help remains available when the state directory is unwritable or other startup options are invalid. (<a href="https://github.com/lantean-code/roslyn-workbench-mcp/issues/30">#30</a>)</li>
-<li>Unwritable recovery storage now produces a concise diagnostic on standard error, identifies the recovery directory and recommends configuring <code>--state-directory</code>. Startup exits with a non-zero status without duplicate stack traces or output on the MCP standard-output channel. Set <code>Logging__LogLevel__Default=Debug</code> for exception details. Recovery remains mandatory. (<a href="https://github.com/lantean-code/roslyn-workbench-mcp/issues/31">#31</a>)</li>
-<li>Updated .NET 10 maintenance dependencies and pinned the development SDK to 10.0.402. Updated Sentry and the file-system abstraction dependency; refreshed the committed Host dependency locks.</li>
-<li>Updated the test-only <code>System.Security.Cryptography.Pkcs</code> dependency to 10.0.13 to address the identified security advisory. This dependency is not part of the shipped Host dependency graph.</li>
-<li>Updated diagnostic tools, including TraceEvent 4.0.0, and refreshed test dependencies, Moq logging assertions and pinned GitHub Actions. Explicit production-assembly coverage filters keep coverage reporting consistent with the updated collector.</li>
-<li>Added Glama ownership metadata and kept the coordinated MSBuild package updates under manual control. Deferred major dependency upgrades remain outside this release.</li>
+<li>Added a Roslyn Workbench agent skill with focused references for workspace selection, inspection, diagnostics, dependency analysis and transactional changes. The server exposes the skill and its Markdown references as MCP resources; the README and documentation also provide a separate download containing the skill, references, agent metadata and application logo.</li>
+<li>Expanded descriptions across inspection, lifecycle, discovery, Code Action, flow and dependency analysis, diagnostics, symbol relationships, context, mutation, transaction and status tools. The guidance explains when to use each tool, relevant prerequisites, defaults, result bounds and recovery steps. Tool names, execution behaviour and parameter meanings are unchanged.</li>
+<li>Reduced duplication within tool input schemas by sharing repeated definitions through local <code>$defs</code> and <code>$ref</code> entries with property-derived names. Descriptions are preserved. Clients that expand references can continue to use the equivalent expanded schema.</li>
+<li>Extended local correlated error capture to unexpected MCP resource-read failures. Clients receive a generic protocol error with a diagnostic identifier and reporting guidance; retained details remain available through the existing explicit, consent-controlled error-reporting workflow. Expected cancellation and deliberate protocol errors retain their handling.</li>
+<li>Added a final exception boundary around the Host entry point. Unexpected startup, runtime or disposal failures write a diagnostic identifier and full exception details to standard error and exit with status 1, keeping the MCP standard-output channel clear. These fatal diagnostics are available in standard error rather than the process-local error store.</li>
 </ul>
 <p>The release includes the Host .NET tool and a separate plugin-authoring package, with a <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/compatibility.html">1.x compatibility policy</a> for the published surfaces.</p>
 <h2 id="what-is-included">What is included</h2>

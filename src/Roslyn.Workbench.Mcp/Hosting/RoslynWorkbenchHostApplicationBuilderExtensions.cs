@@ -47,6 +47,18 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
             .WithResources([typeof(RoslynWorkbenchSkillResources)])
             .WithRequestFilters(static requestFilters =>
             {
+                requestFilters.AddListToolsFilter(static next => async (context, cancellationToken) =>
+                {
+                    var result = await next(context, cancellationToken);
+                    CatalogueResponseCachePolicy.ApplyCatalogueHints(result, context.Params, context.Server.NegotiatedProtocolVersion);
+                    return result;
+                });
+                requestFilters.AddListResourcesFilter(static next => async (context, cancellationToken) =>
+                {
+                    var result = await next(context, cancellationToken);
+                    CatalogueResponseCachePolicy.ApplyCatalogueHints(result, context.Params, context.Server.NegotiatedProtocolVersion);
+                    return result;
+                });
                 requestFilters.AddCallToolFilter(static next => async (context, cancellationToken) =>
                 {
                     var requestServices = context.Services
@@ -61,7 +73,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
                         ?? throw new InvalidOperationException("The MCP read-resource filter requires a configured service provider.");
 
                     var filter = requestServices.GetRequiredService<UnhandledResourceExceptionFilter>();
-                    return await filter.InvokeAsync(next, context, cancellationToken);
+                    var result = await filter.InvokeAsync(next, context, cancellationToken);
+                    CatalogueResponseCachePolicy.ApplySkillHints(result, context.Params, context.Server.NegotiatedProtocolVersion);
+                    return result;
                 });
             })
             .WithStdioServerTransport();

@@ -17,3 +17,7 @@ The repository records canonical `tools/list` baselines for both supported outpu
 ## Plugin API evidence
 
 The repository maintains shipped public-API analyser baselines for both assemblies and focused plugin contract tests. Once the first stable plugin package is published, release validation also compares later packages with that 1.0 package by using .NET package/API compatibility tooling. Passing that binary check complements, but does not replace, behavioural contract tests and review of semantic changes.
+
+## Protocol response caching
+
+The Host supplies private caching hints for its startup-fixed tool and resource catalogue pages (one minute) and successful reads in the embedded `skill://roslyn-workbench/` namespace (five minutes). Continuations carrying `inputResponses` or `requestState` are immediately stale. Resource failures and workspace-dependent tool results receive no positive freshness hint. The Host applies these hints only for protocol revisions that support caching; legacy responses retain their existing shape. These hints allow supporting clients to reuse responses; they do not add a server-side response cache or guarantee reduced model context usage. Clients must rediscover catalogues when reconnecting to a Host with different configuration or plugins.

@@ -2,6 +2,10 @@
 
 The [published compatibility policy](../content/compatibility.md) owns the user-facing 1.x guarantees. This guide records the implementation and validation mechanisms.
 
+## SDK discovery and cold startup
+
+The MCP SDK 2.3.0 has a [known discovery fallback race](https://github.com/modelcontextprotocol/csharp-sdk/pull/1943): a cold Host can exceed the separate five-second discovery-probe budget, causing the client to attempt a legacy handshake after selecting the modern protocol. Acceptance and scenario clients connect to a known discovery-capable Host, so they disable the separate probe timeout with `DiscoverProbeTimeout = Timeout.InfiniteTimeSpan` while retaining their existing overall initialisation deadlines and caller cancellation. This client configuration does not fix the upstream fallback race or change external clients; legacy and modern protocol handling remain covered separately by integration tests.
+
 ## Catalogue baselines
 
 The repository records canonical `tools/list` baselines for both supported output-schema publication modes. Each baseline preserves the exact built-in catalogue published by inspection-only, transactional, approval-required, autonomous-trusted and compiler-validation configurations, including intentional mode-specific contracts such as receipt-based `transaction-commit`. Tools are ordered by name and JSON object properties are ordered recursively before comparison; array order is retained because arrays can carry contract meaning. The baselines cover each built-in tool's name, title, description, annotations, input schema and, when enabled, output schema. Externally installed plugin tools are deliberately excluded because their contracts belong to their publishers.

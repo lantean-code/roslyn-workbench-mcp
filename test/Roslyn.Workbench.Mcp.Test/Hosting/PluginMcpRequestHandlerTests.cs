@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using ModelContextProtocol;
 
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
@@ -63,8 +64,10 @@ public sealed class PluginMcpRequestHandlerTests
         exception.Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
     }
 
-    [Fact]
-    public async Task GIVEN_RegisteredPluginTool_WHEN_CallingTool_THEN_ShouldInvokePrebuiltAdapter()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GIVEN_RegisteredPluginTool_WHEN_CallingTool_THEN_ShouldInvokePrebuiltAdapter(bool rawParameters)
     {
         var expected = new CallToolResult
         {
@@ -74,6 +77,11 @@ public sealed class PluginMcpRequestHandlerTests
         {
             Name = "plugin-tool",
         });
+        if (rawParameters)
+        {
+            context.JsonRpcRequest.Params = new JsonObject { ["task"] = null };
+        }
+
         var tool = new Mock<McpServerTool>();
         tool.SetupGet(static value => value.ProtocolTool).Returns(new Tool
         {
@@ -89,16 +97,14 @@ public sealed class PluginMcpRequestHandlerTests
         tool.Verify(value => value.InvokeAsync(context, TestContext.Current.CancellationToken), Times.Once);
     }
 
-#pragma warning disable MCPEXP001
-
     [Fact]
     public async Task GIVEN_TaskAugmentedPluginCall_WHEN_CallingTool_THEN_ShouldRejectRequestWithoutInvokingAdapter()
     {
         var context = CreateContext(new CallToolRequestParams
         {
             Name = "plugin-tool",
-            Task = new McpTaskMetadata(),
         });
+        context.JsonRpcRequest.Params = new JsonObject { ["task"] = new JsonObject() };
         var tool = new Mock<McpServerTool>();
         tool.SetupGet(static value => value.ProtocolTool).Returns(new Tool
         {
@@ -116,7 +122,28 @@ public sealed class PluginMcpRequestHandlerTests
             Times.Never);
     }
 
-#pragma warning restore MCPEXP001
+    [Fact]
+    public async Task GIVEN_MissingParameters_WHEN_ListingTools_THEN_ShouldReturnFirstPage()
+    {
+        var context = CreateContext(new ListToolsRequestParams());
+        context.Params = null!;
+
+        var result = await _target.ListToolsAsync(context, TestContext.Current.CancellationToken);
+
+        result.Tools.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_MissingParameters_WHEN_CallingTool_THEN_ShouldReturnInvalidParametersProtocolError()
+    {
+        var context = CreateContext(new CallToolRequestParams { Name = "plugin-tool" });
+        context.Params = null!;
+
+        var action = async () => await _target.CallToolAsync(context, TestContext.Current.CancellationToken);
+
+        var exception = await action.Should().ThrowAsync<McpProtocolException>();
+        exception.Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
+    }
 
     [Fact]
     public async Task GIVEN_CancelledRequest_WHEN_ListingTools_THEN_ShouldObserveCancellation()

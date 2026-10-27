@@ -64,14 +64,15 @@ public sealed class UnhandledResourceExceptionFilterTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_DeliberateProtocolFailure_WHEN_Filtering_THEN_ShouldPreserveOriginalException(bool hostRejection)
+    [InlineData(true, McpErrorCode.InvalidParams)]
+    [InlineData(false, McpErrorCode.ResourceNotFound)]
+    [InlineData(false, McpErrorCode.InvalidParams)]
+    public async Task GIVEN_DeliberateProtocolFailure_WHEN_Filtering_THEN_ShouldPreserveOriginalException(bool hostRejection, McpErrorCode errorCode)
     {
         var context = CreateContext();
         McpProtocolException exception = hostRejection
             ? new RoslynWorkbenchMcpProtocolException("Invalid request", McpErrorCode.InvalidParams)
-            : new McpProtocolException("Unknown resource", McpErrorCode.ResourceNotFound);
+            : new McpProtocolException("Unknown resource", errorCode);
         McpRequestHandler<ReadResourceRequestParams, ReadResourceResult> next = (_, _) => ValueTask.FromException<ReadResourceResult>(exception);
         var action = async () => await _target.InvokeAsync(next, context, CancellationToken.None);
 
@@ -101,13 +102,23 @@ public sealed class UnhandledResourceExceptionFilterTests
     [InlineData(true, 0)]
     [InlineData(true, 1)]
     [InlineData(true, 2)]
+    [InlineData(true, 3)]
+    [InlineData(true, 4)]
     public async Task GIVEN_UnexpectedFailure_WHEN_Filtering_THEN_ShouldReturnSanitisedCorrelatedDiagnostics(bool? supportsElicitation, int failureKind)
     {
         var context = CreateContext(supportsElicitation);
+        if (failureKind is 2 or 3)
+        {
+            var resource = new Mock<McpServerResource>();
+            context.MatchedPrimitive = resource.Object;
+        }
+
         Exception exception = failureKind switch
         {
             1 => new OperationCanceledException("Sensitive failure"),
             2 => new McpProtocolException("Sensitive failure", McpErrorCode.InvalidParams),
+            3 => new McpProtocolException("Sensitive failure", McpErrorCode.ResourceNotFound),
+            4 => new McpProtocolException("Sensitive failure", McpErrorCode.InvalidRequest),
             _ => new InvalidOperationException("Sensitive failure"),
         };
         McpRequestHandler<ReadResourceRequestParams, ReadResourceResult> next = (_, _) => ValueTask.FromException<ReadResourceResult>(exception);

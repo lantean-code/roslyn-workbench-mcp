@@ -60,7 +60,8 @@ internal sealed partial class UnhandledResourceExceptionFilter
         {
             throw;
         }
-        catch (McpProtocolException exception) when (context.MatchedPrimitive is null && exception.ErrorCode == McpErrorCode.ResourceNotFound)
+        catch (McpProtocolException exception) when (context.MatchedPrimitive is null
+            && exception.ErrorCode is McpErrorCode.ResourceNotFound or McpErrorCode.InvalidParams)
         {
             throw;
         }

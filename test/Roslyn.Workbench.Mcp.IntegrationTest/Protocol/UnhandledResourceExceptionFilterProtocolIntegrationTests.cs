@@ -13,10 +13,12 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 public sealed class UnhandledResourceExceptionFilterProtocolIntegrationTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [InlineData(false, "2025-11-25", McpErrorCode.ResourceNotFound)]
+    [InlineData(true, "2025-11-25", McpErrorCode.ResourceNotFound)]
+    [InlineData(false, "2026-07-28", McpErrorCode.InvalidParams)]
+    [InlineData(true, "2026-07-28", McpErrorCode.InvalidParams)]
     [Trait("Category", "Integration")]
-    public async Task GIVEN_RegisteredResourceFails_WHEN_ReadingOverMcp_THEN_ShouldExposeCorrelatedDetailsAndAllowReportPreparation(bool protocolException)
+    public async Task GIVEN_RegisteredResourceFails_WHEN_ReadingOverMcp_THEN_ShouldExposeCorrelatedDetailsAndAllowReportPreparation(bool protocolException, string protocolVersion, McpErrorCode missingResourceCode)
     {
         var builder = Host.CreateApplicationBuilder();
         builder.AddRoslynWorkbench(["--state-directory", Path.GetTempPath(), "--error-reporting-consent", "always"]);
@@ -49,7 +51,8 @@ public sealed class UnhandledResourceExceptionFilterProtocolIntegrationTests
         cancellation.CancelAfter(TimeSpan.FromSeconds(20));
         var serverTask = server.RunAsync(cancellation.Token);
         var transport = new StreamClientTransport(clientToServer.Writer.AsStream(), serverToClient.Reader.AsStream(), NullLoggerFactory.Instance);
-        await using var client = await McpClient.CreateAsync(transport, loggerFactory: NullLoggerFactory.Instance, cancellationToken: cancellation.Token);
+        var clientOptions = new McpClientOptions { ProtocolVersion = protocolVersion };
+        await using var client = await McpClient.CreateAsync(transport, clientOptions, loggerFactory: NullLoggerFactory.Instance, cancellationToken: cancellation.Token);
 
         try
         {
@@ -83,7 +86,7 @@ public sealed class UnhandledResourceExceptionFilterProtocolIntegrationTests
 
             var unknown = async () => await client.ReadResourceAsync(new Uri("probe://unknown/resource"), cancellationToken: cancellation.Token);
             var missing = await unknown.Should().ThrowAsync<McpProtocolException>();
-            missing.Which.ErrorCode.Should().Be(McpErrorCode.ResourceNotFound);
+            missing.Which.ErrorCode.Should().Be(missingResourceCode);
             missing.Which.Data.Contains("diagnostics").Should().BeFalse();
 
             var healthy = await client.ReadResourceAsync(new Uri("skill://roslyn-workbench/SKILL.md"), cancellationToken: cancellation.Token);

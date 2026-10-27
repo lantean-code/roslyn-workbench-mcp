@@ -74,7 +74,7 @@ public sealed class SkillResourcesIntegrationTests
                 TestContext.Current.CancellationToken);
 
             var exception = await readUnknown.Should().ThrowAsync<McpProtocolException>();
-            exception.Which.ErrorCode.Should().Be(McpErrorCode.ResourceNotFound);
+            exception.Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
         }
         catch
         {

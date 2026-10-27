@@ -77,7 +77,7 @@ public sealed class PublishedHostProtocolIntegrationTests
             var completion = await target.StopAsync();
 
             completion.ProcessId.Should().NotBeNull();
-            completion.ExitCode.Should().NotBeNull();
+            completion.ExitCode.Should().Be(0);
             completion.Exception.Should().BeNull();
         }
         catch

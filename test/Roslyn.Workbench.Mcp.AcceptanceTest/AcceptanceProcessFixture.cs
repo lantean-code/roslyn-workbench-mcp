@@ -14,8 +14,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan _invocationTimeout = TimeSpan.FromSeconds(30);
 
-    // MCP C# SDK 1.4.1 waits before closing stdin, so keep its forced-cleanup fallback short; direct EOF coverage owns graceful Host shutdown evidence.
-    private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 
     private readonly object _standardErrorLock = new();
     private readonly StringBuilder _standardError = new();
@@ -474,6 +473,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             var clientOptions = new McpClientOptions
             {
                 InitializationTimeout = _initializationTimeout,
+                // This known discovery-capable Host can cold-start beyond the SDK's separate probe budget.
+                DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
             };
 
             if (_elicitationHandler is not null)

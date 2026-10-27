@@ -19,8 +19,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.13" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
-    <!-- Allow compatible 1.x SDK updates while keeping the planned 2.x migration as an explicit product change. -->
-    <PackageVersion Include="ModelContextProtocol" Version="[1.4.1,2.0.0)" />
+    <PackageVersion Include="ModelContextProtocol" Version="2.3.0" />
     <PackageVersion Include="NuGet.Versioning" Version="7.9.0" />
     <PackageVersion Include="Sentry" Version="6.12.1" />
     <PackageVersion Include="Stateless" Version="5.20.1" />

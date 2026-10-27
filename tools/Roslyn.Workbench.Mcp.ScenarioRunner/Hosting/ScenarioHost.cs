@@ -329,9 +329,15 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
         try
         {
+            var clientOptions = new McpClientOptions
+            {
+                InitializationTimeout = _initializationTimeout,
+                // Retain the overall startup deadline without racing discovery against a cold Host.
+                DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
+            };
             target._client = await McpClient.CreateAsync(
                 transport,
-                new McpClientOptions { InitializationTimeout = _initializationTimeout },
+                clientOptions,
                 NullLoggerFactory.Instance,
                 timeoutSource.Token);
 

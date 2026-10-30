@@ -24,6 +24,10 @@ These are Roslyn-generated changes, selected for your actual code and project co
 
 The provider count is not a count of individual actions: a provider can offer multiple choices, and applicability depends on the code, diagnostics and project configuration. Actions requiring interactive option dialogs, package installation or unsupported project-system changes are excluded; this is not complete Visual Studio feature parity.
 
+[![NuGet](https://img.shields.io/nuget/v/Lantean.Roslyn.Workbench.Mcp)](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp)
+[![CI](https://github.com/lantean-code/roslyn-workbench-mcp/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/lantean-code/roslyn-workbench-mcp/actions/workflows/tests.yml?query=branch%3Adevelop)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [![Roslyn Workbench MCP MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp/badges/card.svg)](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp)
 
 ## Understand the code before changing it

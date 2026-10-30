@@ -24,6 +24,8 @@ These are Roslyn-generated changes, selected for your actual code and project co
 
 The provider count is not a count of individual actions: a provider can offer multiple choices, and applicability depends on the code, diagnostics and project configuration. Actions requiring interactive option dialogs, package installation or unsupported project-system changes are excluded; this is not complete Visual Studio feature parity.
 
+[![Roslyn Workbench MCP MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp/badges/card.svg)](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp)
+
 ## Understand the code before changing it
 
 - Navigate to definitions, find references and implementations, and trace callers and callees using compiler semantics.

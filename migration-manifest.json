@@ -1,5 +1,5 @@
 {
-  "publicBase": "https://lantean-code.github.io/roslyn-workbench-mcp/",
+  "publicBase": "https://roslyn-mcp.lantean-code.dev/",
   "latestDocs": "1.2.0",
   "release": {
     "package": "Lantean.Roslyn.Workbench.Mcp",

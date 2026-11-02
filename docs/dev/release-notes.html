@@ -58,7 +58,7 @@
   
   <meta name="roslyn-workbench-version" content="dev">
 
-  <link data-rw-version-ui rel="stylesheet" href="../../assets/docs-version.css"><script data-rw-version-ui src="../../assets/docs-version.js" defer></script></head>
+  </head>
   
   
     
@@ -109,7 +109,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -121,9 +121,9 @@
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
-          <a class="md-ellipsis" href="../../index.html" style="color: inherit; text-decoration: none">
+          <span class="md-ellipsis">
             Roslyn Workbench MCP
-          </a>
+          </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
@@ -246,7 +246,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -1670,7 +1670,7 @@
 <li>Extended local correlated error capture to unexpected MCP resource-read failures. Clients receive a generic protocol error with a diagnostic identifier and reporting guidance; retained details remain available through the existing explicit, consent-controlled error-reporting workflow. Expected cancellation and deliberate protocol errors retain their handling.</li>
 <li>Added a final exception boundary around the Host entry point. Unexpected startup, runtime or disposal failures write a diagnostic identifier and full exception details to standard error and exit with status 1, keeping the MCP standard-output channel clear. These fatal diagnostics are available in standard error rather than the process-local error store.</li>
 </ul>
-<p>The release includes the Host .NET tool and a separate plugin-authoring package, with a <a href="compatibility.html">1.x compatibility policy</a> for the published surfaces.</p>
+<p>The release includes the Host .NET tool and a separate plugin-authoring package, with a <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/compatibility.html">1.x compatibility policy</a> for the published surfaces.</p>
 <h2 id="what-is-included">What is included</h2>
 <ul>
 <li>Multiple long-lived Workspace sessions and semantic inspection of symbols, references, diagnostics, code structure and change impact.</li>
@@ -1711,7 +1711,7 @@
 </tr>
 </tbody>
 </table>
-<p>The two confirmation modes require the client to advertise and permit MCP elicitation. A decline, cancellation or unavailable prompt does not commit; inspect the structured result before retrying. Compiler-impact validation is separately opt-in. See <a href="configuration.html">Configuration</a> for switches, environment variables, defaults and precedence.</p>
+<p>The two confirmation modes require the client to advertise and permit MCP elicitation. A decline, cancellation or unavailable prompt does not commit; inspect the structured result before retrying. Compiler-impact validation is separately opt-in. See <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/configuration.html">Configuration</a> for switches, environment variables, defaults and precedence.</p>
 <h2 id="install-and-connect">Install and connect</h2>
 <p>Both products are distributed through NuGet.org. Run the exact Host package without a permanent installation:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>dnx<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp@VERSION<span class="w"> </span>--yes<span class="w"> </span>--<span class="w"> </span>--version
@@ -1720,28 +1720,28 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>dotnet<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>--global<span class="w"> </span>Lantean.Roslyn.Workbench.Mcp<span class="w"> </span>--version<span class="w"> </span>VERSION
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>roslyn-workbench-mcp<span class="w"> </span>--version
 </code></pre></div>
-<p>The reported version must match the release. Configure the client to launch <code>roslyn-workbench-mcp</code>, or <code>dnx</code> with the exact package version and Host arguments after <code>--</code>. See <a href="getting-started.html">Getting started</a>. The running server's <code>tools/list</code> is authoritative for the enabled tools and their mode-specific contracts. Native installers are not provided.</p>
-<p>Plugin projects reference <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> at the matching release version. See <a href="plugin-authoring.html">Plugin authoring</a> for the package boundary, deployment and compatibility requirements.</p>
+<p>The reported version must match the release. Configure the client to launch <code>roslyn-workbench-mcp</code>, or <code>dnx</code> with the exact package version and Host arguments after <code>--</code>. See <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html">Getting started</a>. The running server's <code>tools/list</code> is authoritative for the enabled tools and their mode-specific contracts. Native installers are not provided.</p>
+<p>Plugin projects reference <code>Lantean.Roslyn.Workbench.Mcp.Plugins</code> at the matching release version. See <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugin-authoring.html">Plugin authoring</a> for the package boundary, deployment and compatibility requirements.</p>
 <h2 id="compatibility-and-upgrade">Compatibility and upgrade</h2>
 <h3 id="mcp-tools">MCP tools</h3>
 <p>The stable built-in catalogue follows an additive 1.x policy. Existing tool names and input/output meanings are preserved; clients should ignore unknown output fields and rediscover <code>tools/list</code> after a restart or upgrade. Canonical baselines cover both output-schema publication modes and each supported operational configuration.</p>
 <h3 id="errors-and-continuations">Errors and continuations</h3>
 <p>Stable error codes retain their meanings. <code>RequiredAction</code> values and continuation kinds and targets are stable contracts; human-readable messages may improve. Surface unknown codes safely and do not guess a recovery action from message prose.</p>
 <h3 id="recovery-formats">Recovery formats</h3>
-<p>Recovery format V1 remains readable throughout 1.x. Unsupported formats are reported and retained without reinterpretation or cleanup; use the same or a newer compatible Host to recover them. Finish or roll back active transactions and stop the Host before upgrading. Retain unresolved state and follow <a href="troubleshooting.html">Recovery guidance</a>.</p>
+<p>Recovery format V1 remains readable throughout 1.x. Unsupported formats are reported and retained without reinterpretation or cleanup; use the same or a newer compatible Host to recover them. Finish or roll back active transactions and stop the Host before upgrading. Retain unresolved state and follow <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html">Recovery guidance</a>.</p>
 <h3 id="plugin-apis">Plugin APIs</h3>
 <p>Plugin API V1 and the shipped Plugins and Abstractions public APIs are stable for 1.x. Plugin authors own their tool contracts and should use the supported package rather than Host or Workspace implementation assemblies.</p>
 <p>For an existing global installation, run <code>dotnet tool update --global Lantean.Roslyn.Workbench.Mcp --version VERSION</code>. For <code>dnx</code>, update the pinned package version in client configuration. The published 0.1.0 beta did not carry the stable guarantee; review the operating defaults and plugin opt-in before reconnecting. If an older installation uses the former package ID <code>Roslyn.Workbench.Mcp</code>, uninstall it before installing <code>Lantean.Roslyn.Workbench.Mcp</code>; the command name remains unchanged.</p>
 <h2 id="trust-boundary-and-known-limitations">Trust boundary and known limitations</h2>
 <p>Open only fully trusted repositories. MSBuild evaluation, project analysers and explicitly enabled plugins execute with the Host's permissions; Roslyn Workbench is not an operating-system sandbox. Workspace roots and transactional controls protect against accidental agent scope and source-change errors, not untrusted executable build inputs. Avoid concurrent writes to commit-owned paths or structural repository changes during commit application and startup recovery.</p>
 <p>Error reporting requires explicit consent. Review prepared payloads because exception messages can contain source text, paths, identifiers or secrets. Choose the option without exception messages when necessary. A declined or unavailable prompt sends no report.</p>
-<p>Platform limitations, client-dependent elicitation, trusted executable inputs and the limits of compiler-impact validation are explicit parts of the supported <a href="reference/security/index.html">security model</a>.</p>
+<p>Platform limitations, client-dependent elicitation, trusted executable inputs and the limits of compiler-impact validation are explicit parts of the supported <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/index.html">security model</a>.</p>
 <h2 id="feedback-and-contributions">Feedback and contributions</h2>
 <p>Use <a href="https://github.com/lantean-code/roslyn-workbench-mcp/issues">Issues</a> for reproducible defects, <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/q-a">Q&amp;A</a> for help and <a href="https://github.com/lantean-code/roslyn-workbench-mcp/discussions/categories/ideas">Ideas</a> for proposals. Follow the <a href="https://github.com/lantean-code/roslyn-workbench-mcp/security/policy">security policy</a> for private vulnerability reports. Include redacted reproduction details rather than private source or credentials.</p>
 <p>External pull requests are accepted. Agree the scope first and sign every contributed commit with a cryptographic signature that GitHub can verify. No separate DCO sign-off or contributor licence agreement is required; see <a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/CONTRIBUTING.md">Contributing</a>.</p>
 <h2 id="uninstall-and-release-evidence">Uninstall and release evidence</h2>
 <p>Remove the client's server entry, stop the Host and run <code>dotnet tool uninstall --global Lantean.Roslyn.Workbench.Mcp</code>. A <code>dnx</code> configuration has no global tool installation to uninstall. Keep unresolved recovery evidence until recovery is understood.</p>
-<p>Both packages are MIT-licensed. Release assets include both <code>.nupkg</code> and <code>.snupkg</code> pairs, SHA-256 checksums, source and release identity, coverage evidence, SPDX SBOMs and validated dependency-vulnerability evidence. Published package hashes receive GitHub build-provenance and SBOM attestations. See <a href="supply-chain.html">Supply-chain evidence</a> for verification and its trust boundaries.</p>
+<p>Both packages are MIT-licensed. Release assets include both <code>.nupkg</code> and <code>.snupkg</code> pairs, SHA-256 checksums, source and release identity, coverage evidence, SPDX SBOMs and validated dependency-vulnerability evidence. Published package hashes receive GitHub build-provenance and SBOM attestations. See <a href="https://lantean-code.github.io/roslyn-workbench-mcp/dev/supply-chain.html">Supply-chain evidence</a> for verification and its trust boundaries.</p>
 
 
 

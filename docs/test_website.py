@@ -94,6 +94,62 @@ class WebsiteTests(unittest.TestCase):
             self.assertIn('href="https://roslyn-mcp.lantean-code.dev/"', home)
             self.assertIn('href="docs/latest/getting-started.html"', home)
 
+    def test_historical_404_resources_and_mkdocs_config_work_at_both_public_bases(self):
+        for base in (website.DEFAULT_URL, "https://roslyn-mcp.lantean-code.dev/"):
+            with self.subTest(base=base), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = self.source(root / "source")
+                original = ('<html><head><link href="/roslyn-workbench-mcp/1.1.0/image.svg" rel="icon">'
+                            "<script src='/roslyn-workbench-mcp/1.1.0/search.js'></script>"
+                            '<script id="__config" type="application/json">'
+                            '{"base":"/roslyn-workbench-mcp/1.1.0","search":"/roslyn-workbench-mcp/1.1.0/search.js",'
+                            '"translations":{"search":"/roslyn-workbench-mcp/example"}}</script></head>'
+                            '<body><h1>Not found</h1><a href="/roslyn-workbench-mcp/1.1.0/index.html?x=1&amp;y=2#home">Home</a>'
+                            '<img src="/roslyn-workbench-mcp/1.1.0/image.svg">'
+                            '<a href="https://example.org/">External</a>'
+                            '<code>/roslyn-workbench-mcp/1.1.0/image.svg</code></body></html>')
+                (source / "1.1.0/404.html").write_text(original, encoding="utf-8")
+                (source / "1.1.0/search.js").write_bytes(b"/* original worker */")
+                output = root / "output"
+                website.compose(source, output, self.release, base)
+                page = (output / "docs/1.1.0/404.html").read_text(encoding="utf-8")
+                self.assertIn('href="image.svg"', page)
+                self.assertIn("src='search.js'", page)
+                self.assertIn('"base": "."', page)
+                self.assertIn('"search": "search.js"', page)
+                self.assertIn('"translations": {"search": "/roslyn-workbench-mcp/example"}', page)
+                self.assertIn('href="index.html?x=1&amp;y=2#home"', page)
+                self.assertIn('<code>/roslyn-workbench-mcp/1.1.0/image.svg</code>', page)
+                self.assertIn('href="https://example.org/"', page)
+                self.assertEqual(original, (source / "1.1.0/404.html").read_text(encoding="utf-8"))
+                self.assertEqual(b"/* original worker */", (output / "1.1.0/search.js").read_bytes())
+                first = (output / "docs/1.1.0/404.html").read_bytes()
+                website.relocate_not_found(output, output / "docs/1.1.0", {"dev", "1.2.0", "1.1.0"})
+                self.assertEqual(first, (output / "docs/1.1.0/404.html").read_bytes())
+
+    def test_docs_branding_links_to_product_without_changing_documentation_home(self):
+        for base in (website.DEFAULT_URL, "https://roslyn-mcp.lantean-code.dev/"):
+            with self.subTest(base=base), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = self.source(root / "source")
+                branding = ('<h1 id="details">Details</h1><a href="../index.html" class="md-header__button md-logo">Icon</a>'
+                            '<div class="md-header__topic"><span class="md-ellipsis">Product</span></div>'
+                            '<div class="md-header__topic" data-md-component="header-topic">'
+                            '<span class="md-ellipsis">Current page</span></div>'
+                            '<a href="../index.html" class="md-nav__button md-logo">Mobile icon</a>'
+                            '<a href="../index.html">Documentation Home</a>')
+                (source / "1.2.0/nested/page.html").write_text(branding, encoding="utf-8")
+                output = root / "output"
+                website.compose(source, output, self.release, base)
+                page = output / "docs/1.2.0/nested/page.html"
+                rendered = page.read_text(encoding="utf-8")
+                self.assertEqual(3, rendered.count('href="../../../index.html"'))
+                self.assertIn('<a href="../index.html">Documentation Home</a>', rendered)
+                self.assertIn('<span class="md-ellipsis">Current page</span>', rendered)
+                self.assertIn('<h1 id="home">Home</h1>', (output / "docs/1.2.0/index.html").read_text(encoding="utf-8"))
+                website.link_product_home(output, output / "docs/1.2.0")
+                self.assertEqual(rendered, page.read_text(encoding="utf-8"))
+
     def test_bad_inventory_cannot_escape_or_ambiguously_choose_latest(self):
         for entries in ([{"version": "../outside", "aliases": []}],
                         [{"version": "1.0.0", "aliases": ["../outside"]}],

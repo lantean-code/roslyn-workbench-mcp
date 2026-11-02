@@ -192,6 +192,66 @@ def relativise_navigation(root: Path, version_root: Path, versions: set[str], ba
             write_text(path, updated)
 
 
+def relocate_not_found(root: Path, version_root: Path, versions: set[str]) -> None:
+    """Repair owned root-relative URLs in archived MkDocs 404 pages only."""
+    path = version_root / "404.html"
+    if not path.is_file():
+        return
+    prefix = urlparse(DEFAULT_URL).path
+
+    def relative(value: str) -> str:
+        parsed = urlparse(value)
+        if parsed.scheme or parsed.netloc or not parsed.path.startswith(prefix):
+            return value
+        target = parsed.path[len(prefix):]
+        if target.split("/", 1)[0] in versions | {"latest"}:
+            target = "docs/" + target
+        if target.endswith("/"):
+            target += "index.html"
+        target = posixpath.relpath(target or "index.html", path.parent.relative_to(root).as_posix())
+        return target + ("?" + parsed.query if parsed.query else "") + ("#" + parsed.fragment if parsed.fragment else "")
+
+    def attribute(match: re.Match) -> str:
+        value = relative(html.unescape(match[3]))
+        return match[1] + match[2] + html.escape(value, quote=True) + match[2]
+
+    def configuration(match: re.Match) -> str:
+        config = json.loads(match[2])
+        for key in ("base", "search"):
+            if isinstance(config.get(key), str):
+                config[key] = relative(config[key])
+        return match[1] + json.dumps(config).replace("<", "\\u003c") + match[3]
+
+    source = path.read_text(encoding="utf-8")
+    updated = re.sub(r"(<[A-Za-z][^>]*?\s(?:href|src)=)([\"'])(.*?)\2", attribute, source)
+    updated = re.sub(r'(<script\b[^>]*\bid=[\"\']__config[\"\'][^>]*>)(.*?)(</script>)',
+                     configuration, updated, flags=re.S)
+    if updated != source:
+        write_text(path, updated)
+
+
+def link_product_home(root: Path, version_root: Path) -> None:
+    """Link documentation branding to the product without changing docs navigation."""
+    for path in version_root.rglob("*.html"):
+        source = path.read_text(encoding="utf-8")
+        target = posixpath.relpath("index.html", path.parent.relative_to(root).as_posix())
+
+        def logo(match: re.Match) -> str:
+            tag = match[0]
+            if not re.search(r'\bclass="[^"]*\bmd-logo\b', tag):
+                return tag
+            return re.sub(r'\bhref="[^"]*"', f'href="{target}"', tag, count=1)
+
+        updated = re.sub(r'<a\b[^>]*>', logo, source)
+        updated = re.sub(
+            r'(<div class="md-header__topic">\s*)<span class="md-ellipsis">(.*?)</span>',
+            lambda match: (match[1] + f'<a class="md-ellipsis" href="{target}" '
+                           'style="color: inherit; text-decoration: none">' + match[2] + '</a>'),
+            updated, flags=re.S)
+        if updated != source:
+            write_text(path, updated)
+
+
 def add_version_selector_assets(root: Path, version_root: Path) -> None:
     for path in version_root.rglob("*.html"):
         source = path.read_text(encoding="utf-8")
@@ -256,9 +316,11 @@ def compose(source: Path, output: Path, release: dict, base_url: str = DEFAULT_U
         destination = docs / version
         shutil.copytree(origin, destination)
         canonicalise(destination, base_url, version, unversioned=version == "dev" and development is not None)
+        relocate_not_found(output, destination, {entry["version"] for entry in inventory})
         add_version_selector_assets(output, destination)
         if version in (fresh_versions or set()) or version == "dev" and development is not None:
             relativise_navigation(output, destination, {entry["version"] for entry in inventory}, base_url)
+        link_product_home(output, destination)
         for path in sorted(origin.rglob("*")):
             if not path.is_file():
                 continue

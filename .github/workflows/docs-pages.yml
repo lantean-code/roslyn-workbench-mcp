@@ -28,6 +28,11 @@ on:
       - "global.json"
       - "nuget.config"
 
+env:
+  RW_SITE_URL: ${{ vars.RW_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/' }}
+  RW_DOCS_SITE_URL: ${{ vars.RW_DOCS_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/docs/' }}
+  RW_EDGE_VERIFICATION: ${{ vars.RW_EDGE_VERIFICATION || 'false' }}
+
 permissions:
   contents: read
 

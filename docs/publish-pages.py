@@ -139,6 +139,12 @@ def public_checks(site: Path) -> list[Path]:
 
 
 def verify_public_site(site: Path, base_url: str) -> None:
+    if os.environ.get("RW_EDGE_VERIFICATION") == "true":
+        # The public Worker transforms HTML and serves HTTP alias redirects.
+        # Byte identity remains the default for the existing GitHub-only site.
+        from verify_edge import verify_edge_site
+        verify_edge_site(site, base_url)
+        return
     expected = {path.as_posix(): (site / path).read_bytes() for path in public_checks(site)}
     pending = dict(expected)
     deadline = time.monotonic() + 300

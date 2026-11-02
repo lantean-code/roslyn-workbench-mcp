@@ -25,7 +25,10 @@ public sealed class PublishedHostProtocolIntegrationTests
             serverInstructions.Should().Contain("skill://roslyn-workbench/SKILL.md");
             serverInstructions.Should().Contain(
                 $"https://lantean-code.github.io/roslyn-workbench-mcp/{expectedVersion}/agent/");
-            serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
+            var initialGuidance = serverInstructions[..serverInstructions.IndexOf("Workflow:", StringComparison.Ordinal)];
+            initialGuidance.Should().Contain("workflow, everyday inspection, specialist inspection");
+            initialGuidance.Length.Should().BeLessThanOrEqualTo(512);
+            serverInstructions.Length.Should().BeLessThanOrEqualTo(4096);
 
             var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
             var toolNames = tools.Select(static tool => tool.Name).ToArray();

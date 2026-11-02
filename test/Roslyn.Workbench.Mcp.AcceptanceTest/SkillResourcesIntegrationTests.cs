@@ -31,7 +31,13 @@ public sealed class SkillResourcesIntegrationTests
         {
             target.ServerCapabilities.Resources.Should().NotBeNull();
             target.ServerInstructions.Should().Contain("skill://roslyn-workbench/SKILL.md");
-            target.ServerInstructions!.Length.Should().BeLessThanOrEqualTo(512);
+            var instructions = target.ServerInstructions!;
+            var initialGuidance = instructions[..instructions.IndexOf("Workflow:", StringComparison.Ordinal)];
+            initialGuidance.Should().Contain("fully trusted C# workspaces");
+            initialGuidance.Should().Contain("workflow, everyday inspection, specialist inspection");
+            initialGuidance.Should().Contain("skill://roslyn-workbench/SKILL.md");
+            initialGuidance.Length.Should().BeLessThanOrEqualTo(512);
+            instructions.Length.Should().BeLessThanOrEqualTo(4096);
             var resources = await target.ListResourcesAsync(TestContext.Current.CancellationToken);
             resources.Select(resource => resource.Uri).Should().BeEquivalentTo(
                 "skill://roslyn-workbench/SKILL.md",

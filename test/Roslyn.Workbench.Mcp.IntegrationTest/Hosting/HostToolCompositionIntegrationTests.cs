@@ -98,7 +98,10 @@ public sealed class HostToolCompositionIntegrationTests
         serverInstructions.Should().Contain(
             $"https://lantean-code.github.io/roslyn-workbench-mcp/{documentationVersion}/agent/");
 
-        serverInstructions.Length.Should().BeLessThanOrEqualTo(512);
+        var initialGuidance = serverInstructions[..serverInstructions.IndexOf("Workflow:", StringComparison.Ordinal)];
+        initialGuidance.Should().Contain("workflow, everyday inspection, specialist inspection");
+        initialGuidance.Length.Should().BeLessThanOrEqualTo(512);
+        serverInstructions.Length.Should().BeLessThanOrEqualTo(4096);
 
         startupConfiguration.Options.StateDirectory.Should().Be(Path.GetTempPath());
         serviceProvider.GetRequiredService<IWorkspaceLifecycleService>()

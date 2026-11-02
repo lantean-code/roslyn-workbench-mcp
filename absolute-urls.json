@@ -12336,472 +12336,472 @@
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent-setup.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent-setup.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/index.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/index.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/SKILL.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/SKILL.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/code-actions.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/code-actions.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/diagnostics.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/diagnostics.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/flow-analysis.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/flow-analysis.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/impact-analysis.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/impact-analysis.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/navigation.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/navigation.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/recovery.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/recovery.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/rename-format.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/rename-format.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/selectors.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/selectors.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/structure.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/structure.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/transactions.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/transactions.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/skill/references/workspaces.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/agent/skill/references/workspaces.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/building-from-source.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/building-from-source.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/code-actions.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/code-actions.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/compatibility.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/compatibility.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/compiler-validation.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/compiler-validation.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/configuration.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/configuration.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/error-reporting.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/error-reporting.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/getting-started.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/index.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/index.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugin-authoring.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/plugin-authoring.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/contracts.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/plugins/contracts.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/deployment.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/plugins/deployment.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/diagnostics.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/plugins/diagnostics.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugins/mutations.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/plugins/mutations.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/index.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/security/index.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/surface.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/security/surface.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-async.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/analyze-async.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-control-flow.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/analyze-control-flow.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-data-flow.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/analyze-data-flow.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-disposables.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/analyze-disposables.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/analyze-nullability.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/analyze-nullability.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callees.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-callees.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-callers.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-callers.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-dependency-cycles.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-dependency-cycles.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-derived-types.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-derived-types.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-duplicate-code.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-duplicate-code.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-implementations.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-implementations.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-overloads.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-overloads.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-overrides.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-overrides.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-references.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-references.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-unused-symbols.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/find-unused-symbols.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/format-document.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/format-document.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-api-surface.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-api-surface.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-change-impact.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-change-impact.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-code-context.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-code-context.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-control-flow-graph.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-control-flow-graph.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-dependency-graph.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-dependency-graph.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-diagnostics.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-diagnostics.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-options.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-document-options.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-document-outline.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-document-outline.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-error-details.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-error-details.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-operation-tree.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-operation-tree.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-partial-declarations.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-partial-declarations.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-project-details.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-project-details.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-solution-structure.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-solution-structure.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-attributes.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-symbol-attributes.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-dependencies.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-symbol-dependencies.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-dependents.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-symbol-dependents.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-info.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-symbol-info.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-symbol-members.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-symbol-members.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-test-impact.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-test-impact.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-type-hierarchy.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/get-type-hierarchy.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/go-to-definition.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/go-to-definition.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/index.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/index.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/list-code-actions.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/list-code-actions.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/prepare-error-report.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/prepare-error-report.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/prepare-fix-all.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/prepare-fix-all.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/rename-symbol.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/rename-symbol.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/resolve-symbol.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/resolve-symbol.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/search-symbols.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/search-symbols.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/server-status.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/server-status.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/stage-code-action.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/stage-code-action.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/submit-error-report.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/submit-error-report.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-commit.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-commit.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-history.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-history.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-preview.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-preview.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-review.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-review.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-rollback.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-rollback.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/transaction-start.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/transaction-start.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-close.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/workspace-close.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-list.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/workspace-list.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-open.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/workspace-open.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-reload.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/workspace-reload.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/workspace-status.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/reference/tools/workspace-status.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/release-notes.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/release-notes.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/supply-chain.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/supply-chain.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/tool-discovery.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/tool-discovery.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/transaction-recovery.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/transaction-recovery.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/troubleshooting.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/workspaces-and-transactions.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/workspaces-and-transactions.html",
     "kind": "absolute"
   },
   {
     "file": "dev/sitemap.xml",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/workspaces.html",
+    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/docs/dev/workspaces.html",
     "kind": "absolute"
   },
   {
@@ -45075,189 +45075,27 @@
   },
   {
     "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/agent-setup.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/agent/index.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/building-from-source.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/code-actions.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/compatibility.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/compiler-validation.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/configuration.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/error-reporting.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/getting-started.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/index.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/plugin-authoring.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/plugins/contracts.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/plugins/deployment.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/plugins/diagnostics.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/plugins/mutations.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/reference/security/index.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/reference/security/surface.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/reference/tools/index.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/release-notes.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/supply-chain.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/tool-discovery.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/transaction-recovery.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/troubleshooting.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/workspaces-and-transactions.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/workspaces.html",
-    "kind": "root-relative",
-    "context": "a.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/assets/generated/roslyn-workbench-mcp-icon.svg",
-    "kind": "root-relative",
-    "context": "img.src"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/assets/generated/roslyn-workbench-mcp-icon.svg",
+    "url": "/roslyn-workbench-mcp/docs/dev/assets/generated/roslyn-workbench-mcp-icon.svg",
     "kind": "root-relative",
     "context": "link.href"
   },
   {
     "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/assets/stylesheets/main.ec1eaa64.min.css",
+    "url": "/roslyn-workbench-mcp/docs/dev/assets/stylesheets/main.ec1eaa64.min.css",
     "kind": "root-relative",
     "context": "link.href"
   },
   {
     "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/assets/stylesheets/palette.ab4e12ef.min.css",
+    "url": "/roslyn-workbench-mcp/docs/dev/assets/stylesheets/palette.ab4e12ef.min.css",
     "kind": "root-relative",
     "context": "link.href"
   },
   {
     "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/stylesheets/brand.css",
+    "url": "/roslyn-workbench-mcp/docs/dev/stylesheets/brand.css",
     "kind": "root-relative",
     "context": "link.href"
-  },
-  {
-    "file": "docs/dev/404.html",
-    "url": "/roslyn-workbench-mcp/dev/assets/javascripts/bundle.d7400e89.min.js",
-    "kind": "root-relative",
-    "context": "script.src"
   },
   {
     "file": "docs/dev/agent/index.html",
@@ -46581,97 +46419,97 @@
   },
   {
     "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/PublishedErrorCodeSourceValidatorTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/ExternalErrorReportProjectorTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/SubmitErrorReportToolTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogEntryMaterializerTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogLoaderTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/ServerOwnedToolRegistrationTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Test/Transactions/TransactionReceiptStoreTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/WorkspaceCommitRecoveryServiceTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceCommitWriterTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateProcessorTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
-    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/4c53116a54aa2f3dfc7b2c13d4811cd2189e341c/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateValidatorTests.cs",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/reference/security/index.html",
     "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/SUPPORT.md",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.IntegrationTest/HostCompositionIntegrationTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.IntegrationTest/Protocol/ToolSchemaFactoryIntegrationTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/PublishedErrorCodeSourceValidatorTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.IntegrationTest/ToolReference/SecurityReferenceGeneratorIntegrationTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/ExternalErrorReportProjectorTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/ErrorReporting/SubmitErrorReportToolTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogEntryMaterializerTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/PluginLoading/PluginCatalogLoaderTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/ServerOwnedToolRegistrationTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Test/Transactions/TransactionReceiptStoreTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Lifecycle/WorkspaceLifecycleServiceTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/CommitRecoveryStoreTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Recovery/WorkspaceCommitRecoveryServiceTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionCommitServiceTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/TransactionServiceTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceCommitWriterTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateProcessorTests.cs",
+    "kind": "absolute"
+  },
+  {
+    "file": "docs/dev/reference/security/index.html",
+    "url": "https://github.com/lantean-code/roslyn-workbench-mcp/blob/fc9776f76871ac3370ca3928987ea5c3aded1335/test/Roslyn.Workbench.Mcp.Workspace.Test/Transactions/WorkspaceMutationCandidateValidatorTests.cs",
     "kind": "absolute"
   },
   {
@@ -49077,41 +48915,6 @@
   {
     "file": "docs/dev/release-notes.html",
     "url": "https://github.com/lantean-code/roslyn-workbench-mcp/security/policy",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/compatibility.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/configuration.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/getting-started.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/plugin-authoring.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/security/index.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/supply-chain.html",
-    "kind": "absolute"
-  },
-  {
-    "file": "docs/dev/release-notes.html",
-    "url": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/troubleshooting.html",
     "kind": "absolute"
   },
   {

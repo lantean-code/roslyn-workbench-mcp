@@ -315,6 +315,7 @@ def validate_internal_link(
         site_path_prefix = "/roslyn-workbench-mcp/"
         if path_text.startswith(site_path_prefix):
             path_text = path_text[len(site_path_prefix) :]
+        path_text = path_text.removeprefix("docs/")
         if deployment_version is not None:
             deployment_prefix = f"{deployment_version}/"
             if path_text == deployment_version:

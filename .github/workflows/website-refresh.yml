@@ -1,0 +1,84 @@
+name: Refresh product website
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected-release:
+        description: Optional stable Host version that must have propagated to NuGet
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      expected-release:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: vars.PAGES_DEPLOYMENT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    concurrency:
+      group: documentation-publication
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Check out website tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Configure publication identity
+        run: |
+          git config user.name "lantean-code"
+          git config user.email "lanteancode@gmail.com"
+      - name: Compose and validate complete site after NuGet propagation
+        env:
+          EXPECTED_RELEASE: ${{ inputs.expected-release }}
+        run: |
+          if [ -n "$EXPECTED_RELEASE" ]; then
+            python docs/website.py --update-branch --expected-release "$EXPECTED_RELEASE" --wait-for-release
+          else
+            python docs/website.py --update-branch
+          fi
+      - name: Prepare exact Pages revision
+        id: pages-site
+        run: |
+          site_commit=$(git rev-parse 'gh-pages^{commit}')
+          echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
+          mkdir -p "${{ runner.temp }}/pages-site"
+          git archive "$site_commit" | tar -x -C "${{ runner.temp }}/pages-site"
+          git push origin gh-pages
+      - name: Upload Pages deployment
+        id: pages-artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          include-hidden-files: true
+          name: github-pages-website-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pages-site
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Deploy and verify Pages
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_BUILD_VERSION: ${{ steps.pages-site.outputs.commit }}
+        run: >-
+          python docs/publish-pages.py
+          --artifact-id "${{ steps.pages-artifact.outputs.artifact_id }}"
+          --site "${{ runner.temp }}/pages-site"
+          --url "${{ steps.pages.outputs.base_url }}"

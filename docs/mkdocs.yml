@@ -1,6 +1,6 @@
 site_name: Roslyn Workbench MCP
 site_description: Bring Visual Studio-style C# code fixes and refactorings to your AI coding agent with Roslyn Code Actions, semantic analysis and reviewable local transactions.
-site_url: https://lantean-code.github.io/roslyn-workbench-mcp/
+site_url: !ENV [RW_DOCS_SITE_URL, "https://lantean-code.github.io/roslyn-workbench-mcp/docs/"]
 use_directory_urls: false
 repo_url: https://github.com/lantean-code/roslyn-workbench-mcp
 repo_name: lantean-code/roslyn-workbench-mcp
@@ -49,6 +49,9 @@ extra_css:
 
 plugins:
   - search
+  - mike:
+      deploy_prefix: docs
+      alias_type: redirect
 
 markdown_extensions:
   - admonition

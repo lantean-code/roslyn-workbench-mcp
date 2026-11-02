@@ -113,21 +113,26 @@ def deploy(artifact_id: int, environment: dict[str, str]) -> None:
 
 
 def public_checks(site: Path) -> list[Path]:
-    inventory = json.loads((site / "versions.json").read_text(encoding="utf-8"))
-    paths = [Path("versions.json"), Path("index.html")]
+    prefix = Path("docs") if (site / "docs/versions.json").is_file() else Path()
+    inventory = json.loads((site / prefix / "versions.json").read_text(encoding="utf-8"))
+    paths = [prefix / "versions.json", Path("index.html")]
+    if prefix != Path():
+        paths.extend(Path(name) for name in ("docs/index.html", "sitemap.xml", "styles.css", "copy.js", "assets/roslyn-wordmark-dark.svg", "assets/social-preview.png"))
     for entry in inventory:
         version = entry["version"]
         if not isinstance(version, str) or not version or version in {".", ".."} or "/" in version or "\\" in version:
             raise ValueError("Invalid version in the Pages inventory.")
 
-        paths.append(Path(version) / "index.html")
+        paths.append(prefix / version / "index.html")
+        if prefix != Path() and (site / version / "index.html").is_file():
+            paths.append(Path(version) / "index.html")
         for alias in entry["aliases"]:
             if alias != "latest":
                 raise ValueError("Invalid alias in the Pages inventory.")
-            paths.append(Path(alias) / "index.html")
+            paths.append(prefix / alias / "index.html")
 
         for name in ("compatibility.html", "reference/tools/catalog.json"):
-            path = Path(version) / name
+            path = prefix / version / name
             if (site / path).is_file():
                 paths.append(path)
     return paths

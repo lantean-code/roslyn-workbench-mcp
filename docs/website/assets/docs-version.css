@@ -1,0 +1,53 @@
+.md-version[data-rw-click] {
+  position: relative;
+}
+
+.md-version[data-rw-click] .md-version__list {
+  background: #ffffff;
+  border: 1px solid #adb6c6;
+  border-top: 3px solid #087f5b;
+  border-radius: 0.4rem;
+  box-shadow: 0 0.5rem 1.4rem #00000040, 0 0.1rem 0.3rem #00000026;
+  inset-inline-start: 0;
+  margin: 0.25rem 0 0;
+  max-height: min(20rem, 70vh);
+  min-width: 9rem;
+  opacity: 1;
+  padding: 0.3rem;
+  top: 100%;
+  transition: none;
+  animation: none;
+}
+
+[data-md-color-scheme="slate"] .md-version[data-rw-click] .md-version__list {
+  background: #292e50;
+  border-color: #637394;
+  border-top-color: #22d3ee;
+  box-shadow: 0 0.6rem 1.6rem #00000080, 0 0.1rem 0.3rem #00000059;
+}
+
+.md-version[data-rw-click] .md-version__link {
+  border-radius: 0.2rem;
+  padding: 0.15rem 0.6rem;
+}
+
+.md-version[data-rw-click] .md-version__link:hover,
+.md-version[data-rw-click] .md-version__link:focus-visible {
+  background: #087f5b;
+  color: #ffffff;
+}
+
+[data-md-color-scheme="slate"] .md-version[data-rw-click] .md-version__link:hover,
+[data-md-color-scheme="slate"] .md-version[data-rw-click] .md-version__link:focus-visible {
+  background: #22d3ee;
+  color: #101126;
+}
+
+.md-version[data-rw-click] .md-version__list[hidden] {
+  display: none;
+}
+
+.md-version[data-rw-click] .md-version__current:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}

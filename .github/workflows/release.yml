@@ -87,8 +87,8 @@ jobs:
         run: dotnet tool restore
       - name: Test release evidence utility
         run: python -m unittest tools/release/test_supply_chain_evidence.py
-      - name: Test Pages publication
-        run: python -m unittest discover -s docs -p test_publish_pages.py
+      - name: Test documentation publication
+        run: python -m unittest discover -s docs -p "test_*.py"
       - name: Calculate release identity
         run: dotnet tool run dotnet-gitversion /output json /nonormalize /nocache > "${{ runner.temp }}/gitversion.json"
       - name: Resolve release channel
@@ -533,13 +533,17 @@ jobs:
           --commit "${{ needs.prepare.outputs.commit }}"
           --full-semver "${{ needs.prepare.outputs.full-semver }}"
           --source-distance "${{ needs.prepare.outputs.source-distance }}"
+      - name: Compose and validate complete site
+        run: python docs/website.py --update-branch
       - name: Prepare Pages deployment
         id: pages-site
         run: |
-          site_commit=$(git rev-parse 'refs/remotes/origin/gh-pages^{commit}')
+          site_commit=$(git rev-parse 'gh-pages^{commit}')
           echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
           mkdir -p "${{ runner.temp }}/pages-site"
           git archive "$site_commit" | tar -x -C "${{ runner.temp }}/pages-site"
+      - name: Push complete publication tree
+        run: git push origin gh-pages
       - name: Upload Pages deployment
         id: pages-artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -724,3 +728,15 @@ jobs:
             "artifacts/release/package/Lantean.Roslyn.Workbench.Mcp.Plugins.${{ needs.prepare.outputs.version }}.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json
+
+  refresh-product-website:
+    name: Refresh website after stable NuGet publication
+    needs: [prepare, publish-nuget]
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false' && needs.prepare.outputs.destination == 'nuget-org'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/website-refresh.yml
+    with:
+      expected-release: ${{ needs.prepare.outputs.version }}

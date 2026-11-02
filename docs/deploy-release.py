@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from website import DEFAULT_URL, resolve_release, update_branch
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -88,6 +90,9 @@ def publish_rendered_documentation(
     starting_commit = try_run_output(["git", "rev-parse", "--verify", "refs/heads/gh-pages"], repository_root)
     production_release = is_production_version(source_tag)
     deploy_command = [mike, "deploy", "--config-file", str(config_file), "--branch", "gh-pages"]
+    release = resolve_release()
+    base_url = environment.get("RW_SITE_URL", DEFAULT_URL)
+    command_environment["RW_DOCS_SITE_URL"] = base_url.rstrip("/") + "/docs/"
     if production_release:
         deploy_command.extend(["--update-aliases", "--alias-type", "redirect", source_tag, "latest"])
     else:
@@ -100,6 +105,7 @@ def publish_rendered_documentation(
         # Before production exists, the root can open a beta without calling it latest.
         default_version = source_tag
     try:
+        update_branch(repository_root, release, base_url)
         subprocess.run(
             deploy_command,
             cwd=repository_root,
@@ -119,6 +125,7 @@ def publish_rendered_documentation(
                 check=True,
                 env=command_environment,
             )
+        update_branch(repository_root, release, base_url, {source_tag})
     except Exception:
         restore_publication_branch(repository_root, starting_commit)
         raise
@@ -171,7 +178,7 @@ def load_published_versions(repository_root: Path) -> set[str]:
         check=True,
     )
     inventory_text = run_output(
-        ["git", "show", "refs/remotes/origin/gh-pages:versions.json"],
+        ["git", "show", f"refs/remotes/origin/gh-pages:{published_prefix(repository_root)}versions.json"],
         repository_root,
     )
     inventory = json.loads(inventory_text)
@@ -189,10 +196,15 @@ def load_published_versions(repository_root: Path) -> set[str]:
 def validate_published_identity(repository_root: Path, source_tag: str, commit: str) -> None:
     # Read the fetched version, not generated files or a possibly stale local branch.
     catalog_text = run_output(
-        ["git", "show", f"refs/remotes/origin/gh-pages:{source_tag}/reference/tools/catalog.json"],
+        ["git", "show", f"refs/remotes/origin/gh-pages:{published_prefix(repository_root)}{source_tag}/reference/tools/catalog.json"],
         repository_root,
     )
     validate_catalog_identity(json.loads(catalog_text), source_tag, commit)
+
+
+def published_prefix(repository_root: Path) -> str:
+    exists = try_run_output(["git", "ls-tree", "--name-only", "refs/remotes/origin/gh-pages", "--", "docs/versions.json"], repository_root)
+    return "docs/" if exists else ""
 
 
 def validate_generated_identity(
@@ -220,7 +232,7 @@ def validate_catalog_identity(catalog: object, source_tag: str, commit: str) -> 
 
 
 def resolve_mike() -> str:
-    beside_python = Path(sys.executable).with_name("mike")
+    beside_python = Path(sys.executable).with_name("mike.exe" if os.name == "nt" else "mike")
     if beside_python.is_file():
         return str(beside_python)
 

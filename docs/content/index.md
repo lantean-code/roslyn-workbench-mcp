@@ -1,3 +1,8 @@
+---
+title: Roslyn Workbench MCP documentation
+description: Documentation for the local Roslyn MCP server for C# and .NET: client setup, semantic analysis, Code Actions and reviewable transactions.
+---
+
 # Roslyn Workbench MCP { .rw-visually-hidden }
 
 ![Roslyn Workbench MCP wordmark](assets/generated/roslyn-workbench-mcp-wordmark.svg)

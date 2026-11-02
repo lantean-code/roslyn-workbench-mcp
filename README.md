@@ -1,4 +1,4 @@
-# Roslyn Workbench MCP
+# Roslyn MCP Server - Roslyn Workbench MCP
 
 <!-- mcp-name: io.github.lantean-code/roslyn-workbench-mcp -->
 
@@ -8,7 +8,7 @@
 
 The C# fixes and refactorings you use in Visual Studio 2026—now available to your AI coding agent.
 
-Roslyn Workbench MCP gives your agent access to Roslyn Code Actions and compiler-aware C# analysis through a local MCP server. Your agent can discover applicable fixes and refactorings, apply the compiler-generated changes, and show you the result before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.
+Roslyn Workbench MCP is a local Roslyn MCP server for C# and .NET coding agents. It provides Roslyn Code Actions, compiler-aware analysis and reviewable source changes through the Model Context Protocol. Your agent can discover applicable fixes and refactorings, apply the compiler-generated changes, and show you the result before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.
 
 ## Put Roslyn Code Actions to work
 

@@ -7,6 +7,7 @@ on:
       - ".github/workflows/docs-pages.yml"
       - "assets/**"
       - "docs/content/**"
+      - "docs/website/**"
       - "docs/examples/**"
       - "docs/overrides/**"
       - "docs/release/release-notes.md"
@@ -54,10 +55,12 @@ jobs:
         run: python docs/build.py
       - name: Test release-note rendering
         run: python -m unittest discover -s tools/release -p test_render_release_notes.py
-      - name: Test Pages publication
-        run: python -m unittest discover -s docs -p test_publish_pages.py
+      - name: Test documentation publication
+        run: python -m unittest discover -s docs -p "test_*.py"
       - name: Test skill distribution
         run: python -m unittest discover -s docs -p test_skill.py
+      - name: Test command copying
+        run: node docs/test_website_copy.cjs
       - name: Validate documentation
         # Repository-owned public URLs are checked after their deployment below.
         run: python docs/validate.py --check-external --skip-project-links
@@ -99,12 +102,16 @@ jobs:
         run: |
           git config user.name "lantean-code"
           git config user.email "lanteancode@gmail.com"
+      - name: Prepare complete publication tree
+        run: python docs/website.py --update-branch
       - name: Publish development documentation
         env:
           MIKE_DOCS_VERSION: dev
         run: mike deploy --config-file docs/mkdocs.yml --branch gh-pages --update-aliases dev
       - name: Validate versioned development documentation
         run: python docs/validate.py --deployment-version dev
+      - name: Compose and validate complete site
+        run: python docs/website.py --update-branch --fresh-version dev
       - name: Push development documentation
         run: git push origin gh-pages
       - name: Prepare Pages deployment

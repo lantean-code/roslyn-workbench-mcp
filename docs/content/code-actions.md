@@ -1,3 +1,8 @@
+---
+title: Roslyn Code Actions for C# coding agents
+description: Discover applicable Roslyn code fixes, refactorings and Fix All operations, stage changes in a transaction and review the diff before commit.
+---
+
 # Code Action workflows
 
 ## Visual Studio-style C# fixes and refactorings for your agent

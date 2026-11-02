@@ -1,3 +1,8 @@
+---
+title: Connect your MCP client to Roslyn Workbench
+description: Run Roslyn Workbench MCP locally with .NET 10, connect a stdio MCP client and explore a trusted C# workspace in inspection-only mode.
+---
+
 # Getting started with Roslyn Workbench
 
 Connect your AI coding agent to Roslyn's C# fixes, refactorings and semantic navigation. Once connected, ask it to discover applicable Code Actions, extract a method, encapsulate a field or investigate a diagnostic using the compiler platform behind Visual Studio's C# tooling.

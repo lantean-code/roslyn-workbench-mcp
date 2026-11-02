@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lantean Code mark">
+  <defs>
+    <path id="aperture-diagonal" d="M 240 57 L 240 139 L 224 139 L 224 108.0267 L 120 171.92 L 84 152.84 Z"/>
+    <path id="aperture-side" d="M 80 174.72 L 120 195.92 L 120 316.08 L 80 337.28 Z"/>
+    <path id="code-bracket" d="M 224 194 L 224 224 L 188 256 L 224 288 L 224 318 L 152 256 Z"/>
+  </defs>
+  <g fill="#22D3EE">
+    <use href="#aperture-diagonal"/><use href="#aperture-diagonal" transform="translate(512 512) scale(-1 -1)"/>
+    <use href="#aperture-side"/><use href="#aperture-side" transform="translate(512 0) scale(-1 1)"/>
+    <use href="#code-bracket"/><use href="#code-bracket" transform="translate(512 0) scale(-1 1)"/>
+  </g>
+  <g fill="#10B981"><use href="#aperture-diagonal" transform="translate(512 0) scale(-1 1)"/><use href="#aperture-diagonal" transform="translate(0 512) scale(1 -1)"/></g>
+</svg>

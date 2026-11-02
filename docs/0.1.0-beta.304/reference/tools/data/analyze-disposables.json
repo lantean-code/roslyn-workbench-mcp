@@ -1,0 +1,714 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.304",
+  "sourceTag": "0.1.0-beta.304",
+  "commit": "91c8317a50cfbbbd10a760ceea50df154c6c9546",
+  "name": "analyze-disposables",
+  "title": "Analyze Disposables",
+  "area": "CorePlugin",
+  "category": "Code analysis",
+  "operationKind": "Query",
+  "summary": "Returns advisory findings for undisposed local disposable values.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.304/reference/tools/analyze-disposables.html",
+  "tool": {
+    "name": "analyze-disposables",
+    "title": "Analyze Disposables",
+    "description": "Returns advisory findings for undisposed local disposable values.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "description": "The optional search scope.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "Solution",
+                "Project",
+                "Document",
+                "Projects"
+              ],
+              "default": "Solution"
+            },
+            "project": {
+              "description": "Used only when kind is Project.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "targetFramework": {
+                  "type": "string"
+                }
+              }
+            },
+            "document": {
+              "description": "Used only when kind is Document.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "project": {
+                  "description": "Disambiguates documents with matching paths or IDs.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "description": "Workspace-relative path.",
+                      "type": "string"
+                    },
+                    "targetFramework": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "path": {
+                  "description": "Workspace-relative path.",
+                  "type": "string"
+                },
+                "documentId": {
+                  "description": "Workspace-local document ID.",
+                  "type": "string"
+                }
+              }
+            },
+            "projects": {
+              "description": "Used only when kind is Projects.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "description": "Provide projectId, name, path, targetFramework, or any combination.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "description": "Workspace-relative path.",
+                    "type": "string"
+                  },
+                  "targetFramework": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "findingsLimit": {
+          "description": "Maximum number of results to return.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2147483647,
+          "default": 50
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data",
+            "snapshot"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "findings": {
+                  "description": "The returned findings.",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "Items returned in this page.",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "description": "The finding kind.",
+                            "type": "string"
+                          },
+                          "symbol": {
+                            "description": "The associated local symbol.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "displayName": {
+                                "description": "The display name of the symbol.",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "description": "The symbol kind.",
+                                "type": "string"
+                              },
+                              "documentationCommentId": {
+                                "description": "The documentation comment identifier, when available.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "location": {
+                                "description": "The optional source location of the symbol.",
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "document": {
+                                    "description": "The resolved document.",
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "documentId": {
+                                        "description": "The document identifier.",
+                                        "type": "string"
+                                      },
+                                      "path": {
+                                        "description": "The normalized document path.",
+                                        "type": "string"
+                                      },
+                                      "projectId": {
+                                        "description": "The owning project identifier.",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "documentId",
+                                      "path",
+                                      "projectId"
+                                    ]
+                                  },
+                                  "span": {
+                                    "description": "The resolved text span.",
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "start": {
+                                        "description": "Zero-based UTF-16 offset.",
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      },
+                                      "length": {
+                                        "description": "UTF-16 code-unit length.",
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      }
+                                    }
+                                  },
+                                  "line": {
+                                    "description": "The one-based line number.",
+                                    "type": "integer"
+                                  },
+                                  "column": {
+                                    "description": "The one-based column number.",
+                                    "type": "integer"
+                                  },
+                                  "snapshot": {
+                                    "description": "The exact immutable workspace snapshot associated with this location.",
+                                    "type": "object",
+                                    "properties": {
+                                      "workspaceId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                      },
+                                      "workspaceEpoch": {
+                                        "type": "integer"
+                                      },
+                                      "snapshotId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                      },
+                                      "transactionRevision": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "workspaceId",
+                                      "workspaceEpoch",
+                                      "snapshotId",
+                                      "transactionRevision"
+                                    ]
+                                  },
+                                  "selector": {
+                                    "description": "The canonical selector that can resolve this source location again.",
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "span": {
+                                        "type": "object",
+                                        "properties": {
+                                          "document": {
+                                            "description": "Provide exactly one of path or documentId.",
+                                            "type": "object",
+                                            "properties": {
+                                              "project": {
+                                                "description": "Disambiguates documents with matching paths or IDs.",
+                                                "type": [
+                                                  "object",
+                                                  "null"
+                                                ],
+                                                "properties": {
+                                                  "projectId": {
+                                                    "type": [
+                                                      "string",
+                                                      "null"
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": [
+                                                      "string",
+                                                      "null"
+                                                    ]
+                                                  },
+                                                  "path": {
+                                                    "description": "Workspace-relative path.",
+                                                    "type": [
+                                                      "string",
+                                                      "null"
+                                                    ]
+                                                  },
+                                                  "targetFramework": {
+                                                    "type": [
+                                                      "string",
+                                                      "null"
+                                                    ]
+                                                  }
+                                                }
+                                              },
+                                              "path": {
+                                                "description": "Workspace-relative path.",
+                                                "type": [
+                                                  "string",
+                                                  "null"
+                                                ]
+                                              },
+                                              "documentId": {
+                                                "description": "Workspace-local document ID.",
+                                                "type": [
+                                                  "string",
+                                                  "null"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          "range": {
+                                            "description": "Zero-based UTF-16 range.",
+                                            "type": "object",
+                                            "properties": {
+                                              "start": {
+                                                "description": "Zero-based UTF-16 offset.",
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 2147483647
+                                              },
+                                              "length": {
+                                                "description": "UTF-16 code-unit length.",
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 2147483647
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "required": [
+                                          "document",
+                                          "range"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "span"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "snapshot"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "displayName",
+                              "kind"
+                            ]
+                          },
+                          "type": {
+                            "description": "The disposable type.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "displayName": {
+                                "description": "The display name.",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "description": "The Roslyn type kind.",
+                                "type": "string"
+                              },
+                              "nullableAnnotation": {
+                                "description": "The nullable annotation.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "documentationCommentId": {
+                                "description": "The documentation-comment identifier, when available.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "displayName",
+                              "kind"
+                            ]
+                          },
+                          "location": {
+                            "description": "The finding location.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "document": {
+                                "description": "The resolved document.",
+                                "$ref": "#/properties/request/properties/value/properties/findings/properties/items/items/properties/symbol/properties/location/properties/document"
+                              },
+                              "span": {
+                                "description": "The resolved text span.",
+                                "$ref": "#/properties/request/properties/value/properties/findings/properties/items/items/properties/symbol/properties/location/properties/span"
+                              },
+                              "line": {
+                                "description": "The one-based line number.",
+                                "type": "integer"
+                              },
+                              "column": {
+                                "description": "The one-based column number.",
+                                "type": "integer"
+                              },
+                              "snapshot": {
+                                "description": "The exact immutable workspace snapshot associated with this location.",
+                                "$ref": "#/properties/request/properties/value/properties/findings/properties/items/items/properties/symbol/properties/location/properties/snapshot"
+                              },
+                              "selector": {
+                                "description": "The canonical selector that can resolve this source location again.",
+                                "$ref": "#/properties/request/properties/value/properties/findings/properties/items/items/properties/symbol/properties/location/properties/selector"
+                              }
+                            },
+                            "required": [
+                              "snapshot"
+                            ]
+                          },
+                          "message": {
+                            "description": "The finding message.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "message"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "description": "Whether additional items were available beyond this page.",
+                      "type": "boolean"
+                    },
+                    "totalCount": {
+                      "description": "Complete result count, when available without additional expensive work.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Analyze Disposables",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

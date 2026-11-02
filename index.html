@@ -1,18 +1,94 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Redirecting</title>
-  <noscript>
-    <meta http-equiv="refresh" content="1; url=latest/" />
-  </noscript>
-  <script>
-    window.location.replace(
-      "latest/" + window.location.search + window.location.hash
-    );
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101126">
+  <meta name="description" content="Roslyn Workbench MCP is a local Roslyn MCP server for C# and .NET coding agents. Discover compiler-aware code fixes, refactorings and semantic analysis, then review changes before commit.">
+  <title>Roslyn MCP Server for C# &amp; .NET | Roslyn Workbench MCP</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Roslyn Workbench MCP — Real Roslyn for your coding agent">
+  <meta property="og:description" content="A local Roslyn MCP server for compiler-aware C# analysis, Code Actions and reviewable refactoring.">
+  <meta property="og:url" content="https://lantean-code.github.io/roslyn-workbench-mcp/">
+  <meta property="og:image" content="https://lantean-code.github.io/roslyn-workbench-mcp/assets/social-preview.png">
+  <meta property="og:image:alt" content="Roslyn Workbench MCP — local Roslyn tools for C# and .NET coding agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://lantean-code.github.io/roslyn-workbench-mcp/assets/social-preview.png">
+  <link rel="canonical" href="https://lantean-code.github.io/roslyn-workbench-mcp/">
+  <link rel="icon" href="assets/roslyn-icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;450;500;550;600;650;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Roslyn Workbench MCP","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, Linux, macOS (best effort)","description":"Local Roslyn MCP server for compiler-aware C# code analysis, Code Actions and reviewable refactoring.","isAccessibleForFree":true,"license":"https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/LICENSE","url":"https://lantean-code.github.io/roslyn-workbench-mcp/","codeRepository":"https://github.com/lantean-code/roslyn-workbench-mcp","author":{"@type":"Organization","name":"Lantean Code"}}</script>
 </head>
 <body>
-  Redirecting to <a href="latest/">latest/</a>...
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="https://lantean-code.github.io/" aria-label="Lantean Code home"><img src="assets/lantean-mark.svg" width="40" height="40" alt=""><span>Lantean <span class="aqua">Code</span></span></a>
+      <nav aria-label="Primary navigation">
+        <a href="#capabilities">Capabilities</a>
+        <a href="#workflow">How it works</a>
+        <a href="#get-started">Get started</a>
+        <a class="nav-docs" href="docs/latest/getting-started.html">Documentation <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <div class="hero-brand" aria-label="Roslyn Workbench MCP">
+          <img class="hero-wordmark" src="assets/roslyn-wordmark-dark.svg" width="1200" height="330" alt="Roslyn Workbench MCP">
+          <span class="hero-brand-byline">A LANTEAN CODE PROJECT</span>
+        </div>
+        <p class="eyebrow"><span class="signal"></span> LOCAL ROSLYN MCP SERVER <span class="eyebrow-dot">/</span> C# &amp; .NET</p>
+        <h1 id="hero-title"><span class="sr-only">Roslyn Workbench MCP — </span>Real Roslyn.<br><span class="aqua">In your agent’s hands.</span></h1>
+        <p class="intro">Give your AI coding agent the same compiler-powered intelligence behind Visual Studio. Discover real C# fixes and refactorings, inspect the changes, and decide when they’re written.</p>
+        <div class="actions">
+          <a class="button primary" href="#get-started">Start using Roslyn Workbench <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="https://github.com/lantean-code/roslyn-workbench-mcp">View on GitHub <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-footnote"><span class="check">✓</span> Open source / MIT <span class="separator">·</span><span class="check">✓</span> Runs locally <span class="separator">·</span><span class="check">✓</span> Inspection-only by default</p>
+      </div>
+      <div class="hero-visual" aria-label="Illustrative Roslyn symbol rename and transaction preview">
+        <div class="orb orb-1"></div><div class="orb orb-2"></div>
+        <div class="workbench-window">
+          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><div class="window-title">ROSLYN WORKBENCH <span class="window-slash">/</span> SYMBOL RENAME</div><span class="window-status"><span></span> LOCAL</span></div>
+          <div class="window-body">
+            <div class="file-heading"><span class="file-icon">C#</span><span>OrderService.cs</span><span class="file-path">/ Services</span></div>
+            <div class="code-area" aria-hidden="true"><div><span class="ln">01</span><span class="syntax-purple">public</span> <span class="syntax-blue">decimal</span> GetTotal(Order order)</div><div><span class="ln">02</span>{</div><div><span class="ln">03</span>  <span class="syntax-purple">return</span> order.Items.<span class="syntax-blue">Sum</span>(item =&gt;</div><div><span class="ln">04</span>    item.Price * item.Quantity);</div><div><span class="ln">05</span>}</div></div>
+            <div class="action-pill"><span class="pill-symbol">✧</span><div><small>ROSLYN SEMANTIC REFACTORING</small><strong>Rename GetTotal → CalculateTotal</strong></div><span class="action-arrow">↗</span></div>
+            <div class="preview-heading"><span><span class="preview-marker">●</span> TRANSACTION PREVIEW</span><span class="preview-changes">2 files changed</span></div>
+            <div class="diff" aria-hidden="true"><div class="diff-file">OrderService.cs</div><div class="removed"><span>−</span> public decimal GetTotal(Order order)</div><div class="added"><span>+</span> public decimal CalculateTotal(Order order)</div><div class="diff-file">Checkout.cs</div><div class="removed"><span>−</span> var total = service.GetTotal(order);</div><div class="added"><span>+</span> var total = service.CalculateTotal(order);</div></div>
+            <div class="review-bar"><span class="review-icon">✓</span> Changes staged for review <span class="review-state">NOT YET WRITTEN</span></div>
+          </div>
+        </div>
+        <div class="visual-note">ILLUSTRATIVE WORKFLOW · NOT A LIVE SCREENSHOT</div>
+      </div>
+    </section>
+    <div class="wrap capability-strip" aria-label="Key product characteristics"><span><b>230+</b> eligible Roslyn providers</span><span><b>57</b> built-in tool definitions</span><span><b>Local</b> MCP over stdio</span><span><b>Explicit</b> transaction commits</span></div>
+    <section class="section wrap intro-section" aria-labelledby="why-title"><div><p class="eyebrow">01 / WHY ROSLYN WORKBENCH</p><h2 id="why-title">Your agent can edit text.<br><span class="aqua">Roslyn understands code.</span></h2></div><div class="section-copy"><p>Text-based edits can look right without understanding symbols, overloads or compiler diagnostics. Roslyn Workbench connects your agent to the .NET Compiler Platform so it can inspect the real structure of a C# solution and discover applicable Code Actions.</p><a class="text-link" href="docs/latest/code-actions.html">Explore Code Actions <span aria-hidden="true">↗</span></a></div></section>
+    <section id="capabilities" class="section wrap capabilities" aria-labelledby="capabilities-title">
+      <div class="section-heading"><div><p class="eyebrow">02 / CAPABILITIES</p><h2 id="capabilities-title">From understanding<br>to safe changes.</h2></div><p>Built for C# workflows where compiler semantics matter and source changes deserve review.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card accent-feature"><div class="feature-top"><span class="feature-label">01 / CODE ACTIONS</span><span class="feature-glyph">{ }</span></div><h3>Real fixes. Real refactorings.</h3><p>Discover context-appropriate compiler and analyzer fixes, supported refactorings, and Fix All operations through Roslyn's own providers.</p><div class="feature-bottom">ROSLYN CODE ACTIONS <span aria-hidden="true">↗</span></div></article>
+        <article class="feature-card"><div class="feature-top"><span class="feature-label">02 / SEMANTIC NAVIGATION</span><span class="feature-glyph">◎</span></div><h3>See the whole codebase.</h3><p>Locate symbol definitions, references, implementations, type hierarchies, callers and callees with compiler-aware precision.</p><div class="feature-bottom">SYMBOL INTELLIGENCE <span aria-hidden="true">↗</span></div></article>
+        <article class="feature-card"><div class="feature-top"><span class="feature-label">03 / CODE ANALYSIS</span><span class="feature-glyph">⌁</span></div><h3>Understand before editing.</h3><p>Inspect diagnostics, nullability, async behaviour, control flow, public APIs and potential change impact without loading entire solutions into context.</p><div class="feature-bottom">COMPILER-AWARE ANALYSIS <span aria-hidden="true">↗</span></div></article>
+        <article class="feature-card"><div class="feature-top"><span class="feature-label">04 / TRANSACTIONS</span><span class="feature-glyph">↺</span></div><h3>Review the change. Then commit.</h3><p>Stage source changes, inspect a diff, detect conflicts and roll back. Nothing writes source files until an explicit transaction commit.</p><div class="feature-bottom">REVIEWABLE SOURCE CHANGES <span aria-hidden="true">↗</span></div></article>
+      </div>
+    </section>
+    <section id="workflow" class="workflow-band"><div class="wrap section workflow-inner"><div class="section-heading"><div><p class="eyebrow">03 / THE WORKFLOW</p><h2>Compiler-aware.<br><span class="aqua">Human-reviewable.</span></h2></div><p>Your agent can discover and prepare changes without immediately changing your source files.</p></div><div class="steps"><div class="step"><div class="step-number">01</div><h3>Resolve</h3><p>Resolve a symbol for renaming or discover applicable Code Actions.</p></div><div class="step"><div class="step-number">02</div><h3>Stage</h3><p>Stage the selected operation inside a transaction.</p></div><div class="step"><div class="step-number">03</div><h3>Review</h3><p>Inspect the resulting diff and decide what happens next.</p></div><div class="step"><div class="step-number">04</div><h3>Commit or roll back</h3><p>Write the reviewed changes explicitly, or discard them.</p></div></div></div></section>
+    <section id="get-started" class="section wrap quickstart" aria-labelledby="start-title"><div class="quickstart-copy"><p class="eyebrow">04 / GET STARTED</p><h2 id="start-title">Your next C# session,<br><span class="aqua">a little smarter.</span></h2><p>Runs locally with a supported .NET 10 SDK. Connect any MCP client that supports local stdio servers and start in inspection-only mode.</p><div class="actions"><a class="button primary" href="docs/latest/getting-started.html">Read installation guide <span aria-hidden="true">↗</span></a><a class="text-link" href="https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp">View on NuGet <span aria-hidden="true">↗</span></a></div></div><div class="install-panel"><div class="install-head"><span class="install-green"></span> .NET TOOL <span class="install-head-right">PIN A RELEASE</span></div><p>Run the latest published stable version:</p><div class="install-command"><code>dnx Lantean.Roslyn.Workbench.Mcp@1.2.0 --yes -- --version</code><button id="copy-install" type="button" aria-label="Copy version-check command">Copy</button></div><p class="install-note">Latest stable release: <strong>1.2.0</strong>. The command pins that published version; for permanent installation and client configuration, see the getting started guide.</p><p id="copy-status" role="status" aria-live="polite"></p><div class="install-divider"></div><div class="install-properties"><span>▸ Windows &amp; Linux x64</span><span>▸ .NET 10 SDK</span><span>▸ MIT licence</span></div></div></section>
+    <section class="closing-band"><div class="wrap closing-inner"><div><p class="eyebrow">OPEN SOURCE / BUILT BY LANTEAN CODE</p><h2>Put Roslyn Workbench<br><span class="aqua">to work.</span></h2><p>Real C# semantics, reviewable changes, and your development workflow still in your control.</p></div><a class="button primary" href="https://github.com/lantean-code/roslyn-workbench-mcp">Explore the repository <span aria-hidden="true">↗</span></a></div></section>
+  </main>
+  <footer class="wrap footer">
+    <div class="footer-brand">
+      <a href="#main" aria-label="Roslyn Workbench MCP — back to top"><img src="assets/roslyn-wordmark-dark.svg" width="285" height="78" alt="Roslyn Workbench MCP"></a>
+      <span>An open-source project from <a href="https://lantean-code.github.io/">Lantean Code</a></span>
+    </div>
+    <div class="footer-links"><a href="https://github.com/lantean-code/roslyn-workbench-mcp">GitHub ↗</a><a href="docs/latest/">Documentation ↗</a><a href="https://github.com/lantean-code/roslyn-workbench-mcp/blob/develop/LICENSE">MIT licence ↗</a></div>
+  </footer>
+  <script src="copy.js" defer></script>
 </body>
 </html>

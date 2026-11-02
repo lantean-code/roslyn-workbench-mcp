@@ -1,0 +1,713 @@
+{
+  "$schema": "../schemas/tool-detail.schema.json",
+  "formatVersion": "roslyn-workbench-tool-reference/v1",
+  "productVersion": "0.1.0-beta.304",
+  "sourceTag": "0.1.0-beta.304",
+  "commit": "91c8317a50cfbbbd10a760ceea50df154c6c9546",
+  "name": "workspace-status",
+  "title": "Workspace Status",
+  "area": "Server",
+  "category": "Workspaces",
+  "operationKind": "Query",
+  "summary": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+  "availability": "Built in and published by default.",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/0.1.0-beta.304/reference/tools/workspace-status.html",
+  "tool": {
+    "name": "workspace-status",
+    "title": "Workspace Status",
+    "description": "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "description": "Amount of workspace status detail to return.",
+          "type": "string",
+          "enum": [
+            "Minimal",
+            "Standard",
+            "Full"
+          ]
+        },
+        "workspace": {
+          "description": "Provide workspaceId, alias, path, or any combination.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "alias": {
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute workspace path.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "data"
+          ],
+          "properties": {
+            "ok": {
+              "const": true,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "state": {
+                  "description": "The workspace lifecycle state.",
+                  "type": "string",
+                  "enum": [
+                    "Ready",
+                    "TransactionActive",
+                    "TransactionConflicted",
+                    "WorkspaceOutOfDate"
+                  ]
+                },
+                "workspace": {
+                  "description": "The loaded workspace identity, when present.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "workspaceId": {
+                      "description": "The stable server-generated workspace identifier.",
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "alias": {
+                      "description": "The optional caller-friendly alias.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "workspaceEpoch": {
+                      "description": "The workspace epoch for the loaded baseline.",
+                      "type": "integer"
+                    },
+                    "loadedPath": {
+                      "description": "The absolute path of the loaded workspace.",
+                      "type": "string"
+                    },
+                    "workspaceRoot": {
+                      "description": "The absolute repository or workspace root used for coordination and transaction boundaries.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "loadedPath",
+                    "workspaceRoot"
+                  ]
+                },
+                "projectCount": {
+                  "description": "The loaded project count, when present.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "documentCount": {
+                  "description": "The loaded document count, when present.",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "loadDiagnostics": {
+                  "description": "Project load and advisory workspace-status diagnostics.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "description": "The diagnostic identifier.",
+                        "type": "string"
+                      },
+                      "severity": {
+                        "description": "The diagnostic severity.",
+                        "type": "string",
+                        "enum": [
+                          "Hidden",
+                          "Info",
+                          "Warning",
+                          "Error"
+                        ]
+                      },
+                      "message": {
+                        "description": "The diagnostic message.",
+                        "type": "string"
+                      },
+                      "location": {
+                        "description": "The optional source location of the diagnostic.",
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "document": {
+                            "description": "The resolved document.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "documentId": {
+                                "description": "The document identifier.",
+                                "type": "string"
+                              },
+                              "path": {
+                                "description": "The normalized document path.",
+                                "type": "string"
+                              },
+                              "projectId": {
+                                "description": "The owning project identifier.",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "documentId",
+                              "path",
+                              "projectId"
+                            ]
+                          },
+                          "span": {
+                            "description": "The resolved text span.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "start": {
+                                "description": "Zero-based UTF-16 offset.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647
+                              },
+                              "length": {
+                                "description": "UTF-16 code-unit length.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647
+                              }
+                            }
+                          },
+                          "line": {
+                            "description": "The one-based line number.",
+                            "type": "integer"
+                          },
+                          "column": {
+                            "description": "The one-based column number.",
+                            "type": "integer"
+                          },
+                          "snapshot": {
+                            "description": "The exact immutable workspace snapshot associated with this location.",
+                            "type": "object",
+                            "properties": {
+                              "workspaceId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "workspaceEpoch": {
+                                "type": "integer"
+                              },
+                              "snapshotId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "transactionRevision": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "workspaceId",
+                              "workspaceEpoch",
+                              "snapshotId",
+                              "transactionRevision"
+                            ]
+                          },
+                          "selector": {
+                            "description": "The canonical selector that can resolve this source location again.",
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "span": {
+                                "type": "object",
+                                "properties": {
+                                  "document": {
+                                    "description": "Provide exactly one of path or documentId.",
+                                    "type": "object",
+                                    "properties": {
+                                      "project": {
+                                        "description": "Disambiguates documents with matching paths or IDs.",
+                                        "type": [
+                                          "object",
+                                          "null"
+                                        ],
+                                        "properties": {
+                                          "projectId": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "name": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "path": {
+                                            "description": "Workspace-relative path.",
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "targetFramework": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "path": {
+                                        "description": "Workspace-relative path.",
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "documentId": {
+                                        "description": "Workspace-local document ID.",
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "range": {
+                                    "description": "Zero-based UTF-16 range.",
+                                    "type": "object",
+                                    "properties": {
+                                      "start": {
+                                        "description": "Zero-based UTF-16 offset.",
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      },
+                                      "length": {
+                                        "description": "UTF-16 code-unit length.",
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "document",
+                                  "range"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "span"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "snapshot"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "message"
+                    ]
+                  }
+                },
+                "transaction": {
+                  "description": "The active transaction info, when present.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "description": "Current staged transaction revision.",
+                      "type": "integer"
+                    },
+                    "revisionCount": {
+                      "description": "Number of revisions retained in transaction history.",
+                      "type": "integer"
+                    },
+                    "maxRevisions": {
+                      "description": "Maximum number of revisions the transaction can retain.",
+                      "type": "integer"
+                    },
+                    "remainingRevisions": {
+                      "description": "Number of additional revisions that can be staged.",
+                      "type": "integer"
+                    },
+                    "canMutate": {
+                      "description": "Whether mutation tools may stage another change.",
+                      "type": "boolean"
+                    },
+                    "canUndo": {
+                      "description": "Whether transaction history can move to the preceding revision.",
+                      "type": "boolean"
+                    },
+                    "canRedo": {
+                      "description": "Whether transaction history can move to the following revision.",
+                      "type": "boolean"
+                    },
+                    "canCommit": {
+                      "description": "Whether the staged transaction can be committed to disk.",
+                      "type": "boolean"
+                    },
+                    "canRollback": {
+                      "description": "Whether the complete staged transaction can be discarded.",
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "reloadRequired": {
+                  "description": "Whether the workspace requires reload.",
+                  "type": "boolean"
+                },
+                "externalChange": {
+                  "description": "The first detected external Workspace input change, when present.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "detectionSource": {
+                      "description": "The mechanism that detected the change.",
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "description": "The stable error classification when change detection itself failed.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "kind": {
+                      "description": "The detected change kind.",
+                      "type": "string"
+                    },
+                    "path": {
+                      "description": "The affected path, when the detection mechanism identified one.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "previousPath": {
+                      "description": "The previous path for a rename, when present.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "detectionSource",
+                    "kind"
+                  ]
+                },
+                "instances": {
+                  "description": "Other live Roslyn Workbench MCP instances using this workspace.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "instanceId": {
+                        "description": "Identifier of the other Roslyn Workbench server instance.",
+                        "type": "string"
+                      },
+                      "loadedPath": {
+                        "description": "Absolute solution or project path loaded by the other instance.",
+                        "type": "string"
+                      },
+                      "workspaceRoot": {
+                        "description": "Absolute coordination and transaction root used by the other instance.",
+                        "type": "string"
+                      },
+                      "workspaceState": {
+                        "description": "Workspace lifecycle state reported by the other instance.",
+                        "type": "string",
+                        "enum": [
+                          "Ready",
+                          "TransactionActive",
+                          "TransactionConflicted",
+                          "WorkspaceOutOfDate"
+                        ]
+                      },
+                      "transactionRevision": {
+                        "description": "Staged transaction revision in the other instance, when a transaction is active.",
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "commitId": {
+                        "description": "Durable commit identifier reported by the other instance, when a commit is active.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "commitPhase": {
+                        "description": "Advisory durable commit phase reported by the other instance, when a commit is active.",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "instanceId",
+                      "loadedPath",
+                      "workspaceRoot"
+                    ]
+                  }
+                },
+                "errorReportingConsent": {
+                  "description": "The process-local error-reporting approval applying to this Workspace and epoch.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "description": "Tool-specific result payload."
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "workspaceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "workspaceEpoch": {
+                  "type": "integer"
+                },
+                "snapshotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "transactionRevision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "workspaceId",
+                "workspaceEpoch",
+                "snapshotId",
+                "transactionRevision"
+              ],
+              "description": "Exact immutable workspace snapshot associated with the result, when available."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "error"
+          ],
+          "properties": {
+            "ok": {
+              "const": false,
+              "description": "Whether the tool invocation succeeded."
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "description": "Stable machine-readable error code.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable explanation of the failure.",
+                  "type": "string"
+                },
+                "correlationId": {
+                  "description": "Correlation identifier for matching the failure to server-side diagnostics, when available.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "description": "Structured error details when the invocation failed."
+            },
+            "continuation": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tool",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "CallTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "Tool to call before continuing the original request.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "tools",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ChooseTool",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    },
+                    "tools": {
+                      "type": "array",
+                      "description": "Allowed tool choices from which the agent must select one.",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "description": "Name of a tool the agent may choose.",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "RetryRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ReviseRequest",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "ResolveExternally",
+                      "description": "Action required before the original request can continue."
+                    },
+                    "instruction": {
+                      "type": "string",
+                      "description": "Agent-facing instruction explaining how to continue.",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ],
+              "description": "Action the agent should take before retrying or continuing."
+            }
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "title": "Workspace Status",
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  "examples": []
+}

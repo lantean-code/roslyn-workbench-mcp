@@ -252,6 +252,31 @@ def link_product_home(root: Path, version_root: Path) -> None:
             write_text(path, updated)
 
 
+def add_latest_docs_notices(docs: Path, inventory: list[dict], latest: str | None) -> None:
+    """Refresh archive notices from Mike's latest alias on every publication."""
+    for entry in inventory:
+        version = entry["version"]
+        version_root = docs / version
+        for path in version_root.rglob("*.html"):
+            source = path.read_text(encoding="utf-8")
+            updated = re.sub(r'<aside\b[^>]*\bdata-rw-outdated-docs[^>]*>.*?</aside>', '', source, flags=re.S)
+            updated = updated.replace(' data-rw-latest-docs=""', '')
+            if version == latest:
+                updated = re.sub(r'<body\b', '<body data-rw-latest-docs=""', updated, count=1)
+            if latest is not None and version not in {latest, "dev"} and 'http-equiv="refresh"' not in updated:
+                target = docs / latest / path.relative_to(version_root)
+                if path.name == "404.html" or not target.is_file():
+                    target = docs / latest / "index.html"
+                relative = posixpath.relpath(target.as_posix(), path.parent.as_posix())
+                notice = (f'<aside class="rw-docs-outdated" data-rw-outdated-docs="{html.escape(version, quote=True)}" aria-label="Documentation version notice">'
+                          f'You are viewing documentation for {html.escape(version)}, which is not the latest version. '
+                          f'<a href="{html.escape(relative, quote=True)}">View the latest documentation ({html.escape(latest)}).</a>'
+                          '<button type="button" class="rw-docs-dismiss" aria-label="Dismiss outdated documentation notice" hidden>&times;</button></aside>')
+                updated = re.sub(r'(<body\b[^>]*>)', lambda match: match[1] + notice, updated, count=1)
+            if updated != source:
+                write_text(path, updated)
+
+
 def add_version_selector_assets(root: Path, version_root: Path) -> None:
     for path in version_root.rglob("*.html"):
         source = path.read_text(encoding="utf-8")
@@ -365,6 +390,7 @@ def compose(source: Path, output: Path, release: dict, base_url: str = DEFAULT_U
     beta = max(beta_versions, key=lambda value: tuple(int(part) for part in re.split(r"\.|-beta\.", value))) if beta_versions else None
     default = latest or beta or next((entry["version"] for entry in inventory if entry["version"] == "dev"), inventory[0]["version"])
     write_text(docs / "index.html", redirect(default + "/"))
+    add_latest_docs_notices(docs, inventory, latest)
     render_homepage(output, release, base_url)
     if latest is None:
         page = (output / "index.html").read_text(encoding="utf-8").replace("docs/latest/", f"docs/{default}/")

@@ -189,6 +189,41 @@ class WebsiteTests(unittest.TestCase):
         self.assertNotIn('1.2.0', script)
         self.assertIn('range.selectNodeContents(command)', script)
 
+    def test_archive_notices_follow_latest_and_fall_back_when_a_page_was_removed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.source(root / "source")
+            for version in ("dev", "1.2.0", "1.1.0"):
+                for path in (source / version).rglob("*.html"):
+                    path.write_text('<html><head></head><body>' + path.read_text(encoding="utf-8") + '</body></html>', encoding="utf-8")
+            removed = source / "1.1.0/nested/removed.html"
+            removed.write_text('<html><head></head><body>Old page</body></html>', encoding="utf-8")
+            first = root / "first"
+            website.compose(source, first, self.release)
+            old_page = (first / "docs/1.1.0/nested/page.html").read_text(encoding="utf-8")
+            self.assertIn('href="../../1.2.0/nested/page.html"', old_page)
+            self.assertIn('not the latest version', old_page)
+            self.assertIn('data-rw-outdated-docs="1.1.0"', old_page)
+            self.assertIn('aria-label="Dismiss outdated documentation notice"', old_page)
+            self.assertIn('data-rw-latest-docs=""', (first / "docs/1.2.0/index.html").read_text(encoding="utf-8"))
+            self.assertNotIn('data-rw-latest-docs', old_page)
+            self.assertIn('href="../../1.2.0/index.html"', (first / "docs/1.1.0/nested/removed.html").read_text(encoding="utf-8"))
+            for version in ("dev", "1.2.0"):
+                self.assertNotIn('data-rw-outdated-docs', (first / "docs" / version / "index.html").read_text(encoding="utf-8"))
+            second = root / "second"
+            website.compose(first, second, self.release)
+            self.assertEqual(old_page, (second / "docs/1.1.0/nested/page.html").read_text(encoding="utf-8"))
+            inventory = website.read_inventory(second / "docs")
+            for entry in inventory:
+                entry["aliases"] = ["latest"] if entry["version"] == "1.1.0" else []
+            website.add_latest_docs_notices(second / "docs", inventory, "1.1.0")
+            self.assertNotIn('data-rw-outdated-docs', (second / "docs/1.1.0/index.html").read_text(encoding="utf-8"))
+            self.assertIn('data-rw-latest-docs=""', (second / "docs/1.1.0/index.html").read_text(encoding="utf-8"))
+            self.assertNotIn('data-rw-latest-docs', (second / "docs/1.2.0/index.html").read_text(encoding="utf-8"))
+            self.assertIn('href="../1.1.0/index.html"', (second / "docs/1.2.0/index.html").read_text(encoding="utf-8"))
+            website.add_latest_docs_notices(second / "docs", inventory, None)
+            self.assertNotIn('data-rw-outdated-docs', (second / "docs/1.2.0/index.html").read_text(encoding="utf-8"))
+
     def test_version_selector_assets_are_relative_and_not_duplicated_on_republication(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

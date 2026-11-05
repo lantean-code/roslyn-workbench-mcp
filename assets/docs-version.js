@@ -1,6 +1,29 @@
 "use strict";
 
 (() => {
+  const notice = document.querySelector("[data-rw-outdated-docs]");
+  if (notice) {
+    const key = "rw-docs-dismissed:" + notice.getAttribute("data-rw-outdated-docs");
+    try {
+      notice.hidden = sessionStorage.getItem(key) === "true";
+    } catch {
+      // The notice still works when browser storage is unavailable.
+    }
+    const dismiss = notice.querySelector(".rw-docs-dismiss");
+    if (dismiss) {
+      dismiss.hidden = false;
+      dismiss.addEventListener("click", () => {
+        notice.hidden = true;
+        try {
+          sessionStorage.setItem(key, "true");
+        } catch {
+          // Dismiss this page even if the browser cannot remember the choice.
+        }
+        document.querySelector(".md-header a")?.focus();
+      });
+    }
+  }
+
   function initialise() {
     const selector = document.querySelector(".md-version");
     const button = selector?.querySelector(".md-version__current");

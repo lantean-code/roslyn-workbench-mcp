@@ -88,7 +88,7 @@
       "area": "CorePlugin",
       "category": "Code analysis",
       "operationKind": "Query",
-      "summary": "Finds mutually dependent groups in a static dependency graph for the selected scope, or the loaded solution when scope is omitted. Use this to investigate circular coupling; use get-dependency-graph to inspect individual dependency edges. granularity defaults to Type; Namespace groups source dependencies and Project uses direct project references. A document scope uses its containing project for Project granularity. Returns a bounded cycles collection of strongly connected node groups, not ordered traversal paths. cyclesLimit defaults to 25; check cycles.hasMore for additional groups. Analysis budgets default to 25000 nodes and 100000 edges; exceeding either rejects the query with AnalysisLimitExceeded rather than returning a partial cycle analysis. Narrow the scope or raise the relevant budget to retry. Read-only; no tests or application code are run.",
+      "summary": "Finds mutually dependent groups in a static dependency graph for the selected scope, or the loaded solution when scope is omitted. Use this to investigate circular dependencies and architectural coupling; use get-dependency-graph to inspect individual dependency edges. granularity defaults to Type; Namespace groups source dependencies and Project uses direct project references. A document scope uses its containing project for Project granularity. Returns a bounded cycles collection of strongly connected node groups, not ordered traversal paths. cyclesLimit defaults to 25; check cycles.hasMore for additional groups. Analysis budgets default to 25000 nodes and 100000 edges; exceeding either rejects the query with AnalysisLimitExceeded rather than returning a partial cycle analysis. Narrow the scope or raise the relevant budget to retry. Read-only; no tests or application code are run.",
       "availability": "Built in and published in every operational mode.",
       "detailUrl": "data/find-dependency-cycles.json",
       "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/find-dependency-cycles.html"
@@ -231,7 +231,7 @@
       "area": "CorePlugin",
       "category": "Code analysis",
       "operationKind": "Query",
-      "summary": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
+      "summary": "Builds a static architecture dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
       "availability": "Built in and published in every operational mode.",
       "detailUrl": "data/get-dependency-graph.json",
       "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-dependency-graph.html"
@@ -297,7 +297,7 @@
       "area": "CorePlugin",
       "category": "Code discovery and navigation",
       "operationKind": "Query",
-      "summary": "Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
+      "summary": "Returns full source declaration spans for a resolved symbol, ordered by document path and source position. Use this to read the bodies of split partial type declarations; get-symbol-info provides symbol metadata and declaration-name locations, while find-references finds usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.",
       "availability": "Built in and published in every operational mode.",
       "detailUrl": "data/get-partial-declarations.json",
       "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/dev/reference/tools/get-partial-declarations.html"

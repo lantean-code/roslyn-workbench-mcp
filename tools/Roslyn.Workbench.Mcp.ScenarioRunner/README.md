@@ -4,7 +4,7 @@ This project is the repeatable, manually invoked external-repository scenario fr
 
 The framework is permanent. Repository clones, restored assets, published Host binaries and Host recovery state are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
 
-Automated scenario runs are release validation only: invoke them from release branches or by explicit manual dispatch, not for ordinary pull requests, pushes or recurring schedules. Native Windows and Linux provide the authoritative correctness, cleanup and performance evidence. Once the repository is public and v1 release-candidate preparation begins, macOS should run published-Host acceptance, Workspace integration and a curated scenario subset as best-effort evidence. Do not use billed recurring macOS automation while the repository is private, and do not compare macOS timing directly with the Windows or Linux performance baselines.
+Scenario runs are an explicit development investigation, useful after substantial changes such as a Roslyn or MCP SDK upgrade. Run them locally or manually dispatch the external-repository scenario workflow; they do not run automatically on releases, pull requests, pushes or recurring schedules. Native Windows and Linux provide the authoritative correctness and cleanup evidence. Hosted-agent timings are observational: compare only equivalent environments and use dedicated, otherwise idle machines for reliable performance comparisons.
 
 ## Project structure
 
@@ -364,12 +364,22 @@ Measurements, summaries, workspace state and diagnostic captures default to a un
 - Use measurements to locate weaknesses. Do not turn the observed timings into functional-test thresholds.
 - Retain dated summaries when they inform an optimisation; raw diagnostic captures can remain in the ignored artifacts directory because they are large and machine-specific.
 
-## Release automation and retained metrics
+## Manual build-agent runs and retained evidence
 
-The external-repository suite is release validation, not pull-request validation. Automated runs should be limited to release branches and explicit manual dispatch. Pull requests use the published-Host acceptance project with small checked-in fixtures.
+The **External-repository scenarios** workflow (`.github/workflows/scenarios.yml`) supports both `workflow_dispatch` and `workflow_call`. It is deliberately separate from release automation and ordinary CI. Each invocation runs the selected command and repository on native Ubuntu and Windows agents, using the existing platform wrappers to publish the Host, runner and fixture plugin in Release mode and prepare the pinned repository.
 
-Release-branch runs upload the complete result directory as a temporary workflow artifact and also produce a versioned normalised aggregate for comparison. The final aggregate and Markdown comparison are attached to the GitHub release; they are not committed to the source branch. The next release downloads the previous release's aggregate as its default baseline.
+In GitHub Actions, select **External-repository scenarios**, choose **Run workflow**, select the branch and set `repository`, `command`, `scenario`, `iterations` and `warmups`. The default measures `solution-structure` in GuardClauses with five measured iterations and one warm-up. Choose scenario IDs that match the command in `scenario-suite.json`; comma-separated IDs are supported. `all` is supported only by `measure` and `cancel`, and excludes commit-only scenarios. A measurement run does not cover the separate durability, recovery, conflict or lifecycle families. Other runner parameters retain their command-line defaults; use the local wrappers when an investigation needs custom profiling, cancellation or concurrency settings.
 
-Like-for-like comparison requires the same command, scenario, target repository commit, operating system and architecture. The aggregate also records the Host commit and version, scenario-suite hash, .NET runtime, parameters, warm-ups and sample count so environmental or scenario drift is visible. Initially, timing differences are advisory. Correctness and cleanup validation remain release-gating.
+For example, once the workflow is present on the default branch, dispatch a compiler-validation investigation against a development branch:
 
-Raw traces, counters and heap captures remain workflow artifacts unless they are needed to explain a release decision. This keeps permanent release assets small while preserving detailed diagnostics during release validation.
+```bash
+gh workflow run scenarios.yml --ref feature/sdk-2-upgrade \
+  -f repository=serilog -f command=compiler-validation \
+  -f scenario=rename-ilogger-durable -f iterations=3 -f warmups=0
+```
+
+Reusable callers use `uses: ./.github/workflows/scenarios.yml` at job level and pass the same inputs through `with`. No release workflow calls it. GitHub requires a manually dispatched workflow to exist on the default branch before its manual trigger is available.
+
+Each platform uploads results, validation reports, diagnostic captures, the invocation metadata and console log as a separate artifact retained for 30 days, including available evidence from failed runs. Results are not attached to releases or committed to the branch. Preparation failures can leave only the invocation metadata and console log; cancellation or a job timeout can interrupt report generation, so missing terminal validation is incomplete evidence. The job fails when the wrapper fails, and one platform's failure does not cancel the other.
+
+Download and retain useful evidence before artifact expiry. Like-for-like comparison requires the same command, scenario, target repository commit, operating system and architecture. Timings are advisory; correctness and cleanup failures require investigation. The existing `tools/release/scenario-report.py` can summarise retained results without introducing a release gate.

@@ -5,7 +5,11 @@ internal sealed record CodeActionSelectionLocation
 {
     public required string Path { get; init; }
 
-    public required int Start { get; init; }
+    public int? Start { get; init; }
+
+    public int? Line { get; init; }
+
+    public int? Column { get; init; }
 
     public int? Length { get; init; }
 }

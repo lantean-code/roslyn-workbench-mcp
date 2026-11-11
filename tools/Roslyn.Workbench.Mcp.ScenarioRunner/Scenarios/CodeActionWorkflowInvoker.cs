@@ -216,12 +216,17 @@ internal sealed class CodeActionWorkflowInvoker
         var location = item.GetProperty("location");
         var document = location.GetProperty("document");
         var span = location.GetProperty("span");
+        // Published locations use one-based coordinates; scenario positions are zero-based.
+        var matchesPosition = expected.Start is int start
+            ? span.GetProperty("start").GetInt32() == start
+            : location.GetProperty("line").GetInt32() - 1 == expected.Line
+                && location.GetProperty("column").GetInt32() - 1 == expected.Column;
 
         return string.Equals(
                 document.GetProperty("path").GetString(),
                 expected.Path,
                 StringComparison.Ordinal)
-            && span.GetProperty("start").GetInt32() == expected.Start
+            && matchesPosition
             && (expected.Length is null
                 || span.GetProperty("length").GetInt32() == expected.Length);
     }
@@ -300,6 +305,11 @@ internal sealed class CodeActionWorkflowInvoker
         CodeActionSelectionDefinition selection,
         bool requireCaptureName)
     {
+        if (selection.Location is { } location)
+        {
+            ValidateSelectionLocation(location);
+        }
+
         if (selection.Arguments.ValueKind != JsonValueKind.Object)
         {
             throw new InvalidDataException(
@@ -324,6 +334,28 @@ internal sealed class CodeActionWorkflowInvoker
         {
             throw new InvalidDataException(
                 "Direct stage-code-action discovery cannot capture its consumed reference.");
+        }
+    }
+
+    private static void ValidateSelectionLocation(CodeActionSelectionLocation location)
+    {
+        if (location.Start is not null)
+        {
+            if (location.Start < 0 || location.Line is not null || location.Column is not null)
+            {
+                throw new InvalidDataException(
+                    "A Code Action location must use either a non-negative start or a zero-based line and column.");
+            }
+        }
+        else if (location.Line is null or < 0 || location.Column is null or < 0)
+        {
+            throw new InvalidDataException(
+                "A Code Action location without start requires a non-negative line and column.");
+        }
+
+        if (location.Length < 0)
+        {
+            throw new InvalidDataException("A Code Action location length cannot be negative.");
         }
     }
 

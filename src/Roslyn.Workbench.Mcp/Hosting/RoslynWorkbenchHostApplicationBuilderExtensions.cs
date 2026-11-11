@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.Extensions.Skills;
 using Roslyn.Workbench.Mcp.ToolExecution;
+
+#pragma warning disable MCPEXP005 // Intentionally publish the bundled offline skill using the SDK Skills extension.
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
@@ -44,6 +47,22 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 
         services
             .AddMcpServer()
+            .WithSkills([RoslynWorkbenchSkillResources.Skill])
+            .WithSkills(static options =>
+            {
+                options.ListSkillsFilters.Add(static next => async (context, cancellationToken) =>
+                {
+                    var result = await next(context, cancellationToken);
+                    CatalogueResponseCachePolicy.ApplyCatalogueHints(result, context.Params, context.Server.NegotiatedProtocolVersion);
+                    return result;
+                });
+                options.GetSkillFilters.Add(static next => async (context, cancellationToken) =>
+                {
+                    var result = await next(context, cancellationToken);
+                    CatalogueResponseCachePolicy.ApplyCatalogueHints(result, context.Params, context.Server.NegotiatedProtocolVersion);
+                    return result;
+                });
+            })
             .WithResources([typeof(RoslynWorkbenchSkillResources)])
             .WithRequestFilters(static requestFilters =>
             {

@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="ModelContextProtocol.Extensions.Skills" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 

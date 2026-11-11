@@ -2,9 +2,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Skills;
 using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
+
+#pragma warning disable MCPEXP005 // Exercise published Skills discovery and verified reads through the real SDK client.
 
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
@@ -85,6 +88,24 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
         var resourceUri = new Uri(uri);
         return await GetClient().ReadResourceAsync(resourceUri, cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<IList<Skill>> ListSkillsAsync(CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().ListSkillsAsync(cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<Skill> GetSkillAsync(string uri, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().GetSkillAsync(uri, cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<ReadResourceResult> ReadSkillResourceAsync(Skill skill, string uri, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().ReadSkillResourceAsync(skill, uri, cancellationToken: timeoutSource.Token);
     }
 
     public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(

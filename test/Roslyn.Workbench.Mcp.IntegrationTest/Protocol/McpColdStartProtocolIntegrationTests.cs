@@ -21,7 +21,7 @@ public sealed class McpColdStartProtocolIntegrationTests
     [InlineData(true, "Timeout")]
     [InlineData(true, "Cancel")]
     [Trait("Category", "Integration")]
-    public async Task GIVEN_HostWaitingForRecovery_WHEN_DiscoveryProbeBudgetElapses_THEN_ShouldExposeSdkFallbackConflictAndPreserveConfiguredClientDeadlines(bool disableProbeTimeout, string completion)
+    public async Task GIVEN_HostWaitingForRecovery_WHEN_DiscoveryProbeBudgetElapses_THEN_ShouldConnectOrPreserveConfiguredClientDeadlines(bool disableProbeTimeout, string completion)
     {
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-cold-start-tests");
         using var watchdog = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -55,7 +55,7 @@ public sealed class McpColdStartProtocolIntegrationTests
             {
                 if (context.JsonRpcMessage is JsonRpcRequest { Method: "server/discover" })
                 {
-                    // The SDK's protocol metadata filter runs before this observer.
+                    // Observe real discovery processing before releasing the expired probe's legacy fallback.
                     discoveryProcessed.TrySetResult();
                 }
 
@@ -146,25 +146,22 @@ public sealed class McpColdStartProtocolIntegrationTests
         {
             recoveryRelease.TrySetResult();
             await startup;
+            var client = await connection;
+            var expectedVersion = disableProbeTimeout ? "2026-07-28" : "2025-11-25";
+            client.NegotiatedProtocolVersion.Should().Be(expectedVersion);
+            var tools = await client.ListToolsAsync(new ListToolsRequestParams(), watchdogToken);
+            tools.Tools.Should().Contain(tool => tool.Name == "server-status");
             if (disableProbeTimeout)
             {
-                var client = await connection;
-                client.NegotiatedProtocolVersion.Should().Be("2026-07-28");
-                var tools = await client.ListToolsAsync(new ListToolsRequestParams(), watchdogToken);
-                tools.Tools.Should().Contain(tool => tool.Name == "server-status");
                 tools.TimeToLive.Should().Be(TimeSpan.FromMinutes(1));
-                var status = await client.CallToolAsync("server-status", cancellationToken: watchdogToken);
-                status.IsError.Should().NotBeTrue();
             }
             else
             {
-                // SDK 2.3.0 commits the modern protocol before rejecting the already queued legacy fallback.
-                // This row characterises the upstream race; it must change when an SDK fix is adopted.
-                var connect = async () => await connection;
-                var failure = await connect.Should().ThrowAsync<McpProtocolException>();
-                failure.Which.ErrorCode.Should().Be(McpErrorCode.MethodNotFound);
-                failure.Which.Message.Should().Contain("initialize");
+                tools.TimeToLive.Should().BeNull();
             }
+
+            var status = await client.CallToolAsync("server-status", cancellationToken: watchdogToken);
+            status.IsError.Should().NotBeTrue();
         }
     }
 
@@ -185,7 +182,7 @@ public sealed class McpColdStartProtocolIntegrationTests
             if (message?["method"]?.GetValue<string>() == "initialize")
             {
                 fallbackQueued.TrySetResult();
-                // Preserve the failing interleaving instead of racing SDK request dispatch.
+                // Exercise late discovery followed by legacy fallback without racing SDK request dispatch.
                 await discoveryProcessed.WaitAsync(cancellationToken);
             }
 

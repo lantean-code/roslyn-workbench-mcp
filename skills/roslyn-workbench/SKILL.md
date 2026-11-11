@@ -19,7 +19,7 @@ When the client defers tool definitions, use its discovery mechanism to search f
 
 Use the narrowest query that answers the task. For example, search for incoming callers with `find-callers`, outgoing call targets with `find-callees`, architecture dependencies with `get-dependency-graph`, circular dependencies with `find-dependency-cycles`, or variable reads/writes and captures with `analyze-data-flow`. For full source declaration spans across partial parts, discover `get-partial-declarations`; `get-symbol-info` provides symbol metadata and declaration-name locations. Bind a known source occurrence with `resolve-symbol`, or navigate its declaration with `go-to-definition`.
 
-Read only the references needed for the current task. The server also exposes this guidance at `skill://roslyn-workbench/SKILL.md`; reading that MCP resource does not itself install or activate a native client skill.
+Read only the references needed for the current task. Clients supporting the advertised `io.modelcontextprotocol/skills` extension can discover this skill with `skills/list` or retrieve its entry with `skills/get`, then verify file digests and sizes before loading. Other resource-capable clients can read `skill://roslyn-workbench/SKILL.md` directly. Reading an MCP resource does not itself install or activate a native client skill.
 
 ## Follow the relevant workflow
 

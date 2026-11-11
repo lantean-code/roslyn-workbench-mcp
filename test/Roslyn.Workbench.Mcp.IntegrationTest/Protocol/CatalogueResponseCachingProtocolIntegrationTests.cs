@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Skills;
+
+#pragma warning disable MCPEXP005 // Verify the deliberately enabled Skills extension over real SDK transports.
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
@@ -39,7 +42,8 @@ public sealed class CatalogueResponseCachingProtocolIntegrationTests
 
         try
         {
-            foreach (var method in new[] { RequestMethods.ToolsList, RequestMethods.ResourcesList })
+            client.ServerCapabilities.SupportsSkills().Should().BeTrue();
+            foreach (var method in new[] { RequestMethods.ToolsList, RequestMethods.ResourcesList, "skills/list" })
             {
                 var result = await client.SendRequestAsync<JsonObject, JsonObject>(method, new JsonObject(), cancellationToken: cancellation.Token);
                 AssertHints(result, modern, 60000);
@@ -62,13 +66,42 @@ public sealed class CatalogueResponseCachingProtocolIntegrationTests
             var listing = await client.ListResourcesAsync(cancellationToken: cancellation.Token);
             var skills = listing.Where(item => item.Uri.StartsWith("skill://roslyn-workbench/", StringComparison.Ordinal)).ToArray();
             skills.Should().HaveCount(12);
+            var manifestSkill = await client.GetSkillAsync("skill://roslyn-workbench/SKILL.md", cancellationToken: cancellation.Token);
+            manifestSkill.Name.Should().Be("roslyn-workbench");
+            manifestSkill.Resources.Entries.Should().NotBeNull();
+            manifestSkill.Resources.Entries!.Select(item => item.Uri).Should().BeEquivalentTo(skills.Select(item => item.Uri));
+
+            var skillRequest = new JsonObject { ["uri"] = manifestSkill.Uri };
+            var skillResult = await client.SendRequestAsync<JsonObject, JsonObject>("skills/get", skillRequest, cancellationToken: cancellation.Token);
+            AssertHints(skillResult, modern, 60000);
+            if (modern)
+            {
+                foreach (var continuation in new[] { "inputResponses", "requestState" })
+                {
+                    var continuedSkillRequest = new JsonObject
+                    {
+                        ["uri"] = manifestSkill.Uri,
+                        [continuation] = continuation == "inputResponses" ? new JsonObject() : JsonValue.Create("RequestState"),
+                    };
+
+                    var continuedSkillResult = await client.SendRequestAsync<JsonObject, JsonObject>("skills/get", continuedSkillRequest, cancellationToken: cancellation.Token);
+                    AssertHints(continuedSkillResult, true, 0);
+                }
+            }
+
             foreach (var skill in skills)
             {
+                var verifiedContent = await client.ReadSkillResourceAsync(manifestSkill, skill.Uri, cancellationToken: cancellation.Token);
+                verifiedContent.Contents.Should().ContainSingle();
                 var parameters = new JsonObject { ["uri"] = skill.Uri };
                 var result = await client.SendRequestAsync<JsonObject, JsonObject>(RequestMethods.ResourcesRead, parameters, cancellationToken: cancellation.Token);
                 AssertHints(result, modern, 300000);
                 result["contents"].Should().NotBeNull();
             }
+
+            var getUnknownSkill = async () => await client.GetSkillAsync("skill://roslyn-workbench/missing/SKILL.md", cancellationToken: cancellation.Token);
+            var unknownSkill = await getUnknownSkill.Should().ThrowAsync<McpProtocolException>();
+            unknownSkill.Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
 
             var dynamicRequest = new JsonObject { ["uri"] = "probe://dynamic/resource" };
             var dynamicResult = await client.SendRequestAsync<JsonObject, JsonObject>(RequestMethods.ResourcesRead, dynamicRequest, cancellationToken: cancellation.Token);

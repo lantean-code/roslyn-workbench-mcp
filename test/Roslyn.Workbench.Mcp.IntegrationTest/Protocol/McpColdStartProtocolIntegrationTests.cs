@@ -43,14 +43,28 @@ public sealed class McpColdStartProtocolIntegrationTests
         var relayToHost = new Pipe();
         var hostToClient = new Pipe();
         var observedMethods = Channel.CreateUnbounded<string>();
+        var fallbackQueued = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var discoveryProcessed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var builder = Host.CreateApplicationBuilder();
         builder.AddRoslynWorkbench(["--state-directory", stateDirectory.DirectoryPath]);
         builder.Logging.ClearProviders();
         builder.Services.AddSingleton(recovery.Object);
-        builder.Services.AddMcpServer().WithStreamServerTransport(relayToHost.Reader.AsStream(), hostToClient.Writer.AsStream());
+        builder.Services.AddMcpServer(options =>
+        {
+            options.Filters.Message.IncomingFilters.Add(next => async (context, cancellationToken) =>
+            {
+                if (context.JsonRpcMessage is JsonRpcRequest { Method: "server/discover" })
+                {
+                    // The SDK's protocol metadata filter runs before this observer.
+                    discoveryProcessed.TrySetResult();
+                }
+
+                await next(context, cancellationToken);
+            });
+        }).WithStreamServerTransport(relayToHost.Reader.AsStream(), hostToClient.Writer.AsStream());
         using var host = builder.Build();
         var startup = host.StartAsync(watchdog.Token);
-        var relay = ForwardRequestsAsync(clientToRelay.Reader, relayToHost.Writer, observedMethods.Writer, watchdog.Token);
+        var relay = ForwardRequestsAsync(clientToRelay.Reader, relayToHost.Writer, observedMethods.Writer, fallbackQueued, discoveryProcessed.Task, watchdog.Token);
         var options = new McpClientOptions
         {
             InitializationTimeout = _initializationTimeout,
@@ -75,11 +89,16 @@ public sealed class McpColdStartProtocolIntegrationTests
 
             if (!disableProbeTimeout)
             {
+                await fallbackQueued.Task.WaitAsync(watchdog.Token);
+            }
+
+            discoveryProcessed.Task.IsCompleted.Should().BeFalse();
+            await VerifyConnectionOutcomeAsync(connection, startup, recoveryRelease, clock, clientCancellation, disableProbeTimeout, completion, watchdog.Token);
+            if (!disableProbeTimeout)
+            {
                 var fallbackMethod = await observedMethods.Reader.ReadAsync(watchdog.Token);
                 fallbackMethod.Should().Be("initialize");
             }
-
-            await VerifyConnectionOutcomeAsync(connection, startup, recoveryRelease, clock, clientCancellation, disableProbeTimeout, completion, watchdog.Token);
         }
         finally
         {
@@ -149,7 +168,7 @@ public sealed class McpColdStartProtocolIntegrationTests
         }
     }
 
-    private static async Task ForwardRequestsAsync(PipeReader source, PipeWriter destination, ChannelWriter<string> observedMethods, CancellationToken cancellationToken)
+    private static async Task ForwardRequestsAsync(PipeReader source, PipeWriter destination, ChannelWriter<string> observedMethods, TaskCompletionSource fallbackQueued, Task discoveryProcessed, CancellationToken cancellationToken)
     {
         using var requests = new StreamReader(source.AsStream());
         await using var forwardedStream = destination.AsStream();
@@ -162,8 +181,15 @@ public sealed class McpColdStartProtocolIntegrationTests
                 return;
             }
 
-            await forwarded.WriteLineAsync(line.AsMemory(), cancellationToken);
             var message = JsonNode.Parse(line);
+            if (message?["method"]?.GetValue<string>() == "initialize")
+            {
+                fallbackQueued.TrySetResult();
+                // Preserve the failing interleaving instead of racing SDK request dispatch.
+                await discoveryProcessed.WaitAsync(cancellationToken);
+            }
+
+            await forwarded.WriteLineAsync(line.AsMemory(), cancellationToken);
             if (message?["id"] is not null && message["method"]?.GetValue<string>() is { } method)
             {
                 await observedMethods.WriteAsync(method, cancellationToken);

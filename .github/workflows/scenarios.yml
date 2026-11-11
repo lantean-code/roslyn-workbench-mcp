@@ -14,7 +14,7 @@ on:
         options: [measure, compiler-validation, commit, commit-cancellation, conflict, crash-recovery, state-sequence, concurrency, cancel, profile]
         default: measure
       scenario:
-        description: Scenario IDs, comma-separated; all is supported by measure and cancel
+        description: Scenario ID; measure also accepts comma-separated IDs or all
         type: string
         default: solution-structure
         required: true
@@ -86,8 +86,8 @@ jobs:
           if ($env:SCENARIO_IDS -notmatch '^[a-zA-Z0-9-]+(,[a-zA-Z0-9-]+)*$') {
             throw 'Supply scenario IDs separated by commas, without spaces.'
           }
-          if ($env:SCENARIO_IDS -eq 'all' -and $env:SCENARIO_COMMAND -notin @('measure', 'cancel')) {
-            throw 'Select named scenarios for this command; all is supported only by measure and cancel.'
+          if ($env:SCENARIO_COMMAND -ne 'measure' -and ($env:SCENARIO_IDS -eq 'all' -or $env:SCENARIO_IDS.Contains(','))) {
+            throw 'Select exactly one named scenario for this command; only measure supports multiple IDs or all.'
           }
           if ($env:SCENARIO_ITERATIONS -notmatch '^[1-9][0-9]*$' -or $env:SCENARIO_WARMUPS -notmatch '^[0-9]+$') {
             throw 'Iterations must be a positive integer and warm-ups a non-negative integer.'

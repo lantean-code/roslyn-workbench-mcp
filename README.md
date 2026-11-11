@@ -47,7 +47,7 @@ The server runs locally over stdio, with workspace analysis and refactoring perf
 
 ## Install
 
-Roslyn Workbench is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp) as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Pin the exact release version you intend to run. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/latest/compatibility.html) defines the stable 1.x guarantees for tools, errors and continuations, recovery formats and plugin APIs.
+Roslyn Workbench is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp) as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Pin the exact release version you intend to run. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/latest/compatibility.html) defines the stable compatibility guarantees for tools, errors and continuations, recovery formats and plugin APIs.
 
 Run an exact package version without a permanent installation:
 

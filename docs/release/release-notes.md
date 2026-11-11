@@ -1,16 +1,16 @@
 # Roslyn Workbench MCP — {{VERSION}}
 
-This minor release adds a downloadable agent skill served through MCP resources, improves tool descriptions and reduces repeated input-schema content. Resource-read failures now receive correlated diagnostics, and unexpected fatal Host failures report details on standard error and exit with a non-zero status. Existing tool semantics, plugin APIs and recovery formats retain their 1.x compatibility guarantees.
+Roslyn Workbench 2.0 moves the Host to MCP SDK 2.4.0 and the newer MCP protocol platform, adds native Skills discovery and supplies caching hints to supporting clients. The major version marks that platform transition. Existing built-in tool names and meanings, Plugin API V1 and recovery format V1 are retained, and legacy protocol negotiation remains supported.
 
 ## Changes in this release
 
-- Added a Roslyn Workbench agent skill with focused references for workspace selection, inspection, diagnostics, dependency analysis and transactional changes. The server exposes the skill and its Markdown references as MCP resources; the README and documentation also provide a separate download containing the skill, references, agent metadata and application logo.
-- Expanded descriptions across inspection, lifecycle, discovery, Code Action, flow and dependency analysis, diagnostics, symbol relationships, context, mutation, transaction and status tools. The guidance explains when to use each tool, relevant prerequisites, defaults, result bounds and recovery steps. Tool names, execution behaviour and parameter meanings are unchanged.
-- Reduced duplication within tool input schemas by sharing repeated definitions through local `$defs` and `$ref` entries with property-derived names. Descriptions are preserved. Clients that expand references can continue to use the equivalent expanded schema.
-- Extended local correlated error capture to unexpected MCP resource-read failures. Clients receive a generic protocol error with a diagnostic identifier and reporting guidance; retained details remain available through the existing explicit, consent-controlled error-reporting workflow. Expected cancellation and deliberate protocol errors retain their handling.
-- Added a final exception boundary around the Host entry point. Unexpected startup, runtime or disposal failures write a diagnostic identifier and full exception details to standard error and exit with status 1, keeping the MCP standard-output channel clear. These fatal diagnostics are available in standard error rather than the process-local error store.
+- Upgraded to MCP SDK 2.4.0, including support for protocol revision `2026-07-28`. Clients can still negotiate the legacy `2025-11-25` protocol. The SDK also fixes the cold-start discovery fallback race; regression coverage verifies late discovery, legacy fallback, overall deadlines and caller cancellation.
+- Added native `skills/list` and `skills/get` through the SDK's experimental Skills extension. Existing `skill://roslyn-workbench/` resources retain their URIs, descriptions and Markdown content. Clients without Skills support can continue reading those resources, and the separately downloadable skill bundle remains available.
+- Added private caching hints for startup-fixed catalogues and Skills metadata for one minute, and successful embedded skill-resource reads for five minutes. Continuations carrying request state are immediately stale. Workspace-dependent tool results and failures receive no positive freshness hint. These hints apply only to protocol revisions that support them and do not introduce a server-side response cache.
+- Grouped tool-discovery guidance into workflow, everyday inspection and specialist inspection in the server instructions and skill. Clarified overlapping tool descriptions without removing or consolidating tools. Deferred loading remains a client capability; these groupings do not hide tools from `tools/list`.
+- Added deterministic timeout tests using `TimeProvider` and a manually triggered, reusable scenario workflow for native Windows and Linux agents. Cross-platform scenario repairs preserve precise Code Action selection across line endings, configure sufficient capacity for single-flight calibration and allow Windows conflict observation without blocking manifest replacement. Scenario investigations remain separate from release publication.
 
-The release includes the Host .NET tool and a separate plugin-authoring package, with a [1.x compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) for the published surfaces.
+The release includes the Host .NET tool and a separate plugin-authoring package. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/compatibility.html) distinguishes their package versions from MCP protocol revisions, tool contracts, plugin API families and recovery formats.
 
 ## What is included
 
@@ -61,7 +61,7 @@ Plugin projects reference `Lantean.Roslyn.Workbench.Mcp.Plugins` at the matching
 
 ### MCP tools
 
-The stable built-in catalogue follows an additive 1.x policy. Existing tool names and input/output meanings are preserved; clients should ignore unknown output fields and rediscover `tools/list` after a restart or upgrade. Canonical baselines cover both output-schema publication modes and each supported operational configuration.
+The 2.0 release preserves the built-in tool names and input/output meanings from 1.x. The stable 2.x catalogue follows the same additive policy: clients should ignore unknown output fields and rediscover `tools/list` after a restart or upgrade. Canonical baselines cover both output-schema publication modes and each supported operational configuration.
 
 ### Errors and continuations
 
@@ -69,11 +69,11 @@ Stable error codes retain their meanings. `RequiredAction` values and continuati
 
 ### Recovery formats
 
-Recovery format V1 remains readable throughout 1.x. Unsupported formats are reported and retained without reinterpretation or cleanup; use the same or a newer compatible Host to recover them. Finish or roll back active transactions and stop the Host before upgrading. Retain unresolved state and follow [Recovery guidance](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/troubleshooting.html).
+Recovery format V1 remains supported in 2.0 and throughout 2.x. The Host major-version change does not change the persisted format. Unsupported formats are reported and retained without reinterpretation or cleanup; use the same or a newer compatible Host to recover them. Finish or roll back active transactions and stop the Host before upgrading. Retain unresolved state and follow [Recovery guidance](https://lantean-code.github.io/roslyn-workbench-mcp/{{DOCS_VERSION}}/troubleshooting.html).
 
 ### Plugin APIs
 
-Plugin API V1 and the shipped Plugins and Abstractions public APIs are stable for 1.x. Plugin authors own their tool contracts and should use the supported package rather than Host or Workspace implementation assemblies.
+Plugin API V1 remains supported in 2.0; no public plugin API members are removed or changed by this upgrade. The Plugins and Abstractions public APIs remain stable throughout 2.x. The plugin-authoring package shares the release version, while `PluginApiVersions.V1` continues to identify the supported API family. Plugin authors own their tool contracts and should use the supported package rather than Host or Workspace implementation assemblies.
 
 For an existing global installation, run `dotnet tool update --global Lantean.Roslyn.Workbench.Mcp --version {{VERSION}}`. For `dnx`, update the pinned package version in client configuration. The published 0.1.0 beta did not carry the stable guarantee; review the operating defaults and plugin opt-in before reconnecting. If an older installation uses the former package ID `Roslyn.Workbench.Mcp`, uninstall it before installing `Lantean.Roslyn.Workbench.Mcp`; the command name remains unchanged.
 

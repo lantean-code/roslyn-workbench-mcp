@@ -123,4 +123,4 @@ Do not write source files or call `Workspace.TryApplyChanges` from a query. Use 
 - [Packaging and deployment](plugins/deployment.md): dependencies, collisions and troubleshooting.
 - [Authoring diagnostics](plugins/diagnostics.md): `RWMCP001`–`RWMCP023` and their remediation.
 
-Plugin API V1 is supported throughout Host 1.x. A plugin's own version does not need to match the Host package version; see [Compatibility](compatibility.md#plugin-api).
+Plugin API V1 is supported throughout Host 1.x and 2.x. A plugin's own version does not need to match the Host package version; see [Compatibility](compatibility.md#plugin-api).

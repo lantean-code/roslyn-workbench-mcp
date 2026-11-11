@@ -293,7 +293,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string stateDirectory,
         string? pluginDirectory,
         CancellationToken cancellationToken,
-        bool enableCompilerValidation = false)
+        bool enableCompilerValidation = false,
+        int? maxConcurrentQueries = null)
     {
         CreateStateDirectory(stateDirectory);
         var startInfo = CreateStartInfo(
@@ -301,7 +302,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
             workingDirectory,
             stateDirectory,
             pluginDirectory,
-            enableCompilerValidation);
+            enableCompilerValidation,
+            maxConcurrentQueries);
 
         var process = new Process
         {
@@ -329,9 +331,15 @@ internal sealed class ScenarioHost : IAsyncDisposable
 
         try
         {
+            var clientOptions = new McpClientOptions
+            {
+                InitializationTimeout = _initializationTimeout,
+                // Retain the overall startup deadline without racing discovery against a cold Host.
+                DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
+            };
             target._client = await McpClient.CreateAsync(
                 transport,
-                new McpClientOptions { InitializationTimeout = _initializationTimeout },
+                clientOptions,
                 NullLoggerFactory.Instance,
                 timeoutSource.Token);
 
@@ -383,7 +391,8 @@ internal sealed class ScenarioHost : IAsyncDisposable
         string workingDirectory,
         string stateDirectory,
         string? pluginDirectory,
-        bool enableCompilerValidation)
+        bool enableCompilerValidation,
+        int? maxConcurrentQueries)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -408,6 +417,12 @@ internal sealed class ScenarioHost : IAsyncDisposable
         startInfo.ArgumentList.Add("autonomous-trusted");
         startInfo.ArgumentList.Add("--state-directory");
         startInfo.ArgumentList.Add(stateDirectory);
+        if (maxConcurrentQueries is int queryLimit)
+        {
+            startInfo.ArgumentList.Add("--max-concurrent-queries");
+            startInfo.ArgumentList.Add(queryLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         if (enableCompilerValidation)
         {
             startInfo.ArgumentList.Add("--commit-validation");

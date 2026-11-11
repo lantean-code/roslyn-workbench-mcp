@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,16 +19,17 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
 {
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
 
-#pragma warning disable MCPEXP001
-
     [Theory]
-    [InlineData(false, "missing-tool", "is not registered")]
-    [InlineData(true, "plugin-tool", "does not support task-augmented execution")]
+    [InlineData(false, "missing-tool", "is not registered", "2025-11-25")]
+    [InlineData(true, "plugin-tool", "does not support task-augmented execution", "2025-11-25")]
+    [InlineData(false, "missing-tool", "is not registered", "2026-07-28")]
+    [InlineData(true, "plugin-tool", "does not support task-augmented execution", "2026-07-28")]
     [Trait("Category", "Integration")]
     public async Task GIVEN_InvalidPluginCall_WHEN_RoutedThroughInstalledFilter_THEN_ShouldReturnProtocolErrorWithoutCapturingFailure(
         bool taskAugmented,
         string requestedToolName,
-        string expectedMessage)
+        string expectedMessage,
+        string protocolVersion)
     {
         var capturedErrorStore = new Mock<ICapturedErrorStore>();
         var builder = Host.CreateApplicationBuilder();
@@ -98,8 +100,10 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
             clientToServerPipe.Writer.AsStream(),
             serverToClientPipe.Reader.AsStream(),
             NullLoggerFactory.Instance);
+        var clientOptions = new McpClientOptions { ProtocolVersion = protocolVersion };
         await using var client = await McpClient.CreateAsync(
             clientTransport,
+            clientOptions,
             loggerFactory: NullLoggerFactory.Instance,
             cancellationToken: TestContext.Current.CancellationToken);
         using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -107,13 +111,13 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
 
         try
         {
-            var request = new CallToolRequestParams
+            var request = new JsonObject
             {
-                Name = requestedToolName,
-                Task = taskAugmented ? new McpTaskMetadata() : null,
+                ["name"] = requestedToolName,
+                ["task"] = taskAugmented ? new JsonObject() : null,
             };
 
-            var action = async () => await client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
+            var action = async () => await client.SendRequestAsync<JsonObject, CallToolResult>(
                 RequestMethods.ToolsCall,
                 request,
                 cancellationToken: timeoutCancellation.Token);
@@ -144,5 +148,4 @@ public sealed class PluginMcpRequestHandlerProtocolIntegrationTests
         }
     }
 
-#pragma warning restore MCPEXP001
 }

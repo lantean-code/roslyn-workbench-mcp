@@ -54,7 +54,7 @@
   
   <meta name="roslyn-workbench-version" content="dev">
 
-  <link data-rw-version-ui rel="stylesheet" href="../../../../assets/docs-version.css"><script data-rw-version-ui src="../../../../assets/docs-version.js" defer></script></head>
+  </head>
   
   
     
@@ -105,7 +105,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -117,9 +117,9 @@
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
-          <a class="md-ellipsis" href="../../../../index.html" style="color: inherit; text-decoration: none">
+          <span class="md-ellipsis">
             Roslyn Workbench MCP
-          </a>
+          </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
@@ -242,7 +242,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -1437,7 +1437,7 @@
 
 <h1 id="get-partial-declarations">Get Partial Declarations</h1>
 <p><code>get-partial-declarations</code> · Query · CorePlugin · Code discovery and navigation</p>
-<p>Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.</p>
+<p>Returns full source declaration spans for a resolved symbol, ordered by document path and source position. Use this to read the bodies of split partial type declarations; get-symbol-info provides symbol metadata and declaration-name locations, while find-references finds usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.</p>
 <p><strong>Availability:</strong> Built in and published in every operational mode.</p>
 <p>Generated from Roslyn Workbench MCP <code>0.0.0-dev</code> (<code>0.0.0-dev</code>).</p>
 <h2 id="behaviour-annotations">Behaviour annotations</h2>

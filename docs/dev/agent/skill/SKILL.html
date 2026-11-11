@@ -54,7 +54,7 @@
   
   <meta name="roslyn-workbench-version" content="dev">
 
-  <link data-rw-version-ui rel="stylesheet" href="../../../../assets/docs-version.css"><script data-rw-version-ui src="../../../../assets/docs-version.js" defer></script></head>
+  </head>
   
   
     
@@ -105,7 +105,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -117,9 +117,9 @@
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
-          <a class="md-ellipsis" href="../../../../index.html" style="color: inherit; text-decoration: none">
+          <span class="md-ellipsis">
             Roslyn Workbench MCP
-          </a>
+          </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
@@ -242,7 +242,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -1304,6 +1304,36 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#discover-tools-by-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discover tools by task
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-the-relevant-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow the relevant workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1324,6 +1354,37 @@
 
 <h1 id="roslyn-workbench">Roslyn Workbench</h1>
 <p>Treat the live tool schemas and <code>server-status</code> as authoritative for supported parameters, capabilities and operating mode.</p>
+<h2 id="discover-tools-by-task">Discover tools by task</h2>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>When to discover it</th>
+<th>Starting points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Workflow</td>
+<td>Open or manage a trusted workspace, recover a failed call, discover/prepare Roslyn Code Actions, or stage and persist source changes when mutations are enabled.</td>
+<td><code>server-status</code>, workspace lifecycle, error details/reporting, transactions, rename, formatting and Code Actions.</td>
+</tr>
+<tr>
+<td>Everyday inspection</td>
+<td>Understand projects and source, find a symbol, inspect its members or usages, or investigate compiler/analyser diagnostics.</td>
+<td><code>get-solution-structure</code>, <code>get-project-details</code>, <code>get-document-outline</code>, <code>get-code-context</code>, <code>search-symbols</code>, <code>get-symbol-info</code>, <code>get-symbol-members</code>, <code>find-references</code>, <code>get-diagnostics</code>.</td>
+</tr>
+<tr>
+<td>Specialist inspection</td>
+<td>Answer a specific relationship, flow, architecture, configuration or focused analysis question.</td>
+<td>Callers/callees, implementations/overrides, inheritance, overloads, attributes, partial declarations, API surface, document options, dependencies/cycles, change/test impact, async/nullability/disposal, unused symbols, duplicate code, data/control flow and operation trees.</td>
+</tr>
+</tbody>
+</table>
+<p>When the client defers tool definitions, use its discovery mechanism to search for the relevant capability or exact tool name, then read the returned schema before calling. A tool missing from the currently loaded model context may still be published. These are selection groups, not loading controls or a reduced server profile; startup policy and plugins still determine availability. Do not assume a policy-omitted tool can be enabled through discovery.</p>
+<p>Use the narrowest query that answers the task. For example, search for incoming callers with <code>find-callers</code>, outgoing call targets with <code>find-callees</code>, architecture dependencies with <code>get-dependency-graph</code>, circular dependencies with <code>find-dependency-cycles</code>, or variable reads/writes and captures with <code>analyze-data-flow</code>. For full source declaration spans across partial parts, discover <code>get-partial-declarations</code>; <code>get-symbol-info</code> provides symbol metadata and declaration-name locations. Bind a known source occurrence with <code>resolve-symbol</code>, or navigate its declaration with <code>go-to-definition</code>.</p>
+<p>Read only the references needed for the current task. Clients supporting the advertised <code>io.modelcontextprotocol/skills</code> extension can discover this skill with <code>skills/list</code> or retrieve its entry with <code>skills/get</code>, then verify file digests and sizes before loading. Other resource-capable clients can read <code>skill://roslyn-workbench/SKILL.md</code> directly. Reading an MCP resource does not itself install or activate a native client skill.</p>
+<h2 id="follow-the-relevant-workflow">Follow the relevant workflow</h2>
 <p>Reuse an open workspace or open the required solution/project. Load the reference for the task; use <a href="references/selectors.html">selectors</a> when turning query results into subsequent requests. For source edits, read <a href="references/transactions.html">transactions</a> alongside the relevant mutation reference.</p>
 <p>Queries see loaded source, including active staged changes. Edits remain in memory until <code>transaction-commit</code>.</p>
 <table>

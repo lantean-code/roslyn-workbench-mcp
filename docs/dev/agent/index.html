@@ -58,7 +58,7 @@
   
   <meta name="roslyn-workbench-version" content="dev">
 
-  <link data-rw-version-ui rel="stylesheet" href="../../../assets/docs-version.css"><script data-rw-version-ui src="../../../assets/docs-version.js" defer></script></head>
+  </head>
   
   
     
@@ -109,7 +109,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -121,9 +121,9 @@
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
-          <a class="md-ellipsis" href="../../../index.html" style="color: inherit; text-decoration: none">
+          <span class="md-ellipsis">
             Roslyn Workbench MCP
-          </a>
+          </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
@@ -246,7 +246,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -1514,7 +1514,8 @@
 <p>The bundle works without the repository checkout or an internet connection after download. Keep its files together; copying only <code>SKILL.md</code> loses the supporting workflow guidance. Update the bundle when updating the server.</p>
 <h2 id="read-through-mcp-resources">Read through MCP resources</h2>
 <p>Clients that support MCP resources can list and read <code>skill://roslyn-workbench/SKILL.md</code> from the connected Host and request its 11 referenced workflow files individually. Relative links resolve under the same <code>skill://roslyn-workbench/</code> URI. Client metadata and the logo are included in the separate download; MCP resources publish the Markdown guidance. The files are embedded in the installed Host and available offline in every operational mode without opening a workspace. Initial server instructions include the entry URI and this versioned web fallback.</p>
-<p>This is standard MCP resource delivery. Client support determines whether an agent can discover and load resources; publishing a skill file does not install or activate a native client skill. Native MCP Skills extension discovery is not advertised by this server. Separate installation is useful when the client supports local skills but does not expose resources to its agent.</p>
+<p>The server also advertises the experimental MCP Skills extension (<code>io.modelcontextprotocol/skills</code>, SEP-2640). Supporting clients can use <code>skills/list</code> or <code>skills/get</code> to retrieve the skill's frontmatter and a manifest of all 12 Markdown files, with SHA-256 digests and byte sizes. Clients fetch the files through <code>resources/read</code>, verify them against the manifest and compare the fetched entry point's frontmatter before loading. The metadata and file content come from the same embedded, version-matched guidance. The extension adds no tools or source-change permissions.</p>
+<p>Standard resource delivery remains available to clients without Skills extension support. Client support determines whether an agent can discover and load the skill; publication does not itself install or activate a native client skill. Separate installation is useful when the client supports local skills but does not expose MCP resources or Skills discovery to its agent.</p>
 <p>See <a href="../agent-setup.html">agent setup</a> for repository instructions, the <a href="../reference/tools/index.html">tool reference</a> for individual tool contracts, and <a href="../configuration.html">configuration</a> for operational policies.</p>
 
 

@@ -58,7 +58,7 @@
   
   <meta name="roslyn-workbench-version" content="dev">
 
-  <link data-rw-version-ui rel="stylesheet" href="../../../../assets/docs-version.css"><script data-rw-version-ui src="../../../../assets/docs-version.js" defer></script></head>
+  </head>
   
   
     
@@ -109,7 +109,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-header__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -121,9 +121,9 @@
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
-          <a class="md-ellipsis" href="../../../../index.html" style="color: inherit; text-decoration: none">
+          <span class="md-ellipsis">
             Roslyn Workbench MCP
-          </a>
+          </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
@@ -246,7 +246,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
+    <a href="../../index.html" title="Roslyn Workbench MCP" class="md-nav__button md-logo" aria-label="Roslyn Workbench MCP" data-md-component="logo">
       
   <img src="../../assets/generated/roslyn-workbench-mcp-icon.svg" alt="logo">
 
@@ -1637,7 +1637,7 @@
 <td><a href="find-dependency-cycles.html"><code>find-dependency-cycles</code></a></td>
 <td>Query</td>
 <td>CorePlugin</td>
-<td>Finds mutually dependent groups in a static dependency graph for the selected scope, or the loaded solution when scope is omitted. Use this to investigate circular coupling; use get-dependency-graph to inspect individual dependency edges. granularity defaults to Type; Namespace groups source dependencies and Project uses direct project references. A document scope uses its containing project for Project granularity. Returns a bounded cycles collection of strongly connected node groups, not ordered traversal paths. cyclesLimit defaults to 25; check cycles.hasMore for additional groups. Analysis budgets default to 25000 nodes and 100000 edges; exceeding either rejects the query with AnalysisLimitExceeded rather than returning a partial cycle analysis. Narrow the scope or raise the relevant budget to retry. Read-only; no tests or application code are run.</td>
+<td>Finds mutually dependent groups in a static dependency graph for the selected scope, or the loaded solution when scope is omitted. Use this to investigate circular dependencies and architectural coupling; use get-dependency-graph to inspect individual dependency edges. granularity defaults to Type; Namespace groups source dependencies and Project uses direct project references. A document scope uses its containing project for Project granularity. Returns a bounded cycles collection of strongly connected node groups, not ordered traversal paths. cyclesLimit defaults to 25; check cycles.hasMore for additional groups. Analysis budgets default to 25000 nodes and 100000 edges; exceeding either rejects the query with AnalysisLimitExceeded rather than returning a partial cycle analysis. Narrow the scope or raise the relevant budget to retry. Read-only; no tests or application code are run.</td>
 </tr>
 <tr>
 <td><a href="find-duplicate-code.html"><code>find-duplicate-code</code></a></td>
@@ -1667,7 +1667,7 @@
 <td><a href="get-dependency-graph.html"><code>get-dependency-graph</code></a></td>
 <td>Query</td>
 <td>CorePlugin</td>
-<td>Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.</td>
+<td>Builds a static architecture dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.</td>
 </tr>
 <tr>
 <td><a href="get-diagnostics.html"><code>get-diagnostics</code></a></td>
@@ -1782,7 +1782,7 @@
 <td><a href="get-partial-declarations.html"><code>get-partial-declarations</code></a></td>
 <td>Query</td>
 <td>CorePlugin</td>
-<td>Returns source declaration locations for a resolved symbol, ordered by document path and source position. Use this to navigate split partial type declarations; use get-symbol-info for symbol metadata or find-references for usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.</td>
+<td>Returns full source declaration spans for a resolved symbol, ordered by document path and source position. Use this to read the bodies of split partial type declarations; get-symbol-info provides symbol metadata and declaration-name locations, while find-references finds usages. Only declarations belonging to the resolved symbol are returned: partial method definition and implementation parts are not combined automatically. Metadata-only or implicitly declared symbols may return no declarations. Defaults to 32 locations; check declarations.hasMore before treating the results as complete.</td>
 </tr>
 <tr>
 <td><a href="get-project-details.html"><code>get-project-details</code></a></td>

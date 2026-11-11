@@ -1,0 +1,136 @@
+name: External-repository scenarios
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Pinned repository to exercise
+        type: choice
+        options: [guardclauses, serilog, efcore]
+        default: guardclauses
+      command:
+        description: Scenario family (choose matching scenario IDs)
+        type: choice
+        options: [measure, compiler-validation, commit, commit-cancellation, conflict, crash-recovery, state-sequence, concurrency, cancel, profile]
+        default: measure
+      scenario:
+        description: Scenario ID; measure also accepts comma-separated IDs or all
+        type: string
+        default: solution-structure
+        required: true
+      iterations:
+        description: Measured iterations
+        type: number
+        default: 5
+      warmups:
+        description: Warm-up iterations
+        type: number
+        default: 1
+  workflow_call:
+    inputs:
+      repository:
+        description: Pinned repository to exercise
+        type: string
+        default: guardclauses
+      command:
+        description: Scenario family
+        type: string
+        default: measure
+      scenario:
+        description: Scenario IDs, comma-separated
+        type: string
+        default: solution-structure
+      iterations:
+        description: Measured iterations
+        type: number
+        default: 5
+      warmups:
+        description: Warm-up iterations
+        type: number
+        default: 1
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    name: ${{ inputs.repository }} / ${{ inputs.command }} / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      SCENARIO_REPOSITORY: ${{ inputs.repository }}
+      SCENARIO_COMMAND: ${{ inputs.command }}
+      SCENARIO_IDS: ${{ inputs.scenario }}
+      SCENARIO_ITERATIONS: ${{ inputs.iterations }}
+      SCENARIO_WARMUPS: ${{ inputs.warmups }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate selection
+        run: |
+          if ($env:SCENARIO_REPOSITORY -notin @('guardclauses', 'serilog', 'efcore')) {
+            throw 'Select a pinned repository: guardclauses, serilog or efcore.'
+          }
+          if ($env:SCENARIO_COMMAND -notin @('measure', 'compiler-validation', 'commit', 'commit-cancellation', 'conflict', 'crash-recovery', 'state-sequence', 'concurrency', 'cancel', 'profile')) {
+            throw 'Select a supported scenario command.'
+          }
+          if ($env:SCENARIO_IDS -notmatch '^[a-zA-Z0-9-]+(,[a-zA-Z0-9-]+)*$') {
+            throw 'Supply scenario IDs separated by commas, without spaces.'
+          }
+          if ($env:SCENARIO_COMMAND -ne 'measure' -and ($env:SCENARIO_IDS -eq 'all' -or $env:SCENARIO_IDS.Contains(','))) {
+            throw 'Select exactly one named scenario for this command; only measure supports multiple IDs or all.'
+          }
+          if ($env:SCENARIO_ITERATIONS -notmatch '^[1-9][0-9]*$' -or $env:SCENARIO_WARMUPS -notmatch '^[0-9]+$') {
+            throw 'Iterations must be a positive integer and warm-ups a non-negative integer.'
+          }
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Run selected scenarios
+        run: |
+          $outputDirectory = Join-Path $env:GITHUB_WORKSPACE 'artifacts/scenarios'
+          New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+          @{
+            commit = $env:GITHUB_SHA
+            runnerOs = $env:RUNNER_OS
+            repository = $env:SCENARIO_REPOSITORY
+            command = $env:SCENARIO_COMMAND
+            scenarios = $env:SCENARIO_IDS
+            iterations = $env:SCENARIO_ITERATIONS
+            warmups = $env:SCENARIO_WARMUPS
+          } | ConvertTo-Json | Set-Content (Join-Path $outputDirectory 'invocation.json')
+          $runnerArguments = @(
+            $env:SCENARIO_COMMAND,
+            '--repository', $env:SCENARIO_REPOSITORY,
+            '--scenario', $env:SCENARIO_IDS,
+            '--iterations', $env:SCENARIO_ITERATIONS,
+            '--warmups', $env:SCENARIO_WARMUPS,
+            '--output', $outputDirectory
+          )
+          $logPath = Join-Path $outputDirectory 'runner.log'
+          if ($IsWindows) {
+            & ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.ps1 @runnerArguments 2>&1 | Tee-Object -FilePath $logPath
+          } else {
+            & bash ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh @runnerArguments 2>&1 | Tee-Object -FilePath $logPath
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "Scenario runner failed with exit code $LASTEXITCODE."
+          }
+      - name: Upload scenario evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scenarios-${{ inputs.repository }}-${{ inputs.command }}-${{ matrix.os }}
+          path: artifacts/scenarios
+          if-no-files-found: warn
+          retention-days: 30

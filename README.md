@@ -79,20 +79,24 @@ Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are best 
 
 ## Roslyn Workbench skill
 
-The optional skill guides agents through workspace selection, semantic inspection, Code Actions, transactions and recovery. Clients with MCP resource support can read `skill://roslyn-workbench/SKILL.md` from the installed server, with 11 task-specific references loaded only when needed.
+The optional skill guides agents through workspace selection, semantic inspection, Code Actions, transactions and recovery. Clients supporting the server's experimental MCP Skills extension can discover the bundled skill through `skills/list` and `skills/get`. Resource-capable clients can read `skill://roslyn-workbench/SKILL.md` directly, with 11 task-specific references loaded only when needed.
 
 For separate installation, [download the development skill bundle](https://lantean-code.github.io/roslyn-workbench-mcp/dev/assets/generated/roslyn-workbench-skill.zip) and follow the [installation guidance](https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/). Select documentation matching your installed server to obtain a release-specific bundle once available. Extract the complete `roslyn-workbench` directory, including its references, client metadata and logo, into your client's supported skill location. Discovery and activation depend on the client; the skill does not change permissions or Host policy.
 
 ## Improve agent tool selection
 
-Connecting Roslyn Workbench makes its tools available, but an MCP client may not select them automatically when ordinary file and text-search tools can also attempt the task. Short repository instructions can tell an agent when compiler-aware tooling is the better choice without forcing it into every C# workflow.
-
-Add this basic instruction to the user-level guidance used by your agent, or to repository guidance when it should apply only to a particular codebase:
+The skill defines when to use Roslyn Workbench and how to choose tools and follow their workflows. Add the following instructions to your agent's system or user configuration, or to repository guidance such as `AGENTS.md`. The manual rules apply only when the agent cannot access the skill.
 
 ```markdown
 ## Roslyn Workbench
 
-When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
+Use the roslyn-workbench skill when available, following its guidance on when and how to use Roslyn Workbench. The skill may be installed locally or accessible through the server's MCP Skills interface or the MCP resource skill://roslyn-workbench/SKILL.md.
+
+Only if the skill cannot be accessed and Roslyn Workbench MCP is available, follow these manual instructions:
+
+- Prefer Roslyn Workbench for C# symbol navigation, references, compiler diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes.
+- Follow the server instructions, live tool schemas, structured next actions and configured Host policy. Preview or review staged source changes before committing them.
+- Use the repository's normal tools and commands for builds, tests, package management, documentation and non-semantic file operations.
 ```
 
 The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) explains user-level and repository-level setup for Codex, GitHub Copilot, Claude Code and other MCP clients. User-level guidance avoids repeating the instruction when Roslyn Workbench is available across repositories, while repository guidance can provide a more specific layer for an individual codebase.

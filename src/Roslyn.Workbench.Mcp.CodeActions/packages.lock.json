@@ -439,7 +439,7 @@
           "Microsoft.Extensions.Options": "[10.0.15, )",
           "Microsoft.VisualStudio.SolutionPersistence": "[1.0.52, )",
           "Roslyn.Workbench.Mcp.Abstractions": "[0.0.0-dev, )",
-          "Stateless": "[5.20.1, )",
+          "Stateless": "[5.21.0, )",
           "TestableIO.System.IO.Abstractions.Wrappers": "[22.3.0, )"
         }
       },
@@ -541,9 +541,9 @@
       },
       "Stateless": {
         "type": "CentralTransitive",
-        "requested": "[5.20.1, )",
-        "resolved": "5.20.1",
-        "contentHash": "jQeuXgIeXEjFAImajavoxvJNcevO+zyK+9ICGzy0LRe/e1tP4vJUnO4Yrg6rP601wYRnulQs59mQH73TbIZzNg=="
+        "requested": "[5.21.0, )",
+        "resolved": "5.21.0",
+        "contentHash": "cGu7h9sZWPQAWk4smHoXsHl9tVZB53q4vEQo6if5lk0aooEZrkGlL3/+D8bxw+QRsUBDD00ybxFUFmnuwKG6qA=="
       },
       "System.Composition": {
         "type": "CentralTransitive",

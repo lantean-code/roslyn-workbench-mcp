@@ -1,6 +1,6 @@
 # Maintaining compatibility
 
-The [published compatibility policy](../content/compatibility.md) owns the user-facing 1.x guarantees. This guide records the implementation and validation mechanisms.
+The [published compatibility policy](../content/compatibility.md) owns the user-facing guarantees for the supported stable 1.x and 2.x lines. The 2.0 platform transition retains existing tool contracts, Plugin API V1 and recovery format V1. This guide records the implementation and validation mechanisms.
 
 ## SDK discovery and cold startup
 
@@ -22,7 +22,7 @@ The repository records canonical `tools/list` baselines for both supported outpu
 
 ## Recovery format mappings
 
-`Current` identifies the format written by a Host; a separate supported-format set identifies every format it can read. The Host probes the common version field first and dispatches supported evidence through immutable, version-specific persisted models and explicit mappings into the version-neutral runtime recovery model. Writing follows the reverse mapping into the current persisted model. Advancing `Current` therefore requires adding both mappings for the new format while retaining every earlier 1.x reader and keeping the V1 recovery fixtures green; a contract test fails when the current version and emitted version diverge.
+`Current` identifies the format written by a Host; a separate supported-format set identifies every format it can read. The Host probes the common version field first and dispatches supported evidence through immutable, version-specific persisted models and explicit mappings into the version-neutral runtime recovery model. Writing follows the reverse mapping into the current persisted model. Advancing `Current` therefore requires adding both mappings for the new format while retaining every earlier supported format reader and keeping the V1 recovery fixtures green; a contract test fails when the current version and emitted version diverge.
 
 ## Plugin API evidence
 

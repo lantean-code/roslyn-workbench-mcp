@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-document-options",
   "title": "Get Document Options",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Inspects configuration for one selected document, returning language version and project-level nullable context. Use this to understand configuration behind diagnostic results; use get-diagnostics for findings or get-project-details for broader project configuration. Source nullable directives can override the reported project-level context. Detailed parse options and analyser configuration are omitted by default: request includeParseOptions for documentation mode and preprocessor symbols, or includeAnalyzerConfig for project configuration-file paths and syntax-tree analyser options.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-document-options.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-document-options.html",
   "tool": {
     "name": "get-document-options",
     "title": "Get Document Options",

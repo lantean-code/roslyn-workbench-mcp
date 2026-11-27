@@ -1,0 +1,14 @@
+interface:
+  display_name: Roslyn Workbench
+  short_description: Use Roslyn semantics and transactional C# refactoring
+  default_prompt: Use $roslyn-workbench to inspect this C# solution and apply a focused,
+    reviewable change.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true

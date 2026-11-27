@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "analyze-async",
   "title": "Analyze Async",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Reports only bundled AsyncFixer01 through AsyncFixer06 diagnostics plus compiler warning CS4014 for selected source documents. Use this for focused async/await review, including bundled rules when the project does not reference AsyncFixer; use get-diagnostics for general compiler and project analyser findings. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 findings by default; check findings.hasMore before treating the report as complete.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/analyze-async.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/analyze-async.html",
   "tool": {
     "name": "analyze-async",
     "title": "Analyze Async",

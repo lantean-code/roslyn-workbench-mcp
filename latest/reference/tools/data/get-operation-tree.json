@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-operation-tree",
   "title": "Get Operation Tree",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Projects a semantic IOperation tree with operation kinds, types, constant-value presence and source locations. Use this to inspect the semantic structure at a source location; use analyze-data-flow for variable-flow sets or get-control-flow-graph for branches and successors. If the selected syntax node has no operation, the first immediate child with an operation is used. Echo the current expectedSnapshot. Defaults to 200 total nodes and maxDepth 8, counting the root at depth zero. Check the result and node truncated flags; nodesLimit zero returns a null root.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-operation-tree.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-operation-tree.html",
   "tool": {
     "name": "get-operation-tree",
     "title": "Get Operation Tree",

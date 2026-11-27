@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "find-implementations",
   "title": "Find Implementations",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Finds implementations of a resolved interface or member and returns symbol references. Use this to locate implementing types or members; use find-overrides for overrides of a virtual or abstract member, or find-references for source usages. Searches projects selected by scope, or the loaded solution when scope is omitted. Returns up to 100 implementations by default; check implementations.hasMore before treating the results as complete.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/find-implementations.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/find-implementations.html",
   "tool": {
     "name": "find-implementations",
     "title": "Find Implementations",

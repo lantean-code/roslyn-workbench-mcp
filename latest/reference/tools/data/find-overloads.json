@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "find-overloads",
   "title": "Find Overloads",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Lists callable signatures for a resolved method or constructor so you can compare parameter and return types. Requires a callable symbol; use search-symbols to discover one first. Methods are matched by name and method kind within the same containing type; instance constructors include only explicitly declared constructors. The selected callable can appear in the results. This does not resolve a call against arguments or collect inherited overloads. Returns symbol and a bounded overloads collection ordered by parameter count then signature. overloadsLimit defaults to 50; check overloads.hasMore for truncation. Reads symbols without invoking code.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/find-overloads.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/find-overloads.html",
   "tool": {
     "name": "find-overloads",
     "title": "Find Overloads",

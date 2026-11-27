@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-symbol-members",
   "title": "Get Symbol Members",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Lists members of a resolved named type to inspect its declaration surface. Use get-api-surface for an accessibility-filtered API inventory or get-symbol-info for details about one member. Defaults to explicitly declared members of the selected type, including non-public members. includeInherited adds base-type members except private, implicit and constructor/destructor members. includeExplicitInterface adds declarations from all implemented or inherited interfaces, not just explicit implementations on the selected type. Both options default to false. Returns symbol and a distinct, bounded members collection; membersLimit defaults to 100. Check members.hasMore for truncation. Reads the loaded workspace without modifying source.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-symbol-members.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-symbol-members.html",
   "tool": {
     "name": "get-symbol-members",
     "title": "Get Symbol Members",

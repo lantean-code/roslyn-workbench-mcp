@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "workspace-list",
   "title": "Workspace List",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Lists workspaces currently loaded in this Host, returning their identities and transactionOwnerWorkspaceId when a transaction is active. Use this to discover workspaceId, alias or path selectors before workspace-status or other workspace tools; use workspace-open to load a new workspace. Takes no workspace selector and can return an empty list. This read-only inventory does not discover repositories on disk or workspaces loaded only by other Host processes. Use workspace-status for lifecycle, reload requirements and advisory cross-instance information.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/workspace-list.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/workspace-list.html",
   "tool": {
     "name": "workspace-list",
     "title": "Workspace List",

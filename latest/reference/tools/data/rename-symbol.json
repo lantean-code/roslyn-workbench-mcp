@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "rename-symbol",
   "title": "Rename Symbol",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Mutation",
   "summary": "Stages a Roslyn symbol rename and reference updates across the current transaction solution. Use this for a resolved symbol rename; use code-action discovery for provider-specific transformations. Requires an active transaction, symbol, newName and the current expectedSnapshot. renameOverloads, renameInStrings, renameInComments and renameFile all default to false; renameFile asks Roslyn to rename the containing file for type symbols and stages the resulting path change. An unchanged name produces no change. Successful staging returns mutation details and a new snapshot for subsequent requests. Inspect transaction-preview, or transaction-review in approval-required mode, then commit or roll back promptly. Source files are written only by transaction-commit; this tool does not create a Git commit.",
   "availability": "Published in transactional, approval-required and autonomous-trusted operational modes.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/rename-symbol.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/rename-symbol.html",
   "tool": {
     "name": "rename-symbol",
     "title": "Rename Symbol",

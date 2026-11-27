@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-type-hierarchy",
   "title": "Get Type Hierarchy",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Inspects the inheritance neighbourhood of a resolved named type, returning type, baseTypes, interfaces and derivedTypes. Use this for a combined hierarchy view; use find-derived-types when you need a scoped descendant search. Derived types are included by default and searched across the loaded solution; includeDerived=false omits that collection. maxDepth defaults to 3 for base and derived types, with direct relationships at depth 1; it does not limit the transitive interface list. Independent result limits default to 16 base types, 64 interfaces and 100 derived types. Check each collection.hasMore for result truncation; base and derived counts describe only the requested depth. Read-only; no code is executed.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-type-hierarchy.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-type-hierarchy.html",
   "tool": {
     "name": "get-type-hierarchy",
     "title": "Get Type Hierarchy",

@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "workspace-status",
   "title": "Workspace Status",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Inspects a loaded workspace, returning its lifecycle state, identity, project/document counts, active transaction, reloadRequired, detected external change and other live instances. Use this before mutation or after external edits; use server-status for Host configuration and component health. detail defaults to Standard; Full also includes workspace load diagnostics. Advisory instance-status diagnostics can appear at any detail level. Checking status detects external input changes and can mark the workspace out of date or its transaction conflicted. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale; coordinate mutation ownership first. No source files are written.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/workspace-status.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/workspace-status.html",
   "tool": {
     "name": "workspace-status",
     "title": "Workspace Status",

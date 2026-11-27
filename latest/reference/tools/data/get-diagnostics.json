@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-diagnostics",
   "title": "Get Diagnostics",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Returns compiler diagnostics and diagnostics from analysers referenced by the selected projects. Use this for general diagnostic inspection; use analyze-async for the additional bundled AsyncFixer rule set, or get-document-options to inspect document configuration. Omitted scope searches the loaded solution. Document scope keeps diagnostics whose primary source location belongs to that document; broader scopes can include findings without source locations. Requested diagnostic IDs and severities filter results before the default 200-diagnostic limit. Check diagnostics.hasMore before treating the report as complete.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-diagnostics.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-diagnostics.html",
   "tool": {
     "name": "get-diagnostics",
     "title": "Get Diagnostics",

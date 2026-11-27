@@ -1,21 +1,21 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-dependency-graph",
   "title": "Get Dependency Graph",
   "area": "CorePlugin",
   "category": "Code analysis",
   "operationKind": "Query",
-  "summary": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
+  "summary": "Builds a static architecture dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-dependency-graph.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-dependency-graph.html",
   "tool": {
     "name": "get-dependency-graph",
     "title": "Get Dependency Graph",
-    "description": "Builds a dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
+    "description": "Builds a static architecture dependency graph at Project, Namespace, Type or Symbol granularity, with edges directed from dependents to dependencies. Use this to inspect relationships across a scope; use get-symbol-dependencies or get-symbol-dependents for one symbol, or get-change-impact for a symbol-centred count summary. Project granularity uses selected projects; other granularities use selected source documents. Omitted scope covers the loaded solution. Defaults to Type granularity, 200 nodes and 400 edges. Check both nodes.hasMore and edges.hasMore; omitted nodes also exclude their connected edges.",
     "inputSchema": {
       "type": "object",
       "properties": {

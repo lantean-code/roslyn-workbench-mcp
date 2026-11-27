@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "workspace-close",
   "title": "Workspace Close",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Mutation",
   "summary": "Closes the selected workspace and releases its loaded solution, file watching and Host resources without changing source files. Use this when finished with a workspace; use workspace-reload to refresh an out-of-date workspace and continue working. An active or conflicted transaction blocks close: commit or roll it back first. Use workspace-open to load the workspace again.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/workspace-close.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/workspace-close.html",
   "tool": {
     "name": "workspace-close",
     "title": "Workspace Close",

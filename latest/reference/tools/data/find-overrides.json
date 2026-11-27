@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "find-overrides",
   "title": "Find Overrides",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Finds distinct overriding methods, properties or events for a resolved member. Use this to follow virtual or abstract member overrides; use find-implementations for interface implementations or find-derived-types for type inheritance. Searches the selected projects, or the loaded solution when scope is omitted; a document scope searches its containing project. Returns the selected symbol and a bounded overrides collection of symbol references. overridesLimit defaults to 100; check overrides.hasMore before treating the list as complete. This is a read-only symbol search and does not execute the member.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/find-overrides.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/find-overrides.html",
   "tool": {
     "name": "find-overrides",
     "title": "Find Overrides",

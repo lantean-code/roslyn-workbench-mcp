@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "list-code-actions",
   "title": "List Code Actions",
   "area": "CodeAction",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Discovers applicable Roslyn Code Fixes and refactorings for a document, selection or caret. Use this to choose an actionId for stage-code-action in mutation-enabled modes, or a Code Fix with advertised fixAllScopes for prepare-fix-all. Echo the current expectedSnapshot. Omitted range selects the whole document; a zero-length range selects a caret, using zero-based UTF-16 positions. Returns up to 50 action leaves by default; check actions.hasMore. Action IDs are temporary, process-local and tied to the exact workspace snapshot: rediscover after changes or expiry. Listing stores references but does not stage changes or write source files.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/list-code-actions.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/list-code-actions.html",
   "tool": {
     "name": "list-code-actions",
     "title": "List Code Actions",

@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "transaction-history",
   "title": "Transaction History",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Mutation",
   "summary": "Undoes or redoes one staged revision within the active transaction, changing the in-memory solution without writing source files. Use this to revise staged work; use transaction-rollback to discard the entire transaction. Supply the current expectedSnapshot and use the returned snapshot for subsequent mutations. The returned transaction reports canUndo and canRedo; a move beyond available history is rejected. A conflicted transaction must be rolled back before history can change.",
   "availability": "Published in transactional, approval-required and autonomous-trusted operational modes.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/transaction-history.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/transaction-history.html",
   "tool": {
     "name": "transaction-history",
     "title": "Transaction History",

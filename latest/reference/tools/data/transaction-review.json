@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "transaction-review",
   "title": "Transaction Review",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Reviews the exact validated source-file persistence set for a staged transaction in approval-required mode. Requires at least one staged revision and the current expectedSnapshot. Returns file changes, validation results, provenance, a change-set digest, receiptId and expiresAt. The receipt is process-local, lasts up to 15 minutes, and is bound to the reviewed snapshot and transaction revision; obtain a new review after changing the transaction or expiry. includeDiff defaults to false; set it to true with document for one detailed diff, using contextLines (default 3). Inspect the complete change set, then call transaction-commit with receiptId and the returned snapshot for one-use client approval. Review itself does not approve or write source files.",
   "availability": "Published only in approval-required operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/transaction-review.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/transaction-review.html",
   "tool": {
     "name": "transaction-review",
     "title": "Transaction Review",

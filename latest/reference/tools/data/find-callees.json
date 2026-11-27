@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "find-callees",
   "title": "Find Callees",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Finds distinct method and constructor targets invoked by a source executable symbol or selected executable region. Use this for outgoing calls; use find-callers for incoming call sites. Reads the loaded workspace without executing code. Direct calls are the default; includeIndirect traverses reachable source bodies up to maxDepth (default 3, direct calls at depth 1). Nested lambda and local-function bodies are skipped during each body scan. Returns source and a bounded callees collection, not call sites or runtime dispatch targets. calleesLimit defaults to 100; check callees.hasMore for result truncation within the requested depth.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/find-callees.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/find-callees.html",
   "tool": {
     "name": "find-callees",
     "title": "Find Callees",

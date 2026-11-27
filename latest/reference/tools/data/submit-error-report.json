@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "submit-error-report",
   "title": "Submit Error Report",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Mutation",
   "summary": "Submits a reviewed unexpected-failure report through the configured provider. First use prepare-error-report and review its destination, payloadJson and payloadDigest, then supply its unexpired submissionHandle. Use get-error-details for local investigation instead. Prompt consent (default) requests client approval and offers exception-message removal; Always consent skips the prompt. Declined or unavailable approval sends nothing; declining also discards the handle. Success means provider acceptance: Sentry queues an external event, while the Logging provider writes locally. It does not confirm remote delivery or offer retraction. Reusing a retained successful handle returns its receipt without dispatching again; an expired handle requires a new prepared report.",
   "availability": "Published in every operational mode when external error-report consent is configured as Prompt or Always.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/submit-error-report.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/submit-error-report.html",
   "tool": {
     "name": "submit-error-report",
     "title": "Submit Error Report",

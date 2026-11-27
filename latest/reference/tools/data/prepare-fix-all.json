@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "prepare-fix-all",
   "title": "Prepare Fix All",
   "area": "CodeAction",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Evaluates one supported Document, Project or Solution Fix All operation for a Code Fix from list-code-actions, without staging or writing source files. Supply the originating actionId, an advertised fixAllScopes value and the matching expectedSnapshot; refactorings and already-prepared Fix All references are not accepted. Rejects operations exceeding maxChanges source documents, default 50. The affectedDocuments preview is limited separately to 20 identities by default; check its hasMore and totalCount. Returns a new temporary actionId for stage-code-action in mutation-enabled modes: use this prepared ID, not the originating ID, with the same snapshot. Staging revalidates the exact prepared change set.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/prepare-fix-all.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/prepare-fix-all.html",
   "tool": {
     "name": "prepare-fix-all",
     "title": "Prepare Fix All",

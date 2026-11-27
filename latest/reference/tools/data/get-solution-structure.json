@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-solution-structure",
   "title": "Get Solution Structure",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Maps the loaded solution into solution folders and projects with workspace-relative paths, target frameworks and direct project references. Use this first to discover project and document selectors; use get-dependency-graph for a dependency graph or get-code-context to read a selected source region. Documents are omitted unless includeDocuments=true. Independent limits default to 200 folders, 100 projects, 50 references per project and 200 documents per project. Returns solutionPath and bounded folders and projects collections; check their hasMore flags and those on each projectReferences or documents collection for truncation. This read-only query can report ProjectStructureUnavailable if hierarchy or target-framework information cannot be obtained.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-solution-structure.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-solution-structure.html",
   "tool": {
     "name": "get-solution-structure",
     "title": "Get Solution Structure",

@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "find-unused-symbols",
   "title": "Find Unused Symbols",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Uses only compiler diagnostics CS0168, CS0169 and CS0219 to identify candidate unused symbols. Use this to review potentially removable locals and private members; inspect find-references before removing code, or get-diagnostics for the underlying warnings. includeInternal widens the accessibility filter; generated-looking documents are excluded by default. Searches the selected scope, or the loaded solution when scope is omitted. Returns up to 50 candidates by default; check candidates.hasMore before treating the candidate list as complete.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/find-unused-symbols.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/find-unused-symbols.html",
   "tool": {
     "name": "find-unused-symbols",
     "title": "Find Unused Symbols",

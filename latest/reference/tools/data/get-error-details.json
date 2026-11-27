@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-error-details",
   "title": "Get Error Details",
   "area": "Server",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Returns temporary local diagnostic details for an unexpected tool or resource-read failure. The result may contain paths and user-authored identifiers, is intended only for the trusted local agent, and must never be submitted externally.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-error-details.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-error-details.html",
   "tool": {
     "name": "get-error-details",
     "title": "Get Error Details",

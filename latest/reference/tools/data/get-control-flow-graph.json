@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/tool-detail.schema.json",
   "formatVersion": "roslyn-workbench-tool-reference/v1",
-  "productVersion": "1.2.0",
-  "sourceTag": "1.2.0",
-  "commit": "f6597970a8eb30f4edb6285f7f605bc7eefebc10",
+  "productVersion": "2.0.0",
+  "sourceTag": "2.0.0",
+  "commit": "a9e52fb4274eb0e72e0a5e999cda35a44bc3cfb6",
   "name": "get-control-flow-graph",
   "title": "Get Control Flow Graph",
   "area": "CorePlugin",
@@ -11,7 +11,7 @@
   "operationKind": "Query",
   "summary": "Builds a Roslyn control-flow graph for a source symbol or the executable body enclosing a source location, with basic blocks, reachability, successor ordinals, operations and flow regions. Use this to inspect branching across an executable body; use analyze-control-flow for reachability and exits of an exact statement region, or get-operation-tree for nested semantic operations. Defaults to 64 blocks, 32 regions and 32 operations per block, bounded independently. Check blocks.hasMore, regions.hasMore and each block operations.hasMore; successor ordinals may refer to blocks omitted by the block limit.",
   "availability": "Built in and published in every operational mode.",
-  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/1.2.0/reference/tools/get-control-flow-graph.html",
+  "documentationUrl": "https://lantean-code.github.io/roslyn-workbench-mcp/2.0.0/reference/tools/get-control-flow-graph.html",
   "tool": {
     "name": "get-control-flow-graph",
     "title": "Get Control Flow Graph",

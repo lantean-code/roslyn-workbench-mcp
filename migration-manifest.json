@@ -3,10 +3,10 @@
   "latestDocs": "2.0.0",
   "release": {
     "package": "Lantean.Roslyn.Workbench.Mcp",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "source": "https://api.nuget.org/v3/index.json",
-    "packageUrl": "https://api.nuget.org/v3-flatcontainer/lantean.roslyn.workbench.mcp/1.2.0/lantean.roslyn.workbench.mcp.1.2.0.nupkg",
-    "sha256": "0e23e85760a4edd54859ad13f051ece67c27e7588926903a0c51059cb43352fa"
+    "packageUrl": "https://api.nuget.org/v3-flatcontainer/lantean.roslyn.workbench.mcp/2.0.0/lantean.roslyn.workbench.mcp.2.0.0.nupkg",
+    "sha256": "f0f5b80558b14623b4a73c6a2f6250d8a10d924eb5987e5b36546bb7be67494b"
   },
   "mappings": [
     {

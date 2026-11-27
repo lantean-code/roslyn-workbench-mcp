@@ -54,6 +54,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="ModelContextProtocol.Extensions.Skills" />
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="Sentry" />
     <PackageReference Include="System.Composition" />

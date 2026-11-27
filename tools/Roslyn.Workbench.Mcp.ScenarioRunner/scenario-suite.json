@@ -208,7 +208,8 @@
                 "diagnosticId": "IDE0058",
                 "location": {
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs",
-                  "start": 390,
+                  "line": 18,
+                  "column": 8,
                   "length": 68
                 },
                 "captureAs": "guard-use-discard",
@@ -272,7 +273,8 @@
                 "diagnosticId": "IDE0058",
                 "location": {
                   "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs",
-                  "start": 390,
+                  "line": 18,
+                  "column": 8,
                   "length": 68
                 },
                 "captureAs": "guard-use-discard",

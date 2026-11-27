@@ -19,7 +19,7 @@ internal sealed class ConflictRunner
     private static readonly byte[] _externalMarker = Encoding.UTF8.GetBytes(
         $"{Environment.NewLine}// Roslyn Workbench external conflict marker{Environment.NewLine}");
 
-    private static readonly TimeSpan _manifestTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan _manifestTimeout = TimeSpan.FromMinutes(10);
     private readonly ScenarioHost _host;
     private readonly string _repositoryRoot;
     private readonly string _stateDirectory;
@@ -116,13 +116,23 @@ internal sealed class ConflictRunner
         CancellationToken cancellationToken)
     {
         var commitStopwatch = Stopwatch.StartNew();
-        var injectionTask = InjectWhenApplyingAsync(cancellationToken);
         var commitTask = _host.CallToolAsync(
             "transaction-commit",
             CreateMutationArguments(),
             cancellationToken).AsTask();
+        var injectionTask = InjectWhenApplyingAsync(commitTask, cancellationToken);
 
-        var externalMutation = await injectionTask;
+        ExternalFileMutation externalMutation;
+        try
+        {
+            externalMutation = await injectionTask;
+        }
+        catch
+        {
+            await commitTask;
+            throw;
+        }
+
         var conflictDetectionMilliseconds = commitStopwatch.Elapsed.TotalMilliseconds;
         var recoveryStopwatch = Stopwatch.StartNew();
         var result = await commitTask;
@@ -154,36 +164,53 @@ internal sealed class ConflictRunner
     }
 
     private async Task<ExternalFileMutation> InjectWhenApplyingAsync(
+        Task<CallToolResult> commitTask,
         CancellationToken cancellationToken)
     {
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(_manifestTimeout);
         var recoveryDirectory = Path.Combine(_stateDirectory, "recovery");
 
-        while (true)
+        try
         {
-            timeoutSource.Token.ThrowIfCancellationRequested();
-            if (Directory.Exists(recoveryDirectory))
+            while (true)
             {
-                foreach (var manifestPath in Directory.EnumerateFiles(
-                    recoveryDirectory,
-                    "manifest.json",
-                    SearchOption.AllDirectories))
+                timeoutSource.Token.ThrowIfCancellationRequested();
+                if (commitTask.IsCompleted)
                 {
-                    var target = await TryReadApplyingTargetAsync(
-                        manifestPath,
-                        timeoutSource.Token);
-                    if (target is not null)
+                    var result = await commitTask;
+                    throw new InvalidOperationException(
+                        $"The commit completed before conflict injection: {result.StructuredContent?.GetRawText()}");
+                }
+
+                if (Directory.Exists(recoveryDirectory))
+                {
+                    foreach (var manifestPath in Directory.EnumerateFiles(
+                        recoveryDirectory,
+                        "manifest.json",
+                        SearchOption.AllDirectories))
                     {
-                        return await MutateFileAsync(
-                            target.Value.Path,
-                            target.Value.OriginalSha256,
+                        var target = await TryReadApplyingTargetAsync(
+                            manifestPath,
                             timeoutSource.Token);
+                        if (target is not null)
+                        {
+                            return await MutateFileAsync(
+                                target.Value.Path,
+                                target.Value.OriginalSha256,
+                                timeoutSource.Token);
+                        }
                     }
                 }
-            }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(2), timeoutSource.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(2), timeoutSource.Token);
+            }
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"No Applying replacement target was observed within {_manifestTimeout}.",
+                exception);
         }
     }
 
@@ -193,7 +220,14 @@ internal sealed class ConflictRunner
     {
         try
         {
-            await using var stream = File.OpenRead(manifestPath);
+            var streamOptions = new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.ReadWrite | FileShare.Delete,
+                Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+            };
+            await using var stream = new FileStream(manifestPath, streamOptions);
             using var document = await JsonDocument.ParseAsync(
                 stream,
                 cancellationToken: cancellationToken);

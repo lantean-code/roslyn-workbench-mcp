@@ -78,7 +78,14 @@ internal sealed class RoslynWorkbenchMcpServerOptionsConfiguration : IConfigureO
         Open only fully trusted C# workspaces; build logic and analysers run unsandboxed with Host permissions.
         Prefer queries before mutations. {{workflow}}
         {{persistenceGuidance}}
+        Discover Roslyn C# tools by task: workflow, everyday inspection, specialist inspection.
         Skill: skill://roslyn-workbench/SKILL.md
+
+        Workflow: workspace lifecycle, status, error recovery and Roslyn Code Action discovery/preparation; when mutations are enabled, transactions, rename, formatting and Code Action staging. Discover fixes/refactorings with list-code-actions; preview or review staged changes before committing according to the operating mode above.
+        Everyday inspection: start with get-solution-structure, get-project-details, get-document-outline, get-code-context, search-symbols, get-symbol-info, get-symbol-members, find-references and get-diagnostics as the task requires.
+        Specialist inspection: search for callers/callees, implementations/overrides, inheritance, overloads, attributes, partial declarations, API surface, document configuration, dependencies/cycles, change/test impact, async/nullability/disposal, unused symbols, duplicate code, data/control flow or operation trees when those questions arise. Use resolve-symbol to bind a known source location and go-to-definition for declaration navigation.
+        If your client defers tool definitions, search for the relevant capability or exact tool name, then read its schema before calling. These groups guide selection; they do not hide tools or control client loading. The live tools/list and server-status are authoritative for availability and policy. Reuse returned selectors and snapshots; follow structured failure continuations.
+        Discover the bundled skill with skills/list or skills/get when your client supports io.modelcontextprotocol/skills; otherwise read its resource URI. Read the skill entry point and only the task-relevant references. Native skill activation depends on the client.
         Docs: {{agentGuideUrl}}
         """;
     }

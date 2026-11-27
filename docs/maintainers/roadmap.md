@@ -15,7 +15,6 @@ Consult README and release notes for current contribution and plugin-package ava
 
 - Share read-only Workspace fixtures across test collections only if measured integration feedback time justifies it and thread safety is proven. Mutable state remains scenario-isolated.
 - Replace source-governance tests with analysers only when the current check is materially too slow, too late or unreliable, and keep equivalent enforcement before removing the test.
-- Remove the acceptance client's forced-cleanup fallback when a stable MCP SDK supports graceful redirected-stdin closure before waiting for process exit. Retain explicit stdin-EOF lifetime coverage.
 - Support additional independently composed MEF module assemblies only when a concrete plugin needs them; define discovery, identity, isolation and collision rules first.
 
 These are product directions and conditional design triggers, not dated delivery commitments or an implementation work log.

@@ -171,16 +171,16 @@ The Code Action compatibility audit remains a separate workflow because it is sl
 
 ## Release validation and performance history
 
-Published-Host acceptance runs on native Ubuntu and Windows when a maintainer requests `validation/full`, when a pull request targets `main`, or as part of a manually dispatched release. It uses small checked-in fixtures and deterministic public MCP workflows. External-repository scenarios remain manual engineering and performance analysis outside GitHub Actions. Reuse completed evidence when it answers the current question; run selected scenarios only when additional evidence is useful. Once the repository is public, manual investigation may include a curated macOS subset as best-effort evidence.
+Published-Host acceptance runs on native Ubuntu and Windows when a maintainer requests `validation/full`, when a pull request targets `main`, or as part of a manually dispatched release. It uses small checked-in fixtures and deterministic public MCP workflows. External-repository scenarios remain an explicit development investigation, separate from releases and ordinary CI. Run them locally or manually dispatch the reusable **External-repository scenarios** workflow (`.github/workflows/scenarios.yml`) after substantial changes such as a Roslyn or MCP SDK upgrade. It runs selected scenarios on native Windows and Ubuntu and retains available results and logs for 30 days. See the [scenario runner guidance](../../tools/Roslyn.Workbench.Mcp.ScenarioRunner/README.md#manual-build-agent-runs-and-retained-evidence) for selection and evidence limits. Reuse completed evidence when it answers the current question; run selected scenarios only when additional evidence is useful.
 
 Release acceptance uses the installed release package for normal workflows and error-report preparation/refusal checks. The three cases that approve error-report submission use a separately published DSN-free Host and verify the logging dispatcher before submission, so these cases cannot send synthetic reports to the release package's live Sentry destination. Clearing an environment variable at test time cannot remove a DSN embedded during packaging. The DSN-free Host is a test fixture, not a replacement release artefact.
 
 Scenario output has two retention levels:
 
-- detailed JSON, summaries, validation files, traces, counters and heap captures remain local investigation evidence, with selected files retained for a release when useful; and
-- a versioned normalised metrics aggregate plus its previous-release comparison are durable GitHub release assets.
+- detailed JSON, summaries, validation files, traces, counters and heap captures remain local investigation evidence or temporary workflow artifacts; and
+- useful results can be summarised into a versioned normalised metrics aggregate and retained with an investigation or, with explicit publication approval, attached to a GitHub release.
 
-GitHub Actions artifacts are not the permanent performance history because their retention is bounded by repository or organisation policy. The final aggregate is attached to its release and becomes the baseline downloaded by the next release run. Generated metrics are not committed to `main`.
+GitHub Actions artifacts are not the permanent performance history because their retention is bounded by repository or organisation policy. Download evidence worth retaining before it expires. Scenario aggregation, comparison and attachment to releases are manual actions; the scenario workflow does not publish release assets or download a previous-release baseline. Generated metrics are not committed to `main`.
 
 The aggregate records enough identity to prevent invalid comparisons: Host commit and version, scenario-suite hash, pinned target-repository commits, command and parameters, operating system, architecture, .NET runtime and sample counts. Compare only like-for-like observations. Display runner or scenario drift explicitly.
 

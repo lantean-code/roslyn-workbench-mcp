@@ -1,4 +1,4 @@
-# Roslyn Workbench MCP
+# Roslyn MCP Server - Roslyn Workbench MCP
 
 <!-- mcp-name: io.github.lantean-code/roslyn-workbench-mcp -->
 
@@ -8,7 +8,7 @@
 
 The C# fixes and refactorings you use in Visual Studio 2026—now available to your AI coding agent.
 
-Roslyn Workbench MCP gives your agent access to Roslyn Code Actions and compiler-aware C# analysis through a local MCP server. Your agent can discover applicable fixes and refactorings, apply the compiler-generated changes, and show you the result before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.
+Roslyn Workbench MCP is a local Roslyn MCP server for C# and .NET coding agents. It provides Roslyn Code Actions, compiler-aware analysis and reviewable source changes through the Model Context Protocol. Your agent can discover applicable fixes and refactorings, apply the compiler-generated changes, and show you the result before writing source files. It uses the same .NET Compiler Platform that powers Visual Studio's C# tooling.
 
 ## Put Roslyn Code Actions to work
 
@@ -23,6 +23,12 @@ Over 230 eligible built-in Roslyn Code Fix and refactoring providers sit behind 
 These are Roslyn-generated changes, selected for your actual code and project configuration—not instructions for an agent to imitate a refactoring with text replacements. See the [Code Action guide](https://lantean-code.github.io/roslyn-workbench-mcp/latest/code-actions.html) for discovery, Fix All and staging.
 
 The provider count is not a count of individual actions: a provider can offer multiple choices, and applicability depends on the code, diagnostics and project configuration. Actions requiring interactive option dialogs, package installation or unsupported project-system changes are excluded; this is not complete Visual Studio feature parity.
+
+[![NuGet](https://img.shields.io/nuget/v/Lantean.Roslyn.Workbench.Mcp)](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp)
+[![CI](https://github.com/lantean-code/roslyn-workbench-mcp/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/lantean-code/roslyn-workbench-mcp/actions/workflows/tests.yml?query=branch%3Adevelop)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[![Roslyn Workbench MCP MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp/badges/card.svg)](https://glama.ai/mcp/servers/lantean-code/roslyn-workbench-mcp)
 
 ## Understand the code before changing it
 
@@ -41,7 +47,7 @@ The server runs locally over stdio, with workspace analysis and refactoring perf
 
 ## Install
 
-Roslyn Workbench is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp) as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Pin the exact release version you intend to run. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/latest/compatibility.html) defines the stable 1.x guarantees for tools, errors and continuations, recovery formats and plugin APIs.
+Roslyn Workbench is distributed through [NuGet.org](https://www.nuget.org/packages/Lantean.Roslyn.Workbench.Mcp) as the `Lantean.Roslyn.Workbench.Mcp` .NET tool and requires a supported .NET 10 SDK. Pin the exact release version you intend to run. The [compatibility policy](https://lantean-code.github.io/roslyn-workbench-mcp/latest/compatibility.html) defines the stable compatibility guarantees for tools, errors and continuations, recovery formats and plugin APIs.
 
 Run an exact package version without a permanent installation:
 
@@ -73,20 +79,24 @@ Windows x64, Linux x64 and WSL2 x64 are supported. macOS x64 and ARM64 are best 
 
 ## Roslyn Workbench skill
 
-The optional skill guides agents through workspace selection, semantic inspection, Code Actions, transactions and recovery. Clients with MCP resource support can read `skill://roslyn-workbench/SKILL.md` from the installed server, with 11 task-specific references loaded only when needed.
+The optional skill guides agents through workspace selection, semantic inspection, Code Actions, transactions and recovery. Clients supporting the server's experimental MCP Skills extension can discover the bundled skill through `skills/list` and `skills/get`. Resource-capable clients can read `skill://roslyn-workbench/SKILL.md` directly, with 11 task-specific references loaded only when needed.
 
 For separate installation, [download the development skill bundle](https://lantean-code.github.io/roslyn-workbench-mcp/dev/assets/generated/roslyn-workbench-skill.zip) and follow the [installation guidance](https://lantean-code.github.io/roslyn-workbench-mcp/dev/agent/). Select documentation matching your installed server to obtain a release-specific bundle once available. Extract the complete `roslyn-workbench` directory, including its references, client metadata and logo, into your client's supported skill location. Discovery and activation depend on the client; the skill does not change permissions or Host policy.
 
 ## Improve agent tool selection
 
-Connecting Roslyn Workbench makes its tools available, but an MCP client may not select them automatically when ordinary file and text-search tools can also attempt the task. Short repository instructions can tell an agent when compiler-aware tooling is the better choice without forcing it into every C# workflow.
-
-Add this basic instruction to the user-level guidance used by your agent, or to repository guidance when it should apply only to a particular codebase:
+The skill defines when to use Roslyn Workbench and how to choose tools and follow their workflows. Add the following instructions to your agent's system or user configuration, or to repository guidance such as `AGENTS.md`. The manual rules apply only when the agent cannot access the skill.
 
 ```markdown
 ## Roslyn Workbench
 
-When Roslyn Workbench MCP is available, consider using it for C# work that benefits from compiler semantics, including precise symbol navigation, references, diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes. Its semantic tools are particularly useful when symbol identity or compiler interpretation matters, while the repository's normal tools and commands remain suitable for builds, tests, package management, documentation and non-semantic file operations. Transaction previews and structured next actions can help keep source changes safe and easy to review.
+Use the roslyn-workbench skill when available, following its guidance on when and how to use Roslyn Workbench. The skill may be installed locally or accessible through the server's MCP Skills interface or the MCP resource skill://roslyn-workbench/SKILL.md.
+
+Only if the skill cannot be accessed and Roslyn Workbench MCP is available, follow these manual instructions:
+
+- Prefer Roslyn Workbench for C# symbol navigation, references, compiler diagnostics, code structure, Code Actions, change-impact analysis and transactional source changes.
+- Follow the server instructions, live tool schemas, structured next actions and configured Host policy. Preview or review staged source changes before committing them.
+- Use the repository's normal tools and commands for builds, tests, package management, documentation and non-semantic file operations.
 ```
 
 The [documentation site](https://lantean-code.github.io/roslyn-workbench-mcp/) explains user-level and repository-level setup for Codex, GitHub Copilot, Claude Code and other MCP clients. User-level guidance avoids repeating the instruction when Roslyn Workbench is available across repositories, while repository guidance can provide a more specific layer for an individual codebase.

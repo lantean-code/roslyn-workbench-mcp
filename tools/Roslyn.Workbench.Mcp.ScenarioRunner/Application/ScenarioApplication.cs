@@ -176,12 +176,23 @@ internal static class ScenarioApplication
             var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
             var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(repositoryRoot);
 
+            int? maxConcurrentQueries = null;
+            if (options.Command == ScenarioCommand.Concurrency
+                && scenarios.Count == 1
+                && scenarios[0].Concurrency?.ValidateSingleFlight == true)
+            {
+                maxConcurrentQueries = Math.Max(2, options.Parallelism);
+                await Console.Out.WriteLineAsync(
+                    $"Single-flight calibration Host query capacity: {maxConcurrentQueries}");
+            }
+
             await using var host = await ScenarioHost.StartAsync(
                 hostPath,
                 repositoryRoot,
                 stateDirectory,
                 options.PluginDirectory,
-                cancellationToken);
+                cancellationToken,
+                maxConcurrentQueries: maxConcurrentQueries);
             Guid? workspaceId = null;
             ExceptionDispatchInfo? runFailure = null;
             var workspaceClosed = false;

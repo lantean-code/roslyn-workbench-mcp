@@ -43,6 +43,11 @@ public sealed class RoslynWorkbenchMcpServerOptionsConfigurationTests
         options.ServerInstructions.Should().Contain("Prefer queries before mutations.");
         options.ServerInstructions.Should().Contain("https://lantean-code.github.io/roslyn-workbench-mcp/");
         options.ServerInstructions.Should().Contain("/agent/");
+        options.ServerInstructions.Should().Contain("Workflow: workspace lifecycle");
+        options.ServerInstructions.Should().Contain("Everyday inspection: start with get-solution-structure");
+        options.ServerInstructions.Should().Contain("Specialist inspection: search for callers/callees");
+        options.ServerInstructions.Should().Contain("search for the relevant capability or exact tool name, then read its schema before calling");
+        options.ServerInstructions.Should().Contain("they do not hide tools or control client loading");
         actualListToolsResult.Should().BeSameAs(listToolsResult);
         actualCallToolResult.Should().BeSameAs(callToolResult);
         pluginRequestHandler.Verify(
@@ -72,10 +77,16 @@ public sealed class RoslynWorkbenchMcpServerOptionsConfigurationTests
 
         target.Configure(options);
 
-        options.ServerInstructions.Should().Contain(expectedWorkflow);
-        options.ServerInstructions.Should().Contain(expectedEnding);
-        options.ServerInstructions.Should().Contain("skill://roslyn-workbench/SKILL.md");
-        options.ServerInstructions!.Length.Should().BeLessThanOrEqualTo(512);
+        var instructions = options.ServerInstructions!;
+        var initialGuidance = instructions[..instructions.IndexOf("Workflow:", StringComparison.Ordinal)];
+
+        initialGuidance.Should().Contain(expectedWorkflow);
+        initialGuidance.Should().Contain(expectedEnding);
+        initialGuidance.Should().Contain("fully trusted C# workspaces");
+        initialGuidance.Should().Contain("workflow, everyday inspection, specialist inspection");
+        initialGuidance.Should().Contain("skill://roslyn-workbench/SKILL.md");
+        initialGuidance.Length.Should().BeLessThanOrEqualTo(512);
+        instructions.Length.Should().BeLessThanOrEqualTo(4096);
     }
 
     [Theory]
@@ -91,9 +102,15 @@ public sealed class RoslynWorkbenchMcpServerOptionsConfigurationTests
 
         target.Configure(options);
 
-        options.ServerInstructions.Should().Contain("transaction-validate");
-        options.ServerInstructions.Should().Contain("review/commit revalidate");
-        options.ServerInstructions!.Length.Should().BeLessThanOrEqualTo(512);
+        var instructions = options.ServerInstructions!;
+        var initialGuidance = instructions[..instructions.IndexOf("Workflow:", StringComparison.Ordinal)];
+
+        initialGuidance.Should().Contain("transaction-validate");
+        initialGuidance.Should().Contain("review/commit revalidate");
+        initialGuidance.Should().Contain("workflow, everyday inspection, specialist inspection");
+        initialGuidance.Should().Contain("skill://roslyn-workbench/SKILL.md");
+        initialGuidance.Length.Should().BeLessThanOrEqualTo(512);
+        instructions.Length.Should().BeLessThanOrEqualTo(4096);
     }
 
     private static RequestContext<TParams> CreateContext<TParams>(TParams parameters)

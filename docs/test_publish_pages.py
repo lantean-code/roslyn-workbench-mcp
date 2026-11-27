@@ -18,6 +18,21 @@ spec.loader.exec_module(publisher)
 
 
 class PublishPagesTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # Byte-for-byte fixtures must not inherit the deployed site's edge mode.
+        self.enterContext(patch.dict(os.environ, {"RW_EDGE_VERIFICATION": "false"}))
+
+    def test_edge_verification_uses_the_edge_verifier(self) -> None:
+        with (
+            patch.dict(os.environ, {"RW_EDGE_VERIFICATION": "true"}),
+            patch("verify_edge.verify_edge_site") as verify,
+            patch.object(publisher, "request_bytes") as request,
+        ):
+            root = Path("site")
+            publisher.verify_public_site(root, "https://example.test/")
+            verify.assert_called_once_with(root, "https://example.test/")
+            request.assert_not_called()
+
     def environment(self) -> dict[str, str]:
         return {
             "GITHUB_SHA": "commit",

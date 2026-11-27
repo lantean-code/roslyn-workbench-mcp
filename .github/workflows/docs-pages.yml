@@ -7,6 +7,7 @@ on:
       - ".github/workflows/docs-pages.yml"
       - "assets/**"
       - "docs/content/**"
+      - "docs/website/**"
       - "docs/examples/**"
       - "docs/overrides/**"
       - "docs/release/release-notes.md"
@@ -27,6 +28,11 @@ on:
       - "global.json"
       - "nuget.config"
 
+env:
+  RW_SITE_URL: ${{ vars.RW_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/' }}
+  RW_DOCS_SITE_URL: ${{ vars.RW_DOCS_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/docs/' }}
+  RW_EDGE_VERIFICATION: ${{ vars.RW_EDGE_VERIFICATION || 'false' }}
+
 permissions:
   contents: read
 
@@ -39,11 +45,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -54,10 +60,12 @@ jobs:
         run: python docs/build.py
       - name: Test release-note rendering
         run: python -m unittest discover -s tools/release -p test_render_release_notes.py
-      - name: Test Pages publication
-        run: python -m unittest discover -s docs -p test_publish_pages.py
+      - name: Test documentation publication
+        run: python -m unittest discover -s docs -p "test_*.py"
       - name: Test skill distribution
         run: python -m unittest discover -s docs -p test_skill.py
+      - name: Test command copying
+        run: node docs/test_website_copy.cjs
       - name: Validate documentation
         # Repository-owned public URLs are checked after their deployment below.
         run: python docs/validate.py --check-external --skip-project-links
@@ -82,11 +90,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -99,12 +107,16 @@ jobs:
         run: |
           git config user.name "lantean-code"
           git config user.email "lanteancode@gmail.com"
+      - name: Prepare complete publication tree
+        run: python docs/website.py --update-branch
       - name: Publish development documentation
         env:
           MIKE_DOCS_VERSION: dev
         run: mike deploy --config-file docs/mkdocs.yml --branch gh-pages --update-aliases dev
       - name: Validate versioned development documentation
         run: python docs/validate.py --deployment-version dev
+      - name: Compose and validate complete site
+        run: python docs/website.py --update-branch --fresh-version dev
       - name: Push development documentation
         run: git push origin gh-pages
       - name: Prepare Pages deployment

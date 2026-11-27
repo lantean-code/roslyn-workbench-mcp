@@ -2,9 +2,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Skills;
 using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
+
+#pragma warning disable MCPEXP005 // Exercise published Skills discovery and verified reads through the real SDK client.
 
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
@@ -14,8 +17,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan _invocationTimeout = TimeSpan.FromSeconds(30);
 
-    // MCP C# SDK 1.4.1 waits before closing stdin, so keep its forced-cleanup fallback short; direct EOF coverage owns graceful Host shutdown evidence.
-    private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 
     private readonly object _standardErrorLock = new();
     private readonly StringBuilder _standardError = new();
@@ -86,6 +88,24 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
         var resourceUri = new Uri(uri);
         return await GetClient().ReadResourceAsync(resourceUri, cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<IList<Skill>> ListSkillsAsync(CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().ListSkillsAsync(cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<Skill> GetSkillAsync(string uri, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().GetSkillAsync(uri, cancellationToken: timeoutSource.Token);
+    }
+
+    public async Task<ReadResourceResult> ReadSkillResourceAsync(Skill skill, string uri, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
+        return await GetClient().ReadSkillResourceAsync(skill, uri, cancellationToken: timeoutSource.Token);
     }
 
     public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(
@@ -474,6 +494,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             var clientOptions = new McpClientOptions
             {
                 InitializationTimeout = _initializationTimeout,
+                // This known discovery-capable Host can cold-start beyond the SDK's separate probe budget.
+                DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
             };
 
             if (_elicitationHandler is not null)

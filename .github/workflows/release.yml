@@ -26,6 +26,11 @@ on:
           - github-packages
           - nuget-org
 
+env:
+  RW_SITE_URL: ${{ vars.RW_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/' }}
+  RW_DOCS_SITE_URL: ${{ vars.RW_DOCS_SITE_URL || 'https://lantean-code.github.io/roslyn-workbench-mcp/docs/' }}
+  RW_EDGE_VERIFICATION: ${{ vars.RW_EDGE_VERIFICATION || 'false' }}
+
 permissions:
   contents: read
 
@@ -74,11 +79,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -87,8 +92,8 @@ jobs:
         run: dotnet tool restore
       - name: Test release evidence utility
         run: python -m unittest tools/release/test_supply_chain_evidence.py
-      - name: Test Pages publication
-        run: python -m unittest discover -s docs -p test_publish_pages.py
+      - name: Test documentation publication
+        run: python -m unittest discover -s docs -p "test_*.py"
       - name: Calculate release identity
         run: dotnet tool run dotnet-gitversion /output json /nonormalize /nocache > "${{ runner.temp }}/gitversion.json"
       - name: Resolve release channel
@@ -272,7 +277,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Download release candidate
@@ -409,7 +414,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Download validated release candidate
@@ -512,11 +517,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -533,13 +538,17 @@ jobs:
           --commit "${{ needs.prepare.outputs.commit }}"
           --full-semver "${{ needs.prepare.outputs.full-semver }}"
           --source-distance "${{ needs.prepare.outputs.source-distance }}"
+      - name: Compose and validate complete site
+        run: python docs/website.py --update-branch
       - name: Prepare Pages deployment
         id: pages-site
         run: |
-          site_commit=$(git rev-parse 'refs/remotes/origin/gh-pages^{commit}')
+          site_commit=$(git rev-parse 'gh-pages^{commit}')
           echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
           mkdir -p "${{ runner.temp }}/pages-site"
           git archive "$site_commit" | tar -x -C "${{ runner.temp }}/pages-site"
+      - name: Push complete publication tree
+        run: git push origin gh-pages
       - name: Upload Pages deployment
         id: pages-artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -579,11 +588,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Download verified release candidate
@@ -641,11 +650,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Download verified release candidate
@@ -704,7 +713,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Download verified release candidate
@@ -724,3 +733,15 @@ jobs:
             "artifacts/release/package/Lantean.Roslyn.Workbench.Mcp.Plugins.${{ needs.prepare.outputs.version }}.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json
+
+  refresh-product-website:
+    name: Refresh website after stable NuGet publication
+    needs: [prepare, publish-nuget]
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false' && needs.prepare.outputs.destination == 'nuget-org'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/website-refresh.yml
+    with:
+      expected-release: ${{ needs.prepare.outputs.version }}

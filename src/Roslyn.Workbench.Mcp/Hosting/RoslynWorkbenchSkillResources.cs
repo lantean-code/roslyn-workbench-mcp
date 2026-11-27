@@ -1,3 +1,7 @@
+using ModelContextProtocol.Extensions.Skills;
+
+#pragma warning disable MCPEXP005 // Publish the bundled offline skill through the experimental SDK Skills extension.
+
 namespace Roslyn.Workbench.Mcp.Hosting;
 
 /// <summary>
@@ -6,6 +10,8 @@ namespace Roslyn.Workbench.Mcp.Hosting;
 [McpServerResourceType]
 internal static class RoslynWorkbenchSkillResources
 {
+    private const string _resourceNamePrefix = "RoslynWorkbenchSkill/";
+    private static readonly Lazy<McpServerSkill> _skillRegistration = new(CreateSkillRegistration);
     private static readonly Lazy<string> _skill = new(static () => ReadEmbeddedFile("SKILL.md"));
     private static readonly Lazy<string> _workspaces = new(static () => ReadEmbeddedFile("references/workspaces.md"));
     private static readonly Lazy<string> _selectors = new(static () => ReadEmbeddedFile("references/selectors.md"));
@@ -18,6 +24,11 @@ internal static class RoslynWorkbenchSkillResources
     private static readonly Lazy<string> _codeActions = new(static () => ReadEmbeddedFile("references/code-actions.md"));
     private static readonly Lazy<string> _renameFormat = new(static () => ReadEmbeddedFile("references/rename-format.md"));
     private static readonly Lazy<string> _recovery = new(static () => ReadEmbeddedFile("references/recovery.md"));
+
+    /// <summary>
+    /// Gets the bundled skill registration with frontmatter and a manifest matching the published Markdown resources.
+    /// </summary>
+    public static McpServerSkill Skill => _skillRegistration.Value;
 
     /// <summary>
     /// Reads the bundled skill entry point and task-specific workflow links.
@@ -159,9 +170,34 @@ internal static class RoslynWorkbenchSkillResources
     public static string ReadEmbeddedFile(string relativePath)
     {
         var assembly = typeof(RoslynWorkbenchSkillResources).Assembly;
-        using var stream = assembly.GetManifestResourceStream($"RoslynWorkbenchSkill/{relativePath}")
+        using var stream = assembly.GetManifestResourceStream($"{_resourceNamePrefix}{relativePath}")
             ?? throw new InvalidOperationException($"The bundled Roslyn Workbench skill file '{relativePath}' is missing.");
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
+    }
+
+    private static McpServerSkill CreateSkillRegistration()
+    {
+        var assembly = typeof(RoslynWorkbenchSkillResources).Assembly;
+        var resourceNames = assembly.GetManifestResourceNames()
+            .Where(static name => name.StartsWith(_resourceNamePrefix, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal);
+
+        var files = new List<McpServerSkillFile>();
+        foreach (var resourceName in resourceNames)
+        {
+            var relativePath = resourceName[_resourceNamePrefix.Length..];
+            var content = ReadEmbeddedFile(relativePath);
+            var file = McpServerSkillFile.FromText(relativePath, content, "text/markdown");
+            files.Add(file);
+        }
+
+        var options = new McpServerSkillPackageCreateOptions
+        {
+            Uri = "skill://roslyn-workbench/SKILL.md",
+        };
+
+        var package = McpServerSkillPackage.Create(files, options);
+        return package.Skill;
     }
 }

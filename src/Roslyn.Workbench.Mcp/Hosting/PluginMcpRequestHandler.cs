@@ -47,8 +47,6 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
         });
     }
 
-#pragma warning disable MCPEXP001
-
     /// <summary>
     /// Invokes a published plugin tool.
     /// </summary>
@@ -68,7 +66,8 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
                 McpErrorCode.InvalidParams);
         }
 
-        if (context.Params?.Task is not null)
+        // The SDK no longer models the legacy task field; retain rejection before invoking a plugin.
+        if (context.JsonRpcRequest.Params?["task"] is not null)
         {
             throw new RoslynWorkbenchMcpProtocolException(
                 $"Tool '{toolName}' does not support task-augmented execution.",
@@ -78,5 +77,4 @@ internal sealed class PluginMcpRequestHandler : IPluginMcpRequestHandler
         return tool.InvokeAsync(context, cancellationToken);
     }
 
-#pragma warning restore MCPEXP001
 }

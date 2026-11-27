@@ -1,3 +1,8 @@
+---
+title: Workspaces and reviewable source transactions
+description: Load trusted C# workspaces, stage changes, inspect transaction previews and commit or roll back source edits with Roslyn Workbench MCP.
+---
+
 # Workspaces and safe transactions
 
 Use small transactions to stage, inspect and either persist or discard one coherent source change. Start with [Loading and inspecting workspaces](workspaces.md) if you have not opened a trusted Workspace.

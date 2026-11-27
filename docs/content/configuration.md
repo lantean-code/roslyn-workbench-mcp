@@ -1,3 +1,8 @@
+---
+title: Configure Roslyn Workbench MCP
+description: Configure operational modes, plugins and workspace policies for the local Roslyn Workbench MCP server.
+---
+
 # Configuration reference
 
 Choose an operational mode first. Most users can leave resource and reporting limits at their defaults.

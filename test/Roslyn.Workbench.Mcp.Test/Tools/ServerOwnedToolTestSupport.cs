@@ -45,7 +45,6 @@ internal static class ServerOwnedToolTestSupport
 
         server.SetupGet(value => value.ServerOptions).Returns(new McpServerOptions());
         server.SetupGet(value => value.Services).Returns(new Mock<IServiceProvider>().Object);
-        server.SetupGet(value => value.LoggingLevel).Returns((LoggingLevel?)null);
         server.SetupGet(value => value.SessionId).Returns("session");
         server.SetupGet(value => value.NegotiatedProtocolVersion).Returns("2025-06-18");
         server.Setup(value => value.RunAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
